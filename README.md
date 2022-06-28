@@ -17,7 +17,14 @@ A Directory For A Monero Circular Economy
 
 *When making contributions:*
 
-- Alphabetize your edits (make sure the first letter of the entry to the list is in correct ABC order for the list)
+- Alphabetize your edits (make sure the first letter of the entry to the list is in correct ABC order for the list).
+- Include a description of the product or service next to your entry.
 - When possible, include the Location. Example: Location: New York, USA.
-- When possible, include the payments processor: Example: Coin Payments.
-- When possible, add a verified checkmark if it's a service you have used.
+- When possible, include the payments processor: Example: Processor: Coin Payments.
+- When possible, add a verified checkmark if it's a service you have used (alternatively, if it's not a valid service, use the X symbol).
+
+--------------
+
+### Donations
+
+You can donate to help with hosting and admin costs by sending Monero to: `8BzHMDw2UaXNpCZM9wxABXW3qAKMxM2WxDGuDWSf5x5v7t1PdWdMfdLCzdtK8Eb9C5ZHcEHNR85bcbWhuK8SLCH46Pvy71q`
