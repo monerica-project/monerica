@@ -3,7 +3,7 @@
 A Directory For A Monero Circular Economy
 --------------
 
-Steps to contribute:
+*Steps to contribute:*
 
 1) Sign into GitHub (create a new account if you don't have one)
 2) Fork this repo by clicking the Fork button on: https://github.com/monerica-project/monerica
@@ -12,3 +12,12 @@ Steps to contribute:
 5) Set your push URL to your forked copy: `git remote set-url --push origin YOUR_FORKED_URL` (ex: YOUR_FORKED_URL = `https://github.com/YOURUSERNAME/monerica.git`)
 6) Go into the directory you have on your computer, make commits for the edits. For example, find the `index.html` page and make changes to it.
 7) Create a pull request with your changes to the source repo
+
+--------------
+
+*When making contributions:*
+
+- Alphabetize your edits (make sure the first letter of the entry to the list is in correct ABC order for the list)
+- When possible, include the Location. Example: Location: New York, USA.
+- When possible, include the payments processor: Example: Coin Payments.
+- When possible, add a verified checkmark if it's a service you have used.
