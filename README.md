@@ -20,6 +20,7 @@ A Directory For A Monero Circular Economy
 - Alphabetize your edits (make sure the first letter of the entry to the list is in correct ABC order for the list).
 - Include a description of the product or service next to your entry.
 - If necessary, add notes to your entry. For example, if there is a Monero discount, minimum order amount, country restrictions, etc. please include them. Example: (Notes: 15% Monero discount)
+- HTML encode all entities, do not use things like emoji symbols without encoding. 
 - When possible, include the location. Example: Location: New York, USA.
 - When possible, include the payment processor. Example: Processor: Coin Payments.
 - When possible, add a verified checkmark if it's a service you have used (alternatively, if it's not a valid service, use the X symbol).
