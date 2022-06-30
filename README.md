@@ -21,7 +21,7 @@ A Directory For A Monero Circular Economy
 - Include a description of the product or service next to your entry.
 - If necessary, add notes to your entry. For example, if there is a Monero discount, minimum order amount, country restrictions, etc. please include them. Example: (Notes: 15% Monero discount)
 - When possible, include the location. Example: Location: New York, USA.
-- When possible, include the payments processor: Example: Processor: Coin Payments.
+- When possible, include the payment processor. Example: Processor: Coin Payments.
 - When possible, add a verified checkmark if it's a service you have used (alternatively, if it's not a valid service, use the X symbol).
 
 --------------
