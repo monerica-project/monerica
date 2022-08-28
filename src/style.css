@@ -1,0 +1,79 @@
+* {
+	box-sizing: border-box;
+}
+body {
+	background-color: #0a0a0a;
+	color: #FFFFFF;
+	font-family: Helvetica;
+	margin: 0px;
+}
+h1 {
+	font-size: 40px;
+	margin-bottom: 0px;
+}
+h2 {
+	font-size: 22px;
+	margin-top: 0px;
+}
+
+#main-content {
+	margin: 10%;
+	padding: 20px;
+}
+@media (max-width: 800px) {
+	#main-content {
+		margin: 0%;
+	}
+}
+
+a {
+	color: #008cff
+}
+
+a:hover {
+	text-decoration: none;
+}
+
+.right {
+	text-align: right;
+}
+
+.multi-line-text {
+	word-break: break-all;
+	font-family: monospace;
+	user-select: all;
+}
+.title-container {
+	padding: 10%;
+	background: linear-gradient(90deg, #e100ff  0%, #ff5100 100%);
+	
+}
+li {
+	padding: 3px;
+}
+
+img {
+	display: inline-block;
+}
+
+.xmr-logo {
+	position: relative;
+	opacity: 0.7;
+	animation-name: logomove;
+	animation-duration: 8s;
+	animation-iteration-count: infinite;
+}
+@keyframes logomove {
+	0% {
+		top: -10px;
+		opacity: 0.2;
+	}
+	50% {
+		top: 20px;
+		opacity: 0.5;
+	}
+	100% {
+		top: -10px;
+		opacity: 0.2;
+	}
+}
