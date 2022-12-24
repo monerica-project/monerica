@@ -5,7 +5,7 @@ A Directory For A Monero Circular Economy
 
 *Steps to contribute with a Pull Request:*
 
-Note: If you are unable to make a Pull Request, simply create a "New Issue" describing the change you want to make on this page: [Issues](https://github.com/monerica-project/monerica/issues).
+Note: If you are unable to make a Pull Request, simply create a "New issue" describing the change you want to make on this page: [Issues](https://github.com/monerica-project/monerica/issues).
 
 1) Sign into [GitHub](https://github.com/login) (create a new account if you don't have one already)
 2) Fork this repo by clicking the Fork button on: https://github.com/monerica-project/monerica
