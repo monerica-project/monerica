@@ -3,9 +3,11 @@
 A Directory For A Monero Circular Economy
 --------------
 
-*Steps to contribute:*
+*Steps to contribute with a Pull Request:*
 
-1) Sign into GitHub (create a new account if you don't have one)
+Note: If you are unable to make a Pull Request, simply create a "New Issue" describing the change you want to make on this page: [Issues](https://github.com/monerica-project/monerica/issues).
+
+1) Sign into [GitHub](https://github.com/login) (create a new account if you don't have one already)
 2) Fork this repo by clicking the Fork button on: https://github.com/monerica-project/monerica
 3) Clone your forked copy of the the repo locally (using [Git](https://git-scm.com/))
 4) Change your remote so that you are pulling code from the source repo. Go into your cloned directory and run this command: `git remote set-url origin https://github.com/monerica-project/monerica.git`
