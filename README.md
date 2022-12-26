@@ -30,6 +30,12 @@ Note: If you are unable to make a Pull Request, simply create a "New issue" desc
 
 --------------
 
+*Additional notes:*
+
+- The "Last update" date is the day in UTC time of the last time the page was modified 
+
+--------------
+
 ### Donations
 
 You can donate to help with hosting and admin costs by sending Monero to: `8BzHMDw2UaXNpCZM9wxABXW3qAKMxM2WxDGuDWSf5x5v7t1PdWdMfdLCzdtK8Eb9C5ZHcEHNR85bcbWhuK8SLCH46Pvy71q`
