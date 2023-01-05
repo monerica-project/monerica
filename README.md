@@ -22,7 +22,7 @@ Note: If you are unable to make a Pull Request, simply create a "New issue" desc
 
 - Follow the format: [Approved logo/ Not approved logo]; Entry [title and link]; - Description; Location; Processor; *(Note: details)*
 
-    Example: ✅ Spore Baby - Mushroom spores. Location: Nevada, USA. Processor: Coin Payments. *(Note: The sale and possession of cubensis mushroom spores is legal in the United States however they can't ship to Idaho, California, or Georgia due to their state laws)*
+    Example: ✅ [Spore Baby](https://sporebaby.com/) - Mushroom spores. Location: Nevada, USA. Processor: Coin Payments. *(Note: The sale and possession of cubensis mushroom spores is legal in the United States however they can't ship to Idaho, California, or Georgia due to their state laws)*
 - Alphabetize your edits (make sure the category, sub-category and listing are in correct ABC order).
 - Include a description of the product or service next to your entry.
 - The website you link to **must** clearly state that it accepts Monero somewhere or have it on the checkout page. If this isn't present there is no way to confirm that the business accepts Monero.
