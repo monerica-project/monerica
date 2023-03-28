@@ -48,7 +48,7 @@ Note: If you are unable to make a Pull Request, simply create a "New issue" desc
 *Additional notes:*
 
 - The "Last update" date on the page is the day in UTC time of the last time the page was modified, this date is set by the maintainer who takes changes and makes them live. 
-
+- The email contact for this project is: monerican@gmail.com
 --------------
 
 ### Donations
