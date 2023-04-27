@@ -34,6 +34,32 @@
             word-break: break-all;
         }
 
+        /* begin: expandable lists */
+
+        #hidden {
+            display: none; 
+        }
+:checked + #hidden {
+  display: block;
+}
+ 
+ul#categories_list {
+  list-style-type: none;
+  margin: 0;
+  padding: 0;
+}
+
+ul#categories_list li label {
+ font-size: 18px;
+ font-weight: bold;
+}
+
+ul#categories_list li input[type=checkbox] {
+    display:none; }
+ 
+
+        /* end: expandable lists */
+
         /* begin banner style */
         div#banner {
           text-align: center;
@@ -79,6 +105,8 @@
             and behaviors of others through surveillance and overreaching regulations.
         </p>
 
+        <hr />
+
         <p>
             <i>
                 Note: None of the provided links
@@ -94,7 +122,7 @@
             &#10060; - indicates someone in the community has reported this a scam
         </p>
 
-        <p><b>Last update:</b> April 26th, 2023</p>
+        <p><b>Last update:</b> April 27th, 2023</p>
 
         <p>Propose revisions on: <a href="https://github.com/monerica-project/monerica">GitHub</a>.
             Donate <a href="#donate">here</a>.
@@ -103,48 +131,525 @@
         <hr />
 
         <p><b id="categories">Categories</b></p>
-        <ul>
+        <ul id="categories_list">
             <li>
+                <label for="businesses_checkbox">+</label>
+        
                 <a href="#businesses">Businesses</a>
+
+                <input type="checkbox" id="businesses_checkbox" />
+                <div id="hidden">
+                    <ul>
+                        <li>
+                            <a href="#accounting">Accounting</a>
+                        </li>
+                        <li>
+                            <a href="#artwork">Artwork</a>
+                        </li>
+                        <li>
+                            <a href="#astrology">Astrology</a>
+                        </li>
+                        <li>
+                            <a href="#automotives">Automotives</a>
+                        </li>
+                        <li>
+                            <a href="#blockchain-services">Blockchain Services</a>
+                        </li>
+                        <li>
+                            <a href="#business-directories">Business Directories</a>
+                        </li>
+                        <li>
+                            <a href="#clothing-apperal-and-accessories">Clothing, Apperal &amp; Accessories
+                            </a>
+                        </li>
+                        <li>
+                            <a href="#counseling-and-therapy">Counseling &amp; Therapy</a>
+                        </li>
+                        <li>
+                            <a href="#design-services">Design Services</a>
+                        </li>
+                        <li>
+                            <a href="#djs">DJs</a>
+                        </li>
+                        <li>
+                            <a href="#e-mail-providers-and-forwarders">E-Mail Providers/ Forwarders</a>
+                        </li>
+                        <li>
+                            <a href="#electricians">Electricians</a>
+                        </li>
+                        <li>
+                            <a href="#food-and-drink">Food &amp; Drink</a>
+                        </li>
+                        <li>
+                            <a href="#gambling">Gambling</a>
+                        </li>
+                        <li>
+                            <a href="#gardening">Gardening</a>
+                        </li>
+                        <li>
+                            <a href="#giftcards-and-pre-paid-cards">Giftcards/ Pre-Paid Cards</a>
+                        </li>
+                        <li>
+                            <a href="#legal-services">Legal Services</a>
+                        </li>
+                        <li>
+                            <a href="#locksmiths">Locksmiths</a>
+                        </li>
+                        <li>
+                            <a href="#luxury-goods">Luxury Goods</a>
+                        </li>
+                        <li>
+                            <a href="#marketplaces">Marketplaces</a>
+                        </li>
+                        <li>
+                            <a href="#medical">Medical</a>
+                        </li>
+                        <li>
+                            <a href="#membership">Membership</a>
+                        </li>
+                        <li>
+                            <a href="#businesses-miscellaneous">Miscellaneous</a>
+                        </li>
+                        <li>
+                            <a href="#monero-merchandise">Monero Merchandise</a>
+                        </li>
+                        <li>
+                            <a href="#pets">Pets</a>
+                        </li>
+                        <li>
+                            <a href="#phone-plans-and-sim-cards">Phone Plans &amp; Sim Cards</a>
+                        </li>
+                        <li>
+                            <a href="#pornography">Pornography</a>
+                        </li>
+                        <li>
+                            <a href="#postage-and-shipping-services">Postage &amp; Shipping Services</a>
+                        </li>
+                        <li>
+                            <a href="#precious-metals">Precious Metals</a>
+                        </li>
+                        <li>
+                            <a href="#proxies">Proxies</a>
+                        </li>
+                        <li>
+                            <a href="#real-estate-services">Real Estate Services</a>
+                        </li>
+                        <li>
+                            <a href="#recycling">Recycling</a>
+                        </li>
+                        <li>
+                            <a href="#residency">Residency</a>
+                        </li>
+                        <li>
+                            <a href="#businesses-technology">Technology</a>
+                        </li>
+                        <li>
+                            <a href="#tobacco-products">Tobacco Products</a>
+                        </li>
+                        <li>
+                            <a href="#translation">Translation</a>
+                        </li>
+                        <li>
+                            <a href="#travel">Travel</a>
+                        </li>
+                        <li>
+                            <a href="#vpn-companies">VPN Companies</a>
+                        </li>
+                        <li>
+                            <a href="#weapons-and-self-defense">Weapons &amp; Self-Defense</a>
+                        </li>
+                        <li>
+                            <a href="#web-hosting">Web Hosting</a>
+                        </li>
+                    </ul>
+                </div>
             </li>
             <li>
+                <label for="communities_checkbox">+</label>
                 <a href="#communities">Communities</a>
+ 
+                <input type="checkbox" id="communities_checkbox" />
+                <div id="hidden">
+                    <ul>
+                        <li>
+                            <a href="#chatrooms">Chatrooms</a>
+                        </li>
+                        <li>
+                            <a href="#forums">Forums</a>
+                        </li>
+                        <li>
+                            <a href="#offline-conferences">Offline Conferences</a>
+                        </li>
+                        <li>
+                            <a href="#online-communities">Online Communities</a>
+                        </li>
+                        <li>
+                            <a href="#communities-other">Other</a>
+                        </li>
+                        <li>
+                            <a href="#technical-questions">Technical Questions</a>
+                        </li>
+                    </ul>
+                </div>
             </li>
             <li>
+
+                <label for="education_checkbox">+</label>
                 <a href="#education">Education</a>
+ 
+                <input type="checkbox" id="education_checkbox" />
+                <div id="hidden">
+                    <ul>
+                        <li>
+                            <a href="#e-books">E-Books</a>
+                        </li>
+                        <li>
+                            <a href="#education-guides">Guides</a>
+                        </li>
+                        <li>
+                            <a href="#education-knowledge">Knowledge</a>
+                        </li>
+                        <li>
+                            <a href="#physical-books">Physical Books</a>
+                        </li>
+                        <li>
+                            <a href="#education-research">Research</a>
+                        </li>
+                        <li>
+                            <a href="#education-tutorials">Tutorials</a>
+                        </li>
+                    </ul>
+                </div>
+
             </li>
             <li>
+
+                <label for="exchanges_checkbox">+</label>
                 <a href="#exchanges">Exchanges</a>
+ 
+                <input type="checkbox" id="exchanges_checkbox" />
+                <div id="hidden">
+                    <ul>
+                        <li>
+                            <a href="#atomic-swaps">Atomic Swaps</a>
+                        </li>
+                        <li>
+                            <a href="#exchanges-atms">ATMs</a>
+                        </li>
+                        <li>
+                            <a href="#exchange-comparision-and-aggregation">Exchange Comparision/ Aggregation</a>
+                        </li>
+                        <li>
+                            <a href="#kyc-exchanges-non-united-states">KYC Exchanges (Non-United States)</a>
+                        </li>
+                        <li>
+                            <a href="#kyc-exchanges-united-states">KYC Exchanges (United States)</a>
+                        </li>
+                        <li>
+                            <a href="#non-kyc-exchanges">Non-KYC Exchanges</a>
+                        </li>
+                        <li>
+                            <a href="#peer-to-peer-exchanges">Peer to Peer Exchanges</a>
+                        </li>
+                    </ul>
+                </div>
+
             </li>
             <li>
+             
+                <label for="finance_checkbox">+</label>
                 <a href="#finance">Finance</a>
+ 
+                <input type="checkbox" id="finance_checkbox" />
+                <div id="hidden">
+                    <ul>
+                        <li>
+                            <a href="#finance-calculator">Calculator</a>
+                        </li>
+                        <li>
+                            <a href="#finance-charts">Charts</a>
+                        </li>
+                        <li>
+                            <a href="#finance-conversion">Conversion</a>
+                        </li>
+                        <li>
+                            <a href="#interest-and-loans">Interest/ Loans</a>
+                        </li>
+                        <li>
+                            <a href="#market-cap-comparision">Market Cap Comparision</a>
+                        </li>
+                        <li>
+                            <a href="#price-display">Price Display</a>
+                        </li>
+                    </ul>
+                </div>
             </li>
             <li>
+
+                <label for="jobs_checkbox">+</label>
                 <a href="#jobs">Jobs</a>
+ 
+                <input type="checkbox" id="jobs_checkbox" />
+                <div id="hidden">
+                    <ul>
+                        <li>
+                            <a href="#bounties">Bounties</a>
+                        </li>
+                        <li>
+                            <a href="#crowdfunding">Crowdfunding</a>
+                        </li>
+                        <li>
+                            <a href="#freelance">Freelance</a>
+                        </li>
+                        <li>
+                            <a href="#fundraising">Fundraising</a>
+                        </li>
+                        <li>
+                            <a href="#grants">Grants</a>
+                        </li>
+                    </ul>
+                </div>
             </li>
             <li>
+              
+                <label for="media_checkbox">+</label>
                 <a href="#media">Media</a>
+ 
+                <input type="checkbox" id="media_checkbox" />
+                <div id="hidden">
+                    <ul>
+                        <li>
+                            <a href="#media-artwork">Artwork</a>
+                        </li>
+                        <li>
+                            <a href="#media-Miscellaneous">Miscellaneous</a>
+                        </li>
+                        <li>
+                            <a href="#news-aggregators">News Aggregators</a>
+                        </li>
+                        <li>
+                            <a href="#newsletters">Newsletters</a>
+                        </li>
+                        <li>
+                            <a href="#news-czech">News (Czech)</a>
+                        </li>
+                        <li>
+                            <a href="#news-english">News (English)</a>
+                        </li>
+                        <li>
+                            <a href="#news-russian">News (Russian)</a>
+                        </li>
+                        <li>
+                            <a href="#news-taiwanese">News (Taiwanese)</a>
+                        </li>
+                        <li>
+                            <a href="#radio-stations">Radio Stations</a>
+                        </li>
+                        <li>
+                            <a href="#social-media-twitter">Social Media (Twitter)</a>
+                        </li>
+                        <li>
+                            <a href="#talk-shows-and-podcasts-english">Talk Shows/ Podcasts (English)</a>
+                        </li>
+                        <li>
+                            <a href="#talk-shows-and-podcasts-german">Talk Shows/ Podcasts (German)</a>
+                        </li>
+                        <li>
+                            <a href="#youtube-channels-english">YouTube Channels (English)</a>
+                        </li>
+                        <li>
+                            <a href="#youtube-channels-german">YouTube Channels (German)</a>
+                        </li>
+                        <li>
+                            <a href="#youtube-channels-spanish">YouTube Channels (Spanish)</a>
+                        </li>
+                        <li>
+                            <a href="#youtube-channels-russian">YouTube Channels (Russian)</a>
+                        </li>
+                    </ul>
+                </div>
             </li>
             <li>
+          
+                <label for="#merchant-services_checkbox">+</label>
                 <a href="#merchant-services">Merchant Services</a>
+ 
+                <input type="checkbox" id="#merchant-services_checkbox" />
+                <div id="hidden">
+                    <ul>
+                        <li>
+                            <a href="#merchant-services-atms">ATMs</a>
+                        </li>
+                        <li>
+                            <a href="#integrations">Integrations</a>
+                        </li>
+                        <li>
+                            <a href="#merchant-services-open-source-projects">Open Source Projects</a>
+                        </li>
+                    </ul>
+                </div>
+
             </li>
             <li>
+
+                <label for="mining_checkbox">+</label>
                 <a href="#mining">Mining</a>
+ 
+                <input type="checkbox" id="mining_checkbox" />
+                <div id="hidden">
+                    <ul>
+                        <li>
+                            <a href="#mining-apps">Apps</a>
+                        </li>
+                        <li>
+                            <a href="#mining-calculators">Calculators</a>
+                        </li>
+                        <li>
+                            <a href="#mining-guides">Guides</a>
+                        </li>
+                        <li>
+                            <a href="#mining-miscellaneous">Miscellaneous</a>
+                        </li>
+                        <li>
+                            <a href="#mining-pools">Pools</a>
+                        </li>
+                        <li>
+                            <a href="#mining-rentals">Rentals</a>
+                        </li>
+                        <li>
+                            <a href="#mining-software">Software</a>
+                        </li>
+                    </ul>
+                </div>
             </li>
             <li>
+
+                <label for="non-profits_checkbox">+</label>
                 <a href="#non-profits">Non-Profits</a>
+ 
+                <input type="checkbox" id="non-profits_checkbox" />
+                <div id="hidden">
+                    <ul>
+                        <li>
+                            <a href="#activism">Activism</a>
+                        </li>
+                        <li>
+                            <a href="#non-profits-media">Media</a>
+                        </li>
+                        <li>
+                            <a href="#non-profits-medical">Medical</a>
+                        </li>
+                        <li>
+                            <a href="#non-profits-miscellaneous">Miscellaneous</a>
+                        </li>
+                        <li>
+                            <a href="#non-profits-operating-systems">Operating Systems</a>
+                        </li>
+                        <li>
+                            <a href="#non-profits-research">Research</a>
+                        </li>
+                        <li>
+                            <a href="#non-profits-science">Science</a>
+                        </li>
+                        <li>
+                            <a href="#non-profits-security">Security</a>
+                        </li>
+                        <li>
+                            <a href="#non-profits-technologies">Technologies</a>
+                        </li>
+                    </ul>
+                </div>
+
             </li>
             <li>
+                
+                <label for="official-sites_checkbox">+</label>
                 <a href="#official-sites">Official Sites</a>
+ 
+                <input type="checkbox" id="official-sites_checkbox" />
+                <div id="hidden">
+                    <ul>
+                        <li>
+                            <a href="#official-sites-code">Code</a>
+                        </li>
+                        <li>
+                            <a href="#official-sites-project-homepage">Project Homepage</a>
+                        </li>
+                    </ul>
+                </div>
+
             </li>
             <li>
+
+                <label for="onions_checkbox">+</label>
                 <a href="#onions">Onions</a>
+ 
+                <input type="checkbox" id="onions_checkbox" />
+                <div id="hidden">
+                    <ul>
+                        <li>
+                            <a href="#onions-mirrors">Mirrors</a>
+                        </li>
+                        <li>
+                            <a href="#onions-monero-onions">Monero Onions</a>
+                        </li>
+
+                    </ul>
+                </div>
             </li>
             <li>
+                <label for="utilities_checkbox">+</label>
                 <a href="#utilities">Utilities</a>
+ 
+                <input type="checkbox" id="utilities_checkbox" />
+                <div id="hidden">
+                    <ul>
+                        <li>
+                            <a href="#address-verification">Address Verification</a>
+                        </li>
+                        <li>
+                            <a href="#blockchain-helpers">Blockchain Helpers</a>
+                        </li>
+                        <li>
+                            <a href="#utilities-open-source-projects">Open Source Projects</a>
+                        </li>
+                        <li>
+                            <a href="#qr-code-generator">QR Code Generator</a>
+                        </li>
+
+                    </ul>
+                </div>
+
             </li>
             <li>
+
+                <label for="wallets_checkbox">+</label>
                 <a href="#wallets">Wallets</a>
+ 
+                <input type="checkbox" id="wallets_checkbox" />
+                <div id="hidden">
+                    <ul>
+                        <li>
+                            <a href="#browser-wallets">Browser Wallets</a>
+                        </li>
+                        <li>
+                            <a href="#desktop-wallets">Desktop Wallets</a>
+                        </li>
+                        <li>
+                            <a href="#hardware-wallets">Hardware Wallets</a>
+                        </li>
+                        <li>
+                            <a href="#mobile-wallets">Mobile Wallets</a>
+                        </li>
+                        <li>
+                            <a href="#multi-sig-wallets">Multi-Sig Wallets</a>
+                        </li>
+                        <li>
+                            <a href="#web-wallets">Web Wallets</a>
+                        </li>
+
+                    </ul>
+                </div>
             </li>
         </ul>
         <hr />
@@ -152,7 +657,7 @@
         <h3 id="businesses">Businesses</h3>
         <i>Buy products and services with Monero (XMR). These businesses allow you pay with Monero through a variety of payment processors or directly.</i>
 
-        <p><b>Accounting</b></p>
+        <p><b id="accounting">Accounting</b></p>
         <ul>
             <li>
                 <a href="https://www.bearbookkeepingtax.com/">Bear Bookkeeping &amp; Tax, LLC</a> - Accounting Services &amp; Consulting. 
@@ -161,7 +666,7 @@
             </li>
         </ul>
 
-        <p><b>Artwork</b></p>
+        <p><b id="artwork">Artwork</b></p>
         <ul>
             <li>
                 <a href="https://abdullahdostkhan.com/shop/">Abdullah Khan</a> - Contemporary handmade paintings <i>
@@ -178,14 +683,14 @@
             </li>
         </ul>
 
-        <p><b>Astrology</b></p>
+        <p><b id="astrology">Astrology</b></p>
         <ul>
             <li>
                 <a href="https://www.astrology-x-files.com/">Zoidiasoft Technologies</a> - Astrology software for astrologers.
             </li>
         </ul>
 
-        <p><b>Automotives</b></p>
+        <p><b id="automotives">Automotives</b></p>
         <ul>
             <li>
                 <a href="https://www.attono.net/">Attono</a> -
@@ -198,7 +703,7 @@
             </li>
         </ul>
 
-        <p><b>Blockchain Services</b></p>
+        <p><b id="blockchain-services">Blockchain Services</b></p>
         <ul>
             <li>
                 <a href="https://www.xcubicle.com/">xCubicle</a>  -
@@ -207,7 +712,7 @@
             </li>
         </ul>
 
-        <p><b>Business Directories</b></p>
+        <p><b id="business-directories">Business Directories</b></p>
         <ul>
             <li>
                 <a href="https://www.acceptedhere.io/catalog/currency/xmr/">Accepted Here</a> - Catalog of businesses accepting
@@ -224,7 +729,7 @@
             </li>
         </ul>
 
-        <p><b>Clothing, Apperal &amp; Accessories</b></p>
+        <p><b id="clothing-apperal-and-accessories">Clothing, Apperal &amp; Accessories</b></p>
         <ul>
             <li>
                 <a href="https://www.d3vur.com/">D3VUR</a> - Custom/ TempleOS/ Internet-subculture embroidered apparel. 
@@ -273,14 +778,14 @@
             </li>
         </ul>
 
-        <p><b>Counseling &amp; Therapy</b></p>
+        <p><b id="counseling-and-therapy">Counseling &amp; Therapy</b></p>
         <ul>
             <li>
                 <a href="https://xmr-psychologist.com/">XMR Psychologist</a> - Counseling &amp; therapy, licensed psychologist. Location: Germany.
             </li>
         </ul>
 
-        <p><b>Design Services</b></p>
+        <p><b id="design-services">Design Services</b></p>
         <ul>
             <li>
                 <a href="https://www.firebellycreative.com/paywithcrypto">FireBelly</a> - Design agency. Location: London, England
@@ -292,7 +797,7 @@
             </li>
         </ul>
 
-        <p><b>Digital Goods</b></p>
+        <p><b id="digital-goods">Digital Goods</b></p>
         <ul>
             <li>
                 <a href="https://www.accountwarehouse.com/">Account Warehouse</a> -
@@ -308,7 +813,7 @@
             </li>
         </ul>
 
-        <p><b>DJs</b></p>
+        <p><b id="djs">DJs</b></p>
         <ul>
             <li>
                &#9989; <a href="https://ryit.info/">RYIT</a> -
@@ -316,7 +821,7 @@
             </li>
         </ul>
 
-        <p><b>E-Mail Providers/ Forwarders</b></p>
+        <p><b id="e-mail-providers-and-forwarders">E-Mail Providers/ Forwarders</b></p>
         <ul>
 	   <li>
                 <a href="https://anonaddy.com/">AnonAddy</a> - Anonymous email forwarding.
@@ -339,14 +844,14 @@
             </li>
         </ul>
 
-        <p><b>Electricians</b></p>
+        <p><b id="electricians">Electricians</b></p>
         <ul>
             <li>
                 <a href="https://brightel.se/">Bright Elteknik AB</a> - Electrician. Location: Stockholm, Sweden.
             </li>
         </ul>
 
-        <p><b>Food &amp; Drink</b></p>
+        <p><b id="food-and-drink">Food &amp; Drink</b></p>
         <ul>
 	    <li>
                 &#9989; <a href="https://eataupa.com/">AUPA</a> - Energy/pemmican bars made without "industrial sludge". Processor: Monero Gateway. Location: Colorado, USA.
@@ -398,7 +903,7 @@
             </li>    
         </ul>
 
-        <p><b>Gambling</b></p>
+        <p><b id="gambling">Gambling</b></p>
         <i>Note: unverified winners</i>
         <ul>
             <li>
@@ -418,7 +923,7 @@
             </li>
         </ul>
 
-        <p><b>Gardening</b></p>
+        <p><b id="gardening">Gardening</b></p>
         <ul>
             <li>
                 <a href="https://amsterdammarijuanaseeds.com/">Amsterdam Marijuana Seeds</a> -
@@ -434,7 +939,7 @@
             </li>
         </ul>
 
-        <p><b>Giftcards/ Pre-Paid Cards</b></p>
+        <p><b id="giftcards-and-pre-paid-cards">Giftcards/ Pre-Paid Cards</b></p>
         <ul>
             <li>
                 &#9989;  <a href="https://allark.io/">AllArk</a> - Giftcards and pre-paid cards.
@@ -469,7 +974,7 @@
             </li>
         </ul>
 
-        <p><b>Legal Services</b></p>
+        <p><b id="legal-services">Legal Services</b></p>
         <ul>
             <li>
                 <a href="https://destinationfreedom.org/">Destination Freedom</a> - Freedom consultations
@@ -483,7 +988,7 @@
             </li>
         </ul>
 
-        <p><b>Locksmiths</b></p>
+        <p><b id="locksmiths">Locksmiths</b></p>
         <ul>
             <li>
                 <a href="https://www.seymour-locksmiths.co.uk/">Jeffrey Seymour t/a Seymour Locksmiths</a> - 
@@ -498,7 +1003,7 @@
             </li>
         </ul>
 
-        <p><b>Luxury Goods</b></p>
+        <p><b id="luxury-goods">Luxury Goods</b></p>
         <ul>
             <li>
                 <a href="https://www.bitdials.eu/">BitDials</a> 
@@ -508,7 +1013,7 @@
             </li>
         </ul>
 
-        <p><b>Marketplaces</b></p>
+        <p><b id="marketplaces">Marketplaces</b></p>
         <ul>
 	    <li>
                 <a href="https://based.win/">Based.win</a> - 
@@ -553,7 +1058,7 @@
             </li>
         </ul>
 
-        <p><b>Medical</b></p>
+        <p><b id="medical">Medical</b></p>
         <ul>
             <li>
                 &#9989; <a href="https://www.dinosupplies.store/">Dino Supplies</a> - Various modafinil products
@@ -613,7 +1118,7 @@
             </li>
         </ul>
 	    
-	<p><b>Membership</b></p>
+	<p><b id="membership">Membership</b></p>
 	<ul>
 	     <li>
 	          <a href="https://detcader.com/access/">Detcader</a> -
@@ -621,7 +1126,7 @@
 	     </li>
 	</ul>
 
-        <p><b>Miscellaneous</b></p>
+        <p><b id="businesses-miscellaneous">Miscellaneous</b></p>
         <ul>
             <li>
                 <a href="https://shop.monerodevices.com/">Monero Devices</a>
@@ -631,7 +1136,7 @@
             </li>
         </ul>
 
-        <p><b>Monero Merchandise</b></p>
+        <p><b id="monero-merchandise">Monero Merchandise</b></p>
         <ul>
             <li>
                 <a href="https://aantonop.com/product-tag/monero/">Andreas M. Antonopoulos - Shop</a> - Stickers, coffee mugs and t-shirts
@@ -686,7 +1191,7 @@
             <li><a href="https://thatmonerostore.com/">That Monero Store</a> -  Monero accessories </li>
         </ul>
 
-       <p><b>Pets</b></p>
+       <p><b id="pets">Pets</b></p>
         <ul>
           <li>
               <a href="https://www.xolosramirez.com">Xolos Ramirez</a> - We breed Xoloitzcuintle Mexican dogs.
@@ -694,7 +1199,7 @@
           </li>
         </ul>
         
-       <p><b>Phone Plans &amp; Sim Cards</b></p>
+       <p><b id="phone-plans-and-sim-cards">Phone Plans &amp; Sim Cards</b></p>
         <ul>
             <li>
                 <a href="https://anoncards.io/">AnonCards</a> - eSIM packages, prepaid SIM cards
@@ -714,7 +1219,7 @@
             </li>
         </ul>  
         
-        <p><b>Pornography</b></p>
+        <p><b id="pornography">Pornography</b></p>
         <p><i>Note: NSFW, explicit content!</i></p>
         <ul>
             <li>
@@ -723,7 +1228,7 @@
             </li>
         </ul>
 
-        <p><b>Postage &amp; Shipping Services</b></p>
+        <p><b id="postage-and-shipping-services">Postage &amp; Shipping Services</b></p>
         <ul>
             <li>
                 <a href="https://altcoinpostage.com/">AltCoin Postage</a> - Pay for shipping with USPS and Canada Post.
@@ -742,7 +1247,7 @@
             </li>
         </ul>
 
-        <p><b>Precious Metals</b></p>
+        <p><b id="precious-metals">Precious Metals</b></p>
         <ul>
             <li>
                 <a href="https://monerosilver.com/">MoneroSilver.com</a> - Buy and sell silver directly with Monero.
@@ -759,7 +1264,7 @@
             </li>
         </ul>
 
-        <p><b>Proxies</b></p>
+        <p><b id="proxies">Proxies</b></p>
         <ul>
             <li>
                 <a href="https://anonshop.app/">Anon Shop</a> - Select an item from Amazon and pay in XMR.
@@ -774,14 +1279,14 @@
             </li>
         </ul>
             
-        <p><b>Real Estate Services</b></p>
+        <p><b id="real-estate-services">Real Estate Services</b></p>
         <ul>
             <li><a href="https://www.jellyfish.market/">Jellyfish</a> - Real estate services for the sovereign individual.
                 Location: Puerto Escondido, Oaxaca.
             </li>    
         </ul>
 
-        <p><b>Recycling</b></p>
+        <p><b id="recycling">Recycling</b></p>
         <ul>
             <li>
                 <a href="https://www.goldcircuit.io/">Gold Circuit E-Cycling, LLC</a> - E-waste disposal
@@ -790,14 +1295,14 @@
             </li>
         </ul>
 
-        <p><b>Residency</b></p>
+        <p><b id="residency">Residency</b></p>
         <ul>
             <li>
                 <a href="https://permanentresidencyparaguay.com/">Permanent Residency Paraguay</a>
             </li>
         </ul>
 
-        <p><b>Technology</b></p>
+        <p><b id="businesses-technology">Technology</b></p>
         <ul>
             <li>
                 <a href="https://adhoc.zone">ADHOC</a> - Phones, laptops and ebook readers
@@ -863,7 +1368,7 @@
             </li>
         </ul>
 
-        <p><b>Tobacco Products</b></p>
+        <p><b id="tobacco-products">Tobacco Products</b></p>
         <ul>
             <li>
                 <a href="https://bitvape.com.au/">Bitvape</a> - Vaporizers and related products.
@@ -871,14 +1376,14 @@
             </li>
         </ul>
 
-        <p><b>Translation</b></p>
+        <p><b id="translation">Translation</b></p>
         <ul>
             <li>
                 <a href="https://masflam.com/translation.html">MasFlam</a> - Translation between English, Polish, Russian and Ukrainian.
             </li>
         </ul>
 
-        <p><b>Travel</b></p>
+        <p><b id="travel">Travel</b></p>
         <ul>
             <li>
                 <a href="https://www.tapjets.com/article/private-jet-pay-with-monero">TapJets</a> - Book a private jet
@@ -889,7 +1394,7 @@
             </li>
         </ul>
 
-        <p><b>VPN Companies</b></p>
+        <p><b id="vpn-companies">VPN Companies</b></p>
         <ul>
             <li>
                 &#9989; <a href="https://airvpn.org/">AirVPN</a> - A VPN based on OpenVPN and operated by activists and hacktivists in
@@ -972,7 +1477,7 @@
             </li>
         </ul>
 
-        <p><b>Weapons &amp; Self-Defense</b></p>
+        <p><b id="weapons-and-self-defense">Weapons &amp; Self-Defense</b></p>
         <ul>
             <li>
                 &#9989; <a href="https://www.crypto-armory.com/">Crypto Armory</a> -
@@ -990,7 +1495,7 @@
             </li>
         </ul>
 
-        <p><b>Web Hosting</b></p>
+        <p><b id="web-hosting">Web Hosting</b></p>
         <ul>
             <li>
                 <a href="https://abacohosting.com/we-are-now-accepting-monero-for-all-domain-registrations-hosting.html">
@@ -1060,7 +1565,7 @@
         <h3 id="communities">Communities</h3>
         <i>These are places you can communicate with Monero users and developers.</i>
         
-        <p><b>Chatrooms</b></p>
+        <p><b id="chatrooms">Chatrooms</b></p>
         <ul>
             <li>
                 <a href="https://www.getmonero.org/community/hangouts/">IRC Channels</a> - List of Monero IRC channels to discuss development and beyond.
@@ -1088,7 +1593,7 @@
             </li>
         </ul>
 
-        <p><b>Forums</b></p>
+        <p><b id="forums">Forums</b></p>
         <ul>
             <li>
                 <a href="https://forum.getmonero.org/">Monero Forum</a>
@@ -1101,7 +1606,7 @@
             </li>
         </ul>
 
-        <p><b>Offline Conferences</b></p>
+        <p><b id="offline-conferences">Offline Conferences</b></p>
         <ul>
             <li>
                 <a href="https://gunsnbitcoin.com/">Guns N&apos; Bitcoin</a>
@@ -1114,7 +1619,7 @@
             </li>
         </ul>
 
-        <p><b>Online Communities</b></p>
+        <p><b id="online-communities">Online Communities</b></p>
         <ul>
             <li>
                 <a href="https://community.hackliberty.org/c/monero">Hackers For Liberty - Monero</a> -
@@ -1158,7 +1663,7 @@
             </li>
         </ul>
 
-        <p><b>Other</b></p>
+        <p><b id="communities-other">Other</b></p>
         <ul>
             <li>
                 <a href="https://moneroecosystem.org/">Monero Ecosystem</a> - A collection of projects maintained by members of
@@ -1166,7 +1671,7 @@
             </li>
         </ul>
 
-        <p><b>Technical Questions</b></p>
+        <p><b id="technical-questions">Technical Questions</b></p>
         <ul>
             <li>
                 <a href="https://monero.stackexchange.com/">Monero Stack Exchange</a>
@@ -1182,7 +1687,7 @@
         <h3 id="education">Education</h3>
         <i>These are resources that explain how Monero works from beginner to expert level.</i>
 
-        <p><b>E-Books</b></p>
+        <p><b id="e-books">E-Books</b></p>
         <ul>
             <li>
                 <a href="https://masteringmonero.com/book/Mastering%20Monero%20First%20Edition%20by%20SerHack%20and%20Monero%20Community.pdf">Mastering Monero</a>
@@ -1195,7 +1700,7 @@
             </li>
         </ul>
 
-        <p><b>Guides</b></p>
+        <p><b id="education-guides">Guides</b></p>
         <ul>
             <li>
                 <a href="https://anarkio.codeberg.page/monero">Anarkio Codeberg</a> - How to get started using, accepting and spending Monero
@@ -1218,7 +1723,7 @@
             </li>
         </ul>
 
-        <p><b>Knowledge</b></p>
+        <p><b id="education-knowledge">Knowledge</b></p>
         <ul>
             <li>
                 <a href="https://www.youtube.com/playlist?list=PLsSYUeVwrHBnAUre2G_LYDsdo-tD0ov-y">Breaking Monero</a> - Video series on how Monero works.
@@ -1241,7 +1746,7 @@
             </li>
         </ul>
 
-        <p><b>Physical Books</b></p>
+        <p><b id="physical-books">Physical Books</b></p>
         <i>Note: use an Amazon giftcard purchased with Monero to buy these, if it's on Amazon</i>
         <ul>
             <li>
@@ -1258,7 +1763,7 @@
             </li>    
         </ul>
 
-        <p><b>Research</b></p>
+        <p><b id="education-research">Research</b></p>
         <ul>
             <li>
                 <a href="https://moneroresearch.info/">Monero Research</a> - Hosts a collection of research papers relevant to
@@ -1266,7 +1771,7 @@
             </li>
         </ul>
 
-        <p><b>Tutorials</b></p>
+        <p><b id="education-tutorials">Tutorials</b></p>
         <ul>
             <li>
                 <a href="https://www.monero.how">Monero How</a>
@@ -1281,7 +1786,7 @@
         <h3 id="exchanges">Exchanges</h3>
         <i>These are places to buy and sell Monero. Note: DYOR before depositing into any exchange!</i>
 
-        <p><b>Atomic Swaps</b></p>
+        <p><b id="atomic-swaps">Atomic Swaps</b></p>
         <ul>
             <li>
                 <a href="https://unstoppableswap.net/">UnstoppableSwap.net</a> - Bitcoin to Monero Atomic Exchange
@@ -1291,14 +1796,14 @@
             </li>
         </ul>
 
-        <p><b>ATMs</b></p>
+        <p><b id="exchanges-atms">ATMs</b></p>
         <ul>
             <li>
                 <a href="https://coinatmradar.com/">Coin ATM Radar</a> - ATMs which have Monero
             </li>
         </ul>
 
-        <p><b>Exchange Comparision/ Aggregation</b></p>
+        <p><b id="exchange-comparision-and-aggregation">Exchange Comparision/ Aggregation</b></p>
         <ul>
             <li>
 	        <a href="https://intercambio.app/">Intercambio</a> - Find different trading options
@@ -1314,7 +1819,7 @@
             </li>
         </ul>
 
-        <p><b>KYC Exchanges (Non-United States)</b></p>
+        <p><b id="kyc-exchanges-non-united-states">KYC Exchanges (Non-United States)</b></p>
 
         <ul>
             <li>
@@ -1474,7 +1979,7 @@
             </li>
         </ul>
 
-        <p><b>Non-KYC Exchanges</b></p>
+        <p><b id="non-kyc-exchanges">Non-KYC Exchanges</b></p>
         <ul>
             <li>
                 <a href="https://www.alfa.cash">Alfacash</a> - Pairs: XMR/BTC, XMR/ETH, XMR/BNB, XMR/USDT (ERC-20),
@@ -1541,7 +2046,7 @@
             </li>
         </ul>
 
-        <p><b>Peer to Peer Exchanges</b></p>
+        <p><b id="peer-to-peer-exchanges">Peer to Peer Exchanges</b></p>
         <ul>
             <li>
                 <a href="https://agoradesk.com/nojs/buy-monero-with-usd-in-united-states-of-america">AgoraDesk</a> - Buy Monero
@@ -1563,7 +2068,7 @@
         <i>These are ways to chart the Monero price, use Monero as collateral for loans, earn interest, estimate the conversion to other currencies
             and more.</i>
 
-        <p><b>Calculator</b></p>
+        <p><b id="finance-calculator">Calculator</b></p>
         <ul>
             <li>
                 <a href="https://costavg.com/">Cryptocurrency Dollar Cost Average Calculator</a> - Enter an investment start
@@ -1571,7 +2076,7 @@
             </li>
         </ul>
 
-        <p><b>Charts</b></p>
+        <p><b id="finance-charts">Charts</b></p>
         <ul>
             <li>
                 <a href="https://www.coingecko.com/en/coins/monero">CoinGecko</a>
@@ -1587,7 +2092,7 @@
             </li>
         </ul>
 
-        <p><b>Conversion</b></p>
+        <p><b id="finance-conversion">Conversion</b></p>
 
         <ul>
             <li>
@@ -1617,14 +2122,7 @@
             </li>
         </ul>
 
-        <p><b>Credit/ Debit Cards</b></p>
-        <ul>
-            <li>
-                <a href="https://uquid.com/monero-debit-card">UQUID</a>
-            </li>
-        </ul>
-
-        <p><b>Interest/ Loans</b></p>
+        <p><b id="interest-and-loans">Interest/ Loans</b></p>
         <ul>
             <li>
                 &#9989; <a href="https://coinloan.io/blog/monero-xmr-how-to-make-it-work-on-coinloan/">CoinLoan</a> -
@@ -1644,14 +2142,14 @@
             </li>
         </ul>
 
-        <p><b>Market Cap Comparision</b></p>
+        <p><b id="market-cap-comparision">Market Cap Comparision</b></p>
         <ul>
             <li>
                 <a href="https://mc.xyz/tools/compare/crypto">MC.XYZ</a> - Compare one crypto's market cap to another.</i>
             </li>
         </ul>
 
-        <p><b>Price Display</b></p>
+        <p><b id="price-display">Price Display</b></p>
         <ul>
             <li>
                 <a href="https://xmrpri.se/">xmrpri.se</a> - Shows Monero price in various currencies without JavaScript or
@@ -1668,7 +2166,7 @@
         <h3 id="jobs">Jobs</h3>
         <i>These are places to earn Monero for work. Propose ideas, see existing work paid for in Monero and see jobs for hire.</i>
 
-        <p><b>Bounties</b></p>
+        <p><b id="bounties">Bounties</b></p>
         <ul>
             <li>
                 <a href="https://bounties.monero.social/">Monero Bounties</a> -
@@ -1676,7 +2174,7 @@
             </li>
         </ul>
 
-        <p><b>Crowdfunding</b></p>
+        <p><b id="crowdfunding">Crowdfunding</b></p>
         <ul>
             <li>
                 <a href="https://ccs.getmonero.org/">Community Crowdfunding System (CCS)</a> - Propose ideas and get paid for
@@ -1684,21 +2182,21 @@
             </li>
         </ul>
 
-        <p><b>Freelance</b></p>
+        <p><b id="freelance">Freelance</b></p>
         <ul>
             <li>
                 <a href="https://monero.jobs">Monero.jobs</a> - Propose jobs and skills <i>(Note: currently this directs to a Telegram group)</i>
             </li>
         </ul>
 
-	<p><b>Fundraising</b></p>
+	<p><b id="fundraising">Fundraising</b></p>
 	<ul>
             <li>
                  <a href="https://kuno.bitejo.com/">Kuno</a> - Raise money or donate to a good cause with Monero.
             </li>
 	</ul>
 
-        <p><b>Grants</b></p>
+        <p><b id="grants">Grants</b></p>
         <ul>
             <li>
                 <a href="https://magicgrants.org/funds/monero/">MAGIC Monero Fund</a> - Multidisciplinary Academic Grants in
@@ -1715,7 +2213,7 @@
         <h3 id="media">Media</h3>
         <i>These are places to see artwork, news, culture and content about Monero that comes out frequently to the public.</i>
 
-        <p><b>Artwork</b></p>
+        <p><b id="media-artwork">Artwork</b></p>
         <ul>
             <li>
                 <a href="https://monero.graphics/">Monero Graphics</a>
@@ -1728,19 +2226,19 @@
             </li>
         </ul>
 
-      <p><b>Miscellaneous</b></p>
+      <p><b id="media-miscellaneous">Miscellaneous</b></p>
       <ul>
            <li><a href="https://xmr.gift/">XMR.gift</a> - Monero gift card prints</li>
       </ul>
     
-      <p><b>News Aggregators</b></p>
+      <p><b id="news-aggregators">News Aggregators</b></p>
       <ul>
           <li>
               <a href="https://themonero.dance/">MoneroDance</a>
           </li>    
       </ul>
    
-        <p><b>Newsletters</b></p>
+        <p><b id="newsletters">Newsletters</b></p>
         <ul>
             <li>
                 <a href="https://revuo-xmr.com/">Revuo Monero</a> - Weekly and periodical newsletter <i>
@@ -1756,14 +2254,14 @@
             </li>
         </ul>
 
-        <p><b>News (Czech)</b></p>
+        <p><b id="news-czech">News (Czech)</b></p>
         <ul>
             <li>
                 <a href="https://czechmonero.cz/">Czech Monero</a>
             </li>
         </ul>
 
-        <p><b>News (English)</b></p>
+        <p><b id="news-english">News (English)</b></p>
         <ul>
             <li>
                 <a href="https://moneroinfodump.neocities.org/">Monero General Info-Dump</a>
@@ -1776,28 +2274,28 @@
             </li>
         </ul>
 
-        <p><b>News (Russian)</b></p>
+        <p><b id="news-russian">News (Russian)</b></p>
         <ul>
             <li>
                 <a href="https://xmr.ru/">XMR.ru</a>
             </li>
         </ul>
 
-        <p><b>News (Taiwanese)</b></p>
+        <p><b id="news-taiwanese">News (Taiwanese)</b></p>
         <ul>
             <li>
                 <a href="https://xmr-tw.org/">xmr-tw.org</a>
             </li>
         </ul>
 
-        <p><b>Radio Stations</b></p>
+        <p><b id="radio-stations">Radio Stations</b></p>
         <ul>
             <li>
                 <a href="https://xmr.radio/">XMR.radio</a> - Community radio which allows DJs to stream
             </li>
         </ul>
 
-        <p><b>Social Media (Twitter)</b></p>
+        <p><b id="social-media-twitter">Social Media (Twitter)</b></p>
         <ul>
             <li>
                 <a href="https://twitter.com/LocalMoneroCo">Local Monero</a>
@@ -1813,21 +2311,21 @@
             </li>
         </ul>
 
-        <p><b>Talk Shows/ Podcasts (English)</b></p>
+        <p><b id="talk-shows-and-podcasts-english">Talk Shows/ Podcasts (English)</b></p>
         <ul>
             <li>
                 <a href="https://www.monerotalk.live/">Monero Talk</a>
             </li>
         </ul>
 
-        <p><b>Talk Shows/ Podcasts (German)</b></p>
+        <p><b id="talk-shows-andpodcasts-German">Talk Shows/ Podcasts (German)</b></p>
         <ul>
             <li>
                 <a href="https://moneromumble.de/">Monero Mumble</a>
             </li>
         </ul>
 
-        <p><b>YouTube Channels (English)</b></p>
+        <p><b id="youtube-channels-english">YouTube Channels (English)</b></p>
         <ul>
             <li>
                 <a href="https://www.youtube.com/channel/UCMg5jHjEp59TKy_0tdoeXnQ">Kevin Wad</a> - Videos focusing on Monero
@@ -1865,19 +2363,19 @@
             </li>
         </ul>
 
-        <p><b>YouTube Channels (German)</b></p>
+        <p><b id="youtube-channels-german">YouTube Channels (German)</b></p>
         <ul>
             <li>
                 <a href="https://www.youtube.com/channel/UCuc3qrqHhNGpFlD2TF69NSA">Monero Mumble</a>
             </li>
         </ul>
-        <p><b>YouTube Channels (Spanish)</b></p>
+        <p><b id="youtube-channels-spanish">YouTube Channels (Spanish)</b></p>
         <ul>
             <li>
                 <a href="https://www.youtube.com/channel/UCNvrbeVzrszpN7vQnMoCTVA">El Monero</a>
             </li>
         </ul>
-        <p><b>YouTube Channels (Russian)</b></p>
+        <p><b id="youtube-channels-russian">YouTube Channels (Russian)</b></p>
         <ul>
             <li>
                 <a href="https://www.youtube.com/c/MoneroRussianCommunity">Monero Russian Community</a>
@@ -1893,14 +2391,14 @@
         <h3 id="merchant-services">Merchant Services</h3>
         <i>These are ways to accept Monero as a payment method for online businesses.</i>
     
-        <p><b>ATMs</b></p>
+        <p><b id="merchant-services-atms">ATMs</b></p>
         <ul>
             <li>
                 <a href="https://atm.monero.is/">The Monero ATM Project</a> - A do-it-yourself automated teller machine that runs free software.
             </li>
         </ul>    
 
-        <p><b>Integrations</b></p>
+        <p><b id="merchant-services-integrations">Integrations</b></p>
         <ul>
             <li>
                 &#9989; <a href="https://www.coinpayments.net/">Coin Payments</a> - Accept Monero using Magento, Shopify, Woo
@@ -1954,7 +2452,7 @@
             </li>
         </ul>
 
-        <p><b>Open Source Projects</b></p>
+        <p><b id="merchant-services-open-source-projects">Open Source Projects</b></p>
         <ul>
             <li>
                 <a href="https://github.com/busyboredom/acceptxmr">AcceptXMR</a> - Accept Monero in your application
@@ -2002,7 +2500,7 @@
         <h3 id="mining">Mining</h3>
         <i>These are resources which help to mine Monero and earn the token.</i>
 
-        <p><b>Apps</b></p>
+        <p><b id="mining-apps">Apps</b></p>
         <ul>
             <li>
                 <a href="https://play.google.com/store/apps/details?id=com.reactnativexmrig">React Native XMRig</a> - React
@@ -2014,7 +2512,7 @@
             </li>
         </ul>
 
-        <p><b>Calculators</b></p>
+        <p><b id="mining-calculators">Calculators</b></p>
         <ul>
             <li>
                 <a href="https://www.coinwarz.com/mining/monero/calculator">coinwarz.com</a> - Enter your Monero mining
@@ -2025,7 +2523,7 @@
             </li>
         </ul>
 
-        <p><b>Guides</b></p>
+        <p><b id="mining-guides">Guides</b></p>
         <ul>
             <li>
                 <a href="https://moneroocean.blogspot.com/">Mining Monero on MoneroOcean Pool</a>
@@ -2041,14 +2539,14 @@
             </li>
         </ul>
 
-        <p><b>Miscellaneous</b></p>
+        <p><b id="mining-miscellaneous">Miscellaneous</b></p>
         <ul>
             <li>
                 <a href="https://monerobenchmarks.info/">Monero Benchmarks</a>
             </li>
         </ul>
 
-        <p><b>Pools</b></p>
+        <p><b id="mining-pools">Pools</b></p>
         <ul>
             <li>
                 <a href="https://minexmr.com/">MineXMR</a>
@@ -2068,7 +2566,7 @@
             </li>
         </ul>
     
-        <p><b>Rentals</b></p>
+        <p><b id="mininig-rentals">Rentals</b></p>
         <ul>
             <li>
                 <a href="https://www.miningrigrentals.com/rigs/randomx">RandomX Mining Rigs for Rent</a> - Rent mining
@@ -2079,7 +2577,7 @@
             </li>
         </ul>
 
-        <p><b>Software</b></p>
+        <p><b id="mining-software">Software</b></p>
         <ul>
             <li>
                 <a href="https://cryptonote.social/tools/csminer">csminer</a> - An easy-to-use command-line miner for Monero
@@ -2115,7 +2613,7 @@
             identified active organizations.
         </i>
 
-        <p><b>Activism</b></p>
+        <p><b id="activism">Activism</b></p>
         <ul>
             <li>
                 <a href="https://copyfree.org/support">Copyfree</a> - The Copyfree Initiative is dedicated to supporting and
@@ -2148,7 +2646,7 @@
             </li>
         </ul>
 
-        <p><b>Media</b></p>
+        <p><b id="non-profits-media">Media</b></p>
         <ul>
             <li>
                 <a href="https://shop.wikileaks.org/donate">WikiLeaks</a> - Specializes in the analysis and publication of
@@ -2156,7 +2654,7 @@
             </li>
         </ul>
 
-        <p><b>Medical</b></p>
+        <p><b id="non-profits-medical">Medical</b></p>
         <ul>
             <li>
                 <a href="https://psychedelicsocietysf.org/crypto-donation-page/">The Psychedelic Society San Francisco</a> -
@@ -2165,7 +2663,7 @@
             </li>
         </ul>
 
-        <p><b>Miscellaneous</b></p>
+        <p><b id="non-profits-miscellaneous">Miscellaneous</b></p>
         <ul>
             <li>
                 <a href="https://www.engvid.com/donate/">engVid</a> - Free English video lessons
@@ -2188,7 +2686,7 @@
             </li>
         </ul>
 
-        <p><b>Operating Systems</b></p>
+        <p><b id="non-profits-operating-systems">Operating Systems</b></p>
         <ul>
             <li>
                 <a href="https://artixlinux.org/donate.php">Artix Linux</a> - Rolling-release distribution based on Arch Linux
@@ -2213,7 +2711,7 @@
             </li>
         </ul>
 
-        <p><b>Research</b></p>
+        <p><b id="non-profits-research">Research</b></p>
         <ul>
             <li>
                 <a href="https://openprivacy.ca/donate/#donatecrypto">Open Privacy Research Society</a> - The Open Privacy
@@ -2221,7 +2719,7 @@
             </li>
         </ul>
 
-        <p><b>Science</b></p>
+        <p><b id="non-profits-science">Science</b></p>
         <ul>
             <li>
                 <a href="https://sci-hub.se/donate">Sci Hub</a> - A controversial project with an ambitious goal to make
@@ -2229,7 +2727,7 @@
             </li>
         </ul>
 
-        <p><b>Security</b></p>
+        <p><b id="non-profits-security">Security</b></p>
         <ul>
             <li>
                 <a href="https://www.databreaches.net/donate-xmr/">DataBreaches.net</a> - The Office of Inadequate Security
@@ -2239,7 +2737,7 @@
             </li>
         </ul>
 
-        <p><b>Technologies</b></p>
+        <p><b id="non-profits-technologies">Technologies</b></p>
         <ul>
             <li>
                 <a href="https://decentraleyes.org/donate/monero/">Decentraleyes</a> - Local CDN emulation
@@ -2276,14 +2774,14 @@
         <h3 id="official-sites">Official Sites</h3>
         <i>These are resources that belond to the Monero project.</i>
 
-        <p><b>Code</b></p>
+        <p><b id="official-sites-code">Code</b></p>
         <ul>
             <li>
                 <a href="https://github.com/monero-project">Monero Project</a> - Official GitHub codebases for Monero
             </li>
         </ul>
 
-        <p><b>Project Homepage</b></p>
+        <p><b id="official-sites-project-homepage">Project Homepage</b></p>
         <ul>
             <li>
                 <a href="https://www.getmonero.org/">Get Monero</a> - Guides, resources, downloads
@@ -2296,10 +2794,33 @@
 
         <hr />
 
+        <h3 id="onions">Onions</h3>
+        <i>These are Tor based Monero resources.</i>
+
+        <p><b id="onions-mirrors">Mirrors</b></p>
+        <ul>
+            <li>
+                <i class="multi-line-text">rk63tc3isr7so7ubl6q7kdxzzws7a7t6s467lbtw2ru3cwy6zu6w4jad.onion/monerica</i>
+            </li>
+        </ul>
+
+        <p><b id="onions-monero-onions">Monero Onions</b></p>
+        <ul>
+            <li>
+                <i class="multi-line-text">moneroar4fiojlkzkvwgt25rp6vifswcpwaxbzlhfkdenczbhc4luqad.onion/page/monero-onions.php</i>
+            </li>
+        </ul>
+
+        <p class="right">
+            <a href="#categories">&#x2191; Categories</a>
+        </p>
+
+        <hr />
+
         <h3 id="utilities">Utilities</h3>
         <i>These are tools which help validate transactions, explore the blockchain and use Monero.</i>
 
-        <p><b>Address Verification</b></p>
+        <p><b id="address-verification">Address Verification</b></p>
         <ul>
             <li>
                 <a href="https://xmr.llcoins.net/addresstests.html">Cryptonote Address Tests</a>
@@ -2312,7 +2833,7 @@
             </li>
         </ul>
 
-        <p><b>Blockchain Helpers</b></p>
+        <p><b id="blockchain-helpers">Blockchain Helpers</b></p>
         <ul>
             <li>
                 <a href="https://blockchair.com/monero/">Blockchair</a> - Search for transactions
@@ -2334,7 +2855,7 @@
             </li>
         </ul>
 
-        <p><b>Open Source Projects</b></p>
+        <p><b id="utilities-open-source-projects">Open Source Projects</b></p>
         <ul>
             <li>
                 <a href="https://github.com/MasFlam/MoneroChad">MoneroChad</a> -  A Discord bot that provides mainly Monero and cryptocurrency related commands.
@@ -2361,7 +2882,7 @@
             </li>
         </ul>
 
-        <p><b>QR Code Generator</b></p>
+        <p><b id="qr-code-generator">QR Code Generator</b></p>
         <ul>
             <li>
                 <a href="https://monero-qr-code-generator.com/">Monero QR Code Generator</a> 
@@ -2375,29 +2896,10 @@
 
         <hr />
 
-        <h3 id="onions">Onions</h3>
-        <i>These are Tor based Monero resources.</i>
-
-        <p><b>Tor Required</b></p>
-        <ul>
-            <li>
-                <i class="multi-line-text">rk63tc3isr7so7ubl6q7kdxzzws7a7t6s467lbtw2ru3cwy6zu6w4jad.onion/monerica</i>
-            </li>
-            <li>
-                <i class="multi-line-text">moneroar4fiojlkzkvwgt25rp6vifswcpwaxbzlhfkdenczbhc4luqad.onion/page/monero-onions.php</i>
-            </li>
-        </ul>
-
-        <p class="right">
-            <a href="#categories">&#x2191; Categories</a>
-        </p>
-
-        <hr />
-
         <h3 id="wallets">Wallets</h3>
         <i>These are software utilties to store and send Monero.</i>
 
-        <p><b>Browser Wallets</b></p>
+        <p><b id="browser-wallets">Browser Wallets</b></p>
         <ul>
             <li>
                 <a href="https://xwallet.kaddex.com/#ux">Kaddex</a> -
@@ -2405,7 +2907,7 @@
             </li>
         </ul>
 
-        <p><b>Desktop Wallets</b></p>
+        <p><b id="desktop-wallets">Desktop Wallets</b></p>
         <ul>
             <li>
                 <a href="https://www.coinomi.com/en/asset/monero/">Coinomi</a> -
@@ -2417,7 +2919,7 @@
                 Receive, spend and store your Monero with an open-source multisignature wallet
             </li>
             <li>
-                &#9989;    <a href="https://www.exodus.com/">Exodus</a> - Send, receive &amp; exchange 100+ cryptocurrencies
+                &#9989; <a href="https://www.exodus.com/">Exodus</a> - Send, receive &amp; exchange 100+ cryptocurrencies
             </li>
             <li>
                 <a href="https://featherwallet.org/">Feather</a> - A free, open-source Monero wallet for Linux, Tails, Windows
@@ -2436,7 +2938,7 @@
             </li>
         </ul>
 
-        <p><b>Hardware Wallets</b></p>
+        <p><b id="hardware-wallets">Hardware Wallets</b></p>
         <ul>
             <li>
                 <a href="http://kastelo.org/">Kastelo</a> - Open source hardware wallet
@@ -2450,7 +2952,7 @@
             </li>
         </ul>
 
-        <p><b>Mobile Wallets</b></p>
+        <p><b id="mobile-wallets">Mobile Wallets</b></p>
         <ul>
             <li>
                 <a href="https://www.bitrequest.io/">Bitrequest</a> - Point of sale wallet
@@ -2484,14 +2986,14 @@
 	    </li>		    
         </ul>
 
-        <p><b>Multi-Sig Wallets</b></p>
+        <p><b id="multi-sig-wallets">Multi-Sig Wallets</b></p>
         <ul>
             <li>
                 <a href="https://rino.io/">rino</a> - Enterprise-grade Monero wallet
             </li>
         </ul>
 
-        <p><b>Web Wallets</b></p>
+        <p><b id="web-wallets">Web Wallets</b></p>
         <ul>
             <li>
                 <a href="https://guarda.com/coins/monero-wallet/">Guarda</a>
