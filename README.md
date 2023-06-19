@@ -31,9 +31,9 @@ Note: If you are unable to make a Pull Request, simply create a "New issue" desc
                     can&apos;t ship to Idaho, California, or Georgia due to their state laws)
                 </i>
 ```
+- :warning: The website you link to **must** clearly state that it accepts Monero somewhere or have it on the checkout page. If this isn't present there is no way to confirm that the business accepts Monero.
 - Alphabetize your edits (make sure the category, sub-category and listing are in correct ABC order).
 - Include a description of the product or service next to your entry.
-- The website you link to **must** clearly state that it accepts Monero somewhere or have it on the checkout page. If this isn't present there is no way to confirm that the business accepts Monero.
 - If necessary, add notes to your entry. For example, if there is a Monero discount, minimum order amount, country restrictions, etc. please include them. Example: (Notes: 15% Monero discount)
 - HTML encode all entities, do not use things like emoji symbols without encoding.
 - If you are adding a business, services or otherwise which is your own, you cannot approve or not approve of it as this must come from the community.
