@@ -1,0 +1,10 @@
+﻿@using DirectoryManager.Data.Models
+@model Category
+<form method="post">
+    <div>
+        <label>Name:</label>
+        <input type="text" name="Name" value="@Model.Name" required />
+    </div>
+
+    <button type="submit">Save</button>
+</form>

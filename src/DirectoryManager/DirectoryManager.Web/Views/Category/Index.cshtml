@@ -1,0 +1,15 @@
+﻿@using DirectoryManager.Data.Models
+@model IEnumerable<Category>
+@foreach (var category in Model)
+{
+    <div>@category.Name</div>
+    <!-- You can add Edit & Delete links here -->
+    <a href="@Url.Action("Edit", new { id = category.Id })">Edit</a>
+    <a href="@Url.Action("Delete", new { id = category.Id })" onclick="return confirm('Are you sure?')">Delete</a>
+}
+
+<!-- Pagination logic -->
+<a href="@Url.Action("Index", new { page = 1 })">First</a>
+<a href="@Url.Action("Index", new { page = ViewBag.CurrentPage - 1 })">Previous</a>
+<a href="@Url.Action("Index", new { page = ViewBag.CurrentPage + 1 })">Next</a>
+<!-- You can expand this pagination logic further -->

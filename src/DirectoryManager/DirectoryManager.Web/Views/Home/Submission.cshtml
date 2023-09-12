@@ -1,0 +1,48 @@
+﻿@model DirectoryManager.Web.Models.SubmissionRequest
+
+@{
+    ViewData["Title"] = "Contribute";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<form asp-action="Submission" asp-controller="Home" method="post">
+    <div class="form-group">
+        <label asp-for="Name"></label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Link"></label>
+        <input asp-for="Link" class="form-control" />
+        <span asp-validation-for="Link" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Description"></label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Location"></label>
+        <input asp-for="Location" class="form-control" />
+        <span asp-validation-for="Location" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Processor"></label>
+        <input asp-for="Processor" class="form-control" />
+        <span asp-validation-for="Processor" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Note"></label>
+        <textarea asp-for="Note" class="form-control"></textarea>
+        <span asp-validation-for="Note" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+ 

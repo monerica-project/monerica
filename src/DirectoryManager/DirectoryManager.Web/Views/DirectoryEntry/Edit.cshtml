@@ -1,0 +1,34 @@
+﻿@using DirectoryManager.Data.Models
+@model DirectoryEntry
+
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@{
+    var orderedSubCategories = ((IEnumerable<SubCategory>)ViewBag.SubCategories)
+                                    .OrderBy(sc => sc.Category.Name)
+                                    .ThenBy(sc => sc.Name)
+                                    .Select(sc => new
+                                    {
+                                        Id = sc.Id,
+                                        DisplayName = $"{sc.Category.Name} > {sc.Name}"
+                                    });
+}
+
+<h1>@(Model.Id == 0 ? "Create Directory Entry" : "Edit Directory Entry")</h1>
+
+<form method="post">
+    <div>
+        <label asp-for="Name">Name:</label>
+        <input type="text" asp-for="Name" required />
+    </div>
+    <div>
+        <label asp-for="Link">Link:</label>
+        <input type="text" asp-for="Link" required />
+    </div>
+    <!-- Include other properties like Description, Location, etc. here -->
+    <div>
+        <label asp-for="SubCategoryId">SubCategory:</label>
+        <select asp-for="SubCategoryId" asp-items="@(new SelectList(orderedSubCategories, "Id", "DisplayName"))" required></select>
+    </div>
+    <button type="submit">Save</button>
+</form>
