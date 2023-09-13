@@ -1,0 +1,78 @@
+﻿ @model DirectoryManager.Data.Models.Submission
+@using DirectoryManager.Data.Enums
+@{
+    var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
+}
+
+<h2>Edit Submission</h2>
+
+<form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+
+    <div>
+        <label asp-for="SubCategoryId">SubCategory:</label>
+        <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "Id", "DisplayName"))" required></select>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="SuggestedSubCategory">Suggested Category:</label>
+        <input asp-for="SuggestedSubCategory" class="form-control" />
+        <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
+    </div>
+
+    <!-- For SubmissionStatus Enum Dropdown -->
+    <div class="form-group">
+        <label asp-for="SubmissionStatus">Status</label>
+        <select asp-for="SubmissionStatus" class="form-control">
+            @foreach (var status in submissionStatuses)
+            {
+                <option value="@status">@status</option>
+            }
+        </select>
+        <span asp-validation-for="SubmissionStatus" class="text-danger"></span>
+    </div>
+
+    <!-- Other Fields -->
+
+    <div class="form-group">
+        <label asp-for="Name">Name</label>
+        <input asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Link">Link</label>
+        <input asp-for="Link" class="form-control" />
+        <span asp-validation-for="Link" class="text-danger"></span>
+    </div>
+
+    
+    <div class="form-group">
+        <label asp-for="Description">Description:</label>
+        <textarea cols="100" asp-for="Description"></textarea>
+    </div>
+
+<div class="form-group">
+        <label asp-for="Note">Note:</label>
+        <textarea cols="100" asp-for="Note"></textarea>
+</div>
+
+    <div class="form-group">
+        <label asp-for="Processor">Processor</label>
+        <input asp-for="Processor" class="form-control" />
+        <span asp-validation-for="Processor" class="text-danger"></span>
+    </div>
+    
+<div class="form-group">
+        <label asp-for="Contact">Contact</label>
+        <input asp-for="Contact" class="form-control" />
+        <span asp-validation-for="Contact" class="text-danger"></span>
+        </div>
+    <div class="form-group">
+        <label asp-for="Location">Location</label>
+        <input asp-for="Location" class="form-control" />
+        <span asp-validation-for="Location" class="text-danger"></span>
+    </div>
+
+    <!-- Submit Button -->
+    <button type="submit" class="btn btn-primary">Save Changes</button>
+</form>
