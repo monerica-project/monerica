@@ -29,7 +29,13 @@ var offlines = new List<string>();
 
 foreach (var entry in allEntries)
 {
-    if (entry.Link.EndsWith(".onion"))
+    if (entry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Unknown ||
+        entry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Removed)
+    {
+        continue;
+    }
+
+    if (entry.Link.Contains(".onion"))
     {
         continue;
     }
