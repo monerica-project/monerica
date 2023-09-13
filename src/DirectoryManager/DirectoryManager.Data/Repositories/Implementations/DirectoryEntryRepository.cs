@@ -8,10 +8,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
 {
     public class DirectoryEntryRepository : IDirectoryEntryRepository
     {
+        IDirectoryEntriesAuditRepository _directoryEntryAuditRepository;
         private readonly ApplicationDbContext _context;
 
-        public DirectoryEntryRepository(ApplicationDbContext context)
+        public DirectoryEntryRepository(ApplicationDbContext context,
+            IDirectoryEntriesAuditRepository directoryEntryAuditRepository)
         {
+            _directoryEntryAuditRepository = directoryEntryAuditRepository;
             _context = context;
         }
 
@@ -52,7 +55,30 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var existingEntry = await _context.DirectoryEntries.FindAsync(entry.Id);
             _context.DirectoryEntries.Update(existingEntry);
             await _context.SaveChangesAsync();
+
+            await _directoryEntryAuditRepository.CreateAsync(
+                new DirectoryEntriesAudit
+                {
+                    Contact = existingEntry.Contact,
+                    CreateDate = existingEntry.CreateDate,
+                    Description = existingEntry.Description,
+                    CreatedByUserId = existingEntry.CreatedByUserId,
+                    DirectoryStatus = existingEntry.DirectoryStatus,
+                    Id = existingEntry.Id,
+                    Link = existingEntry.Link,
+                    Name = existingEntry.Name,
+                    SubCategoryId = existingEntry.SubCategoryId,
+                    UpdateDate = existingEntry.UpdateDate,
+                    UpdatedByUserId = existingEntry.UpdatedByUserId,
+                    Link2 = existingEntry.Link2,
+                    Location = existingEntry.Location,
+                    Note = existingEntry.Note,
+                    Processor = existingEntry.Processor
+
+                });
         }
+
+        
 
         public async Task DeleteAsync(int id)
         {

@@ -18,6 +18,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<DirectoryEntry> DirectoryEntries { get; set; }
 
+        public DbSet<DirectoryEntriesAudit> DirectoryEntriesAudit { get; set; }
+
         public DbSet<Submission> Submissions { get; set; }
 
         public DbSet<ApplicationUser> ApplicationUser { get; set; }
