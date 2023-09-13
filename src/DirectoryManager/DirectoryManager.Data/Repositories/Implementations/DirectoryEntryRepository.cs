@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -78,8 +79,33 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var latestCreateDate = _context.DirectoryEntries.Max(e => e.CreateDate);
             var latestUpdateDate = _context.DirectoryEntries.Max(e => e.UpdateDate);
 
+            if (latestCreateDate == null && latestUpdateDate == null)
+            {
+                return DateTime.MinValue;
+            }
+
             // Return the more recent of the two dates
             return (DateTime)(latestCreateDate > latestUpdateDate ? latestCreateDate : latestUpdateDate);
+        }
+        public async Task<IEnumerable<DirectoryEntry>> GetNewestRevisions(int count)
+        {
+            return await _context.DirectoryEntries
+                .OrderByDescending(entry => (entry.UpdateDate.HasValue && entry.UpdateDate.Value > entry.CreateDate)
+                                             ? entry.UpdateDate.Value
+                                             : entry.CreateDate)
+                .Take(count)
+                .ToListAsync();
+
+        }
+
+        public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int subCategoryId)
+        {
+            return await _context.DirectoryEntries
+                            .Where(entry => entry.SubCategoryId == subCategoryId &&
+                                        entry.DirectoryStatus != DirectoryStatus.Removed &&
+                                        entry.DirectoryStatus != DirectoryStatus.Unknown)
+                                .OrderByDescending(entry => entry.Name)
+                                .ToListAsync();
         }
     }
 }

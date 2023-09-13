@@ -1,4 +1,4 @@
-﻿ @model DirectoryManager.Data.Models.Submission
+﻿ @model DirectoryManager.Web.Models.SubmissionRequest
 @using DirectoryManager.Data.Enums
 @{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
@@ -6,36 +6,73 @@
 
 <h2>Edit Submission</h2>
 
-<form asp-action="Edit" asp-route-id="@Model.Id" method="post">
-
-    @if (Model.DirectoryEntryId  != null)
-    {
-        <i>Existing: </i>
-        <a href="~/directoryentry/edit/@Model.DirectoryEntryId">Edit</a>
+<style>
+    body {
+        background-color: #000000eb;
+        color: #FFFFFF;
+        font-family: Helvetica;
     }
+
+    a {
+        color: #008cff;
+    }
+
+    li p {
+        margin: 0;
+    }
+
+    a:hover {
+        text-decoration: none;
+    }
+
+    .right {
+        text-align: right;
+    }
+
+    /* Spacing around main content */
+    #main-content {
+        padding: 20px;
+    }
+
+    h2, h3 {
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px; /* increased space between form groups */
+    }
+
+        .form-group label {
+            display: block;
+        }
+
+    .btn {
+        background-color: green;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        color: white;
+        font-weight: bold;
+    }
+
+    /* ... other existing styles ... */
+
+</style>
+
+<form asp-action="Create" method="post">
+
+    @Html.HiddenFor(m => m.DirectoryEntryId)
 
     <div class="form-group">
         <label asp-for="SubCategoryId">SubCategory:</label>
-        <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "Id", "DisplayName"))" required></select>
+        <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "Id", "DisplayName"))" ></select>
     </div>
- 
 
     <div class="form-group">
         <label asp-for="SuggestedSubCategory">Suggested Category:</label>
-        <input style="width:300px" asp-for="SuggestedSubCategory" class="form-control" />
+        <input asp-for="SuggestedSubCategory" class="form-control" />
         <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
-    </div>
-
-    <!-- For SubmissionStatus Enum Dropdown -->
-    <div class="form-group">
-        <label asp-for="SubmissionStatus">Status</label>
-        <select asp-for="SubmissionStatus" class="form-control">
-            @foreach (var status in submissionStatuses)
-            {
-                <option value="@status">@status</option>
-            }
-        </select>
-        <span asp-validation-for="SubmissionStatus" class="text-danger"></span>
     </div>
 
     <!-- Other Fields -->
@@ -60,7 +97,7 @@
 
 <div class="form-group">
         <label asp-for="Note">Note:</label>
-        <textarea style="width:300px" cols="100" asp-for="Note"></textarea>
+        <textarea  style="width:300px" cols="100" asp-for="Note"></textarea>
 </div>
 
     <div class="form-group">
@@ -80,12 +117,6 @@
         <span asp-validation-for="Location" class="text-danger"></span>
     </div>
 
-
     <!-- Submit Button -->
-    <button type="submit" class="btn btn-primary">Save Changes</button>
+    <button type="submit" class="btn btn-primary">Submit Changes</button>
 </form>
-
-
-
-        <br />
-<a href="~/submission/delete/@Model.Id">Delete</a>

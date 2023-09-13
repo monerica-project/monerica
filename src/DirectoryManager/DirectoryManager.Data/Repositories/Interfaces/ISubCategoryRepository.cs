@@ -11,5 +11,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task DeleteAsync(int id);
         Task<SubCategory> GetByNameAsync(string subCategoryName);
         Task<IEnumerable<SubCategory>> GetByCategoryAsync(int categoryId);
+
+        Task<IEnumerable<SubCategory>> GetActiveSubCategoriesAsync(int categoryId);
     }
 }

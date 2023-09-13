@@ -4,6 +4,7 @@ using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Threading.Tasks;
+using DirectoryManager.Data.Enums;
 
 namespace DirectoryManager.Data.Repositories.Implementations
 {
@@ -53,6 +54,22 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<Category> GetByNameAsync(string name)
         {
             return await _context.Categories.FirstOrDefaultAsync(sc => sc.Name == name);
+        }
+
+        public async Task<IEnumerable<Category>> GetActiveCategoriesAsync()
+        {
+            var activeCategoryIds = await _context.DirectoryEntries
+               .Where(entry => 
+                    entry.DirectoryStatus != DirectoryStatus.Removed || entry.DirectoryStatus != DirectoryStatus.Unknown)
+               .Select(entry => entry.SubCategory.CategoryId)
+               .Distinct()
+               .ToListAsync();
+
+            var activeCategories = await _context.Categories
+                .Where(category => activeCategoryIds.Contains(category.Id))
+                .ToListAsync();
+
+            return activeCategories;
         }
     }
 }

@@ -2,6 +2,7 @@
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using DirectoryManager.Data.Enums;
 
 namespace DirectoryManager.Data.Repositories.Implementations
 {
@@ -63,5 +64,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                  .ToListAsync();
         }
 
+        public async Task<IEnumerable<SubCategory>> GetActiveSubCategoriesAsync(int categoryId)
+        {
+            var activeSubCategories = await _context.SubCategories
+                          .Where(subCategory => subCategory.CategoryId == categoryId &&
+                              _context.DirectoryEntries
+                                  .Any(entry => entry.SubCategoryId == subCategory.Id &&
+                                                entry.DirectoryStatus != DirectoryStatus.Unknown &&
+                                                entry.DirectoryStatus != DirectoryStatus.Removed))
+                          .ToListAsync();
+
+            return activeSubCategories;
+        }
     }
 }

@@ -10,5 +10,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task UpdateAsync(Category category);
         Task DeleteAsync(int id);
         Task<Category> GetByNameAsync(string categoryName);
+        Task<IEnumerable<Category>> GetActiveCategoriesAsync();
     }
 }

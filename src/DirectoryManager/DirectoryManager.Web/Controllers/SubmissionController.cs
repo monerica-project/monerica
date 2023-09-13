@@ -51,6 +51,66 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
+        [HttpGet("submission/submitedit/{id}")]
+        public async Task<IActionResult> SubmitEdit(int id)
+        {
+            var directoryEntry = await _directoryEntryRepository.GetByIdAsync(id);
+
+            var subCategories = (await _subCategoryRepository.GetAllAsync())
+              .OrderBy(sc => sc.Category.Name)
+              .ThenBy(sc => sc.Name)
+              .Select(sc => new
+              {
+                  sc.Id,
+                  DisplayName = $"{sc.Category.Name} > {sc.Name}"
+              })
+              .ToList();
+
+            subCategories.Insert(0, new { Id = 0, DisplayName = "Please select a category" });
+
+            ViewBag.SubCategories = subCategories;
+
+            if (directoryEntry == null) return NotFound();
+
+            var model = new SubmissionRequest()
+            {
+                Contact = directoryEntry.Contact,
+                Description = (directoryEntry.Description == null) ? string.Empty : directoryEntry.Description,
+                Link = directoryEntry.Link,
+                Link2 =  (directoryEntry.Link2 == null) ? string.Empty : directoryEntry.Link2,
+                Location = directoryEntry.Location,
+                Name = directoryEntry.Name,
+                Note = directoryEntry.Note,
+                Processor = directoryEntry.Processor,
+                SubCategoryId = directoryEntry.SubCategoryId,
+                DirectoryEntryId = directoryEntry.Id
+            };
+            return View(model);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("submission/findexisting")]
+        public async Task<IActionResult> FindExisting(int? subCategoryId = null)
+        {
+            var entries = await _directoryEntryRepository.GetAllAsync();
+
+            if (subCategoryId.HasValue)
+            {
+                entries = entries.Where(e => e.SubCategory.Id == subCategoryId.Value).ToList();
+            }
+
+            entries = entries.OrderBy(e => e.Name)
+                             .ToList();
+
+            ViewBag.SubCategories = (await _subCategoryRepository.GetAllAsync())
+                                    .OrderBy(sc => sc.Category.Name)
+                                    .ThenBy(sc => sc.Name)
+                                    .ToList();
+
+            return View(entries);
+        }
+
+        [AllowAnonymous]
         [HttpPost("submit")]
         public async Task<IActionResult> Create(SubmissionRequest model)
         {
@@ -61,17 +121,18 @@ namespace DirectoryManager.Web.Controllers
                 var submission = new Submission
                 {
                     SubmissionStatus = Data.Enums.SubmissionStatus.Pending,
-                    Name = model.Name,
-                    Link = model.Link,
-                    Link2 = model.Link2,
-                    Description = model.Description,
-                    Location = model.Location,
-                    Processor = model.Processor,
-                    Note = model.Note,
-                    Contact = model.Contact,
-                    SuggestedSubCategory = model.SuggestedSubCategory,
+                    Name = model.Name.Trim(),
+                    Link = (model.Link == null) ? string.Empty : model.Link.Trim(),
+                    Link2 = (model.Link2 == null) ? string.Empty : model.Link2.Trim(),
+                    Description = (model.Description == null) ? string.Empty : model.Description.Trim(),
+                    Location = (model.Location == null) ? string.Empty : model.Location.Trim(),
+                    Processor = (model.Processor == null) ? string.Empty : model.Processor.Trim(),
+                    Note = (model.Note == null) ? string.Empty : model.Note.Trim(),
+                    Contact = (model.Contact == null) ? string.Empty : model.Contact.Trim(),
+                    SuggestedSubCategory = (model.SuggestedSubCategory == null) ? string.Empty : model.SuggestedSubCategory.Trim(),
                     SubCategoryId = (model.SubCategoryId == 0) ? null : model.SubCategoryId,
-                    IpAddress = ipAddress
+                    IpAddress = ipAddress,
+                    DirectoryEntryId = model.DirectoryEntryId
                 };
 
                 await _submissionRepository.AddAsync(submission);
@@ -114,6 +175,16 @@ namespace DirectoryManager.Web.Controllers
 
             // Convert the submission to a ViewModel if necessary, or use the model directly
             return View(submission);
+        }
+
+
+        [Authorize]
+        [HttpGet("submission/delete/{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            await _submissionRepository.DeleteAsync(id);
+ 
+            return RedirectToAction(nameof(Index));
         }
 
         [HttpGet("submission/success")]

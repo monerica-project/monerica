@@ -12,5 +12,9 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task UpdateAsync(DirectoryEntry entry);
         Task DeleteAsync(int id);
         public DateTime GetLastRevisionDate();
+
+        public Task<IEnumerable<DirectoryEntry>> GetNewestRevisions(int count);
+
+        public Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int subCategoryId);
     }
 }

@@ -1,6 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.BaseModels;
-using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
 namespace DirectoryManager.Data.Models

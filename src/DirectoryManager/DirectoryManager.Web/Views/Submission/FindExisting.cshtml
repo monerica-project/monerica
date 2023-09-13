@@ -1,0 +1,33 @@
+﻿@using DirectoryManager.Data.Models
+@model IEnumerable<DirectoryEntry>
+
+<h1>Directory Entries</h1>
+
+<a href="~/">Back to Home</a> <text> | </text> <a href="~/submit">Create New Entry</a>
+<br />
+<br />
+
+
+<form method="get">
+    <label for="combinedFilter">Find: </label>
+    <select id="combinedFilter" name="subCategoryId">
+        <option value="">--Select a Category > SubCategory--</option>
+        @foreach (var subCategory in (IEnumerable<SubCategory>)ViewBag.SubCategories)
+        {
+            <option value="@subCategory.Id">@subCategory.Category.Name > @subCategory.Name</option>
+        }
+    </select>
+
+    <input type="submit" value="Filter" />
+</form>
+
+<br />
+
+@foreach (var entry in Model)
+{
+    <div>
+        <a href="@entry.Link">@entry.Name</a> <text> - </text>
+        <a href="@Url.Action("SubmitEdit", new { id = entry.Id })">Edit</a>
+    </div>
+}
+ 
