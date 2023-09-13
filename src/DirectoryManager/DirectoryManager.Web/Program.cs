@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.Services.AddResponseCaching();
+
 builder.Services.AddControllersWithViews(); // Add MVC services to the DI container
 builder.Services.AddRazorPages();
 
@@ -33,6 +35,7 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddDefaultTokenProviders();
 
 var app = builder.Build();
+app.UseResponseCaching();
 
 var options = new RewriteOptions()
     .AddRedirectToHttpsPermanent()
