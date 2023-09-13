@@ -12,8 +12,3 @@ A Directory For A Monero Circular Economy
 You can donate to help with hosting and admin costs by sending Monero to: `8BzHMDw2UaXNpCZM9wxABXW3qAKMxM2WxDGuDWSf5x5v7t1PdWdMfdLCzdtK8Eb9C5ZHcEHNR85bcbWhuK8SLCH46Pvy71q`
 
 ![Donate To Monerica](https://user-images.githubusercontent.com/108239499/232602369-831b5fea-de63-4de2-8985-0aa8bb304111.png)
-
-### Code
-
- dotnet ef migrations add MigrationName --context ApplicationDbContext --project  DirectoryManager.Data\DirectoryManager.Data.csproj
- dotnet ef database update --context ApplicationDbContext --project  DirectoryManager.Data\DirectoryManager.Data.csproj
