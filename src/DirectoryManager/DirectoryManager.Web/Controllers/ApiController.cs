@@ -13,6 +13,7 @@ namespace DirectoryManager.Web.Controllers
 
 
         [HttpGet("api/all")]
+        [ResponseCache(Duration = 3600)] // Cache the response for 1 hour (3600 seconds)
         public async Task<IActionResult> GetAllEntitiesAndProperties()
         {
             var entities = await _entryRepository.GetAllEntitiesAndPropertiesAsync();
