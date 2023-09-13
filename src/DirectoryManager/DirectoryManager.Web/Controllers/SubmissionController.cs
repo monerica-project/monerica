@@ -132,7 +132,7 @@ namespace DirectoryManager.Web.Controllers
                     SuggestedSubCategory = (model.SuggestedSubCategory == null) ? string.Empty : model.SuggestedSubCategory.Trim(),
                     SubCategoryId = (model.SubCategoryId == 0) ? null : model.SubCategoryId,
                     IpAddress = ipAddress,
-                    DirectoryEntryId = model.DirectoryEntryId
+                    DirectoryEntryId = (model.DirectoryEntryId == 0) ? null : model.DirectoryEntryId
                 };
 
                 await _submissionRepository.AddAsync(submission);
