@@ -38,6 +38,7 @@ app.UseStaticFiles(); // Use static files
 
 app.UseRouting();
 
+app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapDefaultControllerRoute(); // Map default controller route (usually to HomeController's Index action)

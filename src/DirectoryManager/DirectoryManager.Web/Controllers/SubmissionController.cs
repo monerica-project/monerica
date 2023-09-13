@@ -29,6 +29,7 @@ namespace DirectoryManager.Web.Controllers
             _directoryEntryRepository = directoryEntryRepository;
         }
 
+        [AllowAnonymous]
         [HttpGet("submit")]
         public async Task<IActionResult> CreateAsync()
         {
@@ -49,8 +50,8 @@ namespace DirectoryManager.Web.Controllers
             return View();
         }
 
+        [AllowAnonymous]
         [HttpPost("submit")]
-        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(SubmissionRequest model)
         {
             if (ModelState.IsValid)
@@ -113,6 +114,12 @@ namespace DirectoryManager.Web.Controllers
 
             // Convert the submission to a ViewModel if necessary, or use the model directly
             return View(submission);
+        }
+
+        [HttpGet("submission/success")]
+        public IActionResult Success()
+        {
+            return View("Success");
         }
 
         [Authorize]
