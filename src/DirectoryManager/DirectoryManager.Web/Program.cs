@@ -2,7 +2,9 @@ using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.AppRules;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,8 +32,13 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-
 var app = builder.Build();
+
+var options = new RewriteOptions()
+    .AddRedirectToHttpsPermanent()
+    .Add(new RedirectWwwToNonWwwRule());
+
+app.UseRewriter(options);
 
 // Configure middleware in the HTTP request pipeline.
 app.UseStaticFiles(); // Use static files
