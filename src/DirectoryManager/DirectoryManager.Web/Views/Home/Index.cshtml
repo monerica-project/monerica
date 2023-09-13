@@ -176,9 +176,16 @@
 {
     <h2 id="@category.CategoryKey">@category.Name</h2>  
 
-    <i>@category.Note</i>
-
-        @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.Id))
+        @if (!string.IsNullOrEmpty(category.Description))
+        {
+            <p>@category.Description</p>
+        }
+        @if (!string.IsNullOrEmpty(category.Note))
+        {
+            <p><i>(Note: @category.Note</i>)</p>
+        }
+ 
+    @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.Id))
     {
         <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>
 
