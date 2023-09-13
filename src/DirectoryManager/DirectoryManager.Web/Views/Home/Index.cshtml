@@ -1,0 +1,190 @@
+﻿@using DirectoryManager.Data.Models
+@model DirectoryManager.Data.Models.Category
+@inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.ISubCategoryRepository subCategoryRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
+
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<!-- Rest of your view above -->
+ 
+<cache expires-after="@TimeSpan.FromMinutes(10)">
+ 
+@{
+    ViewBag.Title = "Directory Entries";
+}
+<h1>Welcome To Monerica!</h1>
+<h4>A directory for a Monero circular economy</h4>
+
+<img style="width:333px;" src="/images/monerica-logo.png" alt="Monerica logo" />
+
+<p>
+    The goal of Monerica is to reflect the freedom ideals of the United States of America
+    in the age of cryptocurrency by using Monero. There are no borders to Monerica. One has the ability
+    to transact freely and privately without the need for a bank account, without the permission of
+    any third party, and without the prying eyes of those who wish to control the thoughts
+    and behaviors of others through surveillance and overreaching regulations.
+</p>
+
+<hr />
+
+<p>
+    <b>Last update:</b> @directoryEntryRepository.GetLastRevisionDate().ToString("yyyy-MM-ddTHH:mm:ssZ")
+</p>
+
+<hr />
+
+<p>
+    <i>
+        Note: None of the provided links
+        here are endorsements and some may contain affiliate links.
+    </i>
+</p>
+
+<p>
+    &#9989; - indicates someone in the community has done a successful test transaction or has used this software/
+    service
+</p>
+<p>
+    &#10060; - indicates someone in the community has reported this a scam
+</p>
+
+<p>
+    <b>Submit new or change existing links: <a class="button-link" href="~/submit">here</a>.</b>
+    Follow on: <a href="https://twitter.com/MonericaProject">Twitter</a>.
+</p>
+
+<hr />
+
+<h3 id="donate">Donate</h3>
+<i>Support Monerica to ensure the directory stays online and has accurate information for everyone in the Monero community.</i>
+
+<p>
+    <b class="multi-line-text">8BzHMDw2UaXNpCZM9wxABXW3qAKMxM2WxDGuDWSf5x5v7t1PdWdMfdLCzdtK8Eb9C5ZHcEHNR85bcbWhuK8SLCH46Pvy71q</b>
+</p>
+<p>
+    <img src="/images/monerica-donate-qr-code.png" alt="QR Code For Monerica" />
+</p>
+
+<hr />
+
+<p><b id="categories">Categories</b></p>
+<ul id="categories_list">
+
+    @foreach (var category in await categoryRepository.GetAllAsync())
+    {
+        <li>
+            <label for="@string.Format("{0}_checkbox", category.CategoryKey)">+</label>
+            <a href="#@category.CategoryKey">@category.Name</a>
+            <input type="checkbox" id="@string.Format("{0}_checkbox", category.CategoryKey)" />
+            <div class="hidden">
+             <ul>
+            @foreach (var subCategory in await subCategoryRepository.GetByCategoryAsync(category.Id))
+            {
+                <li>
+                    <a href="#@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</a>
+                </li>
+            }
+            </ul>
+            </div>
+        </li>
+        }
+    </ul>
+
+@foreach (var category in await categoryRepository.GetAllAsync())
+{
+    <h2 id="@category.CategoryKey">@category.Name</h2>  
+
+    <i>@category.Note</i>
+
+    @foreach (var subCategory in await subCategoryRepository.GetByCategoryAsync(category.Id))
+    {
+        <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>
+
+        if (!string.IsNullOrEmpty(subCategory.Description))
+        {
+            <p>@subCategory.Description</p>
+        }
+
+        if (!string.IsNullOrEmpty(subCategory.Note))
+        {
+            <i>(Note: @subCategory.Note)</i>
+        }
+        
+        <ul>
+            @foreach (var directoryEntry in await directoryEntryRepository.GetAllBySubCategoryIdAsync(subCategory.Id))
+            {
+                if (directoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Removed ||
+                    directoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Unknown)
+                {
+                    continue;
+                }
+
+                <li>
+                    <p> @if (directoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Verified)
+                        {
+                            <text>&#9989;</text>
+                            <a href="@directoryEntry.Link">@directoryEntry.Name</a>
+                        }
+                        else if (directoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Admitted)
+                        {
+                                <a href="@directoryEntry.Link">@directoryEntry.Name</a>
+                        }
+                        else if (directoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Scam)
+                        {
+                                <text>&#10060;</text>
+                                <del><a rel="nofollow" href="@directoryEntry.Link">@directoryEntry.Name</a></del>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(directoryEntry.Link2))
+                        {
+                            <text> | </text>
+                            <a href="@directoryEntry.Link2">Onion</a>
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(directoryEntry.Description))
+                        {
+                            <text> - </text>
+                            @directoryEntry.Description
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(directoryEntry.Contact))
+                        {
+                            <text> - </text>
+                           <text>Contact: </text> @directoryEntry.Contact
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(directoryEntry.Location))
+                        {
+                            <text> - </text>
+                            <text>Location: </text> @directoryEntry.Location
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(directoryEntry.Processor))
+                        {
+                            <text> - </text>
+                            <text>Processor: </text> @directoryEntry.Processor
+                        }
+
+                        @if (!string.IsNullOrWhiteSpace(directoryEntry.Note))
+                        {
+                            <i>(Note: @Html.Raw(@directoryEntry.Note))</i>
+                        }
+
+                    </p>
+                   
+                </li>
+            }
+        </ul>
+
+    }
+
+    <p class="right">
+        <a href="#categories">&#x2191; Categories</a>
+    </p>
+
+    <hr />
+}
+
+
+ </cache>  

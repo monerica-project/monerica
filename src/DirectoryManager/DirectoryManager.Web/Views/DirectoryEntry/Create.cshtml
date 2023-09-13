@@ -1,0 +1,53 @@
+﻿@using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Enums
+@model DirectoryEntry
+
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+<h1>Create Directory Entry</h1>
+
+<form method="post">
+
+    <div class="form-group">
+        <label asp-for="SubCategoryId">SubCategory:</label>
+        <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "Id", "DisplayName"))" required></select>
+    </div>
+
+
+    <div class="form-group">
+        <label asp-for="Name">Name:</label>
+        <input style="width:300px" type="text" asp-for="Name" required />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Link">Link:</label>
+        <input style="width:300px" type="text" asp-for="Link" required />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Link2">Link 2:</label>
+        <input style="width:300px" type="text" asp-for="Link2" />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="DirectoryStatus">Status:</label>
+        <select asp-for="DirectoryStatus" asp-items="@Enum.GetValues(typeof(DirectoryStatus)).Cast<DirectoryStatus>().Select(e => new SelectListItem { Value = ((int)e).ToString(), Text = e.ToString() })"></select>
+    </div>
+    <div class="form-group">
+        <label asp-for="Location">Location:</label>
+        <input style="width:300px" type="text" asp-for="Location" />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Description">Description:</label>
+        <textarea style="width:300px"  asp-for="Description"></textarea>
+    </div>
+
+
+    <div class="form-group">
+        <label asp-for="Note">Note:</label>
+        <textarea style="width:300px" asp-for="Note"></textarea>
+    </div>
+
+    <button type="submit">Save</button>
+</form>

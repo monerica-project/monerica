@@ -1,0 +1,717 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+
+    "sku": {
+      "type": "string",
+      "defaultValue": "F1",
+      "allowedValues": [
+        "F1",
+        "D1",
+        "B1",
+        "B2",
+        "B3",
+        "S1",
+        "S2",
+        "S3",
+        "P1",
+        "P2",
+        "P3",
+        "P4"
+      ],
+      "metadata": {
+        "description": "Describes plan's pricing tier and instance size. Check details at https://azure.microsoft.com/en-us/pricing/details/app-service/"
+      }
+    },
+    "skuCapacity": {
+      "type": "int",
+      "defaultValue": 1,
+      "minValue": 1,
+      "metadata": {
+        "description": "Describes plan's instance count"
+      }
+    },
+    "workerSize": {
+      "type": "string",
+      "allowedValues": [
+        "0",
+        "1",
+        "2"
+      ],
+      "defaultValue": "0",
+      "metadata": {
+        "description": "The instance size of the hosting plan (small, medium, or large)."
+      }
+    },
+    "portalSiteName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the web app that you wish to create."
+      }
+    },
+    "siteLocation": {
+      "type": "string",
+      "metadata": {
+        "description": "The location to use for creating the web app and hosting plan."
+      }
+    },
+    "hostingPlanName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the App Service plan to use for hosting the web app."
+      }
+    },
+    "environmentName": {
+      "type": "string",
+      "defaultValue": "dev",
+      "metadata": {
+        "description": "Name of the environment"
+      }
+    },
+    "serviceBusNamespaceName": {
+      "type": "string",
+      "metadata": {
+        "description": "Name of the Service Bus namespace"
+      }
+    },
+
+    "serviceBusSku": {
+      "type": "string",
+      "allowedValues": [
+        "Basic",
+        "Standard",
+        "Premium"
+      ],
+      "defaultValue": "Standard",
+      "metadata": {
+        "description": "The messaging tier for service Bus namespace"
+      }
+    },
+    "sbVersion": {
+      "type": "string",
+      "defaultValue": "2017-03-01"
+    },
+    "databaseName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the new database to create."
+      }
+    },
+    "databaseServerLocation": {
+      "type": "string"
+    },
+    "databaseServerName": {
+      "type": "string"
+    },
+
+    "edition": {
+      "type": "string",
+      "defaultValue": "Standard",
+      "metadata": {
+        "description": "The type of database to create. The available options are: Web, Business, Basic, Standard, and Premium."
+      }
+    },
+    "maxSizeBytes": {
+      "type": "string",
+      "defaultValue": "1073741824",
+      "metadata": {
+        "description": "The maximum size, in bytes, for the database"
+      }
+    },
+    "requestedServiceObjectiveName": {
+      "type": "string",
+      "defaultValue": "S0",
+      "metadata": {
+        "description": "The name corresponding to the performance level for edition. The available options are: Shared, Basic, S0, S1, S2, S3, P1, P2, and P3."
+      }
+    },
+    "portalSitePackageUrl": {
+      "type": "string",
+      "defaultValue": "NONE",
+      "metadata": {
+        "description": "package url"
+      }
+    },
+    "trafficSitePackageUrl": {
+      "type": "string",
+      "defaultValue": "NONE",
+      "metadata": {
+        "description": "package url"
+      }
+    },
+    "collation": {
+      "type": "string",
+      "defaultValue": "SQL_Latin1_General_CP1_CI_AS",
+      "metadata": {
+        "description": "The database collation for governing the proper use of characters."
+      }
+    },
+    "localIp": {
+      "type": "string",
+      "defaultValue": "0.0.0.0",
+      "metadata": {
+        "description": "The IP address of the local computer."
+      }
+    },
+    "administratorLogin": {
+      "type": "string",
+      "metadata": {
+        "description": "The account name to use for the database server administrator."
+      }
+    },
+    "administratorLoginPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The password to use for the database server administrator."
+      }
+    },
+    "sendgridApiKey": {
+      "type": "securestring",
+      "metadata": {
+        "description": "The SendGrid API key from the SendGrid service."
+      }
+    },
+    "sendgridName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name for the SendGrid connection."
+      }
+    },
+    "customPortalHostname": {
+      "type": "string",
+      "metadata": {
+        "description": "The custom hostname that you wish to add."
+      }
+    },
+    "customTrafficHostname": {
+      "type": "string",
+      "metadata": {
+        "description": "The custom hostname that you wish to add."
+      }
+    },
+    "customApiHostname": {
+      "type": "string",
+      "metadata": {
+        "description": "The custom hostname that you wish to add."
+      }
+    },
+    "customHostname": {
+      "type": "string",
+      "metadata": {
+        "description": "The custom hostname that you wish to add."
+      }
+    },
+    "certificateName": {
+      "type": "string",
+      "metadata": {
+        "description": "name"
+      }
+    },
+    "pfxPassword": {
+      "type": "securestring",
+      "metadata": {
+        "description": "pfx password."
+      }
+    },
+    "pfxString": {
+      "type": "securestring",
+      "metadata": {
+        "description": "pfx base 64 secure"
+      }
+    },
+    "affiliatePaymentJob": {
+      "type": "string",
+      "metadata": {
+        "description": "Job name"
+      }
+    },
+    "networkPayoutJob": {
+      "type": "string",
+      "metadata": {
+        "description": "Job name"
+      }
+    }, 
+    "jobCollectionName": {
+      "type": "string",
+      "metadata": {
+        "description": "job Collection Name"
+      }
+    },
+    "jobCollectionSku": {
+      "type": "string",
+      "defaultValue": "Free",
+      "metadata": {
+        "description": "job sku"
+      }
+    },
+    "basicAuthToken": {
+      "type": "string",
+      "defaultValue": "Free",
+      "metadata": {
+        "description": "basicAuthToken"
+      }
+    },
+    "enableAlwaysOn": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable/Disable always on. If you choose free for hosting plan, this should be set to false as always on is not supported for free plan"
+      }
+    },
+    "use32bitWorkerProcess": {
+      "type": "bool",
+      "defaultValue": false,
+      "metadata": {
+        "description": "Enable 32bit worker process or 64bit, 64bit is not available if you choose free hosting plan."
+      }
+    },
+    "customPortalHostnames": {
+      "type": "array",
+      "defaultValue": [
+        "[concat(parameters('customPortalHostname'), '.', parameters('customHostname'))]",
+        "[concat(parameters('customTrafficHostname'), '.', parameters('customHostname'))]",
+        "[concat(parameters('customApiHostname'), '.', parameters('customHostname'))]"
+      ]
+    },
+    "cdnHostName": {
+      "type": "string"
+    },
+
+    "storageAccountName": {
+      "type": "string",
+      "defaultValue": "bbndevwestusapp"
+    },
+    "cdnEndpointName": {
+      "type": "string"
+    },
+    "cdnProfileName": {
+      "type": "string"
+    }
+
+  },
+  "resources": [
+
+
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[parameters('storageAccountName')]",
+      "apiVersion": "2016-01-01",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "[parameters('storageAccountName')]"
+      },
+      "kind": "Storage",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "properties": {}
+    },
+
+    {
+      "name": "[parameters('cdnProfileName')]",
+      "type": "Microsoft.Cdn/profiles",
+      "location": "[resourceGroup().location]",
+      "apiVersion": "2016-04-02",
+      "tags": {
+        "displayName": "[parameters('cdnProfileName')]"
+      },
+      "sku": {
+        "name": "Standard_Verizon"
+      },
+      "properties": {},
+      "resources": [
+        {
+          "apiVersion": "2016-04-02",
+          "name": "[parameters('cdnEndpointName')]",
+          "type": "endpoints",
+          "dependsOn": [
+            "[parameters('cdnProfileName')]",
+            "[parameters('storageAccountName')]"
+          ],
+          "location": "[resourceGroup().location]",
+          "tags": {
+            "displayName": "[parameters('cdnEndpointName')]"
+          },
+          "properties": {
+            "originHostHeader": "[replace(replace(reference(parameters('storageAccountName')).primaryEndpoints.blob,'https://',''),'/','')]",
+            "isHttpAllowed": false,
+            "isHttpsAllowed": true,
+            "queryStringCachingBehavior": "IgnoreQueryString",
+            "contentTypesToCompress": [ "text/plain", "text/html", "text/css", "application/x-javascript", "text/javascript" ],
+            "isCompressionEnabled": true,
+            "origins": [
+              {
+                "name": "origin1",
+                "properties": {
+                  "hostName": "[replace(replace(reference(parameters('storageAccountName')).primaryEndpoints.blob,'https://',''),'/','')]"
+                }
+              }
+            ]
+          },
+          "resources": [
+            {
+              "name": "cdn-name",
+              "type": "customDomains",
+              "apiVersion": "2016-04-02",
+              "properties": {
+                "hostName": "[parameters('cdnHostName')]"
+              },
+              "dependsOn": [
+                "[parameters('cdnEndpointName')]"
+              ]
+            }
+          ]
+        }
+      ]
+    },
+
+
+    {
+      "type": "Microsoft.Web/sites/hostnameBindings",
+      "name": "[concat(parameters('portalSiteName'), '/', parameters('customPortalHostnames')[copyIndex()])]",
+      "apiVersion": "2016-08-01",
+      "location": "[resourceGroup().location]",
+      "properties": {
+        "sslState": "SniEnabled",
+        "thumbprint": "[reference(resourceId('Microsoft.Web/certificates', parameters('certificateName'))).Thumbprint]"
+      },
+      "copy": {
+        "name": "bindingsCopy",
+        "count": "[length(parameters('customPortalHostnames'))]",
+        "mode": "Serial",
+        "batchSize": 1
+      },
+      "dependsOn": [
+        "[concat('Microsoft.Web/sites/', parameters('portalSiteName'))]",
+        "[concat('Microsoft.Web/certificates/',parameters('certificateName'))]"
+      ]
+    },
+    {
+      "type": "Microsoft.Web/certificates",
+      "name": "[parameters('certificateName')]",
+      "apiVersion": "2016-03-01",
+      "location": "[parameters('siteLocation')]",
+      "properties": {
+        "pfxBlob": "[parameters('pfxString')]",
+        "password": "[parameters('pfxPassword')]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('hostingPlanName'))]"
+      },
+      "dependsOn": [
+        "[parameters('hostingPlanName')]"
+      ]
+    },
+    {
+      "apiVersion": "2016-09-01",
+      "name": "[parameters('hostingPlanName')]",
+      "type": "Microsoft.Web/serverfarms",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "displayName": "HostingPlan"
+      },
+      "sku": {
+        "name": "[parameters('sku')]",
+        "capacity": "[parameters('skuCapacity')]"
+      },
+      "properties": {
+        "name": "[parameters('hostingPlanName')]"
+      },
+      "dependsOn": [
+        "[parameters('databaseServerName')]"
+      ]
+    },
+    {
+      "apiVersion": "2016-08-01",
+      "name": "[parameters('portalSiteName')]",
+      "type": "Microsoft.Web/sites",
+      "location": "[resourceGroup().location]",
+      "dependsOn": [
+        "[parameters('hostingPlanName')]",
+        "[resourceId('Microsoft.Web/certificates', parameters('certificateName'))]"
+      ],
+      "tags": {
+        "displayName": "Website"
+      },
+      "properties": {
+
+        "name": "[parameters('portalSiteName')]",
+        "serverFarmId": "[resourceId('Microsoft.Web/serverfarms', parameters('hostingPlanName'))]",
+        "packageUri": "[parameters('portalSitePackageUrl')]"
+      },
+      "resources": [
+        {
+          "apiVersion": "2016-08-01",
+          "name": "web",
+          "type": "config",
+          "dependsOn": [
+            "MSDeploy",
+            "[concat('Microsoft.Web/sites/', parameters('portalSiteName'))]"
+          ],
+          "tags": {
+            "displayName": "WebAppConfig"
+          },
+          "properties": {
+            "phpVersion": "5.6",
+            "netFrameworkVersion": "v4.7",
+            "use32BitWorkerProcess": false,
+            "webSocketsEnabled": true,
+            "alwaysOn": "[parameters('enableAlwaysOn')]",
+            "remoteDebuggingEnabled": false,
+            "remoteDebuggingVersion": "VS2017"
+          }
+        },
+        {
+          "apiVersion": "2016-03-01",
+          "location": "[resourceGroup().location]",
+          "name": "[parameters('jobCollectionName')]",
+          "type": "Microsoft.Scheduler/jobCollections",
+          "dependsOn": [
+            "[concat('Microsoft.Web/sites/', parameters('portalSiteName'))]"
+          ],
+        
+          "properties": {
+            "sku": {
+              "name": "[parameters('jobCollectionSku')]"
+            }
+          },
+          "resources": [
+            {
+              "apiVersion": "2016-03-01",
+              "type": "jobs",
+              "name": "[parameters('affiliatePaymentJob')]",
+              "dependsOn": [
+                "[concat('Microsoft.Scheduler/jobCollections/', parameters('jobCollectionName'))]"
+              ],
+              "properties": {
+                "state": "Enabled",
+                "action": {
+                  "type": "Https",
+                  "request": {
+                    "uri": "[concat('https://', parameters('customApiHostname'), '.', parameters('customHostname'), '/api/PaymentMaker/sendpayment')]",
+                    "method": "POST",
+                    "headers": {
+                      "Authorization": "[parameters('basicAuthToken')]"
+                    }
+                  },
+                  "retryPolicy": {
+                    "retryType": "None"
+                  }
+                },
+                "startTime": "2017-01-01T00:00Z",
+                "recurrence": {
+                  "interval": 1,
+                  "frequency": "Week",
+                  "schedule": {
+                    "weekDays": [ "Friday" ],
+                    "hours": [ 0 ],
+                    "minutes": [ 0 ]
+                  }
+                }
+              }
+            },
+            {
+              "apiVersion": "2016-03-01",
+              "type": "jobs",
+              "name": "[parameters('networkPayoutJob')]",
+              "dependsOn": [
+                "[concat('Microsoft.Scheduler/jobCollections/', parameters('jobCollectionName'))]"
+              ],
+              "properties": {
+                "state": "Enabled",
+                "action": {
+                  "type": "Https",
+                  "request": {
+                    "uri": "[concat('https://', parameters('customApiHostname'), '.', parameters('customHostname'), '/api/paymentmaker/payoutnetwork')]",
+                    "method": "POST",
+                    "headers": {
+                      "Authorization": "[parameters('basicAuthToken')]"
+                    }
+                  },
+                  "retryPolicy": {
+                    "retryType": "None"
+                  }
+                },
+                "startTime": "2017-01-01T00:00Z",
+                "recurrence": {
+                  "interval": 1,
+                  "frequency": "month",
+                  "schedule": {
+                    "monthDays": [15],
+                    "hours": [ 5 ],
+                    "minutes": [ 0 ]
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "name": "MSDeploy",
+          "type": "extensions",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2016-08-01",
+          "dependsOn": [
+            "[concat('Microsoft.Web/sites/', parameters('portalSiteName'))]"
+          ],
+          "tags": {
+            "displayName": "WebAppMSDeploy"
+          },
+          "properties": {
+            "packageUri": "[parameters('portalSitePackageUrl')]"
+          }
+        }
+
+
+      ]
+    },
+
+    {
+      "apiVersion": "2015-04-01",
+      "name": "[concat(parameters('hostingPlanName'), '-', resourceGroup().name)]",
+      "type": "Microsoft.Insights/autoscalesettings",
+      "location": "[resourceGroup().location]",
+      "tags": {
+        "[concat('hidden-link:', resourceId('Microsoft.Web/serverfarms', parameters('hostingPlanName')))]": "Resource",
+        "displayName": "AutoScaleSettings"
+      },
+      "dependsOn": [
+        "[parameters('hostingPlanName')]"
+      ],
+      "properties": {
+        "profiles": [
+          {
+            "name": "Default",
+            "capacity": {
+              "minimum": 1,
+              "maximum": 2,
+              "default": 1
+            },
+            "rules": [
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[resourceId('Microsoft.Web/serverfarms', parameters('hostingPlanName'))]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT10M",
+                  "timeAggregation": "Average",
+                  "operator": "GreaterThan",
+                  "threshold": 80.0
+                },
+                "scaleAction": {
+                  "direction": "Increase",
+                  "type": "ChangeCount",
+                  "value": 1,
+                  "cooldown": "PT10M"
+                }
+              },
+              {
+                "metricTrigger": {
+                  "metricName": "CpuPercentage",
+                  "metricResourceUri": "[resourceId('Microsoft.Web/serverfarms', parameters('hostingPlanName'))]",
+                  "timeGrain": "PT1M",
+                  "statistic": "Average",
+                  "timeWindow": "PT1H",
+                  "timeAggregation": "Average",
+                  "operator": "LessThan",
+                  "threshold": 60.0
+                },
+                "scaleAction": {
+                  "direction": "Decrease",
+                  "type": "ChangeCount",
+                  "value": 1,
+                  "cooldown": "PT1H"
+                }
+              }
+            ]
+          }
+        ],
+        "enabled": false,
+        "name": "[concat(parameters('hostingPlanName'), '-', resourceGroup().name)]",
+        "targetResourceUri": "[resourceId('Microsoft.Web/serverfarms', parameters('hostingPlanName'))]"
+      }
+    },
+    {
+      "apiVersion": "[parameters('sbVersion')]",
+      "name": "[parameters('serviceBusNamespaceName')]",
+      "type": "Microsoft.ServiceBus/Namespaces",
+      "location": "[resourceGroup().location]",
+      "sku": {
+        "name": "Standard"
+      }
+    },
+    {
+      "type": "Microsoft.Web/connections",
+      "apiVersion": "2016-06-01",
+      "location": "[resourceGroup().location]",
+      "name": "[parameters('sendgridName')]",
+      "properties": {
+        "api": {
+          "id": "[concat(subscription().id,'/providers/Microsoft.Web/locations/', resourceGroup().location, '/managedApis/sendgrid')]"
+        },
+        "displayName": "sendgrid",
+        "parameterValues": {
+          "apiKey": "[parameters('sendgridApiKey')]"
+        }
+      }
+    },
+    {
+      "name": "[parameters('databaseServerName')]",
+      "type": "Microsoft.Sql/servers",
+      "location": "[parameters('databaseServerLocation')]",
+      "apiVersion": "2014-04-01",
+      "properties": {
+        "administratorLogin": "[parameters('administratorLogin')]",
+        "administratorLoginPassword": "[parameters('administratorLoginPassword')]",
+        "version": "12.0"
+      },
+      "resources": [
+        {
+          "name": "[parameters('databaseName')]",
+          "type": "databases",
+          "location": "[parameters('databaseServerLocation')]",
+          "apiVersion": "2014-04-01",
+          "dependsOn": [
+            "[concat('Microsoft.Sql/servers/', parameters('databaseServerName'))]"
+          ],
+          "properties": {
+            "edition": "[parameters('edition')]",
+            "collation": "[parameters('collation')]",
+            "maxSizeBytes": "[parameters('maxSizeBytes')]",
+            "requestedServiceObjectiveName": "[parameters('requestedServiceObjectiveName')]"
+          }
+        },
+
+        {
+          "name": "AllowLocalIp",
+          "type": "firewallrules",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2014-04-01",
+          "dependsOn": [
+            "[concat('Microsoft.Sql/servers/', parameters('databaseServerName'))]"
+          ],
+          "properties": {
+            "endIpAddress": "[parameters('localIp')]",
+            "startIpAddress": "[parameters('localIp')]"
+          }
+        },
+        {
+          "name": "AllowAllWindowsAzureIps",
+          "type": "firewallrules",
+          "location": "[resourceGroup().location]",
+          "apiVersion": "2014-04-01",
+          "dependsOn": [
+            "[concat('Microsoft.Sql/servers/', parameters('databaseServerName'))]"
+          ],
+          "properties": {
+            "endIpAddress": "0.0.0.0",
+            "startIpAddress": "0.0.0.0"
+          }
+        }
+      ]
+    }
+  ],
+  "variables": {
+    "sbVersion": "2017-04-01"
+  }
+}

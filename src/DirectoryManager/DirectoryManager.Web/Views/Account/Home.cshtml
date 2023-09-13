@@ -1,0 +1,38 @@
+﻿@model DirectoryManager.Web.Models.LoginViewModel
+@{
+    ViewBag.Title = "Home";
+}
+
+<h2>Home</h2>
+ 
+@User.Identity.Name
+
+<ul>
+    <li>
+        <a href="~/submission/index">Submissions</a>
+    </li>
+    <li>
+        <a href="~/account/edit">Edit page</a>
+    </li>
+    <li>
+        <a href="~/category/create">Create category</a>
+    </li>
+    <li>
+        <a href="~/category/index">Categories</a>
+    </li>
+    <li>
+        <a href="~/subcategory/create">Create sub category</a>
+    </li>
+    <li>
+        <a href="~/subcategory/index">Sub categories</a>
+    </li>
+    <li>
+        <a href="~/directoryentry/create">Creat dirtory entry</a>
+    </li>
+    <li>
+        <a href="~/directoryentry/index">Directory entries</a>
+    </li>
+ 
+</ul>
+
+<a href="~/account/logout">Logout</a>

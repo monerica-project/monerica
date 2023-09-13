@@ -1,0 +1,28 @@
+﻿@using DirectoryManager.Data.Models
+@model SubCategory
+<form method="post">
+  
+    <div>
+        <label>Parent Category:</label>
+        <select name="CategoryId" required>
+            @foreach (var category in (IEnumerable<Category>)ViewBag.Categories)
+            {
+                <option value="@category.Id" selected="@(Model.Category != null && Model.Category.Id == category.Id ? "selected" : null)">@category.Name</option>
+            }
+        </select>
+    </div>
+      <div>
+        <label>Name:</label>
+        <input type="text" name="Name" value="@Model.Name" required />
+    </div>
+
+    <div>
+        <label asp-for="Note">Description:</label>
+        <textarea cols="100" asp-for="Description"></textarea>
+    </div>
+    <div>
+        <label asp-for="Note">Note:</label>
+        <textarea cols="100" asp-for="Note"></textarea>
+    </div>
+    <button type="submit">Save</button>
+</form>

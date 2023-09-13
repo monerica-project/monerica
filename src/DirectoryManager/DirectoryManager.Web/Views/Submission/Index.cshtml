@@ -1,0 +1,28 @@
+﻿@model IEnumerable<DirectoryManager.Data.Models.Submission>
+
+<h2>Submission Requests</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Link</th>
+            <!-- Add other columns as needed -->
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var submission in Model)
+        {
+            <tr>
+                <td>@submission.Name</td>
+                <td>@submission.Link</td>
+                <td>@submission.SubmissionStatus</td>
+                <!-- Render other fields -->
+                <td>
+                    <a asp-action="Edit" asp-controller="Submission" asp-route-id="@submission.Id" class="btn btn-primary">Edit</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
