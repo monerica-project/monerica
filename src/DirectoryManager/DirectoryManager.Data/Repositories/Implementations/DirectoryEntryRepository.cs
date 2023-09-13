@@ -90,6 +90,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<IEnumerable<DirectoryEntry>> GetNewestRevisions(int count)
         {
             return await _context.DirectoryEntries
+                .Where(x => x.DirectoryStatus != DirectoryStatus.Removed && 
+                            x.DirectoryStatus != DirectoryStatus.Unknown)
                 .OrderByDescending(entry => (entry.UpdateDate.HasValue && entry.UpdateDate.Value > entry.CreateDate)
                                              ? entry.UpdateDate.Value
                                              : entry.CreateDate)
