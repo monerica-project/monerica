@@ -16,10 +16,9 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Name", Prompt = "Company/ Project Name")]
         public string Name { get; set; }
 
-        [Required]
         [MaxLength(500)]
         [Display(Name = "Description", Prompt = "People should know...")]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         [MaxLength(500)]
         [Display(Name = "Link 2", Prompt = "Onion address")]
@@ -47,5 +46,7 @@ namespace DirectoryManager.Web.Models
         [MaxLength(255)]
         [Display(Name = "Suggested Category", Prompt = "New Category > New Sub Category")]
         public string? SuggestedSubCategory { get; set; }
+
+        public int? DirectoryEntryId { get; set; }
     }
 }

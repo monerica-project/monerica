@@ -47,5 +47,9 @@ namespace DirectoryManager.Data.Models
 
         [MaxLength(255)]
         public string? IpAddress { get; set; }
+
+        public int? DirectoryEntryId { get; set; }
+
+        public virtual DirectoryEntry? DirectoryEntry { get; set; }
     }
 }
