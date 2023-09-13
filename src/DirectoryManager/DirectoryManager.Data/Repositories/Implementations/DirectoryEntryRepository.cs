@@ -104,7 +104,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                             .Where(entry => entry.SubCategoryId == subCategoryId &&
                                         entry.DirectoryStatus != DirectoryStatus.Removed &&
                                         entry.DirectoryStatus != DirectoryStatus.Unknown)
-                                .OrderByDescending(entry => entry.Name)
+                                .OrderBy(entry => entry.Name)
                                 .ToListAsync();
         }
 

@@ -72,6 +72,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                   .Any(entry => entry.SubCategoryId == subCategory.Id &&
                                                 entry.DirectoryStatus != DirectoryStatus.Unknown &&
                                                 entry.DirectoryStatus != DirectoryStatus.Removed))
+                          .OrderBy(subCategory => subCategory.Name)
                           .ToListAsync();
 
             return activeSubCategories;
