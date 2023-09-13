@@ -1,4 +1,6 @@
-﻿using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Migrations;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
@@ -83,7 +85,8 @@ namespace DirectoryManager.Web.Controllers
                 Note = directoryEntry.Note,
                 Processor = directoryEntry.Processor,
                 SubCategoryId = directoryEntry.SubCategoryId,
-                DirectoryEntryId = directoryEntry.Id
+                DirectoryEntryId = directoryEntry.Id,
+                DirectoryStatus = directoryEntry.DirectoryStatus
             };
             return View(model);
         }
@@ -132,7 +135,8 @@ namespace DirectoryManager.Web.Controllers
                     SuggestedSubCategory = (model.SuggestedSubCategory == null) ? string.Empty : model.SuggestedSubCategory.Trim(),
                     SubCategoryId = (model.SubCategoryId == 0) ? null : model.SubCategoryId,
                     IpAddress = ipAddress,
-                    DirectoryEntryId = (model.DirectoryEntryId == 0) ? null : model.DirectoryEntryId
+                    DirectoryEntryId = (model.DirectoryEntryId == 0) ? null : model.DirectoryEntryId,
+                    DirectoryStatus = (model.DirectoryStatus == null) ? DirectoryStatus.Unknown : model.DirectoryStatus
                 };
 
                 await _submissionRepository.AddAsync(submission);

@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace DirectoryManager.Web.Models
@@ -48,5 +49,8 @@ namespace DirectoryManager.Web.Models
         public string? SuggestedSubCategory { get; set; }
 
         public int? DirectoryEntryId { get; set; }
+
+        [Display(Name = "Suggested Status", Prompt = "Status")]
+        public DirectoryStatus? DirectoryStatus { get; set; }
     }
 }
