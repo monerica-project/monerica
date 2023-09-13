@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Update="appsettings.template.json" TargetPath="appsettings.json">
+    <None Update="appsettings.template.json" TargetPath="data\appsettings.template.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
       <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
     </None>
