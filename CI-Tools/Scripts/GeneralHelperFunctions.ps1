@@ -51,9 +51,7 @@ function Set-FileSettings($fileLocation)
 {
     Write-Host 'db string ' +  $dbConnectionString
     $envJson = Get-Content $fileLocation | ConvertFrom-Json
-    $envJson.ConnectionStrings.SqlServerConnection = $dbConnectionString
-    $envJson.NeutrinoApi.UserId = $NeutrinoApiUserId
-    $envJson.NeutrinoApi.ApiKey = $NeutrinoApiApiKey
+    $envJson.ConnectionStrings.DefaultConnection = $dbConnectionString
     $envJson | ConvertTo-Json | set-content $fileLocation
     Write-Host "Saving $fileLocation..."
 }

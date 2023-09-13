@@ -27,4 +27,14 @@
   <ItemGroup>
     <ProjectReference Include="..\DirectoryManager.Data\DirectoryManager.Data.csproj" />
   </ItemGroup>
+
+	<!-- For DirectoryManager.Web.csproj -->
+	<ItemGroup>
+		<None Update="appsettings.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			<TargetPath>web\appsettings.json</TargetPath>
+		</None>
+	</ItemGroup>
+
 </Project>

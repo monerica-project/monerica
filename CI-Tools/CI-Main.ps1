@@ -29,7 +29,7 @@ properties {
    # Project paths
    $databaseProjectSourcePath   = "..\src\DirectoryManager\DirectoryManager.Data"
    $webProjectSourcePath        = "..\src\DirectoryManager\DirectoryManager.Web"
-   $testProjectSourcePath       = "..\src\DirectoryManager\DirectoryManager.sln"
+   $testProjectSourcePath       = "..\DirectoryManager.sln"
    $compileSourcePath           = "..\src\DirectoryManager.Web\bin\output"
 
    $WebAppSettings              = "..\src\DirectoryManager\DirectoryManager.Web\appsettings.json"
@@ -173,10 +173,10 @@ task -name RunUnitTests {
 task -name SetConfigs {
 
 
-    $WebAppSettings = "..\src\WebPagePub.WebApp\appsettings.json"
+    $WebAppSettings = "..\src\DirectoryManager\DirectoryManager.Web\appsettings.json"
     Set-FileSettings -fileLocation $WebAppSettings
 
-    $DatabaseAppSettings = "..\src\WebPagePub.Data\appsettings.json"
+    $DatabaseAppSettings = "..\src\DirectoryManager\DirectoryManager.Data\appsettings.json"
     Set-FileSettings -fileLocation $DatabaseAppSettings
 
 }
