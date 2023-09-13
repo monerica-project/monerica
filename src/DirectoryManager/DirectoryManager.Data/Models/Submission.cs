@@ -51,5 +51,7 @@ namespace DirectoryManager.Data.Models
         public int? DirectoryEntryId { get; set; }
 
         public virtual DirectoryEntry? DirectoryEntry { get; set; }
+
+        public DirectoryStatus? DirectoryStatus { get; set; }
     }
 }

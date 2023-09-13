@@ -39,6 +39,20 @@
     </div>
 
     <!-- Other Fields -->
+    <div class="form-group">
+        <label asp-for="DirectoryStatus">Directory Status:</label>
+        <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control">
+            @foreach (var status in Enum.GetValues(typeof(DirectoryStatus)))
+            {
+                if ((DirectoryStatus)status == DirectoryStatus.Unknown)
+                {
+                    continue;
+                }
+             
+                <option value="@((int)status)">@status.ToString()</option>
+            }
+        </select>
+    </div>
 
     <div class="form-group">
         <label asp-for="Name">Name</label>
