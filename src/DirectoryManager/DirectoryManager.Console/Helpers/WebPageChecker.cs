@@ -7,24 +7,35 @@
 
         public static async Task<bool> IsWebPageOnlineAsync(Uri uri)
         {
-            using HttpClient client = new();
+            using var client = new HttpClient();
+            client.DefaultRequestHeaders.UserAgent.ParseAdd(DefaultHeader);
+
             try
             {
-                client.DefaultRequestHeaders.UserAgent.ParseAdd(DefaultHeader);
-                HttpResponseMessage response = await client.GetAsync(uri);
+                var response = await client.GetAsync(uri);
 
-                var responseCode = response.StatusCode;
-
-                if (responseCode == System.Net.HttpStatusCode.Moved ||
-                    response?.RequestMessage?.RequestUri != uri)
+                if (response.IsSuccessStatusCode)
+                {
+                    return true;
+                }
+                else if (response.StatusCode == System.Net.HttpStatusCode.Moved ||
+                         response.RequestMessage?.RequestUri != uri)
                 {
                     return false;
                 }
-
-                return response.IsSuccessStatusCode;
+                else
+                {
+                    return false;
+                }
             }
             catch (HttpRequestException)
             {
+                // Handle the request exception, e.g., log it if needed.
+                return false;
+            }
+            catch (TaskCanceledException)
+            {
+                // Handle the task cancellation, e.g., log it if needed.
                 return false;
             }
         }
