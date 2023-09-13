@@ -54,5 +54,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             return await _context.SubCategories.FirstOrDefaultAsync(sc => sc.Name == name);
         }
+
+        public async Task<IEnumerable<SubCategory>> GetByCategoryAsync(int categoryId)
+        {
+            return await _context.SubCategories
+                                 .Where(sc => sc.CategoryId == categoryId)
+                                 .OrderBy(sc => sc.Name)
+                                 .ToListAsync();
+        }
+
     }
 }

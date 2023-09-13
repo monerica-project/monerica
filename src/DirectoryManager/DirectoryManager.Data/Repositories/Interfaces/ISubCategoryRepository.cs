@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
-using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
@@ -12,5 +10,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task UpdateAsync(SubCategory subCategory);
         Task DeleteAsync(int id);
         Task<SubCategory> GetByNameAsync(string subCategoryName);
+        Task<IEnumerable<SubCategory>> GetByCategoryAsync(int categoryId);
     }
 }

@@ -1,16 +1,17 @@
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Repositories;
 using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Configuration;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews(); // Add MVC services to the DI container
 builder.Services.AddRazorPages();
+
+builder.Services.AddMemoryCache();
+builder.Services.AddMvc();
 
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -18,9 +19,6 @@ builder.Services.AddScoped<ISubCategoryRepository, SubCategoryRepository>();
 builder.Services.AddScoped<IDirectoryEntryRepository, DirectoryEntryRepository>();
 
 builder.Services.AddControllersWithViews();
-
-
-
 
 builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
 

@@ -59,10 +59,21 @@ namespace DirectoryManager.Web.Controllers
             return View();
         }
 
+
+        [Authorize]
+        public IActionResult Edit()
+        {
+            // You can access user details here, if needed.
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Get the user's ID
+
+            return View();
+        }
+
+
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
-            return RedirectToAction("Index", "Home");
+            return RedirectToAction(nameof(Login), "Account");
         }
     }
 }

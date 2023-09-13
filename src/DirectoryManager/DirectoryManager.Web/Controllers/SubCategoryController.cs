@@ -55,6 +55,10 @@ public class SubCategoryController : Controller
     {
         subCategory.CreatedByUserId = _userManager.GetUserId(User);
         subCategory.SubCategoryKey = TextHelpers.UrlKey(subCategory.Name);
+        subCategory.Name = subCategory.Name.Trim();
+        subCategory.Description = subCategory.Description?.Trim();
+        subCategory.Note = subCategory.Note?.Trim();
+
         await _subCategoryRepository.CreateAsync(subCategory);
 
         return RedirectToAction(nameof(Index));
@@ -76,8 +80,11 @@ public class SubCategoryController : Controller
     {
         var existingSubCategory = await _subCategoryRepository.GetByIdAsync(subCategory.Id);
 
-        existingSubCategory.Name = subCategory.Name;
+        existingSubCategory.Name = subCategory.Name.Trim();
+        existingSubCategory.SubCategoryKey = TextHelpers.UrlKey(subCategory.Name.Trim());
         existingSubCategory.CategoryId = subCategory.CategoryId;
+        existingSubCategory.Description = subCategory.Description?.Trim();
+        existingSubCategory.Note = subCategory.Note?.Trim();
         existingSubCategory.UpdatedByUserId = _userManager.GetUserId(User);
 
         await _subCategoryRepository.UpdateAsync(existingSubCategory);

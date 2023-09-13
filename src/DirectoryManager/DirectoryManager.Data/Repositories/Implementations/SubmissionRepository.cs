@@ -16,7 +16,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<Submission>> GetAllAsync()
         {
-            return await _context.Submissions.ToListAsync();
+            return await _context.Submissions
+                                 .OrderByDescending(x => x.CreateDate)
+                                 .ToListAsync();
         }
 
         public async Task<Submission> GetByIdAsync(int id)

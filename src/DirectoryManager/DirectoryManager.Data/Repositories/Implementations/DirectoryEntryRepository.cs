@@ -62,6 +62,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 await _context.SaveChangesAsync();
             }
         }
-    }
 
+
+        public async Task<IEnumerable<DirectoryEntry>> GetAllBySubCategoryIdAsync(int subCategoryId)
+        {
+            return await _context.DirectoryEntries
+                                 .Where(e => e.SubCategory.Id == subCategoryId)
+                                 .OrderBy(e => e.Name)
+                                 .ToListAsync();
+        }
+
+        public DateTime GetLastRevisionDate()
+        {
+            // Fetch the latest CreateDate and UpdateDate
+            var latestCreateDate = _context.DirectoryEntries.Max(e => e.CreateDate);
+            var latestUpdateDate = _context.DirectoryEntries.Max(e => e.UpdateDate);
+
+            // Return the more recent of the two dates
+            return (DateTime)(latestCreateDate > latestUpdateDate ? latestCreateDate : latestUpdateDate);
+        }
+    }
 }

@@ -3,10 +3,9 @@
     public enum DirectoryStatus
     {
         Unknown = 0,
-        Pending = 1,
-        Approved = 2,
-        Rejected = 3,
-        Removed = 4,
-        Spam = 5
+        Admitted = 1,
+        Verified = 2,
+        Scam = 3,
+        Removed = 4
     }
 }

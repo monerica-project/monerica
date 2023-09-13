@@ -3,11 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  
-    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
-    
         <title>Monerica - A Directory For A Monero Circular Economy</title>
-    
         <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
         <meta name="description" content="Monerica is a directory for the Monero cryptocurrency which
 	    has sections for businesses, communities, education, exchanges, mining, wallets and more." />
@@ -33,6 +29,10 @@
                 color: #008cff
             }
 
+            li p {
+                margin:0;
+            }
+
                 a:hover {
                     text-decoration: none;
                 }
@@ -49,11 +49,11 @@
 
             /* begin: expandable lists */
 
-            #hidden {
+            .hidden {
                 display: none;
             }
 
-            :checked + #hidden {
+            :checked + .hidden {
                 display: block;
             }
 
@@ -72,6 +72,15 @@
                 ul#categories_list li input[type=checkbox] {
                     display: none;
                 }
+
+                footer {
+                    margin-top: 30px;
+                    padding:10px;
+                    border-top-color: #FFFFFF;
+                    border-top-style: solid;
+                    border-top-width: 1px;  
+                }
+       
 
             /* end: expandable lists */
 
@@ -98,16 +107,13 @@
                             end banner style */
         </style>
     </head>
- 
 <body>
-     
-
-    <div class="container">
-        @RenderBody() <!-- This is where the content of your views will be rendered -->
+    <div id="main-content">
+        @RenderBody() 
     </div>
  
     <footer>
-        <!-- You can add a footer here if you like -->
+        <a href="https://github.com/monerica-project/">On GitHub</a> - @DateTime.UtcNow.Year 
     </footer>
  
 </body>

@@ -1,0 +1,50 @@
+{
+  "$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+  "contentVersion": "1.0.0.0",
+  "parameters": {
+    "dnsZoneName": {
+      "type": "string",
+      "metadata": {
+        "description": "The name of the DNS zone to be created.  Must have at least 2 segements, e.g. hostname.org"
+      }
+    },
+    "cdnDnsRecordName": {
+      "type": "string",
+      "defaultValue": "cdn",
+      "metadata": {
+        "description": "The name of the DNS record to be created.  The name is relative to the zone, not the FQDN."
+      }
+    },
+
+    "cdnEndpointName": {
+      "type": "string",      
+      "metadata": {
+        "description": "The name of the DNS record to be created.  The name is relative to the zone, not the FQDN."
+      }
+    }
+  },
+  "resources": [
+    {
+      "type": "Microsoft.Network/dnszones",
+      "name": "[parameters('dnsZoneName')]",
+      "apiVersion": "2016-04-01",
+      "location": "global",
+      "properties": {}
+    },
+    {
+      "type": "Microsoft.Network/dnszones/CNAME",
+      "name": "[concat(parameters('dnsZoneName'), '/', parameters('cdnDnsRecordName'))]",
+      "apiVersion": "2016-04-01",
+      "location": "global",
+      "dependsOn": [
+        "[parameters('dnsZoneName')]"
+      ],
+      "properties": {
+        "TTL": 3600,
+        "CNAMERecord": {
+          "cname": "[concat(parameters('cdnEndpointName'), '.azureedge.net')]"
+        }
+      }
+    }
+  ]
+  }

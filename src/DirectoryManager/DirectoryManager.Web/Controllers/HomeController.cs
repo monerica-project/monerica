@@ -32,12 +32,11 @@ namespace DirectoryManager.Web.Controllers
             _directoryEntryRepository = directoryEntryRepository;
         }
 
-
+        [ResponseCache(Duration = 60)] // Cache for 60 seconds
         public async Task<IActionResult> IndexAsync()
         {
-            var allEntries = await _directoryEntryRepository.GetAllAsync();
-           
-            return View(allEntries);
+
+            return View();
         }
 
         private async Task ImportAsync()
@@ -214,52 +213,8 @@ namespace DirectoryManager.Web.Controllers
 
             return newCategory;
         }
-
-        [Route("Submission")]
-        [HttpGet]
-        public IActionResult Submission()
-        {
-            return View(new SubmissionRequest());  // Creates a new instance just to ensure that there's a default model
-        }
-
-        [Route("Submission")]
-        [HttpPost]
-        public async Task<IActionResult> Submission(SubmissionRequest model)
-        {
-            if (ModelState.IsValid)
-            {
-                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-
-                // Convert the ContributionRequest model to Submission
-                Submission submission = new()
-                {
-                    // Assuming the properties in Submission and ContributionRequest are the same, else adjust accordingly
-                    Name = model.Name,
-                    Link = model.Link,
-                    Description = model.Description,
-                    Location = model.Location,
-                    Processor = model.Processor,
-                    Note = model.Note,
-                    IpAddress = ipAddress
-                };
-
-                await _submissionRepository.AddAsync(submission);
-
-                // Redirect to some "Success" page or any other.
-                return RedirectToAction("Success");
-            }
-
-            // If the model is not valid, just re-display the form with the validation errors
-            return View(model);
-        }
-
-
-        [Route("Submission/success")]
-        public IActionResult Success()
-        {
-            return View();  // Assuming you have a Success.cshtml view
-        }
     }
+     
 }
 
 

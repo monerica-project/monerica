@@ -1,0 +1,134 @@
+﻿@model DirectoryManager.Web.Models.SubmissionRequest
+
+@{
+    ViewData["Title"] = "Create Submission";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+<a href="~/">Back to Home</a>
+
+<style>
+    body {
+        background-color: #000000eb;
+        color: #FFFFFF;
+        font-family: Helvetica;
+    }
+
+    a {
+        color: #008cff;
+    }
+
+    li p {
+        margin: 0;
+    }
+
+    a:hover {
+        text-decoration: none;
+    }
+
+    .right {
+        text-align: right;
+    }
+
+    /* Spacing around main content */
+    #main-content {
+        padding: 20px;
+    }
+
+    h2, h3 {
+        margin-top: 20px;
+        margin-bottom: 20px;
+    }
+
+    .form-group {
+        margin-bottom: 20px; /* increased space between form groups */
+    }
+
+    .form-group label {
+        display: block;
+    }
+
+    .btn {
+        background-color: green;
+        border: none;
+        padding: 10px 20px;
+        border-radius: 4px;
+        color: white;
+        font-weight: bold;
+    }
+
+    /* ... other existing styles ... */
+
+</style>
+
+<form asp-action="Create" method="post">
+
+
+    <hr />
+    <h3>Required Information</h3>
+    <div class="form-group">
+        <label asp-for="SubCategoryId">Category:</label>
+        <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "Id", "DisplayName"))" required></select>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="SuggestedSubCategory">Suggested Category (Optional):</label>
+        <input style="width:300px;" asp-for="SuggestedSubCategory" class="form-control" />
+        <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Name">Name:</label>
+        <input style="width:300px;" asp-for="Name" class="form-control" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Link">Link:</label>
+        <input style="width:300px;" asp-for="Link" class="form-control" />
+        <span asp-validation-for="Link" class="text-danger"></span>
+    </div>
+
+
+    <div class="form-group">
+        <label asp-for="Description">Description:</label>
+        <textarea style="width:300px;" asp-for="Description" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+ 
+    <h3>Optional Information</h3>
+
+    <div class="form-group">
+        <label asp-for="Link2">Alternate Link:</label>
+        <input style="width:300px;"  asp-for="Link2" class="form-control" />
+        <span asp-validation-for="Link2" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Contact">Contact:</label>
+        <input style="width:300px;" asp-for="Contact" class="form-control" />
+        <span asp-validation-for="Contact" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Location">Location:</label>
+        <input asp-for="Location" class="form-control" />
+        <span asp-validation-for="Location" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Processor">Processor:</label>
+        <input style="width:300px;" asp-for="Processor" class="form-control" />
+        <span asp-validation-for="Processor" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Note">Note:</label>
+        <textarea style="width:300px;" asp-for="Note" class="form-control"></textarea>
+        <span asp-validation-for="Note" class="text-danger"></span>
+    </div>
+    <button type="submit" class="btn btn-primary">Submit</button>
+</form>
+ 

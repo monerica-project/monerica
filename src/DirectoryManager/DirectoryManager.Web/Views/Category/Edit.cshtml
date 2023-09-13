@@ -5,6 +5,15 @@
         <label>Name:</label>
         <input type="text" name="Name" value="@Model.Name" required />
     </div>
-
+ 
+    <div>
+        <label asp-for="Note">Description:</label>
+        <textarea cols="100" asp-for="Description"></textarea>
+    </div>
+    <div>
+        <label asp-for="Note">Note:</label>
+        <textarea cols="100" asp-for="Note"></textarea>
+    </div>
+  
     <button type="submit">Save</button>
 </form>

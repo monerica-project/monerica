@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Models.BaseModels;
+﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models.BaseModels;
 using Microsoft.EntityFrameworkCore;
 using System.ComponentModel.DataAnnotations;
 
@@ -20,6 +21,9 @@ namespace DirectoryManager.Data.Models
 
         [MaxLength(500)]
         public string? Link2 { get; set; }
+
+        [Required]
+        public DirectoryStatus DirectoryStatus { get; set; }
 
         [MaxLength(500)]
         public string? Description { get; set; }

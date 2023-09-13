@@ -3,16 +3,22 @@ using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
+using DirectoryManager.Web.Helpers;
+using Microsoft.AspNetCore.Identity;
 
 namespace DirectoryManager.Web.Controllers
 {
     [Authorize]
     public class CategoryController : Controller
     {
+        private readonly UserManager<ApplicationUser> _userManager;
         private readonly ICategoryRepository _categoryRepository;
 
-        public CategoryController(ICategoryRepository categoryRepository)
+        public CategoryController(
+                    UserManager<ApplicationUser> userManager, 
+                    ICategoryRepository categoryRepository)
         {
+            _userManager = userManager;
             _categoryRepository = categoryRepository;
         }
 
@@ -34,6 +40,12 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(Category category)
         {
+            category.CreatedByUserId = _userManager.GetUserId(User);
+            category.Name = category.Name.Trim();
+            category.CategoryKey = TextHelpers.UrlKey(category.Name);
+            category.Description = category.Description?.Trim();
+            category.Note = category.Note?.Trim();
+
             await _categoryRepository.CreateAsync(category);
             return RedirectToAction(nameof(Index));
         }
@@ -51,7 +63,19 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(Category category)
         {
-            await _categoryRepository.UpdateAsync(category);
+            var existingCategory = await _categoryRepository.GetByIdAsync(category.Id);
+
+            if (existingCategory == null)
+                return NotFound();
+
+            existingCategory.Name = category.Name.Trim();
+            existingCategory.CategoryKey = TextHelpers.UrlKey(category.Name);
+            existingCategory.Description = category.Description?.Trim();
+            existingCategory.Note = category.Note?.Trim();
+            existingCategory.UpdatedByUserId = _userManager.GetUserId(User);
+
+            await _categoryRepository.UpdateAsync(existingCategory);
+
             return RedirectToAction(nameof(Index));
         }
 
