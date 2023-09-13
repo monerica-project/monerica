@@ -100,3 +100,4 @@ rcf/
 /src/DirectoryManager/DirectoryManager.Data/appsettings.json
 /src/DirectoryManager/DirectoryManager.Web/appsettings.json
 /src/DirectoryManager/DirectoryManager.Web/appsettings.template.Development.json
+/src/DirectoryManager/DirectoryManager.Console/appsettings.json

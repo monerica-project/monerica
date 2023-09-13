@@ -104,8 +104,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
                             .Where(entry => entry.SubCategoryId == subCategoryId &&
                                         entry.DirectoryStatus != DirectoryStatus.Removed &&
                                         entry.DirectoryStatus != DirectoryStatus.Unknown)
-                                .OrderByDescending(entry => entry.Name)
+                                .OrderBy(entry => entry.Name)
                                 .ToListAsync();
+        }
+
+
+        public async Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync()
+        {
+            return await _context.DirectoryEntries
+                .Include(e => e.SubCategory)
+                    .ThenInclude(sc => sc.Category)
+                .OrderBy(de => de.Name)
+                .ToListAsync();
         }
     }
 }

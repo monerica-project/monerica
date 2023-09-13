@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
@@ -16,5 +17,9 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         public Task<IEnumerable<DirectoryEntry>> GetNewestRevisions(int count);
 
         public Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int subCategoryId);
+
+
+        public   Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync();
+       
     }
 }
