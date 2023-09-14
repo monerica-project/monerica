@@ -126,15 +126,42 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<DirectoryEntry>> GetNewestAdditions(int count)
+        public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditions(int numberOfDays)
         {
-            return await _context.DirectoryEntries
+            var recentDates = await _context.DirectoryEntries
                 .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
                             x.DirectoryStatus != DirectoryStatus.Unknown)
                 .OrderByDescending(entry => entry.CreateDate)
-                .Take(count)
+                .Select(entry => entry.CreateDate.Date)
+                .Distinct()
+                .Take(numberOfDays)
                 .ToListAsync();
+
+            // Retrieve all entries and perform filtering and grouping on the client side
+            var allEntries = await _context.DirectoryEntries
+                .ToListAsync();
+
+            var groupedEntries = allEntries
+                .Where(entry => recentDates.Contains(entry.CreateDate.Date))
+                .GroupBy(entry => entry.CreateDate.Date)
+                .OrderByDescending(group => group.Key)
+                .Select(dateGroup => new GroupedDirectoryEntry
+                {
+                    Date = dateGroup.Key.ToString("yyyy-MM-dd"), // Convert date to string
+                    Entries = dateGroup
+                        .Select(entry => new DirectoryEntry
+                        {
+                            Name = entry.Name,
+                            Link = entry.Link,
+                            Description = entry.Description
+                        })
+                        .ToList()
+                })
+                .ToList();
+
+            return groupedEntries;
         }
+
 
         public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int subCategoryId)
         {
