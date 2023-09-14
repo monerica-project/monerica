@@ -12,6 +12,15 @@ var config = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json")
     .Build();
 
+//var serviceProvider = new ServiceCollection()
+//    .AddDbContext<ApplicationDbContext>(options =>
+//    options.UseSqlServer(
+//        config.GetConnectionString("DefaultConnection")))
+//    .AddTransient<IApplicationDbContext, ApplicationDbContext>()
+//    .AddTransient<IDbInitializer, DbInitializer>()
+//    .AddTransient<IDirectoryEntryRepository, DirectoryEntryRepository>()
+//    .BuildServiceProvider();
+
 var serviceProvider = new ServiceCollection()
     .AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
@@ -19,8 +28,8 @@ var serviceProvider = new ServiceCollection()
     .AddTransient<IApplicationDbContext, ApplicationDbContext>()
     .AddTransient<IDbInitializer, DbInitializer>()
     .AddTransient<IDirectoryEntryRepository, DirectoryEntryRepository>()
+    .AddTransient<IDirectoryEntriesAuditRepository, DirectoryEntriesAuditRepository>()
     .BuildServiceProvider();
-
 
 var entries = serviceProvider.GetService<IDirectoryEntryRepository>();
  var allEntries = await entries.GetAllAsync();
