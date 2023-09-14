@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Web.Models;
+using DirectoryManager.Data.Repositories.Interfaces;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -13,11 +15,16 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly SignInManager<ApplicationUser> _signInManager;
         private readonly UserManager<ApplicationUser> _userManager;
+        public IDirectoryEntryRepository _directoryEntryRepository;
 
-        public AccountController(SignInManager<ApplicationUser> signInManager, UserManager<ApplicationUser> userManager)
+        public AccountController(
+            SignInManager<ApplicationUser> signInManager, 
+            UserManager<ApplicationUser> userManager,
+            IDirectoryEntryRepository directoryEntryRepository)
         {
             _signInManager = signInManager;
             _userManager = userManager;
+            _directoryEntryRepository = directoryEntryRepository;
         }
 
 
@@ -25,6 +32,22 @@ namespace DirectoryManager.Web.Controllers
         {
             return View();
         }
+
+        [HttpGet]
+        public async Task<IActionResult> NewestAdditions()
+        {
+            var newestAdditions = await _directoryEntryRepository.GetNewestAdditions(10); // Change the count as needed
+            var viewModel = newestAdditions.Select(entry => new NewestAdditionsViewModel
+            {
+                CreateDate = entry.CreateDate,
+                Name = entry.Name,
+                Link = entry.Link,
+                Description = entry.Description
+            });
+
+            return View(viewModel);
+        }
+
 
         [HttpPost]
         public async Task<IActionResult> Login(string username, string password, bool rememberMe)

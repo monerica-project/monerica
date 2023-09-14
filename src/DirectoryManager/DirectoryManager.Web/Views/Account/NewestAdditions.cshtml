@@ -1,0 +1,19 @@
+﻿@model IEnumerable<DirectoryManager.Web.Models.NewestAdditionsViewModel>
+
+<h1>Newest Additions</h1>
+
+<ul>
+    @foreach (var group in Model.GroupBy(entry => entry.CreateDate.Date))
+    {
+        <li>
+            <strong>@group.Key.ToString("yyyy-MM-dd") Additions:</strong>
+            <br />
+            <ul>
+                @foreach (var entry in group)
+                {
+                    <li><pre>+ @entry.Name - @entry.Link @if (!string.IsNullOrWhiteSpace(@entry.Description)){ <text>- </text> @entry.Description }</pre>
+                    </li>}
+            </ul>
+        </li>
+    }
+</ul>
