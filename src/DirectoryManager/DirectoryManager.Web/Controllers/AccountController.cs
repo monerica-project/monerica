@@ -33,6 +33,7 @@ namespace DirectoryManager.Web.Controllers
             return View();
         }
 
+        [Authorize]
         [HttpGet]
         public async Task<IActionResult> NewestAdditions()
         {
