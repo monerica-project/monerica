@@ -48,34 +48,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             await _context.DirectoryEntries.AddAsync(entry);
             await _context.SaveChangesAsync();
+            await WriteToAuditLog(entry);
         }
 
         public async Task UpdateAsync(DirectoryEntry entry)
         {
             var existingEntry = await _context.DirectoryEntries.FindAsync(entry.Id);
-             _context.DirectoryEntries.Update(existingEntry);
+            _context.DirectoryEntries.Update(existingEntry);
             await _context.SaveChangesAsync();
-
-            await _directoryEntryAuditRepository.CreateAsync(
-                new DirectoryEntriesAudit
-                {
-                    Contact = existingEntry.Contact,
-                    CreateDate = existingEntry.CreateDate,
-                    Description = existingEntry.Description,
-                    CreatedByUserId = existingEntry.CreatedByUserId,
-                    DirectoryStatus = existingEntry.DirectoryStatus,
-                    Id = existingEntry.Id,
-                    Link = existingEntry.Link,
-                    Name = existingEntry.Name,
-                    SubCategoryId = existingEntry.SubCategoryId,
-                    UpdateDate = existingEntry.UpdateDate,
-                    UpdatedByUserId = existingEntry.UpdatedByUserId,
-                    Link2 = existingEntry.Link2,
-                    Location = existingEntry.Location,
-                    Note = existingEntry.Note,
-                    Processor = existingEntry.Processor
-
-                });
+            await WriteToAuditLog(existingEntry);
         }
 
         public async Task DeleteAsync(int id)
@@ -188,6 +169,30 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     .ThenInclude(sc => sc.Category)
                 .OrderBy(de => de.Name)
                 .ToListAsync();
+        }
+
+        private async Task WriteToAuditLog(DirectoryEntry? existingEntry)
+        {
+            await _directoryEntryAuditRepository.CreateAsync(
+                new DirectoryEntriesAudit
+                {
+                    Contact = existingEntry.Contact,
+                    CreateDate = existingEntry.CreateDate,
+                    Description = existingEntry.Description,
+                    CreatedByUserId = existingEntry.CreatedByUserId,
+                    DirectoryStatus = existingEntry.DirectoryStatus,
+                    Id = existingEntry.Id,
+                    Link = existingEntry.Link,
+                    Name = existingEntry.Name,
+                    SubCategoryId = existingEntry.SubCategoryId,
+                    UpdateDate = existingEntry.UpdateDate,
+                    UpdatedByUserId = existingEntry.UpdatedByUserId,
+                    Link2 = existingEntry.Link2,
+                    Location = existingEntry.Location,
+                    Note = existingEntry.Note,
+                    Processor = existingEntry.Processor
+
+                });
         }
 
     }
