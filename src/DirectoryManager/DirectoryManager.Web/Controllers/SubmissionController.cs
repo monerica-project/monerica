@@ -119,6 +119,11 @@ namespace DirectoryManager.Web.Controllers
             {
                 var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
 
+                if (!await HasChangesAsync(model))
+                {
+                    return RedirectToAction("Success", "Submission");
+                }
+
                 var submission = new Submission
                 {
                     SubmissionStatus = Data.Enums.SubmissionStatus.Pending,
@@ -143,6 +148,68 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return View(model);
+        }
+
+        private async Task<bool> HasChangesAsync(SubmissionRequest model)
+        {
+            if (model.DirectoryEntryId == null)
+            {
+                return true;
+            }
+
+            var existingEntry = await _directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value);
+
+            if (existingEntry.Contact?.Trim() != model.Contact?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Description?.Trim() != model.Description?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Link?.Trim() != model.Link?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Link2?.Trim() != model.Link2?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Location?.Trim() != model.Location?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Name?.Trim() != model.Name?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Note?.Trim() != model.Note?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Processor?.Trim() != model.Processor?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.SubCategoryId != model.SubCategoryId)
+            {
+                return true;
+            }
+
+            if (existingEntry.DirectoryStatus != model.DirectoryStatus)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         [Authorize]
