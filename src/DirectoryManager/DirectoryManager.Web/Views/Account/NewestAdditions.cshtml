@@ -7,12 +7,11 @@
     @foreach (var group in Model.GroupBy(g => g.Date))
     {
         <li>
-            <strong>@DateTime.ParseExact(group.Key, "yyyy-MM-dd", CultureInfo.InvariantCulture).ToString("yyyy-MM-dd") Additions:</strong>
-            <br />
+            <pre>@DateTime.ParseExact(group.Key, "yyyy-MM-dd", CultureInfo.InvariantCulture).ToString("yyyy-MM-dd") Additions:</pre>
             <ul>
                 @foreach (var entry in group.SelectMany(g => g.Entries))
                 {
-                    <li><pre>+ @entry.Name - <a href="@entry.Link" target="_blank">@entry.Link</a>@if (!string.IsNullOrWhiteSpace(entry.Description)){<text> - </text> @entry.Description }</pre>
+                    <li><pre>+ @entry.Name - @entry.Link @if (!string.IsNullOrWhiteSpace(entry.Description)){<text>- </text> @entry.Description }</pre>
                     </li>
                 }
             </ul>
