@@ -66,12 +66,15 @@
 
 <hr />
 
-    <p><b>Newest Additions:</b></p>
-
     @{
         var newestEntries = await directoryEntryRepository.GetNewestAdditions(3);
     }
 
+    
+    @if (newestEntries != null && newestEntries.Count() > 0)
+    {
+
+    <p><b>Newest Additions</b></p>
 
     <ul>
         @foreach (var directoryEntry in newestEntries)
@@ -141,19 +144,23 @@
             </li>
         }
     </ul>
-
-
     <hr />
-    <p><b>Newest Revisions:</b></p>
+    }
 
     @{
         var newestRevisions = await directoryEntryRepository.GetNewestRevisions(3);
     }
 
-    <ul>
-        @foreach (var directoryEntry in newestRevisions)
+    @if (newestRevisions != null && newestRevisions.Count() > 0)
     {
-            if (newestEntries.FirstOrDefault(x => x.Id == directoryEntry.Id) != null)
+
+    <p><b>Newest Revisions</b></p>
+
+    <ul>
+    @foreach (var directoryEntry in newestRevisions)
+    {
+            if (newestEntries != null && 
+                newestEntries.FirstOrDefault(x => x.Id == directoryEntry.Id) != null)
             {
                 continue;
             }
@@ -225,6 +232,7 @@
     </ul>
 
     <hr />
+    }
  
     @{
         var activeCategories = await categoryRepository.GetActiveCategoriesAsync();
