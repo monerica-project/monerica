@@ -1,27 +1,30 @@
-﻿@using DirectoryManager.Data.Models
-@model Category
+﻿@model DirectoryManager.Data.Models.Category
 
-<h1>Create SubCategory</h1>
+<h1>Create Category</h1>
 
 <form method="post">
-  
+    @Html.AntiForgeryToken()
 
     <div class="form-group">
-        <label for="CategoryId">Category:</label>
-        <select id="CategoryId" name="CategoryId" class="form-control" required>
-            @foreach (var category in (IEnumerable<Category>)ViewBag.Categories)
-            {
-                <option value="@category.Id">@category.Name</option>
-            }
-        </select>
+        <label asp-for="Name">Category Name:</label>
+        <input asp-for="Name" class="form-control" required />
+        <span asp-validation-for="Name" class="text-danger"></span>
     </div>
 
     <div class="form-group">
-        <label for="Name">SubCategory Name:</label>
-        <input type="text" id="Name" name="Name" class="form-control" required />
+        <label asp-for="Description">Description:</label>
+        <textarea asp-for="Description" class="form-control"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Note">Note:</label>
+        <textarea asp-for="Note" class="form-control"></textarea>
+        <span asp-validation-for="Note" class="text-danger"></span>
     </div>
 
     <div>
         <button type="submit" class="btn btn-primary">Create</button>
     </div>
 </form>
+ 

@@ -113,17 +113,27 @@ namespace DirectoryManager.Data.Repositories.Implementations
             // Return the more recent of the two dates
             return (DateTime)(latestCreateDate > latestUpdateDate ? latestCreateDate : latestUpdateDate);
         }
+
         public async Task<IEnumerable<DirectoryEntry>> GetNewestRevisions(int count)
         {
             return await _context.DirectoryEntries
-                .Where(x => x.DirectoryStatus != DirectoryStatus.Removed && 
+                .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
                             x.DirectoryStatus != DirectoryStatus.Unknown)
                 .OrderByDescending(entry => (entry.UpdateDate.HasValue && entry.UpdateDate.Value > entry.CreateDate)
                                              ? entry.UpdateDate.Value
                                              : entry.CreateDate)
                 .Take(count)
                 .ToListAsync();
+        }
 
+        public async Task<IEnumerable<DirectoryEntry>> GetNewestAdditions(int count)
+        {
+            return await _context.DirectoryEntries
+                .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
+                            x.DirectoryStatus != DirectoryStatus.Unknown)
+                .OrderByDescending(entry => entry.CreateDate)
+                .Take(count)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int subCategoryId)
@@ -145,5 +155,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .OrderBy(de => de.Name)
                 .ToListAsync();
         }
+
     }
 }

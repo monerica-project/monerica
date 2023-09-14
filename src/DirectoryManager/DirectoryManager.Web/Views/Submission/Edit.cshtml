@@ -39,6 +39,8 @@
     </div>
 
     <!-- Other Fields -->
+    @if (Model.DirectoryStatus != null && Model.DirectoryStatus != DirectoryStatus.Unknown)
+    {
     <div class="form-group">
         <label asp-for="DirectoryStatus">Directory Status:</label>
         <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control">
@@ -53,6 +55,7 @@
             }
         </select>
     </div>
+    }
 
     <div class="form-group">
         <label asp-for="Name">Name</label>

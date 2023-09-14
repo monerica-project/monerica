@@ -19,9 +19,9 @@
 @foreach (var entry in Model)
 {
     <div>
-        <a href="@entry.Link">@entry.Name</a> (SubCategory: @entry.SubCategory.Name)
+        <a href="@entry.Link">@entry.Name</a> - 
         <a href="@Url.Action("Edit", new { id = entry.Id })">Edit</a>
-        <a href="@Url.Action("Delete", new { id = entry.Id })" onclick="return confirm('Are you sure?')">Delete</a>
+ 
     </div>
 }
-<a href="@Url.Action("Create")">Create New Entry</a>
+ 
