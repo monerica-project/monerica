@@ -19,8 +19,8 @@ var serviceProvider = new ServiceCollection()
     .AddTransient<IApplicationDbContext, ApplicationDbContext>()
     .AddTransient<IDbInitializer, DbInitializer>()
     .AddTransient<IDirectoryEntryRepository, DirectoryEntryRepository>()
+    .AddTransient<IDirectoryEntriesAuditRepository, DirectoryEntriesAuditRepository>()
     .BuildServiceProvider();
-
 
 var entries = serviceProvider.GetService<IDirectoryEntryRepository>();
  var allEntries = await entries.GetAllAsync();
