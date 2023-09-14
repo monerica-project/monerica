@@ -16,10 +16,15 @@
     @if (Model.DirectoryEntryId  != null)
     {
         @Html.HiddenFor(m => m.DirectoryEntryId)
-        ;
+        
 
         <i>Existing: </i>
         <a href="~/directoryentry/edit/@Model.DirectoryEntryId">Edit</a>
+
+        <br />
+
+        <i>Differences:</i>
+        @ViewBag.Differences
     }
 
     <div class="form-group">
