@@ -16,8 +16,8 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         public Task<IEnumerable<DirectoryEntry>> GetNewestRevisions(int count);
 
-        public Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditions(int numberOfDays);
-
+        public Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int numberOfDays);
+        public Task<IEnumerable<DirectoryEntry>> GetNewestAdditions(int count);
 
 
         public Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int subCategoryId);
