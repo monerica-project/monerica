@@ -126,7 +126,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditions(int numberOfDays)
+        public async Task<IEnumerable<DirectoryEntry>> GetNewestAdditions(int count)
+        {
+            return await _context.DirectoryEntries
+                .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
+                            x.DirectoryStatus != DirectoryStatus.Unknown)
+                .OrderByDescending(entry => entry.CreateDate)
+                .Take(count)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int numberOfDays)
         {
             var recentDates = await _context.DirectoryEntries
                 .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&

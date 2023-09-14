@@ -37,7 +37,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> NewestAdditions(int numberOfDays = 10)
         {
-            var groupedNewestAdditions = await _directoryEntryRepository.GetNewestAdditions(numberOfDays);
+            var groupedNewestAdditions = await _directoryEntryRepository.GetNewestAdditionsGrouped(numberOfDays);
 
             var viewModel = groupedNewestAdditions.SelectMany(group =>
                 group.Entries.Select(entry => new GroupedDirectoryEntry

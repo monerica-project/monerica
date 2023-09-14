@@ -66,15 +66,98 @@
 
 <hr />
 
-    <p><b>Newest Revisions:</b></p>
+    <p><b>Newest Additions:</b></p>
 
     @{
-        var newestEntries = await directoryEntryRepository.GetNewestRevisions(3);
+        var newestEntries = await directoryEntryRepository.GetNewestAdditions(3);
     }
+
 
     <ul>
         @foreach (var directoryEntry in newestEntries)
+        {
+            <li>
+                <p>
+                    @if (directoryEntry.CreateDate <= directoryEntry.UpdateDate)
+                    {
+                        <i>@directoryEntry.UpdateDate?.ToString("yyyy-MM-dd")</i>
+                    }
+                    else
+                    {
+                        <i>@directoryEntry.CreateDate.ToString("yyyy-MM-dd")</i>
+                    }
+
+                    @if (directoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Verified)
+                    {
+                        <text>&#9989;</text>
+                        <a href="@directoryEntry.Link">@directoryEntry.Name</a>
+                    }
+                    else if (directoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Admitted)
+                    {
+                        <a href="@directoryEntry.Link">@directoryEntry.Name</a>
+                    }
+                    else if (directoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Scam)
+                    {
+                        <text>&#10060;</text>
+                        <del><a rel="nofollow" href="@directoryEntry.Link">@directoryEntry.Name</a></del>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(directoryEntry.Link2))
+                    {
+                        <text> | </text>
+                        <a href="@directoryEntry.Link2">Onion</a>
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(directoryEntry.Description))
+                    {
+                        <text> - </text>
+                        @Html.Raw(@directoryEntry.Description)
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(directoryEntry.Contact))
+                    {
+                        <text> - </text>
+                        <text>Contact: </text> @directoryEntry.Contact
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(directoryEntry.Location))
+                    {
+                        <text> - </text>
+                        <text>Location: </text> @directoryEntry.Location
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(directoryEntry.Processor))
+                    {
+                        <text> - </text>
+                        <text>Processor: </text> @directoryEntry.Processor
+                    }
+
+                    @if (!string.IsNullOrWhiteSpace(directoryEntry.Note))
+                    {
+                        <i>(Note: @Html.Raw(@directoryEntry.Note))</i>
+                    }
+
+                </p>
+            </li>
+        }
+    </ul>
+
+
+    <hr />
+    <p><b>Newest Revisions:</b></p>
+
+    @{
+        var newestRevisions = await directoryEntryRepository.GetNewestRevisions(3);
+    }
+
+    <ul>
+        @foreach (var directoryEntry in newestRevisions)
     {
+            if (newestEntries.FirstOrDefault(x => x.Id == directoryEntry.Id) != null)
+            {
+                continue;
+            }
+
         <li>
         <p>
             @if (directoryEntry.CreateDate <= directoryEntry.UpdateDate)
@@ -142,7 +225,7 @@
     </ul>
 
     <hr />
-
+ 
     @{
         var activeCategories = await categoryRepository.GetActiveCategoriesAsync();
     }
