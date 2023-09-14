@@ -1,0 +1,50 @@
+﻿@using DirectoryManager.Web.Enums;
+@model DirectoryManager.Web.Models.DirectoryEntryViewModel
+
+<li>
+    <p>@if (Model.DateOption == DateDisplayOption.DisplayCreateDate)
+        {
+            <i>@Model.DirectoryEntry.CreateDate.ToString("yyyy-MM-dd")</i>
+        }
+        else if (Model.DateOption == DateDisplayOption.DisplayUpdateDate)
+        {
+            <i>@Model.DirectoryEntry.UpdateDate?.ToString("yyyy-MM-dd")</i>
+        }
+        @if (Model.DirectoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Verified)
+        {
+            <text>&#9989;</text> <a href="@Model.DirectoryEntry.Link">@Model.DirectoryEntry.Name</a>
+        }
+        else if (Model.DirectoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Admitted)
+        {
+            <a href="@Model.DirectoryEntry.Link">@Model.DirectoryEntry.Name</a>
+        }
+        else if (Model.DirectoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Scam)
+        {
+            <text>&#10060;</text> <del><a rel="nofollow" href="@Model.DirectoryEntry.Link">@Model.DirectoryEntry.Name</a></del>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Link2))
+        {
+            <text> | </text> <a href="@Model.DirectoryEntry.Link2">Onion</a>
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Description))
+        {
+            <text> - </text> @Html.Raw(Model.DirectoryEntry.Description)
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Contact))
+        {
+            <text> - </text> <text>Contact: </text> @Model.DirectoryEntry.Contact
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Location))
+        {
+            <text> - </text> <text>Location: </text> @Model.DirectoryEntry.Location
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Processor))
+        {
+            <text> - </text> <text>Processor: </text> @Model.DirectoryEntry.Processor
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Note))
+        {
+            <i>(Note: @Html.Raw(Model.DirectoryEntry.Note))</i>
+        }
+    </p>
+</li>

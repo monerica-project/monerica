@@ -4,7 +4,7 @@ using System.ComponentModel.DataAnnotations;
 
 namespace DirectoryManager.Data.Models
 {
-    public class DirectoryEntry : UserStateInfo
+    public class DirectoryEntry : UserStateInfo, IEquatable<DirectoryEntry>
     {
         [Key] // Primary Key
         public int Id { get; set; }
@@ -42,5 +42,17 @@ namespace DirectoryManager.Data.Models
         public virtual SubCategory? SubCategory { get; set; }
 
         public int? SubCategoryId { get; set; }
+
+        public bool Equals(DirectoryEntry other)
+        {
+            if (other == null) return false;
+
+            return this.Id == other.Id; // Assuming Id is a unique identifier for DirectoryEntry
+        }
+
+        public override int GetHashCode()
+        {
+            return Id.GetHashCode();
+        }
     }
 }
