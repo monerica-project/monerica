@@ -1,5 +1,8 @@
 ﻿@using DirectoryManager.Data.Models
 @model IEnumerable<Category>
+
+    <a href="~/account/home">Admin home</a>
+
 @foreach (var category in Model)
 {
     <div>@category.Name</div>

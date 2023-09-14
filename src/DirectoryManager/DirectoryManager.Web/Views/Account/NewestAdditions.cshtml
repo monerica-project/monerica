@@ -1,7 +1,7 @@
 ﻿@model IEnumerable<DirectoryManager.Web.Models.NewestAdditionsViewModel>
 
 <h1>Newest Additions</h1>
-
+<a href="~/account/home">Admin home</a>
 <ul>
     @foreach (var group in Model.GroupBy(entry => entry.CreateDate.Date))
     {

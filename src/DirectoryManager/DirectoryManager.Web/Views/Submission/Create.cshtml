@@ -65,8 +65,8 @@
  
 <p style="color:red;">
     <b>Submission Guidelines:</b>
-    Your link must clearly show you accept Monero. It is best to use a logo which shows this.
-    If your link doesn't clearly show you accept Monero, it will be rejected!
+    Your link must clearly show it accepts/ uses Monero. It is best to use a Monero logo to illustrate this.
+    If your link doesn't clearly show it accepts/ uses Monero, it will be rejected!
 </p>
 
 <form asp-action="Create" method="post">
@@ -100,7 +100,7 @@
 
     <div class="form-group">
         <label asp-for="Description">Description:</label>
-        <textarea style="width:300px;" asp-for="Description" class="form-control"></textarea>
+        <textarea style="width:300px; " asp-for="Description" class="form-control"></textarea>
         <span asp-validation-for="Description" class="text-danger"></span>
     </div>
 
@@ -136,6 +136,6 @@
         <textarea style="width:300px;" asp-for="Note" class="form-control"></textarea>
         <span asp-validation-for="Note" class="text-danger"></span>
     </div>
-    <button type="submit" class="btn btn-primary">Submit</button>
+    <button type="submit" class="btn btn-primary">Submit New Listing</button>
 </form>
  

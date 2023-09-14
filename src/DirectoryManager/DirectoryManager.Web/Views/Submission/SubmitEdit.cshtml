@@ -56,7 +56,7 @@
         font-weight: bold;
     }
 
-    /* ... other existing styles ... */
+ 
 
 </style>
 
@@ -85,7 +85,7 @@
 
     <div class="form-group">
         <label asp-for="SuggestedSubCategory">Suggested Category:</label>
-        <input asp-for="SuggestedSubCategory" class="form-control" />
+        <input style="width:300px" asp-for="SuggestedSubCategory" class="form-control" />
         <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
     </div>
 
@@ -98,7 +98,7 @@
     </div>
 
     <div class="form-group">
-        <label asp-for="Link">Link</label>
+        <label asp-for="Link">Link:</label>
         <input style="width:300px" asp-for="Link" class="form-control" />
         <span asp-validation-for="Link" class="text-danger"></span>
     </div>
@@ -115,18 +115,18 @@
 </div>
 
     <div class="form-group">
-        <label asp-for="Processor">Processor</label>
+        <label asp-for="Processor">Processor:</label>
         <input style="width:300px" asp-for="Processor" class="form-control" />
         <span asp-validation-for="Processor" class="text-danger"></span>
     </div>
     
 <div class="form-group">
-        <label asp-for="Contact">Contact</label>
+        <label asp-for="Contact">Contact:</label>
         <input style="width:300px" asp-for="Contact" class="form-control" />
         <span asp-validation-for="Contact" class="text-danger"></span>
         </div>
     <div class="form-group">
-        <label asp-for="Location">Location</label>
+        <label asp-for="Location">Location:</label>
         <input style="width:300px" asp-for="Location" class="form-control" />
         <span asp-validation-for="Location" class="text-danger"></span>
     </div>
