@@ -280,24 +280,50 @@ namespace DirectoryManager.Web.Controllers
                     throw new Exception("Submission does not have a subcategory");
                 }
 
-                if (submission.SubmissionStatus == Data.Enums.SubmissionStatus.Pending &&
-                    model.SubmissionStatus == Data.Enums.SubmissionStatus.Approved)
+                if (submission.SubmissionStatus == SubmissionStatus.Pending &&
+                    model.SubmissionStatus == SubmissionStatus.Approved)
                 {
-                    // it's now approved
-                    await _directoryEntryRepository.CreateAsync(
-                        new DirectoryEntry
+                    if (model.DirectoryEntryId == null)
+                    {
+                        // it's now approved
+                        await _directoryEntryRepository.CreateAsync(
+                            new DirectoryEntry
+                            {
+                                Name = model.Name.Trim(),
+                                Link = model.Link.Trim(),
+                                Description = model.Description.Trim(),
+                                Location = model.Location?.Trim(),
+                                Processor = model.Processor?.Trim(),
+                                Note = model.Note?.Trim(),
+                                Contact = model.Contact?.Trim(),
+                                DirectoryStatus = Data.Enums.DirectoryStatus.Admitted,
+                                SubCategoryId = model.SubCategoryId,
+                                CreatedByUserId = _userManager.GetUserId(User)
+                            });
+                    }
+                    else
+                    {
+                        var existing = await _directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value);
+
+
+                        existing.Name = model.Name.Trim();
+                        existing.Link = model.Link.Trim();
+                        existing.Description = model.Description.Trim();
+                        existing.Location = model.Location?.Trim();
+                        existing.Processor = model.Processor?.Trim();
+                        existing.Note = model.Note?.Trim();
+                        existing.Contact = model.Contact?.Trim();
+
+                        if (model.DirectoryStatus != null)
                         {
-                            Name = model.Name.Trim(),
-                            Link = model.Link.Trim(),
-                            Description = model.Description.Trim(),
-                            Location = model.Location?.Trim(),
-                            Processor = model.Processor?.Trim(),
-                            Note = model.Note?.Trim(),
-                            Contact = model.Contact?.Trim(),
-                            DirectoryStatus = Data.Enums.DirectoryStatus.Admitted,
-                            SubCategoryId = model.SubCategoryId,
-                            CreatedByUserId = _userManager.GetUserId(User)
-                });
+                            existing.DirectoryStatus = model.DirectoryStatus.Value;
+                        }
+
+                        existing.SubCategoryId = model.SubCategoryId;
+                        existing.UpdatedByUserId = _userManager.GetUserId(User);
+
+                        await _directoryEntryRepository.UpdateAsync(existing);
+                    }
                 }
 
                 submission.SubmissionStatus = model.SubmissionStatus;
@@ -305,6 +331,7 @@ namespace DirectoryManager.Web.Controllers
                 await _submissionRepository.UpdateAsync(submission);
 
                 return RedirectToAction(nameof(Index));
+
             }
 
             return View(model);

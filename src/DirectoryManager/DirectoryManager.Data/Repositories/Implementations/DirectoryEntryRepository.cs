@@ -53,7 +53,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task UpdateAsync(DirectoryEntry entry)
         {
             var existingEntry = await _context.DirectoryEntries.FindAsync(entry.Id);
-            _context.DirectoryEntries.Update(existingEntry);
+             _context.DirectoryEntries.Update(existingEntry);
             await _context.SaveChangesAsync();
 
             await _directoryEntryAuditRepository.CreateAsync(

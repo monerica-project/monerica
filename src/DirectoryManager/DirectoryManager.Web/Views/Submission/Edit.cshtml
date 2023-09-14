@@ -11,8 +11,13 @@
 
 <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
 
+
+
     @if (Model.DirectoryEntryId  != null)
     {
+        @Html.HiddenFor(m => m.DirectoryEntryId)
+        ;
+
         <i>Existing: </i>
         <a href="~/directoryentry/edit/@Model.DirectoryEntryId">Edit</a>
     }
