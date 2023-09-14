@@ -12,15 +12,6 @@ var config = new ConfigurationBuilder()
     .AddJsonFile("appsettings.json")
     .Build();
 
-//var serviceProvider = new ServiceCollection()
-//    .AddDbContext<ApplicationDbContext>(options =>
-//    options.UseSqlServer(
-//        config.GetConnectionString("DefaultConnection")))
-//    .AddTransient<IApplicationDbContext, ApplicationDbContext>()
-//    .AddTransient<IDbInitializer, DbInitializer>()
-//    .AddTransient<IDirectoryEntryRepository, DirectoryEntryRepository>()
-//    .BuildServiceProvider();
-
 var serviceProvider = new ServiceCollection()
     .AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(

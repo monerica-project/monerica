@@ -78,8 +78,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 });
         }
 
-        
-
         public async Task DeleteAsync(int id)
         {
             var entryToDelete = await _context.DirectoryEntries.FindAsync(id);
@@ -89,7 +87,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 await _context.SaveChangesAsync();
             }
         }
-
 
         public async Task<IEnumerable<DirectoryEntry>> GetAllBySubCategoryIdAsync(int subCategoryId)
         {
