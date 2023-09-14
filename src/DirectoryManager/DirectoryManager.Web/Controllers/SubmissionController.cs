@@ -119,6 +119,11 @@ namespace DirectoryManager.Web.Controllers
             {
                 var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
 
+                if (!await HasChangesAsync(model))
+                {
+                    return RedirectToAction("Success", "Submission");
+                }
+
                 var submission = new Submission
                 {
                     SubmissionStatus = Data.Enums.SubmissionStatus.Pending,
@@ -143,6 +148,68 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return View(model);
+        }
+
+        private async Task<bool> HasChangesAsync(SubmissionRequest model)
+        {
+            if (model.DirectoryEntryId == null)
+            {
+                return true;
+            }
+
+            var existingEntry = await _directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value);
+
+            if (existingEntry.Contact?.Trim() != model.Contact?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Description?.Trim() != model.Description?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Link?.Trim() != model.Link?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Link2?.Trim() != model.Link2?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Location?.Trim() != model.Location?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Name?.Trim() != model.Name?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Note?.Trim() != model.Note?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Processor?.Trim() != model.Processor?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.SubCategoryId != model.SubCategoryId)
+            {
+                return true;
+            }
+
+            if (existingEntry.DirectoryStatus != model.DirectoryStatus)
+            {
+                return true;
+            }
+
+            return false;
         }
 
         [Authorize]
@@ -213,24 +280,50 @@ namespace DirectoryManager.Web.Controllers
                     throw new Exception("Submission does not have a subcategory");
                 }
 
-                if (submission.SubmissionStatus == Data.Enums.SubmissionStatus.Pending &&
-                    model.SubmissionStatus == Data.Enums.SubmissionStatus.Approved)
+                if (submission.SubmissionStatus == SubmissionStatus.Pending &&
+                    model.SubmissionStatus == SubmissionStatus.Approved)
                 {
-                    // it's now approved
-                    await _directoryEntryRepository.CreateAsync(
-                        new DirectoryEntry
+                    if (model.DirectoryEntryId == null)
+                    {
+                        // it's now approved
+                        await _directoryEntryRepository.CreateAsync(
+                            new DirectoryEntry
+                            {
+                                Name = model.Name.Trim(),
+                                Link = model.Link.Trim(),
+                                Description = model.Description.Trim(),
+                                Location = model.Location?.Trim(),
+                                Processor = model.Processor?.Trim(),
+                                Note = model.Note?.Trim(),
+                                Contact = model.Contact?.Trim(),
+                                DirectoryStatus = Data.Enums.DirectoryStatus.Admitted,
+                                SubCategoryId = model.SubCategoryId,
+                                CreatedByUserId = _userManager.GetUserId(User)
+                            });
+                    }
+                    else
+                    {
+                        var existing = await _directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value);
+
+
+                        existing.Name = model.Name.Trim();
+                        existing.Link = model.Link.Trim();
+                        existing.Description = model.Description.Trim();
+                        existing.Location = model.Location?.Trim();
+                        existing.Processor = model.Processor?.Trim();
+                        existing.Note = model.Note?.Trim();
+                        existing.Contact = model.Contact?.Trim();
+
+                        if (model.DirectoryStatus != null)
                         {
-                            Name = model.Name.Trim(),
-                            Link = model.Link.Trim(),
-                            Description = model.Description.Trim(),
-                            Location = model.Location?.Trim(),
-                            Processor = model.Processor?.Trim(),
-                            Note = model.Note?.Trim(),
-                            Contact = model.Contact?.Trim(),
-                            DirectoryStatus = Data.Enums.DirectoryStatus.Admitted,
-                            SubCategoryId = model.SubCategoryId,
-                            CreatedByUserId = _userManager.GetUserId(User)
-                });
+                            existing.DirectoryStatus = model.DirectoryStatus.Value;
+                        }
+
+                        existing.SubCategoryId = model.SubCategoryId;
+                        existing.UpdatedByUserId = _userManager.GetUserId(User);
+
+                        await _directoryEntryRepository.UpdateAsync(existing);
+                    }
                 }
 
                 submission.SubmissionStatus = model.SubmissionStatus;
@@ -238,6 +331,7 @@ namespace DirectoryManager.Web.Controllers
                 await _submissionRepository.UpdateAsync(submission);
 
                 return RedirectToAction(nameof(Index));
+
             }
 
             return View(model);
