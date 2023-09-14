@@ -1,18 +1,20 @@
-﻿@model IEnumerable<DirectoryManager.Web.Models.NewestAdditionsViewModel>
+﻿@using System.Globalization;
+@model IEnumerable<DirectoryManager.Data.Models.GroupedDirectoryEntry>
 
 <h1>Newest Additions</h1>
 <a href="~/account/home">Admin home</a>
 <ul>
-    @foreach (var group in Model.GroupBy(entry => entry.CreateDate.Date))
+    @foreach (var group in Model.GroupBy(g => g.Date))
     {
         <li>
-            <strong>@group.Key.ToString("yyyy-MM-dd") Additions:</strong>
+            <strong>@DateTime.ParseExact(group.Key, "yyyy-MM-dd", CultureInfo.InvariantCulture).ToString("yyyy-MM-dd") Additions:</strong>
             <br />
             <ul>
-                @foreach (var entry in group)
+                @foreach (var entry in group.SelectMany(g => g.Entries))
                 {
-                    <li><pre>+ @entry.Name - @entry.Link @if (!string.IsNullOrWhiteSpace(@entry.Description)){ <text>- </text> @entry.Description }</pre>
-                    </li>}
+                    <li><pre>+ @entry.Name - <a href="@entry.Link" target="_blank">@entry.Link</a>@if (!string.IsNullOrWhiteSpace(entry.Description)){<text> - </text> @entry.Description }</pre>
+                    </li>
+                }
             </ul>
         </li>
     }

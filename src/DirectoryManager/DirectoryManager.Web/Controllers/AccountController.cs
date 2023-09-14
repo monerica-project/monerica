@@ -35,16 +35,26 @@ namespace DirectoryManager.Web.Controllers
 
         [Authorize]
         [HttpGet]
-        public async Task<IActionResult> NewestAdditions()
+        public async Task<IActionResult> NewestAdditions(int numberOfDays = 10)
         {
-            var newestAdditions = await _directoryEntryRepository.GetNewestAdditions(10); // Change the count as needed
-            var viewModel = newestAdditions.Select(entry => new NewestAdditionsViewModel
-            {
-                CreateDate = entry.CreateDate,
-                Name = entry.Name,
-                Link = entry.Link,
-                Description = entry.Description
-            });
+            var groupedNewestAdditions = await _directoryEntryRepository.GetNewestAdditions(numberOfDays);
+
+            var viewModel = groupedNewestAdditions.SelectMany(group =>
+                group.Entries.Select(entry => new GroupedDirectoryEntry
+                {
+                    Date = group.Date,
+                    Name = entry.Name,
+                    Entries = new List<DirectoryEntry> // Create a list to store entries
+                    {
+                new DirectoryEntry
+                {
+                    Name = entry.Name,
+                    Link = entry.Link,
+                    Description = entry.Description
+                }
+                    }
+                })
+            );
 
             return View(viewModel);
         }

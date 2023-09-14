@@ -26,7 +26,7 @@ namespace DirectoryManager.Web.Models
         public string? Link2 { get; set; }
 
         [MaxLength(255)]
-        [Display(Name = "Contact", Prompt = "@yourname on Twitter")]
+        [Display(Name = "Contact", Prompt = "@yourname on Twitter/ GitHub, etc.")]
         public string? Contact { get; set; }
 
         [MaxLength(255)]
