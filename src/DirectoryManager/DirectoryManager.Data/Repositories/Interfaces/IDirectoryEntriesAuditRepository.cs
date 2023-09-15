@@ -8,6 +8,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<IEnumerable<DirectoryEntriesAudit>> GetAllAsync();
 
         Task CreateAsync(DirectoryEntriesAudit directoryEntriesAudit);
-      
+        Task<IEnumerable<DirectoryEntriesAudit>> GetAuditsForEntryAsync(int entryId);
     }
 }

@@ -1,0 +1,38 @@
+﻿@model IEnumerable<DirectoryManager.Data.Models.DirectoryEntriesAudit>
+<h1>Directory Entry Audits</h1>
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Link</th>
+            <th>Status</th>
+            <th>Description</th>
+            <th>Location</th>
+            <th>Processor</th>
+            <th>Note</th>
+            <th>Contact</th>
+            <th>SubCategoryId</th>
+            <th>Created Date</th>  <!-- Assuming you have this field -->
+            <th>Updated Date</th>  <!-- Assuming you have this field -->
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var audit in Model)
+        {
+            <tr>
+                <td>@audit.Name</td>
+                <td>@audit.Link</td>
+                <td>@audit.DirectoryStatus</td>
+                <td>@audit.Description</td>
+                <td>@audit.Location</td>
+                <td>@audit.Processor</td>
+                <td>@audit.Note</td>
+                <td>@audit.Contact</td>
+                <td>@audit.SubCategoryId</td>
+                <td>@audit.CreateDate</td>  <!-- Assuming you have this field -->
+                <td>@audit.UpdateDate</td>  <!-- Assuming you have this field -->
+            </tr>
+        }
+    </tbody>
+</table>

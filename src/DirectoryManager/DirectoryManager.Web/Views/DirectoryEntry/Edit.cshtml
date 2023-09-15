@@ -20,6 +20,7 @@
 <a href="~/account/home">Admin home</a>
 
 <hr />
+<a href="@Url.Action("EntryAudits", "DirectoryEntry", new { entryId = Model.Id })">View Audits</a>
 
 <form method="post">
     <div>
@@ -66,6 +67,8 @@
         <label asp-for="Note">Note:</label>
         <textarea cols="100" asp-for="Note"></textarea>
     </div>
+
+
 
     <button type="submit">Save</button>
 </form>

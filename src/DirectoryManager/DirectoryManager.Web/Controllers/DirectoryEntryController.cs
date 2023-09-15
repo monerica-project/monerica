@@ -11,17 +11,21 @@ public class DirectoryEntryController : Controller
     private readonly IDirectoryEntryRepository _entryRepository;
     private readonly ISubCategoryRepository _subCategoryRepository;
     private readonly ICategoryRepository _categoryRepository; // Assuming you have this for fetching categories
+    private readonly IDirectoryEntriesAuditRepository _auditRepository;
 
     public DirectoryEntryController(
         UserManager<ApplicationUser> userManager,
         IDirectoryEntryRepository entryRepository, 
         ISubCategoryRepository subCategoryRepository, 
-        ICategoryRepository categoryRepository)
+        ICategoryRepository categoryRepository,
+     IDirectoryEntriesAuditRepository auditRepository
+        )
     {
         _userManager = userManager;
         _entryRepository = entryRepository;
         _subCategoryRepository = subCategoryRepository;
         _categoryRepository = categoryRepository;
+        _auditRepository = auditRepository;
     }
 
     public async Task<IActionResult> Index(int? subCategoryId = null)
@@ -113,6 +117,15 @@ public class DirectoryEntryController : Controller
         await _entryRepository.UpdateAsync(existingEntry);
         return RedirectToAction(nameof(Index));
     }
+
+ 
+    [HttpGet("EntryAudits/{entryId}")]
+    public async Task<IActionResult> EntryAudits(int entryId)
+    {
+        var audits = await _auditRepository.GetAuditsForEntryAsync(entryId);
+        return View(audits);
+    }
+
 
     public async Task<IActionResult> Delete(int id)
     {
