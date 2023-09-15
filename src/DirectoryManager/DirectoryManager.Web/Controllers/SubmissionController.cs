@@ -211,14 +211,26 @@ namespace DirectoryManager.Web.Controllers
 
             return false;
         }
-
         [Authorize]
         [HttpGet("submission/index")]
-        public async Task<IActionResult> Index()
+        public async Task<IActionResult> Index(int? page, int pageSize = 10)
         {
+            int pageNumber = page ?? 1;
             var submissions = await _submissionRepository.GetAllAsync();
-            return View(submissions); // This will display the list of submissions
+            var count = submissions.Count();
+            var items = submissions.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
+
+            var viewModel = new SubmissionPagedList
+            {
+                PageNumber = pageNumber,
+                PageSize = pageSize,
+                TotalCount = count,
+                Items = items
+            };
+
+            return View(viewModel);
         }
+
 
         [Authorize]
         [HttpGet("submission/{id}")]

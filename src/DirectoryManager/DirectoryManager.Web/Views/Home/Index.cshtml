@@ -76,7 +76,7 @@
     {
 
     <p><b>Newest Additions</b></p>
-
+        <i>See: <a href="~/newest">all new additions</a></i>
     <ul>
             @{ var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
                                             newestEntries.ToList(), 
@@ -92,8 +92,9 @@
 
     @{
         var newestRevisions = await directoryEntryRepository.GetNewestRevisions(6);
-    
-        if (newestEntries != null && newestEntries.Count() > 0)
+
+        if ((newestRevisions != null && newestRevisions.Count() > 0) && 
+                (newestEntries != null && newestEntries.Count() > 0))
         {
             newestRevisions = newestRevisions.Except(newestEntries).ToList().Take(3);
         }

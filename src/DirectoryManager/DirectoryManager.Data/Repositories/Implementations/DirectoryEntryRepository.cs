@@ -83,7 +83,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var latestCreateDate = _context.DirectoryEntries.Max(e => e.CreateDate);
             var latestUpdateDate = _context.DirectoryEntries.Max(e => e.UpdateDate);
 
-            if (latestCreateDate == null && latestUpdateDate == null)
+            if (latestUpdateDate == null)
             {
                 return DateTime.MinValue;
             }
@@ -96,10 +96,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             return await _context.DirectoryEntries
                 .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
-                            x.DirectoryStatus != DirectoryStatus.Unknown)
-                .OrderByDescending(entry => (entry.UpdateDate.HasValue && entry.UpdateDate.Value > entry.CreateDate)
-                                             ? entry.UpdateDate.Value
-                                             : entry.CreateDate)
+                            x.DirectoryStatus != DirectoryStatus.Unknown &&
+                            x.UpdateDate.HasValue)
+                .OrderByDescending(entry => entry.UpdateDate ?? DateTime.MinValue)
                 .Take(count)
                 .ToListAsync();
         }
@@ -112,6 +111,36 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .OrderByDescending(entry => entry.CreateDate)
                 .Take(count)
                 .ToListAsync();
+        }
+        public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int pageSize, int pageNumber)
+        {
+            // Get entries for pagination
+            var paginatedEntries = await _context.DirectoryEntries
+                .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
+                            x.DirectoryStatus != DirectoryStatus.Unknown)
+                .OrderByDescending(entry => entry.CreateDate)
+                .Skip((pageNumber - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            var groupedEntries = paginatedEntries
+                .GroupBy(entry => entry.CreateDate.Date)
+                .OrderByDescending(group => group.Key)
+                .Select(dateGroup => new GroupedDirectoryEntry
+                {
+                    Date = dateGroup.Key.ToString("yyyy-MM-dd"), // Convert date to string
+                    Entries = dateGroup
+                        .Select(entry => new DirectoryEntry
+                        {
+                            Name = entry.Name,
+                            Link = entry.Link,
+                            Description = entry.Description
+                        })
+                        .ToList()
+                })
+                .ToList();
+
+            return groupedEntries;
         }
 
         public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int numberOfDays)
@@ -195,5 +224,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 });
         }
 
+        public async Task<int> TotalActive()
+        {
+            return await _context.DirectoryEntries
+                .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
+                            x.DirectoryStatus != DirectoryStatus.Unknown)
+                .CountAsync();
+        }
     }
 }

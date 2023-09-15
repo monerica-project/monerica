@@ -1,4 +1,4 @@
-﻿@model IEnumerable<DirectoryManager.Data.Models.Submission>
+﻿@model DirectoryManager.Web.Models.SubmissionPagedList
 
 <h2>Submission Requests</h2>
 
@@ -9,19 +9,27 @@
         <tr>
             <th>Name</th>
             <th>Link</th>
-            <!-- Add other columns as needed -->
             <th>Submission Status</th>
+            <th>Create Date</th>
+            <th>Update Date</th>
             <th></th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var submission in Model)
+        @foreach (var submission in Model.Items)
         {
             <tr>
                 <td>@submission.Name</td>
                 <td>@submission.Link</td>
                 <td>@submission.SubmissionStatus</td>
-                <!-- Render other fields -->
+                <td>@submission.CreateDate</td>
+                <td>
+                    @if (submission?.UpdateDate != null)
+                    {
+                        <text> -- </text>
+                        @submission.UpdateDate
+                    }
+                </td>
                 <td>
                     <a asp-action="Edit" asp-controller="Submission" asp-route-id="@submission.Id" class="btn btn-primary">Edit</a>
                 </td>
@@ -29,3 +37,17 @@
         }
     </tbody>
 </table>
+
+<div>
+    @for (int i = 1; i <= Model.TotalPages; i++)
+    {
+        if (i == Model.PageNumber)
+        {
+            <text>@i </text>
+        }
+        else
+        {
+            <a href="@Url.Action("Index", "Submission", new { page = i })">@i </a>
+        }
+    }
+</div>
