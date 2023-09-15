@@ -1,7 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using DirectoryManager.Web.Helpers;
 using Microsoft.AspNetCore.Identity;

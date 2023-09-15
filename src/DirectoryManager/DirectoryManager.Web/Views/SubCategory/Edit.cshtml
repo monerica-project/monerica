@@ -1,11 +1,9 @@
 ﻿@using DirectoryManager.Data.Models
 @model SubCategory
 
-
 <a href="~/account/home">Admin home</a>
 
 <hr />
-
 
 <form method="post">
   
@@ -25,11 +23,11 @@
 
     <div>
         <label asp-for="Note">Description:</label>
-        <textarea cols="100" asp-for="Description"></textarea>
+        <textarea class="input-width" cols="100" asp-for="Description"></textarea>
     </div>
     <div>
         <label asp-for="Note">Note:</label>
-        <textarea cols="100" asp-for="Note"></textarea>
+        <textarea class="input-width" cols="100" asp-for="Note"></textarea>
     </div>
     <button type="submit">Save</button>
 </form>

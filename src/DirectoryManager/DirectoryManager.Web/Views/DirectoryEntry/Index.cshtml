@@ -3,11 +3,8 @@
 
 <h1>Directory Entries</h1>
 
-
-
 <a href="~/account/home">Admin home</a>
 <hr />
-
 
 <form method="get">
     <label for="combinedFilter">Category > SubCategory: </label>
@@ -27,7 +24,6 @@
     <div>
         <a href="@entry.Link">@entry.Name</a> - 
         <a href="@Url.Action("Edit", new { id = entry.Id })">Edit</a>
- 
     </div>
 }
  
