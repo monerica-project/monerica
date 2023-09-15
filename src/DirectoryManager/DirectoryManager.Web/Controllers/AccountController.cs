@@ -1,12 +1,7 @@
-﻿using Microsoft.AspNetCore.Authentication;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Mvc;
-using System.Security.Claims;
 using DirectoryManager.Data.Models;
-using DirectoryManager.Web.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 
 namespace DirectoryManager.Web.Controllers
@@ -46,12 +41,12 @@ namespace DirectoryManager.Web.Controllers
                     Name = entry.Name,
                     Entries = new List<DirectoryEntry> // Create a list to store entries
                     {
-                new DirectoryEntry
-                {
-                    Name = entry.Name,
-                    Link = entry.Link,
-                    Description = entry.Description
-                }
+                    new DirectoryEntry
+                    {
+                        Name = entry.Name,
+                        Link = entry.Link,
+                        Description = entry.Description
+                    }
                     }
                 })
             );
@@ -87,9 +82,6 @@ namespace DirectoryManager.Web.Controllers
         [Authorize]
         public IActionResult Home()
         {
-            // You can access user details here, if needed.
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Get the user's ID
-
             return View();
         }
 
@@ -97,9 +89,6 @@ namespace DirectoryManager.Web.Controllers
         [Authorize]
         public IActionResult Edit()
         {
-            // You can access user details here, if needed.
-            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier); // Get the user's ID
-
             return View();
         }
 

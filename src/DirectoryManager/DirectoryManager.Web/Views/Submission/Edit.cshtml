@@ -37,14 +37,14 @@
 
     <div class="form-group">
         <label asp-for="SuggestedSubCategory">Suggested Category:</label>
-        <input style="width:300px" asp-for="SuggestedSubCategory" class="form-control" />
+        <input asp-for="SuggestedSubCategory" class="form-control input-width" />
         <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
     </div>
 
     <!-- For SubmissionStatus Enum Dropdown -->
     <div class="form-group">
         <label asp-for="SubmissionStatus">Status</label>
-        <select asp-for="SubmissionStatus" class="form-control">
+        <select asp-for="SubmissionStatus" class="form-control ">
             @foreach (var status in submissionStatuses)
             {
                 <option value="@status">@status</option>
@@ -58,7 +58,7 @@
     {
     <div class="form-group">
         <label asp-for="DirectoryStatus">Directory Status:</label>
-        <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control">
+            <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control ">
             @foreach (var status in Enum.GetValues(typeof(DirectoryStatus)))
             {
                 if ((DirectoryStatus)status == DirectoryStatus.Unknown)
@@ -74,50 +74,47 @@
 
     <div class="form-group">
         <label asp-for="Name">Name</label>
-        <input style="width:300px" asp-for="Name" class="form-control" />
+        <input asp-for="Name" class="form-control input-width" />
         <span asp-validation-for="Name" class="text-danger"></span>
     </div>
 
     <div class="form-group">
         <label asp-for="Link">Link</label>
-        <input style="width:300px" asp-for="Link" class="form-control" />
+        <input  asp-for="Link" class="form-control input-width" />
         <span asp-validation-for="Link" class="text-danger"></span>
     </div>
 
     
     <div class="form-group">
         <label asp-for="Description">Description:</label>
-        <textarea style="width:300px" cols="100" asp-for="Description"></textarea>
+        <textarea class="input-width input-width" cols="100" asp-for="Description"></textarea>
     </div>
 
 <div class="form-group">
         <label asp-for="Note">Note:</label>
-        <textarea style="width:300px" cols="100" asp-for="Note"></textarea>
+        <textarea class="input-width"  cols="100" asp-for="Note"></textarea>
 </div>
 
     <div class="form-group">
         <label asp-for="Processor">Processor</label>
-        <input style="width:300px" asp-for="Processor" class="form-control" />
+        <input asp-for="Processor" class="form-control input-width" />
         <span asp-validation-for="Processor" class="text-danger"></span>
     </div>
     
 <div class="form-group">
         <label asp-for="Contact">Contact</label>
-        <input style="width:300px" asp-for="Contact" class="form-control" />
+        <input asp-for="Contact" class="form-control input-width" />
         <span asp-validation-for="Contact" class="text-danger"></span>
         </div>
     <div class="form-group">
         <label asp-for="Location">Location</label>
-        <input style="width:300px" asp-for="Location" class="form-control" />
+        <input asp-for="Location" class="form-control input-width" />
         <span asp-validation-for="Location" class="text-danger"></span>
     </div>
-
 
     <!-- Submit Button -->
     <button type="submit" class="btn btn-primary">Save Changes</button>
 </form>
-
-
 
         <br />
 <a href="~/submission/delete/@Model.Id">Delete</a>

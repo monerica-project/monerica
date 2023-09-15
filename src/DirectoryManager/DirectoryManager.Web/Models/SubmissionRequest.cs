@@ -1,5 +1,4 @@
 ﻿using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models;
 using System.ComponentModel.DataAnnotations;
 
 namespace DirectoryManager.Web.Models
