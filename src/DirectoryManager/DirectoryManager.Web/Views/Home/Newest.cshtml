@@ -1,0 +1,41 @@
+﻿@using System.Globalization;
+@model IEnumerable<DirectoryManager.Data.Models.GroupedDirectoryEntry>
+
+<h1>Newest Additions</h1>
+<a href="~/">Back to home</a>
+<hr />
+<ul>
+    @foreach (var group in Model)
+    {
+        <li>
+            <pre>@DateTime.ParseExact(group.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture).ToString("yyyy-MM-dd") Additions:</pre>
+            <ul>
+                @foreach (var entry in group.Entries)
+                {
+                    <li>
+                        <pre style="display:inline;">+ @entry.Name </pre> - <a style=" font-size:12px; font-family: 'Lucida Console'" href="@entry.Link">@entry.Link</a>  @if (!string.IsNullOrWhiteSpace(entry.Description))
+                            {
+                                <text>- </text> <pre style="display:inline;">@Html.Raw(entry.Description)</pre>
+                            }
+
+                    </li>
+                }
+            </ul>
+        </li>
+    }
+</ul>
+
+
+<div>
+    @for (int i = 1; i <= ViewBag.TotalPages; i++)
+    {
+        if (i == ViewBag.PageNumber)
+        {
+            <text>@i </text>
+        }
+        else
+        {
+            <a style="margin-left: 5px;" href="@Url.Action("Newest", "Home", new { pageNumber = i })">@i </a>
+        }
+    }
+</div>

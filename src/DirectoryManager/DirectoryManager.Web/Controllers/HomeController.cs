@@ -1,5 +1,8 @@
-﻿using DirectoryManager.Data.Repositories.Interfaces;
+﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -25,8 +28,21 @@ namespace DirectoryManager.Web.Controllers
         [ResponseCache(Duration = 60)] // Cache for 60 seconds
         public async Task<IActionResult> IndexAsync()
         {
-
             return View();
         }
+
+        [HttpGet("newest")]
+        public async Task<IActionResult> Newest(int pageNumber = 1, int pageSize = 25)
+        {
+            var groupedNewestAdditions = await _directoryEntryRepository.GetNewestAdditionsGrouped(pageSize, pageNumber);
+
+            // To determine the total number of pages, count all entries in the DB and divide by pageSize
+            int totalEntries = await _directoryEntryRepository.TotalActive();
+            ViewBag.TotalPages = (int)Math.Ceiling((double)totalEntries / pageSize);
+            ViewBag.PageNumber = pageNumber;
+
+            return View(groupedNewestAdditions);
+        }
+
     }
 }

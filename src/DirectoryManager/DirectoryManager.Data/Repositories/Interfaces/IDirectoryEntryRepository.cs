@@ -17,6 +17,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         public Task<IEnumerable<DirectoryEntry>> GetNewestRevisions(int count);
 
         public Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int numberOfDays);
+        public Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int pageSize, int pageNumber);
         public Task<IEnumerable<DirectoryEntry>> GetNewestAdditions(int count);
 
 
@@ -24,6 +25,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
 
         public   Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync();
-       
+        public  Task<int> TotalActive();
     }
 }
