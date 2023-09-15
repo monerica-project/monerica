@@ -1,5 +1,4 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
-using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -34,7 +33,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await _context.DirectoryEntriesAudit.AddAsync(entry);
             await _context.SaveChangesAsync();
         }
- 
-         
+
+        public async Task<IEnumerable<DirectoryEntriesAudit>> GetAuditsForEntryAsync(int entryId)
+        {
+            return await _context.DirectoryEntriesAudit
+                                 .Where(dea => dea.Id == entryId)
+                                 .OrderByDescending(dea => dea.CreateDate)  // Assuming you have a CreatedDate in UserStateInfo
+                                 .ToListAsync();
+        }
+
     }
 }
