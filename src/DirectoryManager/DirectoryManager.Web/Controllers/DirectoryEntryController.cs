@@ -82,6 +82,7 @@ public class DirectoryEntryController : Controller
         entry.DirectoryStatus = entry.DirectoryStatus;
         entry.Contact = entry.Contact?.Trim();
         entry.Location = entry.Location?.Trim();
+        entry.Processor = entry.Processor?.Trim();
 
         await _entryRepository.CreateAsync(entry);
         return RedirectToAction(nameof(Index));
