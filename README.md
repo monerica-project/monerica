@@ -66,3 +66,24 @@ DirectoryManager is capable of the following:
 - Creating the corresponding catagory and sub category when adding a new link
 - Auditing the links
 
+### Deployment
+
+You can deploy an instance of the application, which will upgrade the database, using the CI.bat file. Run this in a PowerShell .ps1 file and set your settings:
+
+```
+$MsDeployLocation            = "https://YOURDOMAIN.com:8172"
+$webAppHost                  = "YOURDOMAIN.com"
+$contentPathDes              = "C:\sites\YOURDOMAIN.com\"
+$msDeployUserName            = 'YOURUSERNAME';
+$msDeployPassword            = 'YOURPASSWORD';
+$dbConnectionString          = 'YOUR_SQL_SERVER_CONNECTION_STRING';
+
+cd "PATH_TO_BAT_FILE"
+
+.\ci.bat DeployWebApp  -properties "@{'MsDeployLocation'='$MsDeployLocation';'webAppHost'='$webAppHost';'contentPathDes'='$contentPathDes';'msDeployUserName'='$msDeployUserName';'msDeployPassword'='$msDeployPassword';'dbConnectionString'='$dbConnectionString';}"
+
+write-host "done"
+```
+
+
+
