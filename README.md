@@ -23,7 +23,7 @@ The goal is to create a directory of websites and services facilitating a circul
 ### Contributing
 
 The best way to contribute to Monerica is to help manage the data in the directory.
-This can be done by [submitting new links](https://monerica.com/submit) or [editing existing links](https://monerica.com/https://monerica.com/submission/findexisting).
+This can be done by [submitting new links](https://monerica.com/submit) or [editing existing links](https://monerica.com/submission/findexisting).
 
 If you would like to contribute to the codebase, please fork the repository and submit a pull request.
 
