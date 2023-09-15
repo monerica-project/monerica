@@ -15,7 +15,7 @@
                     <li>
                         <pre style="display:inline;">@entry.Name </pre> - <a style=" font-size:12px; font-family: 'Lucida Console'" href="@entry.Link">@entry.Link</a>  @if (!string.IsNullOrWhiteSpace(entry.Description))
                             {
-                                <text>- </text> <pre style="display:inline;">@Html.Raw(entry.Description)</pre>
+                            <text>- </text> <p style=" font-size:12px; font-family: 'Lucida Console'">@Html.Raw(entry.Description)</p>
                             }
 
                     </li>
