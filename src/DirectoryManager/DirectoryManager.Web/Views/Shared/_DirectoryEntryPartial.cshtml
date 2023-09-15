@@ -8,7 +8,14 @@
         }
         else if (Model.DateOption == DateDisplayOption.DisplayUpdateDate)
         {
-            <i>@Model.DirectoryEntry.UpdateDate?.ToString("yyyy-MM-dd")</i>
+            if (Model.DirectoryEntry.UpdateDate == null)
+            {
+                <i>@Model.DirectoryEntry.CreateDate.ToString("yyyy-MM-dd")</i>
+            }
+            else
+            {
+                <i>@Model.DirectoryEntry.UpdateDate?.ToString("yyyy-MM-dd")</i>
+            }
         }
         @if (Model.DirectoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Verified)
         {
