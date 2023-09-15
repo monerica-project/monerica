@@ -25,10 +25,8 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
         {
             var categories = await _categoryRepository.GetAllAsync();
-
-            // Assuming categories is an IEnumerable<Category>, you can use Linq to skip and take for paging
-            var pagedCategories = categories.Skip((page - 1) * pageSize).Take(pageSize);
-            return View(pagedCategories);
+ 
+            return View(categories);
         }
 
         [HttpGet]

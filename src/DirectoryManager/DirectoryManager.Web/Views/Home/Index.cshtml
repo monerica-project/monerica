@@ -91,11 +91,11 @@
     }
 
     @{
-        var newestRevisions = await directoryEntryRepository.GetNewestRevisions(3);
+        var newestRevisions = await directoryEntryRepository.GetNewestRevisions(6);
     
         if (newestEntries != null && newestEntries.Count() > 0)
         {
-            newestRevisions = newestRevisions.Except(newestEntries).ToList();
+            newestRevisions = newestRevisions.Except(newestEntries).ToList().Take(3);
         }
     }
 
