@@ -15,7 +15,7 @@
                     <li>
                         <p style="display:inline;" class="small-font">@entry.Name </p> - <a class="multi-line-text small-font " href="@entry.Link">@entry.Link</a>  @if (!string.IsNullOrWhiteSpace(entry.Description))
                             {
-                            <text>- </text> <p class="small-font">@Html.Raw(entry.Description)</p>
+                            <text>- </text> <p style="display:inline;"  class="small-font">@Html.Raw(entry.Description)</p>
                             }
 
                     </li>
