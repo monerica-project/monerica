@@ -13,7 +13,7 @@
         <option value="">--Select a Category > SubCategory--</option>
         @foreach (var subCategory in (IEnumerable<SubCategory>)ViewBag.SubCategories)
         {
-            <option value="@subCategory.Id">@subCategory.Category.Name > @subCategory.Name</option>
+            <option value="@subCategory.Id" selected="@(Context.Request.Query["subCategoryId"] == subCategory.Id.ToString() ? "selected" : null)">@subCategory.Category.Name > @subCategory.Name</option>
         }
     </select>
 
@@ -29,4 +29,3 @@
         <a href="@Url.Action("SubmitEdit", new { id = entry.Id })">Edit</a>
     </div>
 }
- 
