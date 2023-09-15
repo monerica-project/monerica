@@ -3,12 +3,15 @@
 
     <a href="~/account/home">Admin home</a>
 
+<hr />
+
+
 @foreach (var category in Model)
 {
     <div>@category.Name</div>
     <!-- You can add Edit & Delete links here -->
     <a href="@Url.Action("Edit", new { id = category.Id })">Edit</a>
-    <a href="@Url.Action("Delete", new { id = category.Id })" onclick="return confirm('Are you sure?')">Delete</a>
+ 
 }
 
 <!-- Pagination logic -->
