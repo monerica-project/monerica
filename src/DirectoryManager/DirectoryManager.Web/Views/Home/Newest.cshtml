@@ -13,9 +13,9 @@
                 @foreach (var entry in group.Entries)
                 {
                     <li>
-                        <pre style="display:inline;">@entry.Name </pre> - <a class="multi-line-text" style=" font-size:12px; font-family: 'Lucida Console'" href="@entry.Link">@entry.Link</a>  @if (!string.IsNullOrWhiteSpace(entry.Description))
+                        <p style="display:inline;" class="small-font">@entry.Name </p> - <a class="multi-line-text small-font " href="@entry.Link">@entry.Link</a>  @if (!string.IsNullOrWhiteSpace(entry.Description))
                             {
-                            <text>- </text> <p style=" font-size:12px; font-family: 'Lucida Console','Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif ">@Html.Raw(entry.Description)</p>
+                            <text>- </text> <p class="small-font">@Html.Raw(entry.Description)</p>
                             }
 
                     </li>
