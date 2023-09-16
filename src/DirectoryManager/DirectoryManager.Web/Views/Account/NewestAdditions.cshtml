@@ -1,7 +1,11 @@
 ﻿@using System.Globalization;
 @model IEnumerable<DirectoryManager.Data.Models.GroupedDirectoryEntry>
 
-<h1>Newest Additions</h1>
+@{
+    ViewData["Title"] = "Newest Additions";
+}
+<h1>@ViewData["Title"]</h1>
+ 
 <a href="~/account/home">Admin home</a>
 <hr />
 

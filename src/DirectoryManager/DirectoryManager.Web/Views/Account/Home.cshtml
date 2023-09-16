@@ -1,9 +1,9 @@
 ﻿@model DirectoryManager.Web.Models.LoginViewModel
 @{
-    ViewBag.Title = "Home";
+    ViewData["Title"] = "Admin home";
 }
-
-<h2>Home</h2>
+<h1>@ViewData["Title"]</h1>
+ 
 
 <i>Signed in as: </i> @User.Identity.Name
 

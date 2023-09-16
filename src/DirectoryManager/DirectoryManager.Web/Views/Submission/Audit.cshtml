@@ -1,0 +1,45 @@
+﻿@model IEnumerable<DirectoryManager.Data.Models.DirectoryEntriesAudit>
+@{
+    ViewData["Title"] = "Audit";
+}
+<h1>@ViewData["Title"]</h1>
+
+  <a href="~/submission/submitedit/@Model.FirstOrDefault().Id">&lt; Back</a>
+
+<hr />
+
+<table>
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Link</th>
+            <th>Status</th>
+            <th>Description</th>
+            <th>Location</th>
+            <th>Processor</th>
+            <th>Note</th>
+            <th>Contact</th>
+            <th>SubCategoryId</th>
+            <th>Created Date</th> 
+            <th>Updated Date</th> 
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var audit in Model)
+        {
+            <tr>
+                <td>@audit.Name</td>
+                <td>@audit.Link</td>
+                <td>@audit.DirectoryStatus</td>
+                <td>@audit.Description</td>
+                <td>@audit.Location</td>
+                <td>@audit.Processor</td>
+                <td>@audit.Note</td>
+                <td>@audit.Contact</td>
+                <td>@audit.SubCategoryId</td>
+                <td>@audit.CreateDate</td>  
+                <td>@audit.UpdateDate</td>  
+            </tr>
+        }
+    </tbody>
+</table>

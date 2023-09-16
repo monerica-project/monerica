@@ -7,13 +7,11 @@
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 <!-- Rest of your view above -->
-
 @{
-    ViewBag.Title = "Directory Entries";
+    ViewData["Title"] = "Directory Entries";
 }
-
-<hr />
-
+<h1>@ViewData["Title"]</h1>
+ 
 <p><b id="categories">Categories</b></p>
 
 <a href="~/account/home">Admin home</a>

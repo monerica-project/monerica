@@ -4,8 +4,12 @@
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
 }
 
-<h2>Edit Submission</h2>
 
+@{
+    ViewData["Title"] = "Edit Submission";
+}
+<h1>@ViewData["Title"]</h1>
+ 
 
 <a href="~/account/home">Admin home</a>
 <hr />

@@ -6,6 +6,9 @@
 
 <h2>Edit Submission</h2>
 
+<a href="~/submission/findexisting">&lt; Back</a>
+<hr />
+
 <style>
     body {
         background-color: #000000eb;
@@ -103,6 +106,14 @@
         <span asp-validation-for="Link" class="text-danger"></span>
     </div>
 
+
+    <div class="form-group">
+        <label asp-for="Link">Link 2:</label>
+        <input asp-for="Link2" class="form-control input-width" />
+        <span asp-validation-for="Link2" class="text-danger"></span>
+    </div>
+
+
     
     <div class="form-group">
         <label asp-for="Description">Description:</label>
@@ -134,3 +145,5 @@
     <!-- Submit Button -->
     <button type="submit" class="btn btn-primary">Submit Changes</button>
 </form>
+
+<a style="float:right;" href="~/submission/audit/@Model.DirectoryEntryId">History for @Model.Name</a>

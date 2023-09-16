@@ -1,11 +1,13 @@
 ﻿@using DirectoryManager.Data.Models
 @model IEnumerable<DirectoryEntry>
 
-<h1>Directory Entries</h1>
-
+@{
+    ViewData["Title"] = "Directory Entries";
+}
+<h1>@ViewData["Title"]</h1>
+ 
 <a href="~/">Back to Home</a> <text> | </text> <a href="~/submit">Create New Entry</a>
-<br />
-<br />
+<hr />
 
 <form method="get">
     <label for="combinedFilter">Find: </label>

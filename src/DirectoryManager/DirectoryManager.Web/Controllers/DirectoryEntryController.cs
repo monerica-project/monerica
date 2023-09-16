@@ -18,7 +18,7 @@ public class DirectoryEntryController : Controller
         IDirectoryEntryRepository entryRepository, 
         ISubCategoryRepository subCategoryRepository, 
         ICategoryRepository categoryRepository,
-     IDirectoryEntriesAuditRepository auditRepository
+        IDirectoryEntriesAuditRepository auditRepository
         )
     {
         _userManager = userManager;
