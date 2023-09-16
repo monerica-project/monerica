@@ -1,13 +1,17 @@
 ﻿@using DirectoryManager.Data.Models
 @model IEnumerable<DirectoryEntry>
-
-<h1>Directory Entries</h1>
+ 
+ 
+@{
+    ViewData["Title"] = "Directory Entries";
+}
+<h1>@ViewData["Title"]</h1>
 
 <a href="~/account/home">Admin home</a>
 <hr />
 
 <form method="get">
-    <label for="combinedFilter">Category > SubCategory: </label>
+    <label for="combinedFilter">Category > Sub Category: </label>
     <select id="combinedFilter" name="subCategoryId">
         <option value="">--Select a Category > SubCategory--</option>
         @foreach (var subCategory in (IEnumerable<SubCategory>)ViewBag.SubCategories)
