@@ -15,8 +15,12 @@
                                     });
 }
 
-<h1>@(Model.Id == 0 ? "Create Directory Entry" : "Edit Directory Entry")</h1>
 
+@{
+    ViewData["Title"] = "Edit Directory Entry";
+}
+<h1>@ViewData["Title"]</h1>
+ 
 <a href="~/account/home">Admin home</a>
 
 <hr />

@@ -4,7 +4,10 @@
 
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
-<h1>Create Directory Entry</h1>
+@{
+    ViewData["Title"] = "Create Diretory Entry";
+}
+<h1>@ViewData["Title"]</h1>
 
 <a href="~/account/home">Admin home</a>
 

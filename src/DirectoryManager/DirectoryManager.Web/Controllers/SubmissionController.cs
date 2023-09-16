@@ -16,17 +16,20 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubmissionRepository _submissionRepository;
         private readonly ISubCategoryRepository _subCategoryRepository;
         private readonly IDirectoryEntryRepository _directoryEntryRepository;
+        private readonly IDirectoryEntriesAuditRepository _auditRepository;
 
         public SubmissionController
             (UserManager<ApplicationUser> userManager,
             ISubmissionRepository submissionRepository,
             ISubCategoryRepository subCategoryRepository,
-            IDirectoryEntryRepository directoryEntryRepository)
+            IDirectoryEntryRepository directoryEntryRepository,
+            IDirectoryEntriesAuditRepository auditRepository)
         {
             _userManager = userManager;
             _submissionRepository = submissionRepository;
             _subCategoryRepository = subCategoryRepository;
             _directoryEntryRepository = directoryEntryRepository;
+            _auditRepository = auditRepository;
         }
 
         [AllowAnonymous]
@@ -150,67 +153,14 @@ namespace DirectoryManager.Web.Controllers
             return View(model);
         }
 
-        private async Task<bool> HasChangesAsync(SubmissionRequest model)
+        [HttpGet("submission/audit/{entryId}")]
+        public async Task<IActionResult> AuditAync(int entryId)
         {
-            if (model.DirectoryEntryId == null)
-            {
-                return true;
-            }
-
-            var existingEntry = await _directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value);
-
-            if (existingEntry.Contact?.Trim() != model.Contact?.Trim())
-            {
-                return true;
-            }
-
-            if (existingEntry.Description?.Trim() != model.Description?.Trim())
-            {
-                return true;
-            }
-
-            if (existingEntry.Link?.Trim() != model.Link?.Trim())
-            {
-                return true;
-            }
-
-            if (existingEntry.Link2?.Trim() != model.Link2?.Trim())
-            {
-                return true;
-            }
-
-            if (existingEntry.Location?.Trim() != model.Location?.Trim())
-            {
-                return true;
-            }
-
-            if (existingEntry.Name?.Trim() != model.Name?.Trim())
-            {
-                return true;
-            }
-
-            if (existingEntry.Note?.Trim() != model.Note?.Trim())
-            {
-                return true;
-            }
-
-            if (existingEntry.Processor?.Trim() != model.Processor?.Trim())
-            {
-                return true;
-            }
-
-            if (existingEntry.SubCategoryId != model.SubCategoryId)
-            {
-                return true;
-            }
-
-            if (existingEntry.DirectoryStatus != model.DirectoryStatus)
-            {
-                return true;
-            }
-
-            return false;
+            var audits = await _auditRepository.GetAuditsForEntryAsync(entryId);
+            return View("Audit", audits);
         }
+
+
         [Authorize]
         [HttpGet("submission/index")]
         public async Task<IActionResult> Index(int? page, int pageSize = 10)
@@ -377,10 +327,71 @@ namespace DirectoryManager.Web.Controllers
             if (NotEqualTrimmed(entry.Contact, submission.Contact)) differences.Add($"Different Contact: {entry.Contact ?? "null"} vs {submission.Contact ?? "null"}.");
             if (entry.SubCategoryId != submission.SubCategoryId) differences.Add($"Different SubCategoryId: {entry.SubCategoryId} vs {submission.SubCategoryId}.");
             if (entry.DirectoryStatus != submission.DirectoryStatus) differences.Add($"Different DirectoryStatus: {entry.DirectoryStatus} vs {submission.DirectoryStatus}.");
- 
+
             return differences.Count > 0 ? string.Join(Environment.NewLine, differences) : "No differences found.";
         }
 
 
+        private async Task<bool> HasChangesAsync(SubmissionRequest model)
+        {
+            if (model.DirectoryEntryId == null)
+            {
+                return true;
+            }
+
+            var existingEntry = await _directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value);
+
+            if (existingEntry.Contact?.Trim() != model.Contact?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Description?.Trim() != model.Description?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Link?.Trim() != model.Link?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Link2?.Trim() != model.Link2?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Location?.Trim() != model.Location?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Name?.Trim() != model.Name?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Note?.Trim() != model.Note?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Processor?.Trim() != model.Processor?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.SubCategoryId != model.SubCategoryId)
+            {
+                return true;
+            }
+
+            if (existingEntry.DirectoryStatus != model.DirectoryStatus)
+            {
+                return true;
+            }
+
+            return false;
+        }
     }
 }
