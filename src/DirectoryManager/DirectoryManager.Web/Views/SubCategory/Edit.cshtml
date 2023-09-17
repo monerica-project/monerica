@@ -12,8 +12,8 @@
 
 <form method="post">
   
-    <div>
-        <label>Parent Category:</label>
+    <div class="form-group">
+        <label>Parent Category</label>
         <select name="CategoryId" required>
             @foreach (var category in (IEnumerable<Category>)ViewBag.Categories)
             {
@@ -21,16 +21,16 @@
             }
         </select>
     </div>
-      <div>
-        <label>Name:</label>
+    <div class="form-group">
+        <label>Name</label>
         <input type="text" name="Name" value="@Model.Name" required />
     </div>
 
-    <div>
+    <div class="form-group">
         <label asp-for="Note">Description:</label>
         <textarea class="input-width" cols="100" asp-for="Description"></textarea>
     </div>
-    <div>
+    <div class="form-group">
         <label asp-for="Note">Note:</label>
         <textarea class="input-width" cols="100" asp-for="Note"></textarea>
     </div>
