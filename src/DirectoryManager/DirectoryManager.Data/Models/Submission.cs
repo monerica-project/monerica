@@ -21,7 +21,7 @@ namespace DirectoryManager.Data.Models
         public string Link { get; set; }
 
         [MaxLength(500)]
-        public string Description { get; set; }
+        public string? Description { get; set; }
 
         [MaxLength(500)]
         public string? Link2 { get; set; } = string.Empty;

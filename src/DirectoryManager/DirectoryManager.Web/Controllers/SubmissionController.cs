@@ -259,7 +259,7 @@ namespace DirectoryManager.Web.Controllers
                             {
                                 Name = model.Name.Trim(),
                                 Link = model.Link.Trim(),
-                                Description = model.Description.Trim(),
+                                Description = model.Description?.Trim(),
                                 Location = model.Location?.Trim(),
                                 Processor = model.Processor?.Trim(),
                                 Note = model.Note?.Trim(),
@@ -276,7 +276,7 @@ namespace DirectoryManager.Web.Controllers
 
                         existing.Name = model.Name.Trim();
                         existing.Link = model.Link.Trim();
-                        existing.Description = model.Description.Trim();
+                        existing.Description = model.Description?.Trim();
                         existing.Location = model.Location?.Trim();
                         existing.Processor = model.Processor?.Trim();
                         existing.Note = model.Note?.Trim();

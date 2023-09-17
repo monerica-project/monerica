@@ -120,7 +120,7 @@ public class DirectoryEntryController : Controller
     }
 
  
-    [HttpGet("EntryAudits/{entryId}")]
+    [HttpGet("directoryentries/EntryAudits/{entryId}")]
     public async Task<IActionResult> EntryAudits(int entryId)
     {
         var audits = await _auditRepository.GetAuditsForEntryAsync(entryId);
