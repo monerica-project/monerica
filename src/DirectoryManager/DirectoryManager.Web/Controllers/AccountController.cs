@@ -85,14 +85,12 @@ namespace DirectoryManager.Web.Controllers
             return View();
         }
 
-
         [Authorize]
         public IActionResult Edit()
         {
             return View();
         }
-
-
+        
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();

@@ -1,6 +1,6 @@
 ﻿@model IEnumerable<DirectoryManager.Data.Models.DirectoryEntriesAudit>
 @{
-    ViewData["Title"] = "Audit";
+    ViewData["Title"] = "Audit: " + @Model.FirstOrDefault().Id;
 }
 <h1>@ViewData["Title"]</h1>
 

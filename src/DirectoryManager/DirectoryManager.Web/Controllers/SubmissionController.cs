@@ -36,22 +36,54 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("submit")]
         public async Task<IActionResult> CreateAsync()
         {
-            var subCategories = (await _subCategoryRepository.GetAllAsync())
-                .OrderBy(sc => sc.Category.Name)
-                .ThenBy(sc => sc.Name)
-                .Select(sc => new
-                {
-                    sc.Id,
-                    DisplayName = $"{sc.Category.Name} > {sc.Name}"
-                })
-                .ToList();
-
-            subCategories.Insert(0, new { Id = 0, DisplayName = "Please select a category" });
-
-            ViewBag.SubCategories = subCategories;
+            await LoadSubCategories();
 
             return View();
         }
+
+        [AllowAnonymous]
+        [HttpPost("submit")]
+        public async Task<IActionResult> Create(SubmissionRequest model)
+        {
+            if (ModelState.IsValid)
+            {
+                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+
+                if (!await HasChangesAsync(model))
+                {
+                    return RedirectToAction("Success", "Submission");
+                }
+
+                var submission = new Submission
+                {
+                    SubmissionStatus = Data.Enums.SubmissionStatus.Pending,
+                    Name = model.Name.Trim(),
+                    Link = (model.Link == null) ? string.Empty : model.Link.Trim(),
+                    Link2 = (model.Link2 == null) ? string.Empty : model.Link2.Trim(),
+                    Description = (model.Description == null) ? string.Empty : model.Description.Trim(),
+                    Location = (model.Location == null) ? string.Empty : model.Location.Trim(),
+                    Processor = (model.Processor == null) ? string.Empty : model.Processor.Trim(),
+                    Note = (model.Note == null) ? string.Empty : model.Note.Trim(),
+                    Contact = (model.Contact == null) ? string.Empty : model.Contact.Trim(),
+                    SuggestedSubCategory = (model.SuggestedSubCategory == null) ? string.Empty : model.SuggestedSubCategory.Trim(),
+                    SubCategoryId = (model.SubCategoryId == 0) ? null : model.SubCategoryId,
+                    IpAddress = ipAddress,
+                    DirectoryEntryId = (model.DirectoryEntryId == 0) ? null : model.DirectoryEntryId,
+                    DirectoryStatus = (model.DirectoryStatus == null) ? DirectoryStatus.Unknown : model.DirectoryStatus
+                };
+
+                await _submissionRepository.AddAsync(submission);
+
+                return RedirectToAction("Success", "Submission");
+            }
+            else
+            {
+                await LoadSubCategories();
+            }
+
+            return View(model);
+        }
+
 
         [AllowAnonymous]
         [HttpGet("submission/submitedit/{id}")]
@@ -114,52 +146,12 @@ namespace DirectoryManager.Web.Controllers
             return View(entries);
         }
 
-        [AllowAnonymous]
-        [HttpPost("submit")]
-        public async Task<IActionResult> Create(SubmissionRequest model)
-        {
-            if (ModelState.IsValid)
-            {
-                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
-
-                if (!await HasChangesAsync(model))
-                {
-                    return RedirectToAction("Success", "Submission");
-                }
-
-                var submission = new Submission
-                {
-                    SubmissionStatus = Data.Enums.SubmissionStatus.Pending,
-                    Name = model.Name.Trim(),
-                    Link = (model.Link == null) ? string.Empty : model.Link.Trim(),
-                    Link2 = (model.Link2 == null) ? string.Empty : model.Link2.Trim(),
-                    Description = (model.Description == null) ? string.Empty : model.Description.Trim(),
-                    Location = (model.Location == null) ? string.Empty : model.Location.Trim(),
-                    Processor = (model.Processor == null) ? string.Empty : model.Processor.Trim(),
-                    Note = (model.Note == null) ? string.Empty : model.Note.Trim(),
-                    Contact = (model.Contact == null) ? string.Empty : model.Contact.Trim(),
-                    SuggestedSubCategory = (model.SuggestedSubCategory == null) ? string.Empty : model.SuggestedSubCategory.Trim(),
-                    SubCategoryId = (model.SubCategoryId == 0) ? null : model.SubCategoryId,
-                    IpAddress = ipAddress,
-                    DirectoryEntryId = (model.DirectoryEntryId == 0) ? null : model.DirectoryEntryId,
-                    DirectoryStatus = (model.DirectoryStatus == null) ? DirectoryStatus.Unknown : model.DirectoryStatus
-                };
-
-                await _submissionRepository.AddAsync(submission);
-
-                return RedirectToAction("Success", "Submission"); 
-            }
-
-            return View(model);
-        }
-
         [HttpGet("submission/audit/{entryId}")]
         public async Task<IActionResult> AuditAync(int entryId)
         {
             var audits = await _auditRepository.GetAuditsForEntryAsync(entryId);
             return View("Audit", audits);
         }
-
 
         [Authorize]
         [HttpGet("submission/index")]
@@ -180,7 +172,6 @@ namespace DirectoryManager.Web.Controllers
 
             return View(viewModel);
         }
-
 
         [Authorize]
         [HttpGet("submission/{id}")]
@@ -329,6 +320,23 @@ namespace DirectoryManager.Web.Controllers
             if (entry.DirectoryStatus != submission.DirectoryStatus) differences.Add($"Different DirectoryStatus: {entry.DirectoryStatus} vs {submission.DirectoryStatus}.");
 
             return differences.Count > 0 ? string.Join(Environment.NewLine, differences) : "No differences found.";
+        }
+
+        private async Task LoadSubCategories()
+        {
+            var subCategories = (await _subCategoryRepository.GetAllAsync())
+                .OrderBy(sc => sc.Category.Name)
+                .ThenBy(sc => sc.Name)
+                .Select(sc => new
+                {
+                    sc.Id,
+                    DisplayName = $"{sc.Category.Name} > {sc.Name}"
+                })
+                .ToList();
+
+            subCategories.Insert(0, new { Id = 0, DisplayName = "Please select a category" });
+
+            ViewBag.SubCategories = subCategories;
         }
 
 

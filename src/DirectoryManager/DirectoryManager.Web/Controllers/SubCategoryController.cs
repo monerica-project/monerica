@@ -42,7 +42,6 @@ public class SubCategoryController : Controller
         return View(subCategories);
     }
 
-
     [HttpGet]
     public async Task<IActionResult> Create()
     {
@@ -90,7 +89,7 @@ public class SubCategoryController : Controller
         await _subCategoryRepository.UpdateAsync(existingSubCategory);
         return RedirectToAction(nameof(Index));
     }
-
+    
     public async Task<IActionResult> Delete(int id)
     {
         await _subCategoryRepository.DeleteAsync(id);
