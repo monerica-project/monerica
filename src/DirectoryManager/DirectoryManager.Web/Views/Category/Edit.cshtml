@@ -11,16 +11,16 @@
 <hr />
 
 <form method="post">
-    <div>
+    <div class="form-group">
         <label>Name:</label>
         <input class="input-width" type="text" name="Name" value="@Model.Name" required />
     </div>
  
-    <div>
-        <label asp-for="Note">Description:</label>
+    <div class="form-group">
+        <label asp-for="Note">Description</label>
         <textarea class="input-width" cols="100" asp-for="Description"></textarea>
     </div>
-    <div>
+    <div class="form-group">
         <label asp-for="Note">Note:</label>
         <textarea class="input-width" cols="100" asp-for="Note"></textarea>
     </div>

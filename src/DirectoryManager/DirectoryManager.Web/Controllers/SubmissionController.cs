@@ -242,8 +242,8 @@ namespace DirectoryManager.Web.Controllers
 
                 if (submission == null) return NotFound();
 
-                if (submission.SubCategoryId == null ||
-                    submission.SubCategoryId == 0)
+                if (model.SubCategoryId == null ||
+                    model.SubCategoryId == 0)
                 {
                     throw new Exception("Submission does not have a subcategory");
                 }
