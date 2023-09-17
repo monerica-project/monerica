@@ -14,8 +14,8 @@ namespace DirectoryManager.Web.Controllers
         private readonly ICategoryRepository _categoryRepository;
 
         public CategoryController(
-                    UserManager<ApplicationUser> userManager, 
-                    ICategoryRepository categoryRepository)
+            UserManager<ApplicationUser> userManager, 
+            ICategoryRepository categoryRepository)
         {
             _userManager = userManager;
             _categoryRepository = categoryRepository;

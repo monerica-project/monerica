@@ -1,8 +1,5 @@
-﻿using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Repositories.Interfaces;
-using Microsoft.AspNetCore.Authorization;
+﻿using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -43,6 +40,5 @@ namespace DirectoryManager.Web.Controllers
 
             return View(groupedNewestAdditions);
         }
-
     }
 }

@@ -18,8 +18,7 @@ public class DirectoryEntryController : Controller
         IDirectoryEntryRepository entryRepository, 
         ISubCategoryRepository subCategoryRepository, 
         ICategoryRepository categoryRepository,
-        IDirectoryEntriesAuditRepository auditRepository
-        )
+        IDirectoryEntriesAuditRepository auditRepository)
     {
         _userManager = userManager;
         _entryRepository = entryRepository;
@@ -64,7 +63,6 @@ public class DirectoryEntryController : Controller
         subCategories.Insert(0, new { Id = 0, DisplayName = "Please select a category" });
 
         ViewBag.SubCategories = subCategories;
-
 
         return View();
     }
@@ -118,7 +116,6 @@ public class DirectoryEntryController : Controller
         await _entryRepository.UpdateAsync(existingEntry);
         return RedirectToAction(nameof(Index));
     }
-
  
     [HttpGet("directoryentries/EntryAudits/{entryId}")]
     public async Task<IActionResult> EntryAudits(int entryId)
@@ -127,11 +124,9 @@ public class DirectoryEntryController : Controller
         return View(audits);
     }
 
-
     public async Task<IActionResult> Delete(int id)
     {
         await _entryRepository.DeleteAsync(id);
         return RedirectToAction(nameof(Index));
     }
-
 }
