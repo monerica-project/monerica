@@ -66,6 +66,15 @@
 
 </style>
 
+@if (ViewData.ModelState.IsValid == false)
+{
+    <div class="alert alert-danger">
+        <strong>There were errors with your submission</strong>
+        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
+    </div>
+}
+
+
 <form asp-action="Create" method="post">
 
     @Html.HiddenFor(m => m.DirectoryEntryId)

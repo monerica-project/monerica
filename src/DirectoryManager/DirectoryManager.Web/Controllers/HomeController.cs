@@ -35,6 +35,7 @@ namespace DirectoryManager.Web.Controllers
 
             // To determine the total number of pages, count all entries in the DB and divide by pageSize
             int totalEntries = await _directoryEntryRepository.TotalActive();
+            ViewBag.TotalEntries = totalEntries;
             ViewBag.TotalPages = (int)Math.Ceiling((double)totalEntries / pageSize);
             ViewBag.PageNumber = pageNumber;
 
