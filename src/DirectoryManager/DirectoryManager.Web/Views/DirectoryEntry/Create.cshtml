@@ -16,50 +16,50 @@
 <form method="post">
 
     <div class="form-group">
-        <label asp-for="SubCategoryId">SubCategory:</label>
+        <label asp-for="SubCategoryId">Sub Category</label>
         <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "Id", "DisplayName"))" required></select>
     </div>
 
     <div class="form-group">
-        <label asp-for="Name">Name:</label>
+        <label asp-for="Name">Name</label>
         <input class="input-width"  type="text" asp-for="Name" required />
     </div>
 
     <div class="form-group">
-        <label asp-for="Link">Link:</label>
+        <label asp-for="Link">Link</label>
         <input class="input-width"  type="text" asp-for="Link" required />
     </div>
 
     <div class="form-group">
-        <label asp-for="Link2">Link 2:</label>
+        <label asp-for="Link2">Link 2</label>
         <input class="input-width"  type="text" asp-for="Link2" />
     </div>
 
     <div class="form-group">
-        <label asp-for="DirectoryStatus">Status:</label>
+        <label asp-for="DirectoryStatus">Status</label>
         <select asp-for="DirectoryStatus" asp-items="@Enum.GetValues(typeof(DirectoryStatus)).Cast<DirectoryStatus>().Select(e => new SelectListItem { Value = ((int)e).ToString(), Text = e.ToString() })"></select>
     </div>
     <div class="form-group">
-        <label asp-for="Location">Location:</label>
+        <label asp-for="Location">Location</label>
         <input class="input-width"  type="text" asp-for="Location" />
     </div>
 
 
     <div class="form-group">
-        <label asp-for="Processor">Processor:</label>
-        <input class="input-width" asp-for="Processor"></input>
+        <label asp-for="Processor">Processor</label>
+        <input class="input-width" asp-for="Processor"  />
     </div>
 
     <div class="form-group">
-        <label asp-for="Description">Description:</label>
+        <label asp-for="Description">Description</label>
         <textarea class="input-width"   asp-for="Description"></textarea>
     </div>
 
 
     <div class="form-group">
-        <label asp-for="Note">Note:</label>
+        <label asp-for="Note">Note</label>
         <textarea class="input-width"  asp-for="Note"></textarea>
     </div>
 
-    <button type="submit">Save</button>
+    <button type="submit">Create</button>
 </form>

@@ -12,7 +12,7 @@
 <form method="get">
     <label for="combinedFilter">Find: </label>
     <select id="combinedFilter" name="subCategoryId">
-        <option value="">--Select a Category > SubCategory--</option>
+        <option value="">--Select: Category > Sub Category--</option>
         @foreach (var subCategory in (IEnumerable<SubCategory>)ViewBag.SubCategories)
         {
             <option value="@subCategory.Id" selected="@(Context.Request.Query["subCategoryId"] == subCategory.Id.ToString() ? "selected" : null)">@subCategory.Category.Name > @subCategory.Name</option>
