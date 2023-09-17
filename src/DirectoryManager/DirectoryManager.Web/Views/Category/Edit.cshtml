@@ -12,7 +12,7 @@
 
 <form method="post">
     <div class="form-group">
-        <label>Name:</label>
+        <label>Name</label>
         <input class="input-width" type="text" name="Name" value="@Model.Name" required />
     </div>
  
@@ -21,9 +21,9 @@
         <textarea class="input-width" cols="100" asp-for="Description"></textarea>
     </div>
     <div class="form-group">
-        <label asp-for="Note">Note:</label>
+        <label asp-for="Note">Note</label>
         <textarea class="input-width" cols="100" asp-for="Note"></textarea>
     </div>
   
-    <button type="submit">Save</button>
+    <button type="submit">Update</button>
 </form>

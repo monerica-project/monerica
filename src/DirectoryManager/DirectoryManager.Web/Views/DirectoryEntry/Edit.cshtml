@@ -24,55 +24,54 @@
 <a href="~/account/home">Admin home</a>
 
 <hr />
-<a href="@Url.Action("EntryAudits", "DirectoryEntry", new { entryId = Model.Id })">View Audits</a>
+<a href="@Url.Action("EntryAudits", "DirectoryEntry", new { entryId = Model.Id })">View History</a>
 
 <form method="post">
-    <div>
-        <label asp-for="DirectoryStatus">Status:</label>
+    <div class="form-group">
+        <label asp-for="DirectoryStatus">Status</label>
         <select asp-for="DirectoryStatus" asp-items="Html.GetEnumSelectList<DirectoryStatus>()"></select>
     </div>
 
-    <div>
-        <label asp-for="SubCategoryId">SubCategory:</label>
+    <div class="form-group">
+        <label asp-for="SubCategoryId">Sub Category</label>
         <select asp-for="SubCategoryId" asp-items="@(new SelectList(orderedSubCategories, "Id", "DisplayName"))" required></select>
     </div>
 
-    <div>
-        <label asp-for="Name">Name:</label>
+    <div class="form-group">
+        <label asp-for="Name">Name</label>
         <input class="input-width"  type="text" asp-for="Name" required />
     </div>
-    <div>
-        <label asp-for="Link">Link:</label>
+    <div class="form-group">
+        <label asp-for="Link">Link</label>
         <input class="input-width"  type="text" asp-for="Link" required />
     </div>
-    <div>
-        <label asp-for="Link2">Link 2:</label>
+    <div class="form-group">
+        <label asp-for="Link2">Link 2</label>
         <input class="input-width"  type="text" asp-for="Link2" />
     </div>
-    <div>
-        <label asp-for="Contact">Contact:</label>
+    <div class="form-group">
+        <label asp-for="Contact">Contact</label>
         <input class="input-width"  type="text" asp-for="Contact" />
     </div>
-    <div>
-        <label asp-for="Location">Location:</label>
+    <div class="form-group">
+        <label asp-for="Location">Location</label>
         <input class="input-width"  type="text" asp-for="Location" />
     </div>
 
-    <div>
-        <label asp-for="Processor">Processor:</label>
+    <div class="form-group">
+        <label asp-for="Processor">Processor</label>
         <input class="input-width"  type="text" asp-for="Processor" />
     </div>
-    <div>
-        <label asp-for="Description">Description:</label>
+    <div class="form-group">
+        <label asp-for="Description">Description</label>
         <textarea cols="100" asp-for="Description"></textarea>
     </div>
-
-    <div>
-        <label asp-for="Note">Note:</label>
+    <div class="form-group">
+        <label asp-for="Note">Note</label>
         <textarea cols="100" asp-for="Note"></textarea>
     </div>
 
 
 
-    <button type="submit">Save</button>
+    <button type="submit">Update</button>
 </form>
