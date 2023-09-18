@@ -110,9 +110,9 @@ namespace DirectoryManager.Web.Controllers
             var model = new SubmissionRequest()
             {
                 Contact = directoryEntry.Contact,
-                Description = (directoryEntry.Description == null) ? string.Empty : directoryEntry.Description,
+                Description = directoryEntry.Description ?? string.Empty,
                 Link = directoryEntry.Link,
-                Link2 =  (directoryEntry.Link2 == null) ? string.Empty : directoryEntry.Link2,
+                Link2 = directoryEntry.Link2 ?? string.Empty,
                 Location = directoryEntry.Location,
                 Name = directoryEntry.Name,
                 Note = directoryEntry.Note,
@@ -132,7 +132,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (subCategoryId.HasValue)
             {
-                entries = entries.Where(e => e.SubCategory.Id == subCategoryId.Value).ToList();
+                entries = entries.Where(e => e.SubCategory?.Id == subCategoryId.Value).ToList();
             }
 
             entries = entries.OrderBy(e => e.Name)
@@ -179,10 +179,14 @@ namespace DirectoryManager.Web.Controllers
         {
             var submission = await _submissionRepository.GetByIdAsync(id);
 
-            if (submission.DirectoryEntryId != null)
+            if (submission != null &&
+                submission.DirectoryEntryId != null)
             {
                 var existing = await _directoryEntryRepository.GetByIdAsync(submission.DirectoryEntryId.Value);
-                ViewBag.Differences = CompareEntries(existing, submission);
+                if (existing != null)
+                {
+                    ViewBag.Differences = CompareEntries(existing, submission);
+                }
             }
             
             var subCategories = (await _subCategoryRepository.GetAllAsync())
@@ -260,14 +264,13 @@ namespace DirectoryManager.Web.Controllers
                             Contact = model.Contact?.Trim(),
                             DirectoryStatus = Data.Enums.DirectoryStatus.Admitted,
                             SubCategoryId = model.SubCategoryId,
-                            CreatedByUserId = _userManager.GetUserId(User)
+                            CreatedByUserId = _userManager.GetUserId(User) ?? string.Empty
                         });
                 }
                 else
                 {
-                    var existing = await _directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value);
-
-
+                    var existing = await _directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value) ?? 
+                        throw new Exception("Submission has a directory entry id, but the entry does not exist.");
                     existing.Name = model.Name.Trim();
                     existing.Link = model.Link.Trim();
                     existing.Description = model.Description?.Trim();
@@ -301,7 +304,7 @@ namespace DirectoryManager.Web.Controllers
                 return "Either the DirectoryEntry or the Submission is null.";
 
             // Helper function to compare trimmed strings, considering null values.
-            bool NotEqualTrimmed(string? a, string? b)
+            static bool NotEqualTrimmed(string? a, string? b)
             {
                 return (a?.Trim() ?? string.Empty) != (b?.Trim() ?? string.Empty);
             }
@@ -347,6 +350,11 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var existingEntry = await _directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value);
+
+            if (existingEntry == null)
+            {
+                return true;
+            }
 
             if (existingEntry.Contact?.Trim() != model.Contact?.Trim())
             {

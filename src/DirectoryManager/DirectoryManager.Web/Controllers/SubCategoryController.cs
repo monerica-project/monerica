@@ -52,7 +52,7 @@ public class SubCategoryController : Controller
     [HttpPost]
     public async Task<IActionResult> Create(SubCategory subCategory)
     {
-        subCategory.CreatedByUserId = _userManager.GetUserId(User);
+        subCategory.CreatedByUserId = _userManager.GetUserId(User) ?? string.Empty;
         subCategory.SubCategoryKey = TextHelpers.UrlKey(subCategory.Name);
         subCategory.Name = subCategory.Name.Trim();
         subCategory.Description = subCategory.Description?.Trim();
@@ -78,6 +78,11 @@ public class SubCategoryController : Controller
     public async Task<IActionResult> Edit(SubCategory subCategory)
     {
         var existingSubCategory = await _subCategoryRepository.GetByIdAsync(subCategory.Id);
+
+        if (existingSubCategory == null)
+        {
+            return NotFound();
+        }
 
         existingSubCategory.Name = subCategory.Name.Trim();
         existingSubCategory.SubCategoryKey = TextHelpers.UrlKey(subCategory.Name.Trim());

@@ -7,9 +7,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
 {
     public class DirectoryEntriesAuditRepository : IDirectoryEntriesAuditRepository
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IApplicationDbContext _context;
 
-        public DirectoryEntriesAuditRepository(ApplicationDbContext context)
+        public DirectoryEntriesAuditRepository(IApplicationDbContext context)
         {
             _context = context;
         }
@@ -37,10 +37,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<IEnumerable<DirectoryEntriesAudit>> GetAuditsForEntryAsync(int entryId)
         {
             return await _context.DirectoryEntriesAudit
-                                 .Where(dea => dea.Id == entryId)
-                                 .OrderByDescending(dea => dea.CreateDate)  // Assuming you have a CreatedDate in UserStateInfo
+                                 .Where(dea => dea.DirectoryEntryId == entryId)
+                                 .OrderByDescending(dea => dea.CreateDate)
                                  .ToListAsync();
         }
-
     }
 }

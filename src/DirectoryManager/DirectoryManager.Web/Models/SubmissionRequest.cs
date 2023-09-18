@@ -9,12 +9,12 @@ namespace DirectoryManager.Web.Models
         [Url]
         [MaxLength(500)]
         [Display(Name = "Link", Prompt = "https://yoursite.net")]
-        public string Link { get; set; }
+        public required string Link { get; set; }
 
         [Required]
         [MaxLength(255)]
         [Display(Name = "Name", Prompt = "Company/ Project Name")]
-        public string Name { get; set; }
+        public required string Name { get; set; }
 
         [MaxLength(500)]
         [Display(Name = "Description", Prompt = "People should know...")]

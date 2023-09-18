@@ -8,22 +8,23 @@ namespace DirectoryManager.Data.Repositories.Implementations
 {
     public class DirectoryEntryRepository : IDirectoryEntryRepository
     {
-        IDirectoryEntriesAuditRepository _directoryEntryAuditRepository;
-        private readonly ApplicationDbContext _context;
+        private readonly IDirectoryEntriesAuditRepository _directoryEntryAuditRepository;
+        private readonly IApplicationDbContext _context;
 
-        public DirectoryEntryRepository(ApplicationDbContext context,
+        public DirectoryEntryRepository(
+            IApplicationDbContext context,
             IDirectoryEntriesAuditRepository directoryEntryAuditRepository)
         {
             _directoryEntryAuditRepository = directoryEntryAuditRepository;
             _context = context;
         }
 
-        public async Task<DirectoryEntry> GetByIdAsync(int id)
+        public async Task<DirectoryEntry?> GetByIdAsync(int id)
         {
             return await _context.DirectoryEntries.FindAsync(id);
         }
 
-        public async Task<DirectoryEntry> GetByLinkAsync(string link)
+        public async Task<DirectoryEntry?> GetByLinkAsync(string link)
         {
             return await _context.DirectoryEntries.FirstOrDefaultAsync(de => de.Link == link);
         }
@@ -38,10 +39,44 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             // Include both SubCategory and its related Category.
             return await _context.DirectoryEntries
-                                 .Include(e => e.SubCategory)
-                                 .ThenInclude(sc => sc.Category)
-                                 .OrderBy(de => de.Name)
-                                 .ToListAsync();
+                                    .Select(e => new DirectoryEntry
+                                    {
+                                        // Map other properties of DirectoryEntry as needed
+                                        Name = e.Name,
+                                        Link = e.Link,
+                                        Description = e.Description,
+                                        DirectoryStatus = e.DirectoryStatus,
+                                        Location = e.Location,
+                                        Note = e.Note,
+                                        Processor = e.Processor,
+                                        Contact = e.Contact,
+                                        Link2 = e.Link2,
+                                        CreateDate = e.CreateDate,
+                                        UpdateDate = e.UpdateDate,
+                                        CreatedByUserId = e.CreatedByUserId,
+                                        UpdatedByUserId = e.UpdatedByUserId,
+                                        Id = e.Id,
+                                        SubCategoryId = e.SubCategoryId,
+
+                                        SubCategory = e.SubCategory == null ? null : new SubCategory
+                                        {
+                                            // Map other properties of SubCategory as needed
+                                            Name = e.SubCategory.Name,
+                                            Category = e.SubCategory.Category,
+                                            CategoryId = e.SubCategory.CategoryId,
+                                            Id = e.SubCategory.Id,
+                                            SubCategoryKey = e.SubCategory.SubCategoryKey,
+                                            Description = e.SubCategory.Description,
+                                            Note = e.SubCategory.Note,
+                                            CreateDate = e.SubCategory.CreateDate,
+                                            UpdateDate = e.SubCategory.UpdateDate,
+                                            CreatedByUserId = e.SubCategory.CreatedByUserId,
+                                            UpdatedByUserId = e.SubCategory.UpdatedByUserId
+
+                                        }
+                                    })
+                                    .OrderBy(de => de.Name)
+                                    .ToListAsync();
         }
 
         public async Task CreateAsync(DirectoryEntry entry)
@@ -54,6 +89,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task UpdateAsync(DirectoryEntry entry)
         {
             var existingEntry = await _context.DirectoryEntries.FindAsync(entry.Id);
+
+            if (existingEntry == null)
+            {
+                return;
+            }
+
             _context.DirectoryEntries.Update(existingEntry);
             await _context.SaveChangesAsync();
             await WriteToAuditLog(existingEntry);
@@ -72,7 +113,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<IEnumerable<DirectoryEntry>> GetAllBySubCategoryIdAsync(int subCategoryId)
         {
             return await _context.DirectoryEntries
-                                 .Where(e => e.SubCategory.Id == subCategoryId)
+                                 .Where(e => e.SubCategory != null && e.SubCategory.Id == subCategoryId)
                                  .OrderBy(e => e.Name)
                                  .ToListAsync();
         }
@@ -179,7 +220,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return groupedEntries;
         }
 
-
         public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int subCategoryId)
         {
             return await _context.DirectoryEntries
@@ -190,18 +230,22 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                 .ToListAsync();
         }
 
-
         public async Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync()
         {
             return await _context.DirectoryEntries
-                .Include(e => e.SubCategory)
-                    .ThenInclude(sc => sc.Category)
+                .Include(e => e.SubCategory!)
+                .ThenInclude(sc => sc.Category)
                 .OrderBy(de => de.Name)
                 .ToListAsync();
         }
 
         private async Task WriteToAuditLog(DirectoryEntry? existingEntry)
         {
+            if (existingEntry == null)
+            {
+                return;
+            }
+
             await _directoryEntryAuditRepository.CreateAsync(
                 new DirectoryEntriesAudit
                 {
@@ -210,7 +254,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     Description = existingEntry.Description,
                     CreatedByUserId = existingEntry.CreatedByUserId,
                     DirectoryStatus = existingEntry.DirectoryStatus,
-                    Id = existingEntry.Id,
+                    DirectoryEntryId = existingEntry.Id,
                     Link = existingEntry.Link,
                     Name = existingEntry.Name,
                     SubCategoryId = existingEntry.SubCategoryId,

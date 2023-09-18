@@ -7,9 +7,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
 {
     public class SubmissionRepository : ISubmissionRepository
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IApplicationDbContext _context;
 
-        public SubmissionRepository(ApplicationDbContext context)
+        public SubmissionRepository(IApplicationDbContext context)
         {
             _context = context;
         }
@@ -21,7 +21,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                  .ToListAsync();
         }
 
-        public async Task<Submission> GetByIdAsync(int id)
+        public async Task<Submission?> GetByIdAsync(int id)
         {
             return await _context.Submissions.FindAsync(id);
         }

@@ -21,7 +21,7 @@ namespace DirectoryManager.Web.Controllers
             _categoryRepository = categoryRepository;
         }
 
-        public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
+        public async Task<IActionResult> Index()
         {
             var categories = await _categoryRepository.GetAllAsync();
  
@@ -37,7 +37,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(Category category)
         {
-            category.CreatedByUserId = _userManager.GetUserId(User);
+            category.CreatedByUserId = _userManager.GetUserId(User) ?? string.Empty;
             category.Name = category.Name.Trim();
             category.CategoryKey = TextHelpers.UrlKey(category.Name);
             category.Description = category.Description?.Trim();

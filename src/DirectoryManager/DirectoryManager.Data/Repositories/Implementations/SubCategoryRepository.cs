@@ -8,9 +8,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
 {
     public class SubCategoryRepository : ISubCategoryRepository
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IApplicationDbContext _context;
 
-        public SubCategoryRepository(ApplicationDbContext context)
+        public SubCategoryRepository(IApplicationDbContext context)
         {
             _context = context;
         }
@@ -24,7 +24,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                             .ToListAsync();
         }
 
-        public async Task<SubCategory> GetByIdAsync(int id)
+        public async Task<SubCategory?> GetByIdAsync(int id)
         {
             return await _context.SubCategories.FindAsync(id);
         }
@@ -51,7 +51,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
-        public async Task<SubCategory> GetByNameAsync(string name)
+        public async Task<SubCategory?> GetByNameAsync(string name)
         {
             return await _context.SubCategories.FirstOrDefaultAsync(sc => sc.Name == name);
         }

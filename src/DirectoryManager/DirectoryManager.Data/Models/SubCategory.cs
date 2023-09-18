@@ -11,11 +11,11 @@ namespace DirectoryManager.Data.Models
 
         [Required]
         [MaxLength(255)]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(255)]
-        public string SubCategoryKey { get; set; }
+        public string SubCategoryKey { get; set; } = string.Empty;
 
         [MaxLength(2000)]
         public string? Description { get; set; }
@@ -29,6 +29,6 @@ namespace DirectoryManager.Data.Models
 
         // Navigation Property for the parent Category
         [ForeignKey("CategoryId")]
-        public virtual Category Category { get; set; }
+        public virtual Category Category { get; set; } = null!;
     }
 }

@@ -4,8 +4,12 @@
     <TargetFramework>net7.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+	  <CodeAnalysisRuleSet>../StyleCop.Analyzers.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
 
+  <ItemGroup>
+	  <AdditionalFiles Include="..\stylecop.json" />
+  </ItemGroup>
   <ItemGroup>
     <None Include="wwwroot\favicon.ico" />
     <None Include="wwwroot\images\monerica-donate-qr-code.png">

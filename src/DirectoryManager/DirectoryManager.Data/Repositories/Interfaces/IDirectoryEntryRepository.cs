@@ -1,12 +1,11 @@
 ﻿using DirectoryManager.Data.Models;
-using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
     public interface IDirectoryEntryRepository
     {
-        Task<DirectoryEntry> GetByIdAsync(int id);
-        Task<DirectoryEntry> GetByLinkAsync(string link);
+        Task<DirectoryEntry?> GetByIdAsync(int id);
+        Task<DirectoryEntry?> GetByLinkAsync(string link);
         Task<IEnumerable<DirectoryEntry>> GetAllAsync();
         Task<IEnumerable<DirectoryEntry>> GetAllBySubCategoryIdAsync(int subCategoryId);
         Task CreateAsync(DirectoryEntry entry);

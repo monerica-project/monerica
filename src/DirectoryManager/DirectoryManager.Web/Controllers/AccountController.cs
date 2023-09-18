@@ -38,7 +38,7 @@ namespace DirectoryManager.Web.Controllers
                 group.Entries.Select(entry => new GroupedDirectoryEntry
                 {
                     Date = group.Date,
-                    Name = entry.Name,
+//                    Name = entry.Name,
                     Entries = new List<DirectoryEntry> // Create a list to store entries
                     {
                     new DirectoryEntry
