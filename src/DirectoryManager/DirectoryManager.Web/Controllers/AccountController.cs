@@ -8,7 +8,7 @@ namespace DirectoryManager.Web.Controllers
 {
     public class AccountController : Controller
     {
-        public IDirectoryEntryRepository DirectoryEntryRepository;
+        private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly SignInManager<ApplicationUser> signInManager;
         private readonly UserManager<ApplicationUser> userManager;
 
@@ -19,7 +19,7 @@ namespace DirectoryManager.Web.Controllers
         {
             this.signInManager = signInManager;
             this.userManager = userManager;
-            this.DirectoryEntryRepository = directoryEntryRepository;
+            this.directoryEntryRepository = directoryEntryRepository;
         }
 
         public IActionResult Login()
@@ -31,7 +31,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> NewestAdditions(int numberOfDays = 10)
         {
-            var groupedNewestAdditions = await this.DirectoryEntryRepository.GetNewestAdditionsGrouped(numberOfDays);
+            var groupedNewestAdditions = await this.directoryEntryRepository.GetNewestAdditionsGrouped(numberOfDays);
 
             var viewModel = groupedNewestAdditions.SelectMany(group =>
                 group.Entries.Select(entry => new GroupedDirectoryEntry

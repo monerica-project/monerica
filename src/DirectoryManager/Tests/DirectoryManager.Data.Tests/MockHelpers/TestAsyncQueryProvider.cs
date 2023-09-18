@@ -32,7 +32,7 @@ namespace DirectoryManager.Data.Tests.MockHelpers
             return this.inner.Execute<TResult>(expression);
         }
 
-        public async Task<TResult> ExecuteAsync<TResult>(Expression expression, CancellationToken cancellationToken = default)
+        public async Task<TResult> ExecuteAsync<TResult>(Expression expression)
         {
             // Use Task.FromResult to wrap the result in a Task<TResult>
             return await Task.FromResult(this.Execute<TResult>(expression));
