@@ -3,11 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Repositories.Implementations;
-using Xunit;
-using System.Linq;
-using System.Threading.Tasks;
 using DirectoryManager.Data.Tests.MockHelpers;
-using System.Collections.Generic;
 
 namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
 {

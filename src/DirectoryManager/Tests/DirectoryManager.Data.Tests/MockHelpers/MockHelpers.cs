@@ -1,7 +1,41 @@
-﻿namespace DirectoryManager.Data.Tests.MockHelpers
+﻿using Microsoft.EntityFrameworkCore;
+using Moq;
+
+namespace DirectoryManager.Data.Tests.MockHelpers
 {
     public static class MockHelpers
     {
+        public static Mock<DbSet<T>> GetQueryableMockDbSet<T>(IEnumerable<T> sourceList) where T : class
+        {
+            var queryable = sourceList.AsQueryable();
+
+            var mockSet = new Mock<DbSet<T>>();
+            mockSet.As<IAsyncEnumerable<T>>()
+                   .Setup(m => m.GetAsyncEnumerator(new CancellationToken()))
+                   .Returns(new AsyncEnumeratorMock<T>(sourceList.GetEnumerator()));
+
+            mockSet.As<IQueryable<T>>()
+                   .Setup(m => m.Provider)
+                   .Returns(queryable.Provider);
+
+            mockSet.As<IQueryable<T>>()
+                   .Setup(m => m.Expression)
+                   .Returns(queryable.Expression);
+
+            mockSet.As<IQueryable<T>>()
+                   .Setup(m => m.ElementType)
+                   .Returns(queryable.ElementType);
+
+            mockSet.As<IQueryable<T>>()
+                   .Setup(m => m.GetEnumerator())
+                   .Returns(() => queryable.GetEnumerator());
+
+            // Additional setup for other DbSet methods if needed
+            mockSet.Setup(m => m.Add(It.IsAny<T>())).Callback<T>(sourceList.ToList().Add);
+            mockSet.Setup(m => m.Remove(It.IsAny<T>())).Callback<T>(t => sourceList.ToList().Remove(t));
+
+            return mockSet;
+        }
         public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IEnumerable<T> data)
         {
             return new AsyncEnumerableMock<T>(data);
@@ -38,6 +72,8 @@
                 _inner.Dispose();
                 return new ValueTask();
             }
+
+
         }
     }
 }
