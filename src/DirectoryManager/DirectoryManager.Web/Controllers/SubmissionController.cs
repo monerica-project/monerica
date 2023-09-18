@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -186,7 +187,7 @@ namespace DirectoryManager.Web.Controllers
                 var existing = await this.directoryEntryRepository.GetByIdAsync(submission.DirectoryEntryId.Value);
                 if (existing != null)
                 {
-                    this.ViewBag.Differences = SubmissionControllerHelpers.CompareEntries(existing, submission);
+                    this.ViewBag.Differences = ModelComparisionHelpers.CompareEntries(existing, submission);
                 }
             }
 

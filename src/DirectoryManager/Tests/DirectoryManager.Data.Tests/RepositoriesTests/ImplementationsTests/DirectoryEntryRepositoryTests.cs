@@ -60,11 +60,10 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
         public async Task GetByIdAsync_ShouldReturnCorrectItem()
         {
             // Arrange
-            var mockAuditRepo = new Mock<IDirectoryEntriesAuditRepository>();
-            var repository = new DirectoryEntryRepository(this.mockContext.Object, mockAuditRepo.Object);
+            _ = new Mock<IDirectoryEntriesAuditRepository>();
 
             // Act
-            var result = await repository.GetByIdAsync(1);
+            var result = await this.repository.GetByIdAsync(1);
 
             // Assert
             Assert.NotNull(result);
