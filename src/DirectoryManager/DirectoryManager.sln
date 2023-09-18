@@ -20,7 +20,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CI", "CI", "{36A19922-99BD-
 		..\..\CI-Tools\Scripts\GeneralHelperFunctions.ps1 = ..\..\CI-Tools\Scripts\GeneralHelperFunctions.ps1
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectoryManager.Console", "DirectoryManager.Console\DirectoryManager.Console.csproj", "{DD80F8F8-8F95-48AC-B259-17849E264F38}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectoryManager.Console", "DirectoryManager.Console\DirectoryManager.Console.csproj", "{DD80F8F8-8F95-48AC-B259-17849E264F38}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CodeAnalysis", "CodeAnalysis", "{1B3BD9EF-7341-4319-A784-872DC36B5C24}"
+	ProjectSection(SolutionItems) = preProject
+		StyleCop.Analyzers.ruleset = StyleCop.Analyzers.ruleset
+		stylecop.json = stylecop.json
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
