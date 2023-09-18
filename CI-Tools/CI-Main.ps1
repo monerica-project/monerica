@@ -26,7 +26,7 @@ properties {
    $databaseProjectSourcePath   = "..\src\DirectoryManager\DirectoryManager.Data"
    $webProjectSourcePath        = "..\src\DirectoryManager\DirectoryManager.Web"
    $testProjectSourcePath       = "..\DirectoryManager.sln"
-   $compileSourcePath           = "..\src\DirectoryManager.Web\bin\output"
+   $compileSourcePath           = "..\src\DirectoryManager\DirectoryManager.Web\bin\output"
 
    $WebAppSettings              = "..\src\DirectoryManager\DirectoryManager.Web\appsettings.json"
    $DatabaseAppSettings         = "..\src\DirectoryManager\DirectoryManager.Data\appsettings.json"
