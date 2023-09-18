@@ -7,14 +7,14 @@
         return;
     }
 
-    ViewData["Title"] = "Audit: " + @firstOrDefault.Id;
+    ViewData["Title"] = "Audit: " + @firstOrDefault.DirectoryEntryId;
 }
 <h1>@ViewData["Title"]</h1>
 
 @{
     if (firstOrDefault  != null)
     {
-        <a href="~/submission/submitedit/@firstOrDefault.Id">&lt; Back</a>
+        <a href="~/submission/submitedit/@firstOrDefault.DirectoryEntryId">&lt; Back</a>
     }
 }
 <hr />

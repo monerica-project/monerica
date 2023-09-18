@@ -10,15 +10,15 @@ namespace DirectoryManager.Data.Models
         [Key]
         public int DirectoryEntryAuditId { get; set; }
 
-        public int Id { get; set; }
+        public int DirectoryEntryId { get; set; }
 
         [Required]
         [MaxLength(255)]
-        public required string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Url]
         [MaxLength(500)]
-        public required string Link { get; set; }
+        public string Link { get; set; } = string.Empty;
 
         [MaxLength(500)]
         public string? Link2 { get; set; }

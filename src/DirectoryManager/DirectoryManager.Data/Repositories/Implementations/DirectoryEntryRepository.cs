@@ -254,7 +254,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     Description = existingEntry.Description,
                     CreatedByUserId = existingEntry.CreatedByUserId,
                     DirectoryStatus = existingEntry.DirectoryStatus,
-                    Id = existingEntry.Id,
+                    DirectoryEntryId = existingEntry.Id,
                     Link = existingEntry.Link,
                     Name = existingEntry.Name,
                     SubCategoryId = existingEntry.SubCategoryId,

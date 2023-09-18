@@ -37,7 +37,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<IEnumerable<DirectoryEntriesAudit>> GetAuditsForEntryAsync(int entryId)
         {
             return await _context.DirectoryEntriesAudit
-                                 .Where(dea => dea.Id == entryId)
+                                 .Where(dea => dea.DirectoryEntryId == entryId)
                                  .OrderByDescending(dea => dea.CreateDate)
                                  .ToListAsync();
         }
