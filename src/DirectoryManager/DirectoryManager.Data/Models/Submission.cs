@@ -14,11 +14,11 @@ namespace DirectoryManager.Data.Models
 
         [Required]
         [MaxLength(255)]
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(500)]
-        public string Link { get; set; }
+        public string Link { get; set; } = string.Empty;
 
         [MaxLength(500)]
         public string? Description { get; set; }

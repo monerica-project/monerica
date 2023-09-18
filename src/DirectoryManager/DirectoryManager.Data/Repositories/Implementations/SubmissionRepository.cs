@@ -21,7 +21,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                  .ToListAsync();
         }
 
-        public async Task<Submission> GetByIdAsync(int id)
+        public async Task<Submission?> GetByIdAsync(int id)
         {
             return await _context.Submissions.FindAsync(id);
         }

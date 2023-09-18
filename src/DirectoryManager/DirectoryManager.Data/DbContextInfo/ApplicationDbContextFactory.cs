@@ -7,7 +7,7 @@ namespace DirectoryManager.Data.DbContextInfo
 {
     public class ApplicationDbContextFactory : IDesignTimeDbContextFactory<ApplicationDbContext>
     {
-        public IConfigurationRoot Configuration { get; set; }
+        public IConfigurationRoot? Configuration { get; set; }
 
         public ApplicationDbContext CreateDbContext(string[] args)
         {

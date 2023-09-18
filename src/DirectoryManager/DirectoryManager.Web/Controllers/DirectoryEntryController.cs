@@ -33,7 +33,7 @@ public class DirectoryEntryController : Controller
 
         if (subCategoryId.HasValue)
         {
-            entries = entries.Where(e => e.SubCategory.Id == subCategoryId.Value).ToList();
+            entries = entries.Where(e => e.SubCategory != null && e.SubCategory.Id == subCategoryId.Value).ToList();
         }
 
         entries = entries.OrderBy(e => e.Name)
@@ -70,7 +70,7 @@ public class DirectoryEntryController : Controller
     [HttpPost]
     public async Task<IActionResult> Create(DirectoryEntry entry)
     {
-        entry.CreatedByUserId = _userManager.GetUserId(User);
+        entry.CreatedByUserId = _userManager.GetUserId(User) ?? string.Empty;
         entry.SubCategoryId = entry.SubCategoryId;
         entry.Link = entry.Link.Trim();
         entry.Link2 = entry.Link2?.Trim();
@@ -101,6 +101,11 @@ public class DirectoryEntryController : Controller
     public async Task<IActionResult> Edit(DirectoryEntry entry)
     {
         var existingEntry = await _entryRepository.GetByIdAsync(entry.Id);
+
+        if (existingEntry == null)
+        {
+            return NotFound();
+        }
 
         entry.UpdatedByUserId = _userManager.GetUserId(User);
         existingEntry.SubCategoryId = entry.SubCategoryId;

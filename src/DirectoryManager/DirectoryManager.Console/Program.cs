@@ -22,8 +22,10 @@ var serviceProvider = new ServiceCollection()
     .AddTransient<IDirectoryEntriesAuditRepository, DirectoryEntriesAuditRepository>()
     .BuildServiceProvider();
 
-var entries = serviceProvider.GetService<IDirectoryEntryRepository>();
- var allEntries = await entries.GetAllAsync();
+var entries = serviceProvider.GetService<IDirectoryEntryRepository>() ??
+    throw new InvalidOperationException("The IDirectoryEntryRepository service is not registered.");
+
+var allEntries = await entries.GetAllAsync();
 
 var offlines = new List<string>();
 

@@ -10,11 +10,11 @@ namespace DirectoryManager.Data.Models
 
         [Required]
         [MaxLength(255)]
-        public string Name { get; set; }
+        public required string Name { get; set; }
 
         [Required]
         [MaxLength(255)]
-        public string CategoryKey { get; set; }
+        public required string CategoryKey { get; set; }
 
         [MaxLength(2000)]
         public string? Description { get; set; }

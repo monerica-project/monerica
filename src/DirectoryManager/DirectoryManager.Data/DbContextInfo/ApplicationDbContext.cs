@@ -51,7 +51,7 @@ namespace DirectoryManager.Data.DbContextInfo
         }
 
         public override Task<int> SaveChangesAsync(
-            CancellationToken cancellationToken = default(CancellationToken))
+            CancellationToken cancellationToken = default)
         {
             this.SetDates();
 
@@ -61,9 +61,8 @@ namespace DirectoryManager.Data.DbContextInfo
         private void SetDates()
         {
             foreach (var entry in this.ChangeTracker.Entries()
-                .Where(x => (x.Entity is StateInfo)
-                            && x.State == EntityState.Added)
-                .Select(x => x.Entity as StateInfo))
+                .Where(x => (x.Entity is StateInfo) && x.State == EntityState.Added)
+                .Select(x => (StateInfo)x.Entity))
             {
                 if (entry.CreateDate == DateTime.MinValue)
                 {
@@ -72,9 +71,9 @@ namespace DirectoryManager.Data.DbContextInfo
             }
 
             foreach (var entry in this.ChangeTracker.Entries()
-                .Where(x => (x.Entity is CreatedStateInfo)
-                            && x.State == EntityState.Added)
-                .Select(x => x.Entity as CreatedStateInfo))
+                .Where(x => x.Entity is CreatedStateInfo && x.State == EntityState.Added)
+                .Select(x => (CreatedStateInfo)x.Entity)
+                .Where(x => x != null))
             {
                 if (entry.CreateDate == DateTime.MinValue)
                 {
@@ -84,7 +83,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
             foreach (var entry in this.ChangeTracker.Entries()
                 .Where(x => x.Entity is StateInfo && x.State == EntityState.Modified)
-                .Select(x => x.Entity as StateInfo))
+                .Select(x => (StateInfo)x.Entity)
+                .Where(x => x != null))
             {
                 entry.UpdateDate = DateTime.UtcNow;
             }

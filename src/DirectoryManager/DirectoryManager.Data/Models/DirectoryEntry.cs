@@ -11,12 +11,12 @@ namespace DirectoryManager.Data.Models
 
         [Required]
         [MaxLength(255)]
-        public string Name { get; set; }
+        public required string Name { get; set; }
 
         [Required]
         [Url]
         [MaxLength(500)]
-        public string Link { get; set; }
+        public string Link { get; set; } = string.Empty;
 
         [MaxLength(500)]
         public string? Link2 { get; set; }
@@ -43,7 +43,7 @@ namespace DirectoryManager.Data.Models
 
         public int? SubCategoryId { get; set; }
 
-        public bool Equals(DirectoryEntry other)
+        public bool Equals(DirectoryEntry? other)
         {
             if (other == null) return false;
 

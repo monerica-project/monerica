@@ -2,8 +2,6 @@
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
-using System.Threading.Tasks;
 using DirectoryManager.Data.Enums;
 
 namespace DirectoryManager.Data.Repositories.Implementations
@@ -24,7 +22,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                  .ToListAsync();
         }
 
-        public async Task<Category> GetByIdAsync(int id)
+        public async Task<Category?> GetByIdAsync(int id)
         {
             return await _context.Categories.FindAsync(id);
         }
@@ -50,18 +48,20 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 await _context.SaveChangesAsync();
             }
         }
-        
+
         public async Task<Category> GetByNameAsync(string name)
         {
-            return await _context.Categories.FirstOrDefaultAsync(sc => sc.Name == name);
+            return await _context.Categories.FirstOrDefaultAsync(sc => sc.Name == name) 
+                ?? throw new Exception("Category not found");
         }
 
         public async Task<IEnumerable<Category>> GetActiveCategoriesAsync()
         {
             var activeCategoryIds = await _context.DirectoryEntries
-               .Where(entry => 
-                    entry.DirectoryStatus != DirectoryStatus.Removed || entry.DirectoryStatus != DirectoryStatus.Unknown)
-               .Select(entry => entry.SubCategory.CategoryId)
+               .Where(entry =>
+                    entry.DirectoryStatus != DirectoryStatus.Removed && entry.DirectoryStatus != DirectoryStatus.Unknown)
+               .Where(entry => entry.SubCategory != null) // Ensure SubCategory is not null before accessing its properties
+               .Select(entry => entry.SubCategory!.CategoryId) // Now it's safe to access CategoryId
                .Distinct()
                .ToListAsync();
 

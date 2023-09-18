@@ -8,7 +8,6 @@ namespace DirectoryManager.Web.Models
         public int PageSize { get; set; }
         public int TotalCount { get; set; }
         public int TotalPages => (int)Math.Ceiling((double)TotalCount / PageSize);
-        public List<Submission> Items { get; set; }
+        public required List<Submission> Items { get; set; }
     }
-
 }

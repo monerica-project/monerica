@@ -1,11 +1,22 @@
 ﻿@model IEnumerable<DirectoryManager.Data.Models.DirectoryEntriesAudit>
 @{
-    ViewData["Title"] = "Audit: " + @Model.FirstOrDefault().Id;
+    var firstOrDefault = Model.FirstOrDefault();
+
+    if (firstOrDefault == null)
+    {
+        return;
+    }
+
+    ViewData["Title"] = "Audit: " + @firstOrDefault.Id;
 }
 <h1>@ViewData["Title"]</h1>
 
-  <a href="~/submission/submitedit/@Model.FirstOrDefault().Id">&lt; Back</a>
-
+@{
+    if (firstOrDefault  != null)
+    {
+        <a href="~/submission/submitedit/@firstOrDefault.Id">&lt; Back</a>
+    }
+}
 <hr />
 
 <table>

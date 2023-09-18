@@ -22,8 +22,7 @@ namespace DirectoryManager.Web.Controllers
             _directoryEntryRepository = directoryEntryRepository;
         }
 
-        [ResponseCache(Duration = 60)] // Cache for 60 seconds
-        public async Task<IActionResult> IndexAsync()
+        public IActionResult Index()
         {
             return View();
         }
