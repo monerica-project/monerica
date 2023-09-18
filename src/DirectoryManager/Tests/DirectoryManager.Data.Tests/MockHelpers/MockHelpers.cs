@@ -5,13 +5,14 @@ namespace DirectoryManager.Data.Tests.MockHelpers
 {
     public static class MockHelpers
     {
-        public static Mock<DbSet<T>> GetQueryableMockDbSet<T>(IEnumerable<T> sourceList) where T : class
+        public static Mock<DbSet<T>> GetQueryableMockDbSet<T>(IEnumerable<T> sourceList)
+            where T : class
         {
             var queryable = sourceList.AsQueryable();
 
             var mockSet = new Mock<DbSet<T>>();
             mockSet.As<IAsyncEnumerable<T>>()
-                   .Setup(m => m.GetAsyncEnumerator(new CancellationToken()))
+                   .Setup(m => m.GetAsyncEnumerator(CancellationToken.None))
                    .Returns(new AsyncEnumeratorMock<T>(sourceList.GetEnumerator()));
 
             mockSet.As<IQueryable<T>>()
@@ -36,6 +37,7 @@ namespace DirectoryManager.Data.Tests.MockHelpers
 
             return mockSet;
         }
+
         public static IAsyncEnumerable<T> ToAsyncEnumerable<T>(this IEnumerable<T> data)
         {
             return new AsyncEnumerableMock<T>(data);
@@ -43,7 +45,10 @@ namespace DirectoryManager.Data.Tests.MockHelpers
 
         private class AsyncEnumerableMock<T> : EnumerableQuery<T>, IAsyncEnumerable<T>
         {
-            public AsyncEnumerableMock(IEnumerable<T> enumerable) : base(enumerable) { }
+            public AsyncEnumerableMock(IEnumerable<T> enumerable)
+                : base(enumerable)
+            {
+            }
 
             public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
             {
@@ -53,27 +58,25 @@ namespace DirectoryManager.Data.Tests.MockHelpers
 
         private class AsyncEnumeratorMock<T> : IAsyncEnumerator<T>
         {
-            private readonly IEnumerator<T> _inner;
+            private readonly IEnumerator<T> inner;
 
             public AsyncEnumeratorMock(IEnumerator<T> inner)
             {
-                _inner = inner;
+                this.inner = inner;
             }
+
+            public T Current => this.inner.Current;
 
             public ValueTask<bool> MoveNextAsync()
             {
-                return new ValueTask<bool>(_inner.MoveNext());
+                return new ValueTask<bool>(this.inner.MoveNext());
             }
-
-            public T Current => _inner.Current;
 
             public ValueTask DisposeAsync()
             {
-                _inner.Dispose();
-                return new ValueTask();
+                this.inner.Dispose();
+                return default;
             }
-
-
         }
     }
 }

@@ -5,10 +5,10 @@ namespace DirectoryManager.Web.Controllers
 {
     public class HomeController : Controller
     {
-        private readonly ISubmissionRepository _submissionRepository;
-        private readonly ICategoryRepository _categoryRepository;
-        private readonly ISubCategoryRepository _subCategoryRepository;
-        private readonly IDirectoryEntryRepository _directoryEntryRepository;
+        private readonly ISubmissionRepository submissionRepository;
+        private readonly ICategoryRepository categoryRepository;
+        private readonly ISubCategoryRepository subCategoryRepository;
+        private readonly IDirectoryEntryRepository directoryEntryRepository;
 
         public HomeController(
             ISubmissionRepository submissionRepository,
@@ -16,29 +16,29 @@ namespace DirectoryManager.Web.Controllers
             ISubCategoryRepository subCategoryRepository,
             IDirectoryEntryRepository directoryEntryRepository)
         {
-            _submissionRepository = submissionRepository;
-            _categoryRepository = categoryRepository;
-            _subCategoryRepository = subCategoryRepository;
-            _directoryEntryRepository = directoryEntryRepository;
+            this.submissionRepository = submissionRepository;
+            this.categoryRepository = categoryRepository;
+            this.subCategoryRepository = subCategoryRepository;
+            this.directoryEntryRepository = directoryEntryRepository;
         }
 
         public IActionResult Index()
         {
-            return View();
+            return this.View();
         }
 
         [HttpGet("newest")]
         public async Task<IActionResult> Newest(int pageNumber = 1, int pageSize = 25)
         {
-            var groupedNewestAdditions = await _directoryEntryRepository.GetNewestAdditionsGrouped(pageSize, pageNumber);
+            var groupedNewestAdditions = await this.directoryEntryRepository.GetNewestAdditionsGrouped(pageSize, pageNumber);
 
             // To determine the total number of pages, count all entries in the DB and divide by pageSize
-            int totalEntries = await _directoryEntryRepository.TotalActive();
-            ViewBag.TotalEntries = totalEntries;
-            ViewBag.TotalPages = (int)Math.Ceiling((double)totalEntries / pageSize);
-            ViewBag.PageNumber = pageNumber;
+            int totalEntries = await this.directoryEntryRepository.TotalActive();
+            this.ViewBag.TotalEntries = totalEntries;
+            this.ViewBag.TotalPages = (int)Math.Ceiling((double)totalEntries / pageSize);
+            this.ViewBag.PageNumber = pageNumber;
 
-            return View(groupedNewestAdditions);
+            return this.View(groupedNewestAdditions);
         }
     }
 }

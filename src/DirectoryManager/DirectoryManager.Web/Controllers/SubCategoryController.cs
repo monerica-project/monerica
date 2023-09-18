@@ -1,25 +1,25 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
-using DirectoryManager.Web.Helpers;
+using Microsoft.AspNetCore.Mvc;
 
 [Authorize]
 public class SubCategoryController : Controller
 {
-    private readonly UserManager<ApplicationUser> _userManager;
-    private readonly ISubCategoryRepository _subCategoryRepository;
-    private readonly ICategoryRepository _categoryRepository; // Assuming you have this for fetching categories
+    private readonly UserManager<ApplicationUser> userManager;
+    private readonly ISubCategoryRepository subCategoryRepository;
+    private readonly ICategoryRepository categoryRepository; // Assuming you have this for fetching categories
 
     public SubCategoryController(
         UserManager<ApplicationUser> userManager,
         ISubCategoryRepository subCategoryRepository,
         ICategoryRepository categoryRepository)
     {
-        _userManager = userManager;
-        _subCategoryRepository = subCategoryRepository;
-        _categoryRepository = categoryRepository;
+        this.userManager = userManager;
+        this.subCategoryRepository = subCategoryRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     [HttpGet]
@@ -29,59 +29,61 @@ public class SubCategoryController : Controller
 
         if (categoryId.HasValue)
         {
-            subCategories = await _subCategoryRepository.GetAllAsync();
+            subCategories = await this.subCategoryRepository.GetAllAsync();
             subCategories = subCategories.Where(sc => sc.CategoryId == categoryId.Value);
         }
         else
         {
-            subCategories = await _subCategoryRepository.GetAllAsync();
+            subCategories = await this.subCategoryRepository.GetAllAsync();
         }
 
-        ViewBag.Categories = await _categoryRepository.GetAllAsync(); // For dropdown list
+        this.ViewBag.Categories = await this.categoryRepository.GetAllAsync(); // For dropdown list
 
-        return View(subCategories);
+        return this.View(subCategories);
     }
 
     [HttpGet]
     public async Task<IActionResult> Create()
     {
-        ViewBag.Categories = await _categoryRepository.GetAllAsync();
-        return View();
+        this.ViewBag.Categories = await this.categoryRepository.GetAllAsync();
+        return this.View();
     }
 
     [HttpPost]
     public async Task<IActionResult> Create(SubCategory subCategory)
     {
-        subCategory.CreatedByUserId = _userManager.GetUserId(User) ?? string.Empty;
+        subCategory.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
         subCategory.SubCategoryKey = TextHelpers.UrlKey(subCategory.Name);
         subCategory.Name = subCategory.Name.Trim();
         subCategory.Description = subCategory.Description?.Trim();
         subCategory.Note = subCategory.Note?.Trim();
 
-        await _subCategoryRepository.CreateAsync(subCategory);
+        await this.subCategoryRepository.CreateAsync(subCategory);
 
-        return RedirectToAction(nameof(Index));
+        return this.RedirectToAction(nameof(this.Index));
     }
 
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
-        var subCategory = await _subCategoryRepository.GetByIdAsync(id);
+        var subCategory = await this.subCategoryRepository.GetByIdAsync(id);
         if (subCategory == null)
-            return NotFound();
+        {
+            return this.NotFound();
+        }
 
-        ViewBag.Categories = await _categoryRepository.GetAllAsync();
-        return View(subCategory);
+        this.ViewBag.Categories = await this.categoryRepository.GetAllAsync();
+        return this.View(subCategory);
     }
 
     [HttpPost]
     public async Task<IActionResult> Edit(SubCategory subCategory)
     {
-        var existingSubCategory = await _subCategoryRepository.GetByIdAsync(subCategory.Id);
+        var existingSubCategory = await this.subCategoryRepository.GetByIdAsync(subCategory.Id);
 
         if (existingSubCategory == null)
         {
-            return NotFound();
+            return this.NotFound();
         }
 
         existingSubCategory.Name = subCategory.Name.Trim();
@@ -89,15 +91,15 @@ public class SubCategoryController : Controller
         existingSubCategory.CategoryId = subCategory.CategoryId;
         existingSubCategory.Description = subCategory.Description?.Trim();
         existingSubCategory.Note = subCategory.Note?.Trim();
-        existingSubCategory.UpdatedByUserId = _userManager.GetUserId(User);
+        existingSubCategory.UpdatedByUserId = this.userManager.GetUserId(this.User);
 
-        await _subCategoryRepository.UpdateAsync(existingSubCategory);
-        return RedirectToAction(nameof(Index));
+        await this.subCategoryRepository.UpdateAsync(existingSubCategory);
+        return this.RedirectToAction(nameof(this.Index));
     }
-    
+
     public async Task<IActionResult> Delete(int id)
     {
-        await _subCategoryRepository.DeleteAsync(id);
-        return RedirectToAction(nameof(Index));
+        await this.subCategoryRepository.DeleteAsync(id);
+        return this.RedirectToAction(nameof(this.Index));
     }
 }

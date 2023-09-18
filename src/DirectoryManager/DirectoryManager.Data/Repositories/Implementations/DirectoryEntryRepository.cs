@@ -8,37 +8,37 @@ namespace DirectoryManager.Data.Repositories.Implementations
 {
     public class DirectoryEntryRepository : IDirectoryEntryRepository
     {
-        private readonly IDirectoryEntriesAuditRepository _directoryEntryAuditRepository;
-        private readonly IApplicationDbContext _context;
+        private readonly IDirectoryEntriesAuditRepository directoryEntryAuditRepository;
+        private readonly IApplicationDbContext context;
 
         public DirectoryEntryRepository(
             IApplicationDbContext context,
             IDirectoryEntriesAuditRepository directoryEntryAuditRepository)
         {
-            _directoryEntryAuditRepository = directoryEntryAuditRepository;
-            _context = context;
+            this.directoryEntryAuditRepository = directoryEntryAuditRepository;
+            this.context = context;
         }
 
         public async Task<DirectoryEntry?> GetByIdAsync(int id)
         {
-            return await _context.DirectoryEntries.FindAsync(id);
+            return await this.context.DirectoryEntries.FindAsync(id);
         }
 
         public async Task<DirectoryEntry?> GetByLinkAsync(string link)
         {
-            return await _context.DirectoryEntries.FirstOrDefaultAsync(de => de.Link == link);
+            return await this.context.DirectoryEntries.FirstOrDefaultAsync(de => de.Link == link);
         }
 
         public async Task<IEnumerable<DirectoryEntry>> GetAllAsync()
         {
             // Ensure that the DbSet DirectoryEntries is not null.
-            if (_context.DirectoryEntries == null)
+            if (this.context.DirectoryEntries == null)
             {
                 return new List<DirectoryEntry>();
             }
 
             // Include both SubCategory and its related Category.
-            return await _context.DirectoryEntries
+            return await this.context.DirectoryEntries
                                     .Select(e => new DirectoryEntry
                                     {
                                         // Map other properties of DirectoryEntry as needed
@@ -72,7 +72,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                             UpdateDate = e.SubCategory.UpdateDate,
                                             CreatedByUserId = e.SubCategory.CreatedByUserId,
                                             UpdatedByUserId = e.SubCategory.UpdatedByUserId
-
                                         }
                                     })
                                     .OrderBy(de => de.Name)
@@ -81,38 +80,38 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task CreateAsync(DirectoryEntry entry)
         {
-            await _context.DirectoryEntries.AddAsync(entry);
-            await _context.SaveChangesAsync();
-            await WriteToAuditLog(entry);
+            await this.context.DirectoryEntries.AddAsync(entry);
+            await this.context.SaveChangesAsync();
+            await this.WriteToAuditLog(entry);
         }
 
         public async Task UpdateAsync(DirectoryEntry entry)
         {
-            var existingEntry = await _context.DirectoryEntries.FindAsync(entry.Id);
+            var existingEntry = await this.context.DirectoryEntries.FindAsync(entry.Id);
 
             if (existingEntry == null)
             {
                 return;
             }
 
-            _context.DirectoryEntries.Update(existingEntry);
-            await _context.SaveChangesAsync();
-            await WriteToAuditLog(existingEntry);
+            this.context.DirectoryEntries.Update(existingEntry);
+            await this.context.SaveChangesAsync();
+            await this.WriteToAuditLog(existingEntry);
         }
 
         public async Task DeleteAsync(int id)
         {
-            var entryToDelete = await _context.DirectoryEntries.FindAsync(id);
+            var entryToDelete = await this.context.DirectoryEntries.FindAsync(id);
             if (entryToDelete != null)
             {
-                _context.DirectoryEntries.Remove(entryToDelete);
-                await _context.SaveChangesAsync();
+                this.context.DirectoryEntries.Remove(entryToDelete);
+                await this.context.SaveChangesAsync();
             }
         }
 
         public async Task<IEnumerable<DirectoryEntry>> GetAllBySubCategoryIdAsync(int subCategoryId)
         {
-            return await _context.DirectoryEntries
+            return await this.context.DirectoryEntries
                                  .Where(e => e.SubCategory != null && e.SubCategory.Id == subCategoryId)
                                  .OrderBy(e => e.Name)
                                  .ToListAsync();
@@ -121,8 +120,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public DateTime GetLastRevisionDate()
         {
             // Fetch the latest CreateDate and UpdateDate
-            var latestCreateDate = _context.DirectoryEntries.Max(e => e.CreateDate);
-            var latestUpdateDate = _context.DirectoryEntries.Max(e => e.UpdateDate);
+            var latestCreateDate = this.context.DirectoryEntries.Max(e => e.CreateDate);
+            var latestUpdateDate = this.context.DirectoryEntries.Max(e => e.UpdateDate);
 
             if (latestUpdateDate == null)
             {
@@ -135,7 +134,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<DirectoryEntry>> GetNewestRevisions(int count)
         {
-            return await _context.DirectoryEntries
+            return await this.context.DirectoryEntries
                 .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
                             x.DirectoryStatus != DirectoryStatus.Unknown &&
                             x.UpdateDate.HasValue)
@@ -146,17 +145,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<DirectoryEntry>> GetNewestAdditions(int count)
         {
-            return await _context.DirectoryEntries
+            return await this.context.DirectoryEntries
                 .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
                             x.DirectoryStatus != DirectoryStatus.Unknown)
                 .OrderByDescending(entry => entry.CreateDate)
                 .Take(count)
                 .ToListAsync();
         }
+
         public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int pageSize, int pageNumber)
         {
             // Get entries for pagination
-            var paginatedEntries = await _context.DirectoryEntries
+            var paginatedEntries = await this.context.DirectoryEntries
                 .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
                             x.DirectoryStatus != DirectoryStatus.Unknown)
                 .OrderByDescending(entry => entry.CreateDate)
@@ -186,7 +186,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int numberOfDays)
         {
-            var recentDates = await _context.DirectoryEntries
+            var recentDates = await this.context.DirectoryEntries
                 .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
                             x.DirectoryStatus != DirectoryStatus.Unknown)
                 .OrderByDescending(entry => entry.CreateDate)
@@ -196,7 +196,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync();
 
             // Retrieve all entries and perform filtering and grouping on the client side
-            var allEntries = await _context.DirectoryEntries
+            var allEntries = await this.context.DirectoryEntries
                 .ToListAsync();
 
             var groupedEntries = allEntries
@@ -222,7 +222,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int subCategoryId)
         {
-            return await _context.DirectoryEntries
+            return await this.context.DirectoryEntries
                             .Where(entry => entry.SubCategoryId == subCategoryId &&
                                         entry.DirectoryStatus != DirectoryStatus.Removed &&
                                         entry.DirectoryStatus != DirectoryStatus.Unknown)
@@ -232,11 +232,19 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync()
         {
-            return await _context.DirectoryEntries
+            return await this.context.DirectoryEntries
                 .Include(e => e.SubCategory!)
                 .ThenInclude(sc => sc.Category)
                 .OrderBy(de => de.Name)
                 .ToListAsync();
+        }
+
+        public async Task<int> TotalActive()
+        {
+            return await this.context.DirectoryEntries
+                .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
+                            x.DirectoryStatus != DirectoryStatus.Unknown)
+                .CountAsync();
         }
 
         private async Task WriteToAuditLog(DirectoryEntry? existingEntry)
@@ -246,7 +254,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return;
             }
 
-            await _directoryEntryAuditRepository.CreateAsync(
+            await this.directoryEntryAuditRepository.CreateAsync(
                 new DirectoryEntriesAudit
                 {
                     Contact = existingEntry.Contact,
@@ -264,16 +272,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     Location = existingEntry.Location,
                     Note = existingEntry.Note,
                     Processor = existingEntry.Processor
-
                 });
-        }
-
-        public async Task<int> TotalActive()
-        {
-            return await _context.DirectoryEntries
-                .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
-                            x.DirectoryStatus != DirectoryStatus.Unknown)
-                .CountAsync();
         }
     }
 }

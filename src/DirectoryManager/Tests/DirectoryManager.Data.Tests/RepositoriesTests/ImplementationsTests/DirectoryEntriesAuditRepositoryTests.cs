@@ -1,17 +1,13 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using DirectoryManager.Data.Repositories.Implementations;
+﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Repositories.Implementations;
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using Xunit;
-using DirectoryManager.Data.DbContextInfo;
 
 namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
 {
     public class DirectoryEntriesAuditRepositoryTests
-    {    
+    {
         [Fact]
         public async Task CreateAsync_CreatesNewDirectoryEntriesAudit()
         {

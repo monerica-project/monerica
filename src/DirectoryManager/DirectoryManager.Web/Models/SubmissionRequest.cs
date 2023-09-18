@@ -1,5 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
+using DirectoryManager.Data.Enums;
 
 namespace DirectoryManager.Web.Models
 {
@@ -9,12 +9,12 @@ namespace DirectoryManager.Web.Models
         [Url]
         [MaxLength(500)]
         [Display(Name = "Link", Prompt = "https://yoursite.net")]
-        public required string Link { get; set; }
+        required public string Link { get; set; }
 
         [Required]
         [MaxLength(255)]
         [Display(Name = "Name", Prompt = "Company/ Project Name")]
-        public required string Name { get; set; }
+        required public string Name { get; set; }
 
         [MaxLength(500)]
         [Display(Name = "Description", Prompt = "People should know...")]
@@ -42,7 +42,7 @@ namespace DirectoryManager.Web.Models
 
         [Display(Name = "SubCategoryId", Prompt = "Select Sub Category")]
         public int? SubCategoryId { get; set; }
-        
+
         [MaxLength(255)]
         [Display(Name = "Suggested Category", Prompt = "New Category > New Sub Category")]
         public string? SuggestedSubCategory { get; set; }

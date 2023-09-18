@@ -1,17 +1,17 @@
-﻿using Moq;
-using Microsoft.EntityFrameworkCore;
+﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Models;
-using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Tests.MockHelpers;
+using Microsoft.EntityFrameworkCore;
+using Moq;
 
 namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
 {
     public class CategoryRepositoryTests
     {
-        private readonly Mock<DbSet<Category>> _mockSet;
-        private readonly Mock<IApplicationDbContext> _mockContext;
-        private readonly CategoryRepository _repository;
+        private readonly Mock<DbSet<Category>> mockSet;
+        private readonly Mock<IApplicationDbContext> mockContext;
+        private readonly CategoryRepository repository;
 
         public CategoryRepositoryTests()
         {
@@ -21,31 +21,31 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
                 Name = $"Category {i}"
             }).ToList();
 
-            _mockSet = new Mock<DbSet<Category>>();
+            this.mockSet = new Mock<DbSet<Category>>();
 
             // This sets up the DbSet to work as an IQueryable with asynchronous support
-            _mockSet.As<IQueryable<Category>>().Setup(m => m.Provider)
+            this.mockSet.As<IQueryable<Category>>().Setup(m => m.Provider)
                 .Returns(new TestAsyncQueryProvider<Category>(mockCategories.AsQueryable().Provider));
-            _mockSet.As<IQueryable<Category>>().Setup(m => m.Expression).Returns(mockCategories.AsQueryable().Expression);
-            _mockSet.As<IQueryable<Category>>().Setup(m => m.ElementType).Returns(mockCategories.AsQueryable().ElementType);
-            _mockSet.As<IQueryable<Category>>().Setup(m => m.GetEnumerator()).Returns(mockCategories.GetEnumerator());
+            this.mockSet.As<IQueryable<Category>>().Setup(m => m.Expression).Returns(mockCategories.AsQueryable().Expression);
+            this.mockSet.As<IQueryable<Category>>().Setup(m => m.ElementType).Returns(mockCategories.AsQueryable().ElementType);
+            this.mockSet.As<IQueryable<Category>>().Setup(m => m.GetEnumerator()).Returns(mockCategories.GetEnumerator());
 
             // Here we're setting up the mock to return the expected categories as IAsyncEnumerable
-            _mockSet.As<IAsyncEnumerable<Category>>()
+            this.mockSet.As<IAsyncEnumerable<Category>>()
                 .Setup(d => d.GetAsyncEnumerator(It.IsAny<CancellationToken>()))
                 .Returns(new TestAsyncEnumerator<Category>(mockCategories.GetEnumerator()));
 
-            _mockContext = new Mock<IApplicationDbContext>();
-            _mockContext.Setup(m => m.Categories).Returns(_mockSet.Object);
+            this.mockContext = new Mock<IApplicationDbContext>();
+            this.mockContext.Setup(m => m.Categories).Returns(this.mockSet.Object);
 
-            _repository = new CategoryRepository(_mockContext.Object);
+            this.repository = new CategoryRepository(this.mockContext.Object);
         }
 
         [Fact]
         public async Task GetAllAsync_ReturnsAllCategories()
         {
             // Act
-            var categories = await _repository.GetAllAsync();
+            var categories = await this.repository.GetAllAsync();
 
             // Assert
             Assert.Equal(5, categories.Count());

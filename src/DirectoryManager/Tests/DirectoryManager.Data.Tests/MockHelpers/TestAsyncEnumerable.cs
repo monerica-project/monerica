@@ -6,17 +6,19 @@ namespace DirectoryManager.Data.Tests.MockHelpers
     {
         public TestAsyncEnumerable(IEnumerable<T> enumerable)
             : base(enumerable)
-        { }
+        {
+        }
 
         public TestAsyncEnumerable(Expression expression)
             : base(expression)
-        { }
+        {
+        }
+
+        IQueryProvider IQueryable.Provider => new TestAsyncQueryProvider<T>(this);
 
         public IAsyncEnumerator<T> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
             return new TestAsyncEnumerator<T>(this.AsEnumerable().GetEnumerator());
         }
-
-        IQueryProvider IQueryable.Provider => new TestAsyncQueryProvider<T>(this);
     }
 }

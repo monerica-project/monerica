@@ -2,24 +2,24 @@
 {
     internal class TestAsyncEnumerator<T> : IAsyncEnumerator<T>
     {
-        private readonly IEnumerator<T> _inner;
+        private readonly IEnumerator<T> inner;
 
         public TestAsyncEnumerator(IEnumerator<T> inner)
         {
-            _inner = inner ?? throw new ArgumentNullException(nameof(inner));
+            this.inner = inner ?? throw new ArgumentNullException(nameof(inner));
         }
 
-        public T Current => _inner.Current;
+        public T Current => this.inner.Current;
 
         public async ValueTask<bool> MoveNextAsync()
         {
             await Task.Delay(1); // Simulate an asynchronous operation
-            return _inner.MoveNext();
+            return this.inner.MoveNext();
         }
 
         public ValueTask DisposeAsync()
         {
-            _inner.Dispose();
+            this.inner.Dispose();
             return ValueTask.CompletedTask;
         }
     }

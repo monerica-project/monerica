@@ -10,6 +10,7 @@ namespace DirectoryManager.Data.DbContextInfo
             : base(options)
         {
         }
+
         public DbSet<Category> Categories { get; set; }
 
         public DbSet<SubCategory> SubCategories { get; set; }
@@ -23,6 +24,21 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<ApplicationUser> ApplicationUser { get; set; }
 
         public DbSet<ApplicationUserRole> ApplicationUserRole { get; set; }
+
+        public override int SaveChanges()
+        {
+            this.SetDates();
+
+            return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(
+            CancellationToken cancellationToken = default)
+        {
+            this.SetDates();
+
+            return base.SaveChangesAsync(cancellationToken);
+        }
 
         protected override void OnModelCreating(ModelBuilder builder)
         {
@@ -39,21 +55,6 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<SubCategory>()
                 .HasIndex(e => new { e.SubCategoryKey, e.CategoryId })
                 .IsUnique();
-        }
-
-        public override int SaveChanges()
-        {
-            this.SetDates();
-
-            return base.SaveChanges();
-        }
-
-        public override Task<int> SaveChangesAsync(
-            CancellationToken cancellationToken = default)
-        {
-            this.SetDates();
-
-            return base.SaveChangesAsync(cancellationToken);
         }
 
         private void SetDates()
