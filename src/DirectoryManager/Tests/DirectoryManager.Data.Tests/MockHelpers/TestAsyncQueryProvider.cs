@@ -22,7 +22,7 @@ namespace DirectoryManager.Data.Tests.MockHelpers
             return new TestAsyncEnumerable<TElement>(expression);
         }
 
-        public object Execute(Expression expression)
+        public object? Execute(Expression expression)
         {
             return _inner.Execute(expression);
         }
