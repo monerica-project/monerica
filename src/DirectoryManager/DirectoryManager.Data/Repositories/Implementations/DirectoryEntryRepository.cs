@@ -9,9 +9,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
     public class DirectoryEntryRepository : IDirectoryEntryRepository
     {
         private readonly IDirectoryEntriesAuditRepository _directoryEntryAuditRepository;
-        private readonly ApplicationDbContext _context;
+        private readonly IApplicationDbContext _context;
 
-        public DirectoryEntryRepository(ApplicationDbContext context,
+        public DirectoryEntryRepository(
+            IApplicationDbContext context,
             IDirectoryEntriesAuditRepository directoryEntryAuditRepository)
         {
             _directoryEntryAuditRepository = directoryEntryAuditRepository;

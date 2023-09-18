@@ -7,9 +7,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
 {
     public class DirectoryEntriesAuditRepository : IDirectoryEntriesAuditRepository
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IApplicationDbContext _context;
 
-        public DirectoryEntriesAuditRepository(ApplicationDbContext context)
+        public DirectoryEntriesAuditRepository(IApplicationDbContext context)
         {
             _context = context;
         }

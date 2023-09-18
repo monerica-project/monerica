@@ -8,9 +8,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
 {
     public class SubCategoryRepository : ISubCategoryRepository
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IApplicationDbContext _context;
 
-        public SubCategoryRepository(ApplicationDbContext context)
+        public SubCategoryRepository(IApplicationDbContext context)
         {
             _context = context;
         }

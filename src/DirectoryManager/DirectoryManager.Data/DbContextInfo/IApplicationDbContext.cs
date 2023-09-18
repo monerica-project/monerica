@@ -17,6 +17,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<ApplicationUserRole> ApplicationUserRole { get; set; }
 
+        public DbSet<DirectoryEntriesAudit> DirectoryEntriesAudit { get; set; }
+
         int SaveChanges();
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default(CancellationToken));

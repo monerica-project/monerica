@@ -7,9 +7,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
 {
     public class SubmissionRepository : ISubmissionRepository
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IApplicationDbContext _context;
 
-        public SubmissionRepository(ApplicationDbContext context)
+        public SubmissionRepository(IApplicationDbContext context)
         {
             _context = context;
         }
