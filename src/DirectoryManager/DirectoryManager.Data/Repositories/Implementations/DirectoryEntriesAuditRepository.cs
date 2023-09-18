@@ -38,9 +38,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             return await _context.DirectoryEntriesAudit
                                  .Where(dea => dea.Id == entryId)
-                                 .OrderByDescending(dea => dea.CreateDate)  // Assuming you have a CreatedDate in UserStateInfo
+                                 .OrderByDescending(dea => dea.CreateDate)
                                  .ToListAsync();
         }
-
     }
 }

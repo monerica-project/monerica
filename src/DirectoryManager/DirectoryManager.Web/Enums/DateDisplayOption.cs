@@ -1,5 +1,4 @@
-﻿
-namespace DirectoryManager.Web.Enums
+﻿namespace DirectoryManager.Web.Enums
 {
     public enum DateDisplayOption
     {

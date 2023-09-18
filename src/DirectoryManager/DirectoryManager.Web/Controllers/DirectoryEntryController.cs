@@ -10,7 +10,7 @@ public class DirectoryEntryController : Controller
     private readonly UserManager<ApplicationUser> _userManager;
     private readonly IDirectoryEntryRepository _entryRepository;
     private readonly ISubCategoryRepository _subCategoryRepository;
-    private readonly ICategoryRepository _categoryRepository; // Assuming you have this for fetching categories
+    private readonly ICategoryRepository _categoryRepository;
     private readonly IDirectoryEntriesAuditRepository _auditRepository;
 
     public DirectoryEntryController(

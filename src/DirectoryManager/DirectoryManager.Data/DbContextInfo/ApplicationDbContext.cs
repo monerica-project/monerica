@@ -1,8 +1,6 @@
-﻿using Azure;
-using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.BaseModels;
 using Microsoft.EntityFrameworkCore;
-
 
 namespace DirectoryManager.Data.DbContextInfo
 {
