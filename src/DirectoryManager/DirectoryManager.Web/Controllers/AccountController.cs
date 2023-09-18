@@ -1,44 +1,42 @@
-﻿using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Authorization;
-using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
     public class AccountController : Controller
     {
-        private readonly SignInManager<ApplicationUser> _signInManager;
-        private readonly UserManager<ApplicationUser> _userManager;
-        public IDirectoryEntryRepository _directoryEntryRepository;
+        public IDirectoryEntryRepository DirectoryEntryRepository;
+        private readonly SignInManager<ApplicationUser> signInManager;
+        private readonly UserManager<ApplicationUser> userManager;
 
         public AccountController(
-            SignInManager<ApplicationUser> signInManager, 
+            SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
             IDirectoryEntryRepository directoryEntryRepository)
         {
-            _signInManager = signInManager;
-            _userManager = userManager;
-            _directoryEntryRepository = directoryEntryRepository;
+            this.signInManager = signInManager;
+            this.userManager = userManager;
+            this.DirectoryEntryRepository = directoryEntryRepository;
         }
-
 
         public IActionResult Login()
         {
-            return View();
+            return this.View();
         }
 
         [Authorize]
         [HttpGet]
         public async Task<IActionResult> NewestAdditions(int numberOfDays = 10)
         {
-            var groupedNewestAdditions = await _directoryEntryRepository.GetNewestAdditionsGrouped(numberOfDays);
+            var groupedNewestAdditions = await this.DirectoryEntryRepository.GetNewestAdditionsGrouped(numberOfDays);
 
             var viewModel = groupedNewestAdditions.SelectMany(group =>
                 group.Entries.Select(entry => new GroupedDirectoryEntry
                 {
                     Date = group.Date,
-//                    Name = entry.Name,
                     Entries = new List<DirectoryEntry> // Create a list to store entries
                     {
                     new DirectoryEntry
@@ -48,12 +46,10 @@ namespace DirectoryManager.Web.Controllers
                         Description = entry.Description
                     }
                     }
-                })
-            );
+                }));
 
-            return View(viewModel);
+            return this.View(viewModel);
         }
-
 
         [HttpPost]
         public async Task<IActionResult> Login(string username, string password, bool rememberMe)
@@ -61,40 +57,40 @@ namespace DirectoryManager.Web.Controllers
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
                 // Add an error message and return to the login page.
-                ModelState.AddModelError("", "Username and password are required.");
-                return View();
+                this.ModelState.AddModelError("", "Username and password are required.");
+                return this.View();
             }
 
-            var result = await _signInManager.PasswordSignInAsync(username, password, rememberMe, false);
+            var result = await this.signInManager.PasswordSignInAsync(username, password, rememberMe, false);
 
             if (result.Succeeded)
             {
-                return RedirectToAction(nameof(Home), "Account");
+                return this.RedirectToAction(nameof(this.Home), "Account");
             }
             else
             {
                 // Add an error message and return to the login page.
-                ModelState.AddModelError("", "Invalid login attempt.");
-                return View();
+                this.ModelState.AddModelError("", "Invalid login attempt.");
+                return this.View();
             }
         }
 
         [Authorize]
         public IActionResult Home()
         {
-            return View();
+            return this.View();
         }
 
         [Authorize]
         public IActionResult Edit()
         {
-            return View();
+            return this.View();
         }
-        
+
         public async Task<IActionResult> Logout()
         {
-            await _signInManager.SignOutAsync();
-            return RedirectToAction(nameof(Login), "Account");
+            await this.signInManager.SignOutAsync();
+            return this.RedirectToAction(nameof(this.Login), "Account");
         }
     }
 }

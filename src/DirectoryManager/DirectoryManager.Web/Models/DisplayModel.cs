@@ -2,6 +2,6 @@
 {
     public class DisplayModel
     {
-        public required IList<DisplayItemModel> Categetories { get; set; }
+        required public IList<DisplayItemModel> Categetories { get; set; }
     }
 }

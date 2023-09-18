@@ -1,85 +1,88 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
-using Microsoft.AspNetCore.Authorization;
 using DirectoryManager.Web.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
     [Authorize]
     public class CategoryController : Controller
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly ICategoryRepository _categoryRepository;
+        private readonly UserManager<ApplicationUser> userManager;
+        private readonly ICategoryRepository categoryRepository;
 
         public CategoryController(
-            UserManager<ApplicationUser> userManager, 
+            UserManager<ApplicationUser> userManager,
             ICategoryRepository categoryRepository)
         {
-            _userManager = userManager;
-            _categoryRepository = categoryRepository;
+            this.userManager = userManager;
+            this.categoryRepository = categoryRepository;
         }
 
         public async Task<IActionResult> Index()
         {
-            var categories = await _categoryRepository.GetAllAsync();
- 
-            return View(categories);
+            var categories = await this.categoryRepository.GetAllAsync();
+            return this.View(categories);
         }
 
         [HttpGet]
         public IActionResult Create()
         {
-            return View();
+            return this.View();
         }
 
         [HttpPost]
         public async Task<IActionResult> Create(Category category)
         {
-            category.CreatedByUserId = _userManager.GetUserId(User) ?? string.Empty;
+            category.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
             category.Name = category.Name.Trim();
             category.CategoryKey = TextHelpers.UrlKey(category.Name);
             category.Description = category.Description?.Trim();
             category.Note = category.Note?.Trim();
 
-            await _categoryRepository.CreateAsync(category);
-            return RedirectToAction(nameof(Index));
+            await this.categoryRepository.CreateAsync(category);
+            return this.RedirectToAction(nameof(this.Index));
         }
 
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
-            var category = await _categoryRepository.GetByIdAsync(id);
+            var category = await this.categoryRepository.GetByIdAsync(id);
             if (category == null)
-                return NotFound();
+            {
+                return this.NotFound();
+            }
 
-            return View(category);
+            return this.View(category);
         }
 
         [HttpPost]
         public async Task<IActionResult> Edit(Category category)
         {
-            var existingCategory = await _categoryRepository.GetByIdAsync(category.Id);
+            var existingCategory = await this.categoryRepository.GetByIdAsync(category.Id);
 
             if (existingCategory == null)
-                return NotFound();
+            {
+                return this.NotFound();
+            }
 
             existingCategory.Name = category.Name.Trim();
             existingCategory.CategoryKey = TextHelpers.UrlKey(category.Name);
             existingCategory.Description = category.Description?.Trim();
             existingCategory.Note = category.Note?.Trim();
-            existingCategory.UpdatedByUserId = _userManager.GetUserId(User);
+            existingCategory.UpdatedByUserId = this.userManager.GetUserId(this.User);
 
-            await _categoryRepository.UpdateAsync(existingCategory);
+            await this.categoryRepository.UpdateAsync(existingCategory);
 
-            return RedirectToAction(nameof(Index));
+            return this.RedirectToAction(nameof(this.Index));
         }
 
         public async Task<IActionResult> Delete(int id)
         {
-            await _categoryRepository.DeleteAsync(id);
-            return RedirectToAction(nameof(Index));
+            await this.categoryRepository.DeleteAsync(id);
+            return this.RedirectToAction(nameof(this.Index));
         }
     }
 }

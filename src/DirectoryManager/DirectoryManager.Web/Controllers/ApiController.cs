@@ -5,18 +5,18 @@ namespace DirectoryManager.Web.Controllers
 {
     public class ApiController : ControllerBase
     {
-        private readonly IDirectoryEntryRepository _entryRepository;
+        private readonly IDirectoryEntryRepository entryRepository;
         public ApiController(IDirectoryEntryRepository entryRepository)
         {
-            _entryRepository = entryRepository;
+            this.entryRepository = entryRepository;
         }
 
         [HttpGet("api/all")]
         [ResponseCache(Duration = 3600)] // Cache the response for 1 hour (3600 seconds)
         public async Task<IActionResult> GetAllEntitiesAndProperties()
         {
-            var entities = await _entryRepository.GetAllEntitiesAndPropertiesAsync();
-            return Ok(entities);
+            var entities = await this.entryRepository.GetAllEntitiesAndPropertiesAsync();
+            return this.Ok(entities);
         }
     }
 }

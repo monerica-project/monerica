@@ -2,8 +2,8 @@
 {
     public class GroupedDirectoryEntry
     {
-        public required string Date { get; set; }
+        required public string Date { get; set; }
+        required public IEnumerable<DirectoryEntry> Entries { get; set; }
         public string Name { get; set; } = string.Empty;
-        public required IEnumerable<DirectoryEntry> Entries { get; set; }
     }
 }

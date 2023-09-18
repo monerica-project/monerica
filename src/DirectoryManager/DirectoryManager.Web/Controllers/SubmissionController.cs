@@ -9,49 +9,48 @@ using Microsoft.AspNetCore.Mvc;
 namespace DirectoryManager.Web.Controllers
 {
     // Controllers/SubmissionController.cs
-
     public class SubmissionController : Controller
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly ISubmissionRepository _submissionRepository;
-        private readonly ISubCategoryRepository _subCategoryRepository;
-        private readonly IDirectoryEntryRepository _directoryEntryRepository;
-        private readonly IDirectoryEntriesAuditRepository _auditRepository;
+        private readonly UserManager<ApplicationUser> userManager;
+        private readonly ISubmissionRepository submissionRepository;
+        private readonly ISubCategoryRepository subCategoryRepository;
+        private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly IDirectoryEntriesAuditRepository auditRepository;
 
-        public SubmissionController
-            (UserManager<ApplicationUser> userManager,
+        public SubmissionController(
+            UserManager<ApplicationUser> userManager,
             ISubmissionRepository submissionRepository,
             ISubCategoryRepository subCategoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
             IDirectoryEntriesAuditRepository auditRepository)
         {
-            _userManager = userManager;
-            _submissionRepository = submissionRepository;
-            _subCategoryRepository = subCategoryRepository;
-            _directoryEntryRepository = directoryEntryRepository;
-            _auditRepository = auditRepository;
+            this.userManager = userManager;
+            this.submissionRepository = submissionRepository;
+            this.subCategoryRepository = subCategoryRepository;
+            this.directoryEntryRepository = directoryEntryRepository;
+            this.auditRepository = auditRepository;
         }
 
         [AllowAnonymous]
         [HttpGet("submit")]
         public async Task<IActionResult> CreateAsync()
         {
-            await LoadSubCategories();
+            await this.LoadSubCategories();
 
-            return View();
+            return this.View();
         }
 
         [AllowAnonymous]
         [HttpPost("submit")]
         public async Task<IActionResult> Create(SubmissionRequest model)
         {
-            if (ModelState.IsValid)
+            if (this.ModelState.IsValid)
             {
-                var ipAddress = HttpContext.Connection.RemoteIpAddress?.ToString();
+                var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
 
-                if (!await HasChangesAsync(model))
+                if (!await this.HasChangesAsync(model))
                 {
-                    return RedirectToAction("Success", "Submission");
+                    return this.RedirectToAction("Success", "Submission");
                 }
 
                 var submission = new Submission
@@ -72,26 +71,25 @@ namespace DirectoryManager.Web.Controllers
                     DirectoryStatus = (model.DirectoryStatus == null) ? DirectoryStatus.Unknown : model.DirectoryStatus
                 };
 
-                await _submissionRepository.AddAsync(submission);
+                await this.submissionRepository.AddAsync(submission);
 
-                return RedirectToAction("Success", "Submission");
+                return this.RedirectToAction("Success", "Submission");
             }
             else
             {
-                await LoadSubCategories();
+                await this.LoadSubCategories();
             }
 
-            return View("SubmitEdit", model);
+            return this.View("SubmitEdit", model);
         }
-
 
         [AllowAnonymous]
         [HttpGet("submission/submitedit/{id}")]
         public async Task<IActionResult> SubmitEdit(int id)
         {
-            var directoryEntry = await _directoryEntryRepository.GetByIdAsync(id);
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(id);
 
-            var subCategories = (await _subCategoryRepository.GetAllAsync())
+            var subCategories = (await this.subCategoryRepository.GetAllAsync())
               .OrderBy(sc => sc.Category.Name)
               .ThenBy(sc => sc.Name)
               .Select(sc => new
@@ -103,9 +101,12 @@ namespace DirectoryManager.Web.Controllers
 
             subCategories.Insert(0, new { Id = 0, DisplayName = "Please select a category" });
 
-            ViewBag.SubCategories = subCategories;
+            this.ViewBag.SubCategories = subCategories;
 
-            if (directoryEntry == null) return NotFound();
+            if (directoryEntry == null)
+            {
+                return this.NotFound();
+            }
 
             var model = new SubmissionRequest()
             {
@@ -121,14 +122,14 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryId = directoryEntry.Id,
                 DirectoryStatus = directoryEntry.DirectoryStatus
             };
-            return View(model);
+            return this.View(model);
         }
 
         [AllowAnonymous]
         [HttpGet("submission/findexisting")]
         public async Task<IActionResult> FindExisting(int? subCategoryId = null)
         {
-            var entries = await _directoryEntryRepository.GetAllAsync();
+            var entries = await this.directoryEntryRepository.GetAllAsync();
 
             if (subCategoryId.HasValue)
             {
@@ -138,19 +139,19 @@ namespace DirectoryManager.Web.Controllers
             entries = entries.OrderBy(e => e.Name)
                              .ToList();
 
-            ViewBag.SubCategories = (await _subCategoryRepository.GetAllAsync())
+            this.ViewBag.SubCategories = (await this.subCategoryRepository.GetAllAsync())
                                     .OrderBy(sc => sc.Category.Name)
                                     .ThenBy(sc => sc.Name)
                                     .ToList();
 
-            return View(entries);
+            return this.View(entries);
         }
 
         [HttpGet("submission/audit/{entryId}")]
         public async Task<IActionResult> AuditAync(int entryId)
         {
-            var audits = await _auditRepository.GetAuditsForEntryAsync(entryId);
-            return View("Audit", audits);
+            var audits = await this.auditRepository.GetAuditsForEntryAsync(entryId);
+            return this.View("Audit", audits);
         }
 
         [Authorize]
@@ -158,7 +159,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Index(int? page, int pageSize = 10)
         {
             int pageNumber = page ?? 1;
-            var submissions = await _submissionRepository.GetAllAsync();
+            var submissions = await this.submissionRepository.GetAllAsync();
             var count = submissions.Count();
             var items = submissions.Skip((pageNumber - 1) * pageSize).Take(pageSize).ToList();
 
@@ -170,26 +171,26 @@ namespace DirectoryManager.Web.Controllers
                 Items = items
             };
 
-            return View(viewModel);
+            return this.View(viewModel);
         }
 
         [Authorize]
         [HttpGet("submission/{id}")]
         public async Task<IActionResult> Edit(int id)
         {
-            var submission = await _submissionRepository.GetByIdAsync(id);
+            var submission = await this.submissionRepository.GetByIdAsync(id);
 
             if (submission != null &&
                 submission.DirectoryEntryId != null)
             {
-                var existing = await _directoryEntryRepository.GetByIdAsync(submission.DirectoryEntryId.Value);
+                var existing = await this.directoryEntryRepository.GetByIdAsync(submission.DirectoryEntryId.Value);
                 if (existing != null)
                 {
-                    ViewBag.Differences = CompareEntries(existing, submission);
+                    this.ViewBag.Differences = SubmissionControllerHelpers.CompareEntries(existing, submission);
                 }
             }
-            
-            var subCategories = (await _subCategoryRepository.GetAllAsync())
+
+            var subCategories = (await this.subCategoryRepository.GetAllAsync())
               .OrderBy(sc => sc.Category.Name)
               .ThenBy(sc => sc.Name)
               .Select(sc => new
@@ -201,29 +202,30 @@ namespace DirectoryManager.Web.Controllers
 
             subCategories.Insert(0, new { Id = 0, DisplayName = "Please select a category" });
 
-            ViewBag.SubCategories = subCategories;
+            this.ViewBag.SubCategories = subCategories;
 
-            if (submission == null) return NotFound();
+            if (submission == null)
+            {
+                return this.NotFound();
+            }
 
             // Convert the submission to a ViewModel if necessary, or use the model directly
-            return View(submission);
+            return this.View(submission);
         }
-
 
         [Authorize]
         [HttpGet("submission/delete/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            await _submissionRepository.DeleteAsync(id);
- 
-            return RedirectToAction(nameof(Index));
+            await this.submissionRepository.DeleteAsync(id);
+            return this.RedirectToAction(nameof(this.Index));
         }
 
         [AllowAnonymous]
         [HttpGet("submission/success")]
         public IActionResult Success()
         {
-            return View("Success");
+            return this.View("Success");
         }
 
         [Authorize]
@@ -231,14 +233,17 @@ namespace DirectoryManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Submission model)
         {
-            if (!ModelState.IsValid)
+            if (!this.ModelState.IsValid)
             {
-                return View(model);
+                return this.View(model);
             }
 
-            var submission = await _submissionRepository.GetByIdAsync(id);
+            var submission = await this.submissionRepository.GetByIdAsync(id);
 
-            if (submission == null) return NotFound();
+            if (submission == null)
+            {
+                return this.NotFound();
+            }
 
             if (model.SubCategoryId == null ||
                 model.SubCategoryId == 0)
@@ -252,7 +257,7 @@ namespace DirectoryManager.Web.Controllers
                 if (model.DirectoryEntryId == null)
                 {
                     // it's now approved
-                    await _directoryEntryRepository.CreateAsync(
+                    await this.directoryEntryRepository.CreateAsync(
                         new DirectoryEntry
                         {
                             Name = model.Name.Trim(),
@@ -264,12 +269,12 @@ namespace DirectoryManager.Web.Controllers
                             Contact = model.Contact?.Trim(),
                             DirectoryStatus = Data.Enums.DirectoryStatus.Admitted,
                             SubCategoryId = model.SubCategoryId,
-                            CreatedByUserId = _userManager.GetUserId(User) ?? string.Empty
+                            CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty
                         });
                 }
                 else
                 {
-                    var existing = await _directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value) ?? 
+                    var existing = await this.directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value) ??
                         throw new Exception("Submission has a directory entry id, but the entry does not exist.");
                     existing.Name = model.Name.Trim();
                     existing.Link = model.Link.Trim();
@@ -285,48 +290,22 @@ namespace DirectoryManager.Web.Controllers
                     }
 
                     existing.SubCategoryId = model.SubCategoryId;
-                    existing.UpdatedByUserId = _userManager.GetUserId(User);
+                    existing.UpdatedByUserId = this.userManager.GetUserId(this.User);
 
-                    await _directoryEntryRepository.UpdateAsync(existing);
+                    await this.directoryEntryRepository.UpdateAsync(existing);
                 }
             }
 
             submission.SubmissionStatus = model.SubmissionStatus;
 
-            await _submissionRepository.UpdateAsync(submission);
+            await this.submissionRepository.UpdateAsync(submission);
 
-            return RedirectToAction(nameof(Index));
-        }
-
-        public static string CompareEntries(DirectoryEntry entry, Submission submission)
-        {
-            if (entry == null || submission == null)
-                return "Either the DirectoryEntry or the Submission is null.";
-
-            // Helper function to compare trimmed strings, considering null values.
-            static bool NotEqualTrimmed(string? a, string? b)
-            {
-                return (a?.Trim() ?? string.Empty) != (b?.Trim() ?? string.Empty);
-            }
-            var differences = new List<string>();
-
-            if (NotEqualTrimmed(entry.Name, submission.Name)) differences.Add($"Different Name: {entry.Name ?? "null"} vs {submission.Name ?? "null"}.");
-            if (NotEqualTrimmed(entry.Link, submission.Link)) differences.Add($"Different Link: {entry.Link ?? "null"} vs {submission.Link ?? "null"}.");
-            if (NotEqualTrimmed(entry.Link2, submission.Link2)) differences.Add($"Different Link2: {entry.Link2 ?? "null"} vs {submission.Link2 ?? "null"}.");
-            if (NotEqualTrimmed(entry.Description, submission.Description)) differences.Add($"Different Description: {entry.Description ?? "null"} vs {submission.Description ?? "null"}.");
-            if (NotEqualTrimmed(entry.Location, submission.Location)) differences.Add($"Different Location: {entry.Location ?? "null"} vs {submission.Location ?? "null"}.");
-            if (NotEqualTrimmed(entry.Processor, submission.Processor)) differences.Add($"Different Processor: {entry.Processor ?? "null"} vs {submission.Processor ?? "null"}.");
-            if (NotEqualTrimmed(entry.Note, submission.Note)) differences.Add($"Different Note: {entry.Note ?? "null"} vs {submission.Note ?? "null"}.");
-            if (NotEqualTrimmed(entry.Contact, submission.Contact)) differences.Add($"Different Contact: {entry.Contact ?? "null"} vs {submission.Contact ?? "null"}.");
-            if (entry.SubCategoryId != submission.SubCategoryId) differences.Add($"Different SubCategoryId: {entry.SubCategoryId} vs {submission.SubCategoryId}.");
-            if (entry.DirectoryStatus != submission.DirectoryStatus) differences.Add($"Different DirectoryStatus: {entry.DirectoryStatus} vs {submission.DirectoryStatus}.");
-
-            return differences.Count > 0 ? string.Join(Environment.NewLine, differences) : "No differences found.";
+            return this.RedirectToAction(nameof(this.Index));
         }
 
         private async Task LoadSubCategories()
         {
-            var subCategories = (await _subCategoryRepository.GetAllAsync())
+            var subCategories = (await this.subCategoryRepository.GetAllAsync())
                 .OrderBy(sc => sc.Category.Name)
                 .ThenBy(sc => sc.Name)
                 .Select(sc => new
@@ -338,9 +317,8 @@ namespace DirectoryManager.Web.Controllers
 
             subCategories.Insert(0, new { Id = 0, DisplayName = "Please select a category" });
 
-            ViewBag.SubCategories = subCategories;
+            this.ViewBag.SubCategories = subCategories;
         }
-
 
         private async Task<bool> HasChangesAsync(SubmissionRequest model)
         {
@@ -349,7 +327,7 @@ namespace DirectoryManager.Web.Controllers
                 return true;
             }
 
-            var existingEntry = await _directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value);
+            var existingEntry = await this.directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value);
 
             if (existingEntry == null)
             {

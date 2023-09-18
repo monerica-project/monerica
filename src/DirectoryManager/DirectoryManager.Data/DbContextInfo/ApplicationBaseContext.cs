@@ -4,9 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Data.DbContextInfo
 {
-    public class ApplicationBaseContext<TContext> : IdentityDbContext<ApplicationUser> where TContext : ApplicationBaseContext<TContext>
+    public class ApplicationBaseContext<TContext> : IdentityDbContext<ApplicationUser>
+        where TContext : ApplicationBaseContext<TContext>
     {
-        public ApplicationBaseContext(DbContextOptions<TContext> options) : base(options)
+        public ApplicationBaseContext(DbContextOptions<TContext> options)
+            : base(options)
         {
         }
     }

@@ -1,19 +1,19 @@
-﻿using Microsoft.AspNetCore.Mvc;
-using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
     [Authorize]
     public class DirectoryEntryController : Controller
     {
-        private readonly UserManager<ApplicationUser> _userManager;
-        private readonly IDirectoryEntryRepository _entryRepository;
-        private readonly ISubCategoryRepository _subCategoryRepository;
-        private readonly ICategoryRepository _categoryRepository;
-        private readonly IDirectoryEntriesAuditRepository _auditRepository;
+        private readonly UserManager<ApplicationUser> userManager;
+        private readonly IDirectoryEntryRepository entryRepository;
+        private readonly ISubCategoryRepository subCategoryRepository;
+        private readonly ICategoryRepository categoryRepository;
+        private readonly IDirectoryEntriesAuditRepository auditRepository;
 
         public DirectoryEntryController(
             UserManager<ApplicationUser> userManager,
@@ -22,16 +22,16 @@ namespace DirectoryManager.Web.Controllers
             ICategoryRepository categoryRepository,
             IDirectoryEntriesAuditRepository auditRepository)
         {
-            _userManager = userManager;
-            _entryRepository = entryRepository;
-            _subCategoryRepository = subCategoryRepository;
-            _categoryRepository = categoryRepository;
-            _auditRepository = auditRepository;
+            this.userManager = userManager;
+            this.entryRepository = entryRepository;
+            this.subCategoryRepository = subCategoryRepository;
+            this.categoryRepository = categoryRepository;
+            this.auditRepository = auditRepository;
         }
 
         public async Task<IActionResult> Index(int? subCategoryId = null)
         {
-            var entries = await _entryRepository.GetAllAsync();
+            var entries = await this.entryRepository.GetAllAsync();
 
             if (subCategoryId.HasValue)
             {
@@ -41,18 +41,18 @@ namespace DirectoryManager.Web.Controllers
             entries = entries.OrderBy(e => e.Name)
                              .ToList();
 
-            ViewBag.SubCategories = (await _subCategoryRepository.GetAllAsync())
+            this.ViewBag.SubCategories = (await this.subCategoryRepository.GetAllAsync())
                                     .OrderBy(sc => sc.Category.Name)
                                     .ThenBy(sc => sc.Name)
                                     .ToList();
 
-            return View(entries);
+            return this.View(entries);
         }
 
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            var subCategories = (await _subCategoryRepository.GetAllAsync())
+            var subCategories = (await this.subCategoryRepository.GetAllAsync())
                 .OrderBy(sc => sc.Category.Name)
                 .ThenBy(sc => sc.Name)
                 .Select(sc => new
@@ -64,15 +64,15 @@ namespace DirectoryManager.Web.Controllers
 
             subCategories.Insert(0, new { Id = 0, DisplayName = "Please select a category" });
 
-            ViewBag.SubCategories = subCategories;
+            this.ViewBag.SubCategories = subCategories;
 
-            return View();
+            return this.View();
         }
 
         [HttpPost]
         public async Task<IActionResult> Create(DirectoryEntry entry)
         {
-            entry.CreatedByUserId = _userManager.GetUserId(User) ?? string.Empty;
+            entry.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
             entry.SubCategoryId = entry.SubCategoryId;
             entry.Link = entry.Link.Trim();
             entry.Link2 = entry.Link2?.Trim();
@@ -84,32 +84,34 @@ namespace DirectoryManager.Web.Controllers
             entry.Location = entry.Location?.Trim();
             entry.Processor = entry.Processor?.Trim();
 
-            await _entryRepository.CreateAsync(entry);
-            return RedirectToAction(nameof(Index));
+            await this.entryRepository.CreateAsync(entry);
+            return this.RedirectToAction(nameof(this.Index));
         }
 
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
-            var entry = await _entryRepository.GetByIdAsync(id);
+            var entry = await this.entryRepository.GetByIdAsync(id);
             if (entry == null)
-                return NotFound();
+            {
+                return this.NotFound();
+            }
 
-            ViewBag.SubCategories = await _subCategoryRepository.GetAllAsync();
-            return View(entry);
+            this.ViewBag.SubCategories = await this.subCategoryRepository.GetAllAsync();
+            return this.View(entry);
         }
 
         [HttpPost]
         public async Task<IActionResult> Edit(DirectoryEntry entry)
         {
-            var existingEntry = await _entryRepository.GetByIdAsync(entry.Id);
+            var existingEntry = await this.entryRepository.GetByIdAsync(entry.Id);
 
             if (existingEntry == null)
             {
-                return NotFound();
+                return this.NotFound();
             }
 
-            entry.UpdatedByUserId = _userManager.GetUserId(User);
+            entry.UpdatedByUserId = this.userManager.GetUserId(this.User);
             existingEntry.SubCategoryId = entry.SubCategoryId;
             existingEntry.Link = entry.Link.Trim();
             existingEntry.Link2 = entry.Link2?.Trim();
@@ -120,21 +122,21 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Contact = entry.Contact?.Trim();
             existingEntry.Location = entry.Location?.Trim();
 
-            await _entryRepository.UpdateAsync(existingEntry);
-            return RedirectToAction(nameof(Index));
+            await this.entryRepository.UpdateAsync(existingEntry);
+            return this.RedirectToAction(nameof(this.Index));
         }
 
         [HttpGet("directoryentries/EntryAudits/{entryId}")]
         public async Task<IActionResult> EntryAudits(int entryId)
         {
-            var audits = await _auditRepository.GetAuditsForEntryAsync(entryId);
-            return View(audits);
+            var audits = await this.auditRepository.GetAuditsForEntryAsync(entryId);
+            return this.View(audits);
         }
 
         public async Task<IActionResult> Delete(int id)
         {
-            await _entryRepository.DeleteAsync(id);
-            return RedirectToAction(nameof(Index));
+            await this.entryRepository.DeleteAsync(id);
+            return this.RedirectToAction(nameof(this.Index));
         }
     }
 }

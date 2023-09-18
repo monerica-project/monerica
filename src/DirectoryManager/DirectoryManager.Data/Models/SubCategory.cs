@@ -1,6 +1,6 @@
-﻿using DirectoryManager.Data.Models.BaseModels;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using DirectoryManager.Data.Models.BaseModels;
 
 namespace DirectoryManager.Data.Models
 {

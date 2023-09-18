@@ -1,6 +1,6 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using System.ComponentModel.DataAnnotations;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.BaseModels;
-using System.ComponentModel.DataAnnotations;
 
 namespace DirectoryManager.Data.Models
 {
@@ -11,7 +11,7 @@ namespace DirectoryManager.Data.Models
 
         [Required]
         [MaxLength(255)]
-        public required string Name { get; set; }
+        required public string Name { get; set; }
 
         [Required]
         [Url]
@@ -45,14 +45,17 @@ namespace DirectoryManager.Data.Models
 
         public bool Equals(DirectoryEntry? other)
         {
-            if (other == null) return false;
+            if (other == null)
+            {
+                return false;
+            }
 
             return this.Id == other.Id; // Assuming Id is a unique identifier for DirectoryEntry
         }
 
         public override int GetHashCode()
         {
-            return Id.GetHashCode();
+            return this.Id.GetHashCode();
         }
     }
 }

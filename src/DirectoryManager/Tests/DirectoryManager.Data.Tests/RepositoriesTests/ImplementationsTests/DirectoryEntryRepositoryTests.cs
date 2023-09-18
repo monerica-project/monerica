@@ -1,59 +1,59 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Data.Tests.MockHelpers;
 using Microsoft.EntityFrameworkCore;
 using Moq;
-using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Tests.MockHelpers;
 
 namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
 {
     public class DirectoryEntryRepositoryTests
     {
-        private readonly DirectoryEntryRepository _repository;
-        private readonly Mock<IApplicationDbContext> _mockContext;
-        private readonly Mock<IDirectoryEntriesAuditRepository> _mockAuditRepo;
-        private readonly IAsyncEnumerable<DirectoryEntry> _testDirectoryEntries;
+        private readonly DirectoryEntryRepository repository;
+        private readonly Mock<IApplicationDbContext> mockContext;
+        private readonly Mock<IDirectoryEntriesAuditRepository> mockAuditRepo;
+        private readonly IAsyncEnumerable<DirectoryEntry> testDirectoryEntries;
 
         public DirectoryEntryRepositoryTests()
         {
-            _mockContext = new Mock<IApplicationDbContext>();
-            _mockAuditRepo = new Mock<IDirectoryEntriesAuditRepository>();
-            _repository = new DirectoryEntryRepository(_mockContext.Object, _mockAuditRepo.Object);
+            this.mockContext = new Mock<IApplicationDbContext>();
+            this.mockAuditRepo = new Mock<IDirectoryEntriesAuditRepository>();
+            this.repository = new DirectoryEntryRepository(this.mockContext.Object, this.mockAuditRepo.Object);
 
-            var _testDirectoryEntriesList = new List<DirectoryEntry>
+            var testDirectoryEntriesList = new List<DirectoryEntry>
             {
                 new DirectoryEntry { Id = 1, Name = "Test1", Link = "Link1" },
                 new DirectoryEntry { Id = 2, Name = "Test2", Link = "Link2" }
             };
-      
-            _testDirectoryEntries = _testDirectoryEntriesList.ToAsyncEnumerable();
+
+            this.testDirectoryEntries = testDirectoryEntriesList.ToAsyncEnumerable();
 
             var mockSet = new Mock<DbSet<DirectoryEntry>>();
             mockSet.Setup(m => m.FindAsync(It.IsAny<object[]>()))
-                   .Returns<object[]>(ids => new ValueTask<DirectoryEntry?>(_testDirectoryEntriesList.FirstOrDefault(e => e.Id == (int)ids[0])));
+                   .Returns<object[]>(ids => new ValueTask<DirectoryEntry?>(testDirectoryEntriesList.FirstOrDefault(e => e.Id == (int)ids[0])));
 
             mockSet.As<IAsyncEnumerable<DirectoryEntry>>()
-                   .Setup(m => m.GetAsyncEnumerator(new CancellationToken()))
-                   .Returns(_testDirectoryEntries.GetAsyncEnumerator(new CancellationToken()));
+                   .Setup(m => m.GetAsyncEnumerator(CancellationToken.None))
+                   .Returns(this.testDirectoryEntries.GetAsyncEnumerator(CancellationToken.None));
 
             mockSet.As<IQueryable<DirectoryEntry>>()
                    .Setup(m => m.Provider)
-                   .Returns(_testDirectoryEntriesList.AsQueryable().Provider);
+                   .Returns(testDirectoryEntriesList.AsQueryable().Provider);
 
             mockSet.As<IQueryable<DirectoryEntry>>()
                    .Setup(m => m.Expression)
-                   .Returns(_testDirectoryEntriesList.AsQueryable().Expression);
+                   .Returns(testDirectoryEntriesList.AsQueryable().Expression);
 
             mockSet.As<IQueryable<DirectoryEntry>>()
                    .Setup(m => m.ElementType)
-                   .Returns(_testDirectoryEntriesList.AsQueryable().ElementType);
+                   .Returns(testDirectoryEntriesList.AsQueryable().ElementType);
 
             mockSet.As<IQueryable<DirectoryEntry>>()
                    .Setup(m => m.GetEnumerator())
-                   .Returns(_testDirectoryEntriesList.GetEnumerator());
+                   .Returns(testDirectoryEntriesList.GetEnumerator());
 
-            _mockContext.Setup(c => c.DirectoryEntries).Returns(mockSet.Object);
+            this.mockContext.Setup(c => c.DirectoryEntries).Returns(mockSet.Object);
         }
 
         [Fact]
@@ -61,7 +61,7 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
         {
             // Arrange
             var mockAuditRepo = new Mock<IDirectoryEntriesAuditRepository>();
-            var repository = new DirectoryEntryRepository(_mockContext.Object, mockAuditRepo.Object);
+            var repository = new DirectoryEntryRepository(this.mockContext.Object, mockAuditRepo.Object);
 
             // Act
             var result = await repository.GetByIdAsync(1);

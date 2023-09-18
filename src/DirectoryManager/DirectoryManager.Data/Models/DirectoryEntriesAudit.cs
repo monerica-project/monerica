@@ -1,7 +1,6 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using System.ComponentModel.DataAnnotations;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.BaseModels;
-using System.ComponentModel.DataAnnotations;
-
 
 namespace DirectoryManager.Data.Models
 {
