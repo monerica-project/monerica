@@ -6,7 +6,6 @@ namespace DirectoryManager.Web.Models
     public class SubmissionRequest
     {
         [Required]
-        [Url]
         [MaxLength(500)]
         [Display(Name = "Link", Prompt = "https://yoursite.net")]
         required public string Link { get; set; }
