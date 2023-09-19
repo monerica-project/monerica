@@ -72,20 +72,27 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(DirectoryEntry entry)
         {
-            entry.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
-            entry.SubCategoryId = entry.SubCategoryId;
-            entry.Link = entry.Link.Trim();
-            entry.Link2 = entry.Link2?.Trim();
-            entry.Name = entry.Name.Trim();
-            entry.Description = entry.Description?.Trim();
-            entry.Note = entry.Note?.Trim();
-            entry.DirectoryStatus = entry.DirectoryStatus;
-            entry.Contact = entry.Contact?.Trim();
-            entry.Location = entry.Location?.Trim();
-            entry.Processor = entry.Processor?.Trim();
+            if (ModelState.IsValid)
+            {
+                entry.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
+                entry.SubCategoryId = entry.SubCategoryId;
+                entry.Link = entry.Link.Trim();
+                entry.Link2 = entry.Link2?.Trim();
+                entry.Name = entry.Name.Trim();
+                entry.Description = entry.Description?.Trim();
+                entry.Note = entry.Note?.Trim();
+                entry.DirectoryStatus = entry.DirectoryStatus;
+                entry.Contact = entry.Contact?.Trim();
+                entry.Location = entry.Location?.Trim();
+                entry.Processor = entry.Processor?.Trim();
 
-            await this.entryRepository.CreateAsync(entry);
-            return this.RedirectToAction(nameof(this.Index));
+                await this.entryRepository.CreateAsync(entry);
+                return this.RedirectToAction(nameof(this.Index));
+            }
+            else
+            {
+                return this.View("Error");
+            }
         }
 
         [HttpGet]
