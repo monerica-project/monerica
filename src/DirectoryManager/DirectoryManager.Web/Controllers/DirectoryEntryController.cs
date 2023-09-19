@@ -72,7 +72,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Create(DirectoryEntry entry)
         {
-            if (ModelState.IsValid)
+            if (this.ModelState.IsValid)
             {
                 entry.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
                 entry.SubCategoryId = entry.SubCategoryId;
