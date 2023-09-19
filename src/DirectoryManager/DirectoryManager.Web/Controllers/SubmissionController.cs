@@ -45,6 +45,11 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost("submit")]
         public async Task<IActionResult> Create(SubmissionRequest model)
         {
+            if (!UrlValidator.IsValidUrl(model.Link))
+            {
+                this.ModelState.AddModelError("Link", "The link is not a valid URL.");
+            }
+
             if (this.ModelState.IsValid)
             {
                 var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
