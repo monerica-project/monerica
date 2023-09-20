@@ -156,4 +156,7 @@
     <button type="submit" class="btn btn-primary">Submit Changes</button>
 </form>
 
-<a style="float:right;" href="~/submission/audit/@Model.DirectoryEntryId">History for @Model.Name</a>
+@if (Model.DirectoryEntryId != null)
+{
+    <a style="float:right;" href="~/submission/audit/@Model.DirectoryEntryId">History for @Model.Name</a>
+}
