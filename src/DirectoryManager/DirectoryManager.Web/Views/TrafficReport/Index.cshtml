@@ -1,0 +1,23 @@
+﻿@model DirectoryManager.Web.Models.TrafficReportViewModel
+
+<h2>Traffic Report</h2>
+
+<form method="get">
+    <div>
+        <label for="start">Start Date:</label>
+        <input type="date" id="start" name="start" value="@Model.StartDate.ToString("yyyy-MM-dd")">
+
+        <label for="end">End Date:</label>
+        <input type="date" id="end" name="end" value="@Model.EndDate.ToString("yyyy-MM-dd")">
+
+        <button type="submit">Generate Report</button>
+    </div>
+</form>
+
+<h3>Report Summary</h3>
+<div>
+    <strong>Unique IPs:</strong> @Model.UniqueIPCount
+</div>
+<div>
+    <strong>Total Log Requests:</strong> @Model.TotalLogCount
+</div>

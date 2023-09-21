@@ -1,12 +1,13 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Controllers;
 using DirectoryManager.Web.Helpers;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
 [Authorize]
-public class SubCategoryController : Controller
+public class SubCategoryController : BaseController
 {
     private readonly UserManager<ApplicationUser> userManager;
     private readonly ISubCategoryRepository subCategoryRepository;
@@ -15,7 +16,9 @@ public class SubCategoryController : Controller
     public SubCategoryController(
         UserManager<ApplicationUser> userManager,
         ISubCategoryRepository subCategoryRepository,
-        ICategoryRepository categoryRepository)
+        ICategoryRepository categoryRepository,
+        ITrafficLogRepository trafficLogRepository)
+            : base(trafficLogRepository)
     {
         this.userManager = userManager;
         this.subCategoryRepository = subCategoryRepository;

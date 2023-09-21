@@ -7,7 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DirectoryManager.Web.Controllers
 {
     [Authorize]
-    public class DirectoryEntryController : Controller
+    public class DirectoryEntryController : BaseController
     {
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IDirectoryEntryRepository entryRepository;
@@ -20,7 +20,9 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryRepository entryRepository,
             ISubCategoryRepository subCategoryRepository,
             ICategoryRepository categoryRepository,
-            IDirectoryEntriesAuditRepository auditRepository)
+            IDirectoryEntriesAuditRepository auditRepository,
+            ITrafficLogRepository trafficLogRepository)
+            : base(trafficLogRepository)
         {
             this.userManager = userManager;
             this.entryRepository = entryRepository;

@@ -10,7 +10,7 @@ using Microsoft.AspNetCore.Mvc;
 namespace DirectoryManager.Web.Controllers
 {
     // Controllers/SubmissionController.cs
-    public class SubmissionController : Controller
+    public class SubmissionController : BaseController
     {
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ISubmissionRepository submissionRepository;
@@ -23,7 +23,9 @@ namespace DirectoryManager.Web.Controllers
             ISubmissionRepository submissionRepository,
             ISubCategoryRepository subCategoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
-            IDirectoryEntriesAuditRepository auditRepository)
+            IDirectoryEntriesAuditRepository auditRepository,
+            ITrafficLogRepository trafficLogRepository)
+            : base(trafficLogRepository)
         {
             this.userManager = userManager;
             this.submissionRepository = submissionRepository;
