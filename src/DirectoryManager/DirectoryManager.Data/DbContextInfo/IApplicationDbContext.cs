@@ -21,6 +21,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<TrafficLog> TrafficLogs { get; set; }
 
+        public DbSet<ExcludeUserAgent> ExcludeUserAgents { get; set; }
+
         int SaveChanges();
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

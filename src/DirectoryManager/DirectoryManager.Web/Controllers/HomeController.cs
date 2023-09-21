@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
@@ -15,8 +16,9 @@ namespace DirectoryManager.Web.Controllers
             ICategoryRepository categoryRepository,
             ISubCategoryRepository subCategoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
-            ITrafficLogRepository trafficLogRepository)
-            : base(trafficLogRepository)
+            ITrafficLogRepository trafficLogRepository,
+            UserAgentCacheService userAgentCacheService)
+            : base(trafficLogRepository, userAgentCacheService)
         {
             this.submissionRepository = submissionRepository;
             this.categoryRepository = categoryRepository;

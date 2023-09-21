@@ -1,5 +1,4 @@
-﻿using System.Reflection.Emit;
-using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.BaseModels;
 using Microsoft.EntityFrameworkCore;
 
@@ -27,6 +26,8 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<ApplicationUserRole> ApplicationUserRole { get; set; }
 
         public DbSet<TrafficLog> TrafficLogs { get; set; }
+
+        public DbSet<ExcludeUserAgent> ExcludeUserAgents { get; set; }
 
         public override int SaveChanges()
         {
@@ -62,6 +63,10 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<TrafficLog>()
                 .HasIndex(t => t.CreateDate)
                 .HasDatabaseName("IX_TrafficLog_CreateDate");
+
+            builder.Entity<ExcludeUserAgent>()
+                .HasIndex(e => e.UserAgent)
+                .IsUnique();
         }
 
         private void SetDates()
