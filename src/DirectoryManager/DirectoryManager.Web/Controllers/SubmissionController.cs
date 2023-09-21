@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
-    // Controllers/SubmissionController.cs
     public class SubmissionController : BaseController
     {
         private readonly UserManager<ApplicationUser> userManager;

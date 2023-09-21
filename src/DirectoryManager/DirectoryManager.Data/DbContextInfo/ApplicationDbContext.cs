@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Models;
+﻿using System.Reflection.Emit;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.BaseModels;
 using Microsoft.EntityFrameworkCore;
 
@@ -57,6 +58,10 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<SubCategory>()
                 .HasIndex(e => new { e.SubCategoryKey, e.CategoryId })
                 .IsUnique();
+
+            builder.Entity<TrafficLog>()
+                .HasIndex(t => t.CreateDate)
+                .HasDatabaseName("IX_TrafficLog_CreateDate");
         }
 
         private void SetDates()
