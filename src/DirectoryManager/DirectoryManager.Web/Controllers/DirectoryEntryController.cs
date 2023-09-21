@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -21,8 +22,9 @@ namespace DirectoryManager.Web.Controllers
             ISubCategoryRepository subCategoryRepository,
             ICategoryRepository categoryRepository,
             IDirectoryEntriesAuditRepository auditRepository,
-            ITrafficLogRepository trafficLogRepository)
-            : base(trafficLogRepository)
+            ITrafficLogRepository trafficLogRepository,
+            UserAgentCacheService userAgentCacheService)
+            : base(trafficLogRepository, userAgentCacheService)
         {
             this.userManager = userManager;
             this.entryRepository = entryRepository;

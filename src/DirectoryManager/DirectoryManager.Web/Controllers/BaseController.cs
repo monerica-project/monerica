@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Services;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -8,10 +9,14 @@ namespace DirectoryManager.Web.Controllers
     public abstract class BaseController : Controller
     {
         private readonly ITrafficLogRepository trafficLogRepository;
+        private readonly UserAgentCacheService userAgentCacheService;
 
-        public BaseController(ITrafficLogRepository trafficLogRepository)
+        public BaseController(
+            ITrafficLogRepository trafficLogRepository,
+            UserAgentCacheService userAgentCacheService)
         {
             this.trafficLogRepository = trafficLogRepository;
+            this.userAgentCacheService = userAgentCacheService;
         }
 
         public override void OnActionExecuting(ActionExecutingContext context)
@@ -30,6 +35,11 @@ namespace DirectoryManager.Web.Controllers
             var userAgent = context.HttpContext.Request.Headers["User-Agent"].ToString();
 
             if (ipAddress == null)
+            {
+                return;
+            }
+
+            if (this.userAgentCacheService.IsUserAgentExcluded(userAgent))
             {
                 return;
             }

@@ -3,6 +3,7 @@ using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.AppRules;
+using DirectoryManager.Web.Services;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
@@ -23,8 +24,11 @@ builder.Services.AddScoped<ISubCategoryRepository, SubCategoryRepository>();
 builder.Services.AddScoped<IDirectoryEntryRepository, DirectoryEntryRepository>();
 builder.Services.AddScoped<IDirectoryEntriesAuditRepository, DirectoryEntriesAuditRepository>();
 builder.Services.AddScoped<ITrafficLogRepository, TrafficLogRepository>();
+builder.Services.AddScoped<IExcludeUserAgentRepository, ExcludeUserAgentRepository>();
 
 builder.Services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
+
+builder.Services.AddSingleton<UserAgentCacheService>();
 
 builder.Services.AddControllersWithViews();
 
@@ -40,6 +44,8 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
 
 var app = builder.Build();
 app.UseResponseCaching();
+
+var userAgentService = app.Services.GetService<UserAgentCacheService>();
 
 var options = new RewriteOptions()
     .AddRedirectToHttpsPermanent()
