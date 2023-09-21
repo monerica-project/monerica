@@ -18,8 +18,14 @@ namespace DirectoryManager.Web.Services
 
         public bool IsUserAgentExcluded(string userAgent)
         {
-            return this.memoryCache.TryGetValue<List<string>>(CACHEKEY, out var excludedUserAgents)
-                && (excludedUserAgents != null && excludedUserAgents.Contains(userAgent));
+            this.memoryCache.TryGetValue<List<string>>(CACHEKEY, out var list);
+
+            if (list == null)
+            {
+                return false;
+            }
+
+            return list.Any(e => userAgent.Contains(e));
         }
 
         private void LoadUserAgentsToCache()
@@ -27,8 +33,9 @@ namespace DirectoryManager.Web.Services
             using var scope = this.serviceProvider.CreateScope();
             var excludeUserAgentRepo = scope.ServiceProvider.GetRequiredService<IExcludeUserAgentRepository>();
             var allExcludedUserAgents = excludeUserAgentRepo.GetAll();
+            var excludedUserAgents = allExcludedUserAgents.Select(e => e.UserAgent).ToList();
 
-            this.memoryCache.Set(CACHEKEY, allExcludedUserAgents);
+            this.memoryCache.Set(CACHEKEY, excludedUserAgents);
         }
     }
 }
