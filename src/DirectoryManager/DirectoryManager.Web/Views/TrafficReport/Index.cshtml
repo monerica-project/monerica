@@ -1,7 +1,13 @@
 ﻿@model DirectoryManager.Web.Models.TrafficReportViewModel
 
-<h2>Traffic Report</h2>
+@{
+    ViewData["Title"] = "Traffic Report";
+}
+<h1>@ViewData["Title"]</h1>
 
+<a href="~/account/home">Admin home</a>
+
+<hr />
 <form method="get">
     <div>
         <label for="start">Start Date:</label>

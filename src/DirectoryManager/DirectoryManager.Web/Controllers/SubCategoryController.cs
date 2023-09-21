@@ -6,103 +6,106 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 
-[Authorize]
-public class SubCategoryController : BaseController
+namespace DirectoryManager.Web.Controllers
 {
-    private readonly UserManager<ApplicationUser> userManager;
-    private readonly ISubCategoryRepository subCategoryRepository;
-    private readonly ICategoryRepository categoryRepository; // Assuming you have this for fetching categories
-
-    public SubCategoryController(
-        UserManager<ApplicationUser> userManager,
-        ISubCategoryRepository subCategoryRepository,
-        ICategoryRepository categoryRepository,
-        ITrafficLogRepository trafficLogRepository)
-            : base(trafficLogRepository)
+    [Authorize]
+    public class SubCategoryController : BaseController
     {
-        this.userManager = userManager;
-        this.subCategoryRepository = subCategoryRepository;
-        this.categoryRepository = categoryRepository;
-    }
+        private readonly UserManager<ApplicationUser> userManager;
+        private readonly ISubCategoryRepository subCategoryRepository;
+        private readonly ICategoryRepository categoryRepository;
 
-    [HttpGet]
-    public async Task<IActionResult> Index(int? categoryId = null)
-    {
-        IEnumerable<SubCategory> subCategories;
-
-        if (categoryId.HasValue)
+        public SubCategoryController(
+            UserManager<ApplicationUser> userManager,
+            ISubCategoryRepository subCategoryRepository,
+            ICategoryRepository categoryRepository,
+            ITrafficLogRepository trafficLogRepository)
+                : base(trafficLogRepository)
         {
-            subCategories = await this.subCategoryRepository.GetAllAsync();
-            subCategories = subCategories.Where(sc => sc.CategoryId == categoryId.Value);
-        }
-        else
-        {
-            subCategories = await this.subCategoryRepository.GetAllAsync();
+            this.userManager = userManager;
+            this.subCategoryRepository = subCategoryRepository;
+            this.categoryRepository = categoryRepository;
         }
 
-        this.ViewBag.Categories = await this.categoryRepository.GetAllAsync(); // For dropdown list
-
-        return this.View(subCategories);
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> Create()
-    {
-        this.ViewBag.Categories = await this.categoryRepository.GetAllAsync();
-        return this.View();
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> Create(SubCategory subCategory)
-    {
-        subCategory.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
-        subCategory.SubCategoryKey = TextHelpers.UrlKey(subCategory.Name);
-        subCategory.Name = subCategory.Name.Trim();
-        subCategory.Description = subCategory.Description?.Trim();
-        subCategory.Note = subCategory.Note?.Trim();
-
-        await this.subCategoryRepository.CreateAsync(subCategory);
-
-        return this.RedirectToAction(nameof(this.Index));
-    }
-
-    [HttpGet]
-    public async Task<IActionResult> Edit(int id)
-    {
-        var subCategory = await this.subCategoryRepository.GetByIdAsync(id);
-        if (subCategory == null)
+        [HttpGet]
+        public async Task<IActionResult> Index(int? categoryId = null)
         {
-            return this.NotFound();
+            IEnumerable<SubCategory> subCategories;
+
+            if (categoryId.HasValue)
+            {
+                subCategories = await this.subCategoryRepository.GetAllAsync();
+                subCategories = subCategories.Where(sc => sc.CategoryId == categoryId.Value);
+            }
+            else
+            {
+                subCategories = await this.subCategoryRepository.GetAllAsync();
+            }
+
+            this.ViewBag.Categories = await this.categoryRepository.GetAllAsync(); // For dropdown list
+
+            return this.View(subCategories);
         }
 
-        this.ViewBag.Categories = await this.categoryRepository.GetAllAsync();
-        return this.View(subCategory);
-    }
-
-    [HttpPost]
-    public async Task<IActionResult> Edit(SubCategory subCategory)
-    {
-        var existingSubCategory = await this.subCategoryRepository.GetByIdAsync(subCategory.Id);
-
-        if (existingSubCategory == null)
+        [HttpGet]
+        public async Task<IActionResult> Create()
         {
-            return this.NotFound();
+            this.ViewBag.Categories = await this.categoryRepository.GetAllAsync();
+            return this.View();
         }
 
-        existingSubCategory.Name = subCategory.Name.Trim();
-        existingSubCategory.SubCategoryKey = TextHelpers.UrlKey(subCategory.Name.Trim());
-        existingSubCategory.CategoryId = subCategory.CategoryId;
-        existingSubCategory.Description = subCategory.Description?.Trim();
-        existingSubCategory.Note = subCategory.Note?.Trim();
-        existingSubCategory.UpdatedByUserId = this.userManager.GetUserId(this.User);
+        [HttpPost]
+        public async Task<IActionResult> Create(SubCategory subCategory)
+        {
+            subCategory.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
+            subCategory.SubCategoryKey = TextHelpers.UrlKey(subCategory.Name);
+            subCategory.Name = subCategory.Name.Trim();
+            subCategory.Description = subCategory.Description?.Trim();
+            subCategory.Note = subCategory.Note?.Trim();
 
-        await this.subCategoryRepository.UpdateAsync(existingSubCategory);
-        return this.RedirectToAction(nameof(this.Index));
-    }
+            await this.subCategoryRepository.CreateAsync(subCategory);
 
-    public async Task<IActionResult> Delete(int id)
-    {
-        await this.subCategoryRepository.DeleteAsync(id);
-        return this.RedirectToAction(nameof(this.Index));
+            return this.RedirectToAction(nameof(this.Index));
+        }
+
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var subCategory = await this.subCategoryRepository.GetByIdAsync(id);
+            if (subCategory == null)
+            {
+                return this.NotFound();
+            }
+
+            this.ViewBag.Categories = await this.categoryRepository.GetAllAsync();
+            return this.View(subCategory);
+        }
+
+        [HttpPost]
+        public async Task<IActionResult> Edit(SubCategory subCategory)
+        {
+            var existingSubCategory = await this.subCategoryRepository.GetByIdAsync(subCategory.Id);
+
+            if (existingSubCategory == null)
+            {
+                return this.NotFound();
+            }
+
+            existingSubCategory.Name = subCategory.Name.Trim();
+            existingSubCategory.SubCategoryKey = TextHelpers.UrlKey(subCategory.Name.Trim());
+            existingSubCategory.CategoryId = subCategory.CategoryId;
+            existingSubCategory.Description = subCategory.Description?.Trim();
+            existingSubCategory.Note = subCategory.Note?.Trim();
+            existingSubCategory.UpdatedByUserId = this.userManager.GetUserId(this.User);
+
+            await this.subCategoryRepository.UpdateAsync(existingSubCategory);
+            return this.RedirectToAction(nameof(this.Index));
+        }
+
+        public async Task<IActionResult> Delete(int id)
+        {
+            await this.subCategoryRepository.DeleteAsync(id);
+            return this.RedirectToAction(nameof(this.Index));
+        }
     }
 }
