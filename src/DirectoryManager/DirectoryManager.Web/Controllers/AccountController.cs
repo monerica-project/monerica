@@ -6,7 +6,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
-    public class AccountController : Controller
+    public class AccountController : BaseController
     {
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly SignInManager<ApplicationUser> signInManager;
@@ -15,7 +15,9 @@ namespace DirectoryManager.Web.Controllers
         public AccountController(
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
-            IDirectoryEntryRepository directoryEntryRepository)
+            IDirectoryEntryRepository directoryEntryRepository,
+            ITrafficLogRepository trafficLogRepository)
+            : base(trafficLogRepository)
         {
             this.signInManager = signInManager;
             this.userManager = userManager;

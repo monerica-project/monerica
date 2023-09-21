@@ -25,6 +25,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<ApplicationUserRole> ApplicationUserRole { get; set; }
 
+        public DbSet<TrafficLog> TrafficLogs { get; set; }
+
         public override int SaveChanges()
         {
             this.SetDates();

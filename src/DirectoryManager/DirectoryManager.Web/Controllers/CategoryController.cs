@@ -8,14 +8,16 @@ using Microsoft.AspNetCore.Mvc;
 namespace DirectoryManager.Web.Controllers
 {
     [Authorize]
-    public class CategoryController : Controller
+    public class CategoryController : BaseController
     {
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ICategoryRepository categoryRepository;
 
         public CategoryController(
             UserManager<ApplicationUser> userManager,
-            ICategoryRepository categoryRepository)
+            ICategoryRepository categoryRepository,
+            ITrafficLogRepository trafficLogRepository)
+            : base(trafficLogRepository)
         {
             this.userManager = userManager;
             this.categoryRepository = categoryRepository;

@@ -3,10 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
-    public class ApiController : ControllerBase
+    public class ApiController : BaseController
     {
         private readonly IDirectoryEntryRepository entryRepository;
-        public ApiController(IDirectoryEntryRepository entryRepository)
+        public ApiController(
+            IDirectoryEntryRepository entryRepository,
+            ITrafficLogRepository trafficLogRepository)
+            : base(trafficLogRepository)
         {
             this.entryRepository = entryRepository;
         }

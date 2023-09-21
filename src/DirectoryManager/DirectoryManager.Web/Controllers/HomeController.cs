@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
-    public class HomeController : Controller
+    public class HomeController : BaseController
     {
         private readonly ISubmissionRepository submissionRepository;
         private readonly ICategoryRepository categoryRepository;
@@ -14,7 +14,9 @@ namespace DirectoryManager.Web.Controllers
             ISubmissionRepository submissionRepository,
             ICategoryRepository categoryRepository,
             ISubCategoryRepository subCategoryRepository,
-            IDirectoryEntryRepository directoryEntryRepository)
+            IDirectoryEntryRepository directoryEntryRepository,
+            ITrafficLogRepository trafficLogRepository)
+            : base(trafficLogRepository)
         {
             this.submissionRepository = submissionRepository;
             this.categoryRepository = categoryRepository;
