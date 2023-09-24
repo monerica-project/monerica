@@ -55,3 +55,41 @@ function Set-FileSettings($fileLocation)
     $envJson | ConvertTo-Json | set-content $fileLocation
     Write-Host "Saving $fileLocation..."
 }
+
+function Retry-Command {
+    [CmdletBinding()]
+    Param(
+        [Parameter(Position=0, Mandatory=$true)]
+        [scriptblock]$ScriptBlock,
+
+        [Parameter(Position=1, Mandatory=$false)]
+        [int]$Maximum = 5,
+
+        [Parameter(Position=2, Mandatory=$false)]
+        [int]$Delay = 100
+    )
+
+    Begin {
+        $cnt = 0
+    }
+
+    Process {
+        do {
+            $cnt++
+            try {
+                # If you want messages from the ScriptBlock
+                # Invoke-Command -Command $ScriptBlock
+                # Otherwise use this command which won't display underlying script messages
+                $ScriptBlock.Invoke()
+                return
+            } catch {
+                Write-Host "Failed, retrying $cnt of $Maximum..."
+                Start-Sleep -Milliseconds $Delay
+            }
+        } while ($cnt -lt $Maximum)
+
+        # Throw an error after $Maximum unsuccessful invocations. Doesn't need
+        # a condition, since the function returns upon successful invocation.
+        throw 'Execution failed.'
+    }
+}

@@ -18,7 +18,7 @@ properties {
 
    # Build
    $BuildConfiguration          = "release"
-   $DotNetRunTime               = "win7-x64"
+   $DotNetRunTime               = "win-x64"
    $DotNetFramework             = "net7.0"
    $msDeploy                    = "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe"    
    
@@ -170,27 +170,20 @@ task -name SyncWebFiles {
 
     exec {
 
-        $webconfigPath = $contentPathDes + "web.config"
         $deployIisAppPath = $webAppHost
-        
-        Write-Host "Deleting config..."
-        
-        & $msDeploy `
-            -verb:delete `
-            -allowUntrusted:true `
-            -dest:contentPath=$webconfigPath,computername=$MsDeployLocation/MsDeploy.axd?site=$deployIisAppPath,username=$msDeployUserName,password=$msDeployPassword,authtype=basic
-        Write-Host "done."
-
+        $resolvedAppOfflineFilePath = Resolve-Path -Path ("$CIRoot\$AppOfflineFilePath")
         $compileSourcePath = Resolve-Path -Path ("$CIRoot\$compileSourcePath")
 
         Write-Host "-------------"
-        Write-Host "Deploying..."
+        Write-Host "Syncing files '$deployIisAppPath'..."
 
         & $msDeploy `
             -verb:sync `
-            -source:contentPath=$compileSourcePath `
+            -source:IisApp=$compileSourcePath `
             -allowUntrusted:true `
-            -dest:contentPath=$contentPathDes,computername=$MsDeployLocation/MsDeploy.axd?site=$deployIisAppPath,username=$msDeployUserName,password=$msDeployPassword,authtype=basic
+            -dest:iisapp=$deployIisAppPath,computerName=$MsDeployLocation/MsDeploy.axd?site=$deployIisAppPath,authType='basic',username=$msDeployUserName,password=$msDeployPassword `
+            -enableRule:AppOffline
+
         Write-Host "done."
     }
 }
@@ -212,21 +205,24 @@ task -name DeployWebApp -depends SetConfigs, RestorePackages, BuildProject, RunU
     exec {
 
         $url = "http://$webAppHost"
-        Write-Host "Deployment completed, requesting page '$url'..." -NoNewline 
-        
-        $response = Invoke-WebRequest -Uri $url
+        Write-Host "Deployment completed, requesting page '$url'..."    
 
-        if ($response.StatusCode -eq 200)
-        {
-            Write-Host "done." -NoNewline
-            Write-Host
-                
-            Write-Host "COMPLETE!"
-        }
-        else 
-        {
-            Write-Error "Status code was: " + $response.StatusCode
-        }
+        Retry-Command -ScriptBlock {
+            $response = Invoke-WebRequest -Uri $url
+            $response = try { Invoke-WebRequest -Uri $url } catch { $_.Exception.Response } # catch 
+
+            if ($response.StatusCode -eq 200)
+            {
+                Write-Host "done." -NoNewline
+                Write-Host
+                    
+                Write-Host "COMPLETE!"
+            }
+            else
+            {
+				Write-Host "ERROR: "([int]$response.StatusCode)
+            }
+        } -Maximum 10
     }
 }
 
