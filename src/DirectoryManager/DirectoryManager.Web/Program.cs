@@ -44,8 +44,6 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-builder.WebHost.UseKestrel(option => option.AddServerHeader = false);
-
 var app = builder.Build();
 app.UseResponseCaching();
 
