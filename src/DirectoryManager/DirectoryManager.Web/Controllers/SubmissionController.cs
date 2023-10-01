@@ -271,6 +271,7 @@ namespace DirectoryManager.Web.Controllers
                         {
                             Name = model.Name.Trim(),
                             Link = model.Link.Trim(),
+                            Link2 = model.Link2?.Trim(),
                             Description = model.Description?.Trim(),
                             Location = model.Location?.Trim(),
                             Processor = model.Processor?.Trim(),
@@ -287,6 +288,7 @@ namespace DirectoryManager.Web.Controllers
                         throw new Exception("Submission has a directory entry id, but the entry does not exist.");
                     existing.Name = model.Name.Trim();
                     existing.Link = model.Link.Trim();
+                    existing.Link2 = model.Link2?.Trim();
                     existing.Description = model.Description?.Trim();
                     existing.Location = model.Location?.Trim();
                     existing.Processor = model.Processor?.Trim();

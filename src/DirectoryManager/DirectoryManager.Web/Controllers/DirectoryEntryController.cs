@@ -122,7 +122,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            entry.UpdatedByUserId = this.userManager.GetUserId(this.User);
+            existingEntry.UpdatedByUserId = this.userManager.GetUserId(this.User);
             existingEntry.SubCategoryId = entry.SubCategoryId;
             existingEntry.Link = entry.Link.Trim();
             existingEntry.Link2 = entry.Link2?.Trim();
@@ -132,6 +132,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.DirectoryStatus = entry.DirectoryStatus;
             existingEntry.Contact = entry.Contact?.Trim();
             existingEntry.Location = entry.Location?.Trim();
+            existingEntry.Processor = entry.Processor?.Trim();
 
             await this.entryRepository.UpdateAsync(existingEntry);
             return this.RedirectToAction(nameof(this.Index));

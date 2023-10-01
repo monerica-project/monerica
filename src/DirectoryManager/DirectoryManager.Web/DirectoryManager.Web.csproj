@@ -44,5 +44,13 @@
 			<TargetPath>web\appsettings.json</TargetPath>
 		</None>
 	</ItemGroup>
+	<ItemGroup>
+	  <Folder Include="wwwroot\content\" />
+	</ItemGroup>
+	<ItemGroup>
+	  <Content Update="wwwroot\content\monerica-logo.ai">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </Content>
+	</ItemGroup>
 
 </Project>
