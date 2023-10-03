@@ -1,11 +1,13 @@
 ﻿@model IEnumerable<DirectoryManager.Data.Models.DirectoryEntrySelection>
 
-<h2>Directory Entry Selections</h2>
+@{
+    ViewData["Title"] = "Directory Entry Selections";
+}
+<h1>@ViewData["Title"]</h1>
 
 <a href="~/account/home">Admin home</a>
 
 <hr />
-
 
 <table class="table">
     <thead>
@@ -21,10 +23,9 @@
         {
             <tr>
                 <td>@item.DirectoryEntrySelectionId</td>
-                <td>@item.DirectoryEntry?.Name</td> <!-- Assuming DirectoryEntry has a Name property -->
+                <td>@item.DirectoryEntry?.Name</td> 
                 <td>@item.EntrySelectionType</td>
-                <td>
-                  
+                <td>                  
                     <a asp-action="DeleteFromList" asp-route-id="@item.DirectoryEntrySelectionId">Remove</a>
                 </td>
             </tr>

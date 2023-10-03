@@ -38,17 +38,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return this.context.DirectoryEntrySelections.Include(de => de.DirectoryEntry).ToList();
         }
 
-        public async Task<IEnumerable<DirectoryEntry>> GetAllByType(EntrySelectionType type)
+        public async Task<IEnumerable<DirectoryEntry>> GetEntriesForSelection(EntrySelectionType type)
         {
             var result = await this.context.DirectoryEntrySelections
-                             .Where(d => d.EntrySelectionType == type)
-                             .Select(d => d.DirectoryEntry)
-                             .ToListAsync();
-
-            if (result == null)
-            {
-                return new List<DirectoryEntry>();
-            }
+                                 .Where(d => d.EntrySelectionType == type)
+                                 .Select(d => d.DirectoryEntry)
+                                 .Where(d => d != null)
+                                 .Cast<DirectoryEntry>()
+                                 .ToListAsync();
 
             return result;
         }

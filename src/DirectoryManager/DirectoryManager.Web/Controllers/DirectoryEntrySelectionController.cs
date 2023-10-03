@@ -1,10 +1,12 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -17,6 +19,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ICategoryRepository categoryRepository;
         private readonly IDirectoryEntriesAuditRepository auditRepository;
         private readonly IDirectoryEntrySelectionRepository directoryEntrySelectionRepository;
+        private readonly IMemoryCache cache;
 
         public DirectoryEntrySelectionController(
               UserManager<ApplicationUser> userManager,
@@ -26,7 +29,8 @@ namespace DirectoryManager.Web.Controllers
               IDirectoryEntriesAuditRepository auditRepository,
               ITrafficLogRepository trafficLogRepository,
               UserAgentCacheService userAgentCacheService,
-              IDirectoryEntrySelectionRepository directoryEntrySelectionRepository)
+              IDirectoryEntrySelectionRepository directoryEntrySelectionRepository,
+              IMemoryCache cache)
               : base(trafficLogRepository, userAgentCacheService)
         {
             this.userManager = userManager;
@@ -35,6 +39,7 @@ namespace DirectoryManager.Web.Controllers
             this.categoryRepository = categoryRepository;
             this.auditRepository = auditRepository;
             this.directoryEntrySelectionRepository = directoryEntrySelectionRepository;
+            this.cache = cache;
         }
 
         public async Task<IActionResult> AddToList()
@@ -50,6 +55,9 @@ namespace DirectoryManager.Web.Controllers
             if (this.ModelState.IsValid)
             {
                 await this.directoryEntrySelectionRepository.AddToList(selection);
+
+                this.cache.Remove(StringConstants.EntriesCache);
+
                 return this.RedirectToAction("Index");
             }
 
@@ -67,6 +75,9 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> DeleteFromList(int id)
         {
             var selection = await this.directoryEntrySelectionRepository.GetByID(id);
+
+            this.cache.Remove(StringConstants.EntriesCache);
+
             return this.View(selection);
         }
 

@@ -1,12 +1,14 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -17,6 +19,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubCategoryRepository subCategoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly IDirectoryEntriesAuditRepository auditRepository;
+        private readonly IMemoryCache cache;
 
         public SubmissionController(
             UserManager<ApplicationUser> userManager,
@@ -25,7 +28,8 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryRepository directoryEntryRepository,
             IDirectoryEntriesAuditRepository auditRepository,
             ITrafficLogRepository trafficLogRepository,
-            UserAgentCacheService userAgentCacheService)
+            UserAgentCacheService userAgentCacheService,
+            IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService)
         {
             this.userManager = userManager;
@@ -33,6 +37,7 @@ namespace DirectoryManager.Web.Controllers
             this.subCategoryRepository = subCategoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
             this.auditRepository = auditRepository;
+            this.cache = cache;
         }
 
         [AllowAnonymous]
@@ -305,6 +310,8 @@ namespace DirectoryManager.Web.Controllers
 
                     await this.directoryEntryRepository.UpdateAsync(existing);
                 }
+
+                this.cache.Remove(StringConstants.EntriesCache);
             }
 
             submission.SubmissionStatus = model.SubmissionStatus;

@@ -9,6 +9,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task AddToList(DirectoryEntrySelection selection);
         Task DeleteFromList(int id);
         IEnumerable<DirectoryEntrySelection> GetAll();
-        Task<IEnumerable<DirectoryEntry>> GetAllByType(EntrySelectionType type);
+        Task<IEnumerable<DirectoryEntry>> GetEntriesForSelection(EntrySelectionType type);
     }
 }
