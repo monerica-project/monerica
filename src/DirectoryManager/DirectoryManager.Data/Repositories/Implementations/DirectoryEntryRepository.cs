@@ -87,12 +87,25 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task UpdateAsync(DirectoryEntry entry)
         {
-            var existingEntry = await this.context.DirectoryEntries.FindAsync(entry.Id);
+            var existingEntry = await this.context.DirectoryEntries.FirstOrDefaultAsync(x => x.Id == entry.Id);
 
             if (existingEntry == null)
             {
                 return;
             }
+
+            existingEntry.Name = entry.Name;
+            existingEntry.Link = entry.Link;
+            existingEntry.Link2 = entry.Link2;
+            existingEntry.DirectoryStatus = entry.DirectoryStatus;
+            existingEntry.Description = entry.Description;
+            existingEntry.Location = entry.Location;
+            existingEntry.Processor = entry.Processor;
+            existingEntry.Note = entry.Note;
+            existingEntry.Contact = entry.Contact;
+            existingEntry.SubCategoryId = entry.SubCategoryId;
+            existingEntry.UpdateDate = DateTime.UtcNow;
+            existingEntry.UpdatedByUserId = entry.UpdatedByUserId;
 
             this.context.DirectoryEntries.Update(existingEntry);
             await this.context.SaveChangesAsync();

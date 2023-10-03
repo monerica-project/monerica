@@ -1,0 +1,36 @@
+﻿@model IEnumerable<DirectoryManager.Data.Models.DirectoryEntrySelection>
+
+@{
+    ViewData["Title"] = "Directory Entry Selections";
+}
+<h1>@ViewData["Title"]</h1>
+
+<a href="~/account/home">Admin home</a>
+
+<hr />
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Directory Entry</th>
+            <th>Selection Type</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.DirectoryEntrySelectionId</td>
+                <td>@item.DirectoryEntry?.Name</td> 
+                <td>@item.EntrySelectionType</td>
+                <td>                  
+                    <a asp-action="DeleteFromList" asp-route-id="@item.DirectoryEntrySelectionId">Remove</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-action="AddToList">Add to List</a>

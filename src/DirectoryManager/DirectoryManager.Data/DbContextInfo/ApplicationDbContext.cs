@@ -28,6 +28,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<TrafficLog> TrafficLogs { get; set; }
 
         public DbSet<ExcludeUserAgent> ExcludeUserAgents { get; set; }
+        public DbSet<DirectoryEntrySelection> DirectoryEntrySelections { get; set; }
 
         public override int SaveChanges()
         {

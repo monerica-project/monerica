@@ -209,8 +209,7 @@ task -name DeployWebApp -depends SetConfigs, RestorePackages, BuildProject, RunU
 
         Retry-Command -ScriptBlock {
             $response = Invoke-WebRequest -Uri $url
-            $response = try { Invoke-WebRequest -Uri $url } catch { $_.Exception.Response } # catch 
-
+ 
             if ($response.StatusCode -eq 200)
             {
                 Write-Host "done." -NoNewline

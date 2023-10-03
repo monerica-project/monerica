@@ -1,10 +1,12 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -14,18 +16,21 @@ namespace DirectoryManager.Web.Controllers
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ISubCategoryRepository subCategoryRepository;
         private readonly ICategoryRepository categoryRepository;
+        private readonly IMemoryCache cache;
 
         public SubCategoryController(
             UserManager<ApplicationUser> userManager,
             ISubCategoryRepository subCategoryRepository,
             ICategoryRepository categoryRepository,
             ITrafficLogRepository trafficLogRepository,
-            UserAgentCacheService userAgentCacheService)
+            UserAgentCacheService userAgentCacheService,
+            IMemoryCache cache)
                 : base(trafficLogRepository, userAgentCacheService)
         {
             this.userManager = userManager;
             this.subCategoryRepository = subCategoryRepository;
             this.categoryRepository = categoryRepository;
+            this.cache = cache;
         }
 
         [HttpGet]
@@ -66,6 +71,8 @@ namespace DirectoryManager.Web.Controllers
 
             await this.subCategoryRepository.CreateAsync(subCategory);
 
+            this.cache.Remove(StringConstants.EntriesCache);
+
             return this.RedirectToAction(nameof(this.Index));
         }
 
@@ -100,12 +107,18 @@ namespace DirectoryManager.Web.Controllers
             existingSubCategory.UpdatedByUserId = this.userManager.GetUserId(this.User);
 
             await this.subCategoryRepository.UpdateAsync(existingSubCategory);
+
+            this.cache.Remove(StringConstants.EntriesCache);
+
             return this.RedirectToAction(nameof(this.Index));
         }
 
         public async Task<IActionResult> Delete(int id)
         {
             await this.subCategoryRepository.DeleteAsync(id);
+
+            this.cache.Remove(StringConstants.EntriesCache);
+
             return this.RedirectToAction(nameof(this.Index));
         }
     }
