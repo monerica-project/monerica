@@ -31,7 +31,7 @@ namespace DirectoryManager.Web.Controllers
             this.subCategoryRepository = subCategoryRepository;
             this.categoryRepository = categoryRepository;
             this.auditRepository = auditRepository;
-        }
+       }
 
         public async Task<IActionResult> Index(int? subCategoryId = null)
         {

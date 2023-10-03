@@ -23,6 +23,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<ExcludeUserAgent> ExcludeUserAgents { get; set; }
 
+        public DbSet<DirectoryEntrySelection> DirectoryEntrySelections { get; set; }
+
         int SaveChanges();
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

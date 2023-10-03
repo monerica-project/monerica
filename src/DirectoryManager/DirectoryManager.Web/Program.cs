@@ -4,8 +4,6 @@ using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.AppRules;
 using DirectoryManager.Web.Services;
-using Microsoft.AspNetCore.Hosting;
-using Microsoft.AspNetCore;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
@@ -25,6 +23,7 @@ builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ISubCategoryRepository, SubCategoryRepository>();
 builder.Services.AddScoped<IDirectoryEntryRepository, DirectoryEntryRepository>();
 builder.Services.AddScoped<IDirectoryEntriesAuditRepository, DirectoryEntriesAuditRepository>();
+builder.Services.AddScoped<IDirectoryEntrySelectionRepository, DirectoryEntrySelectionRepository>();
 builder.Services.AddScoped<ITrafficLogRepository, TrafficLogRepository>();
 builder.Services.AddScoped<IExcludeUserAgentRepository, ExcludeUserAgentRepository>();
 

@@ -1,4 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using System.Text;
 using DirectoryManager.Console.Helpers;
 using DirectoryManager.Console.Models;
 using DirectoryManager.Data.DbContextInfo;
@@ -8,7 +9,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Newtonsoft.Json;
-using System.Text;
 
 var config = new ConfigurationBuilder()
     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory) // Set the base path to your project's directory
@@ -23,6 +23,7 @@ var serviceProvider = new ServiceCollection()
     .AddTransient<IDbInitializer, DbInitializer>()
     .AddTransient<IDirectoryEntryRepository, DirectoryEntryRepository>()
     .AddTransient<IDirectoryEntriesAuditRepository, DirectoryEntriesAuditRepository>()
+    .AddTransient<ICategoryRepository, CategoryRepository>()
     .AddTransient<IExcludeUserAgentRepository, ExcludeUserAgentRepository>()
     .BuildServiceProvider();
 

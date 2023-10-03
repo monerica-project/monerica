@@ -1,0 +1,25 @@
+﻿@model DirectoryManager.Data.Models.DirectoryEntrySelection
+
+<a href="~/account/home">Admin home</a>
+
+<hr />
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">There are validation errors. Please correct them and try again.</div>
+}
+
+<form asp-action="AddToList">
+    <label for="DirectoryEntryId">Directory Entry:</label>
+    <select asp-for="DirectoryEntryId" asp-items="ViewBag.DirectoryEntryList"></select>
+
+    <label for="EntrySelectionType">Selection Type:</label>
+    <select asp-for="EntrySelectionType">
+        @foreach (var type in Enum.GetValues(typeof(DirectoryManager.Data.Enums.EntrySelectionType)))
+        {
+            <option value="@type">@type</option>
+        }
+    </select>
+
+    <button type="submit">Add to List</button>
+</form>

@@ -3,6 +3,7 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubCategoryRepository subCategoryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntrySelectionRepository directoryEntrySelectionRepository
 
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
@@ -70,9 +71,30 @@
 <hr />
 
     @{
-        var newestEntries = await directoryEntryRepository.GetNewestAdditions(3);
+        var featuredEntries = await directoryEntrySelectionRepository.GetAllByType(DirectoryManager.Data.Enums.EntrySelectionType.Featured);
     }
 
+    @if (featuredEntries != null && featuredEntries.Count() > 0)
+    {
+        <p><b>Featured</b></p>
+
+        <ul>
+            @{
+                var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+                featuredEntries.ToList(),
+            DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed);
+            }
+            @foreach (var viewModel in viewModelList)
+            {
+                @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
+            }
+        </ul>
+        <hr />
+    }
+
+    @{
+        var newestEntries = await directoryEntryRepository.GetNewestAdditions(3);
+    }
     
     @if (newestEntries != null && newestEntries.Count() > 0)
     {

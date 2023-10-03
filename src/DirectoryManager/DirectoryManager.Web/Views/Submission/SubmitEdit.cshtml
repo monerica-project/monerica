@@ -62,8 +62,6 @@
         font-weight: bold;
     }
 
- 
-
 </style>
 
 @if (ViewData.ModelState.IsValid == false)
@@ -73,7 +71,6 @@
         @Html.ValidationSummary(true, "", new { @class = "text-danger" })
     </div>
 }
-
 
 <form asp-action="Create" method="post">
 
@@ -118,7 +115,6 @@
         <span asp-validation-for="Link" class="text-danger"></span>
     </div>
 
-
     <div class="form-group">
         <label asp-for="Link">Link 2</label>
         <input asp-for="Link2" class="form-control input-width" />
@@ -130,10 +126,10 @@
         <textarea class="input-width"  cols="100" asp-for="Description"></textarea>
     </div>
 
-<div class="form-group">
+    <div class="form-group">
         <label asp-for="Note">Note</label>
         <textarea  class="input-width"  cols="100" asp-for="Note"></textarea>
-</div>
+    </div>
 
     <div class="form-group">
         <label asp-for="Processor">Processor</label>
@@ -141,11 +137,12 @@
         <span asp-validation-for="Processor" class="text-danger"></span>
     </div>
     
-<div class="form-group">
+    <div class="form-group">
         <label asp-for="Contact">Contact</label>
         <input  asp-for="Contact" class="form-control input-width" />
         <span asp-validation-for="Contact" class="text-danger"></span>
-        </div>
+    </div>
+
     <div class="form-group">
         <label asp-for="Location">Location</label>
         <input  asp-for="Location" class="form-control input-width" />
