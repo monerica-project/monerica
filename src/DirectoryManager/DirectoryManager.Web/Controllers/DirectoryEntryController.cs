@@ -1,9 +1,11 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -15,6 +17,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubCategoryRepository subCategoryRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly IDirectoryEntriesAuditRepository auditRepository;
+        private readonly IMemoryCache cache;
 
         public DirectoryEntryController(
             UserManager<ApplicationUser> userManager,
@@ -23,7 +26,8 @@ namespace DirectoryManager.Web.Controllers
             ICategoryRepository categoryRepository,
             IDirectoryEntriesAuditRepository auditRepository,
             ITrafficLogRepository trafficLogRepository,
-            UserAgentCacheService userAgentCacheService)
+            UserAgentCacheService userAgentCacheService,
+            IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService)
         {
             this.userManager = userManager;
@@ -31,7 +35,8 @@ namespace DirectoryManager.Web.Controllers
             this.subCategoryRepository = subCategoryRepository;
             this.categoryRepository = categoryRepository;
             this.auditRepository = auditRepository;
-        }
+            this.cache = cache;
+       }
 
         public async Task<IActionResult> Index(int? subCategoryId = null)
         {
@@ -91,6 +96,9 @@ namespace DirectoryManager.Web.Controllers
                 entry.Processor = entry.Processor?.Trim();
 
                 await this.entryRepository.CreateAsync(entry);
+
+                this.cache.Remove(StringConstants.EntriesCache);
+
                 return this.RedirectToAction(nameof(this.Index));
             }
             else
@@ -122,7 +130,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            entry.UpdatedByUserId = this.userManager.GetUserId(this.User);
+            existingEntry.UpdatedByUserId = this.userManager.GetUserId(this.User);
             existingEntry.SubCategoryId = entry.SubCategoryId;
             existingEntry.Link = entry.Link.Trim();
             existingEntry.Link2 = entry.Link2?.Trim();
@@ -132,8 +140,12 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.DirectoryStatus = entry.DirectoryStatus;
             existingEntry.Contact = entry.Contact?.Trim();
             existingEntry.Location = entry.Location?.Trim();
+            existingEntry.Processor = entry.Processor?.Trim();
 
             await this.entryRepository.UpdateAsync(existingEntry);
+
+            this.cache.Remove(StringConstants.EntriesCache);
+
             return this.RedirectToAction(nameof(this.Index));
         }
 
@@ -147,6 +159,9 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             await this.entryRepository.DeleteAsync(id);
+
+            this.cache.Remove(StringConstants.EntriesCache);
+
             return this.RedirectToAction(nameof(this.Index));
         }
     }

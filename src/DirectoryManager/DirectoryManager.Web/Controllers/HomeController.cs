@@ -1,6 +1,8 @@
 ﻿using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -10,6 +12,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ICategoryRepository categoryRepository;
         private readonly ISubCategoryRepository subCategoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly IMemoryCache cache;
 
         public HomeController(
             ISubmissionRepository submissionRepository,
@@ -17,22 +20,33 @@ namespace DirectoryManager.Web.Controllers
             ISubCategoryRepository subCategoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
             ITrafficLogRepository trafficLogRepository,
-            UserAgentCacheService userAgentCacheService)
+            UserAgentCacheService userAgentCacheService,
+            IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService)
         {
             this.submissionRepository = submissionRepository;
             this.categoryRepository = categoryRepository;
             this.subCategoryRepository = subCategoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
+            this.cache = cache;
         }
 
+        [HttpGet("/")]
         public IActionResult Index()
         {
             return this.View();
         }
 
+        [HttpGet("expire-cache")]
+        public IActionResult ExpireCache()
+        {
+            this.cache.Remove(StringConstants.EntriesCache);
+
+            return this.View();
+        }
+
         [HttpGet("newest")]
-        public async Task<IActionResult> Newest(int pageNumber = 1, int pageSize = 25)
+        public async Task<IActionResult> Newest(int pageNumber = 1, int pageSize = IntegerConstants.DefaultPageSize)
         {
             var groupedNewestAdditions = await this.directoryEntryRepository.GetNewestAdditionsGrouped(pageSize, pageNumber);
 

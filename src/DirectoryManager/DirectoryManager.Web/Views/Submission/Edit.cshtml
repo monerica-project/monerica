@@ -10,20 +10,15 @@
 }
 <h1>@ViewData["Title"]</h1>
  
-
 <a href="~/account/home">Admin home</a>
 <hr />
 
-
 <form asp-action="Edit" asp-route-id="@Model.Id" method="post">
-
-
 
     @if (Model.DirectoryEntryId  != null)
     {
         @Html.HiddenFor(m => m.DirectoryEntryId)
         
-
         <i>Existing: </i>
         <a href="~/directoryentry/edit/@Model.DirectoryEntryId">Edit</a>
 
@@ -41,7 +36,6 @@
         <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "Id", "DisplayName"))" required></select>
     </div>
  
-
     <div class="form-group">
         <label asp-for="SuggestedSubCategory">Suggested Category</label>
         <input asp-for="SuggestedSubCategory" class="form-control input-width" />
@@ -50,7 +44,7 @@
 
     <!-- For SubmissionStatus Enum Dropdown -->
     <div class="form-group">
-        <label asp-for="SubmissionStatus">Status</label>
+        <label asp-for="SubmissionStatus">Submission Status</label>
         <select asp-for="SubmissionStatus" class="form-control ">
             @foreach (var status in submissionStatuses)
             {
@@ -96,18 +90,16 @@
         <input asp-for="Link2" class="form-control input-width" />
         <span asp-validation-for="Link2" class="text-danger"></span>
     </div>
-
-
     
     <div class="form-group">
         <label asp-for="Description">Description</label>
         <textarea class="input-width input-width" cols="100" asp-for="Description"></textarea>
     </div>
 
-<div class="form-group">
+    <div class="form-group">
         <label asp-for="Note">Note</label>
         <textarea class="input-width"  cols="100" asp-for="Note"></textarea>
-</div>
+    </div>
 
     <div class="form-group">
         <label asp-for="Processor">Processor</label>
@@ -115,7 +107,7 @@
         <span asp-validation-for="Processor" class="text-danger"></span>
     </div>
     
-<div class="form-group">
+    <div class="form-group">
         <label asp-for="Contact">Contact</label>
         <input asp-for="Contact" class="form-control input-width" />
         <span asp-validation-for="Contact" class="text-danger"></span>
@@ -130,5 +122,7 @@
     <button type="submit" class="btn btn-primary">Update</button>
 </form>
 
-        <br />
+<br />
+<br />
+<hr />
 <a href="~/submission/delete/@Model.Id">Delete</a>

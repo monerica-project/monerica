@@ -50,7 +50,17 @@ namespace DirectoryManager.Data.Models
                 return false;
             }
 
-            return this.Id == other.Id; // Assuming Id is a unique identifier for DirectoryEntry
+            return this.Id == other.Id &&
+                this.Name == other.Name &&
+                this.Link == other.Link &&
+                this.Link2 == other.Link2 &&
+                this.DirectoryStatus == other.DirectoryStatus &&
+                this.Description == other.Description &&
+                this.Location == other.Location &&
+                this.Processor == other.Processor &&
+                this.Note == other.Note &&
+                this.Contact == other.Contact &&
+                this.SubCategoryId == other.SubCategoryId;
         }
 
         public override int GetHashCode()

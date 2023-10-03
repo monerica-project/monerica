@@ -3,100 +3,123 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubCategoryRepository subCategoryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntrySelectionRepository directoryEntrySelectionRepository
 
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 @{
     ViewData["Title"] = "Monerica - A Directory For A Monero Circular Economy";
 }
- 
-<cache expires-after="@TimeSpan.FromMinutes(25)">
- 
 
-<h1>Welcome To Monerica!</h1>
+<cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.EntriesCache"
+               cache-duration-seconds="@DirectoryManager.Web.Constants.IntegerConstants.CacheDurationSeconds">
 
-<h4>A directory for a Monero circular economy</h4>
+    <h1>Welcome To Monerica!</h1>
 
-<img style="width:333px;" src="/images/monerica-logo.png" alt="Monerica logo" />
+    <h4>A directory for a Monero circular economy</h4>
 
-<p>
-    The goal of Monerica is to reflect the freedom ideals of the United States of America
-    in the age of cryptocurrency by using Monero. There are no borders to Monerica. One has the ability
-    to transact freely and privately without the need for a bank account, without the permission of
-    any third party, and without the prying eyes of those who wish to control the thoughts
-    and behaviors of others through surveillance and overreaching regulations.
-</p>
+    <img style="width:333px;" src="/images/monerica-logo.png" alt="Monerica logo" />
 
-<hr />
+    <p>
+        The goal of Monerica is to reflect the freedom ideals of the United States of America
+        in the age of cryptocurrency by using Monero. There are no borders to Monerica. One has the ability
+        to transact freely and privately without the need for a bank account, without the permission of
+        any third party, and without the prying eyes of those who wish to control the thoughts
+        and behaviors of others through surveillance and overreaching regulations.
+    </p>
 
-<p>
-    <b>Last update:</b> @directoryEntryRepository.GetLastRevisionDate().ToString("yyyy-MM-ddTHH:mm:ssZ")
-</p>
+    <hr />
 
-<hr />
+    <p>
+        <b>Last update:</b> @directoryEntryRepository.GetLastRevisionDate().ToString("yyyy-MM-ddTHH:mm:ssZ")
+    </p>
 
-<p>
-    <i>
-        Note: None of the provided links
-        here are endorsements and some may contain affiliate links.
-    </i>
-</p>
+    <hr />
 
-<p>
-    &#9989; - indicates someone in the community has done a successful test transaction or has used this software/
-    service
-</p>
-<p>
-    &#10060; - indicates someone in the community has reported this a scam
-</p>
+    <p>
+        <i>
+            Note: None of the provided links
+            here are endorsements and some may contain affiliate links.
+        </i>
+    </p>
 
-<p>
-    <b>Submit new or change existing links: <a class="button-link" href="~/submit">here</a>.</b>
-    Follow on: <a href="https://twitter.com/MonericaProject">Twitter</a>.
-</p>
+    <p>
+        &#9989; - indicates someone in the community has done a successful test transaction or has used this software/
+        service
+    </p>
+    <p>
+        &#10060; - indicates someone in the community has reported this a scam
+    </p>
 
-<hr />
+    <p>
+        <b>Submit new or change existing links: <a class="button-link" href="~/submit">here</a>.</b>
+        Follow on: <a href="https://twitter.com/MonericaProject">Twitter</a>.
+    </p>
 
-<h3 id="donate">Donate</h3>
-<i>Support Monerica to ensure the directory stays online and has accurate information for everyone in the Monero community.</i>
+    <hr />
 
-<p>
-    <b class="multi-line-text">8BzHMDw2UaXNpCZM9wxABXW3qAKMxM2WxDGuDWSf5x5v7t1PdWdMfdLCzdtK8Eb9C5ZHcEHNR85bcbWhuK8SLCH46Pvy71q</b>
-</p>
-<p>
-    <img src="/images/monerica-donate-qr-code.png" alt="QR Code For Monerica" />
-</p>
+    <h3 id="donate">Donate</h3>
+    <i>Support Monerica to ensure the directory stays online and has accurate information for everyone in the Monero community.</i>
 
-<hr />
+    <p>
+        <b class="multi-line-text">8BzHMDw2UaXNpCZM9wxABXW3qAKMxM2WxDGuDWSf5x5v7t1PdWdMfdLCzdtK8Eb9C5ZHcEHNR85bcbWhuK8SLCH46Pvy71q</b>
+    </p>
+    <p>
+        <img src="/images/monerica-donate-qr-code.png" alt="QR Code For Monerica" />
+    </p>
+
+    <hr />
 
     @{
-        var newestEntries = await directoryEntryRepository.GetNewestAdditions(3);
+        var featuredEntries = await directoryEntrySelectionRepository.GetEntriesForSelection(DirectoryManager.Data.Enums.EntrySelectionType.Featured);
     }
 
-    
-    @if (newestEntries != null && newestEntries.Count() > 0)
+    @if (featuredEntries != null && featuredEntries.Count() > 0)
     {
+        <p><b>Featured</b></p>
 
-    <p><b>Newest Additions</b></p>
-        <i>See: <a href="~/newest">all new additions</a></i>
-    <ul>
-            @{ var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
-                                            newestEntries.ToList(), 
-                                            DirectoryManager.Web.Enums.DateDisplayOption.DisplayCreateDate);
+        <ul>
+            @{
+                var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+                featuredEntries.ToList(),
+                DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed);
             }
             @foreach (var viewModel in viewModelList)
             {
                 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
-    </ul>
-    <hr />
+        </ul>
+        <hr />
+    }
+
+    @{
+        var newestEntries = await directoryEntryRepository.GetNewestAdditions(3);
+    }
+
+    @if (newestEntries != null && newestEntries.Count() > 0)
+    {
+
+        <p><b>Newest Additions</b></p>
+        <i>See: <a href="~/newest">all new additions</a></i>
+        <ul>
+            @{
+                var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+            newestEntries.ToList(),
+            DirectoryManager.Web.Enums.DateDisplayOption.DisplayCreateDate);
+            }
+            @foreach (var viewModel in viewModelList)
+            {
+                @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
+            }
+        </ul>
+        <hr />
     }
 
     @{
         var newestRevisions = await directoryEntryRepository.GetNewestRevisions(6);
 
-        if ((newestRevisions != null && newestRevisions.Count() > 0) && 
-                (newestEntries != null && newestEntries.Count() > 0))
+        if ((newestRevisions != null && newestRevisions.Count() > 0) &&
+        (newestEntries != null && newestEntries.Count() > 0))
         {
             newestRevisions = newestRevisions.Except(newestEntries).ToList().Take(3);
         }
@@ -105,24 +128,24 @@
     @if (newestRevisions != null && newestRevisions.Count() > 0)
     {
 
-    <p><b>Newest Revisions</b></p>
+        <p><b>Newest Revisions</b></p>
 
-    <ul>
-        @{
-            var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
-                            newestRevisions.ToList(),
-                    DirectoryManager.Web.Enums.DateDisplayOption.DisplayUpdateDate);
-        }
-        @foreach (var viewModel in viewModelList)
-        {
-            @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
-        }
- 
-    </ul>
+        <ul>
+            @{
+                var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+                newestRevisions.ToList(),
+                DirectoryManager.Web.Enums.DateDisplayOption.DisplayUpdateDate);
+            }
+            @foreach (var viewModel in viewModelList)
+            {
+                @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
+            }
 
-    <hr />
+        </ul>
+
+        <hr />
     }
- 
+
     @{
         var activeCategories = await categoryRepository.GetActiveCategoriesAsync();
     }
@@ -151,10 +174,9 @@
 
     <hr />
 
-
-@foreach (var category in activeCategories)
-{
-    <h2 id="@category.CategoryKey">@category.Name</h2>  
+    @foreach (var category in activeCategories)
+    {
+        <h2 id="@category.CategoryKey">@category.Name</h2>
 
         @if (!string.IsNullOrEmpty(category.Description))
         {
@@ -164,42 +186,43 @@
         {
             <p><i>(Note: @category.Note</i>)</p>
         }
- 
-    @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.Id))
-    {
-        <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>
 
-        if (!string.IsNullOrEmpty(subCategory.Description))
+        @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.Id))
         {
-            <p>@subCategory.Description</p>
-        }
+            <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>
 
-        if (!string.IsNullOrEmpty(subCategory.Note))
-        {
-            <i>(Note: @subCategory.Note)</i>
-        }
-
-        <ul>@{var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.Id);
-
-             var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
-                                        activeEntries.ToList(),
-                                        DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed);
-            }
-            @foreach (var viewModel in viewModelList)
+            if (!string.IsNullOrEmpty(subCategory.Description))
             {
-                @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
+                <p>@subCategory.Description</p>
             }
-        </ul>
+
+            if (!string.IsNullOrEmpty(subCategory.Note))
+            {
+                <i>(Note: @subCategory.Note)</i>
+            }
+
+            <ul>
+                @{
+                    var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.Id);
+
+                    var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+                    activeEntries.ToList(),
+                    DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed);
+                }
+                @foreach (var viewModel in viewModelList)
+                {
+                    @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
+                }
+            </ul>
+        }
+
+        <p class="right">
+            <a href="#categories">&#x2191; Categories</a>
+        </p>
+
+        <hr />
+
+
     }
 
-    <p class="right">
-        <a href="#categories">&#x2191; Categories</a>
-    </p>
-
-    <hr />
-
-
-}
-
-
- </cache>  
+</cache-content>
