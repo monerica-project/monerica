@@ -99,9 +99,23 @@
                 .small-font
                 {
                     font-size:12px;
-            font-family: 'Lucida Console','Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif
+                    font-family: 'Lucida Console','Lucida Sans', 'Lucida Sans Regular', 'Lucida Grande', 'Lucida Sans Unicode', Geneva, Verdana, sans-serif
+                }
+
+
+        #toggleImageCheckbox {
+            display: none;
         }
-       
+
+        /* Initially hide the image */
+        #toggleImage {
+            display: none;
+        }
+
+        /* Show the image when the checkbox is checked */
+        #toggleImageCheckbox:checked~#toggleImage {
+            display: block;
+        }
 
             /* end: expandable lists */
 

@@ -55,19 +55,7 @@
         <b>Submit new or change existing links: <a class="button-link" href="~/submit">here</a>.</b>
         Follow on: <a href="https://twitter.com/MonericaProject">Twitter</a>.
     </p>
-
-    <hr />
-
-    <h3 id="donate">Donate</h3>
-    <i>Support Monerica to ensure the directory stays online and has accurate information for everyone in the Monero community.</i>
-
-    <p>
-        <b class="multi-line-text">8BzHMDw2UaXNpCZM9wxABXW3qAKMxM2WxDGuDWSf5x5v7t1PdWdMfdLCzdtK8Eb9C5ZHcEHNR85bcbWhuK8SLCH46Pvy71q</b>
-    </p>
-    <p>
-        <img src="/images/monerica-donate-qr-code.png" alt="QR Code For Monerica" />
-    </p>
-
+ 
     <hr />
 
     @{
@@ -221,8 +209,8 @@
         </p>
 
         <hr />
-
-
     }
 
 </cache-content>
+
+@await Html.PartialAsync("_DonationsPartial")
