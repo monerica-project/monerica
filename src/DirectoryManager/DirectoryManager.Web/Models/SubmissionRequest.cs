@@ -32,7 +32,7 @@ namespace DirectoryManager.Web.Models
         public string? Location { get; set; }
 
         [MaxLength(255)]
-        [Display(Name = "Processor", Prompt = "Payment processing company")]
+        [Display(Name = "Processor", Prompt = "Payment processing company/ plugin")]
         public string? Processor { get; set; }
 
         [MaxLength(1000)]

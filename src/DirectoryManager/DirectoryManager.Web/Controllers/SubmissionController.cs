@@ -58,6 +58,11 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError("Link", "The link is not a valid URL.");
             }
 
+            if (this.ContainsScriptTag(model))
+            {
+                return this.RedirectToAction("Success", "Submission");
+            }
+
             if (this.ModelState.IsValid)
             {
                 var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
@@ -337,6 +342,29 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.SubCategories = subCategories;
         }
+
+        private bool ContainsScriptTag(SubmissionRequest model)
+        {
+            var properties = model.GetType().GetProperties();
+            foreach (var property in properties)
+            {
+                if (property.PropertyType == typeof(string))
+                {
+                    var value = (string)property.GetValue(model);
+                    if (!string.IsNullOrEmpty(value))
+                    {
+                        var decodedValue = System.Net.WebUtility.HtmlDecode(value);
+                        var normalizedValue = System.Text.RegularExpressions.Regex.Replace(decodedValue, @"\s+", " ").ToLower();
+                        if (normalizedValue.Contains("<script") || normalizedValue.Contains("< script") || normalizedValue.Contains("&lt;script&gt;"))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+            return false;
+        }
+
 
         private async Task<bool> HasChangesAsync(SubmissionRequest model)
         {
