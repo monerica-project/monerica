@@ -362,9 +362,9 @@ namespace DirectoryManager.Web.Controllers
                     }
                 }
             }
+
             return false;
         }
-
 
         private async Task<bool> HasChangesAsync(SubmissionRequest model)
         {
