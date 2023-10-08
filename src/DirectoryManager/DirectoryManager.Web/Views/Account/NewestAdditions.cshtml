@@ -18,8 +18,7 @@
             <ul>
                 @foreach (var entry in group.SelectMany(g => g.Entries))
                 {
-                    <li><pre>+ @entry.Name - @entry.Link @if (!string.IsNullOrWhiteSpace(entry.Description)){<text>- </text> @entry.Description }</pre>
-                    </li>
+                    <li><pre>+ @entry.Name - @entry.Link @if (!string.IsNullOrWhiteSpace(entry.Description)){<text> - </text> @entry.Description }</pre></li>
                 }
             </ul>
         </li>
