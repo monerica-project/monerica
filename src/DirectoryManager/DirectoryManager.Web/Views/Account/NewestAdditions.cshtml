@@ -1,4 +1,5 @@
 ﻿@using System.Globalization;
+@using DirectoryManager.Web.Constants;
 @model IEnumerable<DirectoryManager.Data.Models.GroupedDirectoryEntry>
 
 @{
@@ -13,7 +14,7 @@
     @foreach (var group in Model.GroupBy(g => g.Date))
     {
         <li>
-            <pre>@DateTime.ParseExact(group.Key, "yyyy-MM-dd", CultureInfo.InvariantCulture).ToString("yyyy-MM-dd") Additions:</pre>
+            <pre>@DateTime.ParseExact(group.Key, StringConstants.DateFormat, CultureInfo.InvariantCulture).ToString(StringConstants.DateFormat) Additions:</pre>
             <ul>
                 @foreach (var entry in group.SelectMany(g => g.Entries))
                 {

@@ -1,4 +1,5 @@
-﻿@model DirectoryManager.Web.Models.TrafficReportViewModel
+﻿@using DirectoryManager.Web.Constants;
+@model DirectoryManager.Web.Models.TrafficReportViewModel
 
 @{
     ViewData["Title"] = "Traffic Report";
@@ -11,10 +12,10 @@
 <form method="get">
     <div>
         <label for="start">Start Date:</label>
-        <input type="date" id="start" name="start" value="@Model.StartDate.ToString("yyyy-MM-dd")">
+        <input type="date" id="start" name="start" value="@Model.StartDate.ToString(StringConstants.DateFormat)">
 
         <label for="end">End Date:</label>
-        <input type="date" id="end" name="end" value="@Model.EndDate.ToString("yyyy-MM-dd")">
+        <input type="date" id="end" name="end" value="@Model.EndDate.ToString(StringConstants.DateFormat)">
 
         <button type="submit">Generate Report</button>
     </div>

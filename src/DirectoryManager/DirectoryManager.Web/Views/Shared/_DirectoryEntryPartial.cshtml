@@ -1,20 +1,21 @@
 ﻿@using DirectoryManager.Web.Enums;
+@using DirectoryManager.Web.Constants;
 @model DirectoryManager.Web.Models.DirectoryEntryViewModel
 
 <li>
     <p>@if (Model.DateOption == DateDisplayOption.DisplayCreateDate)
         {
-            <i>@Model.DirectoryEntry.CreateDate.ToString("yyyy-MM-dd")</i>
+            <i>@Model.DirectoryEntry.CreateDate.ToString(StringConstants.DateFormat)</i>
         }
         else if (Model.DateOption == DateDisplayOption.DisplayUpdateDate)
         {
             if (Model.DirectoryEntry.UpdateDate == null)
             {
-                <i>@Model.DirectoryEntry.CreateDate.ToString("yyyy-MM-dd")</i>
+                <i>@Model.DirectoryEntry.CreateDate.ToString(StringConstants.DateFormat)</i>
             }
             else
             {
-                <i>@Model.DirectoryEntry.UpdateDate?.ToString("yyyy-MM-dd")</i>
+                <i>@Model.DirectoryEntry.UpdateDate?.ToString(StringConstants.DateFormat)</i>
             }
         }
         @if (Model.DirectoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Verified)
