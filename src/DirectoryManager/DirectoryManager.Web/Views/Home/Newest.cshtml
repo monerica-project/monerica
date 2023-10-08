@@ -15,9 +15,9 @@
                 @foreach (var entry in group.Entries)
                 {
                     <li>
-                        <p style="display:inline;" class="small-font">@entry.Name </p> - <a class="multi-line-text small-font " href="@entry.Link">@entry.Link</a>  @if (!string.IsNullOrWhiteSpace(entry.Description))
+                        <p style="display:inline;" class="small-font">@entry.Name </p> - <a target="_blank" class="multi-line-text small-font" href="@entry.Link">@entry.Link</a>  @if (!string.IsNullOrWhiteSpace(entry.Description))
                             {
-                            <text>- </text> <p style="display:inline;"  class="small-font">@Html.Raw(entry.Description)</p>
+                            <text> - </text> <p style="display:inline;"  class="small-font">@Html.Raw(entry.Description)</p>
                             }
 
                     </li>
