@@ -1,8 +1,8 @@
 ﻿namespace DirectoryManager.Data.Enums
 {
-    public enum EntrySelectionType
+    public enum PaymentProcessor
     {
         None = 0,
-        Featured = 1
+        NOWPayments = 1
     }
 }

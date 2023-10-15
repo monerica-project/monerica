@@ -3,21 +3,23 @@ using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.AppRules;
-using DirectoryManager.Web.Services;
+using DirectoryManager.Web.Services.Implementations;
+using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
+using NowPayments.API.Implementations;
+using NowPayments.API.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddResponseCaching();
-
 builder.Services.AddControllersWithViews(); // Add MVC services to the DI container
 builder.Services.AddRazorPages();
-
 builder.Services.AddMemoryCache();
 builder.Services.AddMvc();
 
+// database repositories
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ISubCategoryRepository, SubCategoryRepository>();
@@ -26,12 +28,25 @@ builder.Services.AddScoped<IDirectoryEntriesAuditRepository, DirectoryEntriesAud
 builder.Services.AddScoped<IDirectoryEntrySelectionRepository, DirectoryEntrySelectionRepository>();
 builder.Services.AddScoped<ITrafficLogRepository, TrafficLogRepository>();
 builder.Services.AddScoped<IExcludeUserAgentRepository, ExcludeUserAgentRepository>();
+builder.Services.AddScoped<ISponsoredListingInvoiceRepository, SponsoredListingInvoiceRepository>();
+builder.Services.AddScoped<ISponsoredListingRepository, SponsoredListingRepository>();
 
+// database context
 builder.Services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
 
-builder.Services.AddSingleton<UserAgentCacheService>();
+// services
+builder.Services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
+builder.Services.AddScoped<IPaymentService>(x =>
+{
+    var apiKey = builder.Configuration.GetSection("NowPayments:ApiKey")?.Value;
 
-builder.Services.AddControllersWithViews();
+    if (string.IsNullOrEmpty(apiKey))
+    {
+        throw new ArgumentNullException("NowPaymentsApiKey", "The API key for NowPayments is not configured or is empty.");
+    }
+
+    return new PaymentService(apiKey);
+});
 
 builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
 

@@ -1,9 +1,10 @@
 ﻿using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
 
-namespace DirectoryManager.Web.Services
+namespace DirectoryManager.Web.Services.Implementations
 {
-    public class UserAgentCacheService
+    public class UserAgentCacheService : IUserAgentCacheService
     {
         private const string CACHEKEY = "ExcludedUserAgents";
         private readonly IMemoryCache memoryCache;

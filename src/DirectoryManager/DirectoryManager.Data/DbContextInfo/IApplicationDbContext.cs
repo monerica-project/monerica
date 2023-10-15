@@ -25,6 +25,10 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<DirectoryEntrySelection> DirectoryEntrySelections { get; set; }
 
+        public DbSet<SponsoredListing> SponsoredListings { get; set; }
+
+        public DbSet<SponsoredListingInvoice> SponsoredListingInvoices { get; set; }
+
         int SaveChanges();
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
