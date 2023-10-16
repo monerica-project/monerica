@@ -5,9 +5,10 @@ namespace DirectoryManager.Data.Repositories.Interfaces
     public interface ISponsoredListingRepository
     {
         Task<SponsoredListing?> GetByIdAsync(int id);
+        Task<SponsoredListing?> GetByInvoiceIdAsync(int sponsoredListingInvoiceId);
         Task<IEnumerable<SponsoredListing>> GetAllAsync();
-        Task CreateAsync(SponsoredListing sponsoredListing);
-        Task UpdateAsync(SponsoredListing sponsoredListing);
+        Task<SponsoredListing> CreateAsync(SponsoredListing sponsoredListing);
+        Task<bool> UpdateAsync(SponsoredListing sponsoredListing);
         Task DeleteAsync(int id);
     }
 }

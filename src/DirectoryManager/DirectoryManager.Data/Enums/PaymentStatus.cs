@@ -3,11 +3,12 @@
     public enum PaymentStatus
     {
         Unknown = 0,
-        Pending = 1,
-        UnderPayment = 2,
-        OverPayment = 3,
-        Paid = 4,
-        Expired = 5,
-        Failed = 6
+        InvoiceCreated = 1,
+        Pending = 2,
+        UnderPayment = 3,
+        OverPayment = 4,
+        Paid = 5,
+        Expired = 6,
+        Failed = 7
     }
 }

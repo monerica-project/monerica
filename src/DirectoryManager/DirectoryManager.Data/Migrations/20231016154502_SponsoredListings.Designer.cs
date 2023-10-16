@@ -4,6 +4,7 @@ using DirectoryManager.Data.DbContextInfo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DirectoryManager.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231016154502_SponsoredListings")]
+    partial class SponsoredListings
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -346,37 +349,6 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("ExcludeUserAgents");
                 });
 
-            modelBuilder.Entity("DirectoryManager.Data.Models.LogEntry", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<string>("Exception")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Level")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Message")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("MessageTemplate")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Properties")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTimeOffset>("TimeStamp")
-                        .HasColumnType("datetimeoffset");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("LogEntries");
-                });
-
             modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListing", b =>
                 {
                     b.Property<int>("SponsoredListingId")
@@ -409,8 +381,6 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasIndex("SponsoredListingInvoiceId")
                         .IsUnique();
-
-                    b.HasIndex("CreateDate", "UpdateDate");
 
                     b.ToTable("SponsoredListings");
                 });
@@ -477,9 +447,6 @@ namespace DirectoryManager.Data.Migrations
                     b.HasKey("SponsoredListingInvoiceId");
 
                     b.HasIndex("DirectoryEntryId");
-
-                    b.HasIndex("InvoiceId")
-                        .IsUnique();
 
                     b.ToTable("SponsoredListingInvoices");
                 });

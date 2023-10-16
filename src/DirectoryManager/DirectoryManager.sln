@@ -15,6 +15,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Info", "Info", "{62E6600E-3
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CI", "CI", "{36A19922-99BD-44CA-9D39-65342EEB00F0}"
 	ProjectSection(SolutionItems) = preProject
+		..\..\CI-Tools\Scripts\ApplicationHelperFunctions.ps1 = ..\..\CI-Tools\Scripts\ApplicationHelperFunctions.ps1
+		..\..\CI-Tools\Scripts\BuildHelperFunctions.ps1 = ..\..\CI-Tools\Scripts\BuildHelperFunctions.ps1
 		..\..\CI-Tools\CI-Main.ps1 = ..\..\CI-Tools\CI-Main.ps1
 		..\..\CI.bat = ..\..\CI.bat
 		..\..\CI-Tools\Scripts\GeneralHelperFunctions.ps1 = ..\..\CI-Tools\Scripts\GeneralHelperFunctions.ps1
@@ -34,7 +36,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectoryManager.Data.Tests
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectoryManager.Web.Tests", "Tests\DirectoryManager.Web.Tests\DirectoryManager.Web.Tests.csproj", "{360B66CD-4C70-40E6-94FA-7466B92C7769}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NowPayments.API", "NowPayments.API\NowPayments.API.csproj", "{EF5ED6F2-5A87-4E60-A84D-BB58AD21A7AF}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NowPayments.API", "NowPayments.API\NowPayments.API.csproj", "{EF5ED6F2-5A87-4E60-A84D-BB58AD21A7AF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

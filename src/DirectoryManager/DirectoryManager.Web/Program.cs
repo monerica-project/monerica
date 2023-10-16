@@ -3,6 +3,8 @@ using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.AppRules;
+using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Providers;
 using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
@@ -10,8 +12,16 @@ using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 using NowPayments.API.Implementations;
 using NowPayments.API.Interfaces;
+using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+var logger = new LoggerConfiguration()
+   .ReadFrom.Configuration(builder.Configuration)
+   .Enrich.FromLogContext()
+   .CreateLogger();
+builder.Logging.ClearProviders();
+builder.Logging.AddSerilog(logger);
 
 builder.Services.AddResponseCaching();
 builder.Services.AddControllersWithViews(); // Add MVC services to the DI container
@@ -36,16 +46,12 @@ builder.Services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
 
 // services
 builder.Services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
-builder.Services.AddScoped<IPaymentService>(x =>
+
+builder.Services.AddScoped<INowPaymentsService>(x =>
 {
-    var apiKey = builder.Configuration.GetSection("NowPayments:ApiKey")?.Value;
-
-    if (string.IsNullOrEmpty(apiKey))
-    {
-        throw new ArgumentNullException("NowPaymentsApiKey", "The API key for NowPayments is not configured or is empty.");
-    }
-
-    return new PaymentService(apiKey);
+    var configProvider = new NowPaymentsConfigProvider(builder.Configuration);
+    var configs = configProvider.GetConfigs();
+    return new NowPaymentsService(configs);
 });
 
 builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
@@ -57,6 +63,11 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
+
+var appSettingsSponsoredListingOffers = builder.Configuration.GetSection("SponsoredListingOffers");
+var sponsoredListings = new SponsoredListingOffersContainer();
+appSettingsSponsoredListingOffers.Bind(sponsoredListings.SponsoredListingOffers);
+builder.Services.AddSingleton(sponsoredListings);
 
 var app = builder.Build();
 app.UseResponseCaching();

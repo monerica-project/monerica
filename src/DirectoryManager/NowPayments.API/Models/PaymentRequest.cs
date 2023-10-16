@@ -13,14 +13,17 @@ namespace NowPayments.API.Models
         [JsonProperty("pay_currency", NullValueHandling = NullValueHandling.Ignore)]
         public string PayCurrency { get; set; }
 
-        [JsonProperty("ipn_callback_url", NullValueHandling = NullValueHandling.Ignore)]
-        public string IpnCallbackUrl { get; set; }
-
         [JsonProperty("order_id", NullValueHandling = NullValueHandling.Ignore)]
         public string OrderId { get; set; }
 
         [JsonProperty("order_description", NullValueHandling = NullValueHandling.Ignore)]
         public string OrderDescription { get; set; }
+
+        [JsonProperty("ipn_callback_url", NullValueHandling = NullValueHandling.Ignore)]
+        public string IpnCallbackUrl { get; set; }
+
+        [JsonProperty("partially_paid_url", NullValueHandling = NullValueHandling.Ignore)]
+        public string PartiallyPaidUrl { get; set; }
 
         [JsonProperty("success_url", NullValueHandling = NullValueHandling.Ignore)]
         public string SuccessUrl { get; set; }

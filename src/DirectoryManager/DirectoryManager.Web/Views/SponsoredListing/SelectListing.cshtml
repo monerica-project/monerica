@@ -2,13 +2,13 @@
 @model IEnumerable<DirectoryEntry>
 
 @{
-    ViewData["Title"] = "Directory Entries";
+    ViewData["Title"] = "Select Sponsored Listing";
 }
 <h1>@ViewData["Title"]</h1>
- 
-<a href="~/">Back to Home</a> <text> | </text> <a href="~/submit">Create New Entry</a>
-<hr />
 
+<a href="~/">Back to home</a>
+<hr />
+ 
 <form method="get">
     <label for="combinedFilter">Select: </label>
     <select id="combinedFilter" name="subCategoryId">
@@ -28,6 +28,6 @@
 {
     <div>
         <a href="@entry.Link">@entry.Name</a> <text> - </text>
-        <a href="@Url.Action("SubmitEdit", new { id = entry.Id })">Edit</a>
+        <a href="@Url.Action("ConfirmSelection", new { id = entry.Id })">Select</a>
     </div>
 }

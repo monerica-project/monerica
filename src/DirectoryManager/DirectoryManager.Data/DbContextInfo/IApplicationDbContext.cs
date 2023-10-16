@@ -29,6 +29,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<SponsoredListingInvoice> SponsoredListingInvoices { get; set; }
 
+        public DbSet<LogEntry> LogEntries { get; set; }
+
         int SaveChanges();
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

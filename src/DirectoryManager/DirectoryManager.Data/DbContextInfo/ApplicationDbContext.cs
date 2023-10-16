@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.BaseModels;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace DirectoryManager.Data.DbContextInfo
 {
@@ -28,7 +29,14 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<TrafficLog> TrafficLogs { get; set; }
 
         public DbSet<ExcludeUserAgent> ExcludeUserAgents { get; set; }
+
         public DbSet<DirectoryEntrySelection> DirectoryEntrySelections { get; set; }
+
+        public DbSet<SponsoredListing> SponsoredListings { get; set; }
+
+        public DbSet<SponsoredListingInvoice> SponsoredListingInvoices { get; set; }
+
+        public DbSet<LogEntry> LogEntries { get; set; }
 
         public override int SaveChanges()
         {
@@ -50,24 +58,44 @@ namespace DirectoryManager.Data.DbContextInfo
             base.OnModelCreating(builder);
 
             builder.Entity<DirectoryEntry>()
-                .HasIndex(e => e.Link)
-                .IsUnique();
+                   .HasIndex(e => e.Link)
+                   .IsUnique();
 
             builder.Entity<Category>()
-                .HasIndex(e => e.CategoryKey)
-                .IsUnique();
+                   .HasIndex(e => e.CategoryKey)
+                   .IsUnique();
 
             builder.Entity<SubCategory>()
-                .HasIndex(e => new { e.SubCategoryKey, e.CategoryId })
-                .IsUnique();
+                   .HasIndex(e => new { e.SubCategoryKey, e.CategoryId })
+                   .IsUnique();
 
             builder.Entity<TrafficLog>()
-                .HasIndex(t => t.CreateDate)
-                .HasDatabaseName("IX_TrafficLog_CreateDate");
+                   .HasIndex(t => t.CreateDate)
+                   .HasDatabaseName("IX_TrafficLog_CreateDate");
 
             builder.Entity<ExcludeUserAgent>()
-                .HasIndex(e => e.UserAgent)
-                .IsUnique();
+                   .HasIndex(e => e.UserAgent)
+                   .IsUnique();
+
+            builder.Entity<SponsoredListingInvoice>()
+                   .HasIndex(e => e.InvoiceId)
+                   .IsUnique();
+
+            builder.Entity<SponsoredListing>()
+                   .HasIndex(e => new { e.CreateDate, e.UpdateDate });
+
+            builder.Entity<SponsoredListing>()
+                   .HasOne(sl => sl.DirectoryEntry)
+                   .WithMany()
+                   .HasForeignKey(sl => sl.DirectoryEntryId)
+                   .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<SponsoredListing>()
+                   .HasOne(sl => sl.SponsoredListingInvoice)
+                   .WithOne(sli => sli.SponsoredListing)
+                   .HasForeignKey<SponsoredListing>(sl => sl.SponsoredListingInvoiceId)
+                   .OnDelete(DeleteBehavior.Restrict);
+
         }
 
         private void SetDates()

@@ -2,13 +2,10 @@
 
 namespace NowPayments.API.Models
 {
-    public class IpnPaymentMessage
+    public class PaymentStatusResponse
     {
         [JsonProperty("payment_id")]
         public long PaymentId { get; set; }
-
-        [JsonProperty("parent_payment_id")]
-        public long? ParentPaymentId { get; set; }
 
         [JsonProperty("invoice_id")]
         public long InvoiceId { get; set; }
@@ -20,7 +17,7 @@ namespace NowPayments.API.Models
         public string PayAddress { get; set; }
 
         [JsonProperty("payin_extra_id")]
-        public string PayinExtraId { get; set; }
+        public object PayinExtraId { get; set; }
 
         [JsonProperty("price_amount")]
         public decimal PriceAmount { get; set; }
@@ -34,9 +31,6 @@ namespace NowPayments.API.Models
         [JsonProperty("actually_paid")]
         public decimal ActuallyPaid { get; set; }
 
-        [JsonProperty("actually_paid_at_fiat")]
-        public decimal ActuallyPaidAtFiat { get; set; }
-
         [JsonProperty("pay_currency")]
         public string PayCurrency { get; set; }
 
@@ -47,10 +41,7 @@ namespace NowPayments.API.Models
         public string OrderDescription { get; set; }
 
         [JsonProperty("purchase_id")]
-        public string PurchaseId { get; set; }
-
-        [JsonProperty("updated_at")]
-        public long UpdatedAt { get; set; }
+        public long PurchaseId { get; set; }
 
         [JsonProperty("outcome_amount")]
         public decimal OutcomeAmount { get; set; }
@@ -58,7 +49,22 @@ namespace NowPayments.API.Models
         [JsonProperty("outcome_currency")]
         public string OutcomeCurrency { get; set; }
 
-        [JsonProperty("payment_extra_ids")]
-        public string PaymentExtraIds { get; set; }
+        [JsonProperty("payout_hash")]
+        public object PayoutHash { get; set; }
+
+        [JsonProperty("payin_hash")]
+        public string PayinHash { get; set; }
+
+        [JsonProperty("created_at")]
+        public DateTime CreatedAt { get; set; }
+
+        [JsonProperty("updated_at")]
+        public DateTime UpdatedAt { get; set; }
+
+        [JsonProperty("burning_percent")]
+        public object BurningPercent { get; set; }
+
+        [JsonProperty("type")]
+        public string Type { get; set; }
     }
 }

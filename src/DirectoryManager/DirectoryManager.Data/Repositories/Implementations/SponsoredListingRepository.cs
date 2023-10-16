@@ -19,21 +19,38 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.context.SponsoredListings.FindAsync(id);
         }
 
+        public async Task<SponsoredListing?> GetByInvoiceIdAsync(int sponsoredListingInvoiceId)
+        {
+            return await this.context.SponsoredListings
+                                     .FirstOrDefaultAsync(x => x.SponsoredListingInvoiceId == sponsoredListingInvoiceId);
+        }
+
         public async Task<IEnumerable<SponsoredListing>> GetAllAsync()
         {
             return await this.context.SponsoredListings.ToListAsync();
         }
 
-        public async Task CreateAsync(SponsoredListing sponsoredListing)
+        public async Task<SponsoredListing> CreateAsync(SponsoredListing sponsoredListing)
         {
             await this.context.SponsoredListings.AddAsync(sponsoredListing);
             await this.context.SaveChangesAsync();
+
+            return sponsoredListing;
         }
 
-        public async Task UpdateAsync(SponsoredListing sponsoredListing)
+        public async Task<bool> UpdateAsync(SponsoredListing sponsoredListing)
         {
-            this.context.SponsoredListings.Update(sponsoredListing);
-            await this.context.SaveChangesAsync();
+            try
+            {
+                this.context.SponsoredListings.Update(sponsoredListing);
+                await this.context.SaveChangesAsync();
+
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
         }
 
         public async Task DeleteAsync(int id)

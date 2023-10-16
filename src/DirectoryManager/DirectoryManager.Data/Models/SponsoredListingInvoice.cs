@@ -18,11 +18,11 @@ namespace DirectoryManager.Data.Models
 
         public DateTime CampaignEndDate { get; set; }
 
-        public PaymentProcessor PaymentProcessor { get; set; }
-
         public decimal Amount { get; set; }
 
         public Currency Currency { get; set; } = Currency.Unknown;
+
+        public PaymentProcessor PaymentProcessor { get; set; }
 
         [MaxLength(255)]
         public string ProcessorInvoiceId { get; set; } = string.Empty;
@@ -45,5 +45,7 @@ namespace DirectoryManager.Data.Models
         public string PaymentResponse { get; set; } = string.Empty;
 
         public virtual DirectoryEntry? DirectoryEntry { get; set; }
+
+        public virtual SponsoredListing? SponsoredListing { get; set; }
     }
 }
