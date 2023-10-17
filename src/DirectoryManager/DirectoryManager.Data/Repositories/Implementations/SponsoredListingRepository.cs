@@ -44,6 +44,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<List<SponsoredListing>> GetPaginatedListingsAsync(int page, int pageSize)
         {
             return await this.context.SponsoredListings
+                .OrderByDescending(x => x.CreateDate)
                 .Include(l => l.DirectoryEntry)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
