@@ -81,6 +81,14 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasIndex(e => e.InvoiceId)
                    .IsUnique();
 
+            builder.Entity<SponsoredListingInvoice>()
+                   .Property(e => e.Amount)
+                   .HasColumnType("decimal(14, 12)");
+
+            builder.Entity<SponsoredListingInvoice>()
+                   .Property(e => e.PaidAmount)
+                   .HasColumnType("decimal(14, 12)");
+
             builder.Entity<SponsoredListing>()
                    .HasIndex(e => new { e.CreateDate, e.UpdateDate });
 
@@ -95,7 +103,6 @@ namespace DirectoryManager.Data.DbContextInfo
                    .WithOne(sli => sli.SponsoredListing)
                    .HasForeignKey<SponsoredListing>(sl => sl.SponsoredListingInvoiceId)
                    .OnDelete(DeleteBehavior.Restrict);
-
         }
 
         private void SetDates()

@@ -6,6 +6,10 @@
 <h1>@ViewData["Title"]</h1>
 <a href="~/">Back to home</a>
 <hr />
+
+@await Html.PartialAsync("_SponsoredListingPartial")
+<hr />
+
 <ul>
     @foreach (var group in Model)
     {
@@ -26,7 +30,6 @@
         </li>
     }
 </ul>
-
 
 <div>
     @for (int i = 1; i <= ViewBag.TotalPages; i++)

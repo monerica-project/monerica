@@ -1,0 +1,46 @@
+﻿@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
+
+@* <cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.SponsoredListings"
+               cache-duration-seconds="@DirectoryManager.Web.Constants.IntegerConstants.CacheDurationSeconds"> *@
+
+@{
+    var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync();
+    var directoryEntries = new List<DirectoryManager.Data.Models.DirectoryEntry>();
+
+    foreach (var listing in sponsoredListings)
+    {
+        var entry = await directoryEntryRepository.GetByIdAsync(listing.DirectoryEntryId);
+
+        if (entry != null)
+        {
+            directoryEntries.Add(entry);
+        }
+    }
+}
+
+    @if (sponsoredListings != null && sponsoredListings.Count() > 0)
+    {
+        <div class="sponsored-section">
+        <p><b>Sponsored</b></p>
+
+        <ul>
+            @{
+                var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+            directoryEntries,
+            DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed);
+            }
+            @foreach (var viewModel in viewModelList)
+            {
+                @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
+            }
+        </ul>
+        </div>
+    }
+ 
+        <p class="create-sponsored-listing">
+        <a href="~/sponsoredlisting">Create a sponsored listing</a>
+    </p>
+ 
+
+@* </cache-content> *@

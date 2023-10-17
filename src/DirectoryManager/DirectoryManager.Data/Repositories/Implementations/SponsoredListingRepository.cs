@@ -25,6 +25,31 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                      .FirstOrDefaultAsync(x => x.SponsoredListingInvoiceId == sponsoredListingInvoiceId);
         }
 
+        public async Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync()
+        {
+            var currentDate = DateTime.UtcNow;
+
+            return await this.context.SponsoredListings
+                                     .Where(x => x.CampaignStartDate <= currentDate && x.CampaignEndDate >= currentDate) // Filter active listings
+                                     .OrderByDescending(x => x.CampaignEndDate) // Sort primarily by end date
+                                     .ThenByDescending(x => x.CampaignStartDate) // Then by start date
+                                     .ToListAsync();
+        }
+
+        public async Task<int> GetTotalCountAsync()
+        {
+            return await this.context.SponsoredListings.CountAsync();
+        }
+
+        public async Task<List<SponsoredListing>> GetPaginatedListingsAsync(int page, int pageSize)
+        {
+            return await this.context.SponsoredListings
+                .Include(l => l.DirectoryEntry)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+
         public async Task<IEnumerable<SponsoredListing>> GetAllAsync()
         {
             return await this.context.SponsoredListings.ToListAsync();

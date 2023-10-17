@@ -8,6 +8,9 @@ namespace DirectoryManager.Data.Models
     {
         public int SponsoredListingInvoiceId { get; set; }
 
+        /// <summary>
+        /// Used as a reference to the invoice in the payment processor (e.g. order id).
+        /// </summary>
         public Guid InvoiceId { get; set; }
 
         public string InvoiceDescription { get; set; } = string.Empty;
@@ -18,6 +21,16 @@ namespace DirectoryManager.Data.Models
 
         public DateTime CampaignEndDate { get; set; }
 
+        /// <summary>
+        /// todo: needs to be to 12 decimal places.
+        /// </summary>
+        public decimal PaidAmount { get; set; }
+
+        public Currency PaidInCurrency { get; set; } = Currency.Unknown;
+
+        /// <summary>
+        /// todo: needs to be to 12 decimal places.
+        /// </summary>
         public decimal Amount { get; set; }
 
         public Currency Currency { get; set; } = Currency.Unknown;

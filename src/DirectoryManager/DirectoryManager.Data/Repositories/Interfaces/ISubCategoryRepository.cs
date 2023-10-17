@@ -5,6 +5,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
     public interface ISubCategoryRepository
     {
         Task<IEnumerable<SubCategory>> GetAllAsync();
+        Task<IEnumerable<SubCategory>> GetAllActiveSubCategoriesAsync();
         Task<SubCategory?> GetByIdAsync(int id);
         Task CreateAsync(SubCategory subCategory);
         Task UpdateAsync(SubCategory subCategory);

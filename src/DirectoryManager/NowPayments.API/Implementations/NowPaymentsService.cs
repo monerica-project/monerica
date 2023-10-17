@@ -111,8 +111,6 @@ namespace NowPayments.API.Implementations
         {
             try
             {
-                this.SetDefaultUrls(request);
-
                 var response = await this.client.PostAsync(
                     StringConstants.ApiInvoiceUrl,
                     new StringContent(
@@ -159,7 +157,7 @@ namespace NowPayments.API.Implementations
             return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
         }
 
-        private void SetDefaultUrls(PaymentRequest request)
+        public void SetDefaultUrls(PaymentRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.CancelUrl))
             {

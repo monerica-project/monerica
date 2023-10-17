@@ -1,0 +1,39 @@
+﻿@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Models
+@using System.Globalization;
+@model DirectoryManager.Web.Models.ConfirmSelectionViewModel;
+
+@{
+    ViewData["Title"] = "Confirm Selection";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<a href="~/sponsoredlisting/selectduration?id=@Model.SelectedDirectoryEntry.DirectoryEntry.Id">&lt; Back</a>
+
+<hr />
+
+<div>
+    <h2>Selected Listing</h2>
+    <ul>
+        @await Html.PartialAsync("_DirectoryEntryPartial", Model.SelectedDirectoryEntry)
+    </ul>
+    <h2>Your Order</h2>
+    <p>
+        <b>Description:</b> @Model.Offer.Description<br />
+        <b>Price:</b> @Model.Offer.USDPrice.ToString("C", new CultureInfo(StringConstants.DefaultCulure)) USD<br />
+        <b>Duration:</b> @Model.Offer.Days Days
+    </p>
+
+    <p>
+        <i>Note: You will be redirected to NOWPayments where you will pay the amount in Monero (XMR).
+            Once the payment has finished, your sponsored listing will be displayed automatically.
+            All customer service for payment is handled by NOWPayments</i>
+    </p>
+
+    <form method="post" action="~/sponsoredlisting/confirmed">
+        <input type="hidden" name="directoryEntryId" value="@Model.SelectedDirectoryEntry.DirectoryEntry.Id" />
+        <input type="hidden" name="selectedOfferId" value="@Model.Offer.Id" />
+        <button class="btn" type="submit">Purchase Listing</button>
+    </form>
+</div>

@@ -2,7 +2,7 @@
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
-using DirectoryManager.Web.Enums;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
@@ -10,13 +10,12 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
-using NowPayments.API.Constants;
 using NowPayments.API.Interfaces;
 using NowPayments.API.Models;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Route("sponsoredlistings")]
+    [Route("sponsoredlisting")]
     public class SponsoredListingController : BaseController
     {
         private readonly ISubCategoryRepository subCategoryRepository;
@@ -52,29 +51,112 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("")]
-        public IActionResult Index()
+        public async Task<IActionResult> IndexAsync()
+        {
+            var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync();
+            var model = new SponsoredListingHomeModel();
+
+            if (currentListings != null && currentListings.Any())
+            {
+                if (currentListings.Count() == IntegerConstants.MaxSponsoredListings)
+                {
+                    // max listings reached
+                    model.CanCreateSponsoredListing = false;
+                }
+                else
+                {
+                    model.CanCreateSponsoredListing = true;
+                }
+
+                // Get the next listing expiration date (i.e., the soonest CampaignEndDate)
+                model.NextListingExpiration = currentListings.Min(x => x.CampaignEndDate);
+            }
+            else
+            {
+                model.CanCreateSponsoredListing = true;
+            }
+
+            return this.View(model);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("current")]
+        public IActionResult Current()
         {
             return this.View();
+        }
+
+        [AllowAnonymous]
+        [HttpGet("selectduration")]
+        public async Task<IActionResult> SelectDurationAsync(int id)
+        {
+            // todo: don't allow a second listing if there is one already active
+            var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync();
+
+            if (currentListings != null)
+            {
+                if (currentListings.Count() == IntegerConstants.MaxSponsoredListings)
+                {
+                    // max listings
+                }
+
+                if (currentListings.FirstOrDefault(x => x.DirectoryEntryId == id) != null)
+                {
+                    // this listing is already active
+                }
+            }
+
+            var model = this.sponsoredListings
+                            .SponsoredListingOffers
+                            .OrderBy(x => x.Days);
+
+            return this.View(model);
+        }
+
+        [AllowAnonymous]
+        [HttpPost("selectduration")]
+        public async Task<IActionResult> SelectDurationAsync(int id, int selectedOfferId)
+        {
+            var selectedOffer = this.sponsoredListings
+                                .SponsoredListingOffers
+                                .Where(x => x.Id == selectedOfferId);
+
+            if (selectedOffer == null)
+            {
+                return this.BadRequest(new { Error = "Invalid offer selection." });
+            }
+
+            var selectedDiretoryEntry = await this.directoryEntryRepository.GetByIdAsync(id);
+
+            if (selectedDiretoryEntry == null)
+            {
+                return this.BadRequest(new { Error = "Directory entry not found." });
+            }
+
+            return this.RedirectToAction(
+                        "Confirm",
+                        new { directoryEntryId = id, selectedOfferId = selectedOfferId });
         }
 
         [AllowAnonymous]
         [HttpGet("selectlisting")]
         public async Task<IActionResult> SelectListing(int? subCategoryId = null)
         {
-            var entries = await this.directoryEntryRepository.GetAllAsync();
+            var entries = await this.directoryEntryRepository.GetAllowableEntries();
 
             if (subCategoryId.HasValue)
             {
-                entries = entries.Where(e => e.SubCategory?.Id == subCategoryId.Value).ToList();
+                entries = entries.Where(e => e.SubCategoryId == subCategoryId.Value).ToList();
             }
 
             entries = entries.OrderBy(e => e.Name)
                              .ToList();
 
-            this.ViewBag.SubCategories = (await this.subCategoryRepository.GetAllAsync())
-                                    .OrderBy(sc => sc.Category.Name)
-                                    .ThenBy(sc => sc.Name)
-                                    .ToList();
+            this.ViewBag.SubCategories = (await this.subCategoryRepository
+                                                    .GetAllActiveSubCategoriesAsync())
+                                                    .OrderBy(sc => sc.Category.Name)
+                                                    .ThenBy(sc => sc.Name)
+                                                    .ToList();
 
             return this.View("SelectListing", entries);
         }
@@ -86,69 +168,109 @@ namespace DirectoryManager.Web.Controllers
             var processorInvoice = await this.paymentService.GetPaymentStatusAsync(NP_id);
 
             var existingInvoice = await this.sponsoredListingInvoiceRepository
-                                        .GetByInvoiceIdAsync(Guid.Parse(processorInvoice.OrderId));
+                                            .GetByInvoiceIdAsync(Guid.Parse(processorInvoice.OrderId));
 
             if (existingInvoice == null)
             {
                 return this.BadRequest(new { Error = "Invoice not found." });
             }
 
-            // todo: determine if this means it's paid and if so, create the sponsored listing
+            existingInvoice.PaymentStatus = PaymentStatus.Paid;
+            existingInvoice.PaymentResponse = NP_id;
 
-            await this.sponsoredListingInvoiceRepository.UpdateAsync(existingInvoice);
+            await this.CreateNewSponsoredListing(existingInvoice);
 
-            return this.View("success");
+            var viewModel = new SuccessViewModel
+            {
+                OrderId = existingInvoice.InvoiceId
+            };
+
+            return this.View("success", viewModel);
         }
 
         [AllowAnonymous]
-        [HttpGet("confirmselection")]
-        public async Task<IActionResult> ConfirmSelectionAsync(
-            int id,
-            SponsoredListingOffers offerSelection)
+        [HttpGet("confirm")]
+        public async Task<IActionResult> ConfirmAsync(int directoryEntryId, int selectedOfferId)
+        {
+            var offer = this.sponsoredListings.SponsoredListingOffers.FirstOrDefault(x => x.Id == selectedOfferId);
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
+
+            if (offer == null || directoryEntry == null)
+            {
+                return this.BadRequest(new { Error = "Invalid selection." });
+            }
+
+            var viewModel = new ConfirmSelectionViewModel
+            {
+                SelectedDirectoryEntry = new DirectoryEntryViewModel()
+                {
+                    DirectoryEntry = directoryEntry,
+                },
+                Offer = offer
+            };
+
+            return this.View(viewModel);
+        }
+
+        [AllowAnonymous]
+        [HttpPost("confirmed")]
+        public async Task<IActionResult> ConfirmedAsync(
+            int directoryEntryId,
+            int selectedOfferId)
         {
             var sponsoredListingOffer = this.sponsoredListings
                                             .SponsoredListingOffers
-                                            .FirstOrDefault(x => x.Key.ToLower() == offerSelection.ToString().ToLower());
+                                            .FirstOrDefault(x => x.Id == selectedOfferId);
 
             if (sponsoredListingOffer == null)
             {
                 return this.BadRequest(new { Error = "Invalid offer selection." });
             }
 
-            var campaignDurationInDays = this.GetCampaignDuration(offerSelection);
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
+
+            if (directoryEntry == null)
+            {
+                return this.BadRequest(new { Error = "Directory entry not found." });
+            }
+
             var now = DateTime.UtcNow;
 
             var invoice = await this.sponsoredListingInvoiceRepository.CreateAsync(
                 new SponsoredListingInvoice
                 {
-                    DirectoryEntryId = id,
+                    DirectoryEntryId = directoryEntryId,
                     Currency = Currency.USD,
                     InvoiceId = Guid.NewGuid(),
                     PaymentStatus = PaymentStatus.InvoiceCreated,
                     CampaignStartDate = now,
-                    CampaignEndDate = now.AddDays(campaignDurationInDays),
+                    CampaignEndDate = now.AddDays(sponsoredListingOffer.Days),
                     Amount = sponsoredListingOffer.USDPrice,
                     InvoiceDescription = sponsoredListingOffer.Description
                 });
 
-            var processorInvoice = await this.paymentService.CreateInvoice(
-                new PaymentRequest
-                {
-                    IsFeePaidByUser = true,
-                    PriceAmount = sponsoredListingOffer.USDPrice,
-                    PriceCurrency = Currency.USD.ToString(),
-                    PayCurrency = Currency.XMR.ToString(),
-                    OrderId = invoice.InvoiceId.ToString(),
-                    OrderDescription = sponsoredListingOffer.Description
-                });
+            var invoiceRequest = new PaymentRequest
+            {
+                IsFeePaidByUser = true,
+                PriceAmount = sponsoredListingOffer.USDPrice,
+                PriceCurrency = Currency.USD.ToString(),
+                PayCurrency = Currency.XMR.ToString(),
+                OrderId = invoice.InvoiceId.ToString(),
+                OrderDescription = sponsoredListingOffer.Description
+            };
 
-            invoice.ProcessorInvoiceId = processorInvoice.Id;
+            this.paymentService.SetDefaultUrls(invoiceRequest);
+
+            var invoiceFromProcessor = await this.paymentService.CreateInvoice(invoiceRequest);
+
+            invoice.ProcessorInvoiceId = invoiceFromProcessor.Id;
             invoice.PaymentProcessor = PaymentProcessor.NOWPayments;
-            invoice.InvoiceResponse = JsonConvert.SerializeObject(processorInvoice);
+            invoice.InvoiceRequest = JsonConvert.SerializeObject(invoiceRequest);
+            invoice.InvoiceResponse = JsonConvert.SerializeObject(invoiceFromProcessor);
 
             await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
 
-            return this.Redirect(processorInvoice.InvoiceUrl);
+            return this.Redirect(invoiceFromProcessor.InvoiceUrl);
         }
 
         [AllowAnonymous]
@@ -175,7 +297,9 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = "Deserialized object is null." });
             }
 
-            var nowPaymentsSig = this.Request.Headers[StringConstants.HeaderNameAuthCallBack].FirstOrDefault() ?? string.Empty;
+            var nowPaymentsSig = this.Request
+                                     .Headers[NowPayments.API.Constants.StringConstants.HeaderNameAuthCallBack]
+                                     .FirstOrDefault() ?? string.Empty;
 
             bool isValidRequest = this.paymentService.IsIpnRequestValid(
                 callbackPayload,
@@ -195,36 +319,89 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = "Invoice not found." });
             }
 
-            invoice.InvoiceResponse = callbackPayload;
             invoice.PaymentResponse = JsonConvert.SerializeObject(ipnMessage);
-            invoice.Amount = ipnMessage.PayAmount;
+            invoice.PaidAmount = ipnMessage.PayAmount;
 
             var processorPaymentStatus = EnumHelper.ParseStringToEnum<NowPayments.API.Enums.PaymentStatus>(ipnMessage.PaymentStatus);
             var translatedValue = ConvertToInternalStatus(processorPaymentStatus);
             invoice.PaymentStatus = translatedValue;
 
             var processorCurrency = EnumHelper.ParseStringToEnum<Currency>(ipnMessage.PayCurrency);
-            invoice.Currency = processorCurrency;
+            invoice.PaidInCurrency = processorCurrency;
 
-            if (await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice))
-            {
-                var existingSponsoredListing = await this.sponsoredListingRepository
-                                                    .GetByInvoiceIdAsync(invoice.SponsoredListingInvoiceId);
-
-                if (existingSponsoredListing == null)
-                {
-                    await this.sponsoredListingRepository.CreateAsync(
-                        new SponsoredListing()
-                        {
-                            DirectoryEntryId = invoice.DirectoryEntryId,
-                            CampaignStartDate = invoice.CampaignStartDate,
-                            CampaignEndDate = invoice.CampaignEndDate,
-                            SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId,
-                        });
-                }
-            }
+            await this.CreateNewSponsoredListing(invoice);
 
             return this.Ok();
+        }
+
+        [HttpGet("edit/{id}")]
+        [Authorize]
+        public async Task<IActionResult> EditAsync(int id)
+        {
+            var listing = await this.sponsoredListingRepository.GetByIdAsync(id);
+            if (listing == null)
+            {
+                return this.NotFound();
+            }
+
+            var model = new EditListingViewModel
+            {
+                Id = listing.SponsoredListingId,
+                CampaignStartDate = listing.CampaignStartDate,
+                CampaignEndDate = listing.CampaignEndDate
+            };
+
+            return this.View(model);
+        }
+
+        [HttpPost("edit/{id}")]
+        [Authorize]
+        public async Task<IActionResult> EditAsync(int id, EditListingViewModel model)
+        {
+            if (!this.ModelState.IsValid)
+            {
+                return this.View(model);
+            }
+
+            var listing = await this.sponsoredListingRepository.GetByIdAsync(id);
+            if (listing == null)
+            {
+                return this.NotFound();
+            }
+
+            listing.CampaignStartDate = model.CampaignStartDate;
+            listing.CampaignEndDate = model.CampaignEndDate;
+
+            await this.sponsoredListingRepository.UpdateAsync(listing);
+
+            this.cache.Remove(StringConstants.EntriesCache);
+            this.cache.Remove(StringConstants.SponsoredListings);
+
+            return this.RedirectToAction("List");
+        }
+
+        [HttpGet("list/{page?}")]
+        [Authorize]
+        public async Task<IActionResult> List(int page = 1)
+        {
+            int pageSize = 10;
+            var totalListings = await this.sponsoredListingRepository.GetTotalCountAsync();
+            var listings = await this.sponsoredListingRepository.GetPaginatedListingsAsync(page, pageSize);
+
+            var model = new PaginatedListingsViewModel
+            {
+                CurrentPage = page,
+                TotalPages = (int)Math.Ceiling(totalListings / (double)pageSize),
+                Listings = listings.Select(l => new ListingViewModel
+                {
+                    Id = l.SponsoredListingId,
+                    DirectoryEntryName = l.DirectoryEntry.Name,
+                    StartDate = l.CampaignStartDate,
+                    EndDate = l.CampaignEndDate
+                }).ToList()
+            };
+
+            return this.View(model);
         }
 
         private static DirectoryManager.Data.Enums.PaymentStatus ConvertToInternalStatus(
@@ -261,19 +438,27 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
-
-        private int GetCampaignDuration(SponsoredListingOffers offerSelection)
+        private async Task CreateNewSponsoredListing(SponsoredListingInvoice invoice)
         {
-            switch (offerSelection)
+            if (await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice))
             {
-                case SponsoredListingOffers.SevenDays:
-                    return 7;
-                case SponsoredListingOffers.ThirtyDays:
-                    return 30;
-                case SponsoredListingOffers.NinetyDays:
-                    return 90;
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(offerSelection), offerSelection, null);
+                var existingSponsoredListing = await this.sponsoredListingRepository
+                                                         .GetByInvoiceIdAsync(invoice.SponsoredListingInvoiceId);
+
+                if (existingSponsoredListing == null && invoice.PaymentStatus == PaymentStatus.Paid)
+                {
+                    await this.sponsoredListingRepository.CreateAsync(
+                        new SponsoredListing()
+                        {
+                            DirectoryEntryId = invoice.DirectoryEntryId,
+                            CampaignStartDate = invoice.CampaignStartDate,
+                            CampaignEndDate = invoice.CampaignEndDate,
+                            SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId,
+                        });
+
+                    this.cache.Remove(StringConstants.EntriesCache);
+                    this.cache.Remove(StringConstants.SponsoredListings);
+                }
             }
         }
     }
