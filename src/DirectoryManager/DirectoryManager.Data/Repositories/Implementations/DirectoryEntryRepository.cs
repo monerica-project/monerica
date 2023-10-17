@@ -29,6 +29,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.context.DirectoryEntries.FirstOrDefaultAsync(de => de.Link == link);
         }
 
+        public async Task<IEnumerable<DirectoryEntry>> GetAllowableEntries()
+        {
+            return await this.context.DirectoryEntries
+                        .Where(de =>
+                                de.DirectoryStatus == DirectoryStatus.Admitted ||
+                                de.DirectoryStatus == DirectoryStatus.Verified)
+                        .ToListAsync();
+        }
+
         public async Task<IEnumerable<DirectoryEntry>> GetAllAsync()
         {
             // Ensure that the DbSet DirectoryEntries is not null.

@@ -1,5 +1,5 @@
 ﻿<!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -41,6 +41,34 @@
                 text-align: right;
             }
 
+            .create-sponsored-listing {
+                text-align:right;
+                font-size: 13px;
+                font-style: italic;
+            }
+
+            .sponsored-section
+            {
+                background-color: #1E1E1E;
+                border: 2px solid #FF6600;
+                padding: 3px;
+                font-size: 18px;
+            }
+
+            .sponsored-section p
+            {
+                margin-top: 0px;
+            }
+
+            li.sponsored  {
+                background-color: #1E1E1E;
+                border: 1px solid #FF6600;
+                padding: 3px;
+                margin-bottom: 3px;
+                margin-top: 3px;
+                font-size: 18px;
+            }
+
             /* top banner realted */
 
             .multi-line-text {
@@ -60,6 +88,20 @@
 
         .text-danger, .alert-danger {
             color: red;
+        }
+
+        .btn {
+            background-color: green;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            color: white;
+            font-weight: bold;
+        }
+
+        
+        a.btn {
+            text-decoration: none;
         }
 
             /* begin: expandable lists */
@@ -148,7 +190,7 @@
     </div>
  
     <footer>
-        <a target="_blank" href="https://github.com/monerica-project/">On GitHub</a> - @DateTime.UtcNow.Year | <a target="_blank" href="~/api/all">JSON API</a> | <a target="_blank" href="https://monerica.com/content/monerica-logo.ai">Monerica .ai logo</a>
+        <a href="~/">Home</a> | <a target="_blank" href="https://github.com/monerica-project/">On GitHub</a> | <a target="_blank" href="~/api/all">JSON API</a> | <a target="_blank" href="https://monerica.com/content/monerica-logo.ai">.ai logo</a> | @DateTime.UtcNow.Year
     </footer>
  
 </body>

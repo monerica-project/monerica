@@ -10,9 +10,9 @@
 <hr />
 
 <form method="get">
-    <label for="combinedFilter">Find: </label>
+    <label for="combinedFilter">Select: </label>
     <select id="combinedFilter" name="subCategoryId">
-        <option value="">--Select: Category > Sub Category--</option>
+        <option value="">--Category > Sub Category--</option>
         @foreach (var subCategory in (IEnumerable<SubCategory>)ViewBag.SubCategories)
         {
             <option value="@subCategory.Id" selected="@(Context.Request.Query["subCategoryId"] == subCategory.Id.ToString() ? "selected" : null)">@subCategory.Category.Name > @subCategory.Name</option>
@@ -27,7 +27,7 @@
 @foreach (var entry in Model)
 {
     <div>
-        <a href="@entry.Link">@entry.Name</a> <text> - </text>
+        <a target="_blank" href="@entry.Link">@entry.Name</a> <text> - </text>
         <a href="@Url.Action("SubmitEdit", new { id = entry.Id })">Edit</a>
     </div>
 }

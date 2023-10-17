@@ -1,9 +1,11 @@
 ﻿@using DirectoryManager.Data.Models
+@using DirectoryManager.Web.Constants;
 @model DirectoryManager.Data.Models.Category
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubCategoryRepository subCategoryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntrySelectionRepository directoryEntrySelectionRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
@@ -31,7 +33,7 @@
     <hr />
 
     <p>
-        <b>Last update:</b> @directoryEntryRepository.GetLastRevisionDate().ToString("yyyy-MM-ddTHH:mm:ssZ")
+        <b>Last update:</b> @directoryEntryRepository.GetLastRevisionDate().ToString(StringConstants.DateTimeFormat)
     </p>
 
     <hr />
@@ -55,7 +57,11 @@
         <b>Submit new or change existing links: <a class="button-link" href="~/submit">here</a>.</b>
         Follow on: <a target="_blank" href="https://twitter.com/MonericaProject">Twitter</a>.
     </p>
- 
+
+    <hr />
+
+    @await Html.PartialAsync("_SponsoredListingPartial")
+
     <hr />
 
     @{
@@ -115,7 +121,6 @@
 
     @if (newestRevisions != null && newestRevisions.Count() > 0)
     {
-
         <p><b>Newest Revisions</b></p>
 
         <ul>
@@ -161,6 +166,9 @@
     </ul>
 
     <hr />
+    @{
+        var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync();
+    }
 
     @foreach (var category in activeCategories)
     {
@@ -199,6 +207,11 @@
                 }
                 @foreach (var viewModel in viewModelList)
                 {
+                    if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntry.Id) != null)
+                    {
+                        viewModel.IsSponsored = true;
+                    }
+
                     @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
                 }
             </ul>

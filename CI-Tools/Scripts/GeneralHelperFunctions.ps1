@@ -51,8 +51,10 @@ function Set-FileSettings($fileLocation)
 {
     Write-Host 'db string ' +  $dbConnectionString
     $envJson = Get-Content $fileLocation | ConvertFrom-Json
+
     $envJson.ConnectionStrings.DefaultConnection = $dbConnectionString
-    $envJson | ConvertTo-Json | set-content $fileLocation
+    $envJson | ConvertTo-Json -Depth 10 | set-content $fileLocation
+
     Write-Host "Saving $fileLocation..."
 }
 

@@ -1,6 +1,6 @@
 ﻿using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
-using DirectoryManager.Web.Services;
+using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -20,7 +20,7 @@ namespace DirectoryManager.Web.Controllers
             ISubCategoryRepository subCategoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
             ITrafficLogRepository trafficLogRepository,
-            UserAgentCacheService userAgentCacheService,
+            IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService)
         {

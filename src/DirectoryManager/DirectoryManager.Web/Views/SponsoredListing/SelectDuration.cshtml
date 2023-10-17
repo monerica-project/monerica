@@ -1,0 +1,33 @@
+﻿@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Models;
+@using System.Globalization;
+@model IEnumerable<SponsoredListingOffer>
+
+@{
+    ViewData["Title"] = "Select Listing Duration";
+    var offersList = Model.ToList();
+    int defaultChoiceIndex = 0;
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<a href="~/sponsoredlisting/selectlisting">&lt; Back</a>
+
+<hr />
+
+<form method="post">
+    <div class="form-group">
+        <label>Options:</label>
+        @for (var i = 0; i < offersList.Count; i++)
+        {
+            var offer = offersList[i];
+            <div class="form-check">
+                <label class="form-check-label" style="display: flex; align-items: center;">
+                    <input class="form-check-input" type="radio" name="SelectedOfferId" value="@offer.Id" @(i == defaultChoiceIndex ? "checked" : string.Empty)>
+                    @offer.Description - @offer.USDPrice.ToString("C", new CultureInfo(StringConstants.DefaultCulure)) USD
+                </label>
+            </div>
+        }
+    </div>
+    <button type="submit" class="btn btn-primary">Select</button>
+</form>

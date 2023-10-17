@@ -17,7 +17,7 @@ namespace DirectoryManager.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "7.0.11")
+                .HasAnnotation("ProductVersion", "7.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -344,6 +344,150 @@ namespace DirectoryManager.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("ExcludeUserAgents");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.LogEntry", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<string>("Exception")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Level")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Message")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("MessageTemplate")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Properties")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTimeOffset>("TimeStamp")
+                        .HasColumnType("datetimeoffset");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("LogEntries");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListing", b =>
+                {
+                    b.Property<int>("SponsoredListingId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SponsoredListingId"));
+
+                    b.Property<DateTime>("CampaignEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CampaignStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("DirectoryEntryId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SponsoredListingInvoiceId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("SponsoredListingId");
+
+                    b.HasIndex("DirectoryEntryId");
+
+                    b.HasIndex("SponsoredListingInvoiceId")
+                        .IsUnique();
+
+                    b.HasIndex("CreateDate", "UpdateDate");
+
+                    b.ToTable("SponsoredListings");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListingInvoice", b =>
+                {
+                    b.Property<int>("SponsoredListingInvoiceId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SponsoredListingInvoiceId"));
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("decimal(14, 12)");
+
+                    b.Property<DateTime>("CampaignEndDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CampaignStartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("Currency")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DirectoryEntryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("InvoiceDescription")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("InvoiceRequest")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("InvoiceResponse")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasColumnType("decimal(14, 12)");
+
+                    b.Property<int>("PaidInCurrency")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PaymentProcessor")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PaymentResponse")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("PaymentStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ProcessorInvoiceId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("SponsoredListingInvoiceId");
+
+                    b.HasIndex("DirectoryEntryId");
+
+                    b.HasIndex("InvoiceId")
+                        .IsUnique();
+
+                    b.ToTable("SponsoredListingInvoices");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.SubCategory", b =>
@@ -676,6 +820,36 @@ namespace DirectoryManager.Data.Migrations
                     b.Navigation("DirectoryEntry");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListing", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntry", "DirectoryEntry")
+                        .WithMany()
+                        .HasForeignKey("DirectoryEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DirectoryManager.Data.Models.SponsoredListingInvoice", "SponsoredListingInvoice")
+                        .WithOne("SponsoredListing")
+                        .HasForeignKey("DirectoryManager.Data.Models.SponsoredListing", "SponsoredListingInvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DirectoryEntry");
+
+                    b.Navigation("SponsoredListingInvoice");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListingInvoice", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntry", "DirectoryEntry")
+                        .WithMany()
+                        .HasForeignKey("DirectoryEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DirectoryEntry");
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.SubCategory", b =>
                 {
                     b.HasOne("DirectoryManager.Data.Models.Category", "Category")
@@ -751,6 +925,11 @@ namespace DirectoryManager.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListingInvoice", b =>
+                {
+                    b.Navigation("SponsoredListing");
                 });
 #pragma warning restore 612, 618
         }

@@ -1,6 +1,6 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
-using DirectoryManager.Web.Services;
+using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
 
@@ -9,11 +9,11 @@ namespace DirectoryManager.Web.Controllers
     public abstract class BaseController : Controller
     {
         private readonly ITrafficLogRepository trafficLogRepository;
-        private readonly UserAgentCacheService userAgentCacheService;
+        private readonly IUserAgentCacheService userAgentCacheService;
 
         public BaseController(
             ITrafficLogRepository trafficLogRepository,
-            UserAgentCacheService userAgentCacheService)
+            IUserAgentCacheService userAgentCacheService)
         {
             this.trafficLogRepository = trafficLogRepository;
             this.userAgentCacheService = userAgentCacheService;

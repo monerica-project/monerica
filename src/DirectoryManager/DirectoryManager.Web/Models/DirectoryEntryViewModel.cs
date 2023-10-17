@@ -7,5 +7,6 @@ namespace DirectoryManager.Web.Models
     {
         required public DirectoryEntry DirectoryEntry { get; set; }
         public DateDisplayOption DateOption { get; set; } = DateDisplayOption.NotDisplayed;
+        public bool IsSponsored { get; set; } = false;
     }
 }
