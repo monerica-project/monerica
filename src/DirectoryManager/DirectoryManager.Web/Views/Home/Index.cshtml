@@ -5,6 +5,7 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubCategoryRepository subCategoryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntrySelectionRepository directoryEntrySelectionRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
@@ -120,7 +121,6 @@
 
     @if (newestRevisions != null && newestRevisions.Count() > 0)
     {
-
         <p><b>Newest Revisions</b></p>
 
         <ul>
@@ -166,6 +166,9 @@
     </ul>
 
     <hr />
+    @{
+        var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync();
+    }
 
     @foreach (var category in activeCategories)
     {
@@ -204,6 +207,11 @@
                 }
                 @foreach (var viewModel in viewModelList)
                 {
+                    if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntry.Id) != null)
+                    {
+                        viewModel.IsSponsored = true;
+                    }
+
                     @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
                 }
             </ul>

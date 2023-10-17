@@ -6,7 +6,9 @@ namespace DirectoryManager.Web.Helpers
 {
     public static class ViewModelConverter
     {
-        public static List<DirectoryEntryViewModel> ConvertToViewModels(List<DirectoryEntry> directoryEntries, DateDisplayOption option = DateDisplayOption.NotDisplayed)
+        public static List<DirectoryEntryViewModel> ConvertToViewModels(
+            List<DirectoryEntry> directoryEntries,
+            DateDisplayOption option = DateDisplayOption.NotDisplayed)
         {
             return directoryEntries.Select(entry => new DirectoryEntryViewModel
             {

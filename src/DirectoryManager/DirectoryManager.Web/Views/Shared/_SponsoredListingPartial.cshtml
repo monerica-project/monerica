@@ -1,8 +1,8 @@
 ﻿@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 
-@* <cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.SponsoredListings"
-               cache-duration-seconds="@DirectoryManager.Web.Constants.IntegerConstants.CacheDurationSeconds"> *@
+<cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.SponsoredListings"
+               cache-duration-seconds="@DirectoryManager.Web.Constants.IntegerConstants.CacheDurationSeconds">
 
 @{
     var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync();
@@ -43,4 +43,4 @@
     </p>
  
 
-@* </cache-content> *@
+</cache-content>

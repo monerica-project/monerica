@@ -15,6 +15,10 @@
 
 <div>
     <h2>Selected Listing</h2>
+    @{
+        Model.SelectedDirectoryEntry.IsSponsored = true;
+    }
+ 
     <ul>
         @await Html.PartialAsync("_DirectoryEntryPartial", Model.SelectedDirectoryEntry)
     </ul>
