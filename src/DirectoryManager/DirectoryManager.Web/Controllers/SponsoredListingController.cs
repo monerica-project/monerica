@@ -98,11 +98,13 @@ namespace DirectoryManager.Web.Controllers
                 if (currentListings.Count() == IntegerConstants.MaxSponsoredListings)
                 {
                     // max listings
+                    return this.BadRequest(new { Error = "Maximum number of sponsored listings reached." });
                 }
 
                 if (currentListings.FirstOrDefault(x => x.DirectoryEntryId == id) != null)
                 {
                     // this listing is already active
+                    return this.BadRequest(new { Error = "This listing is already active." });
                 }
             }
 
