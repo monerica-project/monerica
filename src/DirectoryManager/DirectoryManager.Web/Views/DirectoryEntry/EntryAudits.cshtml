@@ -1,6 +1,12 @@
 ﻿@model IEnumerable<DirectoryManager.Data.Models.DirectoryEntriesAudit>
-<h1>Directory Entry Audits</h1>
+@{
+    ViewData["Title"] = "Directory Entry Audits";
+}
+<h1>@ViewData["Title"]</h1>
 
+<a href="~/account/home">Admin home</a>
+
+<hr />
 <table>
     <thead>
         <tr>
@@ -38,3 +44,4 @@
         }
     </tbody>
 </table>
+

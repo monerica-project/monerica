@@ -24,6 +24,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
                             .ToListAsync();
         }
 
+        public async Task<IEnumerable<SubCategory>> GetAllActiveSubCategoriesAsync()
+        {
+            return await this.context.SubCategories
+                        .Include(sc => sc.Category) // Including the Category for each SubCategory
+                        .Where(subCategory => this.context.DirectoryEntries
+                            .Any(entry => entry.SubCategoryId == subCategory.Id &&
+                                          entry.DirectoryStatus != DirectoryStatus.Unknown &&
+                                          entry.DirectoryStatus != DirectoryStatus.Removed))
+                        .OrderBy(subCategory => subCategory.Name)
+                        .ToListAsync();
+        }
+
         public async Task<SubCategory?> GetByIdAsync(int id)
         {
             return await this.context.SubCategories.FindAsync(id);

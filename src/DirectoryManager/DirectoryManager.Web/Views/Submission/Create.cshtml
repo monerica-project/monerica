@@ -4,7 +4,7 @@
     ViewData["Title"] = "Create Submission";
 }
 
-<h2>@ViewData["Title"]</h2>
+<h1>@ViewData["Title"]</h1>
 
 <a href="~/">Back to Home</a> <text> | </text> <a href="~/submission/findexisting">Edit Existing Entry</a>
 
@@ -14,33 +14,18 @@
         margin: 0;
     }
 
-    a:hover {
-        text-decoration: none;
-    }
+
+
 
     .right {
         text-align: right;
     }
-
-    /* Spacing around main content */
-    #main-content {
-        padding: 20px;
-    }
-
+ 
     h2, h3 {
         margin-top: 20px;
         margin-bottom: 20px;
     }
-
-    .btn {
-        background-color: green;
-        border: none;
-        padding: 10px 20px;
-        border-radius: 4px;
-        color: white;
-        font-weight: bold;
-    }
-
+ 
 </style>
 
 <p style="color:red;">
@@ -56,10 +41,11 @@
         @Html.ValidationSummary(true, "", new { @class = "text-danger" })
     </div>
 }
+<hr />
 
 <form asp-action="Create" method="post">
 
-    <hr />
+
     <h3>Required Information</h3>
     <div class="form-group">
         <label asp-for="SubCategoryId">Category</label>

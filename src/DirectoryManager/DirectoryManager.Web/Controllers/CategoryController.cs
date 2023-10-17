@@ -2,7 +2,7 @@
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
-using DirectoryManager.Web.Services;
+using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -21,7 +21,7 @@ namespace DirectoryManager.Web.Controllers
             UserManager<ApplicationUser> userManager,
             ICategoryRepository categoryRepository,
             ITrafficLogRepository trafficLogRepository,
-            UserAgentCacheService userAgentCacheService,
+            IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService)
         {

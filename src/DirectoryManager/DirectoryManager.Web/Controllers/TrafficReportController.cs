@@ -1,6 +1,6 @@
 ﻿using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
-using DirectoryManager.Web.Services;
+using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -13,7 +13,7 @@ namespace DirectoryManager.Web.Controllers
 
         public TrafficReportController(
             ITrafficLogRepository trafficLogRepository,
-            UserAgentCacheService userAgentCacheService)
+            IUserAgentCacheService userAgentCacheService)
             : base(trafficLogRepository, userAgentCacheService)
         {
             this.trafficLogRepository = trafficLogRepository;
