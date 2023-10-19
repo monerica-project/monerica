@@ -325,7 +325,7 @@ namespace DirectoryManager.Web.Controllers
                                      .FirstOrDefault() ?? string.Empty;
 
             bool isValidRequest = this.paymentService.IsIpnRequestValid(
-                callbackPayload,
+                callbackPayload, 
                 nowPaymentsSig,
                 out string errorMsg);
 

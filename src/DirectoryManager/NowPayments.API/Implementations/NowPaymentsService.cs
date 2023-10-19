@@ -133,19 +133,15 @@ namespace NowPayments.API.Implementations
                 }
                 else
                 {
-                    // Log the error content for debugging purposes or throw it as part of the exception.
-                    // This assumes the API provides a meaningful error message in its response.
                     throw new ApiException($"API request failed with status code: {response.StatusCode}. Error: {content}");
                 }
             }
             catch (HttpRequestException httpRequestException)
             {
-                // Handle exceptions related to the request itself (e.g., connectivity issues, timeouts, etc.)
                 throw new ApiException("There was an error sending the request to the API.", httpRequestException);
             }
             catch (Exception ex)
             {
-                // Handle other potential exceptions
                 throw new ApiException("An unexpected error occurred.", ex);
             }
         }
