@@ -211,9 +211,30 @@ namespace DirectoryManager.Web.Controllers
                 Offer = offer
             };
 
+            var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync();
+            if (currentListings != null && currentListings.Any())
+            {
+                if (currentListings.Count() == IntegerConstants.MaxSponsoredListings)
+                {
+                    // max listings reached
+                    viewModel.CanCreateSponsoredListing = false;
+                }
+                else
+                {
+                    viewModel.CanCreateSponsoredListing = true;
+                }
+
+                // Get the next listing expiration date (i.e., the soonest CampaignEndDate)
+                viewModel.NextListingExpiration = currentListings.Min(x => x.CampaignEndDate);
+            }
+            else
+            {
+                viewModel.CanCreateSponsoredListing = true;
+            }
+
             return this.View(viewModel);
         }
-
+ 
         [AllowAnonymous]
         [HttpPost("confirmed")]
         public async Task<IActionResult> ConfirmedAsync(

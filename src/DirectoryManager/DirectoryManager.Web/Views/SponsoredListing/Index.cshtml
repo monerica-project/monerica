@@ -1,4 +1,5 @@
 ﻿@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Models;
 @model DirectoryManager.Web.Models.SponsoredListingHomeModel;
 
 @{
@@ -36,11 +37,8 @@ In addition to being at the top of the page, your listing is also highlighted in
     }
     else
     {
-        <p>
-            The maximum number of sponsored listings is currently reached.
-        </p>
-
-        <p>
-        The next availability for a sponsored listing is at: <b>@Model.NextListingExpiration.ToString(StringConstants.DateTimeFormat)</b>
-    </p>
-}
+    @await Html.PartialAsync("_AdSpaceFull", new ListingInventoryModel()
+        { CanCreateSponsoredListing = Model.CanCreateSponsoredListing,
+         NextListingExpiration = Model.NextListingExpiration})
+    ;
+    }
