@@ -5,5 +5,6 @@
         public bool CanCreateSponsoredListing { get; set; }
 
         public DateTime NextListingExpiration { get; set; }
+        public int CurrentListingCount { get; set; }
     }
 }

@@ -58,7 +58,11 @@ namespace DirectoryManager.Web.Controllers
 
             if (currentListings != null && currentListings.Any())
             {
-                if (currentListings.Count() == IntegerConstants.MaxSponsoredListings)
+                var count = currentListings.Count();
+
+                model.CurrentListingCount = count;
+
+                if (count == IntegerConstants.MaxSponsoredListings)
                 {
                     // max listings reached
                     model.CanCreateSponsoredListing = false;
