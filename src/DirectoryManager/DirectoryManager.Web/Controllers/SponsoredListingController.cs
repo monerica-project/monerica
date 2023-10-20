@@ -238,7 +238,7 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(viewModel);
         }
- 
+
         [AllowAnonymous]
         [HttpPost("confirmed")]
         public async Task<IActionResult> ConfirmedAsync(
@@ -329,7 +329,7 @@ namespace DirectoryManager.Web.Controllers
                                      .FirstOrDefault() ?? string.Empty;
 
             bool isValidRequest = this.paymentService.IsIpnRequestValid(
-                callbackPayload, 
+                callbackPayload,
                 nowPaymentsSig,
                 out string errorMsg);
 
@@ -422,7 +422,7 @@ namespace DirectoryManager.Web.Controllers
                 Listings = listings.Select(l => new ListingViewModel
                 {
                     Id = l.SponsoredListingId,
-                    DirectoryEntryName = l.DirectoryEntry.Name,
+                    DirectoryEntryName = l.DirectoryEntry?.Name ?? StringConstants.DefaultName,
                     StartDate = l.CampaignStartDate,
                     EndDate = l.CampaignEndDate
                 }).ToList()

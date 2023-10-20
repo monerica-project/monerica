@@ -46,6 +46,11 @@ namespace NowPayments.API.Implementations
             var responseContent = await response.Content.ReadAsStringAsync();
             var paymentResponse = JsonConvert.DeserializeObject<PaymentResponse>(responseContent);
 
+            if (paymentResponse == null)
+            {
+                throw new InvalidOperationException("Failed to deserialize the payment response.");
+            }
+
             return paymentResponse;
         }
 
@@ -104,6 +109,11 @@ namespace NowPayments.API.Implementations
             var responseContent = await response.Content.ReadAsStringAsync();
             var paymentStatusResponse = JsonConvert.DeserializeObject<PaymentStatusResponse>(responseContent);
 
+            if (paymentStatusResponse == null)
+            {
+                throw new InvalidOperationException("Failed to deserialize the payment status response.");
+            }
+
             return paymentStatusResponse;
         }
 
@@ -146,13 +156,6 @@ namespace NowPayments.API.Implementations
             }
         }
 
-        private static string CalculateHMAC(string data, string secret)
-        {
-            using var hmac = new HMACSHA512(Encoding.UTF8.GetBytes(secret));
-            var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
-            return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
-        }
-
         public void SetDefaultUrls(PaymentRequest request)
         {
             if (string.IsNullOrWhiteSpace(request.CancelUrl))
@@ -174,6 +177,13 @@ namespace NowPayments.API.Implementations
             {
                 request.PartiallyPaidUrl = this.partiallyPaidUrl;
             }
+        }
+
+        private static string CalculateHMAC(string data, string secret)
+        {
+            using var hmac = new HMACSHA512(Encoding.UTF8.GetBytes(secret));
+            var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
+            return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
         }
 
         private void InitializeClient()

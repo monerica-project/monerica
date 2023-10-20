@@ -350,7 +350,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 if (property.PropertyType == typeof(string))
                 {
-                    var value = (string)property.GetValue(model);
+                    var value = property.GetValue(model) as string;
                     if (!string.IsNullOrEmpty(value))
                     {
                         var decodedValue = System.Net.WebUtility.HtmlDecode(value);

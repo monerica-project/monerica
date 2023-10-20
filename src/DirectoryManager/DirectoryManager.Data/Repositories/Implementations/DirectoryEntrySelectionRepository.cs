@@ -17,7 +17,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<DirectoryEntrySelection> GetByID(int id)
         {
-            return await this.context.DirectoryEntrySelections.FindAsync(id);
+            var result = await this.context.DirectoryEntrySelections.FindAsync(id);
+
+            return result == null ?
+                throw new InvalidOperationException($"No DirectoryEntrySelection found with ID {id}") :
+                result;
         }
 
         public async Task AddToList(DirectoryEntrySelection selection)
