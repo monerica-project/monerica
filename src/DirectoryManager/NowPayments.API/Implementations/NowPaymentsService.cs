@@ -46,6 +46,11 @@ namespace NowPayments.API.Implementations
             var responseContent = await response.Content.ReadAsStringAsync();
             var paymentResponse = JsonConvert.DeserializeObject<PaymentResponse>(responseContent);
 
+            if (paymentResponse == null)
+            {
+                throw new InvalidOperationException("Failed to deserialize the payment response.");
+            }
+
             return paymentResponse;
         }
 
@@ -104,6 +109,11 @@ namespace NowPayments.API.Implementations
             var responseContent = await response.Content.ReadAsStringAsync();
             var paymentStatusResponse = JsonConvert.DeserializeObject<PaymentStatusResponse>(responseContent);
 
+            if (paymentStatusResponse == null)
+            {
+                throw new InvalidOperationException("Failed to deserialize the payment status response.");
+            }
+
             return paymentStatusResponse;
         }
 
@@ -133,28 +143,17 @@ namespace NowPayments.API.Implementations
                 }
                 else
                 {
-                    // Log the error content for debugging purposes or throw it as part of the exception.
-                    // This assumes the API provides a meaningful error message in its response.
                     throw new ApiException($"API request failed with status code: {response.StatusCode}. Error: {content}");
                 }
             }
             catch (HttpRequestException httpRequestException)
             {
-                // Handle exceptions related to the request itself (e.g., connectivity issues, timeouts, etc.)
                 throw new ApiException("There was an error sending the request to the API.", httpRequestException);
             }
             catch (Exception ex)
             {
-                // Handle other potential exceptions
                 throw new ApiException("An unexpected error occurred.", ex);
             }
-        }
-
-        private static string CalculateHMAC(string data, string secret)
-        {
-            using var hmac = new HMACSHA512(Encoding.UTF8.GetBytes(secret));
-            var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
-            return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
         }
 
         public void SetDefaultUrls(PaymentRequest request)
@@ -178,6 +177,13 @@ namespace NowPayments.API.Implementations
             {
                 request.PartiallyPaidUrl = this.partiallyPaidUrl;
             }
+        }
+
+        private static string CalculateHMAC(string data, string secret)
+        {
+            using var hmac = new HMACSHA512(Encoding.UTF8.GetBytes(secret));
+            var hashBytes = hmac.ComputeHash(Encoding.UTF8.GetBytes(data));
+            return BitConverter.ToString(hashBytes).Replace("-", "").ToLower();
         }
 
         private void InitializeClient()

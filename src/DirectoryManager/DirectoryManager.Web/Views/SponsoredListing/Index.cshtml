@@ -1,4 +1,5 @@
 ﻿@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Models;
 @model DirectoryManager.Web.Models.SponsoredListingHomeModel;
 
 @{
@@ -11,21 +12,21 @@
 
 <h2>Listing Details</h2>
 <p>
-Sponsored listings are a way to support the directory and get your listing to seen by more people.
-A maximum of three sponsored listings are shown at the top of the directory.
-The topmost listing is the one that has the longest duration left.
-In addition to being at the top of the page, your listing is also highlighted.
+Sponsored listings are a way to support the directory and get your selected listing seen by more people.
+A maximum of @IntegerConstants.MaxSponsoredListings sponsored listings are shown at the top of the directory.
+The topmost listing is the one that has the longest duration of time left for its payment.
+In addition to being at the top of the page, your listing is also highlighted in the normal list.
 </p>
 
 <p>
-    Steps for listing:
+    <b> Steps for listing:</b>
 </p>
 
 <ol>
-    <li>Select your listing</li>
-    <li>Choose your listing duration</li>
+    <li>Select your listing <i>(Note: your choice must currently be <a href="~/submit"> listed</a>)</i></li>
+    <li>Choose your listing's duration</li>
     <li>Pay for your sponsored listing</li>
-    <li>Listing goes live automatically</li>
+    <li>Your listing goes live automatically</li>
 </ol>
 
     @if (Model.CanCreateSponsoredListing)
@@ -33,14 +34,12 @@ In addition to being at the top of the page, your listing is also highlighted.
     <p>
         <a class="btn"  href="~/sponsoredlisting/selectlisting">Select Listing</a>        
     </p>
+    <p><i>@(IntegerConstants.MaxSponsoredListings - Model.CurrentListingCount) spot@((IntegerConstants.MaxSponsoredListings - Model.CurrentListingCount) == 1 ? "" : "s") remaining</i></p>
     }
     else
     {
-        <p>
-            The maximum number of sponsored listings is currently reached.
-        </p>
-
-        <p>
-        The next availability for a sponsored listing is at: <b>@Model.NextListingExpiration.ToString(StringConstants.DateTimeFormat)</b>
-    </p>
+    @await Html.PartialAsync("_AdSpaceFull", new ListingInventoryModel()
+        { CanCreateSponsoredListing = Model.CanCreateSponsoredListing,
+         NextListingExpiration = Model.NextListingExpiration})
+    ;
     }

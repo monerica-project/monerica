@@ -83,11 +83,11 @@ namespace DirectoryManager.Data.DbContextInfo
 
             builder.Entity<SponsoredListingInvoice>()
                    .Property(e => e.Amount)
-                   .HasColumnType("decimal(14, 12)");
+                   .HasColumnType("decimal(20, 12)");
 
             builder.Entity<SponsoredListingInvoice>()
                    .Property(e => e.PaidAmount)
-                   .HasColumnType("decimal(14, 12)");
+                   .HasColumnType("decimal(20, 12)");
 
             builder.Entity<SponsoredListing>()
                    .HasIndex(e => new { e.CreateDate, e.UpdateDate });

@@ -58,7 +58,11 @@ namespace DirectoryManager.Web.Controllers
 
             if (currentListings != null && currentListings.Any())
             {
-                if (currentListings.Count() == IntegerConstants.MaxSponsoredListings)
+                var count = currentListings.Count();
+
+                model.CurrentListingCount = count;
+
+                if (count == IntegerConstants.MaxSponsoredListings)
                 {
                     // max listings reached
                     model.CanCreateSponsoredListing = false;
@@ -210,6 +214,27 @@ namespace DirectoryManager.Web.Controllers
                 },
                 Offer = offer
             };
+
+            var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync();
+            if (currentListings != null && currentListings.Any())
+            {
+                if (currentListings.Count() == IntegerConstants.MaxSponsoredListings)
+                {
+                    // max listings reached
+                    viewModel.CanCreateSponsoredListing = false;
+                }
+                else
+                {
+                    viewModel.CanCreateSponsoredListing = true;
+                }
+
+                // Get the next listing expiration date (i.e., the soonest CampaignEndDate)
+                viewModel.NextListingExpiration = currentListings.Min(x => x.CampaignEndDate);
+            }
+            else
+            {
+                viewModel.CanCreateSponsoredListing = true;
+            }
 
             return this.View(viewModel);
         }
@@ -397,7 +422,7 @@ namespace DirectoryManager.Web.Controllers
                 Listings = listings.Select(l => new ListingViewModel
                 {
                     Id = l.SponsoredListingId,
-                    DirectoryEntryName = l.DirectoryEntry.Name,
+                    DirectoryEntryName = l.DirectoryEntry?.Name ?? StringConstants.DefaultName,
                     StartDate = l.CampaignStartDate,
                     EndDate = l.CampaignEndDate
                 }).ToList()

@@ -6,7 +6,7 @@
 @{
     ViewData["Title"] = "Select Listing Duration";
     var offersList = Model.ToList();
-    int defaultChoiceIndex = 0;
+    int defaultChoiceIndex = 1;
 }
 
 <h1>@ViewData["Title"]</h1>
@@ -14,6 +14,10 @@
 <a href="~/sponsoredlisting/selectlisting">&lt; Back</a>
 
 <hr />
+
+<p>
+    <i>Note: All prices are converted to Monero (XMR) at the time of payment.</i>
+    </p>
 
 <form method="post">
     <div class="form-group">

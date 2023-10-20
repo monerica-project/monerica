@@ -1,0 +1,14 @@
+﻿@using DirectoryManager.Web.Constants;
+@model DirectoryManager.Web.Models.ListingInventoryModel;
+
+<div class="adspace-full">
+<p>
+    Sorry, the maximum number of sponsored listings has been reached!
+</p>
+
+<p>
+    The next availability for a sponsored listing is at: <b>@Model.NextListingExpiration.ToString(StringConstants.DateTimeFormat)</b>
+</p>
+
+    <p>Come back in @Model.TimeUntilNextMessage</p>
+</div>

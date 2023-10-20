@@ -28,7 +28,7 @@ namespace DirectoryManager.Web.TagHelpers
 
         public override async Task ProcessAsync(TagHelperContext context, TagHelperOutput output)
         {
-            if (!this.cache.TryGetValue(this.CacheKey, out string cachedContent))
+            if (!this.cache.TryGetValue(this.CacheKey, out string? cachedContent))
             {
                 var childContent = await output.GetChildContentAsync();
                 cachedContent = childContent.GetContent();
