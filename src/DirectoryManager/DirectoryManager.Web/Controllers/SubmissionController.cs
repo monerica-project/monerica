@@ -30,7 +30,7 @@ namespace DirectoryManager.Web.Controllers
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
-            : base(trafficLogRepository, userAgentCacheService)
+            : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
             this.submissionRepository = submissionRepository;
@@ -431,12 +431,6 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return false;
-        }
-
-        private void ClearCachedItems()
-        {
-            this.cache.Remove(StringConstants.EntriesCacheKey);
-            this.cache.Remove(StringConstants.SponsoredListingsCacheKey);
         }
     }
 }

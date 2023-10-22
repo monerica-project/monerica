@@ -3,6 +3,7 @@ using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -13,8 +14,9 @@ namespace DirectoryManager.Web.Controllers
 
         public TrafficReportController(
             ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService)
-            : base(trafficLogRepository, userAgentCacheService)
+            IUserAgentCacheService userAgentCacheService,
+            IMemoryCache cache)
+            : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.trafficLogRepository = trafficLogRepository;
         }

@@ -1,8 +1,10 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -10,13 +12,16 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly ITrafficLogRepository trafficLogRepository;
         private readonly IUserAgentCacheService userAgentCacheService;
+        private readonly IMemoryCache cache;
 
         public BaseController(
             ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService)
+            IUserAgentCacheService userAgentCacheService,
+            IMemoryCache cache)
         {
             this.trafficLogRepository = trafficLogRepository;
             this.userAgentCacheService = userAgentCacheService;
+            this.cache = cache;
         }
 
         public override void OnActionExecuting(ActionExecutingContext context)
@@ -52,6 +57,12 @@ namespace DirectoryManager.Web.Controllers
             };
 
             this.trafficLogRepository.AddTrafficLog(trafficLog);
+        }
+
+        protected void ClearCachedItems()
+        {
+            this.cache.Remove(StringConstants.EntriesCacheKey);
+            this.cache.Remove(StringConstants.SponsoredListingsCacheKey);
         }
     }
 }

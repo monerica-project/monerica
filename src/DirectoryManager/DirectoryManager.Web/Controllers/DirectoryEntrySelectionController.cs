@@ -31,7 +31,7 @@ namespace DirectoryManager.Web.Controllers
               IUserAgentCacheService userAgentCacheService,
               IDirectoryEntrySelectionRepository directoryEntrySelectionRepository,
               IMemoryCache cache)
-              : base(trafficLogRepository, userAgentCacheService)
+              : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
             this.entryRepository = entryRepository;

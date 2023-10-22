@@ -22,7 +22,7 @@ namespace DirectoryManager.Web.Controllers
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
-            : base(trafficLogRepository, userAgentCacheService)
+            : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.submissionRepository = submissionRepository;
             this.categoryRepository = categoryRepository;

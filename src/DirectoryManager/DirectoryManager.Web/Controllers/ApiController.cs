@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -10,8 +11,9 @@ namespace DirectoryManager.Web.Controllers
         public ApiController(
             IDirectoryEntryRepository entryRepository,
             ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService)
-            : base(trafficLogRepository, userAgentCacheService)
+            IUserAgentCacheService userAgentCacheService,
+            IMemoryCache cache)
+            : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.entryRepository = entryRepository;
         }
