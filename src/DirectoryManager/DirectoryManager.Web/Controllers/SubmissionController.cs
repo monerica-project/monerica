@@ -316,7 +316,7 @@ namespace DirectoryManager.Web.Controllers
                     await this.directoryEntryRepository.UpdateAsync(existing);
                 }
 
-                this.cache.Remove(StringConstants.EntriesCache);
+                this.ClearCachedItems();
             }
 
             submission.SubmissionStatus = model.SubmissionStatus;
@@ -431,6 +431,12 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return false;
+        }
+
+        private void ClearCachedItems()
+        {
+            this.cache.Remove(StringConstants.EntriesCacheKey);
+            this.cache.Remove(StringConstants.SponsoredListingsCacheKey);
         }
     }
 }

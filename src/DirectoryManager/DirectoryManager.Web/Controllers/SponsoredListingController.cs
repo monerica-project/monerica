@@ -401,8 +401,8 @@ namespace DirectoryManager.Web.Controllers
 
             await this.sponsoredListingRepository.UpdateAsync(listing);
 
-            this.cache.Remove(StringConstants.EntriesCache);
-            this.cache.Remove(StringConstants.SponsoredListings);
+            this.cache.Remove(StringConstants.EntriesCacheKey);
+            this.cache.Remove(StringConstants.SponsoredListingsCacheKey);
 
             return this.RedirectToAction("List");
         }
@@ -483,8 +483,8 @@ namespace DirectoryManager.Web.Controllers
                             SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId,
                         });
 
-                    this.cache.Remove(StringConstants.EntriesCache);
-                    this.cache.Remove(StringConstants.SponsoredListings);
+                    this.cache.Remove(StringConstants.EntriesCacheKey);
+                    this.cache.Remove(StringConstants.SponsoredListingsCacheKey);
                 }
             }
         }

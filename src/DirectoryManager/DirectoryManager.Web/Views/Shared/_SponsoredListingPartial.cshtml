@@ -1,7 +1,7 @@
 ﻿@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 
-<cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.SponsoredListings"
+<cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.SponsoredListingsCacheKey"
                cache-duration-seconds="@DirectoryManager.Web.Constants.IntegerConstants.CacheDurationSeconds">
 
 @{

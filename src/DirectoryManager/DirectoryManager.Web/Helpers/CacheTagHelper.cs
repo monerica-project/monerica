@@ -17,7 +17,7 @@ namespace DirectoryManager.Web.TagHelpers
         }
 
         [HtmlAttributeName("cache-key")]
-        public string CacheKey { get; set; } = StringConstants.EntriesCache;
+        public string CacheKey { get; set; } = StringConstants.EntriesCacheKey;
 
         [HtmlAttributeName("cache-duration-seconds")]
         public int CacheDurationSeconds { get; set; } = IntegerConstants.CacheDurationSeconds;

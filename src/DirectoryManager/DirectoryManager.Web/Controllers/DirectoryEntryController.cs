@@ -97,7 +97,7 @@ namespace DirectoryManager.Web.Controllers
 
                 await this.entryRepository.CreateAsync(entry);
 
-                this.cache.Remove(StringConstants.EntriesCache);
+                this.ClearCachedItems();
 
                 return this.RedirectToAction(nameof(this.Index));
             }
@@ -144,7 +144,7 @@ namespace DirectoryManager.Web.Controllers
 
             await this.entryRepository.UpdateAsync(existingEntry);
 
-            this.cache.Remove(StringConstants.EntriesCache);
+            this.ClearCachedItems();
 
             return this.RedirectToAction(nameof(this.Index));
         }
@@ -160,9 +160,15 @@ namespace DirectoryManager.Web.Controllers
         {
             await this.entryRepository.DeleteAsync(id);
 
-            this.cache.Remove(StringConstants.EntriesCache);
+            this.ClearCachedItems();
 
             return this.RedirectToAction(nameof(this.Index));
+        }
+
+        private void ClearCachedItems()
+        {
+            this.cache.Remove(StringConstants.EntriesCacheKey);
+            this.cache.Remove(StringConstants.SponsoredListingsCacheKey);
         }
     }
 }
