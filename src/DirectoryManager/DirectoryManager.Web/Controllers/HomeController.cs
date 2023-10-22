@@ -22,7 +22,7 @@ namespace DirectoryManager.Web.Controllers
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
-            : base(trafficLogRepository, userAgentCacheService)
+            : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.submissionRepository = submissionRepository;
             this.categoryRepository = categoryRepository;
@@ -40,7 +40,8 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("expire-cache")]
         public IActionResult ExpireCache()
         {
-            this.cache.Remove(StringConstants.EntriesCache);
+            this.cache.Remove(StringConstants.EntriesCacheKey);
+            this.cache.Remove(StringConstants.SponsoredListingsCacheKey);
 
             return this.View();
         }

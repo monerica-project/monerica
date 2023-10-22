@@ -31,7 +31,7 @@ namespace DirectoryManager.Web.Controllers
               IUserAgentCacheService userAgentCacheService,
               IDirectoryEntrySelectionRepository directoryEntrySelectionRepository,
               IMemoryCache cache)
-              : base(trafficLogRepository, userAgentCacheService)
+              : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
             this.entryRepository = entryRepository;
@@ -56,7 +56,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 await this.directoryEntrySelectionRepository.AddToList(selection);
 
-                this.cache.Remove(StringConstants.EntriesCache);
+                this.cache.Remove(StringConstants.EntriesCacheKey);
 
                 return this.RedirectToAction("Index");
             }
@@ -76,7 +76,7 @@ namespace DirectoryManager.Web.Controllers
         {
             var selection = await this.directoryEntrySelectionRepository.GetByID(id);
 
-            this.cache.Remove(StringConstants.EntriesCache);
+            this.cache.Remove(StringConstants.EntriesCacheKey);
 
             return this.View(selection);
         }

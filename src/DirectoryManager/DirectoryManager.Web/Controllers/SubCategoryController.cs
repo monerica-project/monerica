@@ -25,7 +25,7 @@ namespace DirectoryManager.Web.Controllers
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
-                : base(trafficLogRepository, userAgentCacheService)
+            : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
             this.subCategoryRepository = subCategoryRepository;
@@ -71,7 +71,7 @@ namespace DirectoryManager.Web.Controllers
 
             await this.subCategoryRepository.CreateAsync(subCategory);
 
-            this.cache.Remove(StringConstants.EntriesCache);
+            this.ClearCachedItems();
 
             return this.RedirectToAction(nameof(this.Index));
         }
@@ -108,7 +108,7 @@ namespace DirectoryManager.Web.Controllers
 
             await this.subCategoryRepository.UpdateAsync(existingSubCategory);
 
-            this.cache.Remove(StringConstants.EntriesCache);
+            this.ClearCachedItems();
 
             return this.RedirectToAction(nameof(this.Index));
         }
@@ -117,7 +117,7 @@ namespace DirectoryManager.Web.Controllers
         {
             await this.subCategoryRepository.DeleteAsync(id);
 
-            this.cache.Remove(StringConstants.EntriesCache);
+            this.ClearCachedItems();
 
             return this.RedirectToAction(nameof(this.Index));
         }

@@ -30,7 +30,7 @@ namespace DirectoryManager.Web.Controllers
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
-            : base(trafficLogRepository, userAgentCacheService)
+            : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
             this.submissionRepository = submissionRepository;
@@ -316,7 +316,7 @@ namespace DirectoryManager.Web.Controllers
                     await this.directoryEntryRepository.UpdateAsync(existing);
                 }
 
-                this.cache.Remove(StringConstants.EntriesCache);
+                this.ClearCachedItems();
             }
 
             submission.SubmissionStatus = model.SubmissionStatus;

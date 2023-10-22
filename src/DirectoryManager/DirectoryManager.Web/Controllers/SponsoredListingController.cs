@@ -38,7 +38,7 @@ namespace DirectoryManager.Web.Controllers
             IMemoryCache cache,
             SponsoredListingOffersContainer sponsoredListings,
             ILogger<SponsoredListingController> logger)
-            : base(trafficLogRepository, userAgentCacheService)
+            : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.subCategoryRepository = subCategoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
@@ -169,6 +169,7 @@ namespace DirectoryManager.Web.Controllers
 
         [AllowAnonymous]
         [HttpGet("success")]
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter",  Justification = "This is the param from them")]
         public async Task<IActionResult> Success([FromQuery] string NP_id)
         {
             var processorInvoice = await this.paymentService.GetPaymentStatusAsync(NP_id);
@@ -401,8 +402,8 @@ namespace DirectoryManager.Web.Controllers
 
             await this.sponsoredListingRepository.UpdateAsync(listing);
 
-            this.cache.Remove(StringConstants.EntriesCache);
-            this.cache.Remove(StringConstants.SponsoredListings);
+            this.cache.Remove(StringConstants.EntriesCacheKey);
+            this.cache.Remove(StringConstants.SponsoredListingsCacheKey);
 
             return this.RedirectToAction("List");
         }
@@ -483,8 +484,7 @@ namespace DirectoryManager.Web.Controllers
                             SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId,
                         });
 
-                    this.cache.Remove(StringConstants.EntriesCache);
-                    this.cache.Remove(StringConstants.SponsoredListings);
+                    this.ClearCachedItems();
                 }
             }
         }
