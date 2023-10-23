@@ -168,9 +168,9 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("success")]
+        [HttpGet("nowpaymentssuccess")]
         [System.Diagnostics.CodeAnalysis.SuppressMessage("StyleCop.CSharp.NamingRules", "SA1313:Parameter names should begin with lower-case letter",  Justification = "This is the param from them")]
-        public async Task<IActionResult> Success([FromQuery] string NP_id)
+        public async Task<IActionResult> NowPaymentsSuccess([FromQuery] string NP_id)
         {
             var processorInvoice = await this.paymentService.GetPaymentStatusAsync(NP_id);
 
@@ -202,7 +202,7 @@ namespace DirectoryManager.Web.Controllers
                 OrderId = existingInvoice.InvoiceId
             };
 
-            return this.View("success", viewModel);
+            return this.View("NowPaymentsSuccess", viewModel);
         }
 
         [AllowAnonymous]
