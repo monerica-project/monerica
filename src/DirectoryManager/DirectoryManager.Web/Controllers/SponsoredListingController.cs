@@ -174,6 +174,16 @@ namespace DirectoryManager.Web.Controllers
         {
             var processorInvoice = await this.paymentService.GetPaymentStatusAsync(NP_id);
 
+            if (processorInvoice == null)
+            {
+                return this.BadRequest(new { Error = "Invoice not found." });
+            }
+
+            if (processorInvoice.OrderId == null)
+            {
+                return this.BadRequest(new { Error = "Order ID not found." });
+            }
+
             var existingInvoice = await this.sponsoredListingInvoiceRepository
                                             .GetByInvoiceIdAsync(Guid.Parse(processorInvoice.OrderId));
 
@@ -291,6 +301,16 @@ namespace DirectoryManager.Web.Controllers
 
             var invoiceFromProcessor = await this.paymentService.CreateInvoice(invoiceRequest);
 
+            if (invoiceFromProcessor == null)
+            {
+                return this.BadRequest(new { Error = "Failed to create invoice." });
+            }
+
+            if (invoiceFromProcessor.Id == null)
+            {
+                return this.BadRequest(new { Error = "Failed to create invoice ID." });
+            }
+
             invoice.ProcessorInvoiceId = invoiceFromProcessor.Id;
             invoice.PaymentProcessor = PaymentProcessor.NOWPayments;
             invoice.InvoiceRequest = JsonConvert.SerializeObject(invoiceRequest);
@@ -298,12 +318,17 @@ namespace DirectoryManager.Web.Controllers
 
             await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
 
+            if (string.IsNullOrWhiteSpace(invoiceFromProcessor?.InvoiceUrl))
+            {
+                return this.BadRequest(new { Error = "Failed to get invoice URL." });
+            }
+
             return this.Redirect(invoiceFromProcessor.InvoiceUrl);
         }
 
         [AllowAnonymous]
-        [HttpPost("callback")]
-        public async Task<IActionResult> CallBackAsync()
+        [HttpPost("nowpaymentscallback")]
+        public async Task<IActionResult> NowPaymentsCallBackAsync()
         {
             using var reader = new StreamReader(this.Request.Body, Encoding.UTF8);
             var callbackPayload = await reader.ReadToEndAsync();
@@ -339,6 +364,16 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = errorMsg });
             }
 
+            if (ipnMessage == null)
+            {
+                return this.BadRequest(new { Error = "Deserialized object is null." });
+            }
+
+            if (ipnMessage.OrderId == null)
+            {
+                return this.BadRequest(new { Error = "Order ID is null." });
+            }
+
             var invoice = await this.sponsoredListingInvoiceRepository
                                     .GetByInvoiceIdAsync(Guid.Parse(ipnMessage.OrderId));
 
@@ -350,9 +385,24 @@ namespace DirectoryManager.Web.Controllers
             invoice.PaymentResponse = JsonConvert.SerializeObject(ipnMessage);
             invoice.PaidAmount = ipnMessage.PayAmount;
 
+            if (ipnMessage == null)
+            {
+                return this.BadRequest(new { Error = "Deserialized object is null." });
+            }
+
+            if (ipnMessage.PaymentStatus == null)
+            {
+                return this.BadRequest(new { Error = "Payment status is null." });
+            }
+
             var processorPaymentStatus = EnumHelper.ParseStringToEnum<NowPayments.API.Enums.PaymentStatus>(ipnMessage.PaymentStatus);
             var translatedValue = ConvertToInternalStatus(processorPaymentStatus);
             invoice.PaymentStatus = translatedValue;
+
+            if (ipnMessage.PayCurrency == null)
+            {
+                return this.BadRequest(new { Error = "Pay currency is null." });
+            }
 
             var processorCurrency = EnumHelper.ParseStringToEnum<Currency>(ipnMessage.PayCurrency);
             invoice.PaidInCurrency = processorCurrency;

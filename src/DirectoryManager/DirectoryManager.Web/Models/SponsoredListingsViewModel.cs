@@ -2,6 +2,6 @@
 {
     public class SponsoredListingsViewModel
     {
-        public List<DirectoryEntryViewModel> CurrentListings { get; set; }
+        required public List<DirectoryEntryViewModel> CurrentListings { get; set; }
     }
 }

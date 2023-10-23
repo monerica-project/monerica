@@ -11,7 +11,7 @@ namespace DirectoryManager.Web.Models
         public decimal USDPrice { get; set; }
 
         [JsonProperty("description")]
-        public string Description { get; set; }
+        required public string Description { get; set; }
 
         [JsonProperty("days")]
         public int Days { get; set; }

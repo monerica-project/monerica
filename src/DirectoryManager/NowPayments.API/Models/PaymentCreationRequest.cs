@@ -8,13 +8,13 @@ namespace NowPayments.API.Models
         public decimal PriceAmount { get; set; }
 
         [JsonProperty("price_currency")]
-        public string PriceCurrency { get; set; }
+        public string? PriceCurrency { get; set; }
 
         [JsonProperty("pay_amount")]
         public decimal? PayAmount { get; set; }
 
         [JsonProperty("pay_currency")]
-        public string PayCurrency { get; set; }
+        public string? PayCurrency { get; set; }
 
         [JsonProperty("ipn_callback_url")]
         public string? IpnCallbackUrl { get; set; }
