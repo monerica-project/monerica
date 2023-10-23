@@ -37,6 +37,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<LogEntry> LogEntries { get; set; }
 
+        public DbSet<ContentSnippet> ContentSnippets { get; set; }
+
         public override int SaveChanges()
         {
             this.SetDates();
