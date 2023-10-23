@@ -132,7 +132,8 @@ task -name CreatePackage {
                     --framework $DotNetFramework `
                     --output $compileSourcePath `
                     --configuration $BuildConfiguration `
-                    --runtime $DotNetRunTime
+                    --runtime $DotNetRunTime `
+                    --self-contained true
     }
 }
 

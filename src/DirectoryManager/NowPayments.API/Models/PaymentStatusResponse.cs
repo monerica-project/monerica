@@ -11,19 +11,19 @@ namespace NowPayments.API.Models
         public long InvoiceId { get; set; }
 
         [JsonProperty("payment_status")]
-        public string PaymentStatus { get; set; }
+        public string? PaymentStatus { get; set; }
 
         [JsonProperty("pay_address")]
-        public string PayAddress { get; set; }
+        public string? PayAddress { get; set; }
 
         [JsonProperty("payin_extra_id")]
-        public object PayinExtraId { get; set; }
+        public string? PayinExtraId { get; set; }
 
         [JsonProperty("price_amount")]
         public decimal PriceAmount { get; set; }
 
         [JsonProperty("price_currency")]
-        public string PriceCurrency { get; set; }
+        public string? PriceCurrency { get; set; }
 
         [JsonProperty("pay_amount")]
         public decimal PayAmount { get; set; }
@@ -32,13 +32,13 @@ namespace NowPayments.API.Models
         public decimal ActuallyPaid { get; set; }
 
         [JsonProperty("pay_currency")]
-        public string PayCurrency { get; set; }
+        public string? PayCurrency { get; set; }
 
         [JsonProperty("order_id")]
-        public string OrderId { get; set; }
+        public string? OrderId { get; set; }
 
         [JsonProperty("order_description")]
-        public string OrderDescription { get; set; }
+        public string? OrderDescription { get; set; }
 
         [JsonProperty("purchase_id")]
         public long PurchaseId { get; set; }
@@ -47,13 +47,13 @@ namespace NowPayments.API.Models
         public decimal OutcomeAmount { get; set; }
 
         [JsonProperty("outcome_currency")]
-        public string OutcomeCurrency { get; set; }
+        public string? OutcomeCurrency { get; set; }
 
         [JsonProperty("payout_hash")]
-        public object PayoutHash { get; set; }
+        public string? PayoutHash { get; set; }
 
         [JsonProperty("payin_hash")]
-        public string PayinHash { get; set; }
+        public string? PayinHash { get; set; }
 
         [JsonProperty("created_at")]
         public DateTime CreatedAt { get; set; }
@@ -62,9 +62,9 @@ namespace NowPayments.API.Models
         public DateTime UpdatedAt { get; set; }
 
         [JsonProperty("burning_percent")]
-        public object BurningPercent { get; set; }
+        public string? BurningPercent { get; set; }
 
         [JsonProperty("type")]
-        public string Type { get; set; }
+        public string? Type { get; set; }
     }
 }

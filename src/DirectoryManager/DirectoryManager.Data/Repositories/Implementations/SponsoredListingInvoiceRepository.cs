@@ -68,12 +68,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var result = await this.context.SponsoredListingInvoices
                                      .FirstOrDefaultAsync(x => x.ProcessorInvoiceId == processorInvoiceId);
 
-            if (result == null)
-            {
-                return default;
-            }
-
-            return result;
+            return result ??
+                throw new InvalidOperationException($"No SponsoredListingInvoice found for the provided {nameof(processorInvoiceId)}.");
         }
     }
 }

@@ -4,6 +4,6 @@
     {
         public int CurrentPage { get; set; }
         public int TotalPages { get; set; }
-        public List<ListingViewModel> Listings { get; set; }
+        required public List<ListingViewModel> Listings { get; set; }
     }
 }
