@@ -2,7 +2,6 @@
 # Build Helper Functions
 ##########################
 
-
 function Build-Solution {
     Param(
         $SolutionPath, 
@@ -20,7 +19,7 @@ function Build-Solution {
             /verbosity:$MsBuildVerbosity `
             /t:Build
 
-    if($LASTEXITCODE -ne 0) { throw "Build failed." }
+    if ($LASTEXITCODE -ne 0) { throw "Build failed." }
 
     Write-Host
 }
@@ -57,8 +56,6 @@ function Execute-UnitTests {
     
     if($LASTEXITCODE -ne 0) { throw "Unit tests failed" }
 }
-
-
 
 function Clean-Solution {
     Param(
@@ -98,7 +95,6 @@ function Run-NugetRestore {
     Write-Host
 }
 
-
 function Run-TestsByFilter {
     Param($Filter)
 
@@ -114,8 +110,6 @@ function Run-TestsByFilter {
 
         & $xunitConsolePath $testAssemblies
 }
-
-
 
 function Set-AssemblyFileVersion([string]$pathToFile, [string]$majorVer, [string]$minorVer, [string]$buildVer, [string]$revVer) {
 

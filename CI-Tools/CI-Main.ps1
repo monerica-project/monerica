@@ -1,9 +1,8 @@
 ﻿####################################################
-# WebPagePub CI Tool
+# DirectoryManager CI Tool
 #
 # Example use: .\CI.bat TaskName -properties "@{'Key'='Value'}"
 ####################################################
-
 
 # External scripts
 $CIRoot               = $PSScriptRoot
@@ -48,7 +47,7 @@ properties {
    $DefaultBrowser              = "chrome"
 
    # Application Resources    
-    $customDomain                      = ""
+    $customDomain               = ""
 }
 
 task default # required task
@@ -72,7 +71,6 @@ Sleep 20
 New-AzureRmRoleAssignment -RoleDefinitionName Contributor -ServicePrincipalName $sp.ApplicationId
 
 }
-
 
 task -name BuildProject -description "Build Project"  -action { 
    
@@ -104,10 +102,8 @@ task -name RestorePackages -description "Restore Packages"  -action {
         $webProjectPath = Resolve-Path -Path ("$CIRoot\$webProjectSourcePath")
 
         cd $webProjectPath
-
         
         dotnet msbuild /t:Restore /p:Configuration=$BuildConfiguration
-
     }
 }
 
@@ -148,13 +144,11 @@ task -name RunUnitTests {
 
 task -name SetConfigs {
 
-
     $WebAppSettings = "..\src\DirectoryManager\DirectoryManager.Web\appsettings.json"
     Set-FileSettings -fileLocation $WebAppSettings
 
     $DatabaseAppSettings = "..\src\DirectoryManager\DirectoryManager.Data\appsettings.json"
     Set-FileSettings -fileLocation $DatabaseAppSettings
-
 }
 
 ############
@@ -163,8 +157,6 @@ task -name SetConfigs {
 
 task -name CustomServerDeploy `
      -depends DeployWebApp {
-
-
 }
 
 task -name SyncWebFiles {
