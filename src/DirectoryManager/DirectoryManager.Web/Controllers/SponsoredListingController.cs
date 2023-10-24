@@ -3,8 +3,8 @@ using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities;
+using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
-using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -294,8 +294,8 @@ namespace DirectoryManager.Web.Controllers
             {
                 IsFeePaidByUser = true,
                 PriceAmount = sponsoredListingOffer.USDPrice,
-                PriceCurrency = this.paymentService.PayCurrency,
-                PayCurrency = this.paymentService.PriceCurrency,
+                PriceCurrency = this.paymentService.PriceCurrency,
+                PayCurrency = this.paymentService.PayCurrency,
                 OrderId = invoice.InvoiceId.ToString(),
                 OrderDescription = sponsoredListingOffer.Description
             };

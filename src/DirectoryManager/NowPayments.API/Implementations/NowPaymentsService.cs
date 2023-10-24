@@ -1,7 +1,7 @@
 ﻿using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
-using DirectoryManager.Utilities;
+using DirectoryManager.Utilities.Helpers;
 using Newtonsoft.Json;
 using NowPayments.API.Constants;
 using NowPayments.API.Enums;
