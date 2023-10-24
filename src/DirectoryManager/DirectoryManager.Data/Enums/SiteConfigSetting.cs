@@ -13,5 +13,6 @@
         HomePageTitle = 8,
         DonationHtml = 9,
         NowPaymentsMessage = 10,
+        SubmissionGuidelines = 11,
     }
 }

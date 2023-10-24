@@ -1,5 +1,6 @@
 ﻿@model DirectoryManager.Web.Models.SubmissionRequest
-
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
+@using DirectoryManager.Data.Enums
 @{
     ViewData["Title"] = "Create Submission";
 }
@@ -28,10 +29,8 @@
  
 </style>
 
-<p style="color:red;">
-    <b>Submission Guidelines:</b>
-    Your link must clearly show it accepts/ uses Monero. It is best to use a Monero logo to illustrate this.
-    If your link doesn't clearly show it accepts/ uses Monero somewhere on the site, it will be rejected!
+<p class="submission-guidelines">
+    @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.SubmissionGuidelines))
 </p>
 
 @if (ViewData.ModelState.IsValid == false)
