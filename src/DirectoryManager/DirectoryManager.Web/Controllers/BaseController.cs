@@ -56,7 +56,7 @@ namespace DirectoryManager.Web.Controllers
                 UserAgent = userAgent
             };
 
-            this.trafficLogRepository.AddTrafficLog(trafficLog);
+            Task.Run(async () => await this.trafficLogRepository.AddTrafficLogAsync(trafficLog));
         }
 
         protected void ClearCachedItems()

@@ -13,10 +13,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context;
         }
 
-        public void AddTrafficLog(TrafficLog trafficLog)
+        public async Task AddTrafficLogAsync(TrafficLog trafficLog)
         {
             this.context.TrafficLogs.Add(trafficLog);
-            this.context.SaveChanges();
+            await this.context.SaveChangesAsync();
         }
 
         public void DeleteTrafficLog(TrafficLog trafficLog)
