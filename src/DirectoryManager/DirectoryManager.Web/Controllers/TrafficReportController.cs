@@ -8,6 +8,7 @@ using Microsoft.Extensions.Caching.Memory;
 namespace DirectoryManager.Web.Controllers
 {
     [Authorize]
+    [Route("trafficreport")]
     public class TrafficReportController : BaseController
     {
         private readonly ITrafficLogRepository trafficLogRepository;
@@ -21,7 +22,25 @@ namespace DirectoryManager.Web.Controllers
             this.trafficLogRepository = trafficLogRepository;
         }
 
-        [HttpGet]
+        [HttpGet("last24hours")]
+        public IActionResult Last24Hours()
+        {
+            return this.Index(DateTime.UtcNow.AddDays(-1), DateTime.UtcNow);
+        }
+
+        [HttpGet("lastweek")]
+        public IActionResult LastWeek()
+        {
+            return this.Index(DateTime.UtcNow.AddDays(-7), DateTime.UtcNow);
+        }
+
+        [HttpGet("lastmonth")]
+        public IActionResult LastMonth()
+        {
+            return this.Index(DateTime.UtcNow.AddDays(-30), DateTime.UtcNow);
+        }
+
+        [HttpGet("index")]
         public IActionResult Index(DateTime? start, DateTime? end)
         {
             if (!start.HasValue)
@@ -45,7 +64,7 @@ namespace DirectoryManager.Web.Controllers
                 TotalLogCount = totalLogs
             };
 
-            return this.View(model);
+            return this.View("index", model);
         }
     }
 }
