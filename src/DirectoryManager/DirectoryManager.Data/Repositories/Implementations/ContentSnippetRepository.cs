@@ -49,16 +49,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
-        public ContentSnippet Get(SiteConfigSetting snippetType)
+        public ContentSnippet? Get(SiteConfigSetting snippetType)
         {
             try
             {
                 var contentSnippet = this.Context.ContentSnippets.FirstOrDefault(x => x.SnippetType == snippetType);
-
-                if (contentSnippet == null)
-                {
-                    throw new ArgumentNullException($"No ContentSnippet found with {snippetType}");
-                }
 
                 return contentSnippet;
             }

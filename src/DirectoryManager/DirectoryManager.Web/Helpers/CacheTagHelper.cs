@@ -42,6 +42,7 @@ namespace DirectoryManager.Web.TagHelpers
             }
 
             output.Content.SetHtmlContent(cachedContent);
+            output.TagName = null;
         }
     }
 }

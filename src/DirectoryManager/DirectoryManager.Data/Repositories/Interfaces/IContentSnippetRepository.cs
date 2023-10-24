@@ -14,7 +14,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         ContentSnippet? Get(int contentSnippetId);
 
-        ContentSnippet Get(SiteConfigSetting snippetType);
+        ContentSnippet? Get(SiteConfigSetting snippetType);
 
         bool Delete(int tagId);
 

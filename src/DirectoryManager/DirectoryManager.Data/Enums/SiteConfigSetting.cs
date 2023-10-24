@@ -7,5 +7,7 @@
         FooterHtml = 2,
         HomePageDisplayHtml = 3,
         FooterDisplayHtml = 4,
+        MetaTags = 5,
+        CssHeader = 6,
     }
 }
