@@ -1,7 +1,9 @@
 ﻿@using DirectoryManager.Web.Constants;
 @using DirectoryManager.Web.Models;
 @using System.Globalization;
+@using DirectoryManager.Data.Enums
 @model IEnumerable<SponsoredListingOffer>
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 
 @{
     ViewData["Title"] = "Select Listing Duration";
@@ -15,9 +17,7 @@
 
 <hr />
 
-<p>
-    <i>Note: All prices are converted to Monero (XMR) at the time of payment.</i>
-    </p>
+<p><i> @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.PaymentCurrencyMessage))</i></p>
 
 <form method="post">
     <div class="form-group">

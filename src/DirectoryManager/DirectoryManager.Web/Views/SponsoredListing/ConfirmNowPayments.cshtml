@@ -1,7 +1,9 @@
 ﻿@using DirectoryManager.Web.Constants;
 @using DirectoryManager.Web.Models
 @using System.Globalization;
+@using DirectoryManager.Data.Enums
 @model DirectoryManager.Web.Models.ConfirmSelectionViewModel;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 
 @{
     ViewData["Title"] = "Confirm Selection";
@@ -35,10 +37,7 @@
 
         <p>
             <i>
-                Note: You will be redirected to NOWPayments where you will pay the amount in Monero (XMR).
-                Once the payment has finished, your sponsored listing will be displayed automatically.
-                All customer service for payment is handled by NOWPayments.
-                Take note of "Payment ID" and "Order ID" in case you exit the page or there is an error.
+                @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.NowPaymentsMessage))             
             </i>
         </p>
 
