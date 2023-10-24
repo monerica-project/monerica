@@ -207,7 +207,9 @@ namespace DirectoryManager.Web.Controllers
 
         [AllowAnonymous]
         [HttpGet("confirmnowpayments")]
-        public async Task<IActionResult> ConfirmNowPaymentsAsync(int directoryEntryId, int selectedOfferId)
+        public async Task<IActionResult> ConfirmedNowPaymentsAsync(
+            int directoryEntryId,
+            int selectedOfferId)
         {
             var offer = this.sponsoredListings.SponsoredListingOffers.FirstOrDefault(x => x.Id == selectedOfferId);
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
@@ -252,7 +254,7 @@ namespace DirectoryManager.Web.Controllers
 
         [AllowAnonymous]
         [HttpPost("confirmnowpayments")]
-        public async Task<IActionResult> ConfirmedAsync(
+        public async Task<IActionResult> ConfirmNowPaymentsAsync(
             int directoryEntryId,
             int selectedOfferId)
         {
