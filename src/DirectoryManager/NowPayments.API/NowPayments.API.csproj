@@ -17,4 +17,8 @@
 	<PackageReference Include="StyleCop.Analyzers" Version="1.1.118" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\DirectoryManager.Utilities\DirectoryManager.Utilities.csproj" />
+  </ItemGroup>
+
 </Project>

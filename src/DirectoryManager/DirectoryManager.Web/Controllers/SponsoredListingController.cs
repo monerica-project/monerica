@@ -2,6 +2,7 @@
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Utilities;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
@@ -207,7 +208,7 @@ namespace DirectoryManager.Web.Controllers
 
         [AllowAnonymous]
         [HttpGet("confirmnowpayments")]
-        public async Task<IActionResult> ConfirmedNowPaymentsAsync(
+        public async Task<IActionResult> ConfirmNowPaymentsAsync(
             int directoryEntryId,
             int selectedOfferId)
         {
@@ -254,7 +255,7 @@ namespace DirectoryManager.Web.Controllers
 
         [AllowAnonymous]
         [HttpPost("confirmnowpayments")]
-        public async Task<IActionResult> ConfirmNowPaymentsAsync(
+        public async Task<IActionResult> ConfirmedNowPaymentsAsync(
             int directoryEntryId,
             int selectedOfferId)
         {
@@ -293,8 +294,8 @@ namespace DirectoryManager.Web.Controllers
             {
                 IsFeePaidByUser = true,
                 PriceAmount = sponsoredListingOffer.USDPrice,
-                PriceCurrency = Currency.USD.ToString(),
-                PayCurrency = Currency.XMR.ToString(),
+                PriceCurrency = this.paymentService.PayCurrency,
+                PayCurrency = this.paymentService.PriceCurrency,
                 OrderId = invoice.InvoiceId.ToString(),
                 OrderDescription = sponsoredListingOffer.Description
             };

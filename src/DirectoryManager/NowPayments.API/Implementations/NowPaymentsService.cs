@@ -1,8 +1,10 @@
 ﻿using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
+using DirectoryManager.Utilities;
 using Newtonsoft.Json;
 using NowPayments.API.Constants;
+using NowPayments.API.Enums;
 using NowPayments.API.Exceptions;
 using NowPayments.API.Interfaces;
 using NowPayments.API.Models;
@@ -30,6 +32,25 @@ namespace NowPayments.API.Implementations
                 ?? throw new ArgumentNullException(nameof(paymentConfigs.ApiKey));
             this.ipnSecretKey = paymentConfigs.IpnSecretKey
                 ?? throw new ArgumentNullException(nameof(paymentConfigs.IpnSecretKey));
+
+            if (string.IsNullOrWhiteSpace(paymentConfigs.PayCurrency))
+            {
+                throw new ArgumentNullException(nameof(paymentConfigs.PayCurrency));
+            }
+            else
+            {
+                this.PayCurrency = EnumHelper.ParseStringToEnum<Currency>(paymentConfigs.PayCurrency).ToString();
+            }
+
+            if (string.IsNullOrWhiteSpace(paymentConfigs.PriceCurrency))
+            {
+                throw new ArgumentNullException(nameof(paymentConfigs.PriceCurrency));
+            }
+            else
+            {
+                this.PriceCurrency = EnumHelper.ParseStringToEnum<Currency>(paymentConfigs.PriceCurrency).ToString();
+            }
+
             this.successUrl = paymentConfigs.SuccessUrl;
             this.cancelUrl = paymentConfigs.CancelUrl;
             this.ipnCallbackUrl = paymentConfigs.IpnCallbackUrl;
@@ -37,6 +58,9 @@ namespace NowPayments.API.Implementations
             this.client = new HttpClient();
             this.InitializeClient();
         }
+
+        public string PayCurrency { get; private set; }
+        public string PriceCurrency { get; private set; }
 
         public async Task<PaymentResponse> CreatePaymentAsync(PaymentCreationRequest paymentRequest)
         {
