@@ -35,16 +35,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.Context.Dispose();
         }
 
-        public ContentSnippet Get(int contentSnippetId)
+        public ContentSnippet? Get(int contentSnippetId)
         {
             try
             {
                 var contentSnippet = this.Context.ContentSnippets.Find(contentSnippetId);
-
-                if (contentSnippet == null)
-                {
-                    throw new ArgumentNullException($"No ContentSnippet found with ID {contentSnippetId}");
-                }
 
                 return contentSnippet;
             }

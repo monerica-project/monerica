@@ -12,7 +12,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         bool Update(ContentSnippet model);
 
-        ContentSnippet Get(int contentSnippetId);
+        ContentSnippet? Get(int contentSnippetId);
 
         ContentSnippet Get(SiteConfigSetting snippetType);
 

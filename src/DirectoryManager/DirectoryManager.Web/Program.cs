@@ -40,12 +40,14 @@ builder.Services.AddScoped<ITrafficLogRepository, TrafficLogRepository>();
 builder.Services.AddScoped<IExcludeUserAgentRepository, ExcludeUserAgentRepository>();
 builder.Services.AddScoped<ISponsoredListingInvoiceRepository, SponsoredListingInvoiceRepository>();
 builder.Services.AddScoped<ISponsoredListingRepository, SponsoredListingRepository>();
+builder.Services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
 
 // database context
 builder.Services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
 
 // services
 builder.Services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
+builder.Services.AddTransient<ICacheService, CacheService>();
 
 builder.Services.AddScoped<INowPaymentsService>(x =>
 {
