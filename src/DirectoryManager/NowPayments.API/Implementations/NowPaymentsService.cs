@@ -21,6 +21,11 @@ namespace NowPayments.API.Implementations
 
         public NowPaymentsService(PaymentConfigs paymentConfigs)
         {
+            if (paymentConfigs == null)
+            {
+                throw new ArgumentNullException(nameof(paymentConfigs));
+            }
+
             this.apiKey = paymentConfigs.ApiKey
                 ?? throw new ArgumentNullException(nameof(paymentConfigs.ApiKey));
             this.ipnSecretKey = paymentConfigs.IpnSecretKey
