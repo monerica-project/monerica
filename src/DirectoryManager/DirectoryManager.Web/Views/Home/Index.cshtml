@@ -188,4 +188,4 @@
 
 </cache-content>
 
-@await Html.PartialAsync("_DonationsPartial")
+@Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.DonationHtml))
