@@ -21,8 +21,7 @@
     </div>
  
     <footer>
-        <a href="~/">Monerica</a> |  <a target="_blank" href="https://twitter.com/MonericaProject">Twitter</a> | <a target="_blank" href="https://github.com/monerica-project/">GitHub</a> | <a target="_blank" href="~/api/all">API</a> | <a target="_blank" href="https://monerica.com/content/monerica-logo.ai">logo</a> | @DateTime.UtcNow.Year
+        @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.FooterHtml))
     </footer>
- 
 </body>
 </html>

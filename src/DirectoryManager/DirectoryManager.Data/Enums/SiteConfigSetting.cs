@@ -9,5 +9,7 @@
         FooterDisplayHtml = 4,
         MetaTags = 5,
         CssHeader = 6,
+        DirectoryLegendHtml = 7,
+        HomePageTitle = 8
     }
 }

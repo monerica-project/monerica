@@ -5,18 +5,23 @@ using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
     [Authorize]
-    public class ContentSnippetManagementController : Controller
+    public class ContentSnippetManagementController : BaseController
     {
         private readonly IContentSnippetRepository contentSnippetRepository;
         private readonly ICacheService contentSnippetHelper;
 
         public ContentSnippetManagementController(
             IContentSnippetRepository contentSnippetRepository,
-            ICacheService contentSnippetHelper)
+            ICacheService contentSnippetHelper,
+            ITrafficLogRepository trafficLogRepository,
+            IUserAgentCacheService userAgentCacheService,
+            IMemoryCache cache)
+            : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.contentSnippetRepository = contentSnippetRepository;
             this.contentSnippetHelper = contentSnippetHelper;
@@ -122,6 +127,8 @@ namespace DirectoryManager.Web.Controllers
             this.contentSnippetRepository.Update(dbModel);
 
             this.contentSnippetHelper.ClearSnippetCache(model.SnippetType);
+
+            this.ClearCachedItems();
 
             return this.RedirectToAction("index");
         }
