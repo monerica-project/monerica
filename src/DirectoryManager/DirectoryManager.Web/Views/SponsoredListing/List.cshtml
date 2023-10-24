@@ -26,8 +26,8 @@
         {
             <tr>
                 <td>@listing.DirectoryEntryName</td>
-                <td>@listing.StartDate.ToString(StringConstants.DateFormat)</td>
-                <td>@listing.EndDate.ToString(StringConstants.DateFormat)</td>
+                <td>@listing.StartDate.ToString(StringConstants.DateTimeFormat)</td>
+                <td>@listing.EndDate.ToString(StringConstants.DateTimeFormat)</td>
                 <td> 
                     @if (listing.IsActive)
                     {
