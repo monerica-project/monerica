@@ -140,7 +140,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return this.RedirectToAction(
-                        "Confirm",
+                        "ConfirmNowPayments",
                         new { directoryEntryId = id, selectedOfferId = selectedOfferId });
         }
 
@@ -206,8 +206,8 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("confirm")]
-        public async Task<IActionResult> ConfirmAsync(int directoryEntryId, int selectedOfferId)
+        [HttpGet("confirmnowpayments")]
+        public async Task<IActionResult> ConfirmNowPaymentsAsync(int directoryEntryId, int selectedOfferId)
         {
             var offer = this.sponsoredListings.SponsoredListingOffers.FirstOrDefault(x => x.Id == selectedOfferId);
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
@@ -251,7 +251,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpPost("confirmed")]
+        [HttpPost("confirmnowpayments")]
         public async Task<IActionResult> ConfirmedAsync(
             int directoryEntryId,
             int selectedOfferId)
