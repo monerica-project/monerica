@@ -31,7 +31,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (!end.HasValue)
             {
-                end = DateTime.UtcNow;
+                end = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
             }
 
             var uniqueIPs = this.trafficLogRepository.GetUniqueIpsInRange(start.Value, end.Value);
