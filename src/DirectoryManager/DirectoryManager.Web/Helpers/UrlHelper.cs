@@ -2,7 +2,7 @@
 
 namespace DirectoryManager.Web.Helpers
 {
-    public class UrlValidator
+    public class UrlHelper
     {
         private static readonly Regex TorRegex =
             new Regex(
@@ -26,6 +26,15 @@ namespace DirectoryManager.Web.Helpers
             // Check if it's a valid regular URL
             return Uri.TryCreate(url, UriKind.Absolute, out var uriResult)
                    && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
+        }
+
+        public static string GetCurrentDomain(HttpContext httpContext)
+        {
+            return string.Format(
+                "{0}{1}{2}",
+                httpContext.Request.Scheme,
+                "://",
+                httpContext.Request.Host.ToUriComponent());
         }
     }
 }
