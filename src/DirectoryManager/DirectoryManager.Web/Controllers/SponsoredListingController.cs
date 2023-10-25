@@ -200,7 +200,8 @@ namespace DirectoryManager.Web.Controllers
 
             var viewModel = new SuccessViewModel
             {
-                OrderId = existingInvoice.InvoiceId
+                OrderId = existingInvoice.InvoiceId,
+                ListingEndDate = existingInvoice.CampaignEndDate
             };
 
             return this.View("NowPaymentsSuccess", viewModel);

@@ -40,6 +40,5 @@ In addition to being at the top of the page, your listing is also highlighted in
     {
     @await Html.PartialAsync("_AdSpaceFull", new ListingInventoryModel()
         { CanCreateSponsoredListing = Model.CanCreateSponsoredListing,
-         NextListingExpiration = Model.NextListingExpiration})
-    ;
+         NextListingExpiration = Model.NextListingExpiration});
     }
