@@ -148,12 +148,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             var latestUpdateDate = this.context.DirectoryEntries
                                    .Where(e => e != null)
-                                   .Max(e => e.UpdateDate);
-
-            if (latestUpdateDate == null)
-            {
-                return DateTime.MinValue;
-            }
+                                   .Max(e => e.UpdateDate) ?? DateTime.MinValue;
 
             // Return the more recent of the two dates
             return (DateTime)(latestCreateDate > latestUpdateDate ? latestCreateDate : latestUpdateDate);
