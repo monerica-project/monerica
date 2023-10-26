@@ -1,4 +1,5 @@
-﻿@model DirectoryManager.Web.Models.SuccessViewModel
+﻿@using DirectoryManager.Web.Constants;
+@model DirectoryManager.Web.Models.SuccessViewModel
 @{
     ViewData["Title"] = "Successful Sponsored Listing";
 }
@@ -9,3 +10,5 @@
 <hr />
 
 <p>Thank you for your payment. Your order ID is: @Model.OrderId</p>
+
+<p>Your listing is currently live and will remain displayed until: @Model.ListingEndDate.ToString(StringConstants.DateTimeFormat)</p>

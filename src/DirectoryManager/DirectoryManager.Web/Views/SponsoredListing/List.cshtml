@@ -7,7 +7,7 @@
 
 <h1>@ViewData["Title"]</h1>
 
-<a href="~/account/home">Admin home</a>
+@await Html.PartialAsync("_AdminMenu")
 
 <hr />
 
@@ -16,6 +16,7 @@
         <tr>
             <th>Name</th>
             <th>Start Date</th>
+            <th></th>
             <th>End Date</th>
             <th>Active</th>
             <th>Actions</th>
@@ -26,8 +27,9 @@
         {
             <tr>
                 <td>@listing.DirectoryEntryName</td>
-                <td>@listing.StartDate.ToString(StringConstants.DateFormat)</td>
-                <td>@listing.EndDate.ToString(StringConstants.DateFormat)</td>
+                <td>@listing.StartDate.ToString(StringConstants.DateTimeFormat)</td>
+                <td> - </td>
+                <td>@listing.EndDate.ToString(StringConstants.DateTimeFormat)</td>
                 <td> 
                     @if (listing.IsActive)
                     {

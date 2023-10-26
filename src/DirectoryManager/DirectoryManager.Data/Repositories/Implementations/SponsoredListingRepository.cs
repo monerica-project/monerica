@@ -30,6 +30,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var currentDate = DateTime.UtcNow;
 
             return await this.context.SponsoredListings
+                                     .Include(x => x.DirectoryEntry) // Include DirectoryEntry navigation property
                                      .Where(x => x.CampaignStartDate <= currentDate && x.CampaignEndDate >= currentDate) // Filter active listings
                                      .OrderByDescending(x => x.CampaignEndDate) // Sort primarily by end date
                                      .ThenByDescending(x => x.CampaignStartDate) // Then by start date
@@ -87,6 +88,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 this.context.SponsoredListings.Remove(sponsoredListing);
                 await this.context.SaveChangesAsync();
             }
+        }
+
+        public Task<SponsoredListing?> GetActiveListing(int directoryEntryId)
+        {
+            var now = DateTime.UtcNow;
+
+            return this.context.SponsoredListings
+                .FirstOrDefaultAsync(x => x.DirectoryEntryId == directoryEntryId &&
+                                          x.CampaignStartDate <= now &&
+                                          x.CampaignEndDate >= now);
         }
     }
 }

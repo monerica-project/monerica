@@ -4,7 +4,7 @@
 }
 <h1>@ViewData["Title"]</h1>
 
-<a href="~/account/home">Admin home</a>
+@await Html.PartialAsync("_AdminMenu")
 
 <hr />
 <table>

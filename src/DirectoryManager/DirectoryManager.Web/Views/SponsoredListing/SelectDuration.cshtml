@@ -1,12 +1,14 @@
 ﻿@using DirectoryManager.Web.Constants;
 @using DirectoryManager.Web.Models;
 @using System.Globalization;
+@using DirectoryManager.Data.Enums
 @model IEnumerable<SponsoredListingOffer>
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 
 @{
     ViewData["Title"] = "Select Listing Duration";
     var offersList = Model.ToList();
-    int defaultChoiceIndex = 1;
+    int defaultChoiceId = 1;
 }
 
 <h1>@ViewData["Title"]</h1>
@@ -15,9 +17,7 @@
 
 <hr />
 
-<p>
-    <i>Note: All prices are converted to Monero (XMR) at the time of payment.</i>
-    </p>
+<p><i>@Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.PaymentCurrencyMessage))</i></p>
 
 <form method="post">
     <div class="form-group">
@@ -27,7 +27,7 @@
             var offer = offersList[i];
             <div class="form-check">
                 <label class="form-check-label" style="display: flex; align-items: center;">
-                    <input class="form-check-input" type="radio" name="SelectedOfferId" value="@offer.Id" @(i == defaultChoiceIndex ? "checked" : string.Empty)>
+                    <input class="form-check-input" type="radio" name="SelectedOfferId" value="@offer.Id" @(offer.Id == defaultChoiceId ? "checked" : string.Empty)>
                     @offer.Description - @offer.USDPrice.ToString("C", new CultureInfo(StringConstants.DefaultCulure)) USD
                 </label>
             </div>

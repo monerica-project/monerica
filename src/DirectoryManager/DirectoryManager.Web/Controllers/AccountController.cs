@@ -33,30 +33,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
-        [Authorize]
-        [HttpGet]
-        public async Task<IActionResult> NewestAdditions(int numberOfDays = 10)
-        {
-            var groupedNewestAdditions = await this.directoryEntryRepository.GetNewestAdditionsGrouped(numberOfDays);
-
-            var viewModel = groupedNewestAdditions.SelectMany(group =>
-                group.Entries.Select(entry => new GroupedDirectoryEntry
-                {
-                    Date = group.Date,
-                    Entries = new List<DirectoryEntry> // Create a list to store entries
-                    {
-                    new DirectoryEntry
-                    {
-                        Name = entry.Name,
-                        Link = entry.Link,
-                        Description = entry.Description
-                    }
-                    }
-                }));
-
-            return this.View(viewModel);
-        }
-
         [HttpPost]
         public async Task<IActionResult> Login(string username, string password, bool rememberMe)
         {

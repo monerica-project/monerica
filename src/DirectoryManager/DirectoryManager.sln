@@ -38,6 +38,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectoryManager.Web.Tests"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NowPayments.API", "NowPayments.API\NowPayments.API.csproj", "{EF5ED6F2-5A87-4E60-A84D-BB58AD21A7AF}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectoryManager.Utilities", "DirectoryManager.Utilities\DirectoryManager.Utilities.csproj", "{17EF02EE-E87E-4BA3-B7BD-687AB2C72FA2}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -68,6 +70,10 @@ Global
 		{EF5ED6F2-5A87-4E60-A84D-BB58AD21A7AF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{EF5ED6F2-5A87-4E60-A84D-BB58AD21A7AF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{EF5ED6F2-5A87-4E60-A84D-BB58AD21A7AF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{17EF02EE-E87E-4BA3-B7BD-687AB2C72FA2}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{17EF02EE-E87E-4BA3-B7BD-687AB2C72FA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{17EF02EE-E87E-4BA3-B7BD-687AB2C72FA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{17EF02EE-E87E-4BA3-B7BD-687AB2C72FA2}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel;
 using System.Reflection;
 
-namespace DirectoryManager.Web.Helpers
+namespace DirectoryManager.Utilities.Helpers
 {
     public class EnumHelper
     {

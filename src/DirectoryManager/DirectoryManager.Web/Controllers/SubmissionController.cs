@@ -1,7 +1,6 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
-using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
@@ -53,7 +52,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost("submit")]
         public async Task<IActionResult> Create(SubmissionRequest model)
         {
-            if (!UrlValidator.IsValidUrl(model.Link))
+            if (!UrlHelper.IsValidUrl(model.Link))
             {
                 this.ModelState.AddModelError("Link", "The link is not a valid URL.");
             }
@@ -74,7 +73,7 @@ namespace DirectoryManager.Web.Controllers
 
                 var submission = new Submission
                 {
-                    SubmissionStatus = Data.Enums.SubmissionStatus.Pending,
+                    SubmissionStatus = SubmissionStatus.Pending,
                     Name = model.Name.Trim(),
                     Link = (model.Link == null) ? string.Empty : model.Link.Trim(),
                     Link2 = (model.Link2 == null) ? string.Empty : model.Link2.Trim(),

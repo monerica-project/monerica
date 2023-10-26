@@ -20,7 +20,7 @@ namespace DirectoryManager.Web.Tests.Helpers
         [InlineData(null, false)]
         public void TestIsValidUrl(string url, bool expected)
         {
-            bool result = UrlValidator.IsValidUrl(url);
+            bool result = UrlHelper.IsValidUrl(url);
             Assert.Equal(expected, result);
         }
     }

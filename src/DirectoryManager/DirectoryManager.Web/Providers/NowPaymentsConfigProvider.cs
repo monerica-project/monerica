@@ -31,7 +31,21 @@ namespace DirectoryManager.Web.Providers
             var partiallyPaidUrl = this.configuration.GetSection("NowPayments:PartiallyPaidUrl")?.Value ?? string.Empty;
             this.ValidateConfigValue(partiallyPaidUrl, "NowPayments:PartiallyPaidUrl", "The partially paid URL for NowPayments is not configured or is empty.");
 
-            return new PaymentConfigs(apiKey, ipnSecretKey, successUrl, cancelUrl, ipnCallbackUrl, partiallyPaidUrl);
+            var payCurrency = this.configuration.GetSection("NowPayments:PayCurrency")?.Value ?? string.Empty;
+            this.ValidateConfigValue(payCurrency, "NowPayments:PayCurrency", "The pay currency for NowPayments is not configured or is empty.");
+
+            var priceCurrency = this.configuration.GetSection("NowPayments:PriceCurrency")?.Value ?? string.Empty;
+            this.ValidateConfigValue(priceCurrency, "NowPayments:PriceCurrency", "The price currency for NowPayments is not configured or is empty.");
+
+            return new PaymentConfigs(
+                apiKey,
+                ipnSecretKey,
+                successUrl,
+                cancelUrl,
+                ipnCallbackUrl,
+                partiallyPaidUrl,
+                payCurrency,
+                priceCurrency);
         }
 
         private void ValidateConfigValue(string value, string configKey, string errorMessage)

@@ -4,6 +4,10 @@ namespace NowPayments.API.Interfaces
 {
     public interface INowPaymentsService
     {
+        string PayCurrency { get; }
+
+        string PriceCurrency { get; }
+
         void SetDefaultUrls(PaymentRequest request);
 
         Task<InvoiceResponse> CreateInvoice(PaymentRequest request);

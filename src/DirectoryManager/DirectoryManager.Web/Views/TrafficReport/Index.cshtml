@@ -6,9 +6,17 @@
 }
 <h1>@ViewData["Title"]</h1>
 
-<a href="~/account/home">Admin home</a>
-
+@await Html.PartialAsync("_AdminMenu")
 <hr />
+
+<!-- Add these links for predefined report durations -->
+<div>
+    <a href="~/trafficreport/last24hours">Last 24 Hours</a> |
+    <a href="~/trafficreport/lastweek">Last Week</a> |
+    <a href="~/trafficreport/lastmonth">Last 30 Days</a>
+</div>
+<hr />
+
 <form method="get">
     <div>
         <label for="start">Start Date:</label>

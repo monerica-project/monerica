@@ -31,6 +31,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<LogEntry> LogEntries { get; set; }
 
+        public DbSet<ContentSnippet> ContentSnippets { get; set; }
+
         int SaveChanges();
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

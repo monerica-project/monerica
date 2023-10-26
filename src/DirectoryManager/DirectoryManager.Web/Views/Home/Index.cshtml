@@ -1,67 +1,29 @@
 ﻿@using DirectoryManager.Data.Models
 @using DirectoryManager.Web.Constants;
+@using DirectoryManager.Data.Enums;
 @model DirectoryManager.Data.Models.Category
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubCategoryRepository subCategoryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntrySelectionRepository directoryEntrySelectionRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
-
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 @{
-    ViewData["Title"] = "Monerica - A Directory For A Monero Circular Economy";
+    ViewData["Title"] = Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.HomePageTitle));
 }
-
 <cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.EntriesCacheKey"
                cache-duration-seconds="@DirectoryManager.Web.Constants.IntegerConstants.CacheDurationSeconds">
-
-    <h1>Welcome To Monerica!</h1>
-
-    <h4>A directory for a Monero circular economy</h4>
-
-    <img style="width:333px;" src="/images/monerica-logo.png" alt="Monerica logo" />
-
-    <p>
-        The goal of Monerica is to reflect the freedom ideals of the United States of America
-        in the age of cryptocurrency by using Monero. There are no borders to Monerica. One has the ability
-        to transact freely and privately without the need for a bank account, without the permission of
-        any third party, and without the prying eyes of those who wish to control the thoughts
-        and behaviors of others through surveillance and overreaching regulations.
-    </p>
-
+    @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.HomePageDisplayHtml))
     <hr />
-
     <p>
         <b>Last update:</b> @directoryEntryRepository.GetLastRevisionDate().ToString(StringConstants.DateTimeFormat)
     </p>
-
     <hr />
-
-    <p>
-        <i>
-            Note: None of the provided links
-            here are endorsements and some may contain affiliate links.
-        </i>
-    </p>
-
-    <p>
-        &#9989; - indicates someone in the community has done a successful test transaction or has used this software/
-        service
-    </p>
-    <p>
-        &#10060; - indicates someone in the community has reported this a scam
-    </p>
-
-    <p>
-        <b>Submit new or change existing links: <a class="button-link" href="~/submit">here</a>.</b>
-        Follow on: <a target="_blank" href="https://twitter.com/MonericaProject">Twitter</a>.
-    </p>
-
+        @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.DirectoryLegendHtml))
     <hr />
-
     @await Html.PartialAsync("_SponsoredListingPartial")
-
     <hr />
 
     @{
@@ -226,4 +188,4 @@
 
 </cache-content>
 
-@await Html.PartialAsync("_DonationsPartial")
+@Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.DonationHtml))

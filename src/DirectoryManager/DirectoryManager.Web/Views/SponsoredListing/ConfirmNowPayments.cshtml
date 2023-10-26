@@ -1,7 +1,9 @@
 ﻿@using DirectoryManager.Web.Constants;
 @using DirectoryManager.Web.Models
 @using System.Globalization;
+@using DirectoryManager.Data.Enums
 @model DirectoryManager.Web.Models.ConfirmSelectionViewModel;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 
 @{
     ViewData["Title"] = "Confirm Selection";
@@ -33,16 +35,20 @@
             <b>Days:</b> @Model.Offer.Days
         </p>
 
+        if (Model.IsExtension)
+        {
+            <p>
+                <b>Order note:</b> These days will be added to the current listing.
+            </p>
+        }
+
         <p>
             <i>
-                Note: You will be redirected to NOWPayments where you will pay the amount in Monero (XMR).
-                Once the payment has finished, your sponsored listing will be displayed automatically.
-                All customer service for payment is handled by NOWPayments.
-                Take note of "Payment ID" and "Order ID" in case you exit the page or there is an error.
+                @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.NowPaymentsMessage))             
             </i>
         </p>
 
-        <form method="post" action="~/sponsoredlisting/confirmed">
+        <form method="post" action="~/sponsoredlisting/confirmnowpayments">
             <input type="hidden" name="directoryEntryId" value="@Model.SelectedDirectoryEntry.DirectoryEntry.Id" />
             <input type="hidden" name="selectedOfferId" value="@Model.Offer.Id" />
             <button class="btn" type="submit">Purchase Listing</button>
