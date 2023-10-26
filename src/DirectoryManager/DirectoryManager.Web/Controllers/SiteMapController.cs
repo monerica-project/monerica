@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Web.Enums;
+﻿using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
@@ -13,13 +14,16 @@ namespace DirectoryManager.Web.Controllers
 
         private readonly ICacheService cacheService;
         private readonly IMemoryCache memoryCache;
+        private readonly IDirectoryEntryRepository directoryEntryRepository;
 
         public SiteMapController(
             ICacheService cacheService,
-            IMemoryCache memoryCache)
+            IMemoryCache memoryCache,
+            IDirectoryEntryRepository directoryEntryRepository)
         {
             this.cacheService = cacheService;
             this.memoryCache = memoryCache;
+            this.directoryEntryRepository = directoryEntryRepository;
         }
 
         [Route("sitemap_index.xml")]
@@ -31,13 +35,14 @@ namespace DirectoryManager.Web.Controllers
         [Route("sitemap.xml")]
         public IActionResult Index()
         {
+            var date = this.directoryEntryRepository.GetLastRevisionDate();
             var siteMapHelper = new SiteMapHelper();
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
             {
                 Url = UrlHelper.GetCurrentDomain(this.HttpContext),
                 Priority = 1.0,
                 ChangeFrequency = ChangeFrequency.Daily,
-                LastMode = DateTime.UtcNow
+                LastMode = date
             });
 
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
@@ -45,7 +50,7 @@ namespace DirectoryManager.Web.Controllers
                 Url = string.Format("{0}/newest", UrlHelper.GetCurrentDomain(this.HttpContext)),
                 Priority = 1.0,
                 ChangeFrequency = ChangeFrequency.Daily,
-                LastMode = DateTime.UtcNow
+                LastMode = date
             });
 
             var xml = siteMapHelper.GenerateXml();

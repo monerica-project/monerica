@@ -8,25 +8,16 @@ namespace DirectoryManager.Web.Controllers
 {
     public class HomeController : BaseController
     {
-        private readonly ISubmissionRepository submissionRepository;
-        private readonly ICategoryRepository categoryRepository;
-        private readonly ISubCategoryRepository subCategoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly IMemoryCache cache;
 
         public HomeController(
-            ISubmissionRepository submissionRepository,
-            ICategoryRepository categoryRepository,
-            ISubCategoryRepository subCategoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
-            this.submissionRepository = submissionRepository;
-            this.categoryRepository = categoryRepository;
-            this.subCategoryRepository = subCategoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
             this.cache = cache;
         }
