@@ -433,7 +433,6 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("activelistings")]
-        [Authorize]
         public async Task<IActionResult> ActiveListings()
         {
             var listings = await this.sponsoredListingRepository.GetAllActiveListingsAsync();
