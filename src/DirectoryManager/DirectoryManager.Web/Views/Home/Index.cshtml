@@ -24,7 +24,7 @@
         @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.DirectoryLegendHtml))
     <hr />
     @await Html.PartialAsync("_SponsoredListingPartial")
-    <hr />
+
 
     @{
         var featuredEntries = await directoryEntrySelectionRepository.GetEntriesForSelection(DirectoryManager.Data.Enums.EntrySelectionType.Featured);
@@ -32,6 +32,8 @@
 
     @if (featuredEntries != null && featuredEntries.Count() > 0)
     {
+
+        <hr />
         <p><b>Featured</b></p>
 
         <ul>
@@ -45,7 +47,7 @@
                 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
         </ul>
-        <hr />
+
     }
 
     @{
@@ -54,7 +56,7 @@
 
     @if (newestEntries != null && newestEntries.Count() > 0)
     {
-
+        <hr />
         <p><b>Newest Additions</b></p>
         <i>See: <a href="~/newest">all new additions</a></i>
         <ul>
