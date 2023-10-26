@@ -10,7 +10,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync();
         Task<int> GetTotalCountAsync();
         Task<List<SponsoredListing>> GetPaginatedListingsAsync(int page, int pageSize);
-
+        Task<SponsoredListing?> GetActiveListing(int directoryEntryId);
         Task<SponsoredListing> CreateAsync(SponsoredListing sponsoredListing);
         Task<bool> UpdateAsync(SponsoredListing sponsoredListing);
         Task DeleteAsync(int id);

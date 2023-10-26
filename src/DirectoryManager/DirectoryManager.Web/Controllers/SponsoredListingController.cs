@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Migrations;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities;
@@ -8,6 +9,7 @@ using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
@@ -100,16 +102,10 @@ namespace DirectoryManager.Web.Controllers
 
             if (currentListings != null)
             {
-                if (currentListings.Count() == IntegerConstants.MaxSponsoredListings)
+                if (!this.CanAdvertise(id, currentListings))
                 {
                     // max listings
                     return this.BadRequest(new { Error = "Maximum number of sponsored listings reached." });
-                }
-
-                if (currentListings.FirstOrDefault(x => x.DirectoryEntryId == id) != null)
-                {
-                    // this listing is already active
-                    return this.BadRequest(new { Error = "This listing is already active." });
                 }
             }
 
@@ -221,27 +217,21 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = "Invalid selection." });
             }
 
+            var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync();
+
             var viewModel = new ConfirmSelectionViewModel
             {
                 SelectedDirectoryEntry = new DirectoryEntryViewModel()
                 {
                     DirectoryEntry = directoryEntry,
                 },
-                Offer = offer
+                Offer = offer,
+                IsExtension = currentListings.FirstOrDefault(x => x.DirectoryEntryId == directoryEntryId) != null
             };
 
-            var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync();
             if (currentListings != null && currentListings.Any())
             {
-                if (currentListings.Count() == IntegerConstants.MaxSponsoredListings)
-                {
-                    // max listings reached
-                    viewModel.CanCreateSponsoredListing = false;
-                }
-                else
-                {
-                    viewModel.CanCreateSponsoredListing = true;
-                }
+                viewModel.CanCreateSponsoredListing = this.CanAdvertise(directoryEntryId, currentListings);
 
                 // Get the next listing expiration date (i.e., the soonest CampaignEndDate)
                 viewModel.NextListingExpiration = currentListings.Min(x => x.CampaignEndDate);
@@ -276,7 +266,13 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = "Directory entry not found." });
             }
 
-            var now = DateTime.UtcNow;
+            var existingListing = await this.sponsoredListingRepository.GetActiveListing(directoryEntryId);
+            var startDate = DateTime.UtcNow;
+
+            if (existingListing != null)
+            {
+                startDate = existingListing.CampaignEndDate;
+            }
 
             var invoice = await this.sponsoredListingInvoiceRepository.CreateAsync(
                 new SponsoredListingInvoice
@@ -285,8 +281,8 @@ namespace DirectoryManager.Web.Controllers
                     Currency = Currency.USD,
                     InvoiceId = Guid.NewGuid(),
                     PaymentStatus = PaymentStatus.InvoiceCreated,
-                    CampaignStartDate = now,
-                    CampaignEndDate = now.AddDays(sponsoredListingOffer.Days),
+                    CampaignStartDate = startDate,
+                    CampaignEndDate = startDate.AddDays(sponsoredListingOffer.Days),
                     Amount = sponsoredListingOffer.USDPrice,
                     InvoiceDescription = sponsoredListingOffer.Description
                 });
@@ -436,6 +432,26 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
+        [HttpGet("activelistings")]
+        [Authorize]
+        public async Task<IActionResult> ActiveListings()
+        {
+            var listings = await this.sponsoredListingRepository.GetAllActiveListingsAsync();
+            var model = new ActiveSponsoredListingViewModel
+            {
+                Items = listings.Select(l => new ActiveSponsoredListingModel
+                {
+                    ListingName = l.DirectoryEntry?.Name ?? StringConstants.DefaultName,
+                    SponsoredListingId = l.SponsoredListingId,
+                    CampaignEndDate = l.CampaignEndDate,
+                    ListingUrl = l.DirectoryEntry?.Link ?? string.Empty,
+                    DirectoryListingId = l.DirectoryEntryId
+                }).ToList()
+            };
+
+            return this.View("activelistings", model);
+        }
+
         [HttpPost("edit/{id}")]
         [Authorize]
         public async Task<IActionResult> EditAsync(int id, EditListingViewModel model)
@@ -529,18 +545,53 @@ namespace DirectoryManager.Web.Controllers
 
                 if (existingSponsoredListing == null && invoice.PaymentStatus == PaymentStatus.Paid)
                 {
-                    await this.sponsoredListingRepository.CreateAsync(
-                        new SponsoredListing()
-                        {
-                            DirectoryEntryId = invoice.DirectoryEntryId,
-                            CampaignStartDate = invoice.CampaignStartDate,
-                            CampaignEndDate = invoice.CampaignEndDate,
-                            SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId,
-                        });
+                    var activeListing = await this.sponsoredListingRepository
+                                                  .GetActiveListing(invoice.DirectoryEntryId);
+
+                    if (activeListing == null)
+                    {
+                        // if the invoice is paid and there is no existing sponsored listing, create one
+                        var sponsoredListing = await this.sponsoredListingRepository.CreateAsync(
+                            new SponsoredListing()
+                            {
+                                DirectoryEntryId = invoice.DirectoryEntryId,
+                                CampaignStartDate = invoice.CampaignStartDate,
+                                CampaignEndDate = invoice.CampaignEndDate,
+                                SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId,
+                            });
+
+                        invoice.SponsoredListingId = sponsoredListing.SponsoredListingId;
+                        await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
+                    }
+                    else
+                    {
+                        // extend the existing listing
+                        activeListing.CampaignEndDate = invoice.CampaignEndDate;
+
+                        // set the current active listing's invoice to the new invoice
+                        activeListing.SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId;
+                        await this.sponsoredListingRepository.UpdateAsync(activeListing);
+
+                        // set the new invoice's sponsored listing to the current active listing
+                        invoice.SponsoredListingId = activeListing.SponsoredListingId;
+                        await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
+                    }
 
                     this.ClearCachedItems();
                 }
             }
+        }
+
+        private bool CanAdvertise(
+            int directoryEntryId,
+            IEnumerable<SponsoredListing> currentListings)
+        {
+            if (currentListings.FirstOrDefault(x => x.DirectoryEntryId == directoryEntryId) != null)
+            {
+                return true;
+            }
+
+            return currentListings.Count() < IntegerConstants.MaxSponsoredListings;
         }
     }
 }

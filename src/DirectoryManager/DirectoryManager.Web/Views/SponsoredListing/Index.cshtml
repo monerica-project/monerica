@@ -41,4 +41,6 @@ In addition to being at the top of the page, your listing is also highlighted in
     @await Html.PartialAsync("_AdSpaceFull", new ListingInventoryModel()
         { CanCreateSponsoredListing = Model.CanCreateSponsoredListing,
          NextListingExpiration = Model.NextListingExpiration});
+
+    <p>However, you can extend the duration of an existing listing: <a href="~/sponsoredlisting/activelistings">here</a>.</p>
     }

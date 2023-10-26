@@ -28,9 +28,6 @@ namespace DirectoryManager.Data.Models
 
         public Currency PaidInCurrency { get; set; } = Currency.Unknown;
 
-        /// <summary>
-        /// todo: needs to be to 12 decimal places.
-        /// </summary>
         public decimal Amount { get; set; }
 
         public Currency Currency { get; set; } = Currency.Unknown;
@@ -56,6 +53,8 @@ namespace DirectoryManager.Data.Models
         /// The response from the payment processor when the payment was made.
         /// </summary>
         public string PaymentResponse { get; set; } = string.Empty;
+
+        public int? SponsoredListingId { get; set; }
 
         public virtual DirectoryEntry? DirectoryEntry { get; set; }
 

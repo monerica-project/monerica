@@ -35,6 +35,13 @@
             <b>Days:</b> @Model.Offer.Days
         </p>
 
+        if (Model.IsExtension)
+        {
+            <p>
+                <b>Order note:</b> These days will be added to the current listing.
+            </p>
+        }
+
         <p>
             <i>
                 @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.NowPaymentsMessage))             

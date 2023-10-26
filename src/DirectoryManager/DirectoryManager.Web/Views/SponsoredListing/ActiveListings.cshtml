@@ -1,0 +1,31 @@
+﻿@model DirectoryManager.Web.Models.ActiveSponsoredListingViewModel
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData["Title"] = "Active Sponsored Listings";
+}
+<h1>@ViewData["Title"]</h1>
+
+<a href="~/">Back to home</a>
+<hr />
+ 
+<table class="table">
+    <thead>
+        <tr>
+            <th>Listing Name</th>
+            <th>Expires At</th>
+            <th></th>  <!-- For the select link -->
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var listing in Model.Items)
+        {
+            <tr>
+                <td><a target="_blank" href="@listing.ListingUrl">@listing.ListingName</a></td>
+                <td>@listing.CampaignEndDate.ToString(StringConstants.DateTimeFormat2)</td>
+                <td>
+                    <a href="@Url.Action("selectduration", new { id = listing.DirectoryListingId })">Select</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

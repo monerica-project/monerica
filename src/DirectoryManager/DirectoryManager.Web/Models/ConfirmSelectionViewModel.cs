@@ -6,5 +6,6 @@
         required public SponsoredListingOffer Offer { get; set; }
         public bool CanCreateSponsoredListing { get; set; } = true;
         public DateTime NextListingExpiration { get; set; }
+        public bool IsExtension { get; set; }
     }
 }

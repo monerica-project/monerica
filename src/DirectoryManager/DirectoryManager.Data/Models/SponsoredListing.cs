@@ -14,6 +14,9 @@ namespace DirectoryManager.Data.Models
 
         public virtual DirectoryEntry? DirectoryEntry { get; set; }
 
+        /// <summary>
+        /// The most recently paid invoice for this sponsored listing.
+        /// </summary>
         public int SponsoredListingInvoiceId { get; set; }
 
         public virtual SponsoredListingInvoice? SponsoredListingInvoice { get; set; }
