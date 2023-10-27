@@ -38,6 +38,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DirectoryManager.Data\DirectoryManager.Data.csproj" />
+    <ProjectReference Include="..\DirectoryManager.FileStorage\DirectoryManager.FileStorage.csproj" />
     <ProjectReference Include="..\DirectoryManager.Utilities\DirectoryManager.Utilities.csproj" />
     <ProjectReference Include="..\NowPayments.API\NowPayments.API.csproj" />
   </ItemGroup>

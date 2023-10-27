@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 
 	<PropertyGroup>
 		<TargetFramework>net7.0</TargetFramework>
@@ -12,10 +12,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
+	  <PackageReference Include="Azure.Storage.Blobs" Version="12.18.0" />
 	  <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
 	    <PrivateAssets>all</PrivateAssets>
 	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 	  </PackageReference>
+	</ItemGroup>
+
+	<ItemGroup>
+	  <ProjectReference Include="..\DirectoryManager.Utilities\DirectoryManager.Utilities.csproj" />
 	</ItemGroup>
 
 </Project>
