@@ -14,25 +14,25 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context;
         }
 
-        public async Task<IEnumerable<SponsoredListingOffer>> GetAllOffersAsync()
+        public async Task<IEnumerable<SponsoredListingOffer>> GetAllAsync()
         {
             return await this.context.SponsoredListingOffers.ToListAsync();
         }
 
-        public async Task<SponsoredListingOffer> GetOfferByIdAsync(int id)
+        public async Task<SponsoredListingOffer> GetByIdAsync(int id)
         {
             var result = await this.context.SponsoredListingOffers.FindAsync(id);
 
             return result ?? throw new Exception("Offer not found");
         }
 
-        public async Task AddOfferAsync(SponsoredListingOffer offer)
+        public async Task CreateAsync(SponsoredListingOffer offer)
         {
             await this.context.SponsoredListingOffers.AddAsync(offer);
             await this.context.SaveChangesAsync();
         }
 
-        public async Task UpdateOfferAsync(SponsoredListingOffer offer)
+        public async Task UpdateAsync(SponsoredListingOffer offer)
         {
             this.context.SponsoredListingOffers.Update(offer);
             await this.context.SaveChangesAsync();
@@ -40,7 +40,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task DeleteOfferAsync(int id)
         {
-            var offer = await this.GetOfferByIdAsync(id);
+            var offer = await this.GetByIdAsync(id);
             if (offer != null)
             {
                 this.context.SponsoredListingOffers.Remove(offer);

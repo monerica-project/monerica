@@ -33,6 +33,9 @@ builder.Services.AddRazorPages();
 builder.Services.AddMemoryCache();
 builder.Services.AddMvc();
 
+// database context
+builder.Services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
+
 // database repositories
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
@@ -45,9 +48,7 @@ builder.Services.AddScoped<IExcludeUserAgentRepository, ExcludeUserAgentReposito
 builder.Services.AddScoped<ISponsoredListingInvoiceRepository, SponsoredListingInvoiceRepository>();
 builder.Services.AddScoped<ISponsoredListingRepository, SponsoredListingRepository>();
 builder.Services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
-
-// database context
-builder.Services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
+builder.Services.AddScoped<ISponsoredListingOfferRepository, SponsoredListingOfferRepository>();
 
 // services
 builder.Services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();

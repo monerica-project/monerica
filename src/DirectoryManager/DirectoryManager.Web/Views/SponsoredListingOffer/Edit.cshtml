@@ -1,0 +1,37 @@
+﻿@model DirectoryManager.Data.Models.SponsoredListingOffer
+
+@{
+    ViewData["Title"] = "Edit Sponsored Listing Offer";
+}
+
+<h1>@ViewData["Title"]</h1>
+@await Html.PartialAsync("_AdminMenu")
+
+<hr />
+<form asp-action="Edit">
+    <input type="hidden" asp-for="Id" />
+    <div class="form-group">
+        <label asp-for="Description" class="control-label"></label>
+        <input asp-for="Description" class="form-control" />
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Days" class="control-label"></label>
+        <input asp-for="Days" class="form-control" />
+        <span asp-validation-for="Days" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="PriceCurrency" class="control-label"></label>
+        <select asp-for="PriceCurrency" class="form-control" asp-items="Html.GetEnumSelectList<DirectoryManager.Data.Enums.Currency>()"></select>
+        <span asp-validation-for="PriceCurrency" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Price" class="control-label"></label>
+        <input asp-for="Price" class="form-control" />
+        <span asp-validation-for="Price" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <input type="submit" value="Save" class="btn btn-primary" />
+    </div>
+</form>
+
