@@ -88,6 +88,19 @@ builder.Services.AddSingleton<IBlobService>(provider =>
     }).GetAwaiter().GetResult();
 });
 
+builder.Services.AddSingleton<IBlobService>(provider =>
+{
+    return Task.Run(async () =>
+    {
+        using var scope = provider.CreateScope();
+        var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
+        var azureStorageConnection = cacheService.GetSnippet(SiteConfigSetting.AzureStorageConnectionString);
+        var blobServiceClient = new BlobServiceClient(azureStorageConnection);
+
+        return await BlobService.CreateAsync(blobServiceClient);
+    }).GetAwaiter().GetResult();
+});
+
 builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>

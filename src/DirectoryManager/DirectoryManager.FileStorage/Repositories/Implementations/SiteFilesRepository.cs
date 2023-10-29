@@ -138,6 +138,11 @@ namespace DirectoryManager.FileStorage.Repositories.Implementations
                     this.blobService.GetContainerReference(StringConstants.ContainerName)
                     ?? throw new Exception("Container not found");
 
+                if (container == null)
+                {
+                    throw new Exception("Container not found");
+                }
+
                 var blob = container.GetBlobClient(filePath);
 
                 stream.Seek(0, SeekOrigin.Begin);
