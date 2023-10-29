@@ -33,6 +33,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<ContentSnippet> ContentSnippets { get; set; }
 
+        public DbSet<SponsoredListingOffer> SponsoredListingOffers { get; set; }
+
         int SaveChanges();
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
