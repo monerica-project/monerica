@@ -39,7 +39,7 @@ namespace DirectoryManager.Web.Controllers
             var siteMapHelper = new SiteMapHelper();
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
             {
-                Url = UrlHelper.GetCurrentDomain(this.HttpContext),
+                Url = WebRequestHelper.GetCurrentDomain(this.HttpContext),
                 Priority = 1.0,
                 ChangeFrequency = ChangeFrequency.Daily,
                 LastMode = date
@@ -47,7 +47,7 @@ namespace DirectoryManager.Web.Controllers
 
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
             {
-                Url = string.Format("{0}/newest", UrlHelper.GetCurrentDomain(this.HttpContext)),
+                Url = string.Format("{0}/newest", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
                 Priority = 1.0,
                 ChangeFrequency = ChangeFrequency.Daily,
                 LastMode = date

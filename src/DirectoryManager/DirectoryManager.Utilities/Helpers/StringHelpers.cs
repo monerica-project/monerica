@@ -1,8 +1,8 @@
 ﻿using System.Text.RegularExpressions;
 
-namespace DirectoryManager.Web.Helpers
+namespace DirectoryManager.Utilities.Helpers
 {
-    public class TextHelpers
+    public class StringHelpers
     {
         public static string UrlKey(string p)
         {
@@ -12,6 +12,7 @@ namespace DirectoryManager.Web.Helpers
                                          .Replace("  ", " ")
                                          .Replace(" ", "-")
                                          .Replace("%", string.Empty)
+                                         .Replace("&", "and")
                                          .ToLowerInvariant();
 
             if (beforeTrim.EndsWith("#"))

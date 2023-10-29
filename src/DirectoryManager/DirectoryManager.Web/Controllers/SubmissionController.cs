@@ -52,7 +52,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost("submit")]
         public async Task<IActionResult> Create(SubmissionRequest model)
         {
-            if (!UrlHelper.IsValidUrl(model.Link))
+            if (!WebRequestHelper.IsValidUrl(model.Link))
             {
                 this.ModelState.AddModelError("Link", "The link is not a valid URL.");
             }

@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -46,7 +47,7 @@ namespace DirectoryManager.Web.Controllers
         {
             category.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
             category.Name = category.Name.Trim();
-            category.CategoryKey = TextHelpers.UrlKey(category.Name);
+            category.CategoryKey = StringHelpers.UrlKey(category.Name);
             category.Description = category.Description?.Trim();
             category.Note = category.Note?.Trim();
 
@@ -83,11 +84,11 @@ namespace DirectoryManager.Web.Controllers
 
             if (!string.IsNullOrWhiteSpace(category.CategoryKey))
             {
-                existingCategory.CategoryKey = TextHelpers.UrlKey(category.CategoryKey.Trim());
+                existingCategory.CategoryKey = StringHelpers.UrlKey(category.CategoryKey.Trim());
             }
             else
             {
-                existingCategory.CategoryKey = TextHelpers.UrlKey(category.Name);
+                existingCategory.CategoryKey = StringHelpers.UrlKey(category.Name);
             }
 
             existingCategory.Description = category.Description?.Trim();

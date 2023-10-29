@@ -27,14 +27,5 @@ namespace DirectoryManager.Web.Helpers
             return Uri.TryCreate(url, UriKind.Absolute, out var uriResult)
                    && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
         }
-
-        public static string GetCurrentDomain(HttpContext httpContext)
-        {
-            return string.Format(
-                "{0}{1}{2}",
-                httpContext.Request.Scheme,
-                "://",
-                httpContext.Request.Host.ToUriComponent());
-        }
     }
 }
