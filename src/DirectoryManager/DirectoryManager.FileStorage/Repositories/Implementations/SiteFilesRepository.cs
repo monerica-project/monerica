@@ -80,7 +80,7 @@ namespace DirectoryManager.FileStorage.Repositories.Implementations
                 }
 
                 var filePrefix = this.BlobPrefix.TrimEnd('/') + "/" + container.Name.TrimEnd('/') + "/";
-                var fileName = blobPath.StartsWith(filePrefix) ? blobPath.Substring(filePrefix.Length) : blobPath;
+                var fileName = blobPath.StartsWith(filePrefix) ? blobPath[filePrefix.Length..] : blobPath;
                 var blob = container.GetBlobClient(fileName);
 
                 await blob.DeleteIfExistsAsync();
@@ -134,7 +134,9 @@ namespace DirectoryManager.FileStorage.Repositories.Implementations
                     }
                 }
 
-                var container = this.blobService.GetContainerReference(StringConstants.ContainerName);
+                var container =
+                    this.blobService.GetContainerReference(StringConstants.ContainerName)
+                    ?? throw new Exception("Container not found");
 
                 if (container == null)
                 {
@@ -262,7 +264,7 @@ namespace DirectoryManager.FileStorage.Repositories.Implementations
 
         private void AddDirectory(SiteFileDirectory directory, BlobHierarchyItem blobDirectory)
         {
-            var folderName = blobDirectory.Prefix.Split('/')[blobDirectory.Prefix.Split('/').Length - 2];
+            var folderName = blobDirectory.Prefix.Split('/')[^2];
             var pathFromRoot = new Uri(this.BlobPrefix + blobDirectory.Prefix)
                                     .LocalPath
                                     .Replace(string.Format("/{0}", StringConstants.ContainerName), string.Empty);

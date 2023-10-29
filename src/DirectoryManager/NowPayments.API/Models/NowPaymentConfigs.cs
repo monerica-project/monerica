@@ -1,8 +1,8 @@
 ﻿namespace NowPayments.API.Models
 {
-    public class PaymentConfigs
+    public class NowPaymentConfigs
     {
-        public PaymentConfigs(
+        public NowPaymentConfigs(
             string apiKey,
             string ipnSecretKey,
             string successUrl,

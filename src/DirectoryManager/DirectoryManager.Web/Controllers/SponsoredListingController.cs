@@ -1,15 +1,12 @@
 ﻿using System.Text;
 using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Migrations;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
-using DirectoryManager.Utilities;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
@@ -27,7 +24,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository;
         private readonly INowPaymentsService paymentService;
         private readonly IMemoryCache cache;
-        private readonly SponsoredListingOffersContainer sponsoredListings;
+        private readonly ISponsoredListingOfferRepository sponsoredListings;
         private readonly ILogger<SponsoredListingController> logger;
 
         public SponsoredListingController(
@@ -39,7 +36,7 @@ namespace DirectoryManager.Web.Controllers
             INowPaymentsService paymentService,
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache,
-            SponsoredListingOffersContainer sponsoredListings,
+            ISponsoredListingOfferRepository sponsoredListings,
             ILogger<SponsoredListingController> logger)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
@@ -102,16 +99,26 @@ namespace DirectoryManager.Web.Controllers
 
             if (currentListings != null)
             {
-                if (!this.CanAdvertise(id, currentListings))
+                if (!CanAdvertise(id, currentListings))
                 {
                     // max listings
                     return this.BadRequest(new { Error = "Maximum number of sponsored listings reached." });
                 }
             }
 
-            var model = this.sponsoredListings
-                            .SponsoredListingOffers
-                            .OrderBy(x => x.Days);
+            var offers = await this.sponsoredListings.GetAllAsync();
+            var model = new List<SponsoredListingOfferModel>();
+
+            foreach (var offer in offers.OrderBy(x => x.Days))
+            {
+                model.Add(new SponsoredListingOfferModel
+                {
+                    Id = offer.Id,
+                    Description = offer.Description,
+                    Days = offer.Days,
+                    USDPrice = offer.Price
+                });
+            }
 
             return this.View(model);
         }
@@ -120,9 +127,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost("selectduration")]
         public async Task<IActionResult> SelectDurationAsync(int id, int selectedOfferId)
         {
-            var selectedOffer = this.sponsoredListings
-                                .SponsoredListingOffers
-                                .Where(x => x.Id == selectedOfferId);
+            var selectedOffer = await this.sponsoredListings.GetByIdAsync(selectedOfferId);
 
             if (selectedOffer == null)
             {
@@ -209,7 +214,7 @@ namespace DirectoryManager.Web.Controllers
             int directoryEntryId,
             int selectedOfferId)
         {
-            var offer = this.sponsoredListings.SponsoredListingOffers.FirstOrDefault(x => x.Id == selectedOfferId);
+            var offer = await this.sponsoredListings.GetByIdAsync(selectedOfferId);
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
 
             if (offer == null || directoryEntry == null)
@@ -225,13 +230,19 @@ namespace DirectoryManager.Web.Controllers
                 {
                     DirectoryEntry = directoryEntry,
                 },
-                Offer = offer,
+                Offer = new SponsoredListingOfferModel()
+                {
+                    Description = offer.Description,
+                    Days = offer.Days,
+                    Id = offer.Id,
+                    USDPrice = offer.Price
+                },
                 IsExtension = currentListings.FirstOrDefault(x => x.DirectoryEntryId == directoryEntryId) != null
             };
 
             if (currentListings != null && currentListings.Any())
             {
-                viewModel.CanCreateSponsoredListing = this.CanAdvertise(directoryEntryId, currentListings);
+                viewModel.CanCreateSponsoredListing = CanAdvertise(directoryEntryId, currentListings);
 
                 // Get the next listing expiration date (i.e., the soonest CampaignEndDate)
                 viewModel.NextListingExpiration = currentListings.Min(x => x.CampaignEndDate);
@@ -250,9 +261,7 @@ namespace DirectoryManager.Web.Controllers
             int directoryEntryId,
             int selectedOfferId)
         {
-            var sponsoredListingOffer = this.sponsoredListings
-                                            .SponsoredListingOffers
-                                            .FirstOrDefault(x => x.Id == selectedOfferId);
+            var sponsoredListingOffer = await this.sponsoredListings.GetByIdAsync(selectedOfferId);
 
             if (sponsoredListingOffer == null)
             {
@@ -283,14 +292,14 @@ namespace DirectoryManager.Web.Controllers
                     PaymentStatus = PaymentStatus.InvoiceCreated,
                     CampaignStartDate = startDate,
                     CampaignEndDate = startDate.AddDays(sponsoredListingOffer.Days),
-                    Amount = sponsoredListingOffer.USDPrice,
+                    Amount = sponsoredListingOffer.Price,
                     InvoiceDescription = sponsoredListingOffer.Description
                 });
 
             var invoiceRequest = new PaymentRequest
             {
                 IsFeePaidByUser = true,
-                PriceAmount = sponsoredListingOffer.USDPrice,
+                PriceAmount = sponsoredListingOffer.Price,
                 PriceCurrency = this.paymentService.PriceCurrency,
                 PayCurrency = this.paymentService.PayCurrency,
                 OrderId = invoice.InvoiceId.ToString(),
@@ -504,35 +513,32 @@ namespace DirectoryManager.Web.Controllers
         private static DirectoryManager.Data.Enums.PaymentStatus ConvertToInternalStatus(
             NowPayments.API.Enums.PaymentStatus externalStatus)
         {
-            switch (externalStatus)
+            return externalStatus switch
             {
-                case NowPayments.API.Enums.PaymentStatus.Unknown:
-                    return DirectoryManager.Data.Enums.PaymentStatus.Unknown;
+                NowPayments.API.Enums.PaymentStatus.Unknown => PaymentStatus.Unknown,
+                NowPayments.API.Enums.PaymentStatus.Waiting => PaymentStatus.InvoiceCreated,
+                NowPayments.API.Enums.PaymentStatus.Sending or
+                    NowPayments.API.Enums.PaymentStatus.Confirming or
+                    NowPayments.API.Enums.PaymentStatus.Confirmed => PaymentStatus.Pending,
+                NowPayments.API.Enums.PaymentStatus.Finished => PaymentStatus.Paid,
+                NowPayments.API.Enums.PaymentStatus.PartiallyPaid => PaymentStatus.UnderPayment,
+                NowPayments.API.Enums.PaymentStatus.Failed or
+                    NowPayments.API.Enums.PaymentStatus.Refunded => PaymentStatus.Failed,
+                NowPayments.API.Enums.PaymentStatus.Expired => PaymentStatus.Expired,
+                _ => throw new ArgumentOutOfRangeException(nameof(externalStatus), externalStatus, null),
+            };
+        }
 
-                case NowPayments.API.Enums.PaymentStatus.Waiting:
-                    return DirectoryManager.Data.Enums.PaymentStatus.InvoiceCreated;
-
-                case NowPayments.API.Enums.PaymentStatus.Sending:
-                case NowPayments.API.Enums.PaymentStatus.Confirming:
-                case NowPayments.API.Enums.PaymentStatus.Confirmed:
-                    return DirectoryManager.Data.Enums.PaymentStatus.Pending;
-
-                case NowPayments.API.Enums.PaymentStatus.Finished:
-                    return DirectoryManager.Data.Enums.PaymentStatus.Paid;
-
-                case NowPayments.API.Enums.PaymentStatus.PartiallyPaid:
-                    return DirectoryManager.Data.Enums.PaymentStatus.UnderPayment;
-
-                case NowPayments.API.Enums.PaymentStatus.Failed:
-                case NowPayments.API.Enums.PaymentStatus.Refunded:
-                    return DirectoryManager.Data.Enums.PaymentStatus.Failed;
-
-                case NowPayments.API.Enums.PaymentStatus.Expired:
-                    return DirectoryManager.Data.Enums.PaymentStatus.Expired;
-
-                default:
-                    throw new ArgumentOutOfRangeException(nameof(externalStatus), externalStatus, null);
+        private static bool CanAdvertise(
+            int directoryEntryId,
+            IEnumerable<SponsoredListing> currentListings)
+        {
+            if (currentListings.FirstOrDefault(x => x.DirectoryEntryId == directoryEntryId) != null)
+            {
+                return true;
             }
+
+            return currentListings.Count() < IntegerConstants.MaxSponsoredListings;
         }
 
         private async Task CreateNewSponsoredListing(SponsoredListingInvoice invoice)
@@ -579,18 +585,6 @@ namespace DirectoryManager.Web.Controllers
                     this.ClearCachedItems();
                 }
             }
-        }
-
-        private bool CanAdvertise(
-            int directoryEntryId,
-            IEnumerable<SponsoredListing> currentListings)
-        {
-            if (currentListings.FirstOrDefault(x => x.DirectoryEntryId == directoryEntryId) != null)
-            {
-                return true;
-            }
-
-            return currentListings.Count() < IntegerConstants.MaxSponsoredListings;
         }
     }
 }

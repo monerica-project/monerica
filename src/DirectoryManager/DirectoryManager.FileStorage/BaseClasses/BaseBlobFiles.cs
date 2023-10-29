@@ -152,7 +152,7 @@ namespace DirectoryManager.FileStorage.BaseClasses
                 AllowedHeaders = "*",
                 AllowedMethods = "PUT,GET,HEAD,POST",  // Specify allowed methods as a string
                 AllowedOrigins = "*",
-                ExposedHeaders ="*",
+                ExposedHeaders = "*",
                 MaxAgeInSeconds = IntegerConstants.MaxAgeInSeconds
             };
 

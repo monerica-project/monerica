@@ -4,6 +4,7 @@ using DirectoryManager.Data.DbContextInfo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DirectoryManager.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20231029160049_SponsoredListingOfferPrecision")]
+    partial class SponsoredListingOfferPrecision
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -400,47 +403,6 @@ namespace DirectoryManager.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("LogEntries");
-                });
-
-            modelBuilder.Entity("DirectoryManager.Data.Models.ProcessorConfig", b =>
-                {
-                    b.Property<int>("ProcessorConfigId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ProcessorConfigId"));
-
-                    b.Property<string>("Configuration")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreateDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedByUserId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
-
-                    b.Property<int>("PaymentProcessor")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime?>("UpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedByUserId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
-
-                    b.Property<bool>("UseProcessor")
-                        .HasColumnType("bit");
-
-                    b.HasKey("ProcessorConfigId");
-
-                    b.HasIndex("PaymentProcessor")
-                        .IsUnique();
-
-                    b.ToTable("ProcessorConfigs");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListing", b =>

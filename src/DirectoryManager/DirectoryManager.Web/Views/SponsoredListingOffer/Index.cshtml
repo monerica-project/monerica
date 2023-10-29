@@ -1,0 +1,37 @@
+﻿@model IEnumerable<DirectoryManager.Data.Models.SponsoredListingOffer>
+
+@{
+    ViewData["Title"] = "Sponsored Listing Offers";
+}
+
+<h1>@ViewData["Title"]</h1>
+@await Html.PartialAsync("_AdminMenu")
+
+<hr />
+<table class="table">
+    <thead>
+        <tr>
+            <th>Description</th>
+            <th>Days</th>
+            <th>Price</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.Description</td>
+                <td>@item.Days</td>
+                <td>@item.Price</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@item.Id">Edit</a>                    
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<p>
+    <a class="btn btn-primary" asp-action="Create">Create New</a>
+</p>

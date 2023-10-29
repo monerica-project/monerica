@@ -4,6 +4,7 @@
     {
         Unknown = 0,
         XMR = 1,
-        USD = 2
+        USD = 2,
+        BTC = 3
     }
 }

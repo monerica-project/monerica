@@ -39,6 +39,10 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<ContentSnippet> ContentSnippets { get; set; }
 
+        public DbSet<SponsoredListingOffer> SponsoredListingOffers { get; set; }
+
+        public DbSet<ProcessorConfig> ProcessorConfigs { get; set; }
+
         public override int SaveChanges()
         {
             this.SetDates();
@@ -90,6 +94,10 @@ namespace DirectoryManager.Data.DbContextInfo
                    .Property(e => e.PaidAmount)
                    .HasColumnType("decimal(20, 12)");
 
+            builder.Entity<SponsoredListingOffer>()
+                    .Property(e => e.Price)
+                    .HasColumnType("decimal(20, 12)");
+
             builder.Entity<SponsoredListing>()
                    .HasIndex(e => new { e.CreateDate, e.UpdateDate });
 
@@ -104,6 +112,10 @@ namespace DirectoryManager.Data.DbContextInfo
                    .WithOne(sli => sli.SponsoredListing)
                    .HasForeignKey<SponsoredListing>(sl => sl.SponsoredListingInvoiceId)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProcessorConfig>()
+                   .HasIndex(e => e.PaymentProcessor)
+                   .IsUnique();
         }
 
         private void SetDates()
