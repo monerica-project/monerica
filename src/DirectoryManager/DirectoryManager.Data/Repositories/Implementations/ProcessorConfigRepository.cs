@@ -30,12 +30,33 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task CreateAsync(ProcessorConfig processorConfigs)
         {
+            if (processorConfigs.UseProcessor)
+            {
+                var configs = this.context.ProcessorConfigs.Where(p => p.UseProcessor);
+                foreach (var config in configs)
+                {
+                    config.UseProcessor = false;
+                }
+            }
+
             this.context.ProcessorConfigs.Add(processorConfigs);
             await this.context.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(ProcessorConfig processorConfigs)
         {
+            if (processorConfigs.UseProcessor)
+            {
+                var configs = this.context
+                                  .ProcessorConfigs
+                                  .Where(p => p.UseProcessor && p.ProcessorConfigId != processorConfigs.ProcessorConfigId);
+
+                foreach (var config in configs)
+                {
+                    config.UseProcessor = false;
+                }
+            }
+
             this.context.ProcessorConfigs.Update(processorConfigs);
             await this.context.SaveChangesAsync();
         }

@@ -1,16 +1,12 @@
-﻿using System.Collections.Generic;
-using System.Text;
+﻿using System.Text;
 using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Migrations;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
-using DirectoryManager.Utilities;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Connections.Features;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
@@ -521,10 +517,13 @@ namespace DirectoryManager.Web.Controllers
             {
                 NowPayments.API.Enums.PaymentStatus.Unknown => PaymentStatus.Unknown,
                 NowPayments.API.Enums.PaymentStatus.Waiting => PaymentStatus.InvoiceCreated,
-                NowPayments.API.Enums.PaymentStatus.Sending or NowPayments.API.Enums.PaymentStatus.Confirming or NowPayments.API.Enums.PaymentStatus.Confirmed => DirectoryManager.Data.Enums.PaymentStatus.Pending,
+                NowPayments.API.Enums.PaymentStatus.Sending or
+                    NowPayments.API.Enums.PaymentStatus.Confirming or
+                    NowPayments.API.Enums.PaymentStatus.Confirmed => PaymentStatus.Pending,
                 NowPayments.API.Enums.PaymentStatus.Finished => PaymentStatus.Paid,
                 NowPayments.API.Enums.PaymentStatus.PartiallyPaid => PaymentStatus.UnderPayment,
-                NowPayments.API.Enums.PaymentStatus.Failed or NowPayments.API.Enums.PaymentStatus.Refunded => PaymentStatus.Failed,
+                NowPayments.API.Enums.PaymentStatus.Failed or
+                    NowPayments.API.Enums.PaymentStatus.Refunded => PaymentStatus.Failed,
                 NowPayments.API.Enums.PaymentStatus.Expired => PaymentStatus.Expired,
                 _ => throw new ArgumentOutOfRangeException(nameof(externalStatus), externalStatus, null),
             };

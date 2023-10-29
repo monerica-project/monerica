@@ -60,6 +60,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(processorConfigs);
         }
 
+        [HttpGet]
         public async Task<IActionResult> Index()
         {
             var processorConfigs = await this.repository.GetAllAsync();

@@ -21,7 +21,7 @@ namespace NowPayments.API.Implementations
         private readonly string partiallyPaidUrl;
         private readonly HttpClient client;
 
-        public NowPaymentsService(PaymentConfigs paymentConfigs)
+        public NowPaymentsService(NowPaymentConfigs paymentConfigs)
         {
             if (paymentConfigs == null)
             {

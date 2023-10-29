@@ -7,14 +7,15 @@ using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.FileStorage.Repositories.Implementations;
 using DirectoryManager.FileStorage.Repositories.Interfaces;
 using DirectoryManager.Web.AppRules;
-using DirectoryManager.Web.Providers;
 using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
+using Newtonsoft.Json;
 using NowPayments.API.Implementations;
 using NowPayments.API.Interfaces;
+using NowPayments.API.Models;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -54,11 +55,24 @@ builder.Services.AddScoped<IProcessorConfigRepository, ProcessorConfigRepository
 builder.Services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
 builder.Services.AddTransient<ICacheService, CacheService>();
 builder.Services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
-builder.Services.AddScoped<INowPaymentsService>(x =>
+
+builder.Services.AddScoped(provider =>
 {
-    var configProvider = new NowPaymentsConfigProvider(builder.Configuration);
-    var configs = configProvider.GetConfigs();
-    return new NowPaymentsService(configs);
+    var configRepo = provider.GetRequiredService<IProcessorConfigRepository>();
+    var processorConfigTask = configRepo.GetByProcessorAsync(PaymentProcessor.NOWPayments);
+    processorConfigTask.Wait();
+    var processorConfig = processorConfigTask.Result;
+
+    if (processorConfig == null)
+    {
+        throw new Exception("NOWPayments processor config not found");
+    }
+
+    var nowPaymentsConfig = JsonConvert.DeserializeObject<NowPaymentConfigs>(processorConfig.Configuration);
+
+    return nowPaymentsConfig == null ?
+        throw new Exception("NOWPayments config not found") :
+        (INowPaymentsService)new NowPaymentsService(nowPaymentsConfig);
 });
 
 builder.Services.AddSingleton<IBlobService>(provider =>
