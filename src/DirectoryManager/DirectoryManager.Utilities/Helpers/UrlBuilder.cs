@@ -14,20 +14,20 @@
                 sitePageId);
         }
 
-        public static string? ConvertBlobToCdnUrl(
+        public static string ConvertBlobToCdnUrl(
            string blobUrl,
            string blobPrefix,
            string cdnPrefix)
         {
             if (string.IsNullOrWhiteSpace(blobUrl))
             {
-                return null;
+                return string.Empty;
             }
 
             if (string.IsNullOrWhiteSpace(cdnPrefix) ||
                 string.IsNullOrWhiteSpace(blobPrefix))
             {
-                return null;
+                return string.Empty;
             }
 
             return blobUrl.Replace(blobPrefix, cdnPrefix);

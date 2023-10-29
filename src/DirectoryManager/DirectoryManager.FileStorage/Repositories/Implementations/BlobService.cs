@@ -13,9 +13,17 @@ namespace DirectoryManager.FileStorage.Repositories.Implementations
             this.BlobServiceClient = blobServiceClient;
         }
 
+        public BlobServiceClient BlobServiceClient { get; private set; }
+
+        public string BlobPrefix { get; private set; } = string.Empty;
+
         public static async Task<BlobService> CreateAsync(BlobServiceClient blobServiceClient)
         {
-            var blobService = new BlobService(blobServiceClient);
+            var blobService = new BlobService(blobServiceClient)
+            {
+                BlobPrefix = blobServiceClient.Uri.OriginalString
+            };
+
             if (blobService.BlobServiceClient != null)
             {
                 var container = blobService.BlobServiceClient.GetBlobContainerClient(StringConstants.ContainerName);
@@ -26,11 +34,9 @@ namespace DirectoryManager.FileStorage.Repositories.Implementations
             return blobService;
         }
 
-        public BlobServiceClient BlobServiceClient { get; private set; }
-
         public BlobContainerClient GetContainerReference(string containerName)
         {
-            return this.BlobServiceClient?.GetBlobContainerClient(containerName);
+            return this.BlobServiceClient.GetBlobContainerClient(containerName);
         }
 
         private async Task CreateIfNotExistsAsync(BlobContainerClient container)

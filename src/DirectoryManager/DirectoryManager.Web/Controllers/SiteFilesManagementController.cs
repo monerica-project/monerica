@@ -87,14 +87,19 @@ namespace DirectoryManager.Web.Controllers
             {
                 var item = new SiteFileItem
                 {
-                    FilePath = file.FilePath,
-                    FolderName = file.FolderName,
-                    FolderPathFromRoot = file.FolderPathFromRoot,
+                    FilePath = file.FilePath ?? string.Empty,
+                    FolderName = file.FolderName ?? string.Empty,
+                    FolderPathFromRoot = file.FolderPathFromRoot ?? string.Empty,
                     IsFolder = file.IsFolder
                 };
 
                 if (!file.IsFolder)
                 {
+                    if (string.IsNullOrWhiteSpace(file.FilePath))
+                    {
+                        throw new ArgumentNullException($"{nameof(file.FilePath)}");
+                    }
+
                     item.CdnLink = this.ConvertBlobToCdnUrl(file.FilePath);
                 }
 
@@ -128,21 +133,13 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
-        private string ConvertBlobToCdnUrl(string filePath)
-        {
-            var blobPrefix = this.cacheService.GetSnippet(SiteConfigSetting.BlobPrefix);
-            var cdnPrefix = this.cacheService.GetSnippet(SiteConfigSetting.CdnPrefixWithProtocol);
-
-            return UrlBuilder.ConvertBlobToCdnUrl(filePath, blobPrefix, cdnPrefix);
-        }
-
         [Route("sitefilesmanagement/DeleteFileAsync")]
         [HttpGet]
         public async Task<ActionResult> DeleteFileAsync(string fileUrl)
         {
             await this.siteFilesRepository.DeleteFileAsync(fileUrl);
 
-            return this.RedirectToAction(nameof(this.IndexAsync));
+            return this.RedirectToAction("Index");
         }
 
         [Route("sitefilesmanagement/DeleteFolderAsync")]
@@ -151,7 +148,14 @@ namespace DirectoryManager.Web.Controllers
         {
             await this.siteFilesRepository.DeleteFolderAsync(folderUrl);
 
-            return this.RedirectToAction(nameof(this.IndexAsync));
+            return this.RedirectToAction("Index");
+        }
+
+        private string ConvertBlobToCdnUrl(string filePath)
+        {
+            var cdnPrefix = this.cacheService.GetSnippet(SiteConfigSetting.CdnPrefixWithProtocol);
+
+            return UrlBuilder.ConvertBlobToCdnUrl(filePath, this.siteFilesRepository.BlobPrefix, cdnPrefix);
         }
     }
 }

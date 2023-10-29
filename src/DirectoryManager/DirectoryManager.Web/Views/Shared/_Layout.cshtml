@@ -9,11 +9,11 @@
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
+    @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.HeaderHtml))
 
     @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.MetaTags))
 
     @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.CssHeader))
- 
     </head>
 <body>
     <div id="main-content">
