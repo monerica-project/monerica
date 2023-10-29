@@ -44,6 +44,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (this.ModelState.IsValid)
             {
+                sponsoredListingOffer.PriceCurrency = Data.Enums.Currency.USD;
                 await this.repository.CreateAsync(sponsoredListingOffer);
                 return this.RedirectToAction(nameof(this.Index));
             }

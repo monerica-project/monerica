@@ -2,6 +2,6 @@
 {
     public class SponsoredListingOffersContainer
     {
-        public List<SponsoredListingOffer> SponsoredListingOffers { get; set; } = new List<SponsoredListingOffer>();
+        public List<SponsoredListingOfferModel> SponsoredListingOffers { get; set; } = new List<SponsoredListingOfferModel>();
     }
 }

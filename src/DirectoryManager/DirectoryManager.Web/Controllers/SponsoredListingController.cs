@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Collections.Generic;
+using System.Text;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Migrations;
 using DirectoryManager.Data.Models;
@@ -27,7 +28,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository;
         private readonly INowPaymentsService paymentService;
         private readonly IMemoryCache cache;
-        private readonly SponsoredListingOffersContainer sponsoredListings;
+        private readonly ISponsoredListingOfferRepository sponsoredListings;
         private readonly ILogger<SponsoredListingController> logger;
 
         public SponsoredListingController(
@@ -39,7 +40,7 @@ namespace DirectoryManager.Web.Controllers
             INowPaymentsService paymentService,
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache,
-            SponsoredListingOffersContainer sponsoredListings,
+            ISponsoredListingOfferRepository sponsoredListings,
             ILogger<SponsoredListingController> logger)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
@@ -109,9 +110,19 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            var model = this.sponsoredListings
-                            .SponsoredListingOffers
-                            .OrderBy(x => x.Days);
+            var offers = await this.sponsoredListings.GetAllAsync();
+            var model = new List<SponsoredListingOfferModel>();
+
+            foreach (var offer in offers.OrderBy(x => x.Days))
+            {
+                model.Add(new SponsoredListingOfferModel
+                {
+                    Id = offer.Id,
+                    Description = offer.Description,
+                    Days = offer.Days,
+                    USDPrice = offer.Price
+                });
+            }
 
             return this.View(model);
         }
@@ -120,9 +131,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost("selectduration")]
         public async Task<IActionResult> SelectDurationAsync(int id, int selectedOfferId)
         {
-            var selectedOffer = this.sponsoredListings
-                                .SponsoredListingOffers
-                                .Where(x => x.Id == selectedOfferId);
+            var selectedOffer = await this.sponsoredListings.GetByIdAsync(selectedOfferId);
 
             if (selectedOffer == null)
             {
@@ -209,7 +218,7 @@ namespace DirectoryManager.Web.Controllers
             int directoryEntryId,
             int selectedOfferId)
         {
-            var offer = this.sponsoredListings.SponsoredListingOffers.FirstOrDefault(x => x.Id == selectedOfferId);
+            var offer = await this.sponsoredListings.GetByIdAsync(selectedOfferId);
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
 
             if (offer == null || directoryEntry == null)
@@ -225,7 +234,13 @@ namespace DirectoryManager.Web.Controllers
                 {
                     DirectoryEntry = directoryEntry,
                 },
-                Offer = offer,
+                Offer = new SponsoredListingOfferModel()
+                {
+                    Description = offer.Description,
+                    Days = offer.Days,
+                    Id = offer.Id,
+                    USDPrice = offer.Price
+                },
                 IsExtension = currentListings.FirstOrDefault(x => x.DirectoryEntryId == directoryEntryId) != null
             };
 
@@ -250,9 +265,7 @@ namespace DirectoryManager.Web.Controllers
             int directoryEntryId,
             int selectedOfferId)
         {
-            var sponsoredListingOffer = this.sponsoredListings
-                                            .SponsoredListingOffers
-                                            .FirstOrDefault(x => x.Id == selectedOfferId);
+            var sponsoredListingOffer = await this.sponsoredListings.GetByIdAsync(selectedOfferId);
 
             if (sponsoredListingOffer == null)
             {
@@ -283,14 +296,14 @@ namespace DirectoryManager.Web.Controllers
                     PaymentStatus = PaymentStatus.InvoiceCreated,
                     CampaignStartDate = startDate,
                     CampaignEndDate = startDate.AddDays(sponsoredListingOffer.Days),
-                    Amount = sponsoredListingOffer.USDPrice,
+                    Amount = sponsoredListingOffer.Price,
                     InvoiceDescription = sponsoredListingOffer.Description
                 });
 
             var invoiceRequest = new PaymentRequest
             {
                 IsFeePaidByUser = true,
-                PriceAmount = sponsoredListingOffer.USDPrice,
+                PriceAmount = sponsoredListingOffer.Price,
                 PriceCurrency = this.paymentService.PriceCurrency,
                 PayCurrency = this.paymentService.PayCurrency,
                 OrderId = invoice.InvoiceId.ToString(),

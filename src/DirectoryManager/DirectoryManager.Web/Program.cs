@@ -84,11 +84,6 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddDefaultTokenProviders();
 
-var appSettingsSponsoredListingOffers = builder.Configuration.GetSection("SponsoredListingOffers");
-var sponsoredListings = new SponsoredListingOffersContainer();
-appSettingsSponsoredListingOffers.Bind(sponsoredListings.SponsoredListingOffers);
-builder.Services.AddSingleton(sponsoredListings);
-
 var app = builder.Build();
 app.UseResponseCaching();
 

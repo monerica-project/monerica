@@ -2,13 +2,13 @@
 @using DirectoryManager.Web.Models;
 @using System.Globalization;
 @using DirectoryManager.Data.Enums
-@model IEnumerable<SponsoredListingOffer>
+@model IEnumerable<SponsoredListingOfferModel>
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 
 @{
     ViewData["Title"] = "Select Listing Duration";
     var offersList = Model.ToList();
-    int defaultChoiceId = 1;
+    int defaultChoiceIndex = 0;
 }
 
 <h1>@ViewData["Title"]</h1>
@@ -27,8 +27,8 @@
             var offer = offersList[i];
             <div class="form-check">
                 <label class="form-check-label" style="display: flex; align-items: center;">
-                    <input class="form-check-input" type="radio" name="SelectedOfferId" value="@offer.Id" @(offer.Id == defaultChoiceId ? "checked" : string.Empty)>
-                    @offer.Description - @offer.USDPrice.ToString("C", new CultureInfo(StringConstants.DefaultCulure)) USD
+                    <input class="form-check-input" type="radio" name="SelectedOfferId" value="@offer.Id" @(i == defaultChoiceIndex ? "checked" : string.Empty)>
+                    @offer.Description - @offer.USDPrice.ToString("C", new CultureInfo(StringConstants.DefaultCulure)) @Currency.USD.ToString()
                 </label>
             </div>
         }

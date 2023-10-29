@@ -2,7 +2,7 @@
 
 namespace DirectoryManager.Web.Models
 {
-    public class SponsoredListingOffer
+    public class SponsoredListingOfferModel
     {
         [JsonProperty("id")]
         public int Id { get; set; }
