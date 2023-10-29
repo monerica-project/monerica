@@ -7,7 +7,6 @@ using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.FileStorage.Repositories.Implementations;
 using DirectoryManager.FileStorage.Repositories.Interfaces;
 using DirectoryManager.Web.AppRules;
-using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Providers;
 using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
@@ -49,6 +48,7 @@ builder.Services.AddScoped<ISponsoredListingInvoiceRepository, SponsoredListingI
 builder.Services.AddScoped<ISponsoredListingRepository, SponsoredListingRepository>();
 builder.Services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
 builder.Services.AddScoped<ISponsoredListingOfferRepository, SponsoredListingOfferRepository>();
+builder.Services.AddScoped<IProcessorConfigRepository, ProcessorConfigRepository>();
 
 // services
 builder.Services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();

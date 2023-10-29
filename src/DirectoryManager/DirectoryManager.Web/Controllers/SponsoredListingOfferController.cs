@@ -1,9 +1,11 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
+    [Authorize]
     public class SponsoredListingOfferController : Controller
     {
         private readonly ISponsoredListingOfferRepository repository;

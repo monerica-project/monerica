@@ -41,6 +41,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<SponsoredListingOffer> SponsoredListingOffers { get; set; }
 
+        public DbSet<ProcessorConfig> ProcessorConfigs { get; set; }
+
         public override int SaveChanges()
         {
             this.SetDates();
@@ -110,6 +112,10 @@ namespace DirectoryManager.Data.DbContextInfo
                    .WithOne(sli => sli.SponsoredListing)
                    .HasForeignKey<SponsoredListing>(sl => sl.SponsoredListingInvoiceId)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<ProcessorConfig>()
+                   .HasIndex(e => e.PaymentProcessor)
+                   .IsUnique();
         }
 
         private void SetDates()

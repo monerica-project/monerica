@@ -7,7 +7,7 @@ namespace DirectoryManager.Web.Models
         [JsonProperty("id")]
         public int Id { get; set; }
 
-        [JsonProperty("USDPrice")]
+        [JsonProperty(nameof(USDPrice))]
         public decimal USDPrice { get; set; }
 
         [JsonProperty("description")]

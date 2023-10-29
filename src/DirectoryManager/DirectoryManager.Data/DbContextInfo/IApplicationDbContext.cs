@@ -35,6 +35,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<SponsoredListingOffer> SponsoredListingOffers { get; set; }
 
+        public DbSet<ProcessorConfig> ProcessorConfigs { get; set; }
+
         int SaveChanges();
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

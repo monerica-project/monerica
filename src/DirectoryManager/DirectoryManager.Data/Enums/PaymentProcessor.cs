@@ -3,6 +3,7 @@
     public enum PaymentProcessor
     {
         None = 0,
-        NOWPayments = 1
+        NOWPayments = 1,
+        Stripe = 2
     }
 }
