@@ -57,6 +57,24 @@ function Set-FileSettings($fileLocation)
     Write-Host "Saving $fileLocation..."
 }
 
+function Set-LoggingSettings($fileLocation)
+{
+    # Load the current content of appsettings.json
+    $json = Get-Content $fileLocation | ConvertFrom-Json
+
+    # Set the new connection string value
+    $json.Serilog.WriteTo[0].Args.connectionString = $dbConnectionString
+
+    # Convert the updated object back to JSON
+    $newJson = $json | ConvertTo-Json -Depth 20
+
+    # Write the updated JSON back to appsettings.json
+    $newJson | Set-Content $fileLocation
+
+
+
+}
+
 function Retry-Command {
     [CmdletBinding()]
     Param(

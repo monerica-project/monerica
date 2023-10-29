@@ -15,7 +15,10 @@
         <label>Name</label>
         <input class="input-width" type="text" name="Name" value="@Model.Name" required />
     </div>
- 
+    <div class="form-group">
+        <label>Category Key</label>
+        <input type="text" name="Name" value="@Model.CategoryKey" required />
+    </div>
     <div class="form-group">
         <label asp-for="Note">Description</label>
         <textarea class="input-width" cols="100" asp-for="Description"></textarea>

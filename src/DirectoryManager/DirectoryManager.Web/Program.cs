@@ -1,7 +1,11 @@
+using Azure.Storage.Blobs;
 using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.FileStorage.Repositories.Implementations;
+using DirectoryManager.FileStorage.Repositories.Interfaces;
 using DirectoryManager.Web.AppRules;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Providers;
@@ -48,12 +52,25 @@ builder.Services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
 // services
 builder.Services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
 builder.Services.AddTransient<ICacheService, CacheService>();
-
+builder.Services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
 builder.Services.AddScoped<INowPaymentsService>(x =>
 {
     var configProvider = new NowPaymentsConfigProvider(builder.Configuration);
     var configs = configProvider.GetConfigs();
     return new NowPaymentsService(configs);
+});
+
+builder.Services.AddSingleton<IBlobService>(provider =>
+{
+    return Task.Run(async () =>
+    {
+        using var scope = provider.CreateScope();
+        var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
+        var azureStorageConnection = cacheService.GetSnippet(SiteConfigSetting.AzureStorageConnectionString);
+        var blobServiceClient = new BlobServiceClient(azureStorageConnection);
+
+        return await BlobService.CreateAsync(blobServiceClient);
+    }).GetAwaiter().GetResult();
 });
 
 builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);

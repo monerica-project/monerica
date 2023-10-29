@@ -1,0 +1,119 @@
+﻿@model DirectoryManager.Web.Models.SiteFileListModel
+    @{
+        ViewBag.Title = "Site File Management";
+        Layout = "~/Views/Shared/_Layout.cshtml";
+    }
+
+    <section>
+        <div class="container">
+ 
+            <h3>@ViewBag.Title</h3>
+
+        <h2>Path: @Model.CurrentDirectory</h2>
+
+            <div class="table-responsive">
+
+                @using (Html.BeginForm("CreateFolderAsync", "SiteFilesManagement", FormMethod.Post,
+                                new { enctype = "multipart/form-data" }))
+                {
+                    <input type="hidden" name="currentDirectory" value="@Model.CurrentDirectory" autocomplete="off" />
+
+
+                    @Html.AntiForgeryToken()
+
+                    <fieldset>
+                        <legend>Create a folder</legend>
+                        <div class="editor-field">
+
+                            @Html.TextBox("folderName") 
+                            <input class="btn-success btn-xs" type="submit" value="Create Folder" />
+                            <br />
+                     
+                        </div>
+                       
+                    </fieldset>
+                }
+                <br />
+                <a href="~/SiteFilesManagement/upload?folderPath=@Model.CurrentDirectory">Upload Files</a>
+                <br />
+                @if (!string.IsNullOrWhiteSpace(Model.ParentDirectory))
+            {
+                    <a href="~/SiteFilesManagement?folderPath=@Model.ParentDirectory">cd ..</a>
+                }
+
+                @if (Model.FileItems == null || Model.FileItems.Count == 0)
+                {
+                    <br />
+                    <i>Empty</i>
+                }
+                else
+                {
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Path</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+
+                        @foreach (var file in Model.FileItems)
+                        {
+                        <tr>
+                            <td>
+                                @if (file.IsFolder)
+                                {
+                                    <a  href="~/SiteFilesManagement?folderPath=@file.FolderPathFromRoot">&#x1f4c2; @file.FolderName </a>
+                                }
+                                else
+                                {
+                                        if (!string.IsNullOrEmpty(file.CdnLink))
+                                        {
+                                            
+                                            <a href="@file.CdnLink">CDN</a>
+                                            <span> &nbsp; - &nbsp;</span>
+                                            <a href="@file.FilePath">@file.FilePath</a>
+                                        }
+                                        else 
+                                        {
+                                            <a href="@file.FilePath">@file.FilePath</a>
+                                        }
+                                }
+                            </td>
+                            <td>
+                                @if (file.IsFolder)
+                                {
+                                  using (Html.BeginForm("DeleteFolderAsync", "SiteFilesManagement", FormMethod.Get,
+                            new { role = "form", onsubmit = string.Format(@"return confirm('Do you really want to delete this and all its content?');") }))
+                                    {
+                                        <button type="submit"
+                                                name="folderUrl"
+                                                value="@file.FolderPathFromRoot" class="btn-danger btn-sm">
+                                            &#x1F5D1;
+                                        </button>
+
+                                    }
+                                }
+                                else
+                                {
+                                using (Html.BeginForm("DeleteFileAsync", "SiteFilesManagement", FormMethod.Get,
+                                        new { role = "form", onsubmit = string.Format(@"return confirm('Do you really want to delete this?');") }))
+                                {
+                                    <button type="submit" 
+                                            name="fileUrl" 
+                                            value="@file.FilePath" class="btn-danger btn-sm">  &#x1F5D1;</button>
+
+                                    }
+                                }
+                            </td>
+                        </tr>
+                        }
+                        </tbody>
+                    </table>
+                }
+                </div>
+
+
+
+            </div>
+</section>

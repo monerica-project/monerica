@@ -97,6 +97,8 @@ namespace DirectoryManager.Web.Controllers
                 });
             }
 
+            model.UnusedSnippetTypes = model.UnusedSnippetTypes.OrderBy(x => x.Text).ToList();
+
             return this.View(model);
         }
 

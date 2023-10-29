@@ -146,6 +146,7 @@ task -name SetConfigs {
 
     $WebAppSettings = "..\src\DirectoryManager\DirectoryManager.Web\appsettings.json"
     Set-FileSettings -fileLocation $WebAppSettings
+    Set-LoggingSettings($WebAppSettings)
 
     $DatabaseAppSettings = "..\src\DirectoryManager\DirectoryManager.Data\appsettings.json"
     Set-FileSettings -fileLocation $DatabaseAppSettings

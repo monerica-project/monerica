@@ -80,7 +80,16 @@ namespace DirectoryManager.Web.Controllers
             }
 
             existingCategory.Name = category.Name.Trim();
-            existingCategory.CategoryKey = TextHelpers.UrlKey(category.Name);
+
+            if (!string.IsNullOrWhiteSpace(category.CategoryKey))
+            {
+                existingCategory.CategoryKey = TextHelpers.UrlKey(category.CategoryKey.Trim());
+            }
+            else
+            {
+                existingCategory.CategoryKey = TextHelpers.UrlKey(category.Name);
+            }
+
             existingCategory.Description = category.Description?.Trim();
             existingCategory.Note = category.Note?.Trim();
             existingCategory.UpdatedByUserId = this.userManager.GetUserId(this.User);

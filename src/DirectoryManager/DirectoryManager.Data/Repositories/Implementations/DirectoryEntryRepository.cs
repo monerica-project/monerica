@@ -142,13 +142,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public DateTime GetLastRevisionDate()
         {
             // Fetch the latest CreateDate and UpdateDate
-            var latestCreateDate = this.context.DirectoryEntries.Max(e => e.CreateDate);
-            var latestUpdateDate = this.context.DirectoryEntries.Max(e => e.UpdateDate);
+            var latestCreateDate = this.context.DirectoryEntries
+                                   .Where(e => e != null)
+                                   .Max(e => (DateTime?)e.CreateDate);
 
-            if (latestUpdateDate == null)
-            {
-                return DateTime.MinValue;
-            }
+            var latestUpdateDate = this.context.DirectoryEntries
+                                   .Where(e => e != null)
+                                   .Max(e => e.UpdateDate) ?? DateTime.MinValue;
 
             // Return the more recent of the two dates
             return (DateTime)(latestCreateDate > latestUpdateDate ? latestCreateDate : latestUpdateDate);

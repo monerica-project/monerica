@@ -15,7 +15,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Info", "Info", "{62E6600E-3
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CI", "CI", "{36A19922-99BD-44CA-9D39-65342EEB00F0}"
 	ProjectSection(SolutionItems) = preProject
-		..\..\CI-Tools\Scripts\ApplicationHelperFunctions.ps1 = ..\..\CI-Tools\Scripts\ApplicationHelperFunctions.ps1
 		..\..\CI-Tools\Scripts\BuildHelperFunctions.ps1 = ..\..\CI-Tools\Scripts\BuildHelperFunctions.ps1
 		..\..\CI-Tools\CI-Main.ps1 = ..\..\CI-Tools\CI-Main.ps1
 		..\..\CI.bat = ..\..\CI.bat
@@ -39,6 +38,8 @@ EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "NowPayments.API", "NowPayments.API\NowPayments.API.csproj", "{EF5ED6F2-5A87-4E60-A84D-BB58AD21A7AF}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectoryManager.Utilities", "DirectoryManager.Utilities\DirectoryManager.Utilities.csproj", "{17EF02EE-E87E-4BA3-B7BD-687AB2C72FA2}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectoryManager.FileStorage", "DirectoryManager.FileStorage\DirectoryManager.FileStorage.csproj", "{4A383FED-B6BE-474E-B898-5AE6417925C7}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -74,6 +75,10 @@ Global
 		{17EF02EE-E87E-4BA3-B7BD-687AB2C72FA2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{17EF02EE-E87E-4BA3-B7BD-687AB2C72FA2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{17EF02EE-E87E-4BA3-B7BD-687AB2C72FA2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4A383FED-B6BE-474E-B898-5AE6417925C7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4A383FED-B6BE-474E-B898-5AE6417925C7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4A383FED-B6BE-474E-B898-5AE6417925C7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4A383FED-B6BE-474E-B898-5AE6417925C7}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

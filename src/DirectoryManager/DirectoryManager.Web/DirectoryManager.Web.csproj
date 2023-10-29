@@ -10,16 +10,6 @@
   <ItemGroup>
 	  <AdditionalFiles Include="..\stylecop.json" />
   </ItemGroup>
-  <ItemGroup>
-    <None Include="wwwroot\favicon.ico" />
-    <None Include="wwwroot\images\monerica-donate-qr-code.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="wwwroot\images\monerica-logo.png">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
-    <None Include="wwwroot\robots.txt" />
-  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="HtmlAgilityPack" Version="1.11.54" />
@@ -38,6 +28,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DirectoryManager.Data\DirectoryManager.Data.csproj" />
+    <ProjectReference Include="..\DirectoryManager.FileStorage\DirectoryManager.FileStorage.csproj" />
     <ProjectReference Include="..\DirectoryManager.Utilities\DirectoryManager.Utilities.csproj" />
     <ProjectReference Include="..\NowPayments.API\NowPayments.API.csproj" />
   </ItemGroup>
@@ -51,12 +42,7 @@
 		</None>
 	</ItemGroup>
 	<ItemGroup>
-	  <Folder Include="wwwroot\content\" />
-	</ItemGroup>
-	<ItemGroup>
-	  <Content Update="wwwroot\content\monerica-logo.ai">
-	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-	  </Content>
+	  <Folder Include="wwwroot\" />
 	</ItemGroup>
 
 </Project>
