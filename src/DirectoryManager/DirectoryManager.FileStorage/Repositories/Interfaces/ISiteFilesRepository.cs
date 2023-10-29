@@ -1,5 +1,5 @@
 ﻿using DirectoryManager.FileStorage.Models;
- 
+
 namespace DirectoryManager.FileStorage.Repositories.Interfaces
 {
     public interface ISiteFilesRepository
