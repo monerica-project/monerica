@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
@@ -9,5 +10,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task AddAsync(Submission submission);
         Task UpdateAsync(Submission submission);
         Task DeleteAsync(int id);
+        Task<int> GetByStatus(SubmissionStatus pending);
     }
 }

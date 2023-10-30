@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -46,6 +47,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 this.context.Submissions.Remove(submission);
                 await this.context.SaveChangesAsync();
             }
+        }
+
+        public async Task<int> GetByStatus(SubmissionStatus status)
+        {
+            return await this.context.Submissions
+                                 .Where(x => x.SubmissionStatus == status)
+                                 .CountAsync();
         }
     }
 }
