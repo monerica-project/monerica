@@ -11,6 +11,7 @@ namespace DirectoryManager.Web.Controllers
     public class AccountController : BaseController
     {
         private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly ISubmissionRepository submissionRepository;
         private readonly SignInManager<ApplicationUser> signInManager;
         private readonly UserManager<ApplicationUser> userManager;
 
@@ -18,6 +19,7 @@ namespace DirectoryManager.Web.Controllers
             SignInManager<ApplicationUser> signInManager,
             UserManager<ApplicationUser> userManager,
             IDirectoryEntryRepository directoryEntryRepository,
+            ISubmissionRepository submissionRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
@@ -26,6 +28,7 @@ namespace DirectoryManager.Web.Controllers
             this.signInManager = signInManager;
             this.userManager = userManager;
             this.directoryEntryRepository = directoryEntryRepository;
+            this.submissionRepository = submissionRepository;
         }
 
         public IActionResult Login()
@@ -47,7 +50,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (result.Succeeded)
             {
-                return this.RedirectToAction(nameof(this.Home), "Account");
+                return this.RedirectToAction(nameof(this.HomeAsync), "Account");
             }
             else
             {
@@ -58,8 +61,12 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [Authorize]
-        public IActionResult Home()
+        public async Task<IActionResult> HomeAsync()
         {
+            var totalPendingSubmissions = await this.submissionRepository.GetByStatus(Data.Enums.SubmissionStatus.Pending);
+
+            this.ViewBag.TotalPendingSubmissions = totalPendingSubmissions;
+
             return this.View();
         }
 

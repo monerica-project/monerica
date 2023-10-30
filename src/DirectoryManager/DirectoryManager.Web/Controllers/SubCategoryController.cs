@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Services.Interfaces;
@@ -64,7 +65,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Create(SubCategory subCategory)
         {
             subCategory.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
-            subCategory.SubCategoryKey = TextHelpers.UrlKey(subCategory.Name);
+            subCategory.SubCategoryKey = StringHelpers.UrlKey(subCategory.Name);
             subCategory.Name = subCategory.Name.Trim();
             subCategory.Description = subCategory.Description?.Trim();
             subCategory.Note = subCategory.Note?.Trim();
@@ -103,11 +104,11 @@ namespace DirectoryManager.Web.Controllers
 
             if (!string.IsNullOrWhiteSpace(subCategory.SubCategoryKey))
             {
-                existingSubCategory.SubCategoryKey = TextHelpers.UrlKey(subCategory.SubCategoryKey.Trim());
+                existingSubCategory.SubCategoryKey = StringHelpers.UrlKey(subCategory.SubCategoryKey.Trim());
             }
             else
             {
-                existingSubCategory.SubCategoryKey = TextHelpers.UrlKey(existingSubCategory.Name);
+                existingSubCategory.SubCategoryKey = StringHelpers.UrlKey(existingSubCategory.Name);
             }
 
             existingSubCategory.CategoryId = subCategory.CategoryId;
