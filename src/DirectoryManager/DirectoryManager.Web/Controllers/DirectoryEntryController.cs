@@ -86,6 +86,7 @@ namespace DirectoryManager.Web.Controllers
                 entry.SubCategoryId = entry.SubCategoryId;
                 entry.Link = entry.Link.Trim();
                 entry.Link2 = entry.Link2?.Trim();
+                entry.Link3 = entry.Link3?.Trim();
                 entry.Name = entry.Name.Trim();
                 entry.Description = entry.Description?.Trim();
                 entry.Note = entry.Note?.Trim();
@@ -133,6 +134,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.SubCategoryId = entry.SubCategoryId;
             existingEntry.Link = entry.Link.Trim();
             existingEntry.Link2 = entry.Link2?.Trim();
+            existingEntry.Link3 = entry.Link3?.Trim();
             existingEntry.Name = entry.Name.Trim();
             existingEntry.Description = entry.Description?.Trim();
             existingEntry.Note = entry.Note?.Trim();
