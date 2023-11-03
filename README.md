@@ -4,7 +4,6 @@ A Directory For A Monero Circular Economy
 
 [Submit your link to Monerica here!](https://monerica.com/submit)
 
-![https://user-images.githubusercontent.com/108239499/232602369-831b5fea-de63-4de2-8985-0aa8bb304111.png](https://monerica.com/images/monerica-logo.png)
 --------------
 
 ### Donations
