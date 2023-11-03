@@ -30,12 +30,10 @@
         <label asp-for="DirectoryStatus">Status</label>
         <select asp-for="DirectoryStatus" asp-items="Html.GetEnumSelectList<DirectoryStatus>()"></select>
     </div>
-
     <div class="form-group">
         <label asp-for="SubCategoryId">Sub Category</label>
         <select asp-for="SubCategoryId" asp-items="@(new SelectList(orderedSubCategories, "Id", "DisplayName"))" required></select>
     </div>
-
     <div class="form-group">
         <label asp-for="Name">Name</label>
         <input class="input-width"  type="text" asp-for="Name" required />
@@ -49,17 +47,16 @@
         <input class="input-width"  type="text" asp-for="Link2" />
     </div>
     <div class="form-group">
+        <label asp-for="Link3">Link 3</label>
+        <input class="input-width" type="text" asp-for="Link3" />
+    </div>
+    <div class="form-group">
         <label asp-for="Contact">Contact</label>
         <input class="input-width"  type="text" asp-for="Contact" />
     </div>
     <div class="form-group">
         <label asp-for="Location">Location</label>
         <input class="input-width"  type="text" asp-for="Location" />
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Processor">Processor</label>
-        <input class="input-width"  type="text" asp-for="Processor" />
     </div>
     <div class="form-group">
         <label asp-for="Description">Description</label>

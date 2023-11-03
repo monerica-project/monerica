@@ -25,6 +25,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly INowPaymentsService paymentService;
         private readonly IMemoryCache cache;
         private readonly ISponsoredListingOfferRepository sponsoredListings;
+        private readonly ICacheService cacheService;
         private readonly ILogger<SponsoredListingController> logger;
 
         public SponsoredListingController(
@@ -37,6 +38,7 @@ namespace DirectoryManager.Web.Controllers
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache,
             ISponsoredListingOfferRepository sponsoredListings,
+            ICacheService cacheService,
             ILogger<SponsoredListingController> logger)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
@@ -47,6 +49,7 @@ namespace DirectoryManager.Web.Controllers
             this.paymentService = paymentService;
             this.cache = cache;
             this.sponsoredListings = sponsoredListings;
+            this.cacheService = cacheService;
             this.logger = logger;
         }
 
@@ -222,6 +225,9 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = "Invalid selection." });
             }
 
+            var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
+            var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
+
             var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync();
 
             var viewModel = new ConfirmSelectionViewModel
@@ -229,6 +235,8 @@ namespace DirectoryManager.Web.Controllers
                 SelectedDirectoryEntry = new DirectoryEntryViewModel()
                 {
                     DirectoryEntry = directoryEntry,
+                    Link2Name = link2Name,
+                    Link3Name = link3Name
                 },
                 Offer = new SponsoredListingOfferModel()
                 {

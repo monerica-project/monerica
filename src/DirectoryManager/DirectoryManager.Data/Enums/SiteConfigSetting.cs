@@ -17,5 +17,7 @@
         AzureStorageConnectionString = 12,
         CdnPrefixWithProtocol = 13,
         BlobPrefix = 14,
+        Link2Name = 15,
+        Link3Name = 16,
     }
 }

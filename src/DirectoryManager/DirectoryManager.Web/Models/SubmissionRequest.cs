@@ -20,8 +20,12 @@ namespace DirectoryManager.Web.Models
         public string? Description { get; set; }
 
         [MaxLength(500)]
-        [Display(Name = "Link 2", Prompt = "Onion address")]
+        [Display(Name = "Link 2", Prompt = "Link 2")]
         public string? Link2 { get; set; }
+
+        [MaxLength(500)]
+        [Display(Name = "Link 3", Prompt = "Link 3")]
+        public string? Link3 { get; set; }
 
         [MaxLength(255)]
         [Display(Name = "Contact", Prompt = "@yourname on Twitter/ GitHub, etc.")]

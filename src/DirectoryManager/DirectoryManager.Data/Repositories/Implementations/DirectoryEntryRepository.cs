@@ -291,6 +291,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     UpdateDate = existingEntry.UpdateDate,
                     UpdatedByUserId = existingEntry.UpdatedByUserId,
                     Link2 = existingEntry.Link2,
+                    Link3 = existingEntry.Link3,
                     Location = existingEntry.Location,
                     Note = existingEntry.Note,
                     Processor = existingEntry.Processor

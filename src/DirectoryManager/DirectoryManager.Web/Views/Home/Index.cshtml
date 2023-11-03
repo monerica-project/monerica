@@ -28,6 +28,8 @@
 
     @{
         var featuredEntries = await directoryEntrySelectionRepository.GetEntriesForSelection(DirectoryManager.Data.Enums.EntrySelectionType.Featured);
+        var link2Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
+        var link3Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
     }
 
     @if (featuredEntries != null && featuredEntries.Count() > 0)
@@ -62,8 +64,10 @@
         <ul>
             @{
                 var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
-            newestEntries.ToList(),
-            DirectoryManager.Web.Enums.DateDisplayOption.DisplayCreateDate);
+                    newestEntries.ToList(),
+                    DirectoryManager.Web.Enums.DateDisplayOption.DisplayCreateDate,
+                    link2Name,
+                    link3Name);
             }
             @foreach (var viewModel in viewModelList)
             {
@@ -91,7 +95,9 @@
             @{
                 var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
                 newestRevisions.ToList(),
-                DirectoryManager.Web.Enums.DateDisplayOption.DisplayUpdateDate);
+                DirectoryManager.Web.Enums.DateDisplayOption.DisplayUpdateDate,
+                link2Name,
+                link3Name);
             }
             @foreach (var viewModel in viewModelList)
             {
@@ -167,7 +173,9 @@
 
                     var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
                     activeEntries.ToList(),
-                    DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed);
+                    DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+                    link2Name,
+                    link3Name);
                 }
                 @foreach (var viewModel in viewModelList)
                 {

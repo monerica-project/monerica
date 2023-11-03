@@ -1,4 +1,5 @@
-﻿ @model DirectoryManager.Data.Models.Submission
+﻿@model DirectoryManager.Data.Models.Submission
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 @using DirectoryManager.Data.Enums
 @{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
@@ -85,9 +86,15 @@
     </div>
 
     <div class="form-group">
-        <label asp-for="Link2">Link 2</label>
+        <label asp-for="Link2">@_cacheHelper.GetSnippet(SiteConfigSetting.Link2Name)</label>
         <input asp-for="Link2" class="form-control input-width" />
         <span asp-validation-for="Link2" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Link3">@_cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)</label>
+        <input asp-for="Link3" class="form-control input-width" />
+        <span asp-validation-for="Link3" class="text-danger"></span>
     </div>
     
     <div class="form-group">
@@ -101,16 +108,11 @@
     </div>
 
     <div class="form-group">
-        <label asp-for="Processor">Processor</label>
-        <input asp-for="Processor" class="form-control input-width" />
-        <span asp-validation-for="Processor" class="text-danger"></span>
-    </div>
-    
-    <div class="form-group">
         <label asp-for="Contact">Contact</label>
         <input asp-for="Contact" class="form-control input-width" />
         <span asp-validation-for="Contact" class="text-danger"></span>
-        </div>
+    </div>
+
     <div class="form-group">
         <label asp-for="Location">Location</label>
         <input asp-for="Location" class="form-control input-width" />
