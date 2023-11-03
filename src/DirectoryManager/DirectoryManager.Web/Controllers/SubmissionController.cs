@@ -77,6 +77,7 @@ namespace DirectoryManager.Web.Controllers
                     Name = model.Name.Trim(),
                     Link = (model.Link == null) ? string.Empty : model.Link.Trim(),
                     Link2 = (model.Link2 == null) ? string.Empty : model.Link2.Trim(),
+                    Link3 = (model.Link3 == null) ? string.Empty : model.Link3.Trim(),
                     Description = (model.Description == null) ? string.Empty : model.Description.Trim(),
                     Location = (model.Location == null) ? string.Empty : model.Location.Trim(),
                     Processor = (model.Processor == null) ? string.Empty : model.Processor.Trim(),
@@ -132,6 +133,7 @@ namespace DirectoryManager.Web.Controllers
                 Description = directoryEntry.Description ?? string.Empty,
                 Link = directoryEntry.Link,
                 Link2 = directoryEntry.Link2 ?? string.Empty,
+                Link3 = directoryEntry.Link3 ?? string.Empty,
                 Location = directoryEntry.Location,
                 Name = directoryEntry.Name,
                 Note = directoryEntry.Note,
@@ -395,6 +397,11 @@ namespace DirectoryManager.Web.Controllers
             }
 
             if (existingEntry.Link2?.Trim() != model.Link2?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.Link3?.Trim() != model.Link3?.Trim())
             {
                 return true;
             }

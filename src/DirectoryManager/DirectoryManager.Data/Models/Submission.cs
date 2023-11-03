@@ -21,10 +21,13 @@ namespace DirectoryManager.Data.Models
         public string Link { get; set; } = string.Empty;
 
         [MaxLength(500)]
-        public string? Description { get; set; }
+        public string? Link2 { get; set; } = string.Empty;
 
         [MaxLength(500)]
-        public string? Link2 { get; set; } = string.Empty;
+        public string? Link3 { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? Description { get; set; }
 
         [MaxLength(255)]
         public string? Location { get; set; }

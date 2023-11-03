@@ -1,4 +1,5 @@
-﻿ @model DirectoryManager.Web.Models.SubmissionRequest
+﻿@model DirectoryManager.Web.Models.SubmissionRequest
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 @using DirectoryManager.Data.Enums
 @{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
@@ -109,8 +110,14 @@
     </div>
 
     <div class="form-group">
-        <label asp-for="Link">Link 2</label>
+        <label asp-for="Link2">@_cacheHelper.GetSnippet(SiteConfigSetting.Link2Name)</label>
         <input asp-for="Link2" class="form-control input-width" />
+        <span asp-validation-for="Link2" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Link3">@_cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)</label>
+        <input asp-for="Link3" class="form-control input-width" />
         <span asp-validation-for="Link2" class="text-danger"></span>
     </div>
 

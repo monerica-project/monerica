@@ -22,6 +22,9 @@ namespace DirectoryManager.Data.Models
         [MaxLength(500)]
         public string? Link2 { get; set; }
 
+        [MaxLength(500)]
+        public string? Link3 { get; set; }
+
         public DirectoryStatus DirectoryStatus { get; set; }
 
         [MaxLength(500)]

@@ -34,11 +34,22 @@
         {
             if (Model.DirectoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Scam)
             {
-                <text> | </text> <del><a  rel="nofollow"  target="_blank" href="@Model.DirectoryEntry.Link2">Onion</a></del>
+                <text> | </text> <del><a  rel="nofollow"  target="_blank" href="@Model.DirectoryEntry.Link2">@Model.Link2Name</a></del>
             }
             else
             {
-                <text> | </text> <a target="_blank" href="@Model.DirectoryEntry.Link2">Onion</a>
+                <text> | </text> <a target="_blank" href="@Model.DirectoryEntry.Link2">@Model.Link2Name</a>
+            }
+        }
+        @if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Link3))
+        {
+            if (Model.DirectoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Scam)
+            {
+                <text> | </text> <del><a rel="nofollow" target="_blank" href="@Model.DirectoryEntry.Link3">@Model.Link3Name</a></del>
+            }
+            else
+            {
+                <text> | </text> <a target="_blank" href="@Model.DirectoryEntry.Link3">@Model.Link3Name</a>
             }
         }
         @if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Description))
