@@ -53,10 +53,6 @@
         {
             <text> - </text> <text>Location: </text> @Model.DirectoryEntry.Location
         }
-        @if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Processor))
-        {
-            <text> - </text> <text>Processor: </text> @Model.DirectoryEntry.Processor
-        }
         @if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Note))
         {
             <i>(Note: @Html.Raw(Model.DirectoryEntry.Note))</i>
