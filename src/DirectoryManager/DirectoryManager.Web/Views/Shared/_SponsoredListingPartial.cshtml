@@ -38,13 +38,14 @@
         </div>
 
         <p class="create-sponsored-listing">
-            <a href="~/sponsoredlisting">Create a sponsored listing</a> @if (DirectoryManager.Web.Constants.IntegerConstants.MaxSponsoredListings > sponsoredListings.Count())
+           @if (DirectoryManager.Web.Constants.IntegerConstants.MaxSponsoredListings > sponsoredListings.Count())
             {
+                <a href="~/sponsoredlisting">Create a sponsored listing</a>
                 <span>(@(DirectoryManager.Web.Constants.IntegerConstants.MaxSponsoredListings-sponsoredListings.Count()) available)</span>
             }
             else
             {
-                <span>(0 available)</span>
+                <a href="~/sponsoredlisting">About sponsored listings</a>
             }
         </p>
     }

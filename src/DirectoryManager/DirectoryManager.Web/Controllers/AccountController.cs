@@ -50,7 +50,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (result.Succeeded)
             {
-                return this.RedirectToAction(nameof(this.HomeAsync), "Account");
+                return this.RedirectToAction("Home", "Account");
             }
             else
             {
