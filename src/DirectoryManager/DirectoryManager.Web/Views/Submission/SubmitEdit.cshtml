@@ -13,51 +13,6 @@
 <a href="~/submission/findexisting">&lt; Back</a>
 <hr />
 
-<style>
-    body {
-        background-color: #000000eb;
-        color: #FFFFFF;
-        font-family: Helvetica;
-    }
-
-    a {
-        color: #008cff;
-    }
-
-    li p {
-        margin: 0;
-    }
-
-    a:hover {
-        text-decoration: none;
-    }
-
-    .right {
-        text-align: right;
-    }
-
-    /* Spacing around main content */
-    #main-content {
-        padding: 20px;
-    }
-
-    h2, h3 {
-        margin-top: 20px;
-        margin-bottom: 20px;
-    }
-
-    .form-group {
-        margin-bottom: 20px; /* increased space between form groups */
-    }
-
-        .form-group label {
-            display: block;
-        }
-
-
-
-</style>
-
 @if (ViewData.ModelState.IsValid == false)
 {
     <div class="alert alert-danger">
