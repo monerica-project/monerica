@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Edit Sponsored Listing Offer";
+    SelectList currencySelectList = new SelectList(Enum.GetValues(typeof(DirectoryManager.Data.Enums.Currency)));
 }
 
 <h1>@ViewData["Title"]</h1>
@@ -24,6 +25,15 @@
         <label asp-for="Price" class="control-label"></label>
         <input asp-for="Price" class="form-control" />
         <span asp-validation-for="Price" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="PriceCurrency" class="control-label"></label>
+        @Html.DropDownListFor(model => model.PriceCurrency, currencySelectList, new { @class = "form-control" })
+        <span asp-validation-for="PriceCurrency" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="IsEnabled" class="control-label"></label>
+        <input asp-for="IsEnabled" class="form-control" />
     </div>
     <div class="form-group">
         <input type="submit" value="Save" class="btn btn-primary" />

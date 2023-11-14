@@ -24,7 +24,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository;
         private readonly INowPaymentsService paymentService;
         private readonly IMemoryCache cache;
-        private readonly ISponsoredListingOfferRepository sponsoredListings;
+        private readonly ISponsoredListingOfferRepository sponsoredListingOfferRepository;
         private readonly ICacheService cacheService;
         private readonly ILogger<SponsoredListingController> logger;
 
@@ -48,7 +48,7 @@ namespace DirectoryManager.Web.Controllers
             this.sponsoredListingInvoiceRepository = sponsoredListingInvoiceRepository;
             this.paymentService = paymentService;
             this.cache = cache;
-            this.sponsoredListings = sponsoredListings;
+            this.sponsoredListingOfferRepository = sponsoredListings;
             this.cacheService = cacheService;
             this.logger = logger;
         }
@@ -87,6 +87,15 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
+        [HttpGet("offers")]
+        public async Task<IActionResult> Offers()
+        {
+            var offers = await this.sponsoredListingOfferRepository.GetAllAsync();
+            var enabledOffers = offers.Where(o => o.IsEnabled);
+            return this.View(enabledOffers);
+        }
+
+        [AllowAnonymous]
         [HttpGet("current")]
         public IActionResult Current()
         {
@@ -109,7 +118,7 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            var offers = await this.sponsoredListings.GetAllAsync();
+            var offers = await this.sponsoredListingOfferRepository.GetAllAsync();
             var model = new List<SponsoredListingOfferModel>();
 
             foreach (var offer in offers.OrderBy(x => x.Days))
@@ -130,7 +139,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost("selectduration")]
         public async Task<IActionResult> SelectDurationAsync(int id, int selectedOfferId)
         {
-            var selectedOffer = await this.sponsoredListings.GetByIdAsync(selectedOfferId);
+            var selectedOffer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
 
             if (selectedOffer == null)
             {
@@ -217,7 +226,7 @@ namespace DirectoryManager.Web.Controllers
             int directoryEntryId,
             int selectedOfferId)
         {
-            var offer = await this.sponsoredListings.GetByIdAsync(selectedOfferId);
+            var offer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
 
             if (offer == null || directoryEntry == null)
@@ -269,7 +278,7 @@ namespace DirectoryManager.Web.Controllers
             int directoryEntryId,
             int selectedOfferId)
         {
-            var sponsoredListingOffer = await this.sponsoredListings.GetByIdAsync(selectedOfferId);
+            var sponsoredListingOffer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
 
             if (sponsoredListingOffer == null)
             {
@@ -518,7 +527,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
-        private static DirectoryManager.Data.Enums.PaymentStatus ConvertToInternalStatus(
+        private static PaymentStatus ConvertToInternalStatus(
             NowPayments.API.Enums.PaymentStatus externalStatus)
         {
             return externalStatus switch

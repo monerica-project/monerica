@@ -14,6 +14,7 @@
             <th>Description</th>
             <th>Days</th>
             <th>Price</th>
+            <th>Is Enabled</th>
             <th></th>
         </tr>
     </thead>
@@ -24,6 +25,7 @@
                 <td>@item.Description</td>
                 <td>@item.Days</td>
                 <td>@item.Price</td>
+                <td>@item.IsEnabled</td>
                 <td>
                     <a asp-action="Edit" asp-route-id="@item.Id">Edit</a>                    
                 </td>

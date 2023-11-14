@@ -1,0 +1,33 @@
+﻿@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Models;
+@model IEnumerable<DirectoryManager.Data.Models.SponsoredListingOffer>
+
+@{
+    ViewData["Title"] = "Sponsored Listing Offers";
+}
+<h1>@ViewData["Title"]</h1>
+
+<a href="~/">Back to home</a>
+<hr />
+ 
+<h2>Offers</h2>
+
+<table>
+    <thead>
+        <tr>
+            <th>Description</th>
+            <th></th>
+            <th>Price</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var offer in Model)
+        {
+            <tr>
+                <td>@offer.Description</td>
+                <td> - </td>
+                <td>@offer.Price.ToString("C") (@offer.PriceCurrency.ToString())</td>
+            </tr>
+        }
+    </tbody>
+</table>
