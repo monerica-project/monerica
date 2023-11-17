@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -28,6 +29,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
+        [Authorize]
         [HttpGet("expire-cache")]
         public IActionResult ExpireCache()
         {
