@@ -58,7 +58,7 @@
         }
         @if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Contact))
         {
-            <text> - </text> <text>Contact: </text> @Model.DirectoryEntry.Contact
+            <text> - </text> <text>Contact: </text> <div class="multi-line-text">@Model.DirectoryEntry.Contact</div>
         }
         @if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Location))
         {
