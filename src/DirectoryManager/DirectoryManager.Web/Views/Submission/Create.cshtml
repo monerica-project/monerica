@@ -9,9 +9,7 @@
 
 <a href="~/">Back to Home</a> <text> | </text> <a href="~/submission/findexisting">Edit Existing Entry</a>
 
-<p class="submission-guidelines">
-    @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.SubmissionGuidelines))
-</p>
+@Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.SubmissionGuidelines))
 
 @if (ViewData.ModelState.IsValid == false)
 {
@@ -21,9 +19,8 @@
     </div>
 }
 <hr />
-
+ 
 <form asp-action="Create" method="post">
-
 
     <h3>Required Information</h3>
     <div class="form-group">
