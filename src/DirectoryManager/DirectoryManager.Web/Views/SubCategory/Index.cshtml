@@ -12,20 +12,20 @@
 
 <form method="get">
     <label for="categoryFilter">Filter by Category: </label>
-    <select id="categoryFilter" name="categoryId" onchange="this.form.submit()">
+    <select id="categoryFilter" name="categoryId">
         <option value="">--Select a Category--</option>
         @foreach (var category in (IEnumerable<Category>)ViewBag.Categories)
         {
             <option value="@category.Id">@category.Name</option>
         }
     </select>
+    <button type="submit">Filter</button>
 </form>
 
 @foreach (var subCategory in Model)
 {
     <div>@subCategory.Name - Parent Category: @subCategory.Category.Name</div>
     <a href="@Url.Action("Edit", new { id = subCategory.Id })">Edit</a>
- 
 }
 
-<a href="@Url.Action("Create")">Create New SubCategory</a>
+<a href="@Url.Action("Create")">Create New: Sub Category</a>

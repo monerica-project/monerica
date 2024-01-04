@@ -19,6 +19,10 @@ Monerica is a directory of websites and services that accept Monero as payment o
 It is a community project that is open to contributions from anyone. 
 The goal is to create a directory of websites and services facilitating a circular economy for Monero.
 
+### Contact
+
+Email: `monerica@ghostbox.cc`
+
 ### Contributing
 
 The best way to contribute to Monerica is to help manage the data in the directory.
