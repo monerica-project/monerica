@@ -42,7 +42,9 @@
             @{
                 var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
                 featuredEntries.ToList(),
-                DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed);
+                DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+                link2Name,
+                link3Name);
             }
             @foreach (var viewModel in viewModelList)
             {
