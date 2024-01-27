@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models.SponsoredListings;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
@@ -8,6 +8,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<SponsoredListing?> GetByInvoiceIdAsync(int sponsoredListingInvoiceId);
         Task<IEnumerable<SponsoredListing>> GetAllAsync();
         Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync();
+        Task<DateTime?> GetNextExpirationDate();
         Task<int> GetTotalCountAsync();
         Task<List<SponsoredListing>> GetPaginatedListingsAsync(int page, int pageSize);
         Task<SponsoredListing?> GetActiveListing(int directoryEntryId);

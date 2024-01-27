@@ -47,8 +47,9 @@ builder.Services.AddScoped<ITrafficLogRepository, TrafficLogRepository>();
 builder.Services.AddScoped<IExcludeUserAgentRepository, ExcludeUserAgentRepository>();
 builder.Services.AddScoped<ISponsoredListingInvoiceRepository, SponsoredListingInvoiceRepository>();
 builder.Services.AddScoped<ISponsoredListingRepository, SponsoredListingRepository>();
-builder.Services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
+builder.Services.AddScoped<ISponsoredListingReservationRepository, SponsoredListingReservationRepository>();
 builder.Services.AddScoped<ISponsoredListingOfferRepository, SponsoredListingOfferRepository>();
+builder.Services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
 builder.Services.AddScoped<IProcessorConfigRepository, ProcessorConfigRepository>();
 
 // services

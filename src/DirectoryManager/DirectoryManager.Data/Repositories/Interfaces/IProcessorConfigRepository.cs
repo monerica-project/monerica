@@ -1,5 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.SponsoredListings;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {

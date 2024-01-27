@@ -2,7 +2,7 @@
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.BaseModels;
 
-namespace DirectoryManager.Data.Models
+namespace DirectoryManager.Data.Models.SponsoredListings
 {
     public class SponsoredListingInvoice : StateInfo
     {

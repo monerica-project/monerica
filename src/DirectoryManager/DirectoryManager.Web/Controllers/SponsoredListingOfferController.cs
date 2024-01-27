@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

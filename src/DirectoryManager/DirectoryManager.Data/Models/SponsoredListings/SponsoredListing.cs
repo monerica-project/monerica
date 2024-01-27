@@ -1,6 +1,6 @@
 ﻿using DirectoryManager.Data.Models.BaseModels;
 
-namespace DirectoryManager.Data.Models
+namespace DirectoryManager.Data.Models.SponsoredListings
 {
     public class SponsoredListing : StateInfo
     {

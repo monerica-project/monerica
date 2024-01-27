@@ -13,8 +13,7 @@
 @{
     ViewData["Title"] = Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.HomePageTitle));
 }
-<cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.EntriesCacheKey"
-               cache-duration-seconds="@DirectoryManager.Web.Constants.IntegerConstants.CacheDurationSeconds">
+<cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.EntriesCacheKey">
     @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.HomePageDisplayHtml))
     <hr />
     <p>

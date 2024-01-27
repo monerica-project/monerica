@@ -1,5 +1,5 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
-using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -98,6 +98,19 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .FirstOrDefaultAsync(x => x.DirectoryEntryId == directoryEntryId &&
                                           x.CampaignStartDate <= now &&
                                           x.CampaignEndDate >= now);
+        }
+
+        public async Task<DateTime?> GetNextExpirationDate()
+        {
+            var currentDate = DateTime.UtcNow;
+
+            var nextExpirationDate = await this.context.SponsoredListings
+                .Where(x => x.CampaignEndDate > currentDate) // Filter for future expiration dates
+                .OrderBy(x => x.CampaignEndDate) // Order by the closest expiration date
+                .Select(x => x.CampaignEndDate) // Select only the expiration date
+                .FirstOrDefaultAsync(); // Get the closest one
+
+            return nextExpirationDate; // This will be null if there are no future expirations
         }
     }
 }

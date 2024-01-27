@@ -1,8 +1,10 @@
-﻿using DirectoryManager.Web.Constants;
+﻿using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.AspNetCore.Mvc.ViewFeatures;
 using Microsoft.AspNetCore.Razor.TagHelpers;
 using Microsoft.Extensions.Caching.Memory;
+using System;
 
 namespace DirectoryManager.Web.TagHelpers
 {
@@ -10,10 +12,14 @@ namespace DirectoryManager.Web.TagHelpers
     public class CacheContentTagHelper : TagHelper
     {
         private readonly IMemoryCache cache;
+        private readonly ISponsoredListingRepository sponsoredListingRepository;
 
-        public CacheContentTagHelper(IMemoryCache cache)
+        public CacheContentTagHelper(
+            IMemoryCache cache,
+            ISponsoredListingRepository sponsoredListingRepository)
         {
             this.cache = cache;
+            this.sponsoredListingRepository = sponsoredListingRepository;
         }
 
         [HtmlAttributeName("cache-key")]
@@ -30,12 +36,18 @@ namespace DirectoryManager.Web.TagHelpers
         {
             if (!this.cache.TryGetValue(this.CacheKey, out string? cachedContent))
             {
+                var nextExpirationDate = await this.sponsoredListingRepository.GetNextExpirationDate();
                 var childContent = await output.GetChildContentAsync();
                 cachedContent = childContent.GetContent();
 
+                // Determine the cache expiration time
+                var cacheExpiration = nextExpirationDate.HasValue
+                    ? TimeSpan.FromSeconds(Math.Min((nextExpirationDate.Value - DateTime.UtcNow).TotalSeconds, this.CacheDurationSeconds))
+                    : TimeSpan.FromSeconds(this.CacheDurationSeconds);
+
                 var cacheEntryOptions = new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = TimeSpan.FromSeconds(this.CacheDurationSeconds)
+                    AbsoluteExpirationRelativeToNow = cacheExpiration
                 };
 
                 this.cache.Set(this.CacheKey, cachedContent, cacheEntryOptions);
