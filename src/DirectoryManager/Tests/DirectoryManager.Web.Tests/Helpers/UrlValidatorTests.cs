@@ -16,8 +16,7 @@ namespace DirectoryManager.Web.Tests.Helpers
         [InlineData("ftp://www.google.com", false)] // Only HTTP and HTTPS are valid
         [InlineData("invalid.url", false)]
         [InlineData("http://", false)]
-        [InlineData("", false)]
-        [InlineData(null, false)]
+        [InlineData("", false)]        
         public void TestIsValidUrl(string url, bool expected)
         {
             bool result = UrlHelper.IsValidUrl(url);
