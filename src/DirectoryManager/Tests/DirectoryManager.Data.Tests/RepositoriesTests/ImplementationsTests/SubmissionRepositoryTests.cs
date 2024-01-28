@@ -55,7 +55,7 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
         public async Task AddAsync_ShouldAddSubmission()
         {
             var newSubmission = new Submission { Id = 3, /*... other properties ...*/ };
-            await this.repository.AddAsync(newSubmission);
+            await this.repository.CreateAsync(newSubmission);
 
             this.mockDbSet.Verify(x => x.AddAsync(It.IsAny<Submission>(), default), Times.Once);
             this.mockContext.Verify(x => x.SaveChangesAsync(default), Times.Once);
