@@ -28,6 +28,9 @@
         <ul>
             @await Html.PartialAsync("_DirectoryEntryPartial", Model.SelectedDirectoryEntry)
         </ul>
+
+        <hr />
+
         <h2>Your Order</h2>
         <p>
             <b>Description:</b> @Model.Offer.Description<br />

@@ -3,9 +3,7 @@
     public class StringConstants
     {
         public const string DBErrorMessage = "DB error";
-
         public const string ConnectionStringLocation = "ConnectionStrings:DefaultConnection";
-
         public const string AppSettingsFileName = "appsettings.json";
     }
 }

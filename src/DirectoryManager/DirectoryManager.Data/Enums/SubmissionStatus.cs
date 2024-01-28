@@ -3,6 +3,7 @@
     public enum SubmissionStatus
     {
         Unknown = 0,
+        Preview = 6,
         Pending = 1,
         Approved = 2,
         Rejected = 3,

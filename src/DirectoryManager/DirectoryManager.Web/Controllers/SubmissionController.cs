@@ -19,6 +19,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly IDirectoryEntriesAuditRepository auditRepository;
         private readonly IMemoryCache cache;
+        private readonly ICacheService cacheHelper;
 
         public SubmissionController(
             UserManager<ApplicationUser> userManager,
@@ -28,7 +29,8 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntriesAuditRepository auditRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
-            IMemoryCache cache)
+            IMemoryCache cache,
+            ICacheService cacheHelper)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -37,15 +39,30 @@ namespace DirectoryManager.Web.Controllers
             this.directoryEntryRepository = directoryEntryRepository;
             this.auditRepository = auditRepository;
             this.cache = cache;
+            this.cacheHelper = cacheHelper;
         }
 
         [AllowAnonymous]
         [HttpGet("submit")]
-        public async Task<IActionResult> CreateAsync()
+        public async Task<IActionResult> CreateAsync(int? submissionId)
         {
+            var model = new SubmissionRequest();
+
+            if (submissionId != null)
+            {
+                var submission = await this.submissionRepository.GetByIdAsync(submissionId.Value);
+
+                if (submission == null || submission.SubmissionStatus != SubmissionStatus.Preview)
+                {
+                    return this.BadRequest(Constants.StringConstants.SubmissionAlreadySubmitted);
+                }
+
+                model = GetSubmissionCreateModel(submission);
+            }
+
             await this.LoadSubCategories();
 
-            return this.View();
+            return this.View(model);
         }
 
         [AllowAnonymous]
@@ -64,35 +81,38 @@ namespace DirectoryManager.Web.Controllers
 
             if (this.ModelState.IsValid)
             {
-                var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
-
                 if (!await this.HasChangesAsync(model))
                 {
                     return this.RedirectToAction("Success", "Submission");
                 }
 
-                var submission = new Submission
+                var submissionModel = this.GetSubmissionRequest(model);
+                var submissionId = model.SubmissionId;
+
+                if (submissionId == null)
                 {
-                    SubmissionStatus = SubmissionStatus.Pending,
-                    Name = model.Name.Trim(),
-                    Link = (model.Link == null) ? string.Empty : model.Link.Trim(),
-                    Link2 = (model.Link2 == null) ? string.Empty : model.Link2.Trim(),
-                    Link3 = (model.Link3 == null) ? string.Empty : model.Link3.Trim(),
-                    Description = (model.Description == null) ? string.Empty : model.Description.Trim(),
-                    Location = (model.Location == null) ? string.Empty : model.Location.Trim(),
-                    Processor = (model.Processor == null) ? string.Empty : model.Processor.Trim(),
-                    Note = (model.Note == null) ? string.Empty : model.Note.Trim(),
-                    Contact = (model.Contact == null) ? string.Empty : model.Contact.Trim(),
-                    SuggestedSubCategory = (model.SuggestedSubCategory == null) ? string.Empty : model.SuggestedSubCategory.Trim(),
-                    SubCategoryId = (model.SubCategoryId == 0) ? null : model.SubCategoryId,
-                    IpAddress = ipAddress,
-                    DirectoryEntryId = (model.DirectoryEntryId == 0) ? null : model.DirectoryEntryId,
-                    DirectoryStatus = (model.DirectoryStatus == null) ? DirectoryStatus.Unknown : model.DirectoryStatus
-                };
+                    var submission = await this.submissionRepository.CreateAsync(submissionModel);
+                    submissionId = submission.Id;
+                }
+                else
+                {
+                    var existingSubmission = await this.submissionRepository.GetByIdAsync(submissionId.Value);
 
-                await this.submissionRepository.AddAsync(submission);
+                    if (existingSubmission == null)
+                    {
+                        return this.BadRequest(Constants.StringConstants.SubmissionDoesNotExist);
+                    }
 
-                return this.RedirectToAction("Success", "Submission");
+                    await this.UpdateSubmission(submissionModel, existingSubmission);
+                }
+
+                return this.RedirectToAction(
+                    "Preview",
+                    "Submission",
+                    new
+                    {
+                        id = submissionId
+                    });
             }
             else
             {
@@ -103,45 +123,36 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
+        [HttpGet("submission/preview/{id}")]
+        public async Task<IActionResult> Preview(int id)
+        {
+            var submission = await this.submissionRepository.GetByIdAsync(id);
+
+            if (submission == null)
+            {
+                return this.BadRequest(Constants.StringConstants.SubmissionDoesNotExist);
+            }
+
+            var model = this.GetSubmissionPreview(submission);
+
+            return this.View(model);
+        }
+
+        [AllowAnonymous]
         [HttpGet("submission/submitedit/{id}")]
         public async Task<IActionResult> SubmitEdit(int id)
         {
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(id);
 
-            var subCategories = (await this.subCategoryRepository.GetAllAsync())
-              .OrderBy(sc => sc.Category.Name)
-              .ThenBy(sc => sc.Name)
-              .Select(sc => new
-              {
-                  sc.Id,
-                  DisplayName = $"{sc.Category.Name} > {sc.Name}"
-              })
-              .ToList();
-
-            subCategories.Insert(0, new { Id = 0, DisplayName = "Please select a category" });
-
-            this.ViewBag.SubCategories = subCategories;
+            await this.SetSubCategoriesViewBag();
 
             if (directoryEntry == null)
             {
                 return this.NotFound();
             }
 
-            var model = new SubmissionRequest()
-            {
-                Contact = directoryEntry.Contact,
-                Description = directoryEntry.Description ?? string.Empty,
-                Link = directoryEntry.Link,
-                Link2 = directoryEntry.Link2 ?? string.Empty,
-                Link3 = directoryEntry.Link3 ?? string.Empty,
-                Location = directoryEntry.Location,
-                Name = directoryEntry.Name,
-                Note = directoryEntry.Note,
-                Processor = directoryEntry.Processor,
-                SubCategoryId = directoryEntry.SubCategoryId,
-                DirectoryEntryId = directoryEntry.Id,
-                DirectoryStatus = directoryEntry.DirectoryStatus
-            };
+            var model = GetSubmissionRequestModel(directoryEntry);
+
             return this.View(model);
         }
 
@@ -159,10 +170,7 @@ namespace DirectoryManager.Web.Controllers
             entries = entries.OrderBy(e => e.Name)
                              .ToList();
 
-            this.ViewBag.SubCategories = (await this.subCategoryRepository.GetAllAsync())
-                                    .OrderBy(sc => sc.Category.Name)
-                                    .ThenBy(sc => sc.Name)
-                                    .ToList();
+            await this.SetSubCategoriesViewBag();
 
             return this.View(entries);
         }
@@ -210,19 +218,7 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            var subCategories = (await this.subCategoryRepository.GetAllAsync())
-              .OrderBy(sc => sc.Category.Name)
-              .ThenBy(sc => sc.Name)
-              .Select(sc => new
-              {
-                  sc.Id,
-                  DisplayName = $"{sc.Category.Name} > {sc.Name}"
-              })
-              .ToList();
-
-            subCategories.Insert(0, new { Id = 0, DisplayName = "Please select a category" });
-
-            this.ViewBag.SubCategories = subCategories;
+            await this.SetSubCategoriesViewBag();
 
             if (submission == null)
             {
@@ -245,6 +241,29 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("submission/success")]
         public IActionResult Success()
         {
+            return this.View("Success");
+        }
+
+        [AllowAnonymous]
+        [HttpPost("confirm")]
+        public async Task<IActionResult> ConfirmAsync(int submissionId)
+        {
+            var submission = await this.submissionRepository.GetByIdAsync(submissionId);
+
+            if (submission == null)
+            {
+                return this.BadRequest(Constants.StringConstants.SubmissionDoesNotExist);
+            }
+
+            if (submission.SubmissionStatus == SubmissionStatus.Pending)
+            {
+                return this.BadRequest(Constants.StringConstants.SubmissionAlreadySubmitted);
+            }
+
+            submission.SubmissionStatus = SubmissionStatus.Pending;
+
+            await this.submissionRepository.UpdateAsync(submission);
+
             return this.View("Success");
         }
 
@@ -277,44 +296,11 @@ namespace DirectoryManager.Web.Controllers
                 if (model.DirectoryEntryId == null)
                 {
                     // it's now approved
-                    await this.directoryEntryRepository.CreateAsync(
-                        new DirectoryEntry
-                        {
-                            Name = model.Name.Trim(),
-                            Link = model.Link.Trim(),
-                            Link2 = model.Link2?.Trim(),
-                            Description = model.Description?.Trim(),
-                            Location = model.Location?.Trim(),
-                            Processor = model.Processor?.Trim(),
-                            Note = model.Note?.Trim(),
-                            Contact = model.Contact?.Trim(),
-                            DirectoryStatus = Data.Enums.DirectoryStatus.Admitted,
-                            SubCategoryId = model.SubCategoryId,
-                            CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty
-                        });
+                    await this.CreateDirectoryEntry(model);
                 }
                 else
                 {
-                    var existing = await this.directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value) ??
-                        throw new Exception("Submission has a directory entry id, but the entry does not exist.");
-                    existing.Name = model.Name.Trim();
-                    existing.Link = model.Link.Trim();
-                    existing.Link2 = model.Link2?.Trim();
-                    existing.Description = model.Description?.Trim();
-                    existing.Location = model.Location?.Trim();
-                    existing.Processor = model.Processor?.Trim();
-                    existing.Note = model.Note?.Trim();
-                    existing.Contact = model.Contact?.Trim();
-
-                    if (model.DirectoryStatus != null)
-                    {
-                        existing.DirectoryStatus = model.DirectoryStatus.Value;
-                    }
-
-                    existing.SubCategoryId = model.SubCategoryId;
-                    existing.UpdatedByUserId = this.userManager.GetUserId(this.User);
-
-                    await this.directoryEntryRepository.UpdateAsync(existing);
+                    await this.UpdateDirectoryEntry(model);
                 }
 
                 this.ClearCachedItems();
@@ -325,6 +311,173 @@ namespace DirectoryManager.Web.Controllers
             await this.submissionRepository.UpdateAsync(submission);
 
             return this.RedirectToAction(nameof(this.Index));
+        }
+
+        private static SubmissionRequest GetSubmissionRequestModel(DirectoryEntry directoryEntry)
+        {
+            return new SubmissionRequest()
+            {
+                Contact = directoryEntry.Contact,
+                Description = directoryEntry.Description ?? string.Empty,
+                Link = directoryEntry.Link,
+                Link2 = directoryEntry.Link2 ?? string.Empty,
+                Link3 = directoryEntry.Link3 ?? string.Empty,
+                Location = directoryEntry.Location,
+                Name = directoryEntry.Name,
+                Note = directoryEntry.Note,
+                Processor = directoryEntry.Processor,
+                SubCategoryId = directoryEntry.SubCategoryId,
+                DirectoryEntryId = directoryEntry.Id,
+                DirectoryStatus = directoryEntry.DirectoryStatus
+            };
+        }
+
+        private static SubmissionRequest GetSubmissionCreateModel(Submission submission)
+        {
+            return new SubmissionRequest()
+            {
+                SubCategoryId = (submission.SubCategoryId == null) ? null : submission.SubCategoryId,
+                NoteToAdmin = submission.NoteToAdmin,
+                Contact = submission.Contact,
+                Description = submission.Description,
+                DirectoryEntryId = submission.DirectoryEntryId,
+                DirectoryStatus = submission.DirectoryStatus,
+                Link = submission.Link,
+                Link2 = submission.Link2,
+                Link3 = submission.Link3,
+                Location = submission.Location,
+                Name = submission.Name,
+                Note = submission.Note,
+                Processor = submission.Processor,
+                SuggestedSubCategory = submission.SuggestedSubCategory,
+            };
+        }
+
+        private async Task SetSubCategoriesViewBag()
+        {
+            var subCategories = (await this.subCategoryRepository.GetAllAsync())
+              .OrderBy(sc => sc.Category.Name)
+              .ThenBy(sc => sc.Name)
+              .Select(sc => new
+              {
+                  sc.Id,
+                  DisplayName = $"{sc.Category.Name} > {sc.Name}"
+              })
+              .ToList();
+
+            subCategories.Insert(0, new { Id = 0, DisplayName = Constants.StringConstants.SelectACategory });
+
+            this.ViewBag.SubCategories = subCategories;
+        }
+
+        private SubmissionPreviewModel GetSubmissionPreview(Submission submission)
+        {
+            var link2Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
+            var link3Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+
+            return new SubmissionPreviewModel
+            {
+                DirectoryEntryViewModel = new DirectoryEntryViewModel
+                {
+                    DateOption = Enums.DateDisplayOption.NotDisplayed,
+                    IsSponsored = false,
+                    Link2Name = link2Name,
+                    Link3Name = link3Name,
+                    DirectoryEntry = new DirectoryEntry()
+                    {
+                        Link = submission.Link,
+                        Name = submission.Name,
+                        Contact = submission.Contact,
+                        Description = submission.Description,
+                        Id = (submission.DirectoryEntryId != null) ? submission.DirectoryEntryId.Value : 0,
+                        DirectoryStatus = (submission.DirectoryStatus == null || submission.DirectoryStatus == DirectoryStatus.Unknown)
+                            ? DirectoryStatus.Admitted :
+                            submission.DirectoryStatus.Value,
+                        Link2 = submission.Link2,
+                        Link3 = submission.Link3,
+                        Location = submission.Location,
+                        Note = submission.Note,
+                        Processor = submission.Processor,
+                        SubCategoryId = submission.SubCategoryId,
+                    }
+                },
+                SubmissionId = submission.Id,
+                NoteToAdmin = submission.NoteToAdmin,
+            };
+        }
+
+        private async Task CreateDirectoryEntry(Submission model)
+        {
+            await this.directoryEntryRepository.CreateAsync(
+                new DirectoryEntry
+                {
+                    Name = model.Name.Trim(),
+                    Link = model.Link.Trim(),
+                    Link2 = model.Link2?.Trim(),
+                    Description = model.Description?.Trim(),
+                    Location = model.Location?.Trim(),
+                    Processor = model.Processor?.Trim(),
+                    Note = model.Note?.Trim(),
+                    Contact = model.Contact?.Trim(),
+                    DirectoryStatus = DirectoryStatus.Admitted,
+                    SubCategoryId = model.SubCategoryId,
+                    CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty
+                });
+        }
+
+        private async Task UpdateDirectoryEntry(Submission model)
+        {
+            if (model.DirectoryEntryId == null)
+            {
+                return;
+            }
+
+            var existing = await this.directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value) ??
+                                    throw new Exception("Submission has a directory entry id, but the entry does not exist.");
+            existing.Name = model.Name.Trim();
+            existing.Link = model.Link.Trim();
+            existing.Link2 = model.Link2?.Trim();
+            existing.Description = model.Description?.Trim();
+            existing.Location = model.Location?.Trim();
+            existing.Processor = model.Processor?.Trim();
+            existing.Note = model.Note?.Trim();
+            existing.Contact = model.Contact?.Trim();
+
+            if (model.DirectoryStatus != null)
+            {
+                existing.DirectoryStatus = model.DirectoryStatus.Value;
+            }
+
+            existing.SubCategoryId = model.SubCategoryId;
+            existing.UpdatedByUserId = this.userManager.GetUserId(this.User);
+
+            await this.directoryEntryRepository.UpdateAsync(existing);
+        }
+
+        private Submission GetSubmissionRequest(SubmissionRequest model)
+        {
+            var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
+
+            var submission = new Submission
+            {
+                SubmissionStatus = SubmissionStatus.Preview,
+                Name = model.Name.Trim(),
+                Link = (model.Link == null) ? string.Empty : model.Link.Trim(),
+                Link2 = (model.Link2 == null) ? string.Empty : model.Link2.Trim(),
+                Link3 = (model.Link3 == null) ? string.Empty : model.Link3.Trim(),
+                Description = (model.Description == null) ? string.Empty : model.Description.Trim(),
+                Location = (model.Location == null) ? string.Empty : model.Location.Trim(),
+                Processor = (model.Processor == null) ? string.Empty : model.Processor.Trim(),
+                Note = (model.Note == null) ? string.Empty : model.Note.Trim(),
+                Contact = (model.Contact == null) ? string.Empty : model.Contact.Trim(),
+                SuggestedSubCategory = (model.SuggestedSubCategory == null) ? string.Empty : model.SuggestedSubCategory.Trim(),
+                SubCategoryId = (model.SubCategoryId == 0) ? null : model.SubCategoryId,
+                IpAddress = ipAddress,
+                DirectoryEntryId = (model.DirectoryEntryId == 0) ? null : model.DirectoryEntryId,
+                DirectoryStatus = (model.DirectoryStatus == null) ? DirectoryStatus.Unknown : model.DirectoryStatus,
+                NoteToAdmin = model.NoteToAdmin
+            };
+            return submission;
         }
 
         private async Task LoadSubCategories()
@@ -339,7 +492,7 @@ namespace DirectoryManager.Web.Controllers
                 })
                 .ToList();
 
-            subCategories.Insert(0, new { Id = 0, DisplayName = "Please select a category" });
+            subCategories.Insert(0, new { Id = 0, DisplayName = Constants.StringConstants.SelectACategory });
 
             this.ViewBag.SubCategories = subCategories;
         }
@@ -365,6 +518,28 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return false;
+        }
+
+        private async Task UpdateSubmission(Submission submissionModel, Submission existingSubmission)
+        {
+            existingSubmission.SubmissionStatus = submissionModel.SubmissionStatus;
+            existingSubmission.Location = submissionModel.Location;
+            existingSubmission.DirectoryStatus = submissionModel.DirectoryStatus;
+            existingSubmission.DirectoryEntryId = submissionModel.DirectoryEntryId;
+            existingSubmission.Contact = submissionModel.Contact;
+            existingSubmission.Description = submissionModel.Description;
+            existingSubmission.IpAddress = submissionModel.IpAddress;
+            existingSubmission.Link = submissionModel.Link;
+            existingSubmission.Link2 = submissionModel.Link2;
+            existingSubmission.Link3 = submissionModel.Link3;
+            existingSubmission.Name = submissionModel.Name;
+            existingSubmission.Note = submissionModel.Note;
+            existingSubmission.NoteToAdmin = submissionModel.NoteToAdmin;
+            existingSubmission.Processor = submissionModel.Processor;
+            existingSubmission.SubCategoryId = submissionModel.SubCategoryId;
+            existingSubmission.SuggestedSubCategory = submissionModel.SuggestedSubCategory;
+
+            await this.submissionRepository.UpdateAsync(existingSubmission);
         }
 
         private async Task<bool> HasChangesAsync(SubmissionRequest model)

@@ -1,5 +1,5 @@
 ﻿@model DirectoryManager.Web.Models.SubmissionRequest
-@inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @using DirectoryManager.Data.Enums
 @{
     ViewData["Title"] = "Create Submission";
@@ -7,9 +7,9 @@
 
 <h1>@ViewData["Title"]</h1>
 
-<a href="~/">Back to Home</a> <text> | </text> <a href="~/submission/findexisting">Edit Existing Entry</a>
+<a href="~/">&lt; back to home</a><text> | </text> <a href="~/submission/findexisting">Edit a current directory listing here</a>
 
-@Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.SubmissionGuidelines))
+@Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SubmissionGuidelines))
 
 @if (ViewData.ModelState.IsValid == false)
 {
@@ -21,6 +21,8 @@
 <hr />
  
 <form asp-action="Create" method="post">
+
+    @Html.HiddenFor(x => x.SubmissionId)
 
     <h3>Required Information</h3>
     <div class="form-group">
@@ -48,20 +50,20 @@
 
     <div class="form-group">
         <label asp-for="Description">Description</label>
-        <textarea  asp-for="Description" class="form-control input-width"></textarea>
+        <textarea asp-for="Description" class="form-control input-width"></textarea>
         <span asp-validation-for="Description" class="text-danger"></span>
     </div>
 
     <h3>Optional Information</h3>
 
     <div class="form-group">
-        <label asp-for="Link2">@_cacheHelper.GetSnippet(SiteConfigSetting.Link2Name)</label>
+        <label asp-for="Link2">@cacheHelper.GetSnippet(SiteConfigSetting.Link2Name)</label>
         <input asp-for="Link2" class="form-control input-width" />
         <span asp-validation-for="Link2" class="text-danger"></span>
     </div>
 
     <div class="form-group">
-        <label asp-for="Link3">@_cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)</label>
+        <label asp-for="Link3">@cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)</label>
         <input asp-for="Link3" class="form-control input-width" />
         <span asp-validation-for="Link3" class="text-danger"></span>
     </div>
@@ -83,6 +85,13 @@
         <textarea  asp-for="Note" class="form-control input-width"></textarea>
         <span asp-validation-for="Note" class="text-danger"></span>
     </div>
-    <button type="submit" class="btn btn-primary">Submit New Listing</button>
+
+    <h3>For Reviewer</h3>
+    <div class="form-group">
+        <label asp-for="NoteToAdmin">Note To Admin</label>
+        <textarea asp-for="NoteToAdmin" class="form-control input-width"></textarea>
+        <span asp-validation-for="NoteToAdmin" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Preview</button>
 </form>
- 

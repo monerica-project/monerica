@@ -27,10 +27,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.context.Submissions.FindAsync(id);
         }
 
-        public async Task AddAsync(Submission submission)
+        public async Task<Submission> CreateAsync(Submission submission)
         {
             await this.context.Submissions.AddAsync(submission);
             await this.context.SaveChangesAsync();
+
+            return submission;
         }
 
         public async Task UpdateAsync(Submission submission)

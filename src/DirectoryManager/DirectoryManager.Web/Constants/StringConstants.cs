@@ -15,5 +15,8 @@
         public const string DirectoryEntryNotFound = "Directory entry not found.";
         public const string InvoiceNotFound = "Invoice not found.";
         public const string DeserializationObjectIsNull = "Deserialized object is null.";
+        public const string SelectACategory = "Please select a category";
+        public const string SubmissionDoesNotExist = "This submission does not exist.";
+        public const string SubmissionAlreadySubmitted = "This submission has already been submitted.";
     }
 }
