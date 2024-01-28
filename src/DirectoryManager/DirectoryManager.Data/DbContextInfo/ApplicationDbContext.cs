@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.BaseModels;
+using DirectoryManager.Data.Models.SponsoredListings;
 using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Data.DbContextInfo
@@ -42,6 +43,8 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<SponsoredListingOffer> SponsoredListingOffers { get; set; }
 
         public DbSet<ProcessorConfig> ProcessorConfigs { get; set; }
+
+        public DbSet<SponsoredListingReservation> SponsoredListingReservations { get; set; }
 
         public override int SaveChanges()
         {
@@ -116,6 +119,13 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<ProcessorConfig>()
                    .HasIndex(e => e.PaymentProcessor)
                    .IsUnique();
+
+            builder.Entity<SponsoredListingReservation>()
+                    .HasIndex(e => e.ReservationGuid)
+                    .IsUnique();
+
+            builder.Entity<SponsoredListingReservation>()
+                    .HasIndex(e => e.ExpirationDateTime);
         }
 
         private void SetDates()

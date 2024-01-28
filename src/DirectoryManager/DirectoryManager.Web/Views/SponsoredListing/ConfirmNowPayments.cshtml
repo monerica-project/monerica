@@ -23,7 +23,7 @@
 
     @if (Model.CanCreateSponsoredListing)
     {
-            <h2>Selected Listing</h2>
+        <h2>Selected Listing</h2>
 
         <ul>
             @await Html.PartialAsync("_DirectoryEntryPartial", Model.SelectedDirectoryEntry)
@@ -49,6 +49,7 @@
         </p>
 
         <form method="post" action="~/sponsoredlisting/confirmnowpayments">
+            <input name="rsvId" type="hidden" value="@ViewBag.ReservationGuid" />
             <input type="hidden" name="directoryEntryId" value="@Model.SelectedDirectoryEntry.DirectoryEntry.Id" />
             <input type="hidden" name="selectedOfferId" value="@Model.Offer.Id" />
             <button class="btn" type="submit">Purchase Listing</button>

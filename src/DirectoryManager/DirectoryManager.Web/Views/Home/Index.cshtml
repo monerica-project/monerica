@@ -13,8 +13,7 @@
 @{
     ViewData["Title"] = Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.HomePageTitle));
 }
-<cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.EntriesCacheKey"
-               cache-duration-seconds="@DirectoryManager.Web.Constants.IntegerConstants.CacheDurationSeconds">
+<cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.EntriesCacheKey">
     @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.HomePageDisplayHtml))
     <hr />
     <p>
@@ -42,7 +41,9 @@
             @{
                 var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
                 featuredEntries.ToList(),
-                DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed);
+                DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+                link2Name,
+                link3Name);
             }
             @foreach (var viewModel in viewModelList)
             {

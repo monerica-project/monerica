@@ -29,19 +29,28 @@ In addition to being at the top of the page, your listing is also highlighted in
     <li>Your listing goes live automatically</li>
 </ol>
 
-    @if (Model.CanCreateSponsoredListing)
-    {
+@if (Model.CanCreateSponsoredListing)
+{
     <p>
         <a class="btn"  href="~/sponsoredlisting/selectlisting">Select Listing</a>        
     </p>
     <p><i>@(IntegerConstants.MaxSponsoredListings - Model.CurrentListingCount) spot@((IntegerConstants.MaxSponsoredListings - Model.CurrentListingCount) == 1 ? "" : "s") remaining</i></p>
+}
+else
+{
+    if (string.IsNullOrWhiteSpace(Model.Message))
+    {
+        @await Html.PartialAsync("_AdSpaceFull", new ListingInventoryModel()
+       {
+           CanCreateSponsoredListing = Model.CanCreateSponsoredListing,
+           NextListingExpiration = Model.NextListingExpiration
+       });
+
+        <p>However, you can extend the duration of an existing listing: <a href="~/sponsoredlisting/activelistings">here</a>.</p>
+        <p>See current offers and pricing: <a href="~/sponsoredlisting/offers">here</a>.</p>
     }
     else
     {
-    @await Html.PartialAsync("_AdSpaceFull", new ListingInventoryModel()
-        { CanCreateSponsoredListing = Model.CanCreateSponsoredListing,
-         NextListingExpiration = Model.NextListingExpiration});
-
-    <p>However, you can extend the duration of an existing listing: <a href="~/sponsoredlisting/activelistings">here</a>.</p>
-    <p>See current offers and pricing: <a href="~/sponsoredlisting/offers">here</a>.</p>
+        <p><i>@Model.Message</i></p>
     }
+}
