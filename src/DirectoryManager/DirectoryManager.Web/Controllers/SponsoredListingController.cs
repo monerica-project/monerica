@@ -225,7 +225,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (selectedDiretoryEntry == null)
             {
-                return this.BadRequest(new { Error = "Directory entry not found." });
+                return this.BadRequest(new { Error = StringConstants.DirectoryEntryNotFound });
             }
 
             return this.RedirectToAction(
@@ -335,7 +335,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (directoryEntry == null)
             {
-                return this.BadRequest(new { Error = "Directory entry not found." });
+                return this.BadRequest(new { Error = StringConstants.DirectoryEntryNotFound });
             }
 
             var existingListing = await this.sponsoredListingRepository.GetActiveListing(directoryEntryId);
@@ -399,7 +399,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (ipnMessage == null)
             {
-                return this.BadRequest(new { Error = "Deserialized object is null." });
+                return this.BadRequest(new { Error = StringConstants.DeserializationObjectIsNull });
             }
 
             var nowPaymentsSig = this.Request
@@ -418,7 +418,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (ipnMessage == null)
             {
-                return this.BadRequest(new { Error = "Deserialized object is null." });
+                return this.BadRequest(new { Error = StringConstants.DeserializationObjectIsNull });
             }
 
             if (ipnMessage.OrderId == null)
@@ -431,7 +431,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (invoice == null)
             {
-                return this.BadRequest(new { Error = "Invoice not found." });
+                return this.BadRequest(new { Error = StringConstants.InvoiceNotFound });
             }
 
             invoice.PaymentResponse = JsonConvert.SerializeObject(ipnMessage);
@@ -439,7 +439,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (ipnMessage == null)
             {
-                return this.BadRequest(new { Error = "Deserialized object is null." });
+                return this.BadRequest(new { Error = StringConstants.DeserializationObjectIsNull });
             }
 
             if (ipnMessage.PaymentStatus == null)
@@ -473,7 +473,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (processorInvoice == null)
             {
-                return this.BadRequest(new { Error = "Invoice not found." });
+                return this.BadRequest(new { Error = StringConstants.InvoiceNotFound });
             }
 
             if (processorInvoice.OrderId == null)
@@ -486,7 +486,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (existingInvoice == null)
             {
-                return this.BadRequest(new { Error = "Invoice not found." });
+                return this.BadRequest(new { Error = StringConstants.InvoiceNotFound });
             }
 
             existingInvoice.PaymentStatus = PaymentStatus.Paid;
