@@ -6,6 +6,7 @@
 <h1>@ViewData["Title"]</h1>
 
 <p>This is what your listing submission looks like. <a href="~/submit?submissionid=@Model.SubmissionId">Click here</a> to edit your submission.</p>
+
 <hr />
 
 @if (Model.DirectoryEntryViewModel.DirectoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Removed)
