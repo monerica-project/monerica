@@ -144,7 +144,7 @@ namespace DirectoryManager.Web.Controllers
         {
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(id);
 
-            await this.SetSubCategoriesViewBag();
+            await this.SetSelectSubCategoryViewBag();
 
             if (directoryEntry == null)
             {
@@ -170,7 +170,10 @@ namespace DirectoryManager.Web.Controllers
             entries = entries.OrderBy(e => e.Name)
                              .ToList();
 
-            await this.SetSubCategoriesViewBag();
+            this.ViewBag.SubCategories = (await this.subCategoryRepository.GetAllAsync())
+                                    .OrderBy(sc => sc.Category.Name)
+                                    .ThenBy(sc => sc.Name)
+                                    .ToList();
 
             return this.View(entries);
         }
@@ -218,7 +221,7 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            await this.SetSubCategoriesViewBag();
+            await this.SetSelectSubCategoryViewBag();
 
             if (submission == null)
             {
@@ -353,7 +356,7 @@ namespace DirectoryManager.Web.Controllers
             };
         }
 
-        private async Task SetSubCategoriesViewBag()
+        private async Task SetSelectSubCategoryViewBag()
         {
             var subCategories = (await this.subCategoryRepository.GetAllAsync())
               .OrderBy(sc => sc.Category.Name)
