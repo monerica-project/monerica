@@ -38,6 +38,9 @@ namespace DirectoryManager.Data.Models
         [MaxLength(1000)]
         public string? Note { get; set; }
 
+        [MaxLength(1000)]
+        public string? NoteToAdmin { get; set; }
+
         [MaxLength(75)]
         public string? Contact { get; set; }
 

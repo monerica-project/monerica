@@ -5,15 +5,17 @@ namespace DirectoryManager.Web.Models
 {
     public class SubmissionRequest
     {
+        public int? SubmissionId { get; set; }
+
         [Required]
         [MaxLength(500)]
         [Display(Name = "Link", Prompt = "https://yoursite.net")]
-        required public string Link { get; set; }
+        public string Link { get; set; } = string.Empty;
 
         [Required]
         [MaxLength(255)]
         [Display(Name = "Name", Prompt = "Company/ Project Name")]
-        required public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [MaxLength(500)]
         [Display(Name = "Description", Prompt = "People should know...")]
@@ -42,6 +44,10 @@ namespace DirectoryManager.Web.Models
         [MaxLength(1000)]
         [Display(Name = "Note", Prompt = "Add any additional notes")]
         public string? Note { get; set; }
+
+        [MaxLength(1000)]
+        [Display(Name = "Note To Admin", Prompt = "Notes to admin reviewing submission")]
+        public string? NoteToAdmin { get; set; }
 
         [Display(Name = "SubCategoryId", Prompt = "Select Sub Category")]
         public int? SubCategoryId { get; set; }

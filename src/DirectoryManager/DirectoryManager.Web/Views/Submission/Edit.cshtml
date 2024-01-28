@@ -30,7 +30,8 @@
 
 <br />
     <a target="_blank" href="@Model.Link">@Model.Link</a>
-    <br />    <br />
+    <br />
+    <br />
     <div class="form-group">
         <label asp-for="SubCategoryId">Sub Category</label>
         <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "Id", "DisplayName"))" required></select>
