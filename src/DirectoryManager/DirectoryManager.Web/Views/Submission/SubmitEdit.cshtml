@@ -3,14 +3,11 @@
 @using DirectoryManager.Data.Enums
 @{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
-}
-
-@{
     ViewData["Title"] = "Edit Submission: " + Model.DirectoryEntryId;
 }
 <h1>@ViewData["Title"]</h1>
  
-<a href="~/submission/findexisting">&lt; Back</a>
+<a href="~/submission/findexisting">&lt; find listing to edit</a>
 <hr />
 
 @if (ViewData.ModelState.IsValid == false)
@@ -22,6 +19,8 @@
 }
 
 <form asp-action="Create" method="post">
+    
+    <h3>Submission</h3>
 
     @Html.HiddenFor(m => m.DirectoryEntryId)
 
@@ -98,8 +97,17 @@
         <span asp-validation-for="Location" class="text-danger"></span>
     </div>
 
+    <hr />
+
+    <h3>For Reviewer</h3>
+    <div class="form-group">
+        <label asp-for="NoteToAdmin">Note To Admin</label>
+        <textarea asp-for="NoteToAdmin" class="form-control input-width"></textarea>
+        <span asp-validation-for="NoteToAdmin" class="text-danger"></span>
+    </div>
+
     <!-- Submit Button -->
-    <button type="submit" class="btn btn-primary">Submit Changes</button>
+    <button type="submit" class="btn btn-primary">Preview</button>
 </form>
 
 @if (Model.DirectoryEntryId != null)
