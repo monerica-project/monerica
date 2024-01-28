@@ -9,5 +9,8 @@
         public const string DateTimeFormat2 = "yyyy-MM-ddTHH:mm:ss";
         public const string DefaultCulure = "en-US";
         public const string DefaultName = "Default Name";
+        public const string InvalidOfferSelection = "Invalid offer selection.";
+        public const string CheckoutInProcess = "A checkout for a sponsored advertisement is in progress, check back later.";
+        public const string ErrorWithCheckoutProcess = "Error with checkout process.";
     }
 }

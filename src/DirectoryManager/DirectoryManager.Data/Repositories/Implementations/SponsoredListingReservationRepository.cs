@@ -15,38 +15,34 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context;
         }
 
-        public async Task<SponsoredListingReservation> CreateOrUpdateReservationAsync(DateTime expirationDateTime)
+        public async Task<SponsoredListingReservation> CreateReservationAsync(DateTime expirationDateTime)
         {
             var reservationId = Guid.NewGuid();
-            var reservation = await this.context.SponsoredListingReservations
-                .FirstOrDefaultAsync(
-                    r => r.ReservationId == reservationId && r.ExpirationDateTime >
-                        DateTime.UtcNow.AddMinutes(-IntegerConstants.SponsoredReservationExpirationMinutes));
-
-            if (reservation == null)
+            var reservation = new SponsoredListingReservation
             {
-                reservation = new SponsoredListingReservation
-                {
-                    ReservationId = reservationId,
-                    ExpirationDateTime = expirationDateTime
-                };
-                this.context.SponsoredListingReservations.Add(reservation);
-            }
-            else
-            {
-                reservation.ExpirationDateTime = expirationDateTime;
-            }
+                ReservationGuid = reservationId,
+                ExpirationDateTime = expirationDateTime
+            };
 
+            this.context.SponsoredListingReservations.Add(reservation);
             await this.context.SaveChangesAsync();
+
             return reservation;
         }
 
         public async Task<SponsoredListingReservation?> GetReservationByGuidAsync(Guid reservationId)
         {
             SponsoredListingReservation? sponsoredListingReservation = await this.context.SponsoredListingReservations
-                                .FirstOrDefaultAsync(r => r.ReservationId == reservationId);
+                                .FirstOrDefaultAsync(r => r.ReservationGuid == reservationId);
 
             return sponsoredListingReservation;
+        }
+
+        public async Task<int> GetActiveReservationsCountAsync()
+        {
+            var currentDate = DateTime.UtcNow;
+            return await this.context.SponsoredListingReservations
+                .CountAsync(r => r.ExpirationDateTime > currentDate);
         }
     }
 }

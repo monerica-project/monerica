@@ -37,6 +37,20 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                      .ToListAsync();
         }
 
+        public async Task<int> GetActiveListingsCountAsync()
+        {
+            var currentDate = DateTime.UtcNow;
+
+            var totalActive = await this.context.SponsoredListings
+                                     .Include(x => x.DirectoryEntry) // Include DirectoryEntry navigation property
+                                     .Where(x => x.CampaignStartDate <= currentDate && x.CampaignEndDate >= currentDate) // Filter active listings
+                                     .OrderByDescending(x => x.CampaignEndDate) // Sort primarily by end date
+                                     .ThenByDescending(x => x.CampaignStartDate) // Then by start date
+                                     .CountAsync();
+
+            return totalActive;
+        }
+
         public async Task<int> GetTotalCountAsync()
         {
             return await this.context.SponsoredListings.CountAsync();

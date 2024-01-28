@@ -6,7 +6,7 @@ namespace DirectoryManager.Data.Models.SponsoredListings
     {
         public int SponsoredListingReservationId { get; set; }
 
-        public Guid ReservationId { get; set; }
+        public Guid ReservationGuid { get; set; }
 
         public DateTime ExpirationDateTime { get; set; }
     }

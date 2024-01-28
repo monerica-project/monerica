@@ -119,6 +119,13 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<ProcessorConfig>()
                    .HasIndex(e => e.PaymentProcessor)
                    .IsUnique();
+
+            builder.Entity<SponsoredListingReservation>()
+                    .HasIndex(e => e.ReservationGuid)
+                    .IsUnique();
+
+            builder.Entity<SponsoredListingReservation>()
+                    .HasIndex(e => e.ExpirationDateTime);
         }
 
         private void SetDates()

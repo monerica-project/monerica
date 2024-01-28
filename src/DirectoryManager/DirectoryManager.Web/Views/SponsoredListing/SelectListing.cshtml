@@ -12,6 +12,7 @@
 <i>Note: removed and scam listings cannot be sponsored listings</i>
 </p>
 <form method="get">
+    <input name="rsvId" type="hidden" value="@ViewBag.ReservationGuid" />
     <label for="combinedFilter">Select: </label>
     <select id="combinedFilter" name="subCategoryId">
         <option value="">--Category > Sub Category--</option>
@@ -30,6 +31,6 @@
 {
     <div>
         <a target="_blank" href="@entry.Link">@entry.Name</a> <text> - </text>
-        <a href="@Url.Action("selectduration", new { id = entry.Id })">Select</a>
+        <a href="@Url.Action("selectduration", new { id = entry.Id, rsvId = ViewBag.ReservationGuid })">Select</a>
     </div>
 }

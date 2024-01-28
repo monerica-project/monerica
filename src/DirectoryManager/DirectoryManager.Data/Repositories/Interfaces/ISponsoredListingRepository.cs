@@ -15,5 +15,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<SponsoredListing> CreateAsync(SponsoredListing sponsoredListing);
         Task<bool> UpdateAsync(SponsoredListing sponsoredListing);
         Task DeleteAsync(int id);
+        Task<int> GetActiveListingsCountAsync();
     }
 }
