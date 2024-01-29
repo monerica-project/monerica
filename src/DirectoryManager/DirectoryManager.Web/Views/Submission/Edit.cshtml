@@ -1,5 +1,5 @@
 ﻿@model DirectoryManager.Data.Models.Submission
-@inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @using DirectoryManager.Data.Enums
 @{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
@@ -87,13 +87,13 @@
     </div>
 
     <div class="form-group">
-        <label asp-for="Link2">@_cacheHelper.GetSnippet(SiteConfigSetting.Link2Name)</label>
+        <label asp-for="Link2">@cacheHelper.GetSnippet(SiteConfigSetting.Link2Name)</label>
         <input asp-for="Link2" class="form-control input-width" />
         <span asp-validation-for="Link2" class="text-danger"></span>
     </div>
 
     <div class="form-group">
-        <label asp-for="Link3">@_cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)</label>
+        <label asp-for="Link3">@cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)</label>
         <input asp-for="Link3" class="form-control input-width" />
         <span asp-validation-for="Link3" class="text-danger"></span>
     </div>
@@ -118,6 +118,15 @@
         <label asp-for="Location">Location</label>
         <input asp-for="Location" class="form-control input-width" />
         <span asp-validation-for="Location" class="text-danger"></span>
+    </div>
+
+    <hr />
+
+    <h3>For Reviewer</h3>
+    <div class="form-group">
+        <label asp-for="NoteToAdmin">Note To Admin</label>
+        <textarea asp-for="NoteToAdmin" class="form-control input-width"></textarea>
+        <span asp-validation-for="NoteToAdmin" class="text-danger"></span>
     </div>
 
     <!-- Submit Button -->

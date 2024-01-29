@@ -24,39 +24,46 @@ namespace DirectoryManager.Web.Controllers
             this.cache = cache;
         }
 
-        public override void OnActionExecuting(ActionExecutingContext context)
+        public override async Task OnActionExecutionAsync(
+            ActionExecutingContext context,
+            ActionExecutionDelegate next)
         {
-            base.OnActionExecuting(context);
-
-            if (this.User != null &&
-                this.User.Identity != null &&
-                this.User.Identity.IsAuthenticated)
+            try
             {
-                return;
+                if (this.User != null &&
+                    this.User.Identity != null &&
+                    this.User.Identity.IsAuthenticated)
+                {
+                    return;
+                }
+
+                var ipAddress = context.HttpContext.Connection.RemoteIpAddress?.ToString();
+                var url = context.HttpContext.Request.Path.ToString();
+                var userAgent = context.HttpContext.Request.Headers["User-Agent"].ToString();
+
+                if (ipAddress == null)
+                {
+                    return;
+                }
+
+                if (this.userAgentCacheService.IsUserAgentExcluded(userAgent))
+                {
+                    return;
+                }
+
+                var trafficLog = new TrafficLog
+                {
+                    IpAddress = ipAddress,
+                    Url = url,
+                    UserAgent = userAgent
+                };
+
+                await this.trafficLogRepository.AddTrafficLog(trafficLog);
             }
-
-            var ipAddress = context.HttpContext.Connection.RemoteIpAddress?.ToString();
-            var url = context.HttpContext.Request.Path.ToString();
-            var userAgent = context.HttpContext.Request.Headers["User-Agent"].ToString();
-
-            if (ipAddress == null)
+            finally
             {
-                return;
+                await base.OnActionExecutionAsync(context, next);
             }
-
-            if (this.userAgentCacheService.IsUserAgentExcluded(userAgent))
-            {
-                return;
-            }
-
-            var trafficLog = new TrafficLog
-            {
-                IpAddress = ipAddress,
-                Url = url,
-                UserAgent = userAgent
-            };
-
-            this.trafficLogRepository.AddTrafficLog(trafficLog);
         }
 
         protected void ClearCachedItems()
