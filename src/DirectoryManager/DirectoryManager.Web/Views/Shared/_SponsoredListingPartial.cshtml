@@ -4,8 +4,7 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 
-<cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.SponsoredListingsCacheKey"
-               cache-duration-seconds="@DirectoryManager.Web.Constants.IntegerConstants.CacheDurationSeconds">
+<cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.SponsoredListingsCacheKey">
 
 @{
     var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync();

@@ -40,7 +40,7 @@ namespace DirectoryManager.Web.TagHelpers
                 cachedContent = childContent.GetContent();
 
                 // Determine the cache expiration time
-                var cacheExpiration = nextExpirationDate.HasValue
+                var cacheExpiration = (nextExpirationDate.HasValue && nextExpirationDate != DateTime.MinValue)
                     ? TimeSpan.FromSeconds(Math.Min((nextExpirationDate.Value - DateTime.UtcNow).TotalSeconds, this.CacheDurationSeconds))
                     : TimeSpan.FromSeconds(this.CacheDurationSeconds);
 
