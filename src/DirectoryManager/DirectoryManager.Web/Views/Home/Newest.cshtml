@@ -1,4 +1,5 @@
 ﻿@using System.Globalization;
+@using DirectoryManager.Web.Constants;
 @model IEnumerable<DirectoryManager.Data.Models.GroupedDirectoryEntry>
 @{
     ViewData["Title"] = "Newest Additions";
@@ -14,16 +15,12 @@
     @foreach (var group in Model)
     {
         <li>
-            <pre>@DateTime.ParseExact(group.Date, "yyyy-MM-dd", CultureInfo.InvariantCulture).ToString("yyyy-MM-dd") Additions:</pre>
+            <pre>@DateTime.ParseExact(group.Date, StringConstants.DateFormat, CultureInfo.InvariantCulture).ToString(StringConstants.DateFormat) Additions:</pre>
             <ul>
                 @foreach (var entry in group.Entries)
                 {
                     <li>
-                        <p style="display:inline;" class="small-font">@entry.Name </p> - <a target="_blank" class="multi-line-text small-font" href="@entry.Link">@entry.Link</a>  @if (!string.IsNullOrWhiteSpace(entry.Description))
-                            {
-                            <text> - </text> <p style="display:inline;"  class="small-font">@Html.Raw(entry.Description)</p>
-                            }
-
+                        <p style="display:inline;" class="small-font">@entry.Name</p> - <a target="_blank" class="multi-line-text small-font" href="@entry.Link">@entry.Link</a> @if (!string.IsNullOrWhiteSpace(entry.Description)) {<text> - </text> <p style="display:inline;" class="small-font">@Html.Raw(entry.Description)</p>}
                     </li>
                 }
             </ul>
