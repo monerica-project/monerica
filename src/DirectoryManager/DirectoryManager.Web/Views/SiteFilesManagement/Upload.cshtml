@@ -2,18 +2,17 @@
     ViewBag.Title = "Upload";
     Layout = "~/Views/Shared/_Layout.cshtml";
 }
-        <h1>@ViewBag.Title</h1>
-        
-        @await Html.PartialAsync("_AdminMenu")
 
-        <hr />
+<h1>@ViewBag.Title</h1>
+        
+@await Html.PartialAsync("_AdminMenu")
+
+<hr />
 
 <section>
     <div class="container">
  
         <h3>@ViewBag.Title</h3>
-        
-
 
 @using (Html.BeginForm( "UploadAsync", "SiteFilesManagement", FormMethod.Post,
                 new { enctype = "multipart/form-data" }))
@@ -37,6 +36,5 @@
         </div>
     </fieldset>
 }
-
     </div>
 </section>
