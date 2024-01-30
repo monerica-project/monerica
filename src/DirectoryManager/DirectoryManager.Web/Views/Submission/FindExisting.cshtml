@@ -2,11 +2,11 @@
 @model IEnumerable<DirectoryEntry>
 
 @{
-    ViewData["Title"] = "Directory Entries";
+    ViewData["Title"] = "Current Listings";
 }
 <h1>@ViewData["Title"]</h1>
  
-@await Html.PartialAsync("_BackToHome")<text> | </text> <a href="~/submit">create new listing</a>
+@await Html.PartialAsync("_BackToHome")<text> | </text><a href="~/submit">create new listing</a>
 <hr />
 
 <form method="get">
@@ -15,7 +15,8 @@
         <option value="">--Category > Sub Category--</option>
         @foreach (var subCategory in (IEnumerable<SubCategory>)ViewBag.SubCategories)
         {
-            <option value="@subCategory.Id" selected="@(Context.Request.Query["subCategoryId"] == subCategory.Id.ToString() ? "selected" : null)">@subCategory.Category.Name > @subCategory.Name</option>
+            <option value="@subCategory.Id"
+                    selected="@(Context.Request.Query["subCategoryId"] == subCategory.Id.ToString() ? "selected" : null)">@subCategory.Category.Name > @subCategory.Name</option>
         }
     </select>
 
