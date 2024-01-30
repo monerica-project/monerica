@@ -11,7 +11,7 @@
 
 <h1>@ViewData["Title"]</h1>
 
-<a href="~/sponsoredlisting/selectduration?id=@Model.SelectedDirectoryEntry.DirectoryEntry.Id">&lt; Back</a>
+<a href="~/sponsoredlisting/selectduration?id=@Model.SelectedDirectoryEntry.DirectoryEntry.Id">&lt; back</a>
 
 <hr />
 
@@ -53,7 +53,7 @@
 
         <form method="post" action="~/sponsoredlisting/confirmnowpayments">
             <input name="rsvId" type="hidden" value="@ViewBag.ReservationGuid" />
-            <input type="hidden" name="directoryEntryId" value="@Model.SelectedDirectoryEntry.DirectoryEntry.Id" />
+            <input type="hidden" name="id" value="@Model.SelectedDirectoryEntry.DirectoryEntry.Id" />
             <input type="hidden" name="selectedOfferId" value="@Model.Offer.Id" />
             <button class="btn" type="submit">Purchase Listing</button>
         </form>
