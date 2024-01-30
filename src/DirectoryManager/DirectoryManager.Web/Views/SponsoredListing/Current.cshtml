@@ -1,10 +1,9 @@
-﻿
-@{
+﻿@{
     ViewData["Title"] = "Current Sponsored Listings";
 }
 <h1>@ViewData["Title"]</h1>
 
-<a href="~/">Back to home</a>
+@await Html.PartialAsync("_BackToHome")
 <hr />
 
 @await Html.PartialAsync("_SponsoredListingPartial")

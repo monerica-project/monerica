@@ -116,15 +116,29 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<DateTime?> GetNextExpirationDate()
         {
-            var currentDate = DateTime.UtcNow;
+            var now = DateTime.UtcNow;
 
             var nextExpirationDate = await this.context.SponsoredListings
-                .Where(x => x.CampaignEndDate > currentDate) // Filter for future expiration dates
+                .Where(x => x.CampaignEndDate > now) // Filter for future expiration dates
                 .OrderBy(x => x.CampaignEndDate) // Order by the closest expiration date
                 .Select(x => x.CampaignEndDate) // Select only the expiration date
                 .FirstOrDefaultAsync(); // Get the closest one
 
             return nextExpirationDate; // This will be null if there are no future expirations
+        }
+
+        public async Task<bool> IsSponsoredListingActive(int directoryEntryId)
+        {
+            var now = DateTime.UtcNow;
+
+            var result = await this.context
+                                   .SponsoredListings
+                                   .Where(x => x.CampaignStartDate <= now &&
+                                                x.CampaignEndDate >= now &&
+                                                x.DirectoryEntryId == directoryEntryId)
+                                   .FirstOrDefaultAsync();
+
+            return result != null;
         }
     }
 }

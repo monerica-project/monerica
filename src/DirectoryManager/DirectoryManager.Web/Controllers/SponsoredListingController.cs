@@ -146,7 +146,6 @@ namespace DirectoryManager.Web.Controllers
             int id,
             Guid? rsvId = null)
         {
-            // todo: don't allow a second listing if there is one already active
             var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync();
 
             if (currentListings != null)
@@ -154,16 +153,17 @@ namespace DirectoryManager.Web.Controllers
                 if (!CanAdvertise(id, currentListings))
                 {
                     // max listings
-                    return this.BadRequest(new { Error = "Maximum number of sponsored listings reached." });
+                    return this.BadRequest(new { Error = StringConstants.MaximumNumberOfSponsorsReached });
                 }
             }
 
             if (rsvId == null)
             {
+                var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(id);
                 var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync();
                 var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync();
 
-                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations))
+                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations) && !isActiveSponsor)
                 {
                     return this.BadRequest(new { Error = StringConstants.CheckoutInProcess });
                 }
@@ -194,10 +194,11 @@ namespace DirectoryManager.Web.Controllers
         {
             if (rsvId == null)
             {
+                var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(id);
                 var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync();
                 var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync();
 
-                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations))
+                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations) && !isActiveSponsor)
                 {
                     return this.BadRequest(new { Error = StringConstants.CheckoutInProcess });
                 }
@@ -232,7 +233,7 @@ namespace DirectoryManager.Web.Controllers
                         "ConfirmNowPayments",
                         new
                         {
-                            directoryEntryId = id,
+                            id = id,
                             selectedOfferId = selectedOfferId,
                             rsvId = rsvId
                         });
@@ -241,16 +242,17 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [HttpGet("confirmnowpayments")]
         public async Task<IActionResult> ConfirmNowPaymentsAsync(
-            int directoryEntryId,
+            int id,
             int selectedOfferId,
             Guid? rsvId = null)
         {
             if (rsvId == null)
             {
+                var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(id);
                 var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync();
                 var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync();
 
-                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations))
+                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations) && !isActiveSponsor)
                 {
                     return this.BadRequest(new { Error = StringConstants.CheckoutInProcess });
                 }
@@ -268,7 +270,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.ReservationGuid = rsvId;
 
             var offer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
-            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(id);
 
             if (offer == null || directoryEntry == null)
             {
@@ -282,7 +284,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (currentListings != null && currentListings.Any())
             {
-                viewModel.CanCreateSponsoredListing = CanAdvertise(directoryEntryId, currentListings);
+                viewModel.CanCreateSponsoredListing = CanAdvertise(id, currentListings);
 
                 // Get the next listing expiration date (i.e., the soonest CampaignEndDate)
                 viewModel.NextListingExpiration = currentListings.Min(x => x.CampaignEndDate);
@@ -298,16 +300,17 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [HttpPost("confirmnowpayments")]
         public async Task<IActionResult> ConfirmedNowPaymentsAsync(
-            int directoryEntryId,
+            int id,
             int selectedOfferId,
             Guid? rsvId = null)
         {
             if (rsvId == null)
             {
+                var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(id);
                 var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync();
                 var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync();
 
-                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations))
+                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations) && !isActiveSponsor)
                 {
                     return this.BadRequest(new { Error = StringConstants.CheckoutInProcess });
                 }
@@ -331,14 +334,14 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
             }
 
-            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(id);
 
             if (directoryEntry == null)
             {
                 return this.BadRequest(new { Error = StringConstants.DirectoryEntryNotFound });
             }
 
-            var existingListing = await this.sponsoredListingRepository.GetActiveListing(directoryEntryId);
+            var existingListing = await this.sponsoredListingRepository.GetActiveListing(id);
             var startDate = DateTime.UtcNow;
 
             if (existingListing != null)
@@ -346,7 +349,7 @@ namespace DirectoryManager.Web.Controllers
                 startDate = existingListing.CampaignEndDate;
             }
 
-            var invoice = await this.GetInvoice(directoryEntryId, sponsoredListingOffer, startDate);
+            var invoice = await this.GetInvoice(id, sponsoredListingOffer, startDate);
             var invoiceRequest = this.GetInvoiceRequest(sponsoredListingOffer, invoice);
 
             this.paymentService.SetDefaultUrls(invoiceRequest);

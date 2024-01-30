@@ -29,13 +29,9 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
-        [Authorize]
-        [HttpGet("expire-cache")]
-        public IActionResult ExpireCache()
+        [HttpGet("contact")]
+        public IActionResult Contact()
         {
-            this.cache.Remove(StringConstants.EntriesCacheKey);
-            this.cache.Remove(StringConstants.SponsoredListingsCacheKey);
-
             return this.View();
         }
 
@@ -51,6 +47,16 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.PageNumber = pageNumber;
 
             return this.View(groupedNewestAdditions);
+        }
+
+        [Authorize]
+        [HttpGet("expire-cache")]
+        public IActionResult ExpireCache()
+        {
+            this.cache.Remove(StringConstants.EntriesCacheKey);
+            this.cache.Remove(StringConstants.SponsoredListingsCacheKey);
+
+            return this.View();
         }
     }
 }

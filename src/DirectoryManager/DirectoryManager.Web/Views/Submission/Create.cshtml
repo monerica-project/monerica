@@ -7,7 +7,7 @@
 
 <h1>@ViewData["Title"]</h1>
 
-<a href="~/">&lt; back to home</a><text> | </text> <a href="~/submission/findexisting">edit an existing listing</a>
+@await Html.PartialAsync("_BackToHome")
 
 @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SubmissionGuidelines))
 
@@ -19,6 +19,8 @@
     </div>
 }
 <hr />
+
+ <a href="~/submission/findexisting">click here to edit an existing listing</a>
  
 <form asp-action="Create" method="post">
 

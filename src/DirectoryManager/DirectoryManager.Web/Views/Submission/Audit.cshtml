@@ -12,6 +12,8 @@ ViewData["Title"] = "Audit: " + @firstOrDefault.DirectoryEntryId;
 }
 <h1>@ViewData["Title"]</h1>
 
+@await Html.PartialAsync("_BackToHome")
+
 @{
     if (firstOrDefault  != null)
     {
