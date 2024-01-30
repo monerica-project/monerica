@@ -19,5 +19,6 @@
         BlobPrefix = 14,
         Link2Name = 15,
         Link3Name = 16,
+        ContactHtml = 17,
     }
 }

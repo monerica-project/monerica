@@ -24,7 +24,7 @@
             <tr>
                 <td>@item.Description</td>
                 <td>@item.Days</td>
-                <td>@item.Price</td>
+                <td>@item.Price.ToString("C") (@item.PriceCurrency.ToString())</td>
                 <td>@item.IsEnabled</td>
                 <td>
                     <a asp-action="Edit" asp-route-id="@item.Id">Edit</a>                    
