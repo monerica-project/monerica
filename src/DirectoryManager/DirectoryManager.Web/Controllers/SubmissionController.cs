@@ -81,7 +81,8 @@ namespace DirectoryManager.Web.Controllers
 
             if (this.ModelState.IsValid)
             {
-                if (!await this.HasChangesAsync(model))
+                if (!await this.HasChangesAsync(model) &&
+                    string.IsNullOrWhiteSpace(model.NoteToAdmin))
                 {
                     return this.RedirectToAction("Success", "Submission");
                 }
@@ -91,6 +92,8 @@ namespace DirectoryManager.Web.Controllers
 
                 if (submissionId == null)
                 {
+                    var existingDirectoryEntryId = await this.GetExistingListingFromLinkAsync(model.Link);
+                    submissionModel.DirectoryEntryId = existingDirectoryEntryId;
                     var submission = await this.submissionRepository.CreateAsync(submissionModel);
                     submissionId = submission.Id;
                 }
@@ -354,6 +357,26 @@ namespace DirectoryManager.Web.Controllers
                 Processor = submission.Processor,
                 SuggestedSubCategory = submission.SuggestedSubCategory,
             };
+        }
+
+        private async Task<int?> GetExistingListingFromLinkAsync(string link)
+        {
+            var existingLink = await this.directoryEntryRepository.GetByLinkAsync(link);
+
+            if (existingLink != null)
+            {
+                return existingLink.Id;
+            }
+
+            var linkVariation = link.EndsWith("/") ? link.Remove(link.Length - 1) : string.Format("{0}/", link);
+            var existingLinkVariation1 = await this.directoryEntryRepository.GetByLinkAsync(linkVariation);
+
+            if (existingLinkVariation1 != null)
+            {
+                return existingLinkVariation1.Id;
+            }
+
+            return null;
         }
 
         private async Task SetSelectSubCategoryViewBag()
