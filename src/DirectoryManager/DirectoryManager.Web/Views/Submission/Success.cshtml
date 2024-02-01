@@ -1,10 +1,13 @@
-﻿@model DirectoryManager.Web.Models.SubmissionRequest
+﻿@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@model DirectoryManager.Web.Models.SubmissionRequest
 @{
-    ViewData["Title"] = "Success!";
+    ViewData["Title"] = "Success";
 }
+
+<h2>@ViewData["Title"]</h2>
 
 @await Html.PartialAsync("_BackToHome")
 
-<h2>@ViewData["Title"]</h2>
+<hr />
   
-<p>Your revisions will be reviewed.</p>
+@Html.Raw(cacheHelper.GetSnippet(DirectoryManager.Data.Enums.SiteConfigSetting.SuccessPageHtml))
