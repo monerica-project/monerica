@@ -7,6 +7,8 @@
 
 @await Html.PartialAsync("_AdminMenu")
 
+<hr />
+
 <form asp-controller="ContentSnippetManagement" asp-action="Edit" method="post" class="form-horizontal">
 
     @Html.HiddenFor(x => x.ContentSnippetId)
