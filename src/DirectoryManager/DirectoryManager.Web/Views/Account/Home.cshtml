@@ -7,31 +7,51 @@
 <hr />
 <i>Signed in as: </i> @User?.Identity?.Name
 
+<h3>Submissions</h3>
+<ul>
+    <li>
+        <a href="~/submission/index">Submissions (@ViewBag.TotalPendingSubmissions)</a>
+    </li>
+</ul>
+
 <h3>Listing Management</h3>
 <ul>
     <li>
-        <a href="~/category/index">Categories</a>
+        Categories
+        <ul>
+            <li>
+                <a href="~/category/create">Create category</a>
+            </li>
+            <li>
+                <a href="~/category/index">Categories</a>
+            </li>
+        </ul>
     </li>
     <li>
-        <a href="~/category/create">Create category</a>
+        Sub Categories
+        <ul>
+            <li>
+                <a href="~/subcategory/create">Create sub category</a>
+            </li>
+            <li>
+                <a href="~/subcategory/index">Sub categories</a>
+            </li>
+        </ul>
     </li>
     <li>
-        <a href="~/directoryentry/create">Create directory entry</a>
-    </li>
-    <li>
-        <a href="~/subcategory/create">Create sub category</a>
-    </li>
-    <li>
-        <a href="~/directoryentry/index">Directory entries</a>
-    </li>
-    <li>
-        <a href="~/account/edit">Edit from page</a>
-    </li>
-    <li>
-        <a href="~/subcategory/index">Sub categories</a>
-    </li>
-    <li>
-        <a href="~/submission/index">Submissions (@ViewBag.TotalPendingSubmissions)</a>
+        Directory Entries
+        <ul>
+            <li>
+                <a href="~/directoryentry/create">Create directory entry</a>
+            </li>
+
+            <li>
+                <a href="~/directoryentry/index">Directory entries</a>
+            </li>
+            <li>
+                <a href="~/account/edit">Edit from page</a>
+            </li>
+        </ul>
     </li>
 </ul>
 
