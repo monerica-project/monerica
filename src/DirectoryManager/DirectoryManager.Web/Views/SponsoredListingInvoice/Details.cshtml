@@ -1,0 +1,59 @@
+﻿@model DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice
+@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Models
+
+@{
+    ViewData["Title"] = "Invoice Details";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<hr />
+
+<div>
+    <h4>Invoice Details</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-3">Invoice ID</dt>
+        <dd class="col-sm-9">@Model.InvoiceId</dd>
+
+        <dt class="col-sm-3">Invoice Description</dt>
+        <dd class="col-sm-9">@Model.InvoiceDescription</dd>
+
+        <dt class="col-sm-3">Amount</dt>
+        <dd class="col-sm-9">@Model.Amount</dd>
+
+        <dt class="col-sm-3">Currency</dt>
+        <dd class="col-sm-9">@Model.Currency</dd>
+
+        <dt class="col-sm-3">Paid In Currency</dt>
+        <dd class="col-sm-9">@Model.PaidInCurrency</dd>
+
+        <dt class="col-sm-3">Paid Amount</dt>
+        <dd class="col-sm-9">@Model.PaidAmount</dd>
+
+        <dt class="col-sm-3">Payment Processor</dt>
+        <dd class="col-sm-9">@Model.PaymentProcessor</dd>
+
+        <dt class="col-sm-3">Payment Status</dt>
+        <dd class="col-sm-9">@Model.PaymentStatus</dd>
+
+        <dt class="col-sm-3">Campaign Start Date</dt>
+        <dd class="col-sm-9">@Model.CampaignStartDate.ToString(StringConstants.DateTimeFormat)</dd>
+
+        <dt class="col-sm-3">Campaign End Date</dt>
+        <dd class="col-sm-9">@Model.CampaignEndDate.ToString(StringConstants.DateTimeFormat)</dd>
+    </dl>
+    <hr />
+    <h3>Listing</h3>
+<ul>
+    @await Html.PartialAsync("_DirectoryEntryPartial", (DirectoryEntryViewModel)ViewBag.SelectedDirectoryEntry)
+</ul>
+    <hr />
+</div>
+
+<div>
+    <a href="@Url.Action("Index")">Back to List</a>
+</div>

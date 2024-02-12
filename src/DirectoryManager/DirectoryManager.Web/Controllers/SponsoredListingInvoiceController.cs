@@ -1,0 +1,76 @@
+﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+
+namespace DirectoryManager.Web.Controllers
+{
+    [Authorize]
+    public class SponsoredListingInvoiceController : Controller
+    {
+        private readonly ISponsoredListingInvoiceRepository invoiceRepository;
+        private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly ICacheService cacheService;
+
+        public SponsoredListingInvoiceController(
+            ISponsoredListingInvoiceRepository invoiceRepository,
+            IDirectoryEntryRepository directoryEntryRepository,
+            ICacheService cacheService)
+        {
+            this.invoiceRepository = invoiceRepository;
+            this.directoryEntryRepository = directoryEntryRepository;
+            this.cacheService = cacheService;
+        }
+
+        public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
+        {
+            // Use the new GetPageAsync method to retrieve a page of invoices and the total item count
+            var (invoices, totalItems) = await this.invoiceRepository.GetPageAsync(page, pageSize);
+
+            // Calculate total pages for pagination
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            // Pass pagination data to the view through ViewBag
+            this.ViewBag.CurrentPage = page;
+            this.ViewBag.PageSize = pageSize;
+            this.ViewBag.TotalItems = totalItems;
+            this.ViewBag.TotalPages = totalPages; // Optionally pass total pages if needed for rendering pagination controls
+
+            return this.View(invoices);
+        }
+
+        public async Task<IActionResult> Details(int? id)
+        {
+            if (id == null)
+            {
+                return this.NotFound();
+            }
+
+            var sponsoredListingInvoice = await this.invoiceRepository.GetByIdAsync(id.Value);
+            if (sponsoredListingInvoice == null)
+            {
+                return this.NotFound();
+            }
+
+            var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
+            var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
+
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(sponsoredListingInvoice.DirectoryEntryId);
+            if (directoryEntry == null)
+            {
+                return this.NotFound();
+            }
+
+            this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel()
+            {
+                DirectoryEntry = directoryEntry,
+                Link2Name = link2Name,
+                Link3Name = link3Name
+            };
+
+            return this.View(sponsoredListingInvoice);
+        }
+    }
+}
