@@ -1,4 +1,6 @@
-﻿using DirectoryManager.Data.Models.SponsoredListings;
+﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models.SponsoredListings;
+using DirectoryManager.Data.Models.TransferModels;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
@@ -11,6 +13,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<(IEnumerable<SponsoredListingInvoice>, int)> GetPageAsync(int page, int pageSize);
         Task<SponsoredListingInvoice> CreateAsync(SponsoredListingInvoice invoice);
         Task<bool> UpdateAsync(SponsoredListingInvoice invoice);
+        Task<InvoiceTotalsResult> GetTotalsPaidAsync(DateTime startDate, DateTime endDate);
         Task DeleteAsync(int id);
     }
 }
