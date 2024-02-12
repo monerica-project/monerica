@@ -1,0 +1,33 @@
+﻿@model DirectoryManager.Web.Models.InvoiceQueryViewModel
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData["Title"] = "Sponsored Listing Invoice Report";
+}
+
+<h2>@ViewData["Title"]</h2>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<hr />
+
+<form method="get" action="@Url.Action("Report")">
+    <div class="form-group">
+        <label for="StartDate">Start Date</label>
+        <input type="date" class="form-control" id="StartDate" name="startDate" value="@Model.StartDate.ToString(StringConstants.DateFormat)" required>
+    </div>
+    <div class="form-group">
+        <label for="EndDate">End Date</label>
+        <input type="date" class="form-control" id="EndDate" name="endDate" value="@Model.EndDate.ToString(StringConstants.DateFormat)" required>
+    </div>
+    <button type="submit" class="btn btn-primary">Get Totals</button>
+</form>
+
+    <div>
+        <p>Total Paid Amount: @Model.TotalPaidAmount @Model.PaidInCurrency</p>
+        <p>Total Amount Requested: @Model.TotalAmount @Model.Currency</p>
+    </div>
+
+
+<div>
+    <a href="@Url.Action("Index")">Back to List</a>
+</div>

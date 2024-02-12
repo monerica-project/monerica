@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Models.SponsoredListings;
+using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -73,6 +74,32 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 this.context.SponsoredListingInvoices.Remove(invoice);
                 await this.context.SaveChangesAsync();
             }
+        }
+
+        public async Task<InvoiceTotalsResult> GetTotalsPaidAsync(DateTime startDate, DateTime endDate)
+        {
+            var invoices = await this.context.SponsoredListingInvoices
+                                             .Where(i => i.CreateDate >= startDate &&
+                                                         i.CreateDate <= endDate &&
+                                                         i.PaymentStatus == Enums.PaymentStatus.Paid)
+                                             .ToListAsync();
+
+            if (invoices == null || invoices.Count == 0)
+            {
+                return new InvoiceTotalsResult();
+            }
+
+            var result = new InvoiceTotalsResult
+            {
+                PaidInCurrency = invoices.First().PaidInCurrency,
+                Currency = invoices.First().Currency,
+                StartDate = startDate,
+                EndDate = endDate,
+                TotalPaidAmount = invoices.Sum(i => i.PaidAmount),
+                TotalAmount = invoices.Sum(i => i.Amount)
+            };
+
+            return result;
         }
 
         public async Task<SponsoredListingInvoice> GetByInvoiceProcessorIdAsync(string processorInvoiceId)

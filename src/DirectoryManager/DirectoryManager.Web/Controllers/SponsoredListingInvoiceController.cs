@@ -69,5 +69,28 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(sponsoredListingInvoice);
         }
+
+
+        [HttpGet]
+        public async Task<IActionResult> Report(DateTime? startDate, DateTime? endDate)
+        {
+            var now = DateTime.UtcNow;
+            var modelStartDate = startDate ?? now.AddDays(-30);
+            var modelEndDate = endDate ?? now;
+
+            var model = new InvoiceQueryViewModel
+            {
+                StartDate = modelStartDate,
+                EndDate = modelEndDate
+            };
+
+            var result = await this.invoiceRepository.GetTotalsPaidAsync(modelStartDate, modelEndDate);
+            model.TotalPaidAmount = result.TotalPaidAmount;
+            model.Currency = result.Currency;
+            model.TotalAmount = result.TotalAmount;
+            model.PaidInCurrency = result.PaidInCurrency;
+
+            return this.View(model);
+        }
     }
 }
