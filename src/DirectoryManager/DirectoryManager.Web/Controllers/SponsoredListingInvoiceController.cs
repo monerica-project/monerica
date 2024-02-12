@@ -26,17 +26,14 @@ namespace DirectoryManager.Web.Controllers
 
         public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
         {
-            // Use the new GetPageAsync method to retrieve a page of invoices and the total item count
             var (invoices, totalItems) = await this.invoiceRepository.GetPageAsync(page, pageSize);
 
-            // Calculate total pages for pagination
             int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
 
-            // Pass pagination data to the view through ViewBag
             this.ViewBag.CurrentPage = page;
             this.ViewBag.PageSize = pageSize;
             this.ViewBag.TotalItems = totalItems;
-            this.ViewBag.TotalPages = totalPages; // Optionally pass total pages if needed for rendering pagination controls
+            this.ViewBag.TotalPages = totalPages;
 
             return this.View(invoices);
         }

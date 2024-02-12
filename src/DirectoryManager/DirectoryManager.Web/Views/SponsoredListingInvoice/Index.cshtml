@@ -20,8 +20,8 @@
         <tr>
             <th>Create Date</th>
             <th>Amount</th>
-            <th>Currency</th>
             <th>Paid Amount</th>
+            <th>Paid Paid In Currency</th>
             <th>Payment Status</th>
             <th>Actions</th>
         </tr>
@@ -31,10 +31,9 @@
         {
             <tr>
                 <td>@invoice.CreateDate.ToString(StringConstants.DateTimeFormat)</td>
-                <td>@invoice.Amount</td>
                 <td>@invoice.Amount.ToString("C") (@invoice.Currency.ToString())</td>
-                <td>@invoice.PaidInCurrency</td>
                 <td>@invoice.PaidAmount</td>
+                <td>@invoice.PaidInCurrency</td>
                 <td>@invoice.PaymentStatus</td>
                 <td>
                     <a href="@Url.Action("Details", new { id = invoice.SponsoredListingInvoiceId })">Details</a>
@@ -44,28 +43,33 @@
     </tbody>
 </table>
 
-        <!-- Pagination Controls -->
+<!-- Pagination Controls -->
 <div>
     <table>
         <tr>
             <td>
                 <!-- Previous Page Link -->
-                <a href="@Url.Action("Index", new { page = 1 })" aria-label="Previous" @(currentPage == 1 ? "disabled" : "")>
+                <a href="@Url.Action("Index", new { page = Math.Max(1, currentPage - 1) })" aria-label="Previous" @(currentPage == 1 ? "disabled" : "")>
                     &laquo;
                 </a>
             </td>
             @for (int i = 1; i <= totalPages; i++)
             {
                 <td>
-                    <!-- Page Number Links -->
-                    <a href="@Url.Action("Index", new { page = i })" @(i == currentPage ? "style='font-weight:bold;'" : "")>
-                        @i
-                    </a>
+                    <!-- Page Number Links or Text -->
+                    @if (i == currentPage)
+                    {
+                        <span style="font-weight:bold;">@i</span>
+                    }
+                    else
+                    {
+                        <a href="@Url.Action("Index", new { page = i })">@i</a>
+                    }
                 </td>
             }
             <td>
                 <!-- Next Page Link -->
-                <a href="@Url.Action("Index", new { page = totalPages })" aria-label="Next" @(currentPage == totalPages ? "disabled" : "")>
+                <a href="@Url.Action("Index", new { page = Math.Min(totalPages, currentPage + 1) })" aria-label="Next" @(currentPage == totalPages ? "disabled" : "")>
                     &raquo;
                 </a>
             </td>
