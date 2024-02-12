@@ -1,0 +1,74 @@
+﻿@using DirectoryManager.Web.Constants;
+@model IEnumerable<DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice>
+
+@{
+    ViewData["Title"] = "Invoices";
+    int currentPage = ViewBag.CurrentPage ?? 1;
+    int pageSize = ViewBag.PageSize ?? 10;
+    int totalItems = ViewBag.TotalItems ?? 0;
+    int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+}
+
+<h2>@ViewData["Title"]</h2>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<hr />
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Create Date</th>
+            <th>Amount</th>
+            <th>Currency</th>
+            <th>Paid Amount</th>
+            <th>Payment Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var invoice in Model)
+        {
+            <tr>
+                <td>@invoice.CreateDate.ToString(StringConstants.DateTimeFormat)</td>
+                <td>@invoice.Amount</td>
+                <td>@invoice.Amount.ToString("C") (@invoice.Currency.ToString())</td>
+                <td>@invoice.PaidInCurrency</td>
+                <td>@invoice.PaidAmount</td>
+                <td>@invoice.PaymentStatus</td>
+                <td>
+                    <a href="@Url.Action("Details", new { id = invoice.SponsoredListingInvoiceId })">Details</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+        <!-- Pagination Controls -->
+<div>
+    <table>
+        <tr>
+            <td>
+                <!-- Previous Page Link -->
+                <a href="@Url.Action("Index", new { page = 1 })" aria-label="Previous" @(currentPage == 1 ? "disabled" : "")>
+                    &laquo;
+                </a>
+            </td>
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                <td>
+                    <!-- Page Number Links -->
+                    <a href="@Url.Action("Index", new { page = i })" @(i == currentPage ? "style='font-weight:bold;'" : "")>
+                        @i
+                    </a>
+                </td>
+            }
+            <td>
+                <!-- Next Page Link -->
+                <a href="@Url.Action("Index", new { page = totalPages })" aria-label="Next" @(currentPage == totalPages ? "disabled" : "")>
+                    &raquo;
+                </a>
+            </td>
+        </tr>
+    </table>
+</div>

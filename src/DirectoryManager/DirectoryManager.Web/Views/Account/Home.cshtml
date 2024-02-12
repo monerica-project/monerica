@@ -7,28 +7,59 @@
 <hr />
 <i>Signed in as: </i> @User?.Identity?.Name
 
+<h3>Submissions</h3>
+<ul>
+    <li>
+        <a href="~/submission/index">Submissions (@ViewBag.TotalPendingSubmissions)</a>
+    </li>
+</ul>
+
+<h3>Listing Management</h3>
+<ul>
+    <li>
+        Categories
+        <ul>
+            <li>
+                <a href="~/category/create">Create category</a>
+            </li>
+            <li>
+                <a href="~/category/index">Categories</a>
+            </li>
+        </ul>
+    </li>
+    <li>
+        Sub Categories
+        <ul>
+            <li>
+                <a href="~/subcategory/create">Create sub category</a>
+            </li>
+            <li>
+                <a href="~/subcategory/index">Sub categories</a>
+            </li>
+        </ul>
+    </li>
+    <li>
+        Directory Entries
+        <ul>
+            <li>
+                <a href="~/directoryentry/create">Create directory entry</a>
+            </li>
+
+            <li>
+                <a href="~/directoryentry/index">Directory entries</a>
+            </li>
+            <li>
+                <a href="~/account/edit">Edit from page</a>
+            </li>
+        </ul>
+    </li>
+</ul>
+
+<h3>Site Management</h3>
 <ul>
     <li>
         <a href="~/ContentSnippetManagement">Content snippets</a>
-    </li>
-    <li>
-        <a href="~/category/index">Categories</a>
-    </li>
-    <li>
-        <a href="~/category/create">Create category</a>
-    </li>
-    <li>
-        <a href="~/directoryentry/create">Create directory entry</a>
-    </li>
-    <li>
-        <a href="~/subcategory/create">Create sub category</a>
-    </li>
-    <li>
-        <a href="~/directoryentry/index">Directory entries</a>
-    </li>
-    <li>
-        <a href="~/account/edit">Edit from page</a>
-    </li>
+    </li>   
     <li>
         <a href="~/processorconfig/index">Processor configs</a>
     </li>
@@ -37,22 +68,36 @@
     </li>
     <li>
         <a href="~/sitefilesmanagement">Site file management</a>
-    </li>
+    </li>     
+</ul>
+
+<h3>Sponsored Listing Management</h3>
+<ul>
     <li>
         <a href="~/sponsoredlistingoffer/index">Sponsored listing offers</a>
-    </li>    
+    </li>
     <li>
         <a href="~/sponsoredlisting/list">Sponsored listings</a>
     </li>
     <li>
-        <a href="~/subcategory/index">Sub categories</a>
+        <a href="~/sponsoredlistinginvoice">Sponsored listings invoices</a>
     </li>
-    <li>
-        <a href="~/submission/index">Submissions (@ViewBag.TotalPendingSubmissions)</a>
-    </li>
+</ul>
+
+<h3>Site Statistics</h3>
+<ul>
     <li>
         <a href="~/TrafficReport/index">Traffic report</a>
     </li>
 </ul>
+
+<h3>Account Management</h3>
+<ul>
+    <li>
+        <a href="~/account/changepassword">Change password</a>
+    </li>
+</ul>
+
+<hr />
 
 <a href="~/account/logout">logout</a> | @await Html.PartialAsync("_BackToHome")

@@ -53,6 +53,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
+        public async Task<(IEnumerable<SponsoredListingInvoice>, int)> GetPageAsync(int page, int pageSize)
+        {
+            var totalItems = await this.context.SponsoredListingInvoices.CountAsync();
+            var invoices = await this.context.SponsoredListingInvoices
+                                             .OrderByDescending(i => i.CreateDate)
+                                             .Skip((page - 1) * pageSize)
+                                             .Take(pageSize)
+                                             .ToListAsync();
+
+            return (invoices, totalItems);
+        }
+
         public async Task DeleteAsync(int id)
         {
             var invoice = await this.GetByIdAsync(id);
