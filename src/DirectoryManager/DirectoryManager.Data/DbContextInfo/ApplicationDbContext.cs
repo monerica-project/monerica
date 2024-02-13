@@ -46,6 +46,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<SponsoredListingReservation> SponsoredListingReservations { get; set; }
 
+        public DbSet<EmailSubscription> EmailSubscriptions { get; set; }
+
         public override int SaveChanges()
         {
             this.SetDates();

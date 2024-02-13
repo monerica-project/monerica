@@ -40,6 +40,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<SponsoredListingReservation> SponsoredListingReservations { get; set; }
 
+        public DbSet<EmailSubscription> EmailSubscriptions { get; set; }
+
         int SaveChanges();
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

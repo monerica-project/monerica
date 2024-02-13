@@ -1,0 +1,15 @@
+﻿ 
+@if (ViewBag.Success != null && Convert.ToBoolean(ViewBag.Success))
+{
+    <span class="success">&#9989; Unsubscribed</span>
+}
+
+<h2>Unsubscribe</h2>
+<form asp-controller="EmailSubscription" asp-action="Unsubscribe" method="post" class="form-inline">
+
+    <input name="Email" type="email" class="form-control mb-2 mr-sm-2 mb-sm-0" id="inlineFormInput" placeholder="you@email.com">
+
+    <button type="submit" class="btn btn-success">Unsubscribe</button>
+</form>
+<br />
+
