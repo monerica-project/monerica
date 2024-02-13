@@ -22,9 +22,14 @@ namespace DirectoryManager.Data.Models.SponsoredListings
         public DateTime CampaignEndDate { get; set; }
 
         /// <summary>
-        /// todo: needs to be to 12 decimal places.
+        /// Amount user paid.
         /// </summary>
         public decimal PaidAmount { get; set; }
+
+        /// <summary>
+        /// Amount received after payment.
+        /// </summary>
+        public decimal OutcomeAmount { get; set; }
 
         public Currency PaidInCurrency { get; set; } = Currency.Unknown;
 

@@ -439,6 +439,7 @@ namespace DirectoryManager.Web.Controllers
 
             invoice.PaymentResponse = JsonConvert.SerializeObject(ipnMessage);
             invoice.PaidAmount = ipnMessage.PayAmount;
+            invoice.OutcomeAmount = ipnMessage.OutcomeAmount;
 
             if (ipnMessage == null)
             {
