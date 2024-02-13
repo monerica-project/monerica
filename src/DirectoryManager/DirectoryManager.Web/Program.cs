@@ -51,6 +51,7 @@ builder.Services.AddScoped<ISponsoredListingReservationRepository, SponsoredList
 builder.Services.AddScoped<ISponsoredListingOfferRepository, SponsoredListingOfferRepository>();
 builder.Services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
 builder.Services.AddScoped<IProcessorConfigRepository, ProcessorConfigRepository>();
+builder.Services.AddScoped<IEmailSubscriptionRepository, EmailSubscriptionRepository>();
 
 // services
 builder.Services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
