@@ -85,7 +85,7 @@ namespace DirectoryManager.Web.Controllers
             };
 
             var result = await this.invoiceRepository.GetTotalsPaidAsync(modelStartDate, modelEndDate);
-            model.TotalPaidAmount = result.TotalPaidAmount;
+            model.TotalPaidAmount = result.TotalReceivedAmount;
             model.Currency = result.Currency;
             model.TotalAmount = result.TotalAmount;
             model.PaidInCurrency = result.PaidInCurrency;

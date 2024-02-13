@@ -95,7 +95,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 Currency = invoices.First().Currency,
                 StartDate = startDate,
                 EndDate = endDate,
-                TotalPaidAmount = invoices.Sum(i => i.PaidAmount),
+                TotalReceivedAmount = invoices.Sum(i => i.OutcomeAmount),
                 TotalAmount = invoices.Sum(i => i.Amount)
             };
 
