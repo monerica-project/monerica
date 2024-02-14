@@ -40,7 +40,6 @@ namespace DirectoryManager.Web.Controllers
         {
             var groupedNewestAdditions = await this.directoryEntryRepository.GetNewestAdditionsGrouped(pageSize, pageNumber);
 
-            // To determine the total number of pages, count all entries in the DB and divide by pageSize
             int totalEntries = await this.directoryEntryRepository.TotalActive();
             this.ViewBag.TotalEntries = totalEntries;
             this.ViewBag.TotalPages = (int)Math.Ceiling((double)totalEntries / pageSize);

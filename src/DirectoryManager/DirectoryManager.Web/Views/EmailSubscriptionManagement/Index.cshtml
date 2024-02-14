@@ -1,0 +1,49 @@
+﻿@model DirectoryManager.Web.Models.EmailSubscribeEditListModel
+ 
+@{
+    ViewData["Title"] = "Emails";
+}
+ <h2>@ViewData["Title"]</h2>
+ 
+@await Html.PartialAsync("_AdminMenu")
+
+<hr />
+
+@if (Model != null && Model.Items.Count() > 0)
+{
+        <b>Subscribers:</b>
+        <span>@Model.Emails</span>
+
+        <br />
+        <b>Unsubscribe:</b>
+        <span>@Model.UnsubscribeLink</span>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Email</th>
+
+                    <th>Is Subscribed</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>
+                            @item.Email
+                        </td>
+                        <td>@item.IsSubscribed</td>
+                        <td>
+                            <a href="~/account/emailsubscriptionmanagement/edit?EmailSubscriptionId=@item.EmailSubscriptionId">Edit</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+}
+else
+{
+        <i>No emails</i>
+}
