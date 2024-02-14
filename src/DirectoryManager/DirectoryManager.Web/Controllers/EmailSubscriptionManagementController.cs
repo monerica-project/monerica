@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Reflection.Metadata.Ecma335;
+using System.Text;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -70,6 +71,11 @@ namespace DirectoryManager.Web.Controllers
 
             var dbModel = this.emailSubscriptionRepository.Get(model.EmailSubscriptionId);
 
+            if (dbModel == null)
+            {
+                return this.NotFound();
+            }
+
             dbModel.Email = model.Email;
             dbModel.IsSubscribed = model.IsSubscribed;
 
@@ -83,6 +89,11 @@ namespace DirectoryManager.Web.Controllers
         public IActionResult Edit(int emailSubscriptionId)
         {
             var dbModel = this.emailSubscriptionRepository.Get(emailSubscriptionId);
+
+            if (dbModel == null)
+            {
+                return this.NotFound();
+            }
 
             var model = new EmailSubscribeEditModel()
             {
