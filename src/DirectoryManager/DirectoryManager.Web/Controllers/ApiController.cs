@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -19,7 +20,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("api/all")]
-        [ResponseCache(Duration = 3600)] // Cache the response for 1 hour (3600 seconds)
+        [ResponseCache(Duration = IntegerConstants.CacheDurationSeconds)]
         public async Task<IActionResult> GetAllEntitiesAndProperties()
         {
             var entities = await this.entryRepository.GetAllEntitiesAndPropertiesAsync();

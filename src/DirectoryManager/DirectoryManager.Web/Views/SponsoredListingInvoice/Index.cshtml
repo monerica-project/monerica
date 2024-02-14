@@ -25,8 +25,8 @@
     <thead>
         <tr>
             <th>Create Date</th>
-            <th>Amount</th>
-            <th>Paid Amount</th>
+            <th>Amount Asked</th>
+            <th>Outcome Amount</th>
             <th>Paid Paid In Currency</th>
             <th>Payment Status</th>
             <th>Actions</th>
@@ -38,7 +38,7 @@
             <tr>
                 <td>@invoice.CreateDate.ToString(StringConstants.DateTimeFormat)</td>
                 <td>@invoice.Amount.ToString("C") (@invoice.Currency.ToString())</td>
-                <td>@invoice.PaidAmount</td>
+                <td>@invoice.OutcomeAmount</td>
                 <td>@invoice.PaidInCurrency</td>
                 <td>@invoice.PaymentStatus</td>
                 <td>
