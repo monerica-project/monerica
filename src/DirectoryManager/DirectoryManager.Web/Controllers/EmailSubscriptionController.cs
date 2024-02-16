@@ -15,6 +15,7 @@ namespace DirectoryManager.Web.Controllers
             this.emailSubscriptionRepository = emailSubscriptionRepository;
         }
 
+        [Route("newsletter")]
         [Route("subscribe")]
         [HttpGet]
         public IActionResult Subscribe()
