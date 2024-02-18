@@ -23,6 +23,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
+        [Route("newsletter")]
         [Route("subscribe")]
         [HttpPost]
         public IActionResult Subscribe(EmailSubscribeModel model)
