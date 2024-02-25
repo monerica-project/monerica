@@ -100,6 +100,21 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
+        public int Total(bool subscribed = true)
+        {
+            try
+            {
+                return this.Context
+                           .EmailSubscriptions
+                           .Where(x => x.IsSubscribed == subscribed)
+                           .Count();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
+            }
+        }
+
         public IList<EmailSubscription> GetAll()
         {
             try

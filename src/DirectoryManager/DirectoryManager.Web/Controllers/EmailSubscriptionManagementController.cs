@@ -22,6 +22,7 @@ namespace DirectoryManager.Web.Controllers
         {
             var allEmails = this.emailSubscriptionRepository.GetAll();
             var model = new EmailSubscribeEditListModel();
+            model.TotalSubscribed = this.emailSubscriptionRepository.Total();
 
             foreach (var sub in allEmails)
             {

@@ -7,5 +7,7 @@
         public string Emails { get; set; } = default!;
 
         public string UnsubscribeLink { get; set; } = default!;
+
+        public int TotalSubscribed { get; set; }
     }
 }

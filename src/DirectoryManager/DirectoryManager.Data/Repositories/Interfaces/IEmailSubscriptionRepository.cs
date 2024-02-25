@@ -17,6 +17,8 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         IList<EmailSubscription> GetAll();
 
+        int Total(bool subscribed = true);
+
         bool Delete(int emailSubscriptionId);
     }
 }
