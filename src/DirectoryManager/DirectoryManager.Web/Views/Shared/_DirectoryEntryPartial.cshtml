@@ -2,7 +2,7 @@
 @using DirectoryManager.Web.Constants;
 @model DirectoryManager.Web.Models.DirectoryEntryViewModel
 
-<li class="@if (Model.IsSponsored) { <text>sponsored</text>}">
+<li @if (Model.IsSponsored){ <text>class="sponsored"</text>}>
     <p>@if (Model.DateOption == DateDisplayOption.DisplayCreateDate)
         {
             <i>@Model.DirectoryEntry.CreateDate.ToString(StringConstants.DateFormat)</i>
