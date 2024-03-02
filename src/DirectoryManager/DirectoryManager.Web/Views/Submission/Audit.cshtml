@@ -1,4 +1,6 @@
 ﻿@model IEnumerable<DirectoryManager.Data.Models.DirectoryEntriesAudit>
+@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Models
 @{
     var firstOrDefault = Model.FirstOrDefault();
 
@@ -12,22 +14,25 @@ ViewData["Title"] = "Audit: " + @firstOrDefault.DirectoryEntryId;
 }
 <h1>@ViewData["Title"]</h1>
 
-@await Html.PartialAsync("_BackToHome")
-
 @{
     if (firstOrDefault  != null)
     {
-        <a href="~/submission/submitedit/@firstOrDefault.DirectoryEntryId">&lt; Back</a>
+        <a href="~/submission/submitedit/@firstOrDefault.DirectoryEntryId">edit</a>
     }
 }
+|
+<a href="~/submission/findexisting">all listings</a>
+|
+@await Html.PartialAsync("_BackToHome")
+
 <hr />
 
 <table>
     <thead>
         <tr>
+            <th>Status</th>
             <th>Name</th>
             <th>Link</th>
-            <th>Status</th>
             <th>Description</th>
             <th>Location</th>
             <th>Processor</th>
@@ -42,9 +47,22 @@ ViewData["Title"] = "Audit: " + @firstOrDefault.DirectoryEntryId;
         @foreach (var audit in Model)
         {
             <tr>
+                <td>
+                    @if (audit.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Verified)
+                    {
+                        <text>&#9989;</text> 
+                    }
+                    else if (audit.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Scam)
+                    {
+                        <text>&#10060;</text>
+                    }
+                    else 
+                    {
+                        @audit.DirectoryStatus
+                    }
+                     </td>
                 <td>@audit.Name</td>
                 <td>@audit.Link</td>
-                <td>@audit.DirectoryStatus</td>
                 <td>@audit.Description</td>
                 <td>@audit.Location</td>
                 <td>@audit.Processor</td>
@@ -58,6 +76,11 @@ ViewData["Title"] = "Audit: " + @firstOrDefault.DirectoryEntryId;
     </tbody>
 </table>
 
+<hr />
+
+<ul>
+    @await Html.PartialAsync("_DirectoryEntryPartial", (DirectoryEntryViewModel)ViewBag.SelectedDirectoryEntry)
+</ul>
 <hr />
 
 @await Html.PartialAsync("_SponsoredListingPartial")

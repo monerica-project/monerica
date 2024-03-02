@@ -70,7 +70,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View(sponsoredListingInvoice);
         }
 
-
         [HttpGet]
         public async Task<IActionResult> Report(DateTime? startDate, DateTime? endDate)
         {

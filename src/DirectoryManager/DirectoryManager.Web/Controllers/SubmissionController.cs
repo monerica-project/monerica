@@ -185,6 +185,22 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> AuditAync(int entryId)
         {
             var audits = await this.auditRepository.GetAuditsForEntryAsync(entryId);
+            var link2Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
+            var link3Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(entryId);
+            if (directoryEntry == null)
+            {
+                return this.NotFound();
+            }
+
+            this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel()
+            {
+                DirectoryEntry = directoryEntry,
+                Link2Name = link2Name,
+                Link3Name = link3Name
+            };
+
             return this.View("Audit", audits);
         }
 

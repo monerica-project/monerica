@@ -29,6 +29,7 @@
 {
     <div>
         <a target="_blank" href="@entry.Link">@entry.Name</a> <text> - </text>
-        <a href="@Url.Action("SubmitEdit", new { id = entry.Id })">Edit</a>
+        <a href="@Url.Action("SubmitEdit", new { id = entry.Id })">Edit</a> |
+        <a href="@Url.Action("Audit", new { id = entry.Id })">Audit</a>
     </div>
 }
