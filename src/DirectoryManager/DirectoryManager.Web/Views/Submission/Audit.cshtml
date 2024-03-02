@@ -35,7 +35,6 @@ ViewData["Title"] = "Audit: " + @firstOrDefault.DirectoryEntryId;
             <th>Link</th>
             <th>Description</th>
             <th>Location</th>
-            <th>Processor</th>
             <th>Note</th>
             <th>Contact</th>
             <th>SubCategoryId</th>
@@ -60,12 +59,11 @@ ViewData["Title"] = "Audit: " + @firstOrDefault.DirectoryEntryId;
                     {
                         @audit.DirectoryStatus
                     }
-                     </td>
+                </td>
                 <td>@audit.Name</td>
                 <td>@audit.Link</td>
                 <td>@audit.Description</td>
                 <td>@audit.Location</td>
-                <td>@audit.Processor</td>
                 <td>@audit.Note</td>
                 <td>@audit.Contact</td>
                 <td>@audit.SubCategoryId</td>
