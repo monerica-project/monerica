@@ -1,16 +1,12 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Models.SponsoredListings;
-using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
-using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
- 
 
 namespace DirectoryManager.Web.Controllers
 {
