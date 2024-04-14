@@ -10,7 +10,7 @@
 @await Html.PartialAsync("_AdminMenu")
 <hr />
 
-<form asp-action="Edit" asp-route-id="@Model.Id" method="post">
+<form asp-action="Edit" asp-route-id="@Model.SubmissionId" method="post">
 
     @if (Model.DirectoryEntryId  != null)
     {
@@ -133,4 +133,4 @@
 <br />
 <br />
 <hr />
-<a href="~/submission/delete/@Model.Id">Delete</a>
+<a href="~/submission/delete/@Model.SubmissionId">Delete</a>

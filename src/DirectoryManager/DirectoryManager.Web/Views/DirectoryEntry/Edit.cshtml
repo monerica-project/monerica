@@ -10,7 +10,7 @@
                                     .ThenBy(sc => sc.Name)
                                     .Select(sc => new
                                     {
-                                        Id = sc.Id,
+                                        Id = sc.SubCategoryId,
                                         DisplayName = $"{sc.Category.Name} > {sc.Name}"
                                     });
 }
@@ -23,7 +23,7 @@
 @await Html.PartialAsync("_AdminMenu")
 
 <hr />
-<a href="@Url.Action("EntryAudits", "DirectoryEntry", new { entryId = Model.Id })">View History</a>
+<a href="@Url.Action("EntryAudits", "DirectoryEntry", new { entryId = Model.DirectoryEntryId })">View History</a>
 
 <form method="post">
     <div class="form-group">

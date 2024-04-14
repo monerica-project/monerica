@@ -634,7 +634,7 @@ namespace DirectoryManager.Web.Controllers
                     Id = offer.Id,
                     USDPrice = offer.Price
                 },
-                IsExtension = currentListings.FirstOrDefault(x => x.DirectoryEntryId == directoryEntry.Id) != null
+                IsExtension = currentListings.FirstOrDefault(x => x.DirectoryEntryId == directoryEntry.DirectoryEntryId) != null
             };
         }
 

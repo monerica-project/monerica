@@ -17,7 +17,7 @@
         <select id="CategoryId" name="CategoryId" class="form-control" required>
             @foreach (var category in (IEnumerable<Category>)ViewBag.Categories)
             {
-                <option value="@category.Id">@category.Name</option>
+                <option value="@category.CategoryId">@category.Name</option>
             }
         </select>
     </div>

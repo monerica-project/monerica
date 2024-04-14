@@ -20,5 +20,7 @@ namespace DirectoryManager.Data.Models.SponsoredListings
         public Currency PriceCurrency { get; set; }
 
         public decimal Price { get; set; }
+
+        public SponsorshipType SponsorshipType { get; set; } = SponsorshipType.Unknown;
     }
 }

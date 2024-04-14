@@ -61,6 +61,8 @@ namespace DirectoryManager.Data.Models.SponsoredListings
 
         public int? SponsoredListingId { get; set; }
 
+        public SponsorshipType SponsorshipType { get; set; } = SponsorshipType.Unknown;
+
         public virtual DirectoryEntry? DirectoryEntry { get; set; }
 
         public virtual SponsoredListing? SponsoredListing { get; set; }

@@ -29,7 +29,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.context.SubCategories
                         .Include(sc => sc.Category) // Including the Category for each SubCategory
                         .Where(subCategory => this.context.DirectoryEntries
-                            .Any(entry => entry.SubCategoryId == subCategory.Id &&
+                            .Any(entry => entry.SubCategoryId == subCategory.SubCategoryId &&
                                           entry.DirectoryStatus != DirectoryStatus.Unknown &&
                                           entry.DirectoryStatus != DirectoryStatus.Removed))
                         .OrderBy(subCategory => subCategory.Name)
@@ -81,7 +81,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var activeSubCategories = await this.context.SubCategories
                           .Where(subCategory => subCategory.CategoryId == categoryId &&
                               this.context.DirectoryEntries
-                                  .Any(entry => entry.SubCategoryId == subCategory.Id &&
+                                  .Any(entry => entry.SubCategoryId == subCategory.SubCategoryId &&
                                                 entry.DirectoryStatus != DirectoryStatus.Unknown &&
                                                 entry.DirectoryStatus != DirectoryStatus.Removed))
                           .OrderBy(subCategory => subCategory.Name)

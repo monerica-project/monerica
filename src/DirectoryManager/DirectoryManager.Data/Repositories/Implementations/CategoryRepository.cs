@@ -66,7 +66,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                .ToListAsync();
 
             var activeCategories = await this.context.Categories
-                .Where(category => activeCategoryIds.Contains(category.Id))
+                .Where(category => activeCategoryIds.Contains(category.CategoryId))
                 .OrderBy(category => category.Name)
                 .ToListAsync();
 

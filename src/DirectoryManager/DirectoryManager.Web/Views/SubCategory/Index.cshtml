@@ -16,7 +16,7 @@
         <option value="">--Select a Category--</option>
         @foreach (var category in (IEnumerable<Category>)ViewBag.Categories)
         {
-            <option value="@category.Id">@category.Name</option>
+            <option value="@category.CategoryId">@category.Name</option>
         }
     </select>
     <button type="submit">Filter</button>
@@ -25,7 +25,7 @@
 @foreach (var subCategory in Model)
 {
     <div>@subCategory.Name - Parent Category: @subCategory.Category.Name</div>
-    <a href="@Url.Action("Edit", new { id = subCategory.Id })">Edit</a>
+    <a href="@Url.Action("Edit", new { id = subCategory.SubCategoryId })">Edit</a>
 }
 
 <a href="@Url.Action("Create")">Create New: Sub Category</a>

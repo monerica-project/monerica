@@ -6,7 +6,7 @@ namespace DirectoryManager.Data.Models
     public class Category : UserStateInfo
     {
         [Key]
-        public int Id { get; set; }
+        public int CategoryId { get; set; }
 
         [Required]
         [MaxLength(255)]

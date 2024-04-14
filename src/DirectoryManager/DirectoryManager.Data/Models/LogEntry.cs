@@ -7,7 +7,7 @@ namespace DirectoryManager.Data.Models
     {
         [Key]
         [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
-        public int Id { get; set; }
+        public int LogEntryId { get; set; }
 
         public string? Message { get; set; }
 

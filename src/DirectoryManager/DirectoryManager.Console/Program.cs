@@ -58,7 +58,7 @@ if (choice == "1")
 
         if (!isOnline)
         {
-            offlines.Add(entry.Link + "    -    ID: " + entry.Id);
+            offlines.Add(entry.Link + "    -    ID: " + entry.DirectoryEntryId);
         }
     }
 

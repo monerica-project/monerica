@@ -123,7 +123,7 @@
                 <input type="checkbox" id="@string.Format("{0}_checkbox", category.CategoryKey)" />
                 <div class="hidden">
                     <ul>
-                        @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.Id))
+                        @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId))
                         {
                             <li>
                                 <a href="#@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</a>
@@ -153,7 +153,7 @@
             <p><i>(Note: @category.Note</i>)</p>
         }
 
-        @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.Id))
+        @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId))
         {
             <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>
 
@@ -169,7 +169,7 @@
 
             <ul>
                 @{
-                    var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.Id);
+                    var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
 
                     var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
                     activeEntries.ToList(),
@@ -179,7 +179,7 @@
                 }
                 @foreach (var viewModel in viewModelList)
                 {
-                    if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntry.Id) != null)
+                    if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntry.DirectoryEntryId) != null)
                     {
                         viewModel.IsSponsored = true;
                     }

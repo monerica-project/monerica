@@ -19,8 +19,8 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
             // Sample data
             var data = new List<SubCategory>
             {
-                new SubCategory { Id = 1, Name = "SubCategory1" },
-                new SubCategory { Id = 2, Name = "SubCategory2" }
+                new SubCategory { SubCategoryId = 1, Name = "SubCategory1" },
+                new SubCategory { SubCategoryId = 2, Name = "SubCategory2" }
             }.AsQueryable();
 
             this.mockDbSet = MockHelpers.MockHelpers.GetQueryableMockDbSet(data).Object;

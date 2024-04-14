@@ -48,7 +48,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (subCategoryId.HasValue)
             {
-                entries = entries.Where(e => e.SubCategory != null && e.SubCategory.Id == subCategoryId.Value).ToList();
+                entries = entries.Where(e => e.SubCategory != null && e.SubCategory.SubCategoryId == subCategoryId.Value).ToList();
             }
 
             entries = entries.OrderBy(e => e.Name)
@@ -70,12 +70,12 @@ namespace DirectoryManager.Web.Controllers
                 .ThenBy(sc => sc.Name)
                 .Select(sc => new
                 {
-                    sc.Id,
+                    sc.SubCategoryId,
                     DisplayName = $"{sc.Category.Name} > {sc.Name}"
                 })
                 .ToList();
 
-            subCategories.Insert(0, new { Id = 0, DisplayName = "Please select a category" });
+            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = "Please select a category" });
 
             this.ViewBag.SubCategories = subCategories;
 
@@ -128,7 +128,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(DirectoryEntry entry)
         {
-            var existingEntry = await this.entryRepository.GetByIdAsync(entry.Id);
+            var existingEntry = await this.entryRepository.GetByIdAsync(entry.DirectoryEntryId);
 
             if (existingEntry == null)
             {

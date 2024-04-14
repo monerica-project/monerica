@@ -73,7 +73,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(Category category)
         {
-            var existingCategory = await this.categoryRepository.GetByIdAsync(category.Id);
+            var existingCategory = await this.categoryRepository.GetByIdAsync(category.CategoryId);
 
             if (existingCategory == null)
             {

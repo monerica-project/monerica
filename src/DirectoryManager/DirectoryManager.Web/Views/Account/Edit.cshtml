@@ -27,7 +27,7 @@
             <input type="checkbox" id="@string.Format("{0}_checkbox", category.CategoryKey)" />
             <div class="hidden">
              <ul>
-            @foreach (var subCategory in await subCategoryRepository.GetByCategoryAsync(category.Id))
+            @foreach (var subCategory in await subCategoryRepository.GetByCategoryAsync(category.CategoryId))
             {
                 <li>
                     <a href="#@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</a>
@@ -41,26 +41,26 @@
 
 @foreach (var category in await categoryRepository.GetAllAsync())
 {
-    <h2 id="@category.CategoryKey">@category.Name</h2> <a href="~/category/edit/@category.Id">Edit</a>
+    <h2 id="@category.CategoryKey">@category.Name</h2> <a href="~/category/edit/@category.CategoryId">Edit</a>
 
     <i>@category.Note</i>
 
-    @foreach (var subCategory in await subCategoryRepository.GetByCategoryAsync(category.Id))
+    @foreach (var subCategory in await subCategoryRepository.GetByCategoryAsync(category.CategoryId))
     {
-        <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>  <a href="~/subcategory/edit/@subCategory.Id">Edit</a>
+        <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>  <a href="~/subcategory/edit/@subCategory.SubCategoryId">Edit</a>
         <i>@subCategory.Note</i>
 
         <ul>
-            @foreach (var directoryEntry in await directoryEntryRepository.GetAllBySubCategoryIdAsync(subCategory.Id))
+            @foreach (var directoryEntry in await directoryEntryRepository.GetAllBySubCategoryIdAsync(subCategory.SubCategoryId))
             {
                 <li>
                     @if (string.IsNullOrWhiteSpace(directoryEntry.Description))
                     {
-                        <p>  <a href="@directoryEntry.Link">@directoryEntry.Name</a></p>  <a href="~/directoryentry/edit/@directoryEntry.Id">Edit</a>
+                        <p>  <a href="@directoryEntry.Link">@directoryEntry.Name</a></p>  <a href="~/directoryentry/edit/@directoryEntry.DirectoryEntryId">Edit</a>
                     }
                     else
                     {
-                        <p>  <a href="@directoryEntry.Link">@directoryEntry.Name</a> - @directoryEntry.Description</p>  <a href="~/directoryentry/edit/@directoryEntry.Id">Edit</a>
+                        <p>  <a href="@directoryEntry.Link">@directoryEntry.Name</a> - @directoryEntry.Description</p>  <a href="~/directoryentry/edit/@directoryEntry.DirectoryEntryId">Edit</a>
                     }
                 </li>
             }
