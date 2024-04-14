@@ -4,8 +4,8 @@ namespace DirectoryManager.Web.Models
 {
     public class SponsoredListingOfferModel
     {
-        [JsonProperty("id")]
-        public int Id { get; set; }
+        [JsonProperty("sponsoredListingOfferId")]
+        public int SponsoredListingOfferId { get; set; }
 
         [JsonProperty(nameof(USDPrice))]
         public decimal USDPrice { get; set; }

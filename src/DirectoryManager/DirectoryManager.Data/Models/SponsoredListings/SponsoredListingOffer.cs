@@ -7,7 +7,7 @@ namespace DirectoryManager.Data.Models.SponsoredListings
     public class SponsoredListingOffer : UserStateInfo
     {
         [Key]
-        public int Id { get; set; }
+        public int SponsoredListingOfferId { get; set; }
 
         public bool IsEnabled { get; set; }
 

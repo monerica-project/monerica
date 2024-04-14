@@ -300,13 +300,13 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [HttpPost("confirmnowpayments")]
         public async Task<IActionResult> ConfirmedNowPaymentsAsync(
-            int id,
+            int directoryEntryId,
             int selectedOfferId,
             Guid? rsvId = null)
         {
             if (rsvId == null)
             {
-                var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(id);
+                var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId);
                 var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync();
                 var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync();
 
@@ -334,14 +334,14 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
             }
 
-            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(id);
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
 
             if (directoryEntry == null)
             {
                 return this.BadRequest(new { Error = StringConstants.DirectoryEntryNotFound });
             }
 
-            var existingListing = await this.sponsoredListingRepository.GetActiveListing(id);
+            var existingListing = await this.sponsoredListingRepository.GetActiveListing(directoryEntryId);
             var startDate = DateTime.UtcNow;
 
             if (existingListing != null)
@@ -349,7 +349,7 @@ namespace DirectoryManager.Web.Controllers
                 startDate = existingListing.CampaignEndDate;
             }
 
-            var invoice = await this.GetInvoice(id, sponsoredListingOffer, startDate);
+            var invoice = await this.GetInvoice(directoryEntryId, sponsoredListingOffer, startDate);
             var invoiceRequest = this.GetInvoiceRequest(sponsoredListingOffer, invoice);
 
             this.paymentService.SetDefaultUrls(invoiceRequest);
@@ -631,7 +631,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     Description = offer.Description,
                     Days = offer.Days,
-                    Id = offer.Id,
+                    SponsoredListingOfferId = offer.SponsoredListingOfferId,
                     USDPrice = offer.Price
                 },
                 IsExtension = currentListings.FirstOrDefault(x => x.DirectoryEntryId == directoryEntry.DirectoryEntryId) != null
@@ -713,7 +713,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 model.Add(new SponsoredListingOfferModel
                 {
-                    Id = offer.Id,
+                    SponsoredListingOfferId = offer.SponsoredListingOfferId,
                     Description = offer.Description,
                     Days = offer.Days,
                     USDPrice = offer.Price
