@@ -22,9 +22,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                  .ToListAsync();
         }
 
-        public async Task<Submission?> GetByIdAsync(int id)
+        public async Task<Submission?> GetByIdAsync(int submissionId)
         {
-            return await this.context.Submissions.FindAsync(id);
+            return await this.context.Submissions.FindAsync(submissionId);
         }
 
         public async Task<Submission> CreateAsync(Submission submission)
@@ -41,9 +41,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(int submissionId)
         {
-            var submission = await this.GetByIdAsync(id);
+            var submission = await this.GetByIdAsync(submissionId);
             if (submission != null)
             {
                 this.context.Submissions.Remove(submission);

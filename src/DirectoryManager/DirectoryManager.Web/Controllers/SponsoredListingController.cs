@@ -143,14 +143,14 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [HttpGet("selectduration")]
         public async Task<IActionResult> SelectDurationAsync(
-            int id,
+            int directoryEntryId,
             Guid? rsvId = null)
         {
             var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync();
 
             if (currentListings != null)
             {
-                if (!CanAdvertise(id, currentListings))
+                if (!CanAdvertise(directoryEntryId, currentListings))
                 {
                     // max listings
                     return this.BadRequest(new { Error = StringConstants.MaximumNumberOfSponsorsReached });
@@ -159,7 +159,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (rsvId == null)
             {
-                var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(id);
+                var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId);
                 var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync();
                 var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync();
 
@@ -188,13 +188,13 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [HttpPost("selectduration")]
         public async Task<IActionResult> SelectDurationAsync(
-            int id,
+            int directoryEntryId,
             int selectedOfferId,
             Guid? rsvId = null)
         {
             if (rsvId == null)
             {
-                var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(id);
+                var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId);
                 var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync();
                 var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync();
 
@@ -222,7 +222,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = "Invalid offer selection." });
             }
 
-            var selectedDiretoryEntry = await this.directoryEntryRepository.GetByIdAsync(id);
+            var selectedDiretoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
 
             if (selectedDiretoryEntry == null)
             {
@@ -233,7 +233,7 @@ namespace DirectoryManager.Web.Controllers
                         "ConfirmNowPayments",
                         new
                         {
-                            id = id,
+                            directoryEntryId = directoryEntryId,
                             selectedOfferId = selectedOfferId,
                             rsvId = rsvId
                         });
@@ -242,13 +242,13 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [HttpGet("confirmnowpayments")]
         public async Task<IActionResult> ConfirmNowPaymentsAsync(
-            int id,
+            int directoryEntryId,
             int selectedOfferId,
             Guid? rsvId = null)
         {
             if (rsvId == null)
             {
-                var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(id);
+                var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId);
                 var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync();
                 var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync();
 
@@ -270,7 +270,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.ReservationGuid = rsvId;
 
             var offer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
-            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(id);
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
 
             if (offer == null || directoryEntry == null)
             {
@@ -284,7 +284,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (currentListings != null && currentListings.Any())
             {
-                viewModel.CanCreateSponsoredListing = CanAdvertise(id, currentListings);
+                viewModel.CanCreateSponsoredListing = CanAdvertise(directoryEntryId, currentListings);
 
                 // Get the next listing expiration date (i.e., the soonest CampaignEndDate)
                 viewModel.NextListingExpiration = currentListings.Min(x => x.CampaignEndDate);
@@ -507,11 +507,11 @@ namespace DirectoryManager.Web.Controllers
             return this.View("NowPaymentsSuccess", viewModel);
         }
 
-        [HttpGet("edit/{id}")]
+        [HttpGet("edit/{sponsoredListingId}")]
         [Authorize]
-        public async Task<IActionResult> EditAsync(int id)
+        public async Task<IActionResult> EditAsync(int sponsoredListingId)
         {
-            var listing = await this.sponsoredListingRepository.GetByIdAsync(id);
+            var listing = await this.sponsoredListingRepository.GetByIdAsync(sponsoredListingId);
             if (listing == null)
             {
                 return this.NotFound();
@@ -562,16 +562,16 @@ namespace DirectoryManager.Web.Controllers
             return this.View("activelistings", model);
         }
 
-        [HttpPost("edit/{id}")]
+        [HttpPost("edit/{sponsoredListingId}")]
         [Authorize]
-        public async Task<IActionResult> EditAsync(int id, EditListingViewModel model)
+        public async Task<IActionResult> EditAsync(int sponsoredListingId, EditListingViewModel model)
         {
             if (!this.ModelState.IsValid)
             {
                 return this.View(model);
             }
 
-            var listing = await this.sponsoredListingRepository.GetByIdAsync(id);
+            var listing = await this.sponsoredListingRepository.GetByIdAsync(sponsoredListingId);
             if (listing == null)
             {
                 return this.NotFound();

@@ -19,9 +19,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context;
         }
 
-        public async Task<DirectoryEntry?> GetByIdAsync(int id)
+        public async Task<DirectoryEntry?> GetByIdAsync(int directoryEntryId)
         {
-            return await this.context.DirectoryEntries.FindAsync(id);
+            return await this.context.DirectoryEntries.FindAsync(directoryEntryId);
         }
 
         public async Task<DirectoryEntry?> GetByLinkAsync(string link)
@@ -121,9 +121,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.WriteToAuditLog(existingEntry);
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(int directoryEntryId)
         {
-            var entryToDelete = await this.context.DirectoryEntries.FindAsync(id);
+            var entryToDelete = await this.context.DirectoryEntries.FindAsync(directoryEntryId);
             if (entryToDelete != null)
             {
                 this.context.DirectoryEntries.Remove(entryToDelete);

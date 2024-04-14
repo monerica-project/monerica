@@ -19,9 +19,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.context.SponsoredListingOffers.ToListAsync();
         }
 
-        public async Task<SponsoredListingOffer> GetByIdAsync(int id)
+        public async Task<SponsoredListingOffer> GetByIdAsync(int sponsoredListingOfferId)
         {
-            var result = await this.context.SponsoredListingOffers.FindAsync(id);
+            var result = await this.context.SponsoredListingOffers.FindAsync(sponsoredListingOfferId);
 
             return result ?? throw new Exception("Offer not found");
         }
@@ -38,9 +38,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync();
         }
 
-        public async Task DeleteOfferAsync(int id)
+        public async Task DeleteOfferAsync(int sponsoredListingOfferId)
         {
-            var offer = await this.GetByIdAsync(id);
+            var offer = await this.GetByIdAsync(sponsoredListingOfferId);
             if (offer != null)
             {
                 this.context.SponsoredListingOffers.Remove(offer);

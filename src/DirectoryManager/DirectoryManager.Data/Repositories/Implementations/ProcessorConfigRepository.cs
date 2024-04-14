@@ -20,12 +20,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.context.ProcessorConfigs.ToListAsync();
         }
 
-        public async Task<ProcessorConfig> GetByIdAsync(int id)
+        public async Task<ProcessorConfig> GetByIdAsync(int processorConfigId)
         {
-            var result = await this.context.ProcessorConfigs.FindAsync(id);
+            var result = await this.context.ProcessorConfigs.FindAsync(processorConfigId);
 
             return result == null ?
-                throw new KeyNotFoundException($"ProcessorConfig with id {id} not found") : result;
+                throw new KeyNotFoundException($"ProcessorConfig with id {processorConfigId} not found") : result;
         }
 
         public async Task CreateAsync(ProcessorConfig processorConfigs)
@@ -61,13 +61,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(int processorConfigId)
         {
-            var processorConfigs = await this.context.ProcessorConfigs.FindAsync(id);
+            var processorConfigs = await this.context.ProcessorConfigs.FindAsync(processorConfigId);
 
             if (processorConfigs == null)
             {
-                throw new KeyNotFoundException($"ProcessorConfig with id {id} not found");
+                throw new KeyNotFoundException($"ProcessorConfig with id {processorConfigId} not found");
             }
 
             this.context.ProcessorConfigs.Remove(processorConfigs);

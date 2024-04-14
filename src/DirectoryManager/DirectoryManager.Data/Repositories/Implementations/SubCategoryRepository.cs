@@ -36,9 +36,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         .ToListAsync();
         }
 
-        public async Task<SubCategory?> GetByIdAsync(int id)
+        public async Task<SubCategory?> GetByIdAsync(int subCategoryId)
         {
-            return await this.context.SubCategories.FindAsync(id);
+            return await this.context.SubCategories.FindAsync(subCategoryId);
         }
 
         public async Task CreateAsync(SubCategory subCategory)
@@ -53,9 +53,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(int subCategoryId)
         {
-            var subCategoryToDelete = await this.context.SubCategories.FindAsync(id);
+            var subCategoryToDelete = await this.context.SubCategories.FindAsync(subCategoryId);
             if (subCategoryToDelete != null)
             {
                 this.context.SubCategories.Remove(subCategoryToDelete);

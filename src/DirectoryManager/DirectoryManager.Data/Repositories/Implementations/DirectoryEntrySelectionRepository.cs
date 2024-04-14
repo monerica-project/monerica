@@ -15,12 +15,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context;
         }
 
-        public async Task<DirectoryEntrySelection> GetByID(int id)
+        public async Task<DirectoryEntrySelection> GetByID(int directoryEntrySelectionId)
         {
-            var result = await this.context.DirectoryEntrySelections.FindAsync(id);
+            var result = await this.context.DirectoryEntrySelections.FindAsync(directoryEntrySelectionId);
 
             return result == null ?
-                throw new InvalidOperationException($"No DirectoryEntrySelection found with ID {id}") :
+                throw new InvalidOperationException($"No DirectoryEntrySelection found with ID {directoryEntrySelectionId}") :
                 result;
         }
 
@@ -30,9 +30,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync();
         }
 
-        public async Task DeleteFromList(int id)
+        public async Task DeleteFromList(int directoryEntrySelectionId)
         {
-            var selection = await this.GetByID(id);
+            var selection = await this.GetByID(directoryEntrySelectionId);
             this.context.DirectoryEntrySelections.Remove(selection);
             await this.context.SaveChangesAsync();
         }

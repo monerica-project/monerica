@@ -22,9 +22,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                  .ToListAsync();
         }
 
-        public async Task<Category?> GetByIdAsync(int id)
+        public async Task<Category?> GetByIdAsync(int categoryId)
         {
-            return await this.context.Categories.FindAsync(id);
+            return await this.context.Categories.FindAsync(categoryId);
         }
 
         public async Task CreateAsync(Category category)
@@ -39,9 +39,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(int categoryId)
         {
-            var categoryToDelete = await this.context.Categories.FindAsync(id);
+            var categoryToDelete = await this.context.Categories.FindAsync(categoryId);
             if (categoryToDelete != null)
             {
                 this.context.Categories.Remove(categoryToDelete);

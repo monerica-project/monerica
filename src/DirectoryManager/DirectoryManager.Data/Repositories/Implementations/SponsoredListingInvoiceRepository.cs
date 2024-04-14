@@ -15,9 +15,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public async Task<SponsoredListingInvoice?> GetByIdAsync(int id)
+        public async Task<SponsoredListingInvoice?> GetByIdAsync(int sponsoredListingInvoiceId)
         {
-            return await this.context.SponsoredListingInvoices.FindAsync(id);
+            return await this.context.SponsoredListingInvoices.FindAsync(sponsoredListingInvoiceId);
         }
 
         public async Task<SponsoredListingInvoice?> GetByInvoiceIdAsync(Guid invoiceId)
@@ -66,9 +66,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return (invoices, totalItems);
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(int sponsoredListingInvoiceId)
         {
-            var invoice = await this.GetByIdAsync(id);
+            var invoice = await this.GetByIdAsync(sponsoredListingInvoiceId);
             if (invoice != null)
             {
                 this.context.SponsoredListingInvoices.Remove(invoice);

@@ -6,10 +6,10 @@ namespace DirectoryManager.Data.Repositories.Interfaces
     public interface ISubmissionRepository
     {
         Task<IEnumerable<Submission>> GetAllAsync();
-        Task<Submission?> GetByIdAsync(int id);
+        Task<Submission?> GetByIdAsync(int submissionId);
         Task<Submission> CreateAsync(Submission submission);
         Task UpdateAsync(Submission submission);
-        Task DeleteAsync(int id);
+        Task DeleteAsync(int submissionId);
         Task<int> GetByStatus(SubmissionStatus pending);
     }
 }

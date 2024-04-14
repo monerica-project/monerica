@@ -4,14 +4,14 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 {
     public interface IDirectoryEntryRepository
     {
-        Task<DirectoryEntry?> GetByIdAsync(int id);
+        Task<DirectoryEntry?> GetByIdAsync(int directoryEntryId);
         Task<DirectoryEntry?> GetByLinkAsync(string link);
         Task<IEnumerable<DirectoryEntry>> GetAllAsync();
         Task<IEnumerable<DirectoryEntry>> GetAllBySubCategoryIdAsync(int subCategoryId);
         Task<IEnumerable<DirectoryEntry>> GetAllowableEntries();
         Task CreateAsync(DirectoryEntry entry);
         Task UpdateAsync(DirectoryEntry entry);
-        Task DeleteAsync(int id);
+        Task DeleteAsync(int directoryEntryId);
         public DateTime GetLastRevisionDate();
         public Task<IEnumerable<DirectoryEntry>> GetNewestRevisions(int count);
         public Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int numberOfDays);
