@@ -49,7 +49,7 @@
 
     <div class="form-group">
         <label asp-for="SubCategoryId">Category</label>
-        <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "Id", "DisplayName"))" required></select>
+        <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "SubCategoryId", "DisplayName"))" required></select>
     </div>
 
     <div class="form-group">
