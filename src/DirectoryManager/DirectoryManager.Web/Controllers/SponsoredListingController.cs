@@ -108,11 +108,13 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [HttpGet("selectlisting")]
         public async Task<IActionResult> SelectListing(
+            SponsorshipType sponsorshipType = SponsorshipType.MainSponsor,
             int? subCategoryId = null,
             Guid? rsvId = null)
         {
-            var sponsorshipType = SponsorshipType.MainSponsor;
-            var reservationGroup = ReservationGroupHelper.CreateReservationGroup(sponsorshipType, 0);
+            var reservationGroup = ReservationGroupHelper.CreateReservationGroup(
+                sponsorshipType,
+                subCategoryId == null ? 0 : subCategoryId.Value);
 
             if (rsvId == null)
             {
@@ -129,7 +131,14 @@ namespace DirectoryManager.Web.Controllers
                 var guid = reservation.ReservationGuid;
 
                 // Redirect back to the same page with the new reservation ID
-                return this.RedirectToAction("SelectListing", new { subCategoryId = subCategoryId, rsvId = guid });
+                return this.RedirectToAction(
+                    "SelectListing",
+                    new
+                    {
+                        subCategoryId = subCategoryId,
+                        rsvId = guid,
+                        sponsorshipType = sponsorshipType
+                    });
             }
             else
             {
@@ -142,8 +151,9 @@ namespace DirectoryManager.Web.Controllers
             }
 
             this.ViewBag.ReservationGuid = rsvId;
+            this.ViewBag.SponsorshipType = sponsorshipType;
 
-            IEnumerable<Data.Models.DirectoryEntry> entries = await this.FilterEntries(subCategoryId);
+            IEnumerable<DirectoryEntry> entries = await this.FilterEntries(subCategoryId);
 
             return this.View("SelectListing", entries);
         }
@@ -155,6 +165,11 @@ namespace DirectoryManager.Web.Controllers
             SponsorshipType sponsorshipType,
             Guid? rsvId = null)
         {
+            if (sponsorshipType == SponsorshipType.Unknown)
+            {
+                return this.BadRequest(new { Error = "Invalid Sponsorship Type." });
+            }
+
             var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(sponsorshipType);
             var reservationGroup = ReservationGroupHelper.CreateReservationGroup(sponsorshipType, 0);
 
@@ -170,10 +185,10 @@ namespace DirectoryManager.Web.Controllers
             if (rsvId == null)
             {
                 var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId);
-                var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(SponsorshipType.MainSponsor);
+                var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(sponsorshipType);
                 var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(reservationGroup);
 
-                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, SponsorshipType.MainSponsor) && !isActiveSponsor)
+                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, sponsorshipType) && !isActiveSponsor)
                 {
                     return this.BadRequest(new { Error = StringConstants.CheckoutInProcess });
                 }
@@ -189,8 +204,9 @@ namespace DirectoryManager.Web.Controllers
             }
 
             this.ViewBag.ReservationGuid = rsvId;
+            this.ViewBag.SponsorshipType = sponsorshipType;
 
-            var model = await this.GetListingDurations();
+            var model = await this.GetListingDurations(sponsorshipType);
 
             return this.View(model);
         }
@@ -281,7 +297,7 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.ReservationGuid = rsvId;
 
-            IEnumerable<Data.Models.DirectoryEntry> entries = await this.FilterEntries(subCategoryId);
+            IEnumerable<DirectoryEntry> entries = await this.FilterEntries(subCategoryId);
 
             return this.View("SubCategorySelection", entries);
         }
@@ -585,9 +601,9 @@ namespace DirectoryManager.Web.Controllers
 
         [AllowAnonymous]
         [HttpGet("offers")]
-        public async Task<IActionResult> Offers()
+        public async Task<IActionResult> Offers(SponsorshipType sponsorshipType)
         {
-            var offers = await this.sponsoredListingOfferRepository.GetAllAsync();
+            var offers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(sponsorshipType);
             var enabledOffers = offers.Where(o => o.IsEnabled);
             return this.View(enabledOffers);
         }
@@ -786,9 +802,9 @@ namespace DirectoryManager.Web.Controllers
                 });
         }
 
-        private async Task<List<SponsoredListingOfferModel>> GetListingDurations()
+        private async Task<List<SponsoredListingOfferModel>> GetListingDurations(SponsorshipType sponsorshipType)
         {
-            var offers = await this.sponsoredListingOfferRepository.GetAllAsync();
+            var offers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(sponsorshipType);
             var model = new List<SponsoredListingOfferModel>();
 
             foreach (var offer in offers.OrderBy(x => x.Days))

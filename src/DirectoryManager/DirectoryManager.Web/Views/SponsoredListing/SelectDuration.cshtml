@@ -22,7 +22,7 @@
 <form method="post">
     <input name="rsvId" type="hidden" value="@ViewBag.ReservationGuid" />
     <div class="form-group">
-        <label>Options:</label>
+        <label>Options for @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(this.ViewBag.SponsorshipType):</label>
         @for (var i = 0; i < offersList.Count; i++)
         {
             var offer = offersList[i];

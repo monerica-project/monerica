@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -17,6 +18,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<IEnumerable<SponsoredListingOffer>> GetAllAsync()
         {
             return await this.context.SponsoredListingOffers.ToListAsync();
+        }
+
+        public async Task<IEnumerable<SponsoredListingOffer>> GetAllByTypeAsync(SponsorshipType sponsorshipType)
+        {
+            return await this.context
+                             .SponsoredListingOffers
+                             .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true).ToListAsync();
         }
 
         public async Task<SponsoredListingOffer> GetByIdAsync(int sponsoredListingOfferId)

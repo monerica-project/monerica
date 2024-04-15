@@ -1,1 +1,17 @@
-﻿
+﻿@using DirectoryManager.Data.Models
+@model IEnumerable<DirectoryEntry>
+
+@{
+    ViewData["Title"] = "Select Sponsored Listing";
+}
+<h1>@ViewData["Title"]</h1>
+
+<hr />
+
+@foreach (var entry in Model)
+{
+    <div>
+        <a target="_blank" href="@entry.Link">@entry.Name</a> <text> - </text>
+        <a href="@Url.Action("selectduration", new { id = entry.DirectoryEntryId, rsvId = ViewBag.ReservationGuid })">Select</a>
+    </div>
+}

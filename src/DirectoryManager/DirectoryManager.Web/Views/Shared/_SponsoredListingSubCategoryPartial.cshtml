@@ -8,6 +8,6 @@
 @if (Model.TotalActiveSubCategoryListings >= IntegerConstants.MinimumSponsoredActiveSubcategories)
 {
     <p class="sub-category-sponsored-listing">
-        <a href="~/sponsoredlisting/subcategoryselection?subCategoryId=@Model.SubCategoryId">Advertise here</a>
+        <a href="~/sponsoredlisting/selectlisting?subCategoryId=@Model.SubCategoryId&sponsorshipType=@SponsorshipType.SubCategorySponsor">Advertise here</a>
     </p>
 }
