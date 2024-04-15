@@ -10,7 +10,7 @@
                                     .ThenBy(sc => sc.Name)
                                     .Select(sc => new
                                     {
-                                        Id = sc.SubCategoryId,
+                                        SubCategoryId = sc.SubCategoryId,
                                         DisplayName = $"{sc.Category.Name} > {sc.Name}"
                                     });
 }
@@ -26,6 +26,7 @@
 <a href="@Url.Action("EntryAudits", "DirectoryEntry", new { entryId = Model.DirectoryEntryId })">View History</a>
 
 <form method="post">
+    <input type="hidden" value="@Model.DirectoryEntryId" name="DirectoryEntryId" />
     <div class="form-group">
         <label asp-for="DirectoryStatus">Status</label>
         <select asp-for="DirectoryStatus" asp-items="Html.GetEnumSelectList<DirectoryStatus>()"></select>
