@@ -35,7 +35,7 @@
     <p>
         <a class="btn" href="~/sponsoredlisting/selectlisting">Select Listing</a>        
     </p>
-    <p><i>@(IntegerConstants.MaxSponsoredListings - Model.CurrentListingCount) spot@((IntegerConstants.MaxSponsoredListings - Model.CurrentListingCount) == 1 ? "" : "s") remaining</i></p>
+    <p><i>@(IntegerConstants.MaxMainSponsoredListings - Model.CurrentListingCount) spot@((IntegerConstants.MaxMainSponsoredListings - Model.CurrentListingCount) == 1 ? "" : "s") remaining</i></p>
 }
 else
 {

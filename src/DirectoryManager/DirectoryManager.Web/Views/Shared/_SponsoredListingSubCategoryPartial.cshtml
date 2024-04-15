@@ -1,0 +1,13 @@
+﻿@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Data.Enums;
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
+@model DirectoryManager.Web.Models.SubCategorySponsorModel
+ 
+@if (Model.TotalActiveSubCategoryListings >= IntegerConstants.MinimumSponsoredActiveSubcategories)
+{
+    <p class="sub-category-sponsored-listing">
+        <a href="~/sponsoredlisting/subcategoryselection?subCategoryId=@Model.SubCategoryId">Advertise here</a>
+    </p>
+}

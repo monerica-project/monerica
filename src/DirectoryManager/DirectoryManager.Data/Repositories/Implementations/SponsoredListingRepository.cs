@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -25,25 +26,29 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                      .FirstOrDefaultAsync(x => x.SponsoredListingInvoiceId == sponsoredListingInvoiceId);
         }
 
-        public async Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync()
+        public async Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync(SponsorshipType sponsorshipType)
         {
             var currentDate = DateTime.UtcNow;
 
             return await this.context.SponsoredListings
                                      .Include(x => x.DirectoryEntry) // Include DirectoryEntry navigation property
-                                     .Where(x => x.CampaignStartDate <= currentDate && x.CampaignEndDate >= currentDate) // Filter active listings
+                                     .Where(x => x.SponsorshipType == sponsorshipType &&
+                                                 x.CampaignStartDate <= currentDate &&
+                                                 x.CampaignEndDate >= currentDate) // Filter active listings
                                      .OrderByDescending(x => x.CampaignEndDate) // Sort primarily by end date
                                      .ThenByDescending(x => x.CampaignStartDate) // Then by start date
                                      .ToListAsync();
         }
 
-        public async Task<int> GetActiveListingsCountAsync()
+        public async Task<int> GetActiveListingsCountAsync(SponsorshipType sponsorshipType)
         {
             var currentDate = DateTime.UtcNow;
 
             var totalActive = await this.context.SponsoredListings
                                      .Include(x => x.DirectoryEntry) // Include DirectoryEntry navigation property
-                                     .Where(x => x.CampaignStartDate <= currentDate && x.CampaignEndDate >= currentDate) // Filter active listings
+                                     .Where(x => x.SponsorshipType == sponsorshipType &&
+                                                 x.CampaignStartDate <= currentDate &&
+                                                 x.CampaignEndDate >= currentDate) // Filter active listings
                                      .OrderByDescending(x => x.CampaignEndDate) // Sort primarily by end date
                                      .ThenByDescending(x => x.CampaignStartDate) // Then by start date
                                      .CountAsync();

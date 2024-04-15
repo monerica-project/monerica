@@ -137,7 +137,7 @@
 
     <hr />
     @{
-        var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync();
+        var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.MainSponsor);
     }
 
     @foreach (var category in activeCategories)
@@ -167,16 +167,28 @@
                 <i>(Note: @subCategory.Note)</i>
             }
 
-            <ul>
-                @{
-                    var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
+            // TODO: if there is an advertiser, display it, remove it from the list of all of them below
+            // otherwise, display a link to advertise for this specific sub category
 
-                    var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
-                    activeEntries.ToList(),
-                    DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
-                    link2Name,
-                    link3Name);
-                }
+            // , subCategory.SubCategoryId)
+
+                var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
+
+                var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+                                            activeEntries.ToList(),
+                                            DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+                                            link2Name,
+                                            link3Name);
+
+                var subCategorySponsorModel = new DirectoryManager.Web.Models.SubCategorySponsorModel()
+                {
+                            SubCategoryId = subCategory.SubCategoryId,
+                        TotalActiveSubCategoryListings = activeEntries.Count()
+                };
+
+                @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", subCategorySponsorModel);
+
+            <ul>
                 @foreach (var viewModel in viewModelList)
                 {
                     if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntry.DirectoryEntryId) != null)

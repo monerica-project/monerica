@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Models.SponsoredListings;
+﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models.SponsoredListings;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
@@ -7,7 +8,8 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<SponsoredListing?> GetByIdAsync(int sponsoredListingId);
         Task<SponsoredListing?> GetByInvoiceIdAsync(int sponsoredListingInvoiceId);
         Task<IEnumerable<SponsoredListing>> GetAllAsync();
-        Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync();
+        Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync(SponsorshipType sponsorshipType);
+        Task<int> GetActiveListingsCountAsync(SponsorshipType sponsorshipType);
         Task<DateTime?> GetNextExpirationDate();
         Task<int> GetTotalCountAsync();
         Task<List<SponsoredListing>> GetPaginatedListingsAsync(int page, int pageSize);
@@ -15,7 +17,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<SponsoredListing> CreateAsync(SponsoredListing sponsoredListing);
         Task<bool> UpdateAsync(SponsoredListing sponsoredListing);
         Task DeleteAsync(int sponsoredListingId);
-        Task<int> GetActiveListingsCountAsync();
         Task<bool> IsSponsoredListingActive(int directoryEntryId);
     }
 }
