@@ -9,6 +9,7 @@
         OverPayment = 4,
         Paid = 5,
         Expired = 6,
-        Failed = 7
+        Failed = 7,
+        Test = 8
     }
 }
