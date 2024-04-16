@@ -61,6 +61,8 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("")]
         public async Task<IActionResult> IndexAsync()
         {
+            this.logger.LogError("test");
+
             var sponsorshipType = SponsorshipType.MainSponsor;
             var reservationGroup = ReservationGroupHelper.CreateReservationGroup(sponsorshipType, 0);
             var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(sponsorshipType);
