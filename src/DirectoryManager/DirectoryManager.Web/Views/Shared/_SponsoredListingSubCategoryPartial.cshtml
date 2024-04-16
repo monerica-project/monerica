@@ -4,8 +4,37 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 @model DirectoryManager.Web.Models.SubCategorySponsorModel
- 
-@if (Model.TotalActiveSubCategoryListings >= IntegerConstants.MinimumSponsoredActiveSubcategories)
+
+@{
+    var directoryEntries = new List<DirectoryManager.Data.Models.DirectoryEntry>();
+    var link2Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
+    var link3Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+    var directoryEntry = Model?.DirectoryEntry?.DirectoryEntry;
+}
+
+@if (Model != null && directoryEntry != null)
+{
+    directoryEntries.Add(directoryEntry);
+
+    <div class="sponsored-section">
+        <p><b>Sponsored</b></p>
+
+        <ul>
+            @{
+                var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+                directoryEntries,
+                DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+                link2Name,
+                link3Name);
+            }
+            @foreach (var viewModel in viewModelList)
+            {
+                @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
+            }
+        </ul>
+    </div>
+}
+else if (Model != null && Model.TotalActiveSubCategoryListings >= IntegerConstants.MinimumSponsoredActiveSubcategories)
 {
     <p class="sub-category-sponsored-listing">
         <a href="~/sponsoredlisting/selectlisting?subCategoryId=@Model.SubCategoryId&sponsorshipType=@SponsorshipType.SubCategorySponsor">Advertise here</a>

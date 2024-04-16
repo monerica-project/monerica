@@ -32,7 +32,7 @@
     <div>
         <a target="_blank" href="@entry.Link">@entry.Name</a> <text> - </text>
         <a href="@Url.Action("selectduration", new { 
-            id = entry.DirectoryEntryId,
+            directoryEntryId = entry.DirectoryEntryId,
             rsvId = ViewBag.ReservationGuid,
             sponsorshipType = ViewBag.SponsorshipType })">Select</a>
     </div>

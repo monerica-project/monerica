@@ -10,8 +10,8 @@
 
 <hr />
 
-<form method="post">
-  
+<form method="post" action="~/subcategory/edit">
+    <input type="hidden" name="SubCategoryId" value="@Model.SubCategoryId" />
     <div class="form-group">
         <label>Parent Category</label>
         <select name="CategoryId" required>

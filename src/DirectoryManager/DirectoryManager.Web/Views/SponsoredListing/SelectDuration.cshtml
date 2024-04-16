@@ -19,7 +19,8 @@
 
 <p><i>@Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.PaymentCurrencyMessage))</i></p>
 
-<form method="post">
+<form method="post" action="~/sponsoredlisting/selectduration">
+    <input name="directoryEntryId" type="hidden" value="@ViewBag.DirectoryEntryId" />
     <input name="rsvId" type="hidden" value="@ViewBag.ReservationGuid" />
     <div class="form-group">
         <label>Options for @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(this.ViewBag.SponsorshipType):</label>

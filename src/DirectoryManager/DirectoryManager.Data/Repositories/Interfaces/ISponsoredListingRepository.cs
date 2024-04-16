@@ -9,7 +9,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<SponsoredListing?> GetByInvoiceIdAsync(int sponsoredListingInvoiceId);
         Task<IEnumerable<SponsoredListing>> GetAllAsync();
         Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync(SponsorshipType sponsorshipType);
-        Task<int> GetActiveListingsCountAsync(SponsorshipType sponsorshipType);
+        Task<int> GetActiveListingsCountAsync(SponsorshipType sponsorshipType, int? subCategoryId);
         Task<DateTime?> GetNextExpirationDate();
         Task<int> GetTotalCountAsync();
         Task<List<SponsoredListing>> GetPaginatedListingsAsync(int page, int pageSize);

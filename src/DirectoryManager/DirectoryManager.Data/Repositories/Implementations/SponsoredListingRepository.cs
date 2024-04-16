@@ -40,13 +40,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                      .ToListAsync();
         }
 
-        public async Task<int> GetActiveListingsCountAsync(SponsorshipType sponsorshipType)
+        public async Task<int> GetActiveListingsCountAsync(SponsorshipType sponsorshipType, int? subCategoryId)
         {
             var currentDate = DateTime.UtcNow;
 
             var totalActive = await this.context.SponsoredListings
                                      .Include(x => x.DirectoryEntry) // Include DirectoryEntry navigation property
                                      .Where(x => x.SponsorshipType == sponsorshipType &&
+                                                 x.SubCategoryId == subCategoryId &&
                                                  x.CampaignStartDate <= currentDate &&
                                                  x.CampaignEndDate >= currentDate) // Filter active listings
                                      .OrderByDescending(x => x.CampaignEndDate) // Sort primarily by end date

@@ -138,6 +138,7 @@
     <hr />
     @{
         var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.MainSponsor);
+        var subCategorySponsors = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.SubCategorySponsor);
     }
 
     @foreach (var category in activeCategories)
@@ -166,27 +167,41 @@
             {
                 <i>(Note: @subCategory.Note)</i>
             }
-
+ 
             // TODO: if there is an advertiser, display it, remove it from the list of all of them below
             // otherwise, display a link to advertise for this specific sub category
 
             // , subCategory.SubCategoryId)
 
-                var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
+            var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
 
-                var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
-                                            activeEntries.ToList(),
-                                            DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
-                                            link2Name,
-                                            link3Name);
+            var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+                                        activeEntries.ToList(),
+                                        DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+                                        link2Name,
+                                        link3Name);
 
-                var subCategorySponsorModel = new DirectoryManager.Web.Models.SubCategorySponsorModel()
-                {
-                            SubCategoryId = subCategory.SubCategoryId,
-                        TotalActiveSubCategoryListings = activeEntries.Count()
-                };
+            var subCategorySponsor = subCategorySponsors.FirstOrDefault(x => x.SubCategoryId == subCategory.SubCategoryId);
 
-                @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", subCategorySponsorModel);
+            var subCategorySponsorModel = new DirectoryManager.Web.Models.SubCategorySponsorModel()
+            {
+                        SubCategoryId = subCategory.SubCategoryId,
+                        TotalActiveSubCategoryListings = activeEntries.Count(),
+                        DirectoryEntry = (subCategorySponsor != null && subCategorySponsor.DirectoryEntry != null) ? new DirectoryManager.Web.Models.DirectoryEntryViewModel()
+                        {
+                            DirectoryEntry = subCategorySponsor.DirectoryEntry,
+                            IsSponsored = true,
+                            Link2Name = link2Name,
+                            Link3Name = link3Name
+                        } : null
+            };
+
+            @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", subCategorySponsorModel)
+
+            if (subCategorySponsor != null)
+            {
+                viewModelList.RemoveAll(x => x.DirectoryEntry.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
+            }
 
             <ul>
                 @foreach (var viewModel in viewModelList)

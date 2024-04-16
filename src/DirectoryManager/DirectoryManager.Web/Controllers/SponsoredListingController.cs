@@ -80,7 +80,7 @@ namespace DirectoryManager.Web.Controllers
                 }
                 else
                 {
-                    var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(sponsorshipType);
+                    var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(sponsorshipType, null);
                     var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(reservationGroup);
 
                     if (CanPurchaseListing(totalActiveListings, totalActiveReservations, SponsorshipType.MainSponsor))
@@ -118,7 +118,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (rsvId == null)
             {
-                var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(sponsorshipType);
+                var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(sponsorshipType, subCategoryId);
                 var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(reservationGroup);
 
                 if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, sponsorshipType))
@@ -170,12 +170,28 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = "Invalid Sponsorship Type." });
             }
 
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
+
+            if (directoryEntry == null)
+            {
+                return this.BadRequest(new { Error = "Invalid selection." });
+            }
+
+            int? subCategoryId = null;
+
+            if (sponsorshipType == SponsorshipType.SubCategorySponsor &&
+                (directoryEntry != null && directoryEntry.SubCategoryId != null))
+            {
+                subCategoryId = directoryEntry.SubCategoryId.Value;
+            }
+
             var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(sponsorshipType);
-            var reservationGroup = ReservationGroupHelper.CreateReservationGroup(sponsorshipType, 0);
+            var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(sponsorshipType, subCategoryId);
+            var reservationGroup = ReservationGroupHelper.CreateReservationGroup(sponsorshipType, subCategoryId);
 
             if (currentListings != null)
             {
-                if (!CanAdvertise(directoryEntryId, sponsorshipType, currentListings))
+                if (!CanAdvertise(sponsorshipType, totalActiveListings))
                 {
                     // max listings
                     return this.BadRequest(new { Error = StringConstants.MaximumNumberOfSponsorsReached });
@@ -185,7 +201,6 @@ namespace DirectoryManager.Web.Controllers
             if (rsvId == null)
             {
                 var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId);
-                var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(sponsorshipType);
                 var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(reservationGroup);
 
                 if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, sponsorshipType) && !isActiveSponsor)
@@ -203,6 +218,7 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
+            this.ViewBag.DirectoryEntryId = directoryEntryId;
             this.ViewBag.ReservationGuid = rsvId;
             this.ViewBag.SponsorshipType = sponsorshipType;
 
@@ -219,7 +235,7 @@ namespace DirectoryManager.Web.Controllers
             Guid? rsvId = null)
         {
             var selectedOffer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
-            var reservationGroup = ReservationGroupHelper.CreateReservationGroup(selectedOffer.SponsorshipType, 0);
+            var reservationGroup = ReservationGroupHelper.CreateReservationGroup(selectedOffer.SponsorshipType, 0); // todo: use correct sub category
 
             if (selectedOffer == null)
             {
@@ -229,7 +245,15 @@ namespace DirectoryManager.Web.Controllers
             if (rsvId == null)
             {
                 var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId);
-                var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(selectedOffer.SponsorshipType);
+                int? subCategoryId = null;
+                var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
+
+                if (selectedOffer.SponsorshipType == SponsorshipType.SubCategorySponsor)
+                {
+                    subCategoryId = directoryEntry?.SubCategoryId;
+                }
+
+                var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(selectedOffer.SponsorshipType, subCategoryId);
                 var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(reservationGroup);
 
                 if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, selectedOffer.SponsorshipType) && !isActiveSponsor)
@@ -269,7 +293,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (rsvId == null)
             {
-                var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(sponsorshipType);
+                var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(sponsorshipType, subCategoryId);
                 var reservationGroup = ReservationGroupHelper.CreateReservationGroup(sponsorshipType, subCategoryId);
                 var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(reservationGroup);
 
@@ -316,11 +340,19 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = "Invalid offer." });
             }
 
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
+
+            if (directoryEntry == null)
+            {
+                return this.BadRequest(new { Error = "Invalid selection." });
+            }
+
+            var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(offer.SponsorshipType, directoryEntry.SubCategoryId);
+
             if (rsvId == null)
             {
                 var reservationGroup = ReservationGroupHelper.CreateReservationGroup(SponsorshipType.MainSponsor, 0); // todo: determine correct group
                 var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId);
-                var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(offer.SponsorshipType);
                 var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(reservationGroup);
 
                 if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, offer.SponsorshipType) && !isActiveSponsor)
@@ -340,13 +372,6 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.ReservationGuid = rsvId;
 
-            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
-
-            if (directoryEntry == null)
-            {
-                return this.BadRequest(new { Error = "Invalid selection." });
-            }
-
             var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
             var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(offer.SponsorshipType);
@@ -354,7 +379,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (currentListings != null && currentListings.Any())
             {
-                viewModel.CanCreateSponsoredListing = CanAdvertise(directoryEntryId, offer.SponsorshipType, currentListings);
+                viewModel.CanCreateSponsoredListing = CanAdvertise(offer.SponsorshipType, totalActiveListings);
 
                 // Get the next listing expiration date (i.e., the soonest CampaignEndDate)
                 viewModel.NextListingExpiration = currentListings.Min(x => x.CampaignEndDate);
@@ -372,17 +397,30 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> ConfirmedNowPaymentsAsync(
             int directoryEntryId,
             int selectedOfferId,
-            SponsorshipType sponsorshipType,
             Guid? rsvId = null)
         {
+            var sponsoredListingOffer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
+
+            if (sponsoredListingOffer == null)
+            {
+                return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
+            }
+
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
+
+            if (directoryEntry == null || directoryEntry.SubCategoryId == null)
+            {
+                return this.BadRequest(new { Error = StringConstants.DirectoryEntryNotFound });
+            }
+
             if (rsvId == null)
             {
                 var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId);
-                var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(sponsorshipType);
-                var reservationGroup = ReservationGroupHelper.CreateReservationGroup(sponsorshipType, 0); // todo: determine correct group
+                var totalActiveListings = await this.sponsoredListingRepository.GetActiveListingsCountAsync(sponsoredListingOffer.SponsorshipType, directoryEntry.SubCategoryId);
+                var reservationGroup = ReservationGroupHelper.CreateReservationGroup(sponsoredListingOffer.SponsorshipType, directoryEntry.SubCategoryId.Value);
                 var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(reservationGroup);
 
-                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, sponsorshipType) && !isActiveSponsor)
+                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, sponsoredListingOffer.SponsorshipType) && !isActiveSponsor)
                 {
                     return this.BadRequest(new { Error = StringConstants.CheckoutInProcess });
                 }
@@ -398,21 +436,6 @@ namespace DirectoryManager.Web.Controllers
             }
 
             this.ViewBag.ReservationGuid = rsvId;
-
-            var sponsoredListingOffer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
-
-            if (sponsoredListingOffer == null)
-            {
-                return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
-            }
-
-            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
-
-            if (directoryEntry == null)
-            {
-                return this.BadRequest(new { Error = StringConstants.DirectoryEntryNotFound });
-            }
-
             var existingListing = await this.sponsoredListingRepository.GetActiveListing(directoryEntryId);
             var startDate = DateTime.UtcNow;
 
@@ -421,7 +444,7 @@ namespace DirectoryManager.Web.Controllers
                 startDate = existingListing.CampaignEndDate;
             }
 
-            var invoice = await this.GetInvoice(directoryEntryId, sponsoredListingOffer, startDate);
+            var invoice = await this.CreateInvoice(directoryEntry, sponsoredListingOffer, startDate);
             var invoiceRequest = this.GetInvoiceRequest(sponsoredListingOffer, invoice);
 
             this.paymentService.SetDefaultUrls(invoiceRequest);
@@ -460,7 +483,7 @@ namespace DirectoryManager.Web.Controllers
             using var reader = new StreamReader(this.Request.Body, Encoding.UTF8);
             var callbackPayload = await reader.ReadToEndAsync();
 
-            this.logger.LogError(callbackPayload);
+            this.logger.LogInformation(callbackPayload);
 
             IpnPaymentMessage? ipnMessage = null;
             try
@@ -593,45 +616,11 @@ namespace DirectoryManager.Web.Controllers
             {
                 Id = listing.SponsoredListingId,
                 CampaignStartDate = listing.CampaignStartDate,
-                CampaignEndDate = listing.CampaignEndDate
+                CampaignEndDate = listing.CampaignEndDate,
+                SponsorshipType = listing.SponsorshipType
             };
 
             return this.View(model);
-        }
-
-        [AllowAnonymous]
-        [HttpGet("offers")]
-        public async Task<IActionResult> Offers(SponsorshipType sponsorshipType)
-        {
-            var offers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(sponsorshipType);
-            var enabledOffers = offers.Where(o => o.IsEnabled);
-            return this.View(enabledOffers);
-        }
-
-        [AllowAnonymous]
-        [HttpGet("current")]
-        public IActionResult Current()
-        {
-            return this.View();
-        }
-
-        [HttpGet("activelistings")]
-        public async Task<IActionResult> ActiveListings()
-        {
-            var listings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.MainSponsor);
-            var model = new ActiveSponsoredListingViewModel
-            {
-                Items = listings.Select(l => new ActiveSponsoredListingModel
-                {
-                    ListingName = l.DirectoryEntry?.Name ?? StringConstants.DefaultName,
-                    SponsoredListingId = l.SponsoredListingId,
-                    CampaignEndDate = l.CampaignEndDate,
-                    ListingUrl = l.DirectoryEntry?.Link ?? string.Empty,
-                    DirectoryListingId = l.DirectoryEntryId
-                }).ToList()
-            };
-
-            return this.View("activelistings", model);
         }
 
         [HttpPost("edit/{sponsoredListingId}")]
@@ -658,6 +647,42 @@ namespace DirectoryManager.Web.Controllers
             this.cache.Remove(StringConstants.SponsoredListingsCacheKey);
 
             return this.RedirectToAction("List");
+        }
+
+        [AllowAnonymous]
+        [HttpGet("offers")]
+        public async Task<IActionResult> Offers(SponsorshipType sponsorshipType)
+        {
+            var offers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(sponsorshipType);
+            var enabledOffers = offers.Where(o => o.IsEnabled);
+            return this.View(enabledOffers);
+        }
+
+        [AllowAnonymous]
+        [HttpGet("current")]
+        public IActionResult Current()
+        {
+            return this.View();
+        }
+
+        [HttpGet("activelistings")]
+        public async Task<IActionResult> ActiveListings()
+        {
+            // TODO: have a list of both types
+            var listings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.MainSponsor);
+            var model = new ActiveSponsoredListingViewModel
+            {
+                Items = listings.Select(l => new ActiveSponsoredListingModel
+                {
+                    ListingName = l.DirectoryEntry?.Name ?? StringConstants.DefaultName,
+                    SponsoredListingId = l.SponsoredListingId,
+                    CampaignEndDate = l.CampaignEndDate,
+                    ListingUrl = l.DirectoryEntry?.Link ?? string.Empty,
+                    DirectoryListingId = l.DirectoryEntryId
+                }).ToList()
+            };
+
+            return this.View("activelistings", model);
         }
 
         [HttpGet("list/{page?}")]
@@ -730,24 +755,17 @@ namespace DirectoryManager.Web.Controllers
         }
 
         private static bool CanAdvertise(
-            int directoryEntryId,
             SponsorshipType sponsorshipType,
-            IEnumerable<SponsoredListing> currentListings)
+            int totalForTypeInGroup)
         {
-            // TODO: param and condition by SponsorshipType
-            if (currentListings.FirstOrDefault(x => x.DirectoryEntryId == directoryEntryId) != null)
-            {
-                return true;
-            }
-
             if (sponsorshipType == SponsorshipType.MainSponsor)
             {
-                return currentListings.Count() < IntegerConstants.MaxMainSponsoredListings;
+                return totalForTypeInGroup < IntegerConstants.MaxMainSponsoredListings;
             }
 
             if (sponsorshipType == SponsorshipType.SubCategorySponsor)
             {
-                return currentListings.Count() < IntegerConstants.MaxSubCategorySponsoredListings;
+                return totalForTypeInGroup < IntegerConstants.MaxSubCategorySponsoredListings;
             }
 
             throw new InvalidOperationException("SponsorshipType:" + sponsorshipType.ToString());
@@ -786,19 +804,24 @@ namespace DirectoryManager.Web.Controllers
             };
         }
 
-        private async Task<SponsoredListingInvoice> GetInvoice(int directoryEntryId, SponsoredListingOffer sponsoredListingOffer, DateTime startDate)
+        private async Task<SponsoredListingInvoice> CreateInvoice(
+            DirectoryEntry directoryEntry,
+            SponsoredListingOffer sponsoredListingOffer,
+            DateTime startDate)
         {
             return await this.sponsoredListingInvoiceRepository.CreateAsync(
                 new SponsoredListingInvoice
                 {
-                    DirectoryEntryId = directoryEntryId,
+                    DirectoryEntryId = directoryEntry.DirectoryEntryId,
                     Currency = Currency.USD,
                     InvoiceId = Guid.NewGuid(),
                     PaymentStatus = PaymentStatus.InvoiceCreated,
                     CampaignStartDate = startDate,
                     CampaignEndDate = startDate.AddDays(sponsoredListingOffer.Days),
                     Amount = sponsoredListingOffer.Price,
-                    InvoiceDescription = sponsoredListingOffer.Description
+                    InvoiceDescription = sponsoredListingOffer.Description,
+                    SponsorshipType = sponsoredListingOffer.SponsorshipType,
+                    SubCategoryId = directoryEntry.SubCategoryId
                 });
         }
 
