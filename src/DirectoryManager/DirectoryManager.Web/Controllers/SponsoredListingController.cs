@@ -909,6 +909,8 @@ namespace DirectoryManager.Web.Controllers
                                 CampaignStartDate = invoice.CampaignStartDate,
                                 CampaignEndDate = invoice.CampaignEndDate,
                                 SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId,
+                                SponsorshipType = invoice.SponsorshipType,
+                                SubCategoryId = invoice.SubCategoryId,
                             });
 
                         invoice.SponsoredListingId = sponsoredListing.SponsoredListingId;
