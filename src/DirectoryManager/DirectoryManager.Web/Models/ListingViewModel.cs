@@ -1,9 +1,12 @@
-﻿namespace DirectoryManager.Web.Models
+﻿using DirectoryManager.Data.Enums;
+
+namespace DirectoryManager.Web.Models
 {
     public class ListingViewModel
     {
         public int Id { get; set; }
         required public string DirectoryEntryName { get; set; }
+        public SponsorshipType SponsorshipType { get; set; }
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
 

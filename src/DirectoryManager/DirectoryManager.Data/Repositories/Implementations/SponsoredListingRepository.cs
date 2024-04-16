@@ -110,12 +110,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
-        public Task<SponsoredListing?> GetActiveListing(int directoryEntryId)
+        public Task<SponsoredListing?> GetActiveListing(int directoryEntryId, SponsorshipType sponsorshipType)
         {
             var now = DateTime.UtcNow;
 
             return this.context.SponsoredListings
                 .FirstOrDefaultAsync(x => x.DirectoryEntryId == directoryEntryId &&
+                                          x.SponsorshipType == sponsorshipType &&
                                           x.CampaignStartDate <= now &&
                                           x.CampaignEndDate >= now);
         }

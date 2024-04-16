@@ -13,6 +13,7 @@
 </p>
 <form method="get">
     <input name="rsvId" type="hidden" value="@ViewBag.ReservationGuid" />
+    <input name="sponsorshipType" type="hidden" value="@ViewBag.SponsorshipType" />
     <label for="combinedFilter">Select: </label>
     <select id="combinedFilter" name="subCategoryId">
         <option value="">--Category > Sub Category--</option>
@@ -27,13 +28,21 @@
 
 <br />
 
-@foreach (var entry in Model)
+
+@if (ViewBag.CanAdvertise != null && ViewBag.CanAdvertise == false)
 {
-    <div>
-        <a target="_blank" href="@entry.Link">@entry.Name</a> <text> - </text>
-        <a href="@Url.Action("selectduration", new { 
-            directoryEntryId = entry.DirectoryEntryId,
-            rsvId = ViewBag.ReservationGuid,
-            sponsorshipType = ViewBag.SponsorshipType })">Select</a>
-    </div>
+    <i>There is no available ad space for this sub catetgory. Select another sub category.</i>
+}
+else
+{
+    @foreach (var entry in Model)
+    {
+        <div>
+            <a target="_blank" href="@entry.Link">@entry.Name</a> <text> - </text>
+            <a href="@Url.Action("selectduration", new { 
+                directoryEntryId = entry.DirectoryEntryId,
+                rsvId = ViewBag.ReservationGuid,
+                sponsorshipType = ViewBag.SponsorshipType })">Select</a>
+        </div>
+    }
 }

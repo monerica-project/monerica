@@ -13,7 +13,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<DateTime?> GetNextExpirationDate();
         Task<int> GetTotalCountAsync();
         Task<List<SponsoredListing>> GetPaginatedListingsAsync(int page, int pageSize);
-        Task<SponsoredListing?> GetActiveListing(int directoryEntryId);
+        Task<SponsoredListing?> GetActiveListing(int directoryEntryId, SponsorshipType sponsorshipType);
         Task<SponsoredListing> CreateAsync(SponsoredListing sponsoredListing);
         Task<bool> UpdateAsync(SponsoredListing sponsoredListing);
         Task DeleteAsync(int sponsoredListingId);

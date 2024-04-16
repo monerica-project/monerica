@@ -11,7 +11,7 @@
 
 <h1>@ViewData["Title"]</h1>
 
-<a href="~/sponsoredlisting/selectduration?directoryEntryId=@Model.SelectedDirectoryEntry.DirectoryEntry.DirectoryEntryId">&lt; back</a>
+<a href="~/sponsoredlisting/selectduration?directoryEntryId=@Model.SelectedDirectoryEntry.DirectoryEntry.DirectoryEntryId&sponsorshipType=@Model.Offer.SponsorshipType&rsvId=@ViewBag.ReservationGuid">&lt; back</a>
 
 <hr />
 
@@ -33,6 +33,7 @@
 
         <h2>Your Order</h2>
         <p>
+            <b>Sponsorship Type:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.Offer.SponsorshipType) <br />
             <b>Description:</b> @Model.Offer.Description<br />
             <b>Price:</b> @Model.Offer.USDPrice.ToString("C", new CultureInfo(StringConstants.DefaultCulure)) USD<br />
             <b>Days:</b> @Model.Offer.Days
