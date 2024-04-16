@@ -521,7 +521,7 @@ namespace DirectoryManager.Web.Controllers
             using var reader = new StreamReader(this.Request.Body, Encoding.UTF8);
             var callbackPayload = await reader.ReadToEndAsync();
 
-            this.logger.LogInformation(callbackPayload);
+            this.logger.LogError(callbackPayload);
 
             IpnPaymentMessage? ipnMessage = null;
             try
