@@ -152,7 +152,9 @@ namespace DirectoryManager.Web.Controllers
                 Description = subCategory.Description,
                 Note = subCategory.Note,
                 SubCategoryId = subCategory.SubCategoryId,
-                DirectoryEntries = entries
+                DirectoryEntries = entries,
+                CategoryRelativePath = string.Format("/{0}", category.CategoryKey),
+                CategoryName = category.Name
             };
 
             return this.View("SubCategoryListings", model);

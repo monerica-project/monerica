@@ -46,27 +46,34 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("{categorykey}")]
-        public async Task<IActionResult> CategorySubCategories(string categorykey)
+        [HttpGet("{categoryKey}")]
+        public async Task<IActionResult> CategorySubCategories(string categoryKey)
         {
-            var category = await this.categoryRepository.GetByKeyAsync(categorykey);
+            var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
             if (category == null)
             {
                 return this.NotFound();
             }
 
-            this.ViewBag.Category = category;
-
             var subCategories = await this.subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId);
-            var subCategoryModels = subCategories.Select(sc => new SubCategoryViewModel
+            var subCategoryItems = subCategories.Select(sc => new SubCategoryViewModel
             {
-                CategoryKey = categorykey,
+                CategoryKey = categoryKey,
                 Name = sc.Name,
                 SubCategoryKey = sc.SubCategoryKey,
                 Description = sc.Description
             }).ToList();
 
-            return this.View("CategorySubCategories", subCategoryModels);
+            var model = new CategoryViewModel()
+            {
+                PageHeader = category.Name,
+                PageTitle = category.Name,
+                Description = category.Description,
+                Note = category.Note,
+                SubCategoryItems = subCategoryItems,
+            };
+
+            return this.View("CategorySubCategories", model);
         }
 
         [HttpPost]

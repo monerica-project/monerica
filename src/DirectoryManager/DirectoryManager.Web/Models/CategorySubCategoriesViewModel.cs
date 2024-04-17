@@ -4,11 +4,13 @@ namespace DirectoryManager.Web.Models
 {
     public class CategorySubCategoriesViewModel
     {
-        public string PageTitle { get; set; }
-        public string PageHeader { get; set; }
+        required public string PageTitle { get; set; }
+        required public string PageHeader { get; set; }
         public string? Description { get; set; }
         public string? Note { get; set; }
         public int SubCategoryId { get; set; }
-        public IEnumerable<DirectoryEntry> DirectoryEntries { get; set; }
+        required public string CategoryRelativePath { get; set; }
+        required public string CategoryName { get; set; }
+        required public IEnumerable<DirectoryEntry> DirectoryEntries { get; set; }
     }
 }
