@@ -34,10 +34,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync();
         }
 
-        public async Task<IEnumerable<DirectoryEntriesAudit>> GetAuditsForEntryAsync(int entryId)
+        public async Task<IEnumerable<DirectoryEntriesAudit>> GetAuditsForEntryAsync(int directoryEntryId)
         {
             return await this.context.DirectoryEntriesAudit
-                                 .Where(dea => dea.DirectoryEntryId == entryId)
+                                 .Where(dea => dea.DirectoryEntryId == directoryEntryId)
                                  .OrderByDescending(dea => dea.CreateDate)
                                  .ToListAsync();
         }

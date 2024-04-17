@@ -15,7 +15,7 @@
         <option value="">--Select a Category > SubCategory--</option>
         @foreach (var subCategory in (IEnumerable<SubCategory>)ViewBag.SubCategories)
         {
-            <option value="@subCategory.Id">@subCategory.Category.Name > @subCategory.Name</option>
+            <option value="@subCategory.SubCategoryId">@subCategory.Category.Name > @subCategory.Name</option>
         }
     </select>
 
@@ -26,6 +26,6 @@
 {
     <div>
         <a href="@entry.Link">@entry.Name</a> - 
-        <a href="@Url.Action("Edit", new { id = entry.Id })">Edit</a>
+        <a href="@Url.Action("Edit", new { id = entry.DirectoryEntryId })">Edit</a>
     </div>
 }

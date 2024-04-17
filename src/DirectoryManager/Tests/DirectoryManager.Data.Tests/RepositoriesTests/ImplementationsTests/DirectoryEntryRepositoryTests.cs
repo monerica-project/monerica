@@ -23,15 +23,15 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
 
             var testDirectoryEntriesList = new List<DirectoryEntry>
             {
-                new DirectoryEntry { Id = 1, Name = "Test1", Link = "Link1" },
-                new DirectoryEntry { Id = 2, Name = "Test2", Link = "Link2" }
+                new DirectoryEntry { DirectoryEntryId = 1, Name = "Test1", Link = "Link1" },
+                new DirectoryEntry { DirectoryEntryId = 2, Name = "Test2", Link = "Link2" }
             };
 
             this.testDirectoryEntries = testDirectoryEntriesList.ToAsyncEnumerable();
 
             var mockSet = new Mock<DbSet<DirectoryEntry>>();
             mockSet.Setup(m => m.FindAsync(It.IsAny<object[]>()))
-                   .Returns<object[]>(ids => new ValueTask<DirectoryEntry?>(testDirectoryEntriesList.FirstOrDefault(e => e.Id == (int)ids[0])));
+                   .Returns<object[]>(ids => new ValueTask<DirectoryEntry?>(testDirectoryEntriesList.FirstOrDefault(e => e.DirectoryEntryId == (int)ids[0])));
 
             mockSet.As<IAsyncEnumerable<DirectoryEntry>>()
                    .Setup(m => m.GetAsyncEnumerator(CancellationToken.None))

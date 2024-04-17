@@ -17,7 +17,7 @@ namespace DirectoryManager.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.1")
+                .HasAnnotation("ProductVersion", "8.0.4")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -96,11 +96,11 @@ namespace DirectoryManager.Data.Migrations
 
             modelBuilder.Entity("DirectoryManager.Data.Models.Category", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("CategoryId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("CategoryId"));
 
                     b.Property<string>("CategoryKey")
                         .IsRequired()
@@ -135,7 +135,7 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(36)
                         .HasColumnType("nvarchar(36)");
 
-                    b.HasKey("Id");
+                    b.HasKey("CategoryId");
 
                     b.HasIndex("CategoryKey")
                         .IsUnique();
@@ -170,11 +170,11 @@ namespace DirectoryManager.Data.Migrations
 
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntriesAudit", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("DirectoryEntriesAuditId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DirectoryEntriesAuditId"));
 
                     b.Property<string>("Contact")
                         .HasMaxLength(75)
@@ -238,18 +238,18 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(36)
                         .HasColumnType("nvarchar(36)");
 
-                    b.HasKey("Id");
+                    b.HasKey("DirectoryEntriesAuditId");
 
                     b.ToTable("DirectoryEntriesAudit");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntry", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("DirectoryEntryId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DirectoryEntryId"));
 
                     b.Property<string>("Contact")
                         .HasMaxLength(75)
@@ -310,7 +310,7 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(36)
                         .HasColumnType("nvarchar(36)");
 
-                    b.HasKey("Id");
+                    b.HasKey("DirectoryEntryId");
 
                     b.HasIndex("Link")
                         .IsUnique();
@@ -501,6 +501,12 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int>("SponsoredListingInvoiceId")
                         .HasColumnType("int");
 
+                    b.Property<int>("SponsorshipType")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SubCategoryId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime2");
 
@@ -584,6 +590,12 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int?>("SponsoredListingId")
                         .HasColumnType("int");
 
+                    b.Property<int>("SponsorshipType")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("SubCategoryId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime2");
 
@@ -599,11 +611,11 @@ namespace DirectoryManager.Data.Migrations
 
             modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOffer", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("SponsoredListingOfferId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SponsoredListingOfferId"));
 
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime2");
@@ -630,6 +642,9 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int>("PriceCurrency")
                         .HasColumnType("int");
 
+                    b.Property<int>("SponsorshipType")
+                        .HasColumnType("int");
+
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime2");
 
@@ -637,7 +652,7 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(36)
                         .HasColumnType("nvarchar(36)");
 
-                    b.HasKey("Id");
+                    b.HasKey("SponsoredListingOfferId");
 
                     b.ToTable("SponsoredListingOffers");
                 });
@@ -655,6 +670,11 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<DateTime>("ExpirationDateTime")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("ReservationGroup")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
 
                     b.Property<Guid>("ReservationGuid")
                         .HasColumnType("uniqueidentifier");
@@ -674,11 +694,11 @@ namespace DirectoryManager.Data.Migrations
 
             modelBuilder.Entity("DirectoryManager.Data.Models.SubCategory", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("SubCategoryId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SubCategoryId"));
 
                     b.Property<int>("CategoryId")
                         .HasColumnType("int");
@@ -716,7 +736,7 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(36)
                         .HasColumnType("nvarchar(36)");
 
-                    b.HasKey("Id");
+                    b.HasKey("SubCategoryId");
 
                     b.HasIndex("CategoryId");
 
@@ -728,11 +748,11 @@ namespace DirectoryManager.Data.Migrations
 
             modelBuilder.Entity("DirectoryManager.Data.Models.Submission", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<int>("SubmissionId")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("int");
 
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SubmissionId"));
 
                     b.Property<string>("Contact")
                         .HasMaxLength(75)
@@ -802,7 +822,7 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime2");
 
-                    b.HasKey("Id");
+                    b.HasKey("SubmissionId");
 
                     b.HasIndex("DirectoryEntryId");
 

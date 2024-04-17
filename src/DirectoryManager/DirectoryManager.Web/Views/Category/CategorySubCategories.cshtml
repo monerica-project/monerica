@@ -1,0 +1,31 @@
+﻿@model DirectoryManager.Web.Models.CategoryViewModel
+
+@{
+    ViewData["Title"] = Model.PageTitle;
+}
+
+<h1>@Model.PageHeader</h1>
+
+<hr />
+
+@if (!string.IsNullOrWhiteSpace(Model.Description))
+{
+    <p><span>@Model.Description</span></p>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.Note))
+{
+    <p><i>Note: @Model.Note</i></p>
+}
+ 
+<ul>
+    @foreach (var item in Model.SubCategoryItems)
+    {
+    <li>
+        <a href="@item.SubCategoryRelativePath">@item.Name</a> @if (!string.IsNullOrWhiteSpace(item.Description))
+            {
+                <text>- </text> @item.Description
+            }
+    </li>
+}
+</ul>

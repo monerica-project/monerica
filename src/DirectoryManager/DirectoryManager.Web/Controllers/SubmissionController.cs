@@ -95,7 +95,7 @@ namespace DirectoryManager.Web.Controllers
                     var existingDirectoryEntryId = await this.GetExistingListingFromLinkAsync(model.Link);
                     submissionModel.DirectoryEntryId = existingDirectoryEntryId;
                     var submission = await this.submissionRepository.CreateAsync(submissionModel);
-                    submissionId = submission.Id;
+                    submissionId = submission.SubmissionId;
                 }
                 else
                 {
@@ -167,7 +167,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (subCategoryId.HasValue)
             {
-                entries = entries.Where(e => e.SubCategory?.Id == subCategoryId.Value).ToList();
+                entries = entries.Where(e => e.SubCategory?.SubCategoryId == subCategoryId.Value).ToList();
             }
 
             entries = entries.OrderBy(e => e.Name)
@@ -185,6 +185,22 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> AuditAync(int entryId)
         {
             var audits = await this.auditRepository.GetAuditsForEntryAsync(entryId);
+            var link2Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
+            var link3Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(entryId);
+            if (directoryEntry == null)
+            {
+                return this.NotFound();
+            }
+
+            this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel()
+            {
+                DirectoryEntry = directoryEntry,
+                Link2Name = link2Name,
+                Link3Name = link3Name
+            };
+
             return this.View("Audit", audits);
         }
 
@@ -333,7 +349,7 @@ namespace DirectoryManager.Web.Controllers
                 Note = directoryEntry.Note,
                 Processor = directoryEntry.Processor,
                 SubCategoryId = directoryEntry.SubCategoryId,
-                DirectoryEntryId = directoryEntry.Id,
+                DirectoryEntryId = directoryEntry.DirectoryEntryId,
                 DirectoryStatus = directoryEntry.DirectoryStatus
             };
         }
@@ -365,7 +381,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (existingLink != null)
             {
-                return existingLink.Id;
+                return existingLink.DirectoryEntryId;
             }
 
             var linkVariation = link.EndsWith("/") ? link.Remove(link.Length - 1) : string.Format("{0}/", link);
@@ -373,7 +389,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (existingLinkVariation1 != null)
             {
-                return existingLinkVariation1.Id;
+                return existingLinkVariation1.DirectoryEntryId;
             }
 
             return null;
@@ -386,12 +402,12 @@ namespace DirectoryManager.Web.Controllers
               .ThenBy(sc => sc.Name)
               .Select(sc => new
               {
-                  sc.Id,
+                  sc.SubCategoryId,
                   DisplayName = $"{sc.Category.Name} > {sc.Name}"
               })
               .ToList();
 
-            subCategories.Insert(0, new { Id = 0, DisplayName = Constants.StringConstants.SelectACategory });
+            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
 
             this.ViewBag.SubCategories = subCategories;
         }
@@ -415,7 +431,7 @@ namespace DirectoryManager.Web.Controllers
                         Name = submission.Name,
                         Contact = submission.Contact,
                         Description = submission.Description,
-                        Id = (submission.DirectoryEntryId != null) ? submission.DirectoryEntryId.Value : 0,
+                        DirectoryEntryId = (submission.DirectoryEntryId != null) ? submission.DirectoryEntryId.Value : 0,
                         DirectoryStatus = (submission.DirectoryStatus == null || submission.DirectoryStatus == DirectoryStatus.Unknown)
                             ? DirectoryStatus.Admitted :
                             submission.DirectoryStatus.Value,
@@ -427,7 +443,7 @@ namespace DirectoryManager.Web.Controllers
                         SubCategoryId = submission.SubCategoryId,
                     }
                 },
-                SubmissionId = submission.Id,
+                SubmissionId = submission.SubmissionId,
                 NoteToAdmin = submission.NoteToAdmin,
             };
         }
@@ -513,12 +529,12 @@ namespace DirectoryManager.Web.Controllers
                 .ThenBy(sc => sc.Name)
                 .Select(sc => new
                 {
-                    sc.Id,
+                    sc.SubCategoryId,
                     DisplayName = $"{sc.Category.Name} > {sc.Name}"
                 })
                 .ToList();
 
-            subCategories.Insert(0, new { Id = 0, DisplayName = Constants.StringConstants.SelectACategory });
+            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
 
             this.ViewBag.SubCategories = subCategories;
         }

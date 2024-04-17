@@ -7,7 +7,7 @@ namespace DirectoryManager.Data.Models
     public class DirectoryEntry : UserStateInfo, IEquatable<DirectoryEntry>
     {
         [Key] // Primary Key
-        public int Id { get; set; }
+        public int DirectoryEntryId { get; set; }
 
         [Required]
         [MaxLength(255)]
@@ -53,7 +53,7 @@ namespace DirectoryManager.Data.Models
                 return false;
             }
 
-            return this.Id == other.Id &&
+            return this.DirectoryEntryId == other.DirectoryEntryId &&
                 this.Name == other.Name &&
                 this.Link == other.Link &&
                 this.Link2 == other.Link2 &&
@@ -68,7 +68,7 @@ namespace DirectoryManager.Data.Models
 
         public override int GetHashCode()
         {
-            return this.Id.GetHashCode();
+            return this.DirectoryEntryId.GetHashCode();
         }
     }
 }

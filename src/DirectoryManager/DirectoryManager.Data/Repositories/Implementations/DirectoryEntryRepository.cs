@@ -19,9 +19,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context;
         }
 
-        public async Task<DirectoryEntry?> GetByIdAsync(int id)
+        public async Task<DirectoryEntry?> GetByIdAsync(int directoryEntryId)
         {
-            return await this.context.DirectoryEntries.FindAsync(id);
+            return await this.context.DirectoryEntries.FindAsync(directoryEntryId);
         }
 
         public async Task<DirectoryEntry?> GetByLinkAsync(string link)
@@ -64,7 +64,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                         UpdateDate = e.UpdateDate,
                                         CreatedByUserId = e.CreatedByUserId,
                                         UpdatedByUserId = e.UpdatedByUserId,
-                                        Id = e.Id,
+                                        DirectoryEntryId = e.DirectoryEntryId,
                                         SubCategoryId = e.SubCategoryId,
 
                                         SubCategory = e.SubCategory == null ? null : new SubCategory
@@ -73,7 +73,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                             Name = e.SubCategory.Name,
                                             Category = e.SubCategory.Category,
                                             CategoryId = e.SubCategory.CategoryId,
-                                            Id = e.SubCategory.Id,
+                                            SubCategoryId = e.SubCategory.SubCategoryId,
                                             SubCategoryKey = e.SubCategory.SubCategoryKey,
                                             Description = e.SubCategory.Description,
                                             Note = e.SubCategory.Note,
@@ -96,7 +96,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task UpdateAsync(DirectoryEntry entry)
         {
-            var existingEntry = await this.context.DirectoryEntries.FirstOrDefaultAsync(x => x.Id == entry.Id);
+            var existingEntry = await this.context.DirectoryEntries.FirstOrDefaultAsync(x => x.DirectoryEntryId == entry.DirectoryEntryId);
 
             if (existingEntry == null)
             {
@@ -121,9 +121,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.WriteToAuditLog(existingEntry);
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(int directoryEntryId)
         {
-            var entryToDelete = await this.context.DirectoryEntries.FindAsync(id);
+            var entryToDelete = await this.context.DirectoryEntries.FindAsync(directoryEntryId);
             if (entryToDelete != null)
             {
                 this.context.DirectoryEntries.Remove(entryToDelete);
@@ -134,7 +134,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<IEnumerable<DirectoryEntry>> GetAllBySubCategoryIdAsync(int subCategoryId)
         {
             return await this.context.DirectoryEntries
-                                 .Where(e => e.SubCategory != null && e.SubCategory.Id == subCategoryId)
+                                 .Where(e => e.SubCategory != null && e.SubCategory.SubCategoryId == subCategoryId)
                                  .OrderBy(e => e.Name)
                                  .ToListAsync();
         }
@@ -284,7 +284,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     Description = existingEntry.Description,
                     CreatedByUserId = existingEntry.CreatedByUserId,
                     DirectoryStatus = existingEntry.DirectoryStatus,
-                    DirectoryEntryId = existingEntry.Id,
+                    DirectoryEntryId = existingEntry.DirectoryEntryId,
                     Link = existingEntry.Link,
                     Name = existingEntry.Name,
                     SubCategoryId = existingEntry.SubCategoryId,

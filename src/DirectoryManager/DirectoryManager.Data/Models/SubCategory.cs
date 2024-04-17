@@ -7,7 +7,7 @@ namespace DirectoryManager.Data.Models
     public class SubCategory : UserStateInfo
     {
         [Key]
-        public int Id { get; set; }
+        public int SubCategoryId { get; set; }
 
         [Required]
         [MaxLength(255)]

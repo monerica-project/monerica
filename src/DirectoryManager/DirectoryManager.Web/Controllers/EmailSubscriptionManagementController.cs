@@ -1,5 +1,4 @@
-﻿using System.Reflection.Metadata.Ecma335;
-using System.Text;
+﻿using System.Text;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -22,7 +21,10 @@ namespace DirectoryManager.Web.Controllers
         public IActionResult Index()
         {
             var allEmails = this.emailSubscriptionRepository.GetAll();
-            var model = new EmailSubscribeEditListModel();
+            var model = new EmailSubscribeEditListModel
+            {
+                TotalSubscribed = this.emailSubscriptionRepository.Total()
+            };
 
             foreach (var sub in allEmails)
             {

@@ -10,7 +10,7 @@
                                     .ThenBy(sc => sc.Name)
                                     .Select(sc => new
                                     {
-                                        Id = sc.Id,
+                                        SubCategoryId = sc.SubCategoryId,
                                         DisplayName = $"{sc.Category.Name} > {sc.Name}"
                                     });
 }
@@ -23,16 +23,17 @@
 @await Html.PartialAsync("_AdminMenu")
 
 <hr />
-<a href="@Url.Action("EntryAudits", "DirectoryEntry", new { entryId = Model.Id })">View History</a>
+<a href="@Url.Action("EntryAudits", "DirectoryEntry", new { entryId = Model.DirectoryEntryId })">View History</a>
 
 <form method="post">
+    <input type="hidden" value="@Model.DirectoryEntryId" name="DirectoryEntryId" />
     <div class="form-group">
         <label asp-for="DirectoryStatus">Status</label>
         <select asp-for="DirectoryStatus" asp-items="Html.GetEnumSelectList<DirectoryStatus>()"></select>
     </div>
     <div class="form-group">
         <label asp-for="SubCategoryId">Sub Category</label>
-        <select asp-for="SubCategoryId" asp-items="@(new SelectList(orderedSubCategories, "Id", "DisplayName"))" required></select>
+        <select asp-for="SubCategoryId" asp-items="@(new SelectList(orderedSubCategories, "SubCategoryId", "DisplayName"))" required></select>
     </div>
     <div class="form-group">
         <label asp-for="Name">Name</label>

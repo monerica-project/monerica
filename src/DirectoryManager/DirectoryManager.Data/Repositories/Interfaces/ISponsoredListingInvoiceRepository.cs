@@ -6,7 +6,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 {
     public interface ISponsoredListingInvoiceRepository
     {
-        Task<SponsoredListingInvoice?> GetByIdAsync(int id);
+        Task<SponsoredListingInvoice?> GetByIdAsync(int sponsoredListingInvoiceId);
         Task<SponsoredListingInvoice?> GetByInvoiceIdAsync(Guid invoiceId);
         Task<SponsoredListingInvoice> GetByInvoiceProcessorIdAsync(string processorInvoiceId);
         Task<IEnumerable<SponsoredListingInvoice>> GetAllAsync();
@@ -14,6 +14,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<SponsoredListingInvoice> CreateAsync(SponsoredListingInvoice invoice);
         Task<bool> UpdateAsync(SponsoredListingInvoice invoice);
         Task<InvoiceTotalsResult> GetTotalsPaidAsync(DateTime startDate, DateTime endDate);
-        Task DeleteAsync(int id);
+        Task DeleteAsync(int sponsoredListingInvoiceId);
     }
 }

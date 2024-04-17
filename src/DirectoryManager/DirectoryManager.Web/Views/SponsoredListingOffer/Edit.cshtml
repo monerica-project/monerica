@@ -3,14 +3,22 @@
 @{
     ViewData["Title"] = "Edit Sponsored Listing Offer";
     SelectList currencySelectList = new SelectList(Enum.GetValues(typeof(DirectoryManager.Data.Enums.Currency)));
+    SelectList sponsorshipTypeSelectList = new SelectList(Enum.GetValues(typeof(DirectoryManager.Data.Enums.SponsorshipType)));
 }
 
 <h1>@ViewData["Title"]</h1>
 @await Html.PartialAsync("_AdminMenu")
 
+<br />
+<a href="~/sponsoredlistingoffer/index">&lt; back</a>
 <hr />
 <form asp-action="Edit">
-    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="SponsoredListingOfferId" />
+    <div class="form-group">
+        <label asp-for="SponsorshipType" class="control-label"></label>
+        @Html.DropDownListFor(model => model.SponsorshipType, sponsorshipTypeSelectList, new { @class = "form-control" })
+        <span asp-validation-for="SponsorshipType" class="text-danger"></span>
+    </div>
     <div class="form-group">
         <label asp-for="Description" class="control-label"></label>
         <input asp-for="Description" class="form-control" />

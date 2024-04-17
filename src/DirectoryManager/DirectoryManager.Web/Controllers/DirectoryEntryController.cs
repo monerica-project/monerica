@@ -1,5 +1,7 @@
-﻿using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -16,6 +18,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubCategoryRepository subCategoryRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly IDirectoryEntriesAuditRepository auditRepository;
+        private readonly ICacheService cacheService;
         private readonly IMemoryCache cache;
 
         public DirectoryEntryController(
@@ -26,6 +29,7 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntriesAuditRepository auditRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
+            ICacheService cacheService,
             IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
@@ -35,6 +39,7 @@ namespace DirectoryManager.Web.Controllers
             this.categoryRepository = categoryRepository;
             this.auditRepository = auditRepository;
             this.cache = cache;
+            this.cacheService = cacheService;
        }
 
         public async Task<IActionResult> Index(int? subCategoryId = null)
@@ -43,7 +48,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (subCategoryId.HasValue)
             {
-                entries = entries.Where(e => e.SubCategory != null && e.SubCategory.Id == subCategoryId.Value).ToList();
+                entries = entries.Where(e => e.SubCategory != null && e.SubCategory.SubCategoryId == subCategoryId.Value).ToList();
             }
 
             entries = entries.OrderBy(e => e.Name)
@@ -65,12 +70,12 @@ namespace DirectoryManager.Web.Controllers
                 .ThenBy(sc => sc.Name)
                 .Select(sc => new
                 {
-                    sc.Id,
+                    sc.SubCategoryId,
                     DisplayName = $"{sc.Category.Name} > {sc.Name}"
                 })
                 .ToList();
 
-            subCategories.Insert(0, new { Id = 0, DisplayName = "Please select a category" });
+            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = "Please select a category" });
 
             this.ViewBag.SubCategories = subCategories;
 
@@ -123,7 +128,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(DirectoryEntry entry)
         {
-            var existingEntry = await this.entryRepository.GetByIdAsync(entry.Id);
+            var existingEntry = await this.entryRepository.GetByIdAsync(entry.DirectoryEntryId);
 
             if (existingEntry == null)
             {
@@ -154,6 +159,22 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> EntryAudits(int entryId)
         {
             var audits = await this.auditRepository.GetAuditsForEntryAsync(entryId);
+            var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
+            var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
+
+            var directoryEntry = await this.entryRepository.GetByIdAsync(entryId);
+            if (directoryEntry == null)
+            {
+                return this.NotFound();
+            }
+
+            this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel()
+            {
+                DirectoryEntry = directoryEntry,
+                Link2Name = link2Name,
+                Link3Name = link3Name
+            };
+
             return this.View(audits);
         }
 

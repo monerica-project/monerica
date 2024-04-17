@@ -69,7 +69,7 @@ namespace DirectoryManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, SponsoredListingOffer sponsoredListingOffer)
         {
-            if (id != sponsoredListingOffer.Id)
+            if (id != sponsoredListingOffer.SponsoredListingOfferId)
             {
                 return this.NotFound();
             }

@@ -39,21 +39,20 @@
         <ul>
             @{
                 var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
-                featuredEntries.ToList(),
-                DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
-                link2Name,
-                link3Name);
+                    featuredEntries.ToList(),
+                    DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+                    link2Name,
+                    link3Name);
             }
             @foreach (var viewModel in viewModelList)
             {
                 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
         </ul>
-
     }
 
     @{
-        var newestEntries = await directoryEntryRepository.GetNewestAdditions(3);
+        var newestEntries = await directoryEntryRepository.GetNewestAdditions(IntegerConstants.NewestRevisionsToDisplay);
     }
 
     @if (newestEntries != null && newestEntries.Count() > 0)
@@ -83,7 +82,7 @@
         if ((newestRevisions != null && newestRevisions.Count() > 0) &&
         (newestEntries != null && newestEntries.Count() > 0))
         {
-            newestRevisions = newestRevisions.Except(newestEntries).ToList().Take(3);
+            newestRevisions = newestRevisions.Except(newestEntries).ToList().Take(IntegerConstants.NewestRevisionsToDisplay);
         }
     }
 
@@ -123,7 +122,7 @@
                 <input type="checkbox" id="@string.Format("{0}_checkbox", category.CategoryKey)" />
                 <div class="hidden">
                     <ul>
-                        @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.Id))
+                        @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId))
                         {
                             <li>
                                 <a href="#@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</a>
@@ -137,7 +136,8 @@
 
     <hr />
     @{
-        var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync();
+        var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.MainSponsor);
+        var subCategorySponsors = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.SubCategorySponsor);
     }
 
     @foreach (var category in activeCategories)
@@ -153,7 +153,7 @@
             <p><i>(Note: @category.Note</i>)</p>
         }
 
-        @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.Id))
+        @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId))
         {
             <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>
 
@@ -167,19 +167,40 @@
                 <i>(Note: @subCategory.Note)</i>
             }
 
-            <ul>
-                @{
-                    var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.Id);
+            var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
 
-                    var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
-                    activeEntries.ToList(),
-                    DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
-                    link2Name,
-                    link3Name);
-                }
+            var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+                                        activeEntries.ToList(),
+                                        DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+                                        link2Name,
+                                        link3Name);
+
+            var subCategorySponsor = subCategorySponsors.FirstOrDefault(x => x.SubCategoryId == subCategory.SubCategoryId);
+
+            var subCategorySponsorModel = new DirectoryManager.Web.Models.SubCategorySponsorModel()
+            {
+                        SubCategoryId = subCategory.SubCategoryId,
+                        TotalActiveSubCategoryListings = activeEntries.Count(),
+                        DirectoryEntry = (subCategorySponsor != null && subCategorySponsor.DirectoryEntry != null) ? new DirectoryManager.Web.Models.DirectoryEntryViewModel()
+                        {
+                            DirectoryEntry = subCategorySponsor.DirectoryEntry,
+                            IsSponsored = true,
+                            Link2Name = link2Name,
+                            Link3Name = link3Name
+                        } : null
+            };
+
+            @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", subCategorySponsorModel)
+
+            if (subCategorySponsor != null)
+            {
+               viewModelList.RemoveAll(x => x.DirectoryEntry.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
+            }
+
+            <ul>
                 @foreach (var viewModel in viewModelList)
                 {
-                    if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntry.Id) != null)
+                    if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntry.DirectoryEntryId) != null)
                     {
                         viewModel.IsSponsored = true;
                     }

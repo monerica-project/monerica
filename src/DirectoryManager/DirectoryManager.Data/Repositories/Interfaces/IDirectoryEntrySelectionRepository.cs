@@ -5,7 +5,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 {
     public interface IDirectoryEntrySelectionRepository
     {
-        Task<DirectoryEntrySelection> GetByID(int id);
+        Task<DirectoryEntrySelection> GetByID(int directoryEntrySelectionId);
         Task AddToList(DirectoryEntrySelection selection);
         Task DeleteFromList(int id);
         IEnumerable<DirectoryEntrySelection> GetAll();

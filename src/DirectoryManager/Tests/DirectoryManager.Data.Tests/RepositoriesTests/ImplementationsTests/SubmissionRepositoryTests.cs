@@ -18,8 +18,8 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
         {
             var testData = new List<Submission>
             {
-                new Submission { Id = 1, /*... other properties ...*/ },
-                new Submission { Id = 2, /*... other properties ...*/ }
+                new Submission { SubmissionId = 1, /*... other properties ...*/ },
+                new Submission { SubmissionId = 2, /*... other properties ...*/ }
 
                 // ... You can add more test data if required ...
             };
@@ -30,7 +30,7 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
 
             // Mocking the FindAsync method
             this.mockDbSet.Setup(m => m.FindAsync(It.IsAny<object[]>()))
-                      .Returns<object[]>(ids => new ValueTask<Submission?>(testData.FirstOrDefault(e => e.Id == (int)ids[0])));
+                      .Returns<object[]>(ids => new ValueTask<Submission?>(testData.FirstOrDefault(e => e.SubmissionId == (int)ids[0])));
 
             this.mockDbSetAsyncWrapper = new Mock<IDbSetAsyncWrapper<Submission>>();
             this.mockDbSetAsyncWrapper.Setup(d => d.ToListAsync(It.IsAny<CancellationToken>()))
@@ -48,13 +48,13 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
         {
             var result = await this.repository.GetByIdAsync(1);
             Assert.NotNull(result);
-            Assert.Equal(1, result.Id);
+            Assert.Equal(1, result.SubmissionId);
         }
 
         [Fact]
         public async Task AddAsync_ShouldAddSubmission()
         {
-            var newSubmission = new Submission { Id = 3, /*... other properties ...*/ };
+            var newSubmission = new Submission { SubmissionId = 3, /*... other properties ...*/ };
             await this.repository.CreateAsync(newSubmission);
 
             this.mockDbSet.Verify(x => x.AddAsync(It.IsAny<Submission>(), default), Times.Once);
@@ -64,7 +64,7 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
         [Fact]
         public async Task UpdateAsync_ShouldUpdateSubmission()
         {
-            var submissionToUpdate = new Submission { Id = 1, /*... other properties ...*/ };
+            var submissionToUpdate = new Submission { SubmissionId = 1, /*... other properties ...*/ };
             await this.repository.UpdateAsync(submissionToUpdate);
 
             this.mockContext.Verify(x => x.SaveChangesAsync(default), Times.Once);

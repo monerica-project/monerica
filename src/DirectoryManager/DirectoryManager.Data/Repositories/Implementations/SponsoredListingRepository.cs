@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -14,9 +15,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        public async Task<SponsoredListing?> GetByIdAsync(int id)
+        public async Task<SponsoredListing?> GetByIdAsync(int sponsoredListingId)
         {
-            return await this.context.SponsoredListings.FindAsync(id);
+            return await this.context.SponsoredListings.FindAsync(sponsoredListingId);
         }
 
         public async Task<SponsoredListing?> GetByInvoiceIdAsync(int sponsoredListingInvoiceId)
@@ -25,25 +26,47 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                      .FirstOrDefaultAsync(x => x.SponsoredListingInvoiceId == sponsoredListingInvoiceId);
         }
 
-        public async Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync()
+        public async Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync(SponsorshipType sponsorshipType)
         {
             var currentDate = DateTime.UtcNow;
 
             return await this.context.SponsoredListings
                                      .Include(x => x.DirectoryEntry) // Include DirectoryEntry navigation property
-                                     .Where(x => x.CampaignStartDate <= currentDate && x.CampaignEndDate >= currentDate) // Filter active listings
+                                     .Where(x => x.SponsorshipType == sponsorshipType &&
+                                                 x.CampaignStartDate <= currentDate &&
+                                                 x.CampaignEndDate >= currentDate) // Filter active listings
                                      .OrderByDescending(x => x.CampaignEndDate) // Sort primarily by end date
                                      .ThenByDescending(x => x.CampaignStartDate) // Then by start date
                                      .ToListAsync();
         }
 
-        public async Task<int> GetActiveListingsCountAsync()
+        public async Task<List<SponsoredListing>> GetSponsoredListingsForSubCategory(int subCategoryId)
+        {
+            var currentDate = DateTime.UtcNow;
+
+            var subCategorySponsors = await this.context.SponsoredListings
+                                     .Include(x => x.DirectoryEntry) // Include DirectoryEntry navigation property
+                                     .Where(x => x.SponsorshipType == SponsorshipType.SubCategorySponsor &&
+                                                 x.SubCategoryId == subCategoryId &&
+                                                 x.CampaignStartDate <= currentDate &&
+                                                 x.CampaignEndDate >= currentDate) // Filter active listings
+                                     .OrderByDescending(x => x.CampaignEndDate) // Sort primarily by end date
+                                     .ThenByDescending(x => x.CampaignStartDate) // Then by start date
+                                     .ToListAsync();
+
+            return subCategorySponsors;
+        }
+
+        public async Task<int> GetActiveListingsCountAsync(SponsorshipType sponsorshipType, int? subCategoryId)
         {
             var currentDate = DateTime.UtcNow;
 
             var totalActive = await this.context.SponsoredListings
                                      .Include(x => x.DirectoryEntry) // Include DirectoryEntry navigation property
-                                     .Where(x => x.CampaignStartDate <= currentDate && x.CampaignEndDate >= currentDate) // Filter active listings
+                                     .Where(x => x.SponsorshipType == sponsorshipType &&
+                                                 x.SubCategoryId == subCategoryId &&
+                                                 x.CampaignStartDate <= currentDate &&
+                                                 x.CampaignEndDate >= currentDate) // Filter active listings
                                      .OrderByDescending(x => x.CampaignEndDate) // Sort primarily by end date
                                      .ThenByDescending(x => x.CampaignStartDate) // Then by start date
                                      .CountAsync();
@@ -94,9 +117,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(int sponsoredListingId)
         {
-            var sponsoredListing = await this.GetByIdAsync(id);
+            var sponsoredListing = await this.GetByIdAsync(sponsoredListingId);
             if (sponsoredListing != null)
             {
                 this.context.SponsoredListings.Remove(sponsoredListing);
@@ -104,12 +127,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
-        public Task<SponsoredListing?> GetActiveListing(int directoryEntryId)
+        public Task<SponsoredListing?> GetActiveListing(int directoryEntryId, SponsorshipType sponsorshipType)
         {
             var now = DateTime.UtcNow;
 
             return this.context.SponsoredListings
                 .FirstOrDefaultAsync(x => x.DirectoryEntryId == directoryEntryId &&
+                                          x.SponsorshipType == sponsorshipType &&
                                           x.CampaignStartDate <= now &&
                                           x.CampaignEndDate >= now);
         }

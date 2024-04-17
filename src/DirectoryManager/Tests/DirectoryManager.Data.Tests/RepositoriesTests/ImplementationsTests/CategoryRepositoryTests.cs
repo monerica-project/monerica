@@ -17,7 +17,7 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
         {
             var mockCategories = Enumerable.Range(1, 5).Select(i => new Category
             {
-                Id = i,
+                CategoryId = i,
                 Name = $"Category {i}"
             }).ToList();
 

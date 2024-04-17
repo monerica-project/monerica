@@ -7,7 +7,7 @@ namespace DirectoryManager.Data.Models
     public class Submission : StateInfo
     {
         [Key] // Primary Key
-        public int Id { get; set; }
+        public int SubmissionId { get; set; }
 
         [Required]
         public SubmissionStatus SubmissionStatus { get; set; }

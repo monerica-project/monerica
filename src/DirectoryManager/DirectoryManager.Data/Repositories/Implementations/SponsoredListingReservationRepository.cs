@@ -1,5 +1,4 @@
-﻿using DirectoryManager.Data.Constants;
-using DirectoryManager.Data.DbContextInfo;
+﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -15,13 +14,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context;
         }
 
-        public async Task<SponsoredListingReservation> CreateReservationAsync(DateTime expirationDateTime)
+        public async Task<SponsoredListingReservation> CreateReservationAsync(
+            DateTime expirationDateTime,
+            string reservationGroup)
         {
             var reservationId = Guid.NewGuid();
             var reservation = new SponsoredListingReservation
             {
                 ReservationGuid = reservationId,
-                ExpirationDateTime = expirationDateTime
+                ExpirationDateTime = expirationDateTime,
+                ReservationGroup = reservationGroup
             };
 
             this.context.SponsoredListingReservations.Add(reservation);
@@ -38,11 +40,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return sponsoredListingReservation;
         }
 
-        public async Task<int> GetActiveReservationsCountAsync()
+        public async Task<int> GetActiveReservationsCountAsync(string reservationGroup)
         {
             var currentDate = DateTime.UtcNow;
-            return await this.context.SponsoredListingReservations
-                .CountAsync(r => r.ExpirationDateTime > currentDate);
+            return await this.context
+                             .SponsoredListingReservations
+                             .Where(x => x.ReservationGroup == reservationGroup)
+                             .CountAsync(r => r.ExpirationDateTime > currentDate);
         }
     }
 }

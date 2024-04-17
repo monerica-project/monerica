@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Repositories.Interfaces;
+﻿using DirectoryManager.Data.Repositories.Implementations;
+using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
@@ -11,19 +12,24 @@ namespace DirectoryManager.Web.Controllers
     public class SiteMapController : Controller
     {
         private const int MaxPageSizeForSiteMap = 50000;
-
         private readonly ICacheService cacheService;
         private readonly IMemoryCache memoryCache;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly ICategoryRepository categoryRepository;
+        private readonly ISubCategoryRepository subCategoryRepository;
 
         public SiteMapController(
             ICacheService cacheService,
             IMemoryCache memoryCache,
-            IDirectoryEntryRepository directoryEntryRepository)
+            IDirectoryEntryRepository directoryEntryRepository,
+            ICategoryRepository categoryRepository,
+            ISubCategoryRepository subCategoryRepository)
         {
             this.cacheService = cacheService;
             this.memoryCache = memoryCache;
             this.directoryEntryRepository = directoryEntryRepository;
+            this.categoryRepository = categoryRepository;
+            this.subCategoryRepository = subCategoryRepository;
         }
 
         [Route("sitemap_index.xml")]
@@ -33,7 +39,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [Route("sitemap.xml")]
-        public IActionResult Index()
+        public async Task<IActionResult> IndexAsync()
         {
             var date = this.directoryEntryRepository.GetLastRevisionDate();
             var siteMapHelper = new SiteMapHelper();
@@ -52,6 +58,36 @@ namespace DirectoryManager.Web.Controllers
                 ChangeFrequency = ChangeFrequency.Daily,
                 LastMode = date
             });
+
+            var categories = await this.categoryRepository.GetActiveCategoriesAsync();
+
+            foreach (var category in categories)
+            {
+                siteMapHelper.SiteMapItems.Add(new SiteMapItem
+                {
+                    Url = string.Format("{0}/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), category.CategoryKey),
+                    Priority = 1.0,
+                    ChangeFrequency = ChangeFrequency.Weekly,
+                    LastMode = date
+                });
+
+                var subCategories = await this.subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId);
+
+                foreach (var subCategory in subCategories)
+                {
+                    siteMapHelper.SiteMapItems.Add(new SiteMapItem
+                    {
+                        Url = string.Format(
+                            "{0}/{1}/{2}",
+                            WebRequestHelper.GetCurrentDomain(this.HttpContext),
+                            category.CategoryKey,
+                            subCategory.SubCategoryKey),
+                        Priority = 1.0,
+                        ChangeFrequency = ChangeFrequency.Weekly,
+                        LastMode = date
+                    });
+                }
+            }
 
             var xml = siteMapHelper.GenerateXml();
 

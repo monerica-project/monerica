@@ -10,14 +10,14 @@
 
 <hr />
 
-<form method="post">
-  
+<form method="post" action="~/subcategory/edit">
+    <input type="hidden" name="SubCategoryId" value="@Model.SubCategoryId" />
     <div class="form-group">
         <label>Parent Category</label>
         <select name="CategoryId" required>
             @foreach (var category in (IEnumerable<Category>)ViewBag.Categories)
             {
-                <option value="@category.Id" selected="@(Model.Category != null && Model.Category.Id == category.Id ? "selected" : null)">@category.Name</option>
+                <option value="@category.CategoryId" selected="@(Model.Category != null && Model.Category.CategoryId == category.CategoryId ? "selected" : null)">@category.Name</option>
             }
         </select>
     </div>

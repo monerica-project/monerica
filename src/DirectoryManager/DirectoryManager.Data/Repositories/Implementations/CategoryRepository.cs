@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Migrations;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -22,9 +23,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                  .ToListAsync();
         }
 
-        public async Task<Category?> GetByIdAsync(int id)
+        public async Task<Category?> GetByIdAsync(int categoryId)
         {
-            return await this.context.Categories.FindAsync(id);
+            return await this.context.Categories.FindAsync(categoryId);
         }
 
         public async Task CreateAsync(Category category)
@@ -39,9 +40,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync();
         }
 
-        public async Task DeleteAsync(int id)
+        public async Task DeleteAsync(int categoryId)
         {
-            var categoryToDelete = await this.context.Categories.FindAsync(id);
+            var categoryToDelete = await this.context.Categories.FindAsync(categoryId);
             if (categoryToDelete != null)
             {
                 this.context.Categories.Remove(categoryToDelete);
@@ -52,6 +53,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<Category> GetByNameAsync(string name)
         {
             return await this.context.Categories.FirstOrDefaultAsync(sc => sc.Name == name)
+                ?? throw new Exception("Category not found");
+        }
+
+        public async Task<Category> GetByKeyAsync(string categoryKey)
+        {
+            return await this.context.Categories.FirstOrDefaultAsync(sc => sc.CategoryKey == categoryKey)
                 ?? throw new Exception("Category not found");
         }
 
@@ -66,7 +73,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                .ToListAsync();
 
             var activeCategories = await this.context.Categories
-                .Where(category => activeCategoryIds.Contains(category.Id))
+                .Where(category => activeCategoryIds.Contains(category.CategoryId))
                 .OrderBy(category => category.Name)
                 .ToListAsync();
 

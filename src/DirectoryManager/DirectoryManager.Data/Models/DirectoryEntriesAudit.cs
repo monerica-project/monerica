@@ -7,7 +7,7 @@ namespace DirectoryManager.Data.Models
     public class DirectoryEntriesAudit : UserStateInfo
     {
         [Key]
-        public int Id { get; set; }
+        public int DirectoryEntriesAuditId { get; set; }
 
         public int DirectoryEntryId { get; set; }
 

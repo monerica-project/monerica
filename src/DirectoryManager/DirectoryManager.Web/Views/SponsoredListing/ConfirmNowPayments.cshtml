@@ -11,7 +11,7 @@
 
 <h1>@ViewData["Title"]</h1>
 
-<a href="~/sponsoredlisting/selectduration?id=@Model.SelectedDirectoryEntry.DirectoryEntry.Id">&lt; back</a>
+<a href="~/sponsoredlisting/selectduration?directoryEntryId=@Model.SelectedDirectoryEntry.DirectoryEntry.DirectoryEntryId&sponsorshipType=@Model.Offer.SponsorshipType&rsvId=@ViewBag.ReservationGuid">&lt; back</a>
 
 <hr />
 
@@ -33,6 +33,7 @@
 
         <h2>Your Order</h2>
         <p>
+            <b>Sponsorship Type:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.Offer.SponsorshipType) <br />
             <b>Description:</b> @Model.Offer.Description<br />
             <b>Price:</b> @Model.Offer.USDPrice.ToString("C", new CultureInfo(StringConstants.DefaultCulure)) USD<br />
             <b>Days:</b> @Model.Offer.Days
@@ -53,8 +54,8 @@
 
         <form method="post" action="~/sponsoredlisting/confirmnowpayments">
             <input name="rsvId" type="hidden" value="@ViewBag.ReservationGuid" />
-            <input type="hidden" name="id" value="@Model.SelectedDirectoryEntry.DirectoryEntry.Id" />
-            <input type="hidden" name="selectedOfferId" value="@Model.Offer.Id" />
+            <input type="hidden" name="directoryEntryId" value="@Model.SelectedDirectoryEntry.DirectoryEntry.DirectoryEntryId" />
+            <input type="hidden" name="selectedOfferId" value="@Model.Offer.SponsoredListingOfferId" />
             <button class="btn" type="submit">Purchase Listing</button>
         </form>
     }

@@ -12,7 +12,7 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
         public async Task CreateAsync_CreatesNewDirectoryEntriesAudit()
         {
             // Arrange
-            var auditToCreate = new DirectoryEntriesAudit { Id = 1, Name = "NewAudit" };
+            var auditToCreate = new DirectoryEntriesAudit { DirectoryEntriesAuditId = 1, Name = "NewAudit" };
 
             var mockContext = new Mock<IApplicationDbContext>();
             var mockDbSet = new Mock<DbSet<DirectoryEntriesAudit>>();
