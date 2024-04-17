@@ -63,9 +63,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
-        public async Task<SubCategory?> GetByNameAsync(string name)
+        public async Task<SubCategory?> GetByCategoryIdAndKeyAsync(int categoryId, string subCategoryKey)
         {
-            return await this.context.SubCategories.FirstOrDefaultAsync(sc => sc.Name == name);
+            return await this.context.SubCategories
+                                     .Where(x => x.CategoryId == categoryId && x.SubCategoryKey == subCategoryKey)
+                                     .FirstOrDefaultAsync();
         }
 
         public async Task<IEnumerable<SubCategory>> GetByCategoryAsync(int categoryId)

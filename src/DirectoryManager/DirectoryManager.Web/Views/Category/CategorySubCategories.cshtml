@@ -1,0 +1,17 @@
+﻿@model List<DirectoryManager.Web.Models.SubCategoryViewModel>
+
+<h1>@ViewBag.Category.Name</h1>
+
+<hr />
+
+<ul>
+@foreach (var item in Model)
+{
+    <li>
+        <a href="@item.SubCategoryRelativePath">@item.Name</a> @if (!string.IsNullOrWhiteSpace(item.Description))
+            {
+                <text>- </text> @item.Description
+            }
+    </li>
+}
+</ul>

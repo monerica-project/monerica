@@ -40,6 +40,23 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                      .ToListAsync();
         }
 
+        public async Task<List<SponsoredListing>> GetSponsoredListingsForSubCategory(int subCategoryId)
+        {
+            var currentDate = DateTime.UtcNow;
+
+            var subCategorySponsors = await this.context.SponsoredListings
+                                     .Include(x => x.DirectoryEntry) // Include DirectoryEntry navigation property
+                                     .Where(x => x.SponsorshipType == SponsorshipType.SubCategorySponsor &&
+                                                 x.SubCategoryId == subCategoryId &&
+                                                 x.CampaignStartDate <= currentDate &&
+                                                 x.CampaignEndDate >= currentDate) // Filter active listings
+                                     .OrderByDescending(x => x.CampaignEndDate) // Sort primarily by end date
+                                     .ThenByDescending(x => x.CampaignStartDate) // Then by start date
+                                     .ToListAsync();
+
+            return subCategorySponsors;
+        }
+
         public async Task<int> GetActiveListingsCountAsync(SponsorshipType sponsorshipType, int? subCategoryId)
         {
             var currentDate = DateTime.UtcNow;

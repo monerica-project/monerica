@@ -7,10 +7,10 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<IEnumerable<SubCategory>> GetAllAsync();
         Task<IEnumerable<SubCategory>> GetAllActiveSubCategoriesAsync();
         Task<SubCategory?> GetByIdAsync(int subCategoryId);
+        Task<SubCategory?> GetByCategoryIdAndKeyAsync(int categoryId, string subCategoryKey);
         Task CreateAsync(SubCategory subCategory);
         Task UpdateAsync(SubCategory subCategory);
         Task DeleteAsync(int subCategoryId);
-        Task<SubCategory?> GetByNameAsync(string subCategoryName);
         Task<IEnumerable<SubCategory>> GetByCategoryAsync(int categoryId);
         Task<IEnumerable<SubCategory>> GetActiveSubCategoriesAsync(int categoryId);
     }

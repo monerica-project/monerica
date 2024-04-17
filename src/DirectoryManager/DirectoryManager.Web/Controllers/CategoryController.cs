@@ -1,7 +1,7 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
-using DirectoryManager.Web.Helpers;
+using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -15,11 +15,13 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ICategoryRepository categoryRepository;
+        private readonly ISubCategoryRepository subCategoryRepository;
         private readonly IMemoryCache cache;
 
         public CategoryController(
             UserManager<ApplicationUser> userManager,
             ICategoryRepository categoryRepository,
+            ISubCategoryRepository subCategoryRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
@@ -27,6 +29,7 @@ namespace DirectoryManager.Web.Controllers
         {
             this.userManager = userManager;
             this.categoryRepository = categoryRepository;
+            this.subCategoryRepository = subCategoryRepository;
             this.cache = cache;
         }
 
@@ -40,6 +43,30 @@ namespace DirectoryManager.Web.Controllers
         public IActionResult Create()
         {
             return this.View();
+        }
+
+        [AllowAnonymous]
+        [HttpGet("{categorykey}")]
+        public async Task<IActionResult> CategorySubCategories(string categorykey)
+        {
+            var category = await this.categoryRepository.GetByKeyAsync(categorykey);
+            if (category == null)
+            {
+                return this.NotFound();
+            }
+
+            this.ViewBag.Category = category;
+
+            var subCategories = await this.subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId);
+            var subCategoryModels = subCategories.Select(sc => new SubCategoryViewModel
+            {
+                CategoryKey = categorykey,
+                Name = sc.Name,
+                SubCategoryKey = sc.SubCategoryKey,
+                Description = sc.Description
+            }).ToList();
+
+            return this.View("CategorySubCategories", subCategoryModels);
         }
 
         [HttpPost]

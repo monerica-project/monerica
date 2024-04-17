@@ -1,0 +1,69 @@
+﻿@model DirectoryManager.Web.Models.CategorySubCategoriesViewModel
+@using DirectoryManager.Data.Models
+@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Data.Enums;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
+
+@{
+    ViewData["Title"] = Model.PageTitle;
+}
+
+<h1>@Model.PageHeader</h1>
+
+<hr />
+
+@if (!string.IsNullOrWhiteSpace(Model.Description))
+{
+    <p><span>@Model.Description</span></p>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.Note))
+{
+    <p><i>Note: @Model.Note</i></p>
+}
+
+@{
+    var subCategorySponsors = await this.sponsoredListingRepository.GetSponsoredListingsForSubCategory(Model.SubCategoryId);
+    var link2Name = cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
+    var link3Name = cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+    var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+                                        Model.DirectoryEntries.ToList(),
+                                        DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+                                        link2Name,
+                                        link3Name);
+    var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.MainSponsor);
+    var subCategorySponsor = subCategorySponsors.FirstOrDefault();
+    var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(Model.SubCategoryId);
+    var subCategorySponsorModel = new DirectoryManager.Web.Models.SubCategorySponsorModel()
+            {
+                SubCategoryId = Model.SubCategoryId,
+                TotalActiveSubCategoryListings = activeEntries.Count(),
+                DirectoryEntry = (subCategorySponsor != null && subCategorySponsor.DirectoryEntry != null) ? new DirectoryManager.Web.Models.DirectoryEntryViewModel()
+                {
+                    DirectoryEntry = subCategorySponsor.DirectoryEntry,
+                    IsSponsored = true,
+                    Link2Name = link2Name,
+                    Link3Name = link3Name
+                } : null
+            };
+
+    @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", subCategorySponsorModel)
+
+    if (subCategorySponsor != null)
+    {
+        viewModelList.RemoveAll(x => x.DirectoryEntry.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
+    }
+}
+<ul>
+    @foreach (var viewModel in viewModelList)
+    {
+        if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntry.DirectoryEntryId) != null)
+        {
+            viewModel.IsSponsored = true;
+        }
+
+        @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
+    }
+</ul>

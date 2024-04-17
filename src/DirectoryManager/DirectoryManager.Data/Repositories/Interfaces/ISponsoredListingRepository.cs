@@ -14,6 +14,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<int> GetTotalCountAsync();
         Task<List<SponsoredListing>> GetPaginatedListingsAsync(int page, int pageSize);
         Task<SponsoredListing?> GetActiveListing(int directoryEntryId, SponsorshipType sponsorshipType);
+        Task<List<SponsoredListing>> GetSponsoredListingsForSubCategory(int subCategoryId);
         Task<SponsoredListing> CreateAsync(SponsoredListing sponsoredListing);
         Task<bool> UpdateAsync(SponsoredListing sponsoredListing);
         Task DeleteAsync(int sponsoredListingId);

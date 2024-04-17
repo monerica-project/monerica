@@ -1,8 +1,7 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
-using DirectoryManager.Web.Constants;
-using DirectoryManager.Web.Helpers;
+using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -17,12 +16,14 @@ namespace DirectoryManager.Web.Controllers
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ISubCategoryRepository subCategoryRepository;
         private readonly ICategoryRepository categoryRepository;
+        private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly IMemoryCache cache;
 
         public SubCategoryController(
             UserManager<ApplicationUser> userManager,
             ISubCategoryRepository subCategoryRepository,
             ICategoryRepository categoryRepository,
+            IDirectoryEntryRepository directoryEntryRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
@@ -31,6 +32,7 @@ namespace DirectoryManager.Web.Controllers
             this.userManager = userManager;
             this.subCategoryRepository = subCategoryRepository;
             this.categoryRepository = categoryRepository;
+            this.directoryEntryRepository = directoryEntryRepository;
             this.cache = cache;
         }
 
@@ -121,6 +123,39 @@ namespace DirectoryManager.Web.Controllers
             this.ClearCachedItems();
 
             return this.RedirectToAction(nameof(this.Index));
+        }
+
+        [AllowAnonymous]
+        [HttpGet("{categorykey}/{subcategorykey}")]
+        public async Task<IActionResult> SubCategoryListings(string categoryKey, string subCategoryKey)
+        {
+            var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
+
+            if (category == null)
+            {
+                return this.NotFound();
+            }
+
+            var subCategory = await this.subCategoryRepository.GetByCategoryIdAndKeyAsync(category.CategoryId, subCategoryKey);
+
+            if (subCategory == null)
+            {
+                return this.NotFound();
+            }
+
+            var entries = await this.directoryEntryRepository.GetAllBySubCategoryIdAsync(subCategory.SubCategoryId);
+
+            var model = new CategorySubCategoriesViewModel
+            {
+                PageHeader = $"{category.Name} > {subCategory.Name}",
+                PageTitle = $"{category.Name} > {subCategory.Name}",
+                Description = subCategory.Description,
+                Note = subCategory.Note,
+                SubCategoryId = subCategory.SubCategoryId,
+                DirectoryEntries = entries
+            };
+
+            return this.View("SubCategoryListings", model);
         }
 
         public async Task<IActionResult> Delete(int id)

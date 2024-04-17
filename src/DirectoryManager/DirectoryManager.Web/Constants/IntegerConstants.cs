@@ -8,5 +8,6 @@
         public const int MaxSubCategorySponsoredListings = 1;
         public const int ReservationMinutes = 60;
         public const int MinimumSponsoredActiveSubcategories = 3;
+        public const int NewestRevisionsToDisplay = 3;
     }
 }

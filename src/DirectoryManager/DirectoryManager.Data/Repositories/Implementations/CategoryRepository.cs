@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Migrations;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -52,6 +53,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<Category> GetByNameAsync(string name)
         {
             return await this.context.Categories.FirstOrDefaultAsync(sc => sc.Name == name)
+                ?? throw new Exception("Category not found");
+        }
+
+        public async Task<Category> GetByKeyAsync(string categoryKey)
+        {
+            return await this.context.Categories.FirstOrDefaultAsync(sc => sc.CategoryKey == categoryKey)
                 ?? throw new Exception("Category not found");
         }
 
