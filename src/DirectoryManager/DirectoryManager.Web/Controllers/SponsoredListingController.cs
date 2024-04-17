@@ -17,7 +17,6 @@ using NowPayments.API.Models;
 
 namespace DirectoryManager.Web.Controllers
 {
-    [Route("sponsoredlisting")]
     public class SponsoredListingController : BaseController
     {
         private readonly ISubCategoryRepository subCategoryRepository;
@@ -58,7 +57,7 @@ namespace DirectoryManager.Web.Controllers
             this.logger = logger;
         }
 
-        [HttpGet("")]
+        [Route("sponsoredlisting")]
         public async Task<IActionResult> IndexAsync()
         {
             this.logger.LogError("test");
@@ -109,7 +108,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("selectlisting")]
+        [Route("sponsoredlisting/selectlisting")]
         public async Task<IActionResult> SelectListing(
             SponsorshipType sponsorshipType = SponsorshipType.MainSponsor,
             int? subCategoryId = null,
@@ -180,7 +179,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("selectduration")]
+        [Route("sponsoredlisting/selectduration")]
         public async Task<IActionResult> SelectDurationAsync(
             int directoryEntryId,
             SponsorshipType sponsorshipType,
@@ -252,7 +251,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpPost("selectduration")]
+        [Route("sponsoredlisting/selectduration")]
         public async Task<IActionResult> SelectDurationAsync(
             int directoryEntryId,
             int selectedOfferId,
@@ -311,7 +310,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("subcategoryselection")]
+        [Route("sponsoredlisting/subcategoryselection")]
         public async Task<IActionResult> SubCategory(
             int subCategoryId,
             Guid? rsvId = null)
@@ -357,7 +356,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("confirmnowpayments")]
+        [Route("sponsoredlisting/confirmnowpayments")]
         public async Task<IActionResult> ConfirmNowPaymentsAsync(
             int directoryEntryId,
             int selectedOfferId,
@@ -426,7 +425,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpPost("confirmnowpayments")]
+        [Route("sponsoredlisting/confirmnowpayments")]
         public async Task<IActionResult> ConfirmedNowPaymentsAsync(
             int directoryEntryId,
             int selectedOfferId,
@@ -517,7 +516,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpPost("nowpaymentscallback")]
+        [Route("sponsoredlisting/nowpaymentscallback")]
         public async Task<IActionResult> NowPaymentsCallBackAsync()
         {
             using var reader = new StreamReader(this.Request.Body, Encoding.UTF8);
@@ -604,7 +603,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("nowpaymentssuccess")]
+        [Route("sponsoredlisting/nowpaymentssuccess")]
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
                 "StyleCop.CSharp.NamingRules",
                 "SA1313:Parameter names should begin with lower-case letter",
@@ -645,7 +644,8 @@ namespace DirectoryManager.Web.Controllers
             return this.View("NowPaymentsSuccess", viewModel);
         }
 
-        [HttpGet("edit/{sponsoredListingId}")]
+        [Route("sponsoredlisting/edit/{sponsoredListingId}")]
+        [HttpGet]
         [Authorize]
         public async Task<IActionResult> EditAsync(int sponsoredListingId)
         {
@@ -666,7 +666,8 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
-        [HttpPost("edit/{sponsoredListingId}")]
+        [Route("sponsoredlisting/edit/{sponsoredListingId}")]
+        [HttpPost]
         [Authorize]
         public async Task<IActionResult> EditAsync(int sponsoredListingId, EditListingViewModel model)
         {
@@ -693,7 +694,8 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("offers")]
+        [Route("sponsoredlisting/offers")]
+        [HttpGet]
         public async Task<IActionResult> Offers(SponsorshipType sponsorshipType)
         {
             var offers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(sponsorshipType);
@@ -702,13 +704,15 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("current")]
+        [Route("sponsoredlisting/current")]
+        [HttpGet]
         public IActionResult Current()
         {
             return this.View();
         }
 
-        [HttpGet("activelistings")]
+        [Route("sponsoredlisting/activelistings")]
+        [HttpGet]
         public async Task<IActionResult> ActiveListings()
         {
             // TODO: have a list of both types
@@ -728,7 +732,8 @@ namespace DirectoryManager.Web.Controllers
             return this.View("activelistings", model);
         }
 
-        [HttpGet("list/{page?}")]
+        [Route("sponsoredlisting/list/{page?}")]
+        [HttpGet]
         [Authorize]
         public async Task<IActionResult> List(int page = 1)
         {

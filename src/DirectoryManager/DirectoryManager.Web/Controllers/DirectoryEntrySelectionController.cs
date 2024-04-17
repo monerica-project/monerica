@@ -42,12 +42,7 @@ namespace DirectoryManager.Web.Controllers
             this.cache = cache;
         }
 
-        public async Task<IActionResult> AddToList()
-        {
-            this.ViewBag.DirectoryEntryList = new SelectList(await this.entryRepository.GetAllAsync(), "DirectoryEntryId", "Name");
-            return this.View();
-        }
-
+        [Route("directoryentryselection/addtolist")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> AddToList(DirectoryEntrySelection selection)
@@ -65,6 +60,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(selection);
         }
 
+        [Route("directoryentryselection")]
         [HttpGet]
         public IActionResult Index()
         {
@@ -72,6 +68,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(selections);
         }
 
+        [Route("directoryentryselection/deletefromlist")]
         public async Task<IActionResult> DeleteFromList(int id)
         {
             var selection = await this.directoryEntrySelectionRepository.GetByID(id);
@@ -82,12 +79,19 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpPost]
-        [ActionName("DeleteFromListConfirmed")]
+        [Route("directoryentryselection/deletefromlistconfirmed")]
         public async Task<IActionResult> DeleteFromListConfirmed(int directoryEntrySelectionId)
         {
             await this.directoryEntrySelectionRepository.DeleteFromList(directoryEntrySelectionId);
 
             return this.RedirectToAction("Index");
         }
+
+        public async Task<IActionResult> AddToList()
+        {
+            this.ViewBag.DirectoryEntryList = new SelectList(await this.entryRepository.GetAllAsync(), "DirectoryEntryId", "Name");
+            return this.View();
+        }
+
     }
 }

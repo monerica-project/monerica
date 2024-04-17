@@ -61,6 +61,7 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
+        [Route("account/home")]
         [Authorize]
         public async Task<IActionResult> HomeAsync()
         {
@@ -71,6 +72,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
+        [Route("account/edit")]
         [Authorize]
         public IActionResult Edit()
         {
@@ -113,6 +115,7 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction("Home", "Account");
         }
 
+        [Route("account/logout")]
         public async Task<IActionResult> Logout()
         {
             await this.signInManager.SignOutAsync();
