@@ -143,7 +143,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var entries = await this.directoryEntryRepository.GetAllBySubCategoryIdAsync(subCategory.SubCategoryId);
+            var entries = await this.directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
 
             var model = new CategorySubCategoriesViewModel
             {
