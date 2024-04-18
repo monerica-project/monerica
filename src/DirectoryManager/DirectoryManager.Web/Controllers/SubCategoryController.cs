@@ -36,6 +36,7 @@ namespace DirectoryManager.Web.Controllers
             this.cache = cache;
         }
 
+        [Route("subcategory/index")]
         [HttpGet]
         public async Task<IActionResult> Index(int? categoryId = null)
         {
@@ -56,6 +57,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(subCategories);
         }
 
+        [Route("subcategory/create")]
         [HttpGet]
         public async Task<IActionResult> Create()
         {
@@ -63,6 +65,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
+        [Route("subcategory/create")]
         [HttpPost]
         public async Task<IActionResult> Create(SubCategory subCategory)
         {
@@ -79,6 +82,7 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Index));
         }
 
+        [Route("subcategory/edit")]
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
@@ -92,6 +96,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(subCategory);
         }
 
+        [Route("subcategory/edit")]
         [HttpPost]
         public async Task<IActionResult> Edit(SubCategory subCategory)
         {
@@ -143,7 +148,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var entries = await this.directoryEntryRepository.GetAllBySubCategoryIdAsync(subCategory.SubCategoryId);
+            var entries = await this.directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
 
             var model = new CategorySubCategoriesViewModel
             {
@@ -160,6 +165,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View("SubCategoryListings", model);
         }
 
+        [Route("subcategory/delete")]
         public async Task<IActionResult> Delete(int id)
         {
             await this.subCategoryRepository.DeleteAsync(id);

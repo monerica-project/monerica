@@ -27,7 +27,7 @@ namespace DirectoryManager.Web.Controllers
             this.contentSnippetHelper = contentSnippetHelper;
         }
 
-        [Route("ContentSnippetManagement")]
+        [Route("contentsnippetmanagement")]
         public IActionResult Index()
         {
             var allSnippets = this.contentSnippetRepository.GetAll().OrderBy(x => x.SnippetType.ToString());
@@ -46,7 +46,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
-        [Route("ContentSnippetManagement/create")]
+        [Route("contentsnippetmanagement/create")]
         [HttpPost]
         public IActionResult Create(ContentSnippetEditModel model)
         {
@@ -72,7 +72,7 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction("index");
         }
 
-        [Route("ContentSnippetManagement/create")]
+        [Route("contentsnippetmanagement/create")]
         [HttpGet]
         public IActionResult Create()
         {
@@ -102,7 +102,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
-        [Route("ContentSnippetManagement/edit")]
+        [Route("contentsnippetmanagement/edit")]
         [HttpPost]
         public IActionResult Edit(ContentSnippetEditModel model)
         {
@@ -135,7 +135,7 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction("index");
         }
 
-        [Route("ContentSnippetManagement/edit")]
+        [Route("contentsnippetmanagement/edit")]
         [HttpGet]
         public IActionResult Edit(int contentSnippetId)
         {
@@ -156,7 +156,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
-        [Route("ContentSnippetManagement/delete")]
+        [Route("contentsnippetmanagement/delete")]
         [HttpPost]
         public IActionResult Delete(int contentSnippetId)
         {

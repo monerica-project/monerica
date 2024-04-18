@@ -1,7 +1,8 @@
-﻿@using DirectoryManager.Web.Constants;
+﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants;
 @using DirectoryManager.Web.Models;
 @using DirectoryManager.Data.Models.SponsoredListings;
-@model IEnumerable<SponsoredListingOffer>
+@using DirectoryManager.Utilities.Helpers;
 
 @{
     ViewData["Title"] = "Sponsored Listing Offers";
@@ -13,6 +14,8 @@
  
 <h2>Offers</h2>
 
+<h3>@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</h3>
+
 <table>
     <thead>
         <tr>
@@ -22,7 +25,30 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var offer in Model)
+        @foreach (var offer in this.ViewBag.MainSponsorshipOffers)
+        {
+            <tr>
+                <td>@offer.Description</td>
+                <td> - </td>
+                <td>@offer.Price.ToString("C") (@offer.PriceCurrency.ToString())</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<hr />
+
+<h3>@EnumHelper.GetDescription(SponsorshipType.SubCategorySponsor)</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Description</th>
+            <th></th>
+            <th>Price</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var offer in this.ViewBag.SubCategorySponsorshipOffers)
         {
             <tr>
                 <td>@offer.Description</td>

@@ -40,8 +40,9 @@ namespace DirectoryManager.Web.Controllers
             this.auditRepository = auditRepository;
             this.cache = cache;
             this.cacheService = cacheService;
-       }
+        }
 
+        [Route("directoryentry/index")]
         public async Task<IActionResult> Index(int? subCategoryId = null)
         {
             var entries = await this.entryRepository.GetAllAsync();
@@ -62,6 +63,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(entries);
         }
 
+        [Route("directoryentry/create")]
         [HttpGet]
         public async Task<IActionResult> Create()
         {
@@ -82,6 +84,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
+        [Route("directoryentry/create")]
         [HttpPost]
         public async Task<IActionResult> Create(DirectoryEntry entry)
         {
@@ -112,6 +115,7 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
+        [Route("directoryentry/edit/{id}")]
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
@@ -125,6 +129,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(entry);
         }
 
+        [Route("directoryentry/edit/{id}")]
         [HttpPost]
         public async Task<IActionResult> Edit(DirectoryEntry entry)
         {
@@ -155,7 +160,8 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Index));
         }
 
-        [HttpGet("directoryentries/EntryAudits/{entryId}")]
+        [HttpGet]
+        [Route("directoryentry/entryaudits/{entryId}")]
         public async Task<IActionResult> EntryAudits(int entryId)
         {
             var audits = await this.auditRepository.GetAuditsForEntryAsync(entryId);
@@ -178,6 +184,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(audits);
         }
 
+        [HttpGet("directoryentry/delete")]
         public async Task<IActionResult> Delete(int id)
         {
             await this.entryRepository.DeleteAsync(id);

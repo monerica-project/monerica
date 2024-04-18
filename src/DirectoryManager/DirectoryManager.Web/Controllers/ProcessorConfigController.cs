@@ -16,12 +16,14 @@ namespace DirectoryManager.Web.Controllers
             this.repository = repository;
         }
 
+        [Route("processorconfig/create")]
         [HttpGet]
         public IActionResult Create()
         {
             return this.View();
         }
 
+        [Route("processorconfig/create")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ProcessorConfig processorConfigs)
@@ -35,6 +37,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(processorConfigs);
         }
 
+        [Route("processorconfig/edit")]
         [HttpGet]
         public async Task<IActionResult> Edit(PaymentProcessor paymentProcessor)
         {
@@ -47,6 +50,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(processorConfig);
         }
 
+        [Route("processorconfig/edit")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(ProcessorConfig processorConfigs)
@@ -60,6 +64,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(processorConfigs);
         }
 
+        [Route("processorconfig/index")]
         [HttpGet]
         public async Task<IActionResult> Index()
         {

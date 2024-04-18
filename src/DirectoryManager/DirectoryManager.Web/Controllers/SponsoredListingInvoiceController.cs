@@ -24,6 +24,8 @@ namespace DirectoryManager.Web.Controllers
             this.cacheService = cacheService;
         }
 
+        [Route("sponsoredlistinginvoice")]
+        [HttpGet]
         public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
         {
             var (invoices, totalItems) = await this.invoiceRepository.GetPageAsync(page, pageSize);
@@ -38,6 +40,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(invoices);
         }
 
+        [Route("sponsoredlistinginvoice/details")]
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
@@ -70,6 +73,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(sponsoredListingInvoice);
         }
 
+        [Route("sponsoredlistinginvoice/report")]
         [HttpGet]
         public async Task<IActionResult> Report(DateTime? startDate, DateTime? endDate)
         {

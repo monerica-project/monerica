@@ -16,12 +16,14 @@ namespace DirectoryManager.Web.Controllers
             this.repository = repository;
         }
 
+        [Route("sponsoredlistingoffer/index")]
         [HttpGet]
         public async Task<IActionResult> Index()
         {
             return this.View(await this.repository.GetAllAsync());
         }
 
+        [Route("sponsoredlistingoffer/details")]
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
@@ -34,12 +36,14 @@ namespace DirectoryManager.Web.Controllers
             return this.View(sponsoredListingOffer);
         }
 
+        [Route("sponsoredlistingoffer/create")]
         [HttpGet]
         public IActionResult Create()
         {
             return this.View();
         }
 
+        [Route("sponsoredlistingoffer/create")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(SponsoredListingOffer sponsoredListingOffer)
@@ -54,6 +58,8 @@ namespace DirectoryManager.Web.Controllers
             return this.View(sponsoredListingOffer);
         }
 
+        [HttpGet]
+        [Route("sponsoredlistingoffer/edit")]
         public async Task<IActionResult> Edit(int id)
         {
             var sponsoredListingOffer = await this.repository.GetByIdAsync(id);
@@ -65,6 +71,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(sponsoredListingOffer);
         }
 
+        [Route("sponsoredlistingoffer/edit")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, SponsoredListingOffer sponsoredListingOffer)

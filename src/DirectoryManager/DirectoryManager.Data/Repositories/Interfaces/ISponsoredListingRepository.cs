@@ -9,6 +9,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<SponsoredListing?> GetByInvoiceIdAsync(int sponsoredListingInvoiceId);
         Task<IEnumerable<SponsoredListing>> GetAllAsync();
         Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync(SponsorshipType sponsorshipType);
+        Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync();
         Task<int> GetActiveListingsCountAsync(SponsorshipType sponsorshipType, int? subCategoryId);
         Task<DateTime?> GetNextExpirationDate();
         Task<int> GetTotalCountAsync();
@@ -18,6 +19,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<SponsoredListing> CreateAsync(SponsoredListing sponsoredListing);
         Task<bool> UpdateAsync(SponsoredListing sponsoredListing);
         Task DeleteAsync(int sponsoredListingId);
-        Task<bool> IsSponsoredListingActive(int directoryEntryId);
+        Task<bool> IsSponsoredListingActive(int directoryEntryId, SponsorshipType sponsorshipType);
     }
 }
