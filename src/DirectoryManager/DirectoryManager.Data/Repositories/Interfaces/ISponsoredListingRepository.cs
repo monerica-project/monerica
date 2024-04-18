@@ -18,6 +18,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<SponsoredListing> CreateAsync(SponsoredListing sponsoredListing);
         Task<bool> UpdateAsync(SponsoredListing sponsoredListing);
         Task DeleteAsync(int sponsoredListingId);
-        Task<bool> IsSponsoredListingActive(int directoryEntryId);
+        Task<bool> IsSponsoredListingActive(int directoryEntryId, SponsorshipType sponsorshipType);
     }
 }

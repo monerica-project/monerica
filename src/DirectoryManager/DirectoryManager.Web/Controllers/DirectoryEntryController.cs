@@ -115,7 +115,7 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
-        [Route("directoryentry/edit")]
+        [Route("directoryentry/edit/{id}")]
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
@@ -129,7 +129,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(entry);
         }
 
-        [Route("directoryentry/edit")]
+        [Route("directoryentry/edit/{id}")]
         [HttpPost]
         public async Task<IActionResult> Edit(DirectoryEntry entry)
         {

@@ -13,7 +13,7 @@
 
 <h1>@ViewData["Title"]</h1>
 
-<a href="~/sponsoredlisting/selectlisting?rsvId=@ViewBag.ReservationGuid&sponsorshipType=@ViewBag.SponsorshipType&subCategoryId=@ViewBag.SubCategoryId">&lt; back</a>
+<a href="~/sponsoredlisting/selectlisting?sponsorshipType=@ViewBag.SponsorshipType&subCategoryId=@ViewBag.SubCategoryId">&lt; back</a>
 
 <hr />
 
@@ -21,7 +21,6 @@
 
 <form method="post" action="~/sponsoredlisting/selectduration">
     <input name="directoryEntryId" type="hidden" value="@ViewBag.DirectoryEntryId" />
-    <input name="rsvId" type="hidden" value="@ViewBag.ReservationGuid" />
     <div class="form-group">
         <label>Options for @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(ViewBag.SponsorshipType):</label>
         @for (var i = 0; i < offersList.Count; i++)

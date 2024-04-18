@@ -8,6 +8,11 @@ namespace DirectoryManager.Web.Helpers
         {
             subCategoryId ??= 0;
 
+            if (sponsorshipType == SponsorshipType.MainSponsor)
+            {
+                subCategoryId = 0;
+            }
+
             return string.Format("{0}-{1}", sponsorshipType.ToString(), subCategoryId);
         }
     }

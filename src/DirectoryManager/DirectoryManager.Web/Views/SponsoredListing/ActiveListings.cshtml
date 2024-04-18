@@ -1,4 +1,5 @@
 ﻿@model DirectoryManager.Web.Models.ActiveSponsoredListingViewModel
+@using DirectoryManager.Data.Enums
 @using DirectoryManager.Web.Constants;
 @{
     ViewData["Title"] = "Active Sponsored Listings";
@@ -23,7 +24,7 @@
                 <td><a target="_blank" href="@listing.ListingUrl">@listing.ListingName</a></td>
                 <td>@listing.CampaignEndDate.ToString(StringConstants.DateTimeFormat2)</td>
                 <td>
-                    <a href="@Url.Action("selectduration", new { id = listing.DirectoryListingId })">Select</a>
+                    <a href="@Url.Action("selectduration", new { directoryEntryId = listing.DirectoryListingId, sponsorshipType = SponsorshipType.MainSponsor })">Select</a>
                 </td>
             </tr>
         }

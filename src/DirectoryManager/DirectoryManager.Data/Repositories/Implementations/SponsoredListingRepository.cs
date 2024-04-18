@@ -151,7 +151,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return nextExpirationDate; // This will be null if there are no future expirations
         }
 
-        public async Task<bool> IsSponsoredListingActive(int directoryEntryId)
+        public async Task<bool> IsSponsoredListingActive(int directoryEntryId, SponsorshipType sponsorshipType)
         {
             var now = DateTime.UtcNow;
 
@@ -159,7 +159,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                    .SponsoredListings
                                    .Where(x => x.CampaignStartDate <= now &&
                                                 x.CampaignEndDate >= now &&
-                                                x.DirectoryEntryId == directoryEntryId)
+                                                x.DirectoryEntryId == directoryEntryId &&
+                                                x.SponsorshipType == sponsorshipType)
                                    .FirstOrDefaultAsync();
 
             return result != null;
