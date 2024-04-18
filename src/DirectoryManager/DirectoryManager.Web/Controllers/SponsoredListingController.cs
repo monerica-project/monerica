@@ -60,8 +60,6 @@ namespace DirectoryManager.Web.Controllers
         [Route("sponsoredlisting")]
         public async Task<IActionResult> IndexAsync()
         {
-            //todo: show others
-
             var sponsorshipType = SponsorshipType.MainSponsor;
             var reservationGroup = ReservationGroupHelper.CreateReservationGroup(sponsorshipType, 0);
             var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(sponsorshipType);
