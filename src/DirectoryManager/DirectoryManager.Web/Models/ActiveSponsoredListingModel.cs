@@ -1,4 +1,6 @@
-﻿namespace DirectoryManager.Web.Models
+﻿using DirectoryManager.Data.Enums;
+
+namespace DirectoryManager.Web.Models
 {
     public class ActiveSponsoredListingModel
     {
@@ -7,5 +9,6 @@
         required public string ListingName { get; set; }
         public int DirectoryListingId { get; set; }
         required public string ListingUrl { get; set; }
+        public SponsorshipType SponsorshipType { get; set; }
     }
 }

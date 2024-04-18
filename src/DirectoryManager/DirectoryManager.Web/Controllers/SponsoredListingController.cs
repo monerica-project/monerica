@@ -121,7 +121,8 @@ namespace DirectoryManager.Web.Controllers
             {
                 if (subCategoryId != null)
                 {
-                    var totalActiveEntriesInCategory = await this.directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategoryId.Value);
+                    var totalActiveEntriesInCategory = await this.directoryEntryRepository
+                                                                 .GetActiveEntriesByCategoryAsync(subCategoryId.Value);
 
                     this.ViewBag.CanAdvertise =
                             (totalActiveListings >= IntegerConstants.MaxSubCategorySponsoredListings ||
@@ -147,14 +148,14 @@ namespace DirectoryManager.Web.Controllers
         {
             if (sponsorshipType == SponsorshipType.Unknown)
             {
-                return this.BadRequest(new { Error = "Invalid Sponsorship Type." });
+                return this.BadRequest(new { Error = StringConstants.InvalidSponsorshipType });
             }
 
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
 
             if (directoryEntry == null)
             {
-                return this.BadRequest(new { Error = "Invalid selection." });
+                return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
 
             int? subCategoryId = null;
@@ -166,13 +167,13 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(sponsorshipType);
+            var isCurrentSponsor = currentListings?.FirstOrDefault(x => x.DirectoryEntryId == directoryEntryId) != null;
             var totalActiveListings = await this.sponsoredListingRepository
                                                 .GetActiveListingsCountAsync(sponsorshipType, subCategoryId);
             if (currentListings != null)
             {
-                if (!CanAdvertise(sponsorshipType, totalActiveListings))
+                if (!isCurrentSponsor && !CanAdvertise(sponsorshipType, totalActiveListings))
                 {
-                    // max listings
                     return this.BadRequest(new { Error = StringConstants.MaximumNumberOfSponsorsReached });
                 }
             }
@@ -300,14 +301,14 @@ namespace DirectoryManager.Web.Controllers
 
             if (offer == null)
             {
-                return this.BadRequest(new { Error = "Invalid offer." });
+                return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
             }
 
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
 
             if (directoryEntry == null)
             {
-                return this.BadRequest(new { Error = "Invalid selection." });
+                return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
 
             var totalActiveListings = await this.sponsoredListingRepository
@@ -341,8 +342,9 @@ namespace DirectoryManager.Web.Controllers
             var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
             var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(offer.SponsorshipType);
             var viewModel = GetConfirmationModel(offer, directoryEntry, link2Name, link3Name, currentListings);
+            var isCurrentSponsor = currentListings?.FirstOrDefault(x => x.DirectoryEntryId == directoryEntryId) != null;
 
-            if (currentListings != null && currentListings.Any())
+            if (currentListings != null && currentListings.Any() && !isCurrentSponsor)
             {
                 viewModel.CanCreateSponsoredListing = CanAdvertise(offer.SponsorshipType, totalActiveListings);
 
@@ -632,11 +634,17 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [Route("sponsoredlisting/offers")]
         [HttpGet]
-        public async Task<IActionResult> Offers(SponsorshipType sponsorshipType = SponsorshipType.MainSponsor)
+        public async Task<IActionResult> Offers()
         {
-            var offers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(sponsorshipType);
-            var enabledOffers = offers.Where(o => o.IsEnabled);
-            return this.View(enabledOffers);
+            var mainSponsorshipOffers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(SponsorshipType.MainSponsor);
+            var enabledMainSponsorshipOffers = mainSponsorshipOffers.Where(o => o.IsEnabled);
+            this.ViewBag.MainSponsorshipOffers = enabledMainSponsorshipOffers;
+
+            var subCategorySponsorshipOffers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(SponsorshipType.SubCategorySponsor);
+            var enabledsubCategoryOffers = subCategorySponsorshipOffers.Where(o => o.IsEnabled);
+            this.ViewBag.SubCategorySponsorshipOffers = enabledsubCategoryOffers;
+
+            return this.View();
         }
 
         [AllowAnonymous]
@@ -651,17 +659,17 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> ActiveListings()
         {
-            // TODO: have a list of both types
-            var listings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.MainSponsor);
+            var listings = await this.sponsoredListingRepository.GetAllActiveListingsAsync();
             var model = new ActiveSponsoredListingViewModel
             {
-                Items = listings.Select(l => new ActiveSponsoredListingModel
+                Items = listings.Select(listing => new ActiveSponsoredListingModel
                 {
-                    ListingName = l.DirectoryEntry?.Name ?? StringConstants.DefaultName,
-                    SponsoredListingId = l.SponsoredListingId,
-                    CampaignEndDate = l.CampaignEndDate,
-                    ListingUrl = l.DirectoryEntry?.Link ?? string.Empty,
-                    DirectoryListingId = l.DirectoryEntryId
+                    ListingName = listing.DirectoryEntry?.Name ?? StringConstants.DefaultName,
+                    SponsoredListingId = listing.SponsoredListingId,
+                    CampaignEndDate = listing.CampaignEndDate,
+                    ListingUrl = listing.DirectoryEntry?.Link ?? string.Empty,
+                    DirectoryListingId = listing.DirectoryEntryId,
+                    SponsorshipType = listing.SponsorshipType
                 }).ToList()
             };
 

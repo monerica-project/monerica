@@ -1,5 +1,6 @@
 ﻿@model DirectoryManager.Web.Models.ActiveSponsoredListingViewModel
 @using DirectoryManager.Data.Enums
+@using DirectoryManager.Utilities.Helpers;
 @using DirectoryManager.Web.Constants;
 @{
     ViewData["Title"] = "Active Sponsored Listings";
@@ -14,6 +15,7 @@
         <tr>
             <th>Listing Name</th>
             <th>Expires At</th>
+            <th>Sponsorship Type</th>
             <th></th>  <!-- For the select link -->
         </tr>
     </thead>
@@ -23,8 +25,9 @@
             <tr>
                 <td><a target="_blank" href="@listing.ListingUrl">@listing.ListingName</a></td>
                 <td>@listing.CampaignEndDate.ToString(StringConstants.DateTimeFormat2)</td>
+                <td>@EnumHelper.GetDescription(listing.SponsorshipType)</td>
                 <td>
-                    <a href="@Url.Action("selectduration", new { directoryEntryId = listing.DirectoryListingId, sponsorshipType = SponsorshipType.MainSponsor })">Select</a>
+                    <a href="@Url.Action("selectduration", new { directoryEntryId = listing.DirectoryListingId, sponsorshipType = listing.SponsorshipType })">Select</a>
                 </td>
             </tr>
         }

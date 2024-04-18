@@ -20,5 +20,7 @@
         public const string SubmissionAlreadySubmitted = "This submission has already been submitted.";
         public const string MaximumNumberOfSponsorsReached = "Maximum number of sponsored listings reached.";
         public const string InvalidListing = "Invalid listing";
+        public const string InvalidSponsorshipType = "Invalid Sponsorship Type.";
+        public const string InvalidSelection = "Invalid Selection.";
     }
 }

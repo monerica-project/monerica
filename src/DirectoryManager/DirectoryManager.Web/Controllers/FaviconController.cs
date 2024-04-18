@@ -5,7 +5,6 @@ namespace DirectoryManager.Web.Controllers
 {
     public class FaviconController : Controller
     {
-        private const string FavIconPath = "/sitecontent/icons/";
         private const string FavIconAppleIcon57x57 = "apple-icon-57x57.png";
         private const string FavIconAppleIcon60x60 = "apple-icon-60x60.png";
         private const string FavIconAppleIcon72x72 = "apple-icon-72x72.png";
