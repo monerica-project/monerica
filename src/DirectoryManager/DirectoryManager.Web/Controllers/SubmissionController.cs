@@ -74,7 +74,7 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError("Link", "The link is not a valid URL.");
             }
 
-            if (this.ContainsScriptTag(model))
+            if (ContainsScriptTag(model))
             {
                 return this.RedirectToAction("Success", "Submission");
             }
@@ -375,6 +375,29 @@ namespace DirectoryManager.Web.Controllers
             };
         }
 
+        private static bool ContainsScriptTag(SubmissionRequest model)
+        {
+            var properties = model.GetType().GetProperties();
+            foreach (var property in properties)
+            {
+                if (property.PropertyType == typeof(string))
+                {
+                    var value = property.GetValue(model) as string;
+                    if (!string.IsNullOrEmpty(value))
+                    {
+                        var decodedValue = System.Net.WebUtility.HtmlDecode(value);
+                        var normalizedValue = System.Text.RegularExpressions.Regex.Replace(decodedValue, @"\s+", " ").ToLower();
+                        if (normalizedValue.Contains("<script") || normalizedValue.Contains("< script") || normalizedValue.Contains("&lt;script&gt;"))
+                        {
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            return false;
+        }
+
         private async Task<int?> GetExistingListingFromLinkAsync(string link)
         {
             var existingLink = await this.directoryEntryRepository.GetByLinkAsync(link);
@@ -537,29 +560,6 @@ namespace DirectoryManager.Web.Controllers
             subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
 
             this.ViewBag.SubCategories = subCategories;
-        }
-
-        private bool ContainsScriptTag(SubmissionRequest model)
-        {
-            var properties = model.GetType().GetProperties();
-            foreach (var property in properties)
-            {
-                if (property.PropertyType == typeof(string))
-                {
-                    var value = property.GetValue(model) as string;
-                    if (!string.IsNullOrEmpty(value))
-                    {
-                        var decodedValue = System.Net.WebUtility.HtmlDecode(value);
-                        var normalizedValue = System.Text.RegularExpressions.Regex.Replace(decodedValue, @"\s+", " ").ToLower();
-                        if (normalizedValue.Contains("<script") || normalizedValue.Contains("< script") || normalizedValue.Contains("&lt;script&gt;"))
-                        {
-                            return true;
-                        }
-                    }
-                }
-            }
-
-            return false;
         }
 
         private async Task UpdateSubmission(Submission submissionModel, Submission existingSubmission)

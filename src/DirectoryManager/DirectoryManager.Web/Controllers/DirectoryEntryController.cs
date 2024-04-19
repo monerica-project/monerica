@@ -131,9 +131,9 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("directoryentry/edit/{id}")]
         [HttpPost]
-        public async Task<IActionResult> Edit(DirectoryEntry entry)
+        public async Task<IActionResult> Edit(int id, DirectoryEntry entry)
         {
-            var existingEntry = await this.entryRepository.GetByIdAsync(entry.DirectoryEntryId);
+            var existingEntry = await this.entryRepository.GetByIdAsync(id);
 
             if (existingEntry == null)
             {

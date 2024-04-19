@@ -92,6 +92,5 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.DirectoryEntryList = new SelectList(await this.entryRepository.GetAllAsync(), "DirectoryEntryId", "Name");
             return this.View();
         }
-
     }
 }

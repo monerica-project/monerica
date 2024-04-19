@@ -123,10 +123,8 @@ namespace DirectoryManager.Web.Controllers
                                                                  .GetActiveEntriesByCategoryAsync(subCategoryId.Value);
 
                     this.ViewBag.CanAdvertise =
-                            (totalActiveListings >= IntegerConstants.MaxSubCategorySponsoredListings ||
-                            totalActiveEntriesInCategory.Count() < IntegerConstants.MinimumSponsoredActiveSubcategories) ?
-                            false :
-                            true;
+                            totalActiveListings < IntegerConstants.MaxSubCategorySponsoredListings &&
+                            totalActiveEntriesInCategory.Count() >= IntegerConstants.MinimumSponsoredActiveSubcategories;
                 }
             }
 

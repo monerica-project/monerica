@@ -23,10 +23,7 @@ namespace NowPayments.API.Implementations
 
         public NowPaymentsService(NowPaymentConfigs paymentConfigs)
         {
-            if (paymentConfigs == null)
-            {
-                throw new ArgumentNullException(nameof(paymentConfigs));
-            }
+            ArgumentNullException.ThrowIfNull(paymentConfigs);
 
             this.apiKey = paymentConfigs.ApiKey
                 ?? throw new ArgumentNullException(nameof(paymentConfigs.ApiKey));
@@ -75,12 +72,7 @@ namespace NowPayments.API.Implementations
             var responseContent = await response.Content.ReadAsStringAsync();
             var paymentResponse = JsonConvert.DeserializeObject<PaymentResponse>(responseContent);
 
-            if (paymentResponse == null)
-            {
-                throw new InvalidOperationException("Failed to deserialize the payment response.");
-            }
-
-            return paymentResponse;
+            return paymentResponse ?? throw new InvalidOperationException("Failed to deserialize the payment response.");
         }
 
         public bool IsIpnRequestValid(string requestBody, string paymentSignature, out string errorMsg)
@@ -94,7 +86,7 @@ namespace NowPayments.API.Implementations
             {
                 var requestData = JsonConvert.DeserializeObject<Dictionary<string, object>>(requestBody);
 
-                if (requestData != null && requestData.Any())
+                if (requestData != null && requestData.Count != 0)
                 {
                     var sortedRequestData = requestData.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
                     var sortedRequestJson = JsonConvert.SerializeObject(sortedRequestData);
@@ -163,12 +155,7 @@ namespace NowPayments.API.Implementations
                 {
                     var paymentResponse = JsonConvert.DeserializeObject<InvoiceResponse>(content);
 
-                    if (paymentResponse == null)
-                    {
-                        throw new ApiException("The API returned an unexpected response format.");
-                    }
-
-                    return paymentResponse;
+                    return paymentResponse ?? throw new ApiException("The API returned an unexpected response format.");
                 }
                 else
                 {
