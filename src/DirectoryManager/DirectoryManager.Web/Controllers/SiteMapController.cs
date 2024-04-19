@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Repositories.Implementations;
+﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Helpers;
@@ -92,6 +93,42 @@ namespace DirectoryManager.Web.Controllers
             var xml = siteMapHelper.GenerateXml();
 
             return this.Content(xml, "text/xml");
+        }
+
+        [Route("sitemap")]
+        public async Task<IActionResult> SiteMap()
+        {
+            var model = new HtmlSiteMapModel();
+
+            var categories = await this.categoryRepository.GetActiveCategoriesAsync();
+
+            foreach (var category in categories)
+            {
+                var categoryPages = new SectionPage()
+                {
+                    AnchorText = category.Name,
+                    CanonicalUrl = string.Format("{0}/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), category.CategoryKey),
+                };
+
+                var subCategories = await this.subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId);
+
+                foreach (var subCategory in subCategories)
+                {
+                    categoryPages.ChildPages.Add(new SectionPage()
+                    {
+                        AnchorText = subCategory.Name,
+                        CanonicalUrl = string.Format(
+                            "{0}/{1}/{2}",
+                            WebRequestHelper.GetCurrentDomain(this.HttpContext),
+                            category.CategoryKey,
+                            subCategory.SubCategoryKey),
+                    });
+                }
+
+                model.SectionPages.Add(categoryPages);
+            }
+
+            return this.View("Index", model);
         }
     }
 }

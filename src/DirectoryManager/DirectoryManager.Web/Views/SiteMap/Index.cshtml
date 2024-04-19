@@ -1,0 +1,42 @@
+﻿@model DirectoryManager.Web.Models.HtmlSiteMapModel
+@using DirectoryManager.Data.Enums;
+
+@{
+    ViewData["Title"] = "Sitemap";
+}
+
+@if (Model.SectionPages.Count > 0)
+{
+    <section>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <h1 class="main-page-header">Sitemap</h1>
+
+                    <ul>
+                        @foreach (var item in Model.SectionPages)
+                        {
+                            <li>
+                                <a title="@item.AnchorText" href="@item.CanonicalUrl">@item.AnchorText</a>
+
+                                @if (item.HasChildren)
+                                {
+                                    <ul>
+                                        @foreach (var child in item.ChildPages)
+                                        {
+                                            <li>
+                                                <a title="@item.AnchorText - @child.AnchorText" href="@child.CanonicalUrl">@child.AnchorText</a>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            </li>
+                        }
+
+                    </ul>
+                </div>
+            </div>
+
+            </div>
+     </section>
+}
