@@ -22,5 +22,7 @@
         public const string InvalidListing = "Invalid listing";
         public const string InvalidSponsorshipType = "Invalid Sponsorship Type.";
         public const string InvalidSelection = "Invalid Selection.";
+        public const string MetaDescription = "MetaDescription";
+        public const string MetaContent = "MetaContent";
     }
 }

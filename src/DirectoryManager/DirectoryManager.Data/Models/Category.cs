@@ -16,6 +16,9 @@ namespace DirectoryManager.Data.Models
         [MaxLength(255)]
         public string CategoryKey { get; set; } = string.Empty;
 
+        [MaxLength(160)]
+        public string? MetaDescription { get; set; }
+
         [MaxLength(2000)]
         public string? Description { get; set; }
 

@@ -20,6 +20,10 @@
         <input type="text" name="Name" value="@Model.CategoryKey" required />
     </div>
     <div class="form-group">
+        <label asp-for="MetaDescription">Meta Description</label>
+        <input class="input-width" maxlength="160" cols="100" name="MetaDescription" value="@Model.MetaDescription" />
+    </div>
+    <div class="form-group">
         <label asp-for="Note">Description</label>
         <textarea class="input-width" cols="100" asp-for="Description"></textarea>
     </div>
