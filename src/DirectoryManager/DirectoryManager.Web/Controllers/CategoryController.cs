@@ -112,9 +112,9 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("category/edit")]
         [HttpPost]
-        public async Task<IActionResult> Edit(Category category)
+        public async Task<IActionResult> Edit(int id, Category category)
         {
-            var existingCategory = await this.categoryRepository.GetByIdAsync(category.CategoryId);
+            var existingCategory = await this.categoryRepository.GetByIdAsync(id);
 
             if (existingCategory == null)
             {
