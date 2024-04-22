@@ -30,12 +30,20 @@
         <input type="text" name="SubCategoryKey" value="@Model.SubCategoryKey" required />
     </div>
     <div class="form-group">
+        <label asp-for="MetaDescription">Meta Description</label>
+        <input class="input-width" maxlength="160" cols="100" name="MetaDescription" value="@Model.MetaDescription" />
+    </div>
+    <div class="form-group">
         <label asp-for="Note">Description</label>
         <textarea class="input-width" cols="100" asp-for="Description"></textarea>
     </div>
     <div class="form-group">
         <label asp-for="Note">Note</label>
         <textarea class="input-width" cols="100" asp-for="Note"></textarea>
+    </div>
+    <div class="form-group">
+        <label asp-for="PageDetails">Page Details</label>
+        <input class="input-width" maxlength="160" cols="100" name="PageDetails" value="@Model.PageDetails" />
     </div>
     <button type="submit">Update</button>
 </form>

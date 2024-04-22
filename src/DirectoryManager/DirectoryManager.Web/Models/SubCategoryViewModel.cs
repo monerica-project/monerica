@@ -2,9 +2,9 @@
 {
     public class SubCategoryViewModel
     {
-        public string CategoryKey { get; set; }
-        public string Name { get; set; }
-        public string SubCategoryKey { get; set; }
+        required public string CategoryKey { get; set; }
+        required public string Name { get; set; }
+        required public string SubCategoryKey { get; set; }
         public string? Description { get; set; }
         public string SubCategoryRelativePath
         {

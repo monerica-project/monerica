@@ -29,7 +29,7 @@
     <li>Your listing goes live automatically</li>
 </ol>
 
-@if (Model.CanCreateSponsoredListing)
+@if (Model.CanCreateMainListing)
 {
     <br />
     <p>
@@ -43,7 +43,7 @@ else
     {
         @await Html.PartialAsync("_AdSpaceFull", new ListingInventoryModel()
        {
-           CanCreateSponsoredListing = Model.CanCreateSponsoredListing,
+           CanCreateSponsoredListing = Model.CanCreateMainListing,
            NextListingExpiration = Model.NextListingExpiration
        });
 
@@ -54,4 +54,19 @@ else
     {
         <p><i>@Model.Message</i></p>
     }
+}
+
+@if (Model.AvailableSubCatetgories != null && Model.AvailableSubCatetgories.Any())
+{
+    <hr />
+    <p>
+        The following sub categories are available to buy a sponsored listing.
+    </p>
+
+    <ul>
+    @foreach (var item in Model.AvailableSubCatetgories)
+    {
+        <li><a href="~/sponsoredlisting/selectlisting?subCategoryId=@item.Key&sponsorshipType=@SponsorshipType.SubCategorySponsor">@item.Value</a></li>
+    }
+    </ul>
 }

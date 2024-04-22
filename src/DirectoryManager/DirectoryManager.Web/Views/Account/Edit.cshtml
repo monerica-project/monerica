@@ -47,7 +47,7 @@
 
     @foreach (var subCategory in await subCategoryRepository.GetByCategoryAsync(category.CategoryId))
     {
-        <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>  <a href="~/subcategory/edit/@subCategory.SubCategoryId">Edit</a>
+        <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>  <a href="~/subcategory/edit/?id=@subCategory.SubCategoryId">Edit</a>
         <i>@subCategory.Note</i>
 
         <ul>

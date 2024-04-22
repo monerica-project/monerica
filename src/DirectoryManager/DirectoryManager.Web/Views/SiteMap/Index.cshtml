@@ -1,0 +1,50 @@
+﻿@model DirectoryManager.Web.Models.HtmlSiteMapModel
+@using DirectoryManager.Data.Enums;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+
+@{
+    ViewData["Title"] = string.Format("{0}: Sitemap", cacheHelper.GetSnippet(SiteConfigSetting.SiteName));
+}
+
+<h1>Sitemap</h1>
+<hr />
+
+<a href="~/">@cacheHelper.GetSnippet(SiteConfigSetting.SiteName) Home</a>
+ 
+@if (Model.SectionPages.Count > 0)
+{
+    <section>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <ul>
+                        @foreach (var item in Model.SectionPages)
+                        {
+                            <li>
+                                <a title="@item.AnchorText" href="@item.CanonicalUrl">@item.AnchorText</a>
+
+                                @if (item.HasChildren)
+                                {
+                                    <ul>
+                                        @foreach (var child in item.ChildPages)
+                                        {
+                                            <li>
+                                                <a title="@item.AnchorText - @child.AnchorText" href="@child.CanonicalUrl">@child.AnchorText</a>
+                                            </li>
+                                        }
+                                    </ul>
+                                }
+                            </li>
+                        }
+
+                    </ul>
+                </div>
+            </div>
+
+            </div>
+     </section>
+}
+
+<hr />
+
+@await Html.PartialAsync("_SponsoredListingPartial")

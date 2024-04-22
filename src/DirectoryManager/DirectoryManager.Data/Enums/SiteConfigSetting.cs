@@ -7,7 +7,7 @@
         FooterHtml = 2,
         HomePageDisplayHtml = 3,
         PaymentCurrencyMessage = 4,
-        MetaTags = 5,
+        HomePageMetaTags = 5,
         CssHeader = 6,
         DirectoryLegendHtml = 7,
         HomePageTitle = 8,
@@ -21,6 +21,7 @@
         Link3Name = 16,
         ContactHtml = 17,
         SuccessPageHtml = 18,
-        SponsoredListingDetails = 19
+        SponsoredListingDetails = 19,
+        SiteName = 20,
     }
 }

@@ -57,49 +57,67 @@ namespace DirectoryManager.Web.Controllers
             this.logger = logger;
         }
 
+        [Route("advertising")]
         [Route("sponsoredlisting")]
         public async Task<IActionResult> IndexAsync()
         {
-            var sponsorshipType = SponsorshipType.MainSponsor;
-            var reservationGroup = ReservationGroupHelper.CreateReservationGroup(sponsorshipType, 0);
-            var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(sponsorshipType);
+            var mainSponsorType = SponsorshipType.MainSponsor;
+            var mainSponsorReserverationGroup = ReservationGroupHelper.CreateReservationGroup(mainSponsorType, 0);
+            var currentMainSponsorListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(mainSponsorType);
             var model = new SponsoredListingHomeModel();
 
-            if (currentListings != null && currentListings.Any())
+            if (currentMainSponsorListings != null && currentMainSponsorListings.Any())
             {
-                var count = currentListings.Count();
+                var count = currentMainSponsorListings.Count();
 
                 model.CurrentListingCount = count;
 
                 if (count >= IntegerConstants.MaxMainSponsoredListings)
                 {
                     // max listings reached
-                    model.CanCreateSponsoredListing = false;
+                    model.CanCreateMainListing = false;
                 }
                 else
                 {
                     var totalActiveListings = await this.sponsoredListingRepository
-                                                        .GetActiveListingsCountAsync(sponsorshipType, null);
+                                                        .GetActiveListingsCountAsync(mainSponsorType, null);
                     var totalActiveReservations = await this.sponsoredListingReservationRepository
-                                                            .GetActiveReservationsCountAsync(reservationGroup);
+                                                            .GetActiveReservationsCountAsync(mainSponsorReserverationGroup);
 
-                    if (CanPurchaseListing(totalActiveListings, totalActiveReservations, SponsorshipType.MainSponsor))
+                    if (CanPurchaseListing(totalActiveListings, totalActiveReservations, mainSponsorType))
                     {
-                        model.CanCreateSponsoredListing = true;
+                        model.CanCreateMainListing = true;
                     }
                     else
                     {
                         model.Message = StringConstants.CheckoutInProcess;
-                        model.CanCreateSponsoredListing = false;
+                        model.CanCreateMainListing = false;
                     }
                 }
 
                 // Get the next listing expiration date (i.e., the soonest CampaignEndDate)
-                model.NextListingExpiration = currentListings.Min(x => x.CampaignEndDate);
+                model.NextListingExpiration = currentMainSponsorListings.Min(x => x.CampaignEndDate);
             }
             else
             {
-                model.CanCreateSponsoredListing = true;
+                model.CanCreateMainListing = true;
+            }
+
+            var allActiveSubcategories = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync(IntegerConstants.MinimumSponsoredActiveSubcategories);
+            var currentSubCategorySponsorListings = await this.sponsoredListingRepository
+                                                              .GetAllActiveListingsAsync(SponsorshipType.SubCategorySponsor);
+
+            if (currentSubCategorySponsorListings != null)
+            {
+                foreach (var subcategory in allActiveSubcategories)
+                {
+                    if (currentSubCategorySponsorListings.FirstOrDefault(x => x.SubCategoryId == subcategory.SubCategoryId) == null)
+                    {
+                        model.AvailableSubCatetgories.Add(subcategory.SubCategoryId, string.Format("{0} - {1}", subcategory.Category.Name, subcategory.Name));
+                    }
+                }
+
+                model.AvailableSubCatetgories = model.AvailableSubCatetgories.OrderBy(x => x.Value).ToDictionary<int, string>();
             }
 
             return this.View(model);
@@ -123,10 +141,8 @@ namespace DirectoryManager.Web.Controllers
                                                                  .GetActiveEntriesByCategoryAsync(subCategoryId.Value);
 
                     this.ViewBag.CanAdvertise =
-                            (totalActiveListings >= IntegerConstants.MaxSubCategorySponsoredListings ||
-                            totalActiveEntriesInCategory.Count() < IntegerConstants.MinimumSponsoredActiveSubcategories) ?
-                            false :
-                            true;
+                            totalActiveListings < IntegerConstants.MaxSubCategorySponsoredListings &&
+                            totalActiveEntriesInCategory.Count() >= IntegerConstants.MinimumSponsoredActiveSubcategories;
                 }
             }
 

@@ -71,6 +71,7 @@ namespace DirectoryManager.Web.Controllers
                 PageHeader = category.Name,
                 PageTitle = category.Name,
                 Description = category.Description,
+                MetaDescription = category.MetaDescription,
                 Note = category.Note,
                 SubCategoryItems = subCategoryItems,
             };
@@ -87,6 +88,7 @@ namespace DirectoryManager.Web.Controllers
             category.CategoryKey = StringHelpers.UrlKey(category.Name);
             category.Description = category.Description?.Trim();
             category.Note = category.Note?.Trim();
+            category.MetaDescription = category.MetaDescription?.Trim();
 
             await this.categoryRepository.CreateAsync(category);
 
@@ -110,9 +112,9 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("category/edit")]
         [HttpPost]
-        public async Task<IActionResult> Edit(Category category)
+        public async Task<IActionResult> Edit(int id, Category category)
         {
-            var existingCategory = await this.categoryRepository.GetByIdAsync(category.CategoryId);
+            var existingCategory = await this.categoryRepository.GetByIdAsync(id);
 
             if (existingCategory == null)
             {
@@ -133,6 +135,7 @@ namespace DirectoryManager.Web.Controllers
             existingCategory.Description = category.Description?.Trim();
             existingCategory.Note = category.Note?.Trim();
             existingCategory.UpdatedByUserId = this.userManager.GetUserId(this.User);
+            existingCategory.MetaDescription = category.MetaDescription?.Trim();
 
             await this.categoryRepository.UpdateAsync(existingCategory);
 

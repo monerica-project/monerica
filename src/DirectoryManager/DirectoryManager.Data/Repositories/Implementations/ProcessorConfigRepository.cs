@@ -24,8 +24,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             var result = await this.context.ProcessorConfigs.FindAsync(processorConfigId);
 
-            return result == null ?
-                throw new KeyNotFoundException($"ProcessorConfig with id {processorConfigId} not found") : result;
+            return result ?? throw new KeyNotFoundException($"ProcessorConfig with id {processorConfigId} not found");
         }
 
         public async Task CreateAsync(ProcessorConfig processorConfigs)

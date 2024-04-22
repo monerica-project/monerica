@@ -7,10 +7,7 @@ namespace DirectoryManager.Utilities.Helpers
     {
         public static string GetDescription(Enum value)
         {
-            if (value == null)
-            {
-                throw new ArgumentNullException(nameof(value));
-            }
+            ArgumentNullException.ThrowIfNull(value);
 
             FieldInfo? fieldInfo = value.GetType().GetField(value.ToString());
 

@@ -1,5 +1,4 @@
-﻿using DirectoryManager.Data.Repositories.Implementations;
-using DirectoryManager.Data.Repositories.Interfaces;
+﻿using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
@@ -43,6 +42,7 @@ namespace DirectoryManager.Web.Controllers
         {
             var date = this.directoryEntryRepository.GetLastRevisionDate();
             var siteMapHelper = new SiteMapHelper();
+
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
             {
                 Url = WebRequestHelper.GetCurrentDomain(this.HttpContext),
@@ -92,6 +92,42 @@ namespace DirectoryManager.Web.Controllers
             var xml = siteMapHelper.GenerateXml();
 
             return this.Content(xml, "text/xml");
+        }
+
+        [Route("sitemap")]
+        public async Task<IActionResult> SiteMap()
+        {
+            var model = new HtmlSiteMapModel();
+
+            var categories = await this.categoryRepository.GetActiveCategoriesAsync();
+
+            foreach (var category in categories)
+            {
+                var categoryPages = new SectionPage()
+                {
+                    AnchorText = category.Name,
+                    CanonicalUrl = string.Format("{0}/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), category.CategoryKey),
+                };
+
+                var subCategories = await this.subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId);
+
+                foreach (var subCategory in subCategories)
+                {
+                    categoryPages.ChildPages.Add(new SectionPage()
+                    {
+                        AnchorText = subCategory.Name,
+                        CanonicalUrl = string.Format(
+                            "{0}/{1}/{2}",
+                            WebRequestHelper.GetCurrentDomain(this.HttpContext),
+                            category.CategoryKey,
+                            subCategory.SubCategoryKey),
+                    });
+                }
+
+                model.SectionPages.Add(categoryPages);
+            }
+
+            return this.View("Index", model);
         }
     }
 }

@@ -74,6 +74,8 @@ namespace DirectoryManager.Web.Controllers
             subCategory.Name = subCategory.Name.Trim();
             subCategory.Description = subCategory.Description?.Trim();
             subCategory.Note = subCategory.Note?.Trim();
+            subCategory.MetaDescription = subCategory.MetaDescription?.Trim();
+            subCategory.PageDetails = subCategory.PageDetails?.Trim();
 
             await this.subCategoryRepository.CreateAsync(subCategory);
 
@@ -122,6 +124,8 @@ namespace DirectoryManager.Web.Controllers
             existingSubCategory.Description = subCategory.Description?.Trim();
             existingSubCategory.Note = subCategory.Note?.Trim();
             existingSubCategory.UpdatedByUserId = this.userManager.GetUserId(this.User);
+            existingSubCategory.MetaDescription = subCategory.MetaDescription?.Trim();
+            existingSubCategory.PageDetails = subCategory.PageDetails?.Trim();
 
             await this.subCategoryRepository.UpdateAsync(existingSubCategory);
 
@@ -154,6 +158,8 @@ namespace DirectoryManager.Web.Controllers
             {
                 PageHeader = $"{category.Name} > {subCategory.Name}",
                 PageTitle = $"{category.Name} > {subCategory.Name}",
+                MetaDescription = subCategory.MetaDescription,
+                PageDetails = subCategory.PageDetails,
                 Description = subCategory.Description,
                 Note = subCategory.Note,
                 SubCategoryId = subCategory.SubCategoryId,

@@ -1,16 +1,27 @@
 ﻿@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <title>@ViewData["Title"]</title>
+    @if (ViewData[StringConstants.MetaDescription] != null &&
+    !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.MetaDescription])))
+    {
+        <meta name="description" content="@ViewData[StringConstants.MetaDescription]" />
+        <meta name="twitter:description" content="@ViewData[StringConstants.MetaDescription]" />
+    }
+    @if (ViewData[StringConstants.MetaContent] != null &&
+    !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.MetaContent])))
+    {
+        @ViewData[StringConstants.MetaContent]
+    }
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HeaderHtml))
-    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.MetaTags))
     @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.CssHeader))
     </head>
 <body>
