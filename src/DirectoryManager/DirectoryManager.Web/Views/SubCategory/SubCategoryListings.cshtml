@@ -16,13 +16,13 @@
 
 <hr />
 
-<a href="@Model.CategoryRelativePath">&lt; @Model.CategoryName</a>
-<br />
-<br />
+<p>
+    <a href="@Model.CategoryRelativePath">&lt; @Model.CategoryName</a>
+</p>
 
-@if (!string.IsNullOrWhiteSpace(Model.Description))
+@if (!string.IsNullOrWhiteSpace(Model.PageDetails))
 {
-    <p><span>@Model.Description</span></p>
+    <p>@Model.PageDetails</p>
 }
 
 @if (!string.IsNullOrWhiteSpace(Model.Note))

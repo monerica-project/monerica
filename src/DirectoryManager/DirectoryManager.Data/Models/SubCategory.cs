@@ -21,6 +21,9 @@ namespace DirectoryManager.Data.Models
         public string? MetaDescription { get; set; }
 
         [MaxLength(2000)]
+        public string? PageDetails { get; set; }
+
+        [MaxLength(2000)]
         public string? Description { get; set; }
 
         [MaxLength(2000)]

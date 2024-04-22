@@ -29,10 +29,7 @@
     @foreach (var item in Model.SubCategoryItems)
     {
     <li>
-        <a href="@item.SubCategoryRelativePath">@item.Name</a> @if (!string.IsNullOrWhiteSpace(item.Description))
-            {
-                <text>- </text> @item.Description
-            }
+        <a href="@item.SubCategoryRelativePath">@item.Name</a>
     </li>
 }
 </ul>

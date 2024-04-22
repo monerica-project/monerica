@@ -1,6 +1,4 @@
-﻿using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Repositories.Implementations;
-using DirectoryManager.Data.Repositories.Interfaces;
+﻿using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
@@ -44,6 +42,7 @@ namespace DirectoryManager.Web.Controllers
         {
             var date = this.directoryEntryRepository.GetLastRevisionDate();
             var siteMapHelper = new SiteMapHelper();
+
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
             {
                 Url = WebRequestHelper.GetCurrentDomain(this.HttpContext),

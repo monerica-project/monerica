@@ -41,5 +41,9 @@
         <label asp-for="Note">Note</label>
         <textarea class="input-width" cols="100" asp-for="Note"></textarea>
     </div>
+    <div class="form-group">
+        <label asp-for="PageDetails">Page Details</label>
+        <input class="input-width" maxlength="160" cols="100" name="PageDetails" value="@Model.PageDetails" />
+    </div>
     <button type="submit">Update</button>
 </form>
