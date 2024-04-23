@@ -18,6 +18,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubCategoryRepository subCategoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly IDirectoryEntriesAuditRepository auditRepository;
+        private readonly IBlockedIPRepository blockedIPRepository;
         private readonly IMemoryCache cache;
         private readonly ICacheService cacheHelper;
 
@@ -29,6 +30,7 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntriesAuditRepository auditRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
+            IBlockedIPRepository blockedIPRepository,
             IMemoryCache cache,
             ICacheService cacheHelper)
             : base(trafficLogRepository, userAgentCacheService, cache)
@@ -38,6 +40,7 @@ namespace DirectoryManager.Web.Controllers
             this.subCategoryRepository = subCategoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
             this.auditRepository = auditRepository;
+            this.blockedIPRepository = blockedIPRepository;
             this.cache = cache;
             this.cacheHelper = cacheHelper;
         }
@@ -74,7 +77,10 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError("Link", "The link is not a valid URL.");
             }
 
-            if (ContainsScriptTag(model))
+            var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+
+            if (ContainsScriptTag(model) ||
+                this.blockedIPRepository.IsBlockedIp(ipAddress))
             {
                 return this.RedirectToAction("Success", "Submission");
             }

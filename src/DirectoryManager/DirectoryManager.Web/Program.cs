@@ -52,6 +52,7 @@ builder.Services.AddScoped<ISponsoredListingOfferRepository, SponsoredListingOff
 builder.Services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
 builder.Services.AddScoped<IProcessorConfigRepository, ProcessorConfigRepository>();
 builder.Services.AddScoped<IEmailSubscriptionRepository, EmailSubscriptionRepository>();
+builder.Services.AddScoped<IBlockedIPRepository, BlockedIPRepository>();
 
 // services
 builder.Services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();

@@ -27,6 +27,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IMemoryCache cache;
         private readonly ISponsoredListingOfferRepository sponsoredListingOfferRepository;
         private readonly ISponsoredListingReservationRepository sponsoredListingReservationRepository;
+        private readonly IBlockedIPRepository blockedIPRepository;
         private readonly ICacheService cacheService;
         private readonly ILogger<SponsoredListingController> logger;
 
@@ -41,6 +42,7 @@ namespace DirectoryManager.Web.Controllers
             IMemoryCache cache,
             ISponsoredListingOfferRepository sponsoredListings,
             ISponsoredListingReservationRepository sponsoredListingReservationRepository,
+            IBlockedIPRepository blockedIPRepository,
             ICacheService cacheService,
             ILogger<SponsoredListingController> logger)
             : base(trafficLogRepository, userAgentCacheService, cache)
@@ -54,6 +56,7 @@ namespace DirectoryManager.Web.Controllers
             this.sponsoredListingOfferRepository = sponsoredListings;
             this.sponsoredListingReservationRepository = sponsoredListingReservationRepository;
             this.cacheService = cacheService;
+            this.blockedIPRepository = blockedIPRepository;
             this.logger = logger;
         }
 
@@ -381,6 +384,13 @@ namespace DirectoryManager.Web.Controllers
             int selectedOfferId,
             Guid? rsvId = null)
         {
+            var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+
+            if (this.blockedIPRepository.IsBlockedIp(ipAddress))
+            {
+                return this.NotFound();
+            }
+
             var sponsoredListingOffer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
 
             if (sponsoredListingOffer == null)
@@ -433,7 +443,7 @@ namespace DirectoryManager.Web.Controllers
                 startDate = existingListing.CampaignEndDate;
             }
 
-            var invoice = await this.CreateInvoice(directoryEntry, sponsoredListingOffer, startDate);
+            var invoice = await this.CreateInvoice(directoryEntry, sponsoredListingOffer, startDate, ipAddress);
             var invoiceRequest = this.GetInvoiceRequest(sponsoredListingOffer, invoice);
 
             this.paymentService.SetDefaultUrls(invoiceRequest);
@@ -815,7 +825,8 @@ namespace DirectoryManager.Web.Controllers
         private async Task<SponsoredListingInvoice> CreateInvoice(
             DirectoryEntry directoryEntry,
             SponsoredListingOffer sponsoredListingOffer,
-            DateTime startDate)
+            DateTime startDate,
+            string ipAddress)
         {
             return await this.sponsoredListingInvoiceRepository.CreateAsync(
                 new SponsoredListingInvoice
@@ -829,7 +840,8 @@ namespace DirectoryManager.Web.Controllers
                     Amount = sponsoredListingOffer.Price,
                     InvoiceDescription = sponsoredListingOffer.Description,
                     SponsorshipType = sponsoredListingOffer.SponsorshipType,
-                    SubCategoryId = directoryEntry.SubCategoryId
+                    SubCategoryId = directoryEntry.SubCategoryId,
+                    IpAddress = ipAddress
                 });
         }
 

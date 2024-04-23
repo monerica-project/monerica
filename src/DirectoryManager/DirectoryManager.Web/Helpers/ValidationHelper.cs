@@ -3,13 +3,20 @@ using System.Text.RegularExpressions;
 
 namespace DirectoryManager.Web.Helpers
 {
-    public class ValidationHelpers
+    public class ValidationHelper
     {
         public const int TimeOutMilliseconds = 250;
 
         public static bool IsValidEmail(string email)
         {
             if (string.IsNullOrWhiteSpace(email))
+            {
+                return false;
+            }
+
+            email = email.Trim();
+
+            if (email.EndsWith("'"))
             {
                 return false;
             }
