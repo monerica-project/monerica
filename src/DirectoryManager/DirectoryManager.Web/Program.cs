@@ -128,6 +128,8 @@ app.UseRewriter(options);
 // Configure middleware in the HTTP request pipeline.
 app.UseStaticFiles(); // Use static files
 
+app.UseStatusCodePagesWithRedirects("/errors/{0}");
+
 app.UseRouting();
 
 app.UseAuthentication();
