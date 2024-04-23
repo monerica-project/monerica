@@ -10,5 +10,8 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<BlockedIP> CreateAsync(BlockedIP model);
 
         bool IsBlockedIp(string ipAddress);
+
+        Task<IEnumerable<BlockedIP>> GetAllAsync();
+        Task DeleteAsync(int id);
     }
 }

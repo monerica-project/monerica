@@ -2,6 +2,7 @@
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Data.Repositories.Implementations
 {
@@ -29,6 +30,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
+        public async Task<IEnumerable<BlockedIP>> GetAllAsync()
+        {
+            return await this.Context.BlockedIPs.ToListAsync();
+        }
+
         public void Dispose()
         {
             this.Context.Dispose();
@@ -45,6 +51,20 @@ namespace DirectoryManager.Data.Repositories.Implementations
             catch (Exception ex)
             {
                 throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
+            }
+        }
+
+        public async Task DeleteAsync(int id)
+        {
+            var blockedIP = await this.Context.BlockedIPs.FindAsync(id);
+            if (blockedIP != null)
+            {
+                this.Context.BlockedIPs.Remove(blockedIP);
+                await this.Context.SaveChangesAsync();
+            }
+            else
+            {
+                throw new Exception("Blocked IP not found");
             }
         }
     }
