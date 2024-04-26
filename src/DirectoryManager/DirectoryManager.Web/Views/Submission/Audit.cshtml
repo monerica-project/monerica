@@ -77,9 +77,16 @@ ViewData["Title"] = "Audit: " + @firstOrDefault.DirectoryEntryId;
 <hr />
 <h3>Current View Of Listing</h3>
 
-<ul>
-    @await Html.PartialAsync("_DirectoryEntryPartial", (DirectoryEntryViewModel)ViewBag.SelectedDirectoryEntry)
-</ul>
+@if (((DirectoryEntryViewModel)ViewBag.SelectedDirectoryEntry).DirectoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Removed)
+{
+    <i>Removed</i>
+}
+else 
+{
+    <ul>
+        @await Html.PartialAsync("_DirectoryEntryPartial", (DirectoryEntryViewModel)ViewBag.SelectedDirectoryEntry)
+    </ul>
+}
 <hr />
 
 @await Html.PartialAsync("_SponsoredListingPartial")
