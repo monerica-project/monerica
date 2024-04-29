@@ -52,6 +52,7 @@ builder.Services.AddScoped<ISponsoredListingOfferRepository, SponsoredListingOff
 builder.Services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
 builder.Services.AddScoped<IProcessorConfigRepository, ProcessorConfigRepository>();
 builder.Services.AddScoped<IEmailSubscriptionRepository, EmailSubscriptionRepository>();
+builder.Services.AddScoped<IBlockedIPRepository, BlockedIPRepository>();
 
 // services
 builder.Services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
@@ -126,6 +127,8 @@ app.UseRewriter(options);
 
 // Configure middleware in the HTTP request pipeline.
 app.UseStaticFiles(); // Use static files
+
+app.UseStatusCodePagesWithRedirects("/errors/{0}");
 
 app.UseRouting();
 

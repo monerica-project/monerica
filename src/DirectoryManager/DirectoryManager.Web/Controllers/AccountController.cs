@@ -32,11 +32,14 @@ namespace DirectoryManager.Web.Controllers
             this.submissionRepository = submissionRepository;
         }
 
+        [HttpGet]
+        [Route("account/login")]
         public IActionResult Login()
         {
             return this.View();
         }
 
+        [Route("account/login")]
         [HttpPost]
         public async Task<IActionResult> Login(string username, string password, bool rememberMe)
         {

@@ -42,6 +42,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<EmailSubscription> EmailSubscriptions { get; set; }
 
+        public DbSet<BlockedIP> BlockedIPs { get; set; }
+
         int SaveChanges();
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

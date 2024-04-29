@@ -21,7 +21,8 @@
         Link3Name = 16,
         ContactHtml = 17,
         SuccessPageHtml = 18,
-        SponsoredListingDetails = 19,
+        MainSponsoredListingDetails = 19,
         SiteName = 20,
+        SubCategorySponsoredListingDetails = 21,
     }
 }

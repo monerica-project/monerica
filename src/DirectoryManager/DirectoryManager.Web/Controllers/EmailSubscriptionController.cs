@@ -8,11 +8,14 @@ namespace DirectoryManager.Web.Controllers
     public class EmailSubscriptionController : Controller
     {
         private readonly IEmailSubscriptionRepository emailSubscriptionRepository;
+        private readonly IBlockedIPRepository blockedIPRepository;
 
         public EmailSubscriptionController(
-            IEmailSubscriptionRepository emailSubscriptionRepository)
+            IEmailSubscriptionRepository emailSubscriptionRepository,
+            IBlockedIPRepository blockedIPRepository)
         {
             this.emailSubscriptionRepository = emailSubscriptionRepository;
+            this.blockedIPRepository = blockedIPRepository;
         }
 
         [Route("newsletter")]
@@ -28,7 +31,11 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost]
         public IActionResult Subscribe(EmailSubscribeModel model)
         {
-            if (!this.ModelState.IsValid || !ValidationHelpers.IsValidEmail(model.Email))
+            var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+
+            if (!this.ModelState.IsValid ||
+                !ValidationHelper.IsValidEmail(model.Email) ||
+                this.blockedIPRepository.IsBlockedIp(ipAddress))
             {
                 return this.BadRequest("Invalid email");
             }

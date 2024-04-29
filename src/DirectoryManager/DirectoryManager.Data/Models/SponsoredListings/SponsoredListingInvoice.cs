@@ -65,6 +65,9 @@ namespace DirectoryManager.Data.Models.SponsoredListings
 
         public int? SubCategoryId { get; set; }
 
+        [MaxLength(255)]
+        public string? IpAddress { get; set; }
+
         public virtual DirectoryEntry? DirectoryEntry { get; set; }
 
         public virtual SponsoredListing? SponsoredListing { get; set; }

@@ -1,6 +1,5 @@
 ﻿@model DirectoryManager.Data.Models.Category
 
-
 @{
     ViewData["Title"] = "Create Category";
 }
@@ -20,7 +19,7 @@
     </div>
     <div class="form-group">
         <label asp-for="MetaDescription">Meta Description</label>
-        <input class="input-width" maxlength="160" cols="100" name="MetaDescription" value="@Model.MetaDescription" />
+        <input class="input-width" maxlength="160" cols="100" name="MetaDescription" />
     </div>
     <div class="form-group">
         <label asp-for="Description">Description:</label>
@@ -38,4 +37,3 @@
         <button type="submit" class="btn btn-primary">Create</button>
     </div>
 </form>
- 

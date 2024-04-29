@@ -48,6 +48,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<EmailSubscription> EmailSubscriptions { get; set; }
 
+        public DbSet<BlockedIP> BlockedIPs { get; set; }
+
         public override int SaveChanges()
         {
             this.SetDates();
