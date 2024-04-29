@@ -13,7 +13,7 @@
             {
                 var response = await client.GetAsync(uri);
 
-                if (response.IsSuccessStatusCode)
+                if (response.IsSuccessStatusCode || ((int)response.StatusCode > 400))
                 {
                     return true;
                 }
@@ -35,6 +35,22 @@
             catch (TaskCanceledException)
             {
                 // Handle the task cancellation, e.g., log it if needed.
+                return false;
+            }
+        }
+
+        public static bool IsWebPageOnlinePing(Uri uri)
+        {
+            try
+            {
+                var ping = new System.Net.NetworkInformation.Ping();
+
+                var result = ping.Send(uri.Host);
+
+                return result.Status == System.Net.NetworkInformation.IPStatus.Success;
+            }
+            catch
+            {
                 return false;
             }
         }

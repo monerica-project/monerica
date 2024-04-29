@@ -54,6 +54,11 @@ if (choice == "1")
 
         var isOnline = await WebPageChecker.IsWebPageOnlineAsync(new Uri(entry.Link));
 
+        if (!isOnline)
+        {
+            isOnline = WebPageChecker.IsWebPageOnlinePing(new Uri(entry.Link));
+        }
+
         Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : "offline")}");
 
         if (!isOnline)
