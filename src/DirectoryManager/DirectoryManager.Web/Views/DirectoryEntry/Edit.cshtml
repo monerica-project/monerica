@@ -26,6 +26,11 @@
 <hr />
 <a href="@Url.Action("EntryAudits", "DirectoryEntry", new { entryId = Model.DirectoryEntryId })">View History</a>
 
+<br />
+<a target="_blank" href="@Model.Link">@Model.Link</a>
+<br />
+<br />
+
 <form method="post">
     <input type="hidden" value="@Model.DirectoryEntryId" name="DirectoryEntryId" />
     <div class="form-group">
