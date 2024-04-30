@@ -46,7 +46,7 @@
         <p class="create-sponsored-listing">
            @if (DirectoryManager.Web.Constants.IntegerConstants.MaxMainSponsoredListings > sponsoredListings.Count())
             {
-                <a href="~/sponsoredlisting">Advertise here</a>
+                <a href="~/sponsoredlisting/selectlisting?sponsorshipType=@SponsorshipType.MainSponsor">Advertise here</a>
                 <span>(@(DirectoryManager.Web.Constants.IntegerConstants.MaxMainSponsoredListings-sponsoredListings.Count()) available)</span>
             }
             else

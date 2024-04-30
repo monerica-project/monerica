@@ -4,7 +4,6 @@ namespace DirectoryManager.Web.Controllers
 {
     public class ErrorsController : Controller
     {
-
         public ErrorsController()
         {
         }
