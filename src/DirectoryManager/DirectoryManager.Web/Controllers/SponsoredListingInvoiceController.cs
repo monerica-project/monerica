@@ -78,16 +78,18 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Report(DateTime? startDate, DateTime? endDate)
         {
             var now = DateTime.UtcNow;
-            var modelStartDate = startDate ?? now.AddDays(-30);
-            var modelEndDate = endDate ?? now;
+            var modelStartDate = startDate?.Date ?? now.AddDays(-30).Date;
+            var modelEndDate = endDate?.Date ?? now.Date;
+            var startOfDayUtc = new DateTime(modelStartDate.Year, modelStartDate.Month, modelStartDate.Day, 0, 0, 0, DateTimeKind.Utc);
+            var endOfDayUtc = new DateTime(modelEndDate.Year, modelEndDate.Month, modelEndDate.Day, 23, 59, 59, DateTimeKind.Utc);
 
             var model = new InvoiceQueryViewModel
             {
-                StartDate = modelStartDate,
-                EndDate = modelEndDate
+                StartDate = startOfDayUtc,
+                EndDate = endOfDayUtc
             };
 
-            var result = await this.invoiceRepository.GetTotalsPaidAsync(modelStartDate, modelEndDate);
+            var result = await this.invoiceRepository.GetTotalsPaidAsync(model.StartDate, model.EndDate);
             model.TotalPaidAmount = result.TotalReceivedAmount;
             model.Currency = result.Currency;
             model.TotalAmount = result.TotalAmount;
