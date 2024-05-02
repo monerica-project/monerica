@@ -1,7 +1,8 @@
-﻿@{
-    ViewData["Title"] = "Join Email Newsletter";
+﻿@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Join Email Newsletter";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <form asp-controller="EmailSubscription" asp-action="Subscribe" method="post" class="form-inline">
 

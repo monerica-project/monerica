@@ -1,13 +1,13 @@
 ﻿@using DirectoryManager.Data.Models
 @using DirectoryManager.Data.Enums
 @model DirectoryEntry
-
+@using DirectoryManager.Web.Constants;
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 @{
-    ViewData["Title"] = "Create Diretory Entry";
+    ViewData[StringConstants.TitleHeader] = "Create Diretory Entry";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @{
     IEnumerable<SelectListItem> GetSelectListItemsForDirectoryStatus()

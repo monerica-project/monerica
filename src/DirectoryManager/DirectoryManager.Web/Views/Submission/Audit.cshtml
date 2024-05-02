@@ -9,10 +9,10 @@
         return;
     }
 
-ViewData["Title"] = "Audit: " + @firstOrDefault.DirectoryEntryId;
+ViewData[StringConstants.TitleHeader] = "Audit: " + @firstOrDefault.DirectoryEntryId;
 
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @{
     if (firstOrDefault  != null)

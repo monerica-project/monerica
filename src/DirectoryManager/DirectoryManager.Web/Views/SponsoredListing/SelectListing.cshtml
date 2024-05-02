@@ -1,10 +1,10 @@
 ﻿@using DirectoryManager.Data.Models
 @model IEnumerable<DirectoryEntry>
-
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Select Sponsored Listing";
+    ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <a href="~/sponsoredlisting">&lt; back</a>
 <hr />

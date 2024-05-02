@@ -1,10 +1,10 @@
 ﻿@model DirectoryManager.Web.Models.InvoiceQueryViewModel
 @using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Sponsored Listing Invoice Report";
+    ViewData[StringConstants.TitleHeader] = "Sponsored Listing Invoice Report";
 }
 
-<h2>@ViewData["Title"]</h2>
+<h2>@ViewData[StringConstants.TitleHeader]</h2>
 
 @await Html.PartialAsync("_AdminMenu")
 

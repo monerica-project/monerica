@@ -1,9 +1,9 @@
 ﻿@using DirectoryManager.Web.Constants;
 @model DirectoryManager.Web.Models.TrafficReportViewModel
 @{
-    ViewData["Title"] = "Traffic Report";
+    ViewData[StringConstants.TitleHeader] = "Traffic Report";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 <hr />

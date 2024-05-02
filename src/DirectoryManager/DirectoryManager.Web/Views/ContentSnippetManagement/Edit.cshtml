@@ -1,9 +1,10 @@
 ﻿@model DirectoryManager.Web.Models.ContentSnippet.ContentSnippetEditModel
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Edit Snippet";
+    ViewData[StringConstants.TitleHeader] = "Edit Snippet";
 }
 
-<h2>@ViewData["Title"]</h2>
+<h2>@ViewData[StringConstants.TitleHeader]</h2>
 
 @await Html.PartialAsync("_AdminMenu")
 

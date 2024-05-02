@@ -1,8 +1,9 @@
-﻿@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+﻿@using DirectoryManager.Web.Constants;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @{
-    ViewData["Title"] = "Contact";
+    ViewData[StringConstants.TitleHeader] = "Contact";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_BackToHome")
 <hr />

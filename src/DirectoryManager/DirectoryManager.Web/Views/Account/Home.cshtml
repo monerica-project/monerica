@@ -1,8 +1,9 @@
 ﻿@model DirectoryManager.Web.Models.LoginViewModel
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Admin home";
+    ViewData[StringConstants.TitleHeader] = "Admin home";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
  
 <hr />
 <i>Signed in as: </i> @User?.Identity?.Name

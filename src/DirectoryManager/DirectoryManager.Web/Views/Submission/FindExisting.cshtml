@@ -1,10 +1,10 @@
 ﻿@using DirectoryManager.Data.Models
 @model IEnumerable<DirectoryEntry>
-
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Current Listings";
+    ViewData[StringConstants.TitleHeader] = "Current Listings";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
  
 @await Html.PartialAsync("_BackToHome")<text> | </text><a href="~/submit">create new listing</a>
 <hr />

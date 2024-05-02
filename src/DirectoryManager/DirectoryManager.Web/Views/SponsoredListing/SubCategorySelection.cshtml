@@ -1,10 +1,11 @@
 ﻿@using DirectoryManager.Data.Models
+@using DirectoryManager.Web.Constants;
 @model IEnumerable<DirectoryEntry>
 
 @{
-    ViewData["Title"] = "Select Sponsored Listing";
+    ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
 

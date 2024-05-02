@@ -1,8 +1,9 @@
 ﻿@model IEnumerable<DirectoryManager.Data.Models.DirectoryEntriesAudit>
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Directory Entry Audits";
+    ViewData[StringConstants.TitleHeader] = "Directory Entry Audits";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

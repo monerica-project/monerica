@@ -1,11 +1,11 @@
 ﻿@using DirectoryManager.Data.Models
 @model IEnumerable<SubCategory>
-
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Sub Categories";
+    ViewData[StringConstants.TitleHeader] = "Sub Categories";
 }
 
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 @await Html.PartialAsync("_AdminMenu")
 
 <hr />

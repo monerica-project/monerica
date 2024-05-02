@@ -1,9 +1,10 @@
 ﻿@model DirectoryManager.Web.Models.HtmlSiteMapModel
 @using DirectoryManager.Data.Enums;
+@using DirectoryManager.Web.Constants;
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 
 @{
-    ViewData["Title"] = string.Format("{0}: Sitemap", cacheHelper.GetSnippet(SiteConfigSetting.SiteName));
+    ViewData[StringConstants.TitleHeader] = string.Format("{0}: Sitemap", cacheHelper.GetSnippet(SiteConfigSetting.SiteName));
 }
 
 <h1>Sitemap</h1>

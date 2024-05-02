@@ -2,10 +2,10 @@
 @model DirectoryManager.Web.Models.PaginatedListingsViewModel
  
 @{
-    ViewData["Title"] = "Sponsored Listings";
+    ViewData[StringConstants.TitleHeader] = "Sponsored Listings";
 }
 
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

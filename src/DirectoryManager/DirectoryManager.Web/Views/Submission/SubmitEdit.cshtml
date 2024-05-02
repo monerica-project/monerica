@@ -4,10 +4,10 @@
 @using DirectoryManager.Web.Constants
 @{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
-    ViewData["Title"] = "Edit Listing";
+    ViewData[StringConstants.TitleHeader] = "Edit Listing";
     ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
  
 <a href="~/submission/findexisting">&lt; find listing to edit</a>
 <hr />

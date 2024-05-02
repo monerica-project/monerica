@@ -1,9 +1,9 @@
 ﻿@model DirectoryManager.Web.Models.EmailSubscribeEditListModel
- 
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Emails";
+    ViewData[StringConstants.TitleHeader] = "Emails";
 }
- <h2>@ViewData["Title"]</h2>
+ <h2>@ViewData[StringConstants.TitleHeader]</h2>
  
 @await Html.PartialAsync("_AdminMenu")
 

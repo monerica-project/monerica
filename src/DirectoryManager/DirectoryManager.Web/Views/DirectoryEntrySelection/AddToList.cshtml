@@ -1,9 +1,9 @@
 ﻿@model DirectoryManager.Data.Models.DirectoryEntrySelection
-
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Add To List";
+    ViewData[StringConstants.TitleHeader] = "Add To List";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

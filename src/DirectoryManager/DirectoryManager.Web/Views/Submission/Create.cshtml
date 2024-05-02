@@ -1,11 +1,12 @@
 ﻿@model DirectoryManager.Web.Models.SubmissionRequest
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Create Submission";
+    ViewData[StringConstants.TitleHeader] = "Create Submission";
 }
 
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_BackToHome")
 

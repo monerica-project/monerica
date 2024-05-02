@@ -1,10 +1,10 @@
 ﻿@using DirectoryManager.Data.Models
 @model IEnumerable<DirectoryEntry>
- 
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Directory Entries";
+    ViewData[StringConstants.TitleHeader] = "Directory Entries";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 <hr />

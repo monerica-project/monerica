@@ -4,10 +4,10 @@
 @using DirectoryManager.Data.Enums
 @{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
-    ViewData["Title"] = "Edit Submission";
+    ViewData[StringConstants.TitleHeader] = "Edit Submission";
     ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
  
 @await Html.PartialAsync("_AdminMenu")
 <hr />

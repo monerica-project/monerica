@@ -6,12 +6,12 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 
 @{
-    ViewData["Title"] = "Select Listing Duration";
+    ViewData[StringConstants.TitleHeader] = "Select Listing Duration";
     var offersList = Model.ToList();
     int defaultChoiceIndex = 0;
 }
 
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <a href="~/sponsoredlisting/selectlisting?sponsorshipType=@ViewBag.SponsorshipType&subCategoryId=@ViewBag.SubCategoryId">&lt; back</a>
 

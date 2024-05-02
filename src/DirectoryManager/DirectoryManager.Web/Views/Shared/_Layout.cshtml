@@ -4,7 +4,7 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>@ViewData["Title"]</title>
+    <title>@ViewData[StringConstants.TitleHeader]</title>
     @if (ViewData[StringConstants.MetaDescription] != null &&
     !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.MetaDescription])))
     {
