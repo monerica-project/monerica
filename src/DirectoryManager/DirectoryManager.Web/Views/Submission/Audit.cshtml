@@ -9,7 +9,7 @@
         return;
     }
 
-ViewData[StringConstants.TitleHeader] = "Audit: " + @firstOrDefault.DirectoryEntryId;
+    ViewData[StringConstants.TitleHeader] = string.Format("{0} - Audit: {1}", firstOrDefault.Name, @firstOrDefault.DirectoryEntryId);
 
 }
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
