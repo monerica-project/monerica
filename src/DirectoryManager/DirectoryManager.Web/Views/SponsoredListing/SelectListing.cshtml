@@ -1,9 +1,17 @@
-﻿@using DirectoryManager.Data.Models
+﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models
 @model IEnumerable<DirectoryEntry>
 @using DirectoryManager.Web.Constants;
-@{
+
+@if (ViewBag.SponsorshipType == SponsorshipType.SubCategorySponsor)
+{
+    ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing: " + Context.Request.Query["subCategoryId"];
+}
+else
+{
     ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing";
 }
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <a href="~/sponsoredlisting">&lt; back</a>
@@ -39,7 +47,7 @@ else
     {
         <div>
             <a target="_blank" href="@entry.Link">@entry.Name</a> <text> - </text>
-            <a href="@Url.Action("selectduration", new { 
+            <a rel="nofollow" href="@Url.Action("selectduration", new { 
                 directoryEntryId = entry.DirectoryEntryId,
                 sponsorshipType = ViewBag.SponsorshipType })">Select</a>
         </div>
