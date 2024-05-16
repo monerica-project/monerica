@@ -8,8 +8,8 @@
     @if (ViewData[StringConstants.MetaDescription] != null &&
     !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.MetaDescription])))
     {
-        <meta name="description" content="@ViewData[StringConstants.MetaDescription]" />
-        <meta name="twitter:description" content="@ViewData[StringConstants.MetaDescription]" />
+    <meta name="description" content="@ViewData[StringConstants.MetaDescription]" />
+    <meta name="twitter:description" content="@ViewData[StringConstants.MetaDescription]" />
     }
     @if (ViewData[StringConstants.MetaContent] != null &&
     !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.MetaContent])))
@@ -24,7 +24,7 @@
     @if (ViewData[StringConstants.CanonicalUrl] != null &&
     !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.CanonicalUrl])))
     {
-        <link rel="canonical" href="@ViewData[StringConstants.CanonicalUrl]" />
+    <link rel="canonical" href="@ViewData[StringConstants.CanonicalUrl]" />
     }
     @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HeaderHtml))
     @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.CssHeader))
