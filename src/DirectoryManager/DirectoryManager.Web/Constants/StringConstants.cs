@@ -26,5 +26,6 @@
         public const string MetaContent = "MetaContent";
         public const string MetaTagNoIndex = @"<meta name=""robots"" content=""noindex"">";
         public const string TitleHeader = "Title";
+        public const string CanonicalUrl = "CanonicalUrl";
     }
 }
