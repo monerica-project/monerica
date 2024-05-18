@@ -10,10 +10,10 @@
 <hr />
 
 <form method="get">
-    <label for="combinedFilter">Category > Sub Category: </label>
+    <label for="combinedFilter">Category > Subcategory: </label>
     <select id="combinedFilter" name="subCategoryId">
         <option value="">--Select a Category > SubCategory--</option>
-        @foreach (var subCategory in (IEnumerable<SubCategory>)ViewBag.SubCategories)
+        @foreach (var subCategory in (IEnumerable<Subcategory>)ViewBag.SubCategories)
         {
             <option value="@subCategory.SubCategoryId">@subCategory.Category.Name > @subCategory.Name</option>
         }

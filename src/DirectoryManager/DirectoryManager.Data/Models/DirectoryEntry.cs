@@ -42,7 +42,7 @@ namespace DirectoryManager.Data.Models
         [MaxLength(75)]
         public string? Contact { get; set; }
 
-        public virtual SubCategory? SubCategory { get; set; }
+        public virtual Subcategory? SubCategory { get; set; }
 
         public int? SubCategoryId { get; set; }
 

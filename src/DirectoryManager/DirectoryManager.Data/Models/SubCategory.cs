@@ -4,7 +4,7 @@ using DirectoryManager.Data.Models.BaseModels;
 
 namespace DirectoryManager.Data.Models
 {
-    public class SubCategory : UserStateInfo
+    public class Subcategory : UserStateInfo
     {
         [Key]
         public int SubCategoryId { get; set; }

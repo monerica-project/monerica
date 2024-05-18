@@ -6,6 +6,6 @@ namespace DirectoryManager.Web.Models
     {
         required public IList<Category> Categetories { get; set; }
 
-        required public IList<SubCategory> SubCategetories { get; set; }
+        required public IList<Subcategory> SubCategetories { get; set; }
     }
 }

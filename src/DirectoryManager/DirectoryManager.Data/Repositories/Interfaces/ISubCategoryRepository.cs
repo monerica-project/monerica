@@ -4,16 +4,16 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 {
     public interface ISubCategoryRepository
     {
-        Task<IEnumerable<SubCategory>> GetAllAsync();
-        Task<IEnumerable<SubCategory>> GetAllActiveSubCategoriesAsync();
-        Task<IEnumerable<SubCategory>> GetAllActiveSubCategoriesAsync(int minimumInSubCategory);
+        Task<IEnumerable<Subcategory>> GetAllAsync();
+        Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync();
+        Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync(int minimumInSubCategory);
 
-        Task<SubCategory?> GetByIdAsync(int subCategoryId);
-        Task<SubCategory?> GetByCategoryIdAndKeyAsync(int categoryId, string subCategoryKey);
-        Task CreateAsync(SubCategory subCategory);
-        Task UpdateAsync(SubCategory subCategory);
+        Task<Subcategory?> GetByIdAsync(int subCategoryId);
+        Task<Subcategory?> GetByCategoryIdAndKeyAsync(int categoryId, string subCategoryKey);
+        Task CreateAsync(Subcategory subCategory);
+        Task UpdateAsync(Subcategory subCategory);
         Task DeleteAsync(int subCategoryId);
-        Task<IEnumerable<SubCategory>> GetByCategoryAsync(int categoryId);
-        Task<IEnumerable<SubCategory>> GetActiveSubCategoriesAsync(int categoryId);
+        Task<IEnumerable<Subcategory>> GetByCategoryAsync(int categoryId);
+        Task<IEnumerable<Subcategory>> GetActiveSubCategoriesAsync(int categoryId);
     }
 }

@@ -23,8 +23,8 @@ else
     <input name="sponsorshipType" type="hidden" value="@ViewBag.SponsorshipType" />
     <label for="combinedFilter">Select: </label>
     <select id="combinedFilter" name="subCategoryId">
-        <option value="">--Category > Sub Category--</option>
-        @foreach (var subCategory in (IEnumerable<SubCategory>)ViewBag.SubCategories)
+        <option value="">--Category > Subcategory--</option>
+        @foreach (var subCategory in (IEnumerable<Subcategory>)ViewBag.SubCategories)
         {
             <option value="@subCategory.SubCategoryId" selected="@(Context.Request.Query["subCategoryId"] == 
             subCategory.SubCategoryId.ToString() ? "selected" : null)">@subCategory.Category.Name > @subCategory.Name</option>
@@ -39,7 +39,7 @@ else
 
 @if (ViewBag.CanAdvertise != null && ViewBag.CanAdvertise == false)
 {
-    <i>There is no available ad space for this sub catetgory. Select another sub category.</i>
+    <i>There is no available ad space for this sub catetgory. Select another Subcategory.</i>
 }
 else
 {

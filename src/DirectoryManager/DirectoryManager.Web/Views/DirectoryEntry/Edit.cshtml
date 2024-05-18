@@ -6,7 +6,7 @@
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 @{
-    var orderedSubCategories = ((IEnumerable<SubCategory>)ViewBag.SubCategories)
+    var orderedSubCategories = ((IEnumerable<Subcategory>)ViewBag.SubCategories)
                                     .OrderBy(sc => sc.Category.Name)
                                     .ThenBy(sc => sc.Name)
                                     .Select(sc => new
@@ -38,7 +38,7 @@
         <select asp-for="DirectoryStatus" asp-items="Html.GetEnumSelectList<DirectoryStatus>()"></select>
     </div>
     <div class="form-group">
-        <label asp-for="SubCategoryId">Sub Category</label>
+        <label asp-for="SubCategoryId">Subcategory</label>
         <select asp-for="SubCategoryId" asp-items="@(new SelectList(orderedSubCategories, "SubCategoryId", "DisplayName"))" required></select>
     </div>
     <div class="form-group">

@@ -29,7 +29,7 @@
 <form method="post">
 
     <div class="form-group">
-        <label asp-for="SubCategoryId">Sub Category</label>
+        <label asp-for="SubCategoryId">Subcategory</label>
         <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "SubCategoryId", "DisplayName"))" required></select>
     </div>
 

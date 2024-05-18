@@ -14,7 +14,7 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<Category> Categories { get; set; }
 
-        public DbSet<SubCategory> SubCategories { get; set; }
+        public DbSet<Subcategory> SubCategories { get; set; }
 
         public DbSet<DirectoryEntry> DirectoryEntries { get; set; }
 
@@ -77,7 +77,7 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasIndex(e => e.CategoryKey)
                    .IsUnique();
 
-            builder.Entity<SubCategory>()
+            builder.Entity<Subcategory>()
                    .HasIndex(e => new { e.SubCategoryKey, e.CategoryId })
                    .IsUnique();
 

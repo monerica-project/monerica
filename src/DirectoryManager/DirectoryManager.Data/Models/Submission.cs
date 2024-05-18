@@ -46,7 +46,7 @@ namespace DirectoryManager.Data.Models
 
         public int? SubCategoryId { get; set; }
 
-        public SubCategory? SubCategory { get; set; }
+        public Subcategory? SubCategory { get; set; }
 
         [MaxLength(255)]
         public string? SuggestedSubCategory { get; set; }

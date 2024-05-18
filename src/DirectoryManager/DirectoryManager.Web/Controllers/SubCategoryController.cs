@@ -42,7 +42,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Index(int? categoryId = null)
         {
-            IEnumerable<SubCategory> subCategories;
+            IEnumerable<Subcategory> subCategories;
 
             if (categoryId.HasValue)
             {
@@ -69,7 +69,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("subcategory/create")]
         [HttpPost]
-        public async Task<IActionResult> Create(SubCategory subCategory)
+        public async Task<IActionResult> Create(Subcategory subCategory)
         {
             subCategory.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
             subCategory.SubCategoryKey = StringHelpers.UrlKey(subCategory.Name);
@@ -102,7 +102,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("subcategory/edit")]
         [HttpPost]
-        public async Task<IActionResult> Edit(SubCategory subCategory)
+        public async Task<IActionResult> Edit(Subcategory subCategory)
         {
             var existingSubCategory = await this.subCategoryRepository.GetByIdAsync(subCategory.SubCategoryId);
 
