@@ -59,7 +59,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             var subCategorySponsors = await this.context.SponsoredListings
                                      .Include(x => x.DirectoryEntry) // Include DirectoryEntry navigation property
-                                     .Where(x => x.SponsorshipType == SponsorshipType.SubCategorySponsor &&
+                                     .Where(x => x.SponsorshipType == SponsorshipType.SubcategorySponsor &&
                                                  x.SubCategoryId == subCategoryId &&
                                                  x.CampaignStartDate <= currentDate &&
                                                  x.CampaignEndDate >= currentDate) // Filter active listings
@@ -86,7 +86,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                          .ThenByDescending(x => x.CampaignStartDate)
                          .CountAsync();
             }
-            else if (sponsorshipType == SponsorshipType.SubCategorySponsor)
+            else if (sponsorshipType == SponsorshipType.SubcategorySponsor)
             {
                 totalActive = await this.context.SponsoredListings
                          .Include(x => x.DirectoryEntry)

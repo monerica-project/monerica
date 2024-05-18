@@ -108,7 +108,7 @@ namespace DirectoryManager.Web.Controllers
 
             var allActiveSubcategories = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync(IntegerConstants.MinimumSponsoredActiveSubcategories);
             var currentSubCategorySponsorListings = await this.sponsoredListingRepository
-                                                              .GetAllActiveListingsAsync(SponsorshipType.SubCategorySponsor);
+                                                              .GetAllActiveListingsAsync(SponsorshipType.SubcategorySponsor);
 
             if (currentSubCategorySponsorListings != null)
             {
@@ -136,7 +136,7 @@ namespace DirectoryManager.Web.Controllers
             var totalActiveListings = await this.sponsoredListingRepository
                                                 .GetActiveListingsCountAsync(sponsorshipType, subCategoryId);
 
-            if (sponsorshipType == SponsorshipType.SubCategorySponsor)
+            if (sponsorshipType == SponsorshipType.SubcategorySponsor)
             {
                 if (subCategoryId != null)
                 {
@@ -177,7 +177,7 @@ namespace DirectoryManager.Web.Controllers
 
             int? subCategoryId = null;
 
-            if (sponsorshipType == SponsorshipType.SubCategorySponsor &&
+            if (sponsorshipType == SponsorshipType.SubcategorySponsor &&
                 (directoryEntry != null && directoryEntry.SubCategoryId != null))
             {
                 subCategoryId = directoryEntry.SubCategoryId.Value;
@@ -229,7 +229,7 @@ namespace DirectoryManager.Web.Controllers
             var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId, selectedOffer.SponsorshipType);
             int? sponsorshipSubCategoryId = null;
 
-            if (selectedOffer.SponsorshipType == SponsorshipType.SubCategorySponsor)
+            if (selectedOffer.SponsorshipType == SponsorshipType.SubcategorySponsor)
             {
                 sponsorshipSubCategoryId = directoryEntry.SubCategoryId;
             }
@@ -266,7 +266,7 @@ namespace DirectoryManager.Web.Controllers
             int subCategoryId,
             Guid? rsvId = null)
         {
-            var sponsorshipType = SponsorshipType.SubCategorySponsor;
+            var sponsorshipType = SponsorshipType.SubcategorySponsor;
 
             if (rsvId == null)
             {
@@ -664,7 +664,7 @@ namespace DirectoryManager.Web.Controllers
             var enabledMainSponsorshipOffers = mainSponsorshipOffers.Where(o => o.IsEnabled);
             this.ViewBag.MainSponsorshipOffers = enabledMainSponsorshipOffers;
 
-            var subCategorySponsorshipOffers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(SponsorshipType.SubCategorySponsor);
+            var subCategorySponsorshipOffers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(SponsorshipType.SubcategorySponsor);
             var enabledsubCategoryOffers = subCategorySponsorshipOffers.Where(o => o.IsEnabled);
             this.ViewBag.SubCategorySponsorshipOffers = enabledsubCategoryOffers;
 
@@ -781,7 +781,7 @@ namespace DirectoryManager.Web.Controllers
                 return totalForTypeInGroup < IntegerConstants.MaxMainSponsoredListings;
             }
 
-            if (sponsorshipType == SponsorshipType.SubCategorySponsor)
+            if (sponsorshipType == SponsorshipType.SubcategorySponsor)
             {
                 return totalForTypeInGroup < IntegerConstants.MaxSubCategorySponsoredListings;
             }
@@ -800,7 +800,7 @@ namespace DirectoryManager.Web.Controllers
                        (totalActiveReservations < (IntegerConstants.MaxMainSponsoredListings - totalActiveListings));
             }
 
-            if (sponsorshipType == SponsorshipType.SubCategorySponsor)
+            if (sponsorshipType == SponsorshipType.SubcategorySponsor)
             {
                 return (totalActiveListings <= IntegerConstants.MaxSubCategorySponsoredListings) &&
                        (totalActiveReservations < (IntegerConstants.MaxSubCategorySponsoredListings - totalActiveListings));
