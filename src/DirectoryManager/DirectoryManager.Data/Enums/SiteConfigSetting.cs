@@ -23,6 +23,6 @@
         SuccessPageHtml = 18,
         MainSponsoredListingDetails = 19,
         SiteName = 20,
-        SubCategorySponsoredListingDetails = 21,
+        SubcategorySponsoredListingDetails = 21,
     }
 }
