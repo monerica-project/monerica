@@ -9,6 +9,7 @@ using DirectoryManager.FileStorage.Repositories.Interfaces;
 using DirectoryManager.Web.AppRules;
 using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
@@ -115,6 +116,35 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddDefaultTokenProviders();
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler(errorApp =>
+    {
+        errorApp.Run(async context =>
+        {
+            var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
+            if (exceptionHandlerPathFeature != null)
+            {
+                var exception = exceptionHandlerPathFeature.Error;
+
+                var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+                // Log the exception
+                logger.LogError(exception, "An unhandled exception occurred.");
+
+                // Optionally, you can add custom response handling here
+                context.Response.StatusCode = 500;
+                await context.Response.WriteAsync("An unexpected error happened.");
+            }
+        });
+    });
+}
+
 app.UseResponseCaching();
 
 var userAgentService = app.Services.GetService<UserAgentCacheService>();

@@ -29,7 +29,7 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Link 3", Prompt = "Link 3")]
         public string? Link3 { get; set; }
 
-        [MaxLength(255)]
+        [MaxLength(75)]
         [Display(Name = "Contact", Prompt = "@yourname on Twitter/ GitHub, etc.")]
         public string? Contact { get; set; }
 

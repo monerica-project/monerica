@@ -14,5 +14,12 @@ namespace DirectoryManager.Web.Controllers
         {
             return this.View("404");
         }
+
+        [Route("errors/testerror")]
+        [HttpGet]
+        public IActionResult TestError()
+        {
+            throw new Exception("test error");
+        }
     }
 }
