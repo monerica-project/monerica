@@ -18,14 +18,35 @@ namespace DirectoryManager.Data.Models
         [MaxLength(500)]
         public string Link { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Affiliate link of main link.
+        /// </summary>
+        [Url]
+        [MaxLength(500)]
+        public string LinkA { get; set; } = string.Empty;
+
         [MaxLength(500)]
         public string? Link2 { get; set; }
+
+        /// <summary>
+        /// Affiliate link of second link.
+        /// </summary>
+        [MaxLength(500)]
+        public string? Link2A { get; set; }
 
         [MaxLength(500)]
         public string? Link3 { get; set; }
 
+        /// <summary>
+        /// Affiliate link of third link.
+        /// </summary>
+        [MaxLength(500)]
+        public string? Link3A { get; set; }
+
         [Required]
         public DirectoryStatus DirectoryStatus { get; set; }
+
+        public DirectoryBadge DirectoryBadge { get; set; } = DirectoryBadge.Unknown;
 
         [MaxLength(500)]
         public string? Description { get; set; }
