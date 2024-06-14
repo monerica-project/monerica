@@ -143,7 +143,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.UpdatedByUserId = this.userManager.GetUserId(this.User);
             existingEntry.SubCategoryId = entry.SubCategoryId;
             existingEntry.Link = entry.Link.Trim();
-            existingEntry.LinkA = entry.LinkA.Trim();
+            existingEntry.LinkA = entry.LinkA?.Trim();
             existingEntry.Link2 = entry.Link2?.Trim();
             existingEntry.Link2A = entry.Link2A?.Trim();
             existingEntry.Link3 = entry.Link3?.Trim();

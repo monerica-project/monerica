@@ -23,7 +23,7 @@ namespace DirectoryManager.Data.Models
         /// </summary>
         [Url]
         [MaxLength(500)]
-        public string LinkA { get; set; } = string.Empty;
+        public string? LinkA { get; set; } = string.Empty;
 
         [MaxLength(500)]
         public string? Link2 { get; set; }
