@@ -186,6 +186,7 @@
                         {
                             DirectoryEntry = subCategorySponsor.DirectoryEntry,
                             IsSponsored = true,
+                            DisplayAsSponsoredItem = false,
                             Link2Name = link2Name,
                             Link3Name = link3Name
                         } : null
@@ -204,6 +205,7 @@
                     if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntry.DirectoryEntryId) != null)
                     {
                         viewModel.IsSponsored = true;
+                        viewModel.DisplayAsSponsoredItem = true;
                     }
 
                     @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)

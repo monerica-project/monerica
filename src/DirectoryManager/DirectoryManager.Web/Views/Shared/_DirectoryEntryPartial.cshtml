@@ -2,7 +2,7 @@
 @using DirectoryManager.Web.Constants;
 @model DirectoryManager.Web.Models.DirectoryEntryViewModel
 
-@if (Model.IsSponsored)
+@if (Model.IsSponsored && Model.DisplayAsSponsoredItem)
 {
     <text><li class="sponsored"></text>
 }
@@ -27,7 +27,18 @@ else
         }
         @if (Model.DirectoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Verified)
         {
-            <text>&#9989;</text> <a target="_blank" href="@Model.DirectoryEntry.Link">@Model.DirectoryEntry.Name</a>
+            if ((Model.IsSponsored || Model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(Model.DirectoryEntry.LinkA))
+            {
+                <text>&#9989;</text> <a target="_blank" href="@Model.DirectoryEntry.Link">@Model.DirectoryEntry.Name</a>
+            }
+            else if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.LinkA))
+            {
+                <text>&#9989;</text> <a target="_blank" href="@Model.DirectoryEntry.LinkA">@Model.DirectoryEntry.Name</a>
+            }
+            else
+            {
+                <text>&#9989;</text> <a target="_blank" href="@Model.DirectoryEntry.Link">@Model.DirectoryEntry.Name</a>
+            }
         }
         else if (Model.DirectoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Admitted)
         {
@@ -45,7 +56,18 @@ else
             }
             else
             {
-                <text> | </text><a target="_blank" href="@Model.DirectoryEntry.Link2">@Model.Link2Name</a>
+                if ((Model.IsSponsored || Model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(Model.DirectoryEntry.Link2A))
+                {
+                    <text> | </text> <a target="_blank" href="@Model.DirectoryEntry.Link2">@Model.Link2Name</a>
+                }
+                else if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Link2A))
+                {
+                    <text> | </text> <a target="_blank" href="@Model.DirectoryEntry.Link2A">@Model.Link2Name</a>
+                }
+                else
+                {
+                    <text> | </text> <a target="_blank" href="@Model.DirectoryEntry.Link2">@Model.Link2Name</a>
+                }
             }
         }
         @if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Link3))
@@ -56,7 +78,18 @@ else
             }
             else
             {
-                <text> | </text><a target="_blank" href="@Model.DirectoryEntry.Link3">@Model.Link3Name</a>
+                if ((Model.IsSponsored || Model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(Model.DirectoryEntry.Link3A))
+                {
+                    <text> | </text> <a target="_blank" href="@Model.DirectoryEntry.Link2">@Model.Link3Name</a>
+                }
+                else if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Link3A))
+                {
+                    <text> | </text> <a target="_blank" href="@Model.DirectoryEntry.Link3A">@Model.Link3Name</a>
+                }
+                else
+                {
+                    <text> | </text> <a target="_blank" href="@Model.DirectoryEntry.Link2">@Model.Link3Name</a>
+                }
             }
         }
         @if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.Description))

@@ -38,7 +38,9 @@
             }
             @foreach (var viewModel in viewModelList)
             {
-                @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
+                    viewModel.IsSponsored = true;
+                    viewModel.DisplayAsSponsoredItem = false;
+                    @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
         </ul>
         </div>

@@ -29,6 +29,7 @@
             }
             @foreach (var viewModel in viewModelList)
             {
+                viewModel.IsSubCategorySponsor = true;
                 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
         </ul>
