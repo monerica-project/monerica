@@ -42,7 +42,18 @@ else
         }
         else if (Model.DirectoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Admitted)
         {
-            <a target="_blank" href="@Model.DirectoryEntry.Link">@Model.DirectoryEntry.Name</a>
+            if ((Model.IsSponsored || Model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(Model.DirectoryEntry.LinkA))
+            {
+               <a target="_blank" href="@Model.DirectoryEntry.Link">@Model.DirectoryEntry.Name</a>
+            }
+            else if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry.LinkA))
+            {
+                <a target="_blank" href="@Model.DirectoryEntry.LinkA">@Model.DirectoryEntry.Name</a>
+            }
+            else
+            {
+                <a target="_blank" href="@Model.DirectoryEntry.Link">@Model.DirectoryEntry.Name</a>
+            }
         }
         else if (Model.DirectoryEntry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Scam)
         {
