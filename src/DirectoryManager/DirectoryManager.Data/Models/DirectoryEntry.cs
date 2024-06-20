@@ -21,7 +21,6 @@ namespace DirectoryManager.Data.Models
         /// <summary>
         /// Affiliate link of main link.
         /// </summary>
-        [Url]
         [MaxLength(500)]
         public string? LinkA { get; set; } = string.Empty;
 
