@@ -1,4 +1,0 @@
-Code
-
-dotnet ef migrations add MigrationName --context ApplicationDbContext --project DirectoryManager.Data\DirectoryManager.Data.csproj
-dotnet ef database update --context ApplicationDbContext --project DirectoryManager.Data\DirectoryManager.Data.csproj

@@ -6,16 +6,11 @@ node_modules
 /.svelte-kit
 /build
 
-# OS
-.DS_Store
-Thumbs.db
-
-# Env
-.env
-.env.*
-!.env.example
-!.env.test
 
 # Vite
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
+
+
+# I like to have a tmp directory to throw random files 
+tmp/*

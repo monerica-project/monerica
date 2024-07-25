@@ -21,7 +21,6 @@ coding experience. Here are the steps:
 2. Hightly performant page that works without JavaScript. 
 3. No backend/server to make hosting and distribution easier
 
-
 # TODO:
 1. finish markdown files
-2. add styling
+2. add better styling
