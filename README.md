@@ -1,15 +1,20 @@
 # Monerica
 
 A Directory For A Monero Circular Economy
+Hosted at [monerica.org](https://monerica.org)
+
 
 # Developing
 
 `git clone`
+
 `npm i`
+
 `npm run dev`
 
 Remember to take a look at the build of the site before pushing a commit
 `npm run build`
+
 `npm run preview`
 
 # Adding a site
