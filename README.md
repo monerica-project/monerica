@@ -4,7 +4,7 @@ A Directory For A Monero Circular Economy
 
 # Adding a site
 ## The easy way
-(Click me)[https://github.com/Danjoe4/monerica/issues/new] and add the "New Site Request" Label. Wait
+[Click me](https://github.com/Danjoe4/monerica/issues/new) and add the "New Site Request" Label. Wait
 for a contributor to add it by following steps 1-4 below.
 
 ## The fast way
@@ -25,7 +25,7 @@ Adding a site is as easy as editing the DIRECTORY.yaml file. No code needed. Her
 
 # Technical Details
 
-# TODO:
+## TODO:
 
 1. Add deployments for TOR and various decentralized web hosting services. We want something to fallback on in case the cloudflare site gets attacked. I'll have to configure dns failover or something to intelligently resolve the domain.
 2. add better styling
