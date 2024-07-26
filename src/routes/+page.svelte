@@ -1,17 +1,16 @@
 <script>
 	import Intro from '$lib/Intro.svelte';
-  	import TableOfContents from '../lib/TableOfContents.svelte';
-  	import Directory from '$lib/Directory.svelte';
+	import TableOfContents from '../lib/TableOfContents.svelte';
+	import Directory from '$lib/Directory.svelte';
 
 	import yaml from 'js-yaml';
 	import file from '../../DIRECTORY.yaml?raw';
 	const root = yaml.load(file);
 </script>
 
-<Intro/>
+<Intro />
 
-<hr>
-<TableOfContents root={root}/>
+<hr />
+<TableOfContents {root} />
 
-
-<Directory root={root}/>
+<Directory {root} />
