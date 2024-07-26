@@ -49,6 +49,6 @@ non-technical users to contribute
 
 # TODO:
 
-1. add better styling
-2. Add deployments for TOR and various decentralized web hosting services
+1. Add deployments for TOR and various decentralized web hosting services. We want something to fallback on in case the cloudflare site gets attacked. I'll have to configure dns failover or something to intelligently resolve the domain.
+2. add better styling
 3. Create CI/CD for all deployment endpoints

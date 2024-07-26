@@ -1,12 +1,3 @@
-<script>
-	function get_date() {
-		// remember, our Javascript runs at build time
-		const date = new Date();
-		const time = date.toUTCString().replace('GMT', 'UTC+00:00');
-		return time;
-	}
-</script>
-
 <div class="intro">
 	<h1>Welcome To Monerica!</h1>
 	<h4>A directory for a Monero circular economy</h4>
@@ -18,10 +9,11 @@
 		third party, and without the prying eyes of those who wish to control the thoughts and behaviors
 		of others through surveillance and overreaching regulations.
 	</p>
-
-	<h4>Last Updated: {get_date()}</h4>
+	
+	<h4>Last Updated on: {import.meta.env.VITE_BUILD_TIME}</h4>
+	<p> The source code for this page can be found on <a href="https://github.com/Danjoe4/monerica">Github</a> </p>
 	<p>
-		Note: The provided links are not endorsements
+		<bold>Note:</bold> The provided links are not endorsements
 		<br />
 		✅ - indicates someone in the community has done a successful test transaction or has used this software
 		service
