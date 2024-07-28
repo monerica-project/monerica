@@ -24,5 +24,6 @@
         MainSponsoredListingDetails = 19,
         SiteName = 20,
         SubcategorySponsoredListingDetails = 21,
+        TopBanner = 22,
     }
 }

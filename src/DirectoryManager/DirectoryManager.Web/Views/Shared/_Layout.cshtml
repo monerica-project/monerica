@@ -30,6 +30,7 @@
     @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.CssHeader))
     </head>
 <body>
+    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.TopBanner))
     <div id="main-content">
         @RenderBody() 
     </div>
