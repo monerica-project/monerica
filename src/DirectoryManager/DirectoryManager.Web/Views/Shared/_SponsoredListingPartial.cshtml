@@ -48,19 +48,19 @@
         <p class="create-sponsored-listing">
            @if (DirectoryManager.Web.Constants.IntegerConstants.MaxMainSponsoredListings > sponsoredListings.Count())
             {
-                <a href="~/sponsoredlisting/selectlisting?sponsorshipType=@SponsorshipType.MainSponsor">Advertise here</a>
+                <a class="app-link" href="~/sponsoredlisting/selectlisting?sponsorshipType=@SponsorshipType.MainSponsor">Advertise here</a>
                 <span>(@(DirectoryManager.Web.Constants.IntegerConstants.MaxMainSponsoredListings-sponsoredListings.Count()) available)</span>
             }
             else
             {
-                <a href="~/sponsoredlisting">About sponsored listings</a>  <span>(@(DirectoryManager.Web.Constants.IntegerConstants.MaxMainSponsoredListings-sponsoredListings.Count()) available)</span>
+                <a class="app-link" href="~/sponsoredlisting">About sponsored listings</a>  <span>(@(DirectoryManager.Web.Constants.IntegerConstants.MaxMainSponsoredListings-sponsoredListings.Count()) available)</span>
             }
         </p>
     }
     else
     {
         <p>
-            <a href="~/sponsoredlisting">Advertise here</a>
+            <a class="app-link" href="~/sponsoredlisting">Advertise here</a>
         </p>
     }
 

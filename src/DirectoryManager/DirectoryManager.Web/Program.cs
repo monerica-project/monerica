@@ -7,6 +7,7 @@ using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.FileStorage.Repositories.Implementations;
 using DirectoryManager.FileStorage.Repositories.Interfaces;
 using DirectoryManager.Web.AppRules;
+using DirectoryManager.Web.Middleware;
 using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Diagnostics;
@@ -157,6 +158,8 @@ app.UseRewriter(options);
 
 // Configure middleware in the HTTP request pipeline.
 app.UseStaticFiles(); // Use static files
+
+app.UseMiddleware<ETagMiddleware>();
 
 app.UseStatusCodePagesWithRedirects("/errors/{0}");
 

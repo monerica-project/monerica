@@ -42,7 +42,9 @@
 		</None>
 	</ItemGroup>
 	<ItemGroup>
-	  <Folder Include="wwwroot\" />
+	  <None Include="wwwroot\images\Logo.png">
+	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+	  </None>
 	</ItemGroup>
 
 </Project>

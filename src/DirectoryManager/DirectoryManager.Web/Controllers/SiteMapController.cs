@@ -51,13 +51,8 @@ namespace DirectoryManager.Web.Controllers
                 LastMode = date
             });
 
-            siteMapHelper.SiteMapItems.Add(new SiteMapItem
-            {
-                Url = string.Format("{0}/newest", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                Priority = 1.0,
-                ChangeFrequency = ChangeFrequency.Daily,
-                LastMode = date
-            });
+            this.AddNewestPagesList(date, siteMapHelper);
+            this.AddSubmitPages(date, siteMapHelper);
 
             var categories = await this.categoryRepository.GetActiveCategoriesAsync();
 
@@ -128,6 +123,37 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return this.View("Index", model);
+        }
+
+        private void AddNewestPagesList(DateTime date, SiteMapHelper siteMapHelper)
+        {
+            // TODO: every page needs to be indexed, without a query string
+            siteMapHelper.SiteMapItems.Add(new SiteMapItem
+            {
+                Url = string.Format("{0}/newest", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                Priority = 1.0,
+                ChangeFrequency = ChangeFrequency.Daily,
+                LastMode = date
+            });
+        }
+
+        private void AddSubmitPages(DateTime date, SiteMapHelper siteMapHelper)
+        {
+            siteMapHelper.SiteMapItems.Add(new SiteMapItem
+            {
+                Url = string.Format("{0}/contact", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                Priority = 1.0,
+                ChangeFrequency = ChangeFrequency.Daily,
+                LastMode = date
+            });
+
+            siteMapHelper.SiteMapItems.Add(new SiteMapItem
+            {
+                Url = string.Format("{0}/sitemap", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                Priority = 1.0,
+                ChangeFrequency = ChangeFrequency.Daily,
+                LastMode = date
+            });
         }
     }
 }

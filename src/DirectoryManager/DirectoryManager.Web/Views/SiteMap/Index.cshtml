@@ -22,7 +22,7 @@
                         @foreach (var item in Model.SectionPages)
                         {
                             <li>
-                                <a title="@item.AnchorText" href="@item.CanonicalUrl">@item.AnchorText</a>
+                                <a class="no-app-link" title="@item.AnchorText" href="@item.CanonicalUrl">@item.AnchorText</a>
 
                                 @if (item.HasChildren)
                                 {
@@ -30,7 +30,7 @@
                                         @foreach (var child in item.ChildPages)
                                         {
                                             <li>
-                                                <a title="@item.AnchorText - @child.AnchorText" href="@child.CanonicalUrl">@child.AnchorText</a>
+                                                <a class="no-app-link" title="@item.AnchorText - @child.AnchorText" href="@child.CanonicalUrl">@child.AnchorText</a>
                                             </li>
                                         }
                                     </ul>
