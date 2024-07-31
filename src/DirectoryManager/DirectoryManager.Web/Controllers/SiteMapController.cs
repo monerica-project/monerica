@@ -18,6 +18,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubCategoryRepository subCategoryRepository;
         private readonly IContentSnippetRepository contentSnippetRepository;
         private readonly ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository;
+        private readonly ISponsoredListingRepository sponsoredListingRepository;
 
         public SiteMapController(
             ICacheService cacheService,
@@ -26,7 +27,8 @@ namespace DirectoryManager.Web.Controllers
             ICategoryRepository categoryRepository,
             ISubCategoryRepository subCategoryRepository,
             IContentSnippetRepository contentSnippetRepository,
-            ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository)
+            ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository,
+            ISponsoredListingRepository sponsoredListingRepository)
         {
             this.cacheService = cacheService;
             this.memoryCache = memoryCache;
@@ -35,6 +37,7 @@ namespace DirectoryManager.Web.Controllers
             this.subCategoryRepository = subCategoryRepository;
             this.contentSnippetRepository = contentSnippetRepository;
             this.sponsoredListingInvoiceRepository = sponsoredListingInvoiceRepository;
+            this.sponsoredListingRepository = sponsoredListingRepository;
         }
 
         [Route("sitemap_index.xml")]
@@ -49,7 +52,8 @@ namespace DirectoryManager.Web.Controllers
             var lastDirectoryEntryDate = this.directoryEntryRepository.GetLastRevisionDate();
             var lastContentSnippetUpdate = this.contentSnippetRepository.GetLastUpdateDate();
             var lastPaidInvoiceUpdate = this.sponsoredListingInvoiceRepository.GetLastPaidInvoiceUpdateDate();
-            var mostRecentUpdateDate = this.GetLatestUpdateDate(lastDirectoryEntryDate, lastContentSnippetUpdate, lastPaidInvoiceUpdate);
+            var nextAdExpiration = await this.sponsoredListingRepository.GetNextExpirationDate();
+            var mostRecentUpdateDate = this.GetLatestUpdateDate(lastDirectoryEntryDate, lastContentSnippetUpdate, lastPaidInvoiceUpdate, nextAdExpiration);
             var siteMapHelper = new SiteMapHelper();
 
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
@@ -165,10 +169,11 @@ namespace DirectoryManager.Web.Controllers
             });
         }
 
-        private DateTime GetLatestUpdateDate(DateTime? lastDirectoryEntryDate, DateTime? lastContentSnippetUpdate, DateTime? lastPaidInvoiceUpdate)
+        private DateTime GetLatestUpdateDate(DateTime? lastDirectoryEntryDate, DateTime? lastContentSnippetUpdate, DateTime? lastPaidInvoiceUpdate, DateTime? nextAdExpiration)
         {
             DateTime? latestUpdateDate = null;
 
+            // Determine the most recent date among lastDirectoryEntryDate, lastContentSnippetUpdate, and lastPaidInvoiceUpdate
             if (lastDirectoryEntryDate.HasValue)
             {
                 latestUpdateDate = lastDirectoryEntryDate;
@@ -184,14 +189,17 @@ namespace DirectoryManager.Web.Controllers
                 latestUpdateDate = lastPaidInvoiceUpdate;
             }
 
-            if (latestUpdateDate == null)
+            // Check if nextAdExpiration is the same day as the latestUpdateDate or if it is the only available date
+            if (nextAdExpiration.HasValue)
             {
-                return DateTime.MinValue;
+                if (!latestUpdateDate.HasValue || nextAdExpiration.Value.Date == latestUpdateDate.Value.Date)
+                {
+                    latestUpdateDate = nextAdExpiration;
+                }
             }
-            else
-            {
-                return latestUpdateDate.Value;
-            }
+
+            // Return the latest update date or DateTime.MinValue if none of the dates are provided
+            return latestUpdateDate ?? DateTime.MinValue;
         }
     }
 }
