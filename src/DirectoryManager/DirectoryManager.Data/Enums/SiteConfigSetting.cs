@@ -25,5 +25,6 @@
         SiteName = 20,
         SubcategorySponsoredListingDetails = 21,
         TopBanner = 22,
+        FullRootUrl = 23,
     }
 }

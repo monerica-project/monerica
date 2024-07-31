@@ -1,1 +1,15 @@
-﻿<a class="no-app-link" href="~/">back to home</a>
+﻿@using DirectoryManager.Data.Enums
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+
+ 
+@{
+    var root = cacheHelper.GetSnippet(SiteConfigSetting.FullRootUrl);
+
+    if (string.IsNullOrWhiteSpace(root))
+    {
+        <a class="no-app-link" href="~/">back to home</a>
+    }else
+    {
+        <a class="no-app-link" href="@root">back to home</a>
+    }
+}

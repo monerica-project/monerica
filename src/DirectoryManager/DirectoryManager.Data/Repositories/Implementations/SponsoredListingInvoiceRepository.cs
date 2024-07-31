@@ -110,5 +110,20 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return result ??
                 throw new InvalidOperationException($"No SponsoredListingInvoice found for the provided {nameof(processorInvoiceId)}.");
         }
+
+        public DateTime? GetLastPaidInvoiceUpdateDate()
+        {
+            // Fetch the latest CreateDate and UpdateDate
+            var latestCreateDate = this.context.SponsoredListingInvoices
+                                   .Where(e => e != null && e.PaymentStatus == Enums.PaymentStatus.Paid)
+                                   .Max(e => (DateTime?)e.CreateDate);
+
+            var latestUpdateDate = this.context.SponsoredListingInvoices
+                                   .Where(e => e != null && e.PaymentStatus == Enums.PaymentStatus.Paid)
+                                   .Max(e => e.UpdateDate) ?? DateTime.MinValue;
+
+            // Return the more recent of the two dates
+            return (DateTime)(latestCreateDate > latestUpdateDate ? latestCreateDate : latestUpdateDate);
+        }
     }
 }

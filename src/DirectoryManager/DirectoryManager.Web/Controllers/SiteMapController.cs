@@ -16,19 +16,25 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly ISubCategoryRepository subCategoryRepository;
+        private readonly IContentSnippetRepository contentSnippetRepository;
+        private readonly ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository;
 
         public SiteMapController(
             ICacheService cacheService,
             IMemoryCache memoryCache,
             IDirectoryEntryRepository directoryEntryRepository,
             ICategoryRepository categoryRepository,
-            ISubCategoryRepository subCategoryRepository)
+            ISubCategoryRepository subCategoryRepository,
+            IContentSnippetRepository contentSnippetRepository,
+            ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository)
         {
             this.cacheService = cacheService;
             this.memoryCache = memoryCache;
             this.directoryEntryRepository = directoryEntryRepository;
             this.categoryRepository = categoryRepository;
             this.subCategoryRepository = subCategoryRepository;
+            this.contentSnippetRepository = contentSnippetRepository;
+            this.sponsoredListingInvoiceRepository = sponsoredListingInvoiceRepository;
         }
 
         [Route("sitemap_index.xml")]
@@ -40,7 +46,10 @@ namespace DirectoryManager.Web.Controllers
         [Route("sitemap.xml")]
         public async Task<IActionResult> IndexAsync()
         {
-            var date = this.directoryEntryRepository.GetLastRevisionDate();
+            var lastDirectoryEntryDate = this.directoryEntryRepository.GetLastRevisionDate();
+            var lastContentSnippetUpdate = this.contentSnippetRepository.GetLastUpdateDate();
+            var lastPaidInvoiceUpdate = this.sponsoredListingInvoiceRepository.GetLastPaidInvoiceUpdateDate();
+            var mostRecentUpdateDate = this.GetLatestUpdateDate(lastDirectoryEntryDate, lastContentSnippetUpdate, lastPaidInvoiceUpdate);
             var siteMapHelper = new SiteMapHelper();
 
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
@@ -48,11 +57,11 @@ namespace DirectoryManager.Web.Controllers
                 Url = WebRequestHelper.GetCurrentDomain(this.HttpContext),
                 Priority = 1.0,
                 ChangeFrequency = ChangeFrequency.Daily,
-                LastMode = date
+                LastMode = mostRecentUpdateDate
             });
 
-            this.AddNewestPagesList(date, siteMapHelper);
-            this.AddSubmitPages(date, siteMapHelper);
+            this.AddNewestPagesList(mostRecentUpdateDate, siteMapHelper);
+            this.AddSubmitPages(mostRecentUpdateDate, siteMapHelper);
 
             var categories = await this.categoryRepository.GetActiveCategoriesAsync();
 
@@ -63,7 +72,7 @@ namespace DirectoryManager.Web.Controllers
                     Url = string.Format("{0}/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), category.CategoryKey),
                     Priority = 1.0,
                     ChangeFrequency = ChangeFrequency.Weekly,
-                    LastMode = date
+                    LastMode = mostRecentUpdateDate
                 });
 
                 var subCategories = await this.subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId);
@@ -79,7 +88,7 @@ namespace DirectoryManager.Web.Controllers
                             subCategory.SubCategoryKey),
                         Priority = 1.0,
                         ChangeFrequency = ChangeFrequency.Weekly,
-                        LastMode = date
+                        LastMode = mostRecentUpdateDate
                     });
                 }
             }
@@ -154,6 +163,35 @@ namespace DirectoryManager.Web.Controllers
                 ChangeFrequency = ChangeFrequency.Daily,
                 LastMode = date
             });
+        }
+
+        private DateTime GetLatestUpdateDate(DateTime? lastDirectoryEntryDate, DateTime? lastContentSnippetUpdate, DateTime? lastPaidInvoiceUpdate)
+        {
+            DateTime? latestUpdateDate = null;
+
+            if (lastDirectoryEntryDate.HasValue)
+            {
+                latestUpdateDate = lastDirectoryEntryDate;
+            }
+
+            if (lastContentSnippetUpdate.HasValue && (!latestUpdateDate.HasValue || lastContentSnippetUpdate > latestUpdateDate))
+            {
+                latestUpdateDate = lastContentSnippetUpdate;
+            }
+
+            if (lastPaidInvoiceUpdate.HasValue && (!latestUpdateDate.HasValue || lastPaidInvoiceUpdate > latestUpdateDate))
+            {
+                latestUpdateDate = lastPaidInvoiceUpdate;
+            }
+
+            if (latestUpdateDate == null)
+            {
+                return DateTime.MinValue;
+            }
+            else
+            {
+                return latestUpdateDate.Value;
+            }
         }
     }
 }
