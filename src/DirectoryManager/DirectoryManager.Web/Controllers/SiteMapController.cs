@@ -65,7 +65,7 @@ namespace DirectoryManager.Web.Controllers
             });
 
             this.AddNewestPagesList(mostRecentUpdateDate, siteMapHelper);
-            this.AddSubmitPages(mostRecentUpdateDate, siteMapHelper);
+            this.AddPages(mostRecentUpdateDate, siteMapHelper);
 
             var categories = await this.categoryRepository.GetActiveCategoriesAsync();
 
@@ -150,7 +150,7 @@ namespace DirectoryManager.Web.Controllers
             });
         }
 
-        private void AddSubmitPages(DateTime date, SiteMapHelper siteMapHelper)
+        private void AddPages(DateTime date, SiteMapHelper siteMapHelper)
         {
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
             {
@@ -163,6 +163,14 @@ namespace DirectoryManager.Web.Controllers
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
             {
                 Url = string.Format("{0}/sitemap", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                Priority = 1.0,
+                ChangeFrequency = ChangeFrequency.Daily,
+                LastMode = date
+            });
+
+            siteMapHelper.SiteMapItems.Add(new SiteMapItem
+            {
+                Url = string.Format("{0}/rss/feed.xml", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
                 Priority = 1.0,
                 ChangeFrequency = ChangeFrequency.Daily,
                 LastMode = date

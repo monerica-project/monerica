@@ -60,6 +60,7 @@ builder.Services.AddScoped<IBlockedIPRepository, BlockedIPRepository>();
 builder.Services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
 builder.Services.AddTransient<ICacheService, CacheService>();
 builder.Services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
+builder.Services.AddScoped<IRssFeedService, RssFeedService>();
 
 builder.Services.AddScoped(provider =>
 {

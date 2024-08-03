@@ -206,6 +206,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return groupedEntries;
         }
 
+
         public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int numberOfDays)
         {
             var recentDates = await this.context.DirectoryEntries
