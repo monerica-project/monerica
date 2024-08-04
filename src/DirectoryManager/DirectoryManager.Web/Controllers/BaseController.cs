@@ -58,7 +58,7 @@ namespace DirectoryManager.Web.Controllers
                     UserAgent = userAgent
                 };
 
-                // await this.trafficLogRepository.AddTrafficLog(trafficLog);
+                await this.trafficLogRepository.AddTrafficLog(trafficLog);
             }
             finally
             {
