@@ -2,9 +2,9 @@
 @using DirectoryManager.Web.Constants;
 @model IEnumerable<DirectoryManager.Data.Models.GroupedDirectoryEntry>
 @{
-    ViewData["Title"] = "Newest Additions";
+    ViewData[StringConstants.TitleHeader] = "Newest Additions";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_BackToHome")
 <hr />

@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Models;
+using System.Xml.Linq;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
@@ -12,13 +13,13 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task CreateAsync(DirectoryEntry entry);
         Task UpdateAsync(DirectoryEntry entry);
         Task DeleteAsync(int directoryEntryId);
-        public DateTime GetLastRevisionDate();
-        public Task<IEnumerable<DirectoryEntry>> GetNewestRevisions(int count);
-        public Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int numberOfDays);
-        public Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int pageSize, int pageNumber);
-        public Task<IEnumerable<DirectoryEntry>> GetNewestAdditions(int count);
-        public Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int subCategoryId);
-        public Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync();
-        public Task<int> TotalActive();
+        DateTime GetLastRevisionDate();
+        Task<IEnumerable<DirectoryEntry>> GetNewestRevisions(int count);
+        Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int numberOfDays);
+        Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int pageSize, int pageNumber);
+        Task<IEnumerable<DirectoryEntry>> GetNewestAdditions(int count);
+        Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int subCategoryId);
+        Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync();
+        Task<int> TotalActive();
     }
 }

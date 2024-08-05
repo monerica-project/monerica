@@ -5,9 +5,9 @@
 @using DirectoryManager.Utilities.Helpers;
 
 @{
-    ViewData["Title"] = "Sponsored Listing Offers";
+    ViewData[StringConstants.TitleHeader] = "Sponsored Listing Offers";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_BackToHome")
 <hr />
@@ -38,7 +38,7 @@
 
 <hr />
 
-<h3>@EnumHelper.GetDescription(SponsorshipType.SubCategorySponsor)</h3>
+<h3>@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</h3>
 <table>
     <thead>
         <tr>

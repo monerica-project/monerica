@@ -1,11 +1,13 @@
 ﻿@model DirectoryManager.Data.Models.Submission
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@using DirectoryManager.Web.Constants
 @using DirectoryManager.Data.Enums
 @{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
-    ViewData["Title"] = "Edit Submission";
+    ViewData[StringConstants.TitleHeader] = "Edit Submission";
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
  
 @await Html.PartialAsync("_AdminMenu")
 <hr />
@@ -30,7 +32,7 @@
     <br />
     <br />
     <div class="form-group">
-        <label asp-for="SubCategoryId">Sub Category</label>
+        <label asp-for="SubCategoryId">Subcategory</label>
         <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "SubCategoryId", "DisplayName"))" required></select>
     </div>
  

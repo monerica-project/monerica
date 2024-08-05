@@ -1,10 +1,10 @@
 ﻿@using DirectoryManager.Data.Models
-@model SubCategory
-
+@model Subcategory
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Edit Sub Category";
+    ViewData[StringConstants.TitleHeader] = "Edit Subcategory";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 
@@ -26,7 +26,7 @@
         <input type="text" name="Name" value="@Model.Name" required />
     </div>
     <div class="form-group">
-        <label>Sub Category Key</label>
+        <label>Subcategory Key</label>
         <input type="text" name="SubCategoryKey" value="@Model.SubCategoryKey" required />
     </div>
     <div class="form-group">

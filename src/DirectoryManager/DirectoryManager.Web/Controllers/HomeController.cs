@@ -10,16 +10,19 @@ namespace DirectoryManager.Web.Controllers
     public class HomeController : BaseController
     {
         private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly IRssFeedService rssFeedService;
         private readonly IMemoryCache cache;
 
         public HomeController(
             IDirectoryEntryRepository directoryEntryRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
+            IRssFeedService rssFeedService,
             IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.directoryEntryRepository = directoryEntryRepository;
+            this.rssFeedService = rssFeedService;
             this.cache = cache;
         }
 

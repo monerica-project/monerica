@@ -29,7 +29,7 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Link 3", Prompt = "Link 3")]
         public string? Link3 { get; set; }
 
-        [MaxLength(255)]
+        [MaxLength(75)]
         [Display(Name = "Contact", Prompt = "@yourname on Twitter/ GitHub, etc.")]
         public string? Contact { get; set; }
 
@@ -49,11 +49,11 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Note To Admin", Prompt = "Notes to admin reviewing submission")]
         public string? NoteToAdmin { get; set; }
 
-        [Display(Name = "SubCategoryId", Prompt = "Select sub category")]
+        [Display(Name = "SubCategoryId", Prompt = "Select subcategory")]
         public int? SubCategoryId { get; set; }
 
         [MaxLength(255)]
-        [Display(Name = "Suggested Category", Prompt = "New category > New sub category")]
+        [Display(Name = "Suggested Category", Prompt = "New category > New Subcategory")]
         public string? SuggestedSubCategory { get; set; }
 
         public int? DirectoryEntryId { get; set; }

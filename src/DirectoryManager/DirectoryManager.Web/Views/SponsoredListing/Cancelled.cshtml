@@ -1,7 +1,8 @@
-﻿@{
-    ViewData["Title"] = "Cancelled Sponsored Listing";
+﻿@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Cancelled Sponsored Listing";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_BackToHome")
 <hr />

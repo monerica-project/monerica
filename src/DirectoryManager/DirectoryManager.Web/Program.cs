@@ -7,8 +7,10 @@ using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.FileStorage.Repositories.Implementations;
 using DirectoryManager.FileStorage.Repositories.Interfaces;
 using DirectoryManager.Web.AppRules;
+using DirectoryManager.Web.Middleware;
 using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
@@ -58,6 +60,7 @@ builder.Services.AddScoped<IBlockedIPRepository, BlockedIPRepository>();
 builder.Services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
 builder.Services.AddTransient<ICacheService, CacheService>();
 builder.Services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
+builder.Services.AddScoped<IRssFeedService, RssFeedService>();
 
 builder.Services.AddScoped(provider =>
 {
@@ -115,6 +118,35 @@ builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddDefaultTokenProviders();
 
 var app = builder.Build();
+
+if (app.Environment.IsDevelopment())
+{
+    app.UseDeveloperExceptionPage();
+}
+else
+{
+    app.UseExceptionHandler(errorApp =>
+    {
+        errorApp.Run(async context =>
+        {
+            var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
+            if (exceptionHandlerPathFeature != null)
+            {
+                var exception = exceptionHandlerPathFeature.Error;
+
+                var logger = app.Services.GetRequiredService<ILogger<Program>>();
+
+                // Log the exception
+                logger.LogError(exception, "An unhandled exception occurred.");
+
+                // Optionally, you can add custom response handling here
+                context.Response.StatusCode = 500;
+                await context.Response.WriteAsync("An unexpected error happened.");
+            }
+        });
+    });
+}
+
 app.UseResponseCaching();
 
 var userAgentService = app.Services.GetService<UserAgentCacheService>();
@@ -127,6 +159,8 @@ app.UseRewriter(options);
 
 // Configure middleware in the HTTP request pipeline.
 app.UseStaticFiles(); // Use static files
+
+app.UseMiddleware<ETagMiddleware>();
 
 app.UseStatusCodePagesWithRedirects("/errors/{0}");
 

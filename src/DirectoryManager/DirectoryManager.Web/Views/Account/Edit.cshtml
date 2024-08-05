@@ -1,4 +1,5 @@
 ﻿@using DirectoryManager.Data.Models
+@using DirectoryManager.Web.Constants;
 @model DirectoryManager.Data.Models.Category
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubCategoryRepository subCategoryRepository
@@ -7,9 +8,9 @@
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 @{
-    ViewData["Title"] = "Directory Entries";
+    ViewData[StringConstants.TitleHeader] = "Directory Entries";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
  
 <p><b id="categories">Categories</b></p>
 

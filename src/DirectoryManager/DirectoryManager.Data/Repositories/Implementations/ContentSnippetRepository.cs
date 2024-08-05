@@ -106,5 +106,20 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
             }
         }
+
+        public DateTime? GetLastUpdateDate()
+        {
+            // Fetch the latest CreateDate and UpdateDate
+            var latestCreateDate = this.Context.ContentSnippets
+                                   .Where(e => e != null)
+                                   .Max(e => (DateTime?)e.CreateDate);
+
+            var latestUpdateDate = this.Context.ContentSnippets
+                                   .Where(e => e != null)
+                                   .Max(e => e.UpdateDate) ?? DateTime.MinValue;
+
+            // Return the more recent of the two dates
+            return (DateTime)(latestCreateDate > latestUpdateDate ? latestCreateDate : latestUpdateDate);
+        }
     }
 }

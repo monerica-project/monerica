@@ -67,7 +67,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                         DirectoryEntryId = e.DirectoryEntryId,
                                         SubCategoryId = e.SubCategoryId,
 
-                                        SubCategory = e.SubCategory == null ? null : new SubCategory
+                                        SubCategory = e.SubCategory == null ? null : new Subcategory
                                         {
                                             // Map other properties of SubCategory as needed
                                             Name = e.SubCategory.Name,
@@ -205,6 +205,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return groupedEntries;
         }
+
 
         public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int numberOfDays)
         {

@@ -1,10 +1,10 @@
 ﻿@using DirectoryManager.Data.Models
 @model IEnumerable<DirectoryEntry>
-
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Current Listings";
+    ViewData[StringConstants.TitleHeader] = "Current Listings";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
  
 @await Html.PartialAsync("_BackToHome")<text> | </text><a href="~/submit">create new listing</a>
 <hr />
@@ -12,8 +12,8 @@
 <form method="get">
     <label for="combinedFilter">Select: </label>
     <select id="combinedFilter" name="subCategoryId">
-        <option value="">--Category > Sub Category--</option>
-        @foreach (var subCategory in (IEnumerable<SubCategory>)ViewBag.SubCategories)
+        <option value="">--Category > Subcategory--</option>
+        @foreach (var subCategory in (IEnumerable<Subcategory>)ViewBag.SubCategories)
         {
             <option value="@subCategory.SubCategoryId"
                     selected="@(Context.Request.Query["subCategoryId"] == subCategory.SubCategoryId.ToString() ? "selected" : null)">@subCategory.Category.Name > @subCategory.Name</option>
@@ -29,7 +29,7 @@
 {
     <div>
         <a target="_blank" href="@entry.Link">@entry.Name</a> <text> - </text>
-        <a href="@Url.Action("SubmitEdit", new { id = entry.DirectoryEntryId })">Edit</a> |
+        <a rel="nofollow" href="@Url.Action("SubmitEdit", new { id = entry.DirectoryEntryId })">Edit</a> |
         <a href="@Url.Action("Audit", new { id = entry.DirectoryEntryId })">Audit</a>
     </div>
 }

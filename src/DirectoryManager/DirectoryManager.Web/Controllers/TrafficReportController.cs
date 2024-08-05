@@ -53,6 +53,8 @@ namespace DirectoryManager.Web.Controllers
                 end = DateTime.UtcNow.Date.AddDays(1).AddTicks(-1);
             }
 
+            end = new DateTime(end.Value.Year, end.Value.Month, end.Value.Day, 23, 59, 59, DateTimeKind.Utc);
+
             var uniqueIPs = this.trafficLogRepository.GetUniqueIpsInRange(start.Value, end.Value);
             var totalLogs = this.trafficLogRepository.GetTotalLogsInRange(start.Value, end.Value);
 

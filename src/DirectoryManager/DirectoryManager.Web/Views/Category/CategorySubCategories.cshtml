@@ -4,7 +4,7 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 
 @{
-    ViewData["Title"] = string.Format("{0}: {1}", cacheHelper.GetSnippet(SiteConfigSetting.SiteName), Model.PageTitle);
+    ViewData[StringConstants.TitleHeader] = string.Format("{0}: {1}", cacheHelper.GetSnippet(SiteConfigSetting.SiteName), Model.PageTitle);
     ViewData[StringConstants.MetaDescription] = Model.MetaDescription;
 }
 
@@ -29,7 +29,7 @@
     @foreach (var item in Model.SubCategoryItems)
     {
     <li>
-        <a href="@item.SubCategoryRelativePath">@item.Name</a>
+        <a class="no-app-link" href="@item.SubCategoryRelativePath">@item.Name</a>
     </li>
 }
 </ul>

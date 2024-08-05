@@ -1,9 +1,9 @@
 ﻿@model DirectoryManager.Web.Models.SubmissionPagedList
-
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Submission Requests";
+    ViewData[StringConstants.TitleHeader] = "Submission Requests";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

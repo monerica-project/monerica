@@ -1,6 +1,8 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
+using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -40,7 +42,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Index(int? categoryId = null)
         {
-            IEnumerable<SubCategory> subCategories;
+            IEnumerable<Subcategory> subCategories;
 
             if (categoryId.HasValue)
             {
@@ -67,7 +69,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("subcategory/create")]
         [HttpPost]
-        public async Task<IActionResult> Create(SubCategory subCategory)
+        public async Task<IActionResult> Create(Subcategory subCategory)
         {
             subCategory.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
             subCategory.SubCategoryKey = StringHelpers.UrlKey(subCategory.Name);
@@ -100,7 +102,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("subcategory/edit")]
         [HttpPost]
-        public async Task<IActionResult> Edit(SubCategory subCategory)
+        public async Task<IActionResult> Edit(Subcategory subCategory)
         {
             var existingSubCategory = await this.subCategoryRepository.GetByIdAsync(subCategory.SubCategoryId);
 
@@ -168,6 +170,8 @@ namespace DirectoryManager.Web.Controllers
                 CategoryName = category.Name
             };
 
+            this.SetCannonicalUrl();
+
             return this.View("SubCategoryListings", model);
         }
 
@@ -179,6 +183,12 @@ namespace DirectoryManager.Web.Controllers
             this.ClearCachedItems();
 
             return this.RedirectToAction(nameof(this.Index));
+        }
+
+        private void SetCannonicalUrl()
+        {
+            var originalUrl = $"{this.Request.Scheme}://{this.Request.Host}{this.Request.Path}{this.Request.QueryString}";
+            this.ViewData[StringConstants.CanonicalUrl] = UrlHelper.NormalizeUrl(originalUrl);
         }
     }
 }

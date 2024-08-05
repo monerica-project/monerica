@@ -1,11 +1,13 @@
 ﻿@model DirectoryManager.Web.Models.SubmissionRequest
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 @using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants
 @{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
-    ViewData["Title"] = "Edit Listing";
+    ViewData[StringConstants.TitleHeader] = "Edit Listing";
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
  
 <a href="~/submission/findexisting">&lt; find listing to edit</a>
 <hr />
@@ -39,7 +41,7 @@
     </div>
 
     <div class="form-group">
-        <label asp-for="SubCategoryId">Sub Category</label>
+        <label asp-for="SubCategoryId">Subcategory</label>
         <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "SubCategoryId", "DisplayName"))"></select>
     </div>
 

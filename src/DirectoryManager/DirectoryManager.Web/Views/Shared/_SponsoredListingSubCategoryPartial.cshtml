@@ -29,6 +29,7 @@
             }
             @foreach (var viewModel in viewModelList)
             {
+                viewModel.IsSubCategorySponsor = true;
                 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
         </ul>
@@ -37,6 +38,6 @@
 else if (Model != null && Model.TotalActiveSubCategoryListings >= IntegerConstants.MinimumSponsoredActiveSubcategories)
 {
     <p class="sub-category-sponsored-listing">
-        <a rel="nofollow" href="~/sponsoredlisting/selectlisting?subCategoryId=@Model.SubCategoryId&sponsorshipType=@SponsorshipType.SubCategorySponsor">Advertise here</a>
+        <a class="app-link" rel="nofollow" href="~/sponsoredlisting/selectlisting?subCategoryId=@Model.SubCategoryId&sponsorshipType=@SponsorshipType.SubcategorySponsor">Advertise here</a>
     </p>
 }

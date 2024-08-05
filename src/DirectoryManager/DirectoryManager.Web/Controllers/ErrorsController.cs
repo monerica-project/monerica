@@ -4,7 +4,6 @@ namespace DirectoryManager.Web.Controllers
 {
     public class ErrorsController : Controller
     {
-
         public ErrorsController()
         {
         }
@@ -14,6 +13,13 @@ namespace DirectoryManager.Web.Controllers
         public IActionResult Page404()
         {
             return this.View("404");
+        }
+
+        [Route("errors/testerror")]
+        [HttpGet]
+        public IActionResult TestError()
+        {
+            throw new Exception("test error");
         }
     }
 }

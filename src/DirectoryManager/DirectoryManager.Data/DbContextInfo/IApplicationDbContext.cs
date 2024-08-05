@@ -8,7 +8,7 @@ namespace DirectoryManager.Data.DbContextInfo
     {
         public DbSet<Category> Categories { get; set; }
 
-        public DbSet<SubCategory> SubCategories { get; set; }
+        public DbSet<Subcategory> SubCategories { get; set; }
 
         public DbSet<DirectoryEntry> DirectoryEntries { get; set; }
 

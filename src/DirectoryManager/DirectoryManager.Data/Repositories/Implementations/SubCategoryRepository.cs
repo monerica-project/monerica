@@ -15,7 +15,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context;
         }
 
-        public async Task<IEnumerable<SubCategory>> GetAllAsync()
+        public async Task<IEnumerable<Subcategory>> GetAllAsync()
         {
             return await this.context.SubCategories
                             .Include(e => e.Category)
@@ -24,7 +24,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                             .ToListAsync();
         }
 
-        public async Task<IEnumerable<SubCategory>> GetAllActiveSubCategoriesAsync()
+        public async Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync()
         {
             return await this.context.SubCategories
                         .Include(sc => sc.Category) // Including the Category for each SubCategory
@@ -36,7 +36,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         .ToListAsync();
         }
 
-        public async Task<IEnumerable<SubCategory>> GetAllActiveSubCategoriesAsync(int minimumInSubcategory)
+        public async Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync(int minimumInSubcategory)
         {
             return await this.context.SubCategories
                             .Include(sc => sc.Category) // Including the Category for each SubCategory
@@ -48,18 +48,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
                             .ToListAsync();
         }
 
-        public async Task<SubCategory?> GetByIdAsync(int subCategoryId)
+        public async Task<Subcategory?> GetByIdAsync(int subCategoryId)
         {
             return await this.context.SubCategories.FindAsync(subCategoryId);
         }
 
-        public async Task CreateAsync(SubCategory subCategory)
+        public async Task CreateAsync(Subcategory subCategory)
         {
             await this.context.SubCategories.AddAsync(subCategory);
             await this.context.SaveChangesAsync();
         }
 
-        public async Task UpdateAsync(SubCategory subCategory)
+        public async Task UpdateAsync(Subcategory subCategory)
         {
             this.context.SubCategories.Update(subCategory);
             await this.context.SaveChangesAsync();
@@ -75,7 +75,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
-        public async Task<SubCategory?> GetByCategoryIdAndKeyAsync(int categoryId, string subCategoryKey)
+        public async Task<Subcategory?> GetByCategoryIdAndKeyAsync(int categoryId, string subCategoryKey)
         {
             return await this.context
                              .SubCategories
@@ -90,7 +90,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                              .FirstOrDefaultAsync();
         }
 
-        public async Task<IEnumerable<SubCategory>> GetByCategoryAsync(int categoryId)
+        public async Task<IEnumerable<Subcategory>> GetByCategoryAsync(int categoryId)
         {
             return await this.context.SubCategories
                                  .Where(sc => sc.CategoryId == categoryId)
@@ -98,7 +98,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                  .ToListAsync();
         }
 
-        public async Task<IEnumerable<SubCategory>> GetActiveSubCategoriesAsync(int categoryId)
+        public async Task<IEnumerable<Subcategory>> GetActiveSubCategoriesAsync(int categoryId)
         {
             var activeSubCategories = await this.context.SubCategories
                           .Where(subCategory => subCategory.CategoryId == categoryId &&

@@ -2,14 +2,14 @@
 @model IEnumerable<DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice>
 
 @{
-    ViewData["Title"] = "Invoices";
+    ViewData[StringConstants.TitleHeader] = "Invoices";
     int currentPage = ViewBag.CurrentPage ?? 1;
     int pageSize = ViewBag.PageSize ?? 10;
     int totalItems = ViewBag.TotalItems ?? 0;
     int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
 }
 
-<h2>@ViewData["Title"]</h2>
+<h2>@ViewData[StringConstants.TitleHeader]</h2>
 
 @await Html.PartialAsync("_AdminMenu")
 

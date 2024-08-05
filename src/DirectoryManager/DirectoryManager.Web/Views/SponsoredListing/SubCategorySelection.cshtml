@@ -1,10 +1,11 @@
 ﻿@using DirectoryManager.Data.Models
+@using DirectoryManager.Web.Constants;
 @model IEnumerable<DirectoryEntry>
 
 @{
-    ViewData["Title"] = "Select Sponsored Listing";
+    ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
 
@@ -12,6 +13,6 @@
 {
     <div>
         <a target="_blank" href="@entry.Link">@entry.Name</a> <text> - </text>
-        <a href="@Url.Action("selectduration", new { id = entry.DirectoryEntryId, rsvId = ViewBag.ReservationGuid })">Select</a>
+        <a rel="nofollow" href="@Url.Action("selectduration", new { id = entry.DirectoryEntryId, rsvId = ViewBag.ReservationGuid })">Select</a>
     </div>
 }

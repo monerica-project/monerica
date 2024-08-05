@@ -9,7 +9,7 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
     public class SubCategoryRepositoryTests
     {
         private readonly Mock<IApplicationDbContext> mockContext;
-        private readonly DbSet<SubCategory> mockDbSet;
+        private readonly DbSet<Subcategory> mockDbSet;
         private readonly SubCategoryRepository repository;
 
         public SubCategoryRepositoryTests()
@@ -17,10 +17,10 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
             this.mockContext = new Mock<IApplicationDbContext>();
 
             // Sample data
-            var data = new List<SubCategory>
+            var data = new List<Subcategory>
             {
-                new SubCategory { SubCategoryId = 1, Name = "SubCategory1" },
-                new SubCategory { SubCategoryId = 2, Name = "SubCategory2" }
+                new Subcategory { SubCategoryId = 1, Name = "SubCategory1" },
+                new Subcategory { SubCategoryId = 2, Name = "SubCategory2" }
             }.AsQueryable();
 
             this.mockDbSet = MockHelpers.MockHelpers.GetQueryableMockDbSet(data).Object;

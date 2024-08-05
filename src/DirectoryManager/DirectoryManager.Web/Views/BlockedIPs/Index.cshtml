@@ -1,10 +1,10 @@
 ﻿@model IEnumerable<DirectoryManager.Data.Models.BlockedIP>
-
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Add Blocked IP";
+    ViewData[StringConstants.TitleHeader] = "Add Blocked IP";
 }
 
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
 @await Html.PartialAsync("_AdminMenu")

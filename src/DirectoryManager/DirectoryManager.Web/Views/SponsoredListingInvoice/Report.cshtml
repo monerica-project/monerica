@@ -1,10 +1,10 @@
 ﻿@model DirectoryManager.Web.Models.InvoiceQueryViewModel
 @using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Sponsored Listing Invoice Report";
+    ViewData[StringConstants.TitleHeader] = "Sponsored Listing Invoice Report";
 }
 
-<h2>@ViewData["Title"]</h2>
+<h2>@ViewData[StringConstants.TitleHeader]</h2>
 
 @await Html.PartialAsync("_AdminMenu")
 
@@ -22,12 +22,13 @@
     <button type="submit" class="btn btn-primary">Get Totals</button>
 </form>
 
-    <div>
-        <p>Total Paid Amount: @Model.TotalPaidAmount @Model.PaidInCurrency</p>
-        <p>Total Amount Requested: @Model.TotalAmount @Model.Currency</p>
-    </div>
+<p>
+    Range: @Model.StartDate.ToString(StringConstants.DateTimeFormat) - @Model.EndDate.ToString(StringConstants.DateTimeFormat)
+</p>
 
+<p>Total Paid Amount: @Model.TotalPaidAmount @Model.PaidInCurrency</p>
+<p>Total Amount Requested: @Model.TotalAmount @Model.Currency</p>
 
 <div>
-    <a href="@Url.Action("Index")">Back to List</a>
+    <a href="@Url.Action("Index")">Back to list</a>
 </div>

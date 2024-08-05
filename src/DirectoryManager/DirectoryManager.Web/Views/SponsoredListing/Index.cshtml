@@ -6,16 +6,16 @@
 @model DirectoryManager.Web.Models.SponsoredListingHomeModel;
 
 @{
-    ViewData["Title"] = "Sponsored Listings";
+    ViewData[StringConstants.TitleHeader] = "Sponsored Listings";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_BackToHome")
 <hr />
 
 <h2>Listing Details</h2>
 
-<p>There are two types of advertising, @EnumHelper.GetDescription(SponsorshipType.MainSponsor) and @EnumHelper.GetDescription(SponsorshipType.SubCategorySponsor).</p>
+<p>There are two types of advertising, @EnumHelper.GetDescription(SponsorshipType.MainSponsor) and @EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor).</p>
 <p>See current offers and pricing: <a href="~/sponsoredlisting/offers">here</a>.</p>
 
 <p>
@@ -65,10 +65,10 @@ else
 
 <hr />
 
-<h3>@EnumHelper.GetDescription(SponsorshipType.SubCategorySponsor)</h3>
+<h3>@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</h3>
 
 <p>
-    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SubCategorySponsoredListingDetails))
+    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SubcategorySponsoredListingDetails))
 </p>
 
 @if (Model.AvailableSubCatetgories != null && Model.AvailableSubCatetgories.Any())
@@ -76,7 +76,7 @@ else
     <ul>
     @foreach (var item in Model.AvailableSubCatetgories)
     {
-        <li><a href="~/sponsoredlisting/selectlisting?subCategoryId=@item.Key&sponsorshipType=@SponsorshipType.SubCategorySponsor">@item.Value</a></li>
+        <li><a href="~/sponsoredlisting/selectlisting?subCategoryId=@item.Key&sponsorshipType=@SponsorshipType.SubcategorySponsor">@item.Value</a></li>
     }
     </ul>
 
@@ -84,5 +84,5 @@ else
 }
 else
 {
-    <i>No more @EnumHelper.GetDescription(SponsorshipType.SubCategorySponsor) advertising space available.</i>
+    <i>No more @EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor) advertising space available.</i>
 }

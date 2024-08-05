@@ -1,9 +1,9 @@
 ﻿@model DirectoryManager.Data.Models.DirectoryEntrySelection
-
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Delete From List";
+    ViewData[StringConstants.TitleHeader] = "Delete From List";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <h2>Are you sure you want to remove this entry from the list?</h2>
 <p>@Model.DirectoryEntryId</p>

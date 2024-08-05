@@ -1,8 +1,9 @@
 ﻿@model DirectoryManager.Web.Models.LoginViewModel
+@using DirectoryManager.Web.Constants;
 @{
-    ViewData["Title"] = "Login";
+    ViewData[StringConstants.TitleHeader] = "Login";
 }
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 <hr />
 
 <form method="post">

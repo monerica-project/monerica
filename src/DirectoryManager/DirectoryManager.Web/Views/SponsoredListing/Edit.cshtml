@@ -2,10 +2,10 @@
 @model DirectoryManager.Web.Models.EditListingViewModel
 
 @{
-    ViewData["Title"] = "Edit Sponsored Listing";
+    ViewData[StringConstants.TitleHeader] = "Edit Sponsored Listing";
 }
 
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

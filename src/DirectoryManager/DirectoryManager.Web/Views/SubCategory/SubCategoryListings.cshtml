@@ -8,7 +8,7 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 
 @{
-    ViewData["Title"] = string.Format("{0}: {1}", cacheHelper.GetSnippet(SiteConfigSetting.SiteName), Model.PageTitle);
+    ViewData[StringConstants.TitleHeader] = string.Format("{0}: {1}", cacheHelper.GetSnippet(SiteConfigSetting.SiteName), Model.PageTitle);
     ViewData[StringConstants.MetaDescription] = Model.MetaDescription;
 }
 
@@ -68,6 +68,7 @@
         if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntry.DirectoryEntryId) != null)
         {
             viewModel.IsSponsored = true;
+            viewModel.DisplayAsSponsoredItem = true;
         }
 
         @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)

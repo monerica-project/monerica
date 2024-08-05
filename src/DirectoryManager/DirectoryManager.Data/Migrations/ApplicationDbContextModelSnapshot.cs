@@ -17,7 +17,7 @@ namespace DirectoryManager.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.4")
+                .HasAnnotation("ProductVersion", "8.0.6")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -292,6 +292,9 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<int>("DirectoryBadge")
+                        .HasColumnType("int");
+
                     b.Property<int>("DirectoryStatus")
                         .HasColumnType("int");
 
@@ -304,7 +307,19 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("Link2A")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<string>("Link3")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Link3A")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("LinkA")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
@@ -721,7 +736,7 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("SponsoredListingReservations");
                 });
 
-            modelBuilder.Entity("DirectoryManager.Data.Models.SubCategory", b =>
+            modelBuilder.Entity("DirectoryManager.Data.Models.Subcategory", b =>
                 {
                     b.Property<int>("SubCategoryId")
                         .ValueGeneratedOnAdd()
@@ -1050,7 +1065,7 @@ namespace DirectoryManager.Data.Migrations
 
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntry", b =>
                 {
-                    b.HasOne("DirectoryManager.Data.Models.SubCategory", "SubCategory")
+                    b.HasOne("DirectoryManager.Data.Models.Subcategory", "SubCategory")
                         .WithMany()
                         .HasForeignKey("SubCategoryId");
 
@@ -1098,7 +1113,7 @@ namespace DirectoryManager.Data.Migrations
                     b.Navigation("DirectoryEntry");
                 });
 
-            modelBuilder.Entity("DirectoryManager.Data.Models.SubCategory", b =>
+            modelBuilder.Entity("DirectoryManager.Data.Models.Subcategory", b =>
                 {
                     b.HasOne("DirectoryManager.Data.Models.Category", "Category")
                         .WithMany()
@@ -1115,7 +1130,7 @@ namespace DirectoryManager.Data.Migrations
                         .WithMany()
                         .HasForeignKey("DirectoryEntryId");
 
-                    b.HasOne("DirectoryManager.Data.Models.SubCategory", "SubCategory")
+                    b.HasOne("DirectoryManager.Data.Models.Subcategory", "SubCategory")
                         .WithMany()
                         .HasForeignKey("SubCategoryId");
 

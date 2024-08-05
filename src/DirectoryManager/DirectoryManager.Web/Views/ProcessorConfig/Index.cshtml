@@ -1,11 +1,12 @@
 ﻿@using DirectoryManager.Data.Enums;
 @using DirectoryManager.Data.Models.SponsoredListings;
+@using DirectoryManager.Web.Constants;
 @model IEnumerable<ProcessorConfig>
 @{
-    ViewData["Title"] = "Processor Configurations";
+    ViewData[StringConstants.TitleHeader] = "Processor Configurations";
 }
 
-<h1>@ViewData["Title"]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

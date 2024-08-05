@@ -3,10 +3,10 @@
 @using DirectoryManager.Web.Models
 
 @{
-    ViewData["Title"] = "Invoice Details";
+    ViewData[StringConstants.TitleHeader] = "Invoice Details";
 }
 
-<h2>@ViewData["Title"]</h2>
+<h2>@ViewData[StringConstants.TitleHeader]</h2>
 
 @await Html.PartialAsync("_AdminMenu")
 

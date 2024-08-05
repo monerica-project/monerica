@@ -11,7 +11,7 @@
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 @{
-    ViewData["Title"] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageTitle));
+    ViewData[StringConstants.TitleHeader] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageTitle));
     ViewData[StringConstants.MetaContent] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageMetaTags));
 }
 <cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.EntriesCacheKey">
@@ -138,7 +138,7 @@
     <hr />
     @{
         var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.MainSponsor);
-        var subCategorySponsors = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.SubCategorySponsor);
+        var subCategorySponsors = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.SubcategorySponsor);
     }
 
     @foreach (var category in activeCategories)
@@ -186,6 +186,7 @@
                         {
                             DirectoryEntry = subCategorySponsor.DirectoryEntry,
                             IsSponsored = true,
+                            DisplayAsSponsoredItem = false,
                             Link2Name = link2Name,
                             Link3Name = link3Name
                         } : null
@@ -204,6 +205,7 @@
                     if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntry.DirectoryEntryId) != null)
                     {
                         viewModel.IsSponsored = true;
+                        viewModel.DisplayAsSponsoredItem = true;
                     }
 
                     @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)

@@ -7,7 +7,7 @@ namespace DirectoryManager.Data.Enums
         Unknown = 0,
         [Description("Main Sponsor")]
         MainSponsor = 1,
-        [Description("Sub Category Sponsor")]
-        SubCategorySponsor = 2,
+        [Description("Subcategory Sponsor")]
+        SubcategorySponsor = 2,
     }
 }
