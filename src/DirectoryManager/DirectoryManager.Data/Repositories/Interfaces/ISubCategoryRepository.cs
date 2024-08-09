@@ -7,7 +7,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<IEnumerable<Subcategory>> GetAllAsync();
         Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync();
         Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync(int minimumInSubCategory);
-
         Task<Subcategory?> GetByIdAsync(int subCategoryId);
         Task<Subcategory?> GetByCategoryIdAndKeyAsync(int categoryId, string subCategoryKey);
         Task CreateAsync(Subcategory subCategory);

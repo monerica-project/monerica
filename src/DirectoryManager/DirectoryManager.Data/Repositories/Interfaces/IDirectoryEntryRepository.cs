@@ -1,5 +1,4 @@
 ﻿using DirectoryManager.Data.Models;
-using System.Xml.Linq;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {

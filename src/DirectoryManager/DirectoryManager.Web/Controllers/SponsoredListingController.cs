@@ -199,7 +199,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.DirectoryEntryId = directoryEntryId;
             this.ViewBag.SponsorshipType = sponsorshipType;
 
-            var model = await this.GetListingDurations(sponsorshipType);
+            var model = await this.GetListingDurations(sponsorshipType, subCategoryId);
 
             return this.View(model);
         }
@@ -845,9 +845,9 @@ namespace DirectoryManager.Web.Controllers
                 });
         }
 
-        private async Task<List<SponsoredListingOfferModel>> GetListingDurations(SponsorshipType sponsorshipType)
+        private async Task<List<SponsoredListingOfferModel>> GetListingDurations(SponsorshipType sponsorshipType, int? subcategoryId)
         {
-            var offers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(sponsorshipType);
+            var offers = await this.sponsoredListingOfferRepository.GetByTypeAndSubCategoryAsync(sponsorshipType, subcategoryId);
             var model = new List<SponsoredListingOfferModel>();
 
             foreach (var offer in offers.OrderBy(x => x.Days))

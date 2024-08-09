@@ -1,8 +1,24 @@
 ﻿@model DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOffer
+@using DirectoryManager.Data.Models
 @using DirectoryManager.Web.Constants;
 @{
     ViewData[StringConstants.TitleHeader] = "Create Sponsored Listing Offer";
     SelectList sponsorshipTypeSelectList = new SelectList(Enum.GetValues(typeof(DirectoryManager.Data.Enums.SponsorshipType)));
+    var orderedSubCategories = new[]
+    {
+        new { SubCategoryId = (int?)null, DisplayName = "(All)" }
+    }
+    .Concat(
+        ((IEnumerable<Subcategory>)ViewBag.SubCategories)
+        .OrderBy(sc => sc.Category.Name)
+        .ThenBy(sc => sc.Name)
+        .Select(sc => new
+        {
+            SubCategoryId = (int?)sc.SubCategoryId,
+            DisplayName = $"{sc.Category.Name} > {sc.Name}"
+        })
+    );
+
 }
 
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
@@ -16,6 +32,10 @@
         <label asp-for="SponsorshipType" class="control-label"></label>
         @Html.DropDownListFor(model => model.SponsorshipType, sponsorshipTypeSelectList, new { @class = "form-control" })
         <span asp-validation-for="SponsorshipType" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="SubcategoryId">Subcategory</label>
+        <select asp-for="SubcategoryId" asp-items="@(new SelectList(orderedSubCategories, "SubCategoryId", "DisplayName"))" required></select>
     </div>
     <div class="form-group">
         <label asp-for="Description" class="control-label"></label>

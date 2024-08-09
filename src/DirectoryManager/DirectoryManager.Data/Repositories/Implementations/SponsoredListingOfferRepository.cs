@@ -17,7 +17,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<SponsoredListingOffer>> GetAllAsync()
         {
-            return await this.context.SponsoredListingOffers.ToListAsync();
+            return await this.context.SponsoredListingOffers
+                .Include(slo => slo.Subcategory)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<SponsoredListingOffer>> GetAllByTypeAsync(SponsorshipType sponsorshipType)
@@ -25,6 +27,20 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.context
                              .SponsoredListingOffers
                              .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true).ToListAsync();
+        }
+
+        public async Task<IEnumerable<SponsoredListingOffer>> GetByTypeAndSubCategoryAsync(SponsorshipType sponsorshipType, int? subcategoryId)
+        {
+            var results = await this.context
+                             .SponsoredListingOffers
+                             .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true && x.SubcategoryId == subcategoryId).ToListAsync();
+
+            if (results == null || results.Count == 0)
+            {
+                return await this.GetAllByTypeAsync(sponsorshipType);
+            }
+
+            return results;
         }
 
         public async Task<SponsoredListingOffer> GetByIdAsync(int sponsoredListingOfferId)

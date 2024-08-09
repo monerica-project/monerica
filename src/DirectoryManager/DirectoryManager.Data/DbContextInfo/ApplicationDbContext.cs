@@ -124,6 +124,15 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasForeignKey<SponsoredListing>(sl => sl.SponsoredListingInvoiceId)
                    .OnDelete(DeleteBehavior.Restrict);
 
+            builder.Entity<SponsoredListingOffer>()
+                   .HasIndex(e => new { e.SubcategoryId, e.SponsorshipType, e.Days })
+                   .IsUnique();
+
+            builder.Entity<SponsoredListingOffer>()
+                   .HasIndex(e => new { e.SponsorshipType, e.Days })
+                   .IsUnique()
+                   .HasFilter("SubcategoryId IS NULL");
+
             builder.Entity<ProcessorConfig>()
                    .HasIndex(e => e.PaymentProcessor)
                    .IsUnique();

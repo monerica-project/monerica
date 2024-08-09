@@ -12,6 +12,7 @@
     <thead>
         <tr>
             <th>Type</th>
+            <th>Subcategory</th>
             <th>Description</th>
             <th>Days</th>
             <th>Price</th>
@@ -24,6 +25,7 @@
         {
             <tr>
                 <td>@item.SponsorshipType</td>
+                <td>@item.Subcategory?.Name</td>
                 <td>@item.Description</td>
                 <td>@item.Days</td>
                 <td>@item.Price.ToString("C") (@item.PriceCurrency.ToString())</td>
