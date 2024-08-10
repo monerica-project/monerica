@@ -17,16 +17,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<SponsoredListingOffer>> GetAllAsync()
         {
-            return await this.context.SponsoredListingOffers
-                .Include(slo => slo.Subcategory)
-                .ToListAsync();
+            return await this.context
+                             .SponsoredListingOffers
+                             .Include(slo => slo.Subcategory)
+                             .OrderBy(slo => slo.SponsorshipType)
+                             .ThenBy(slo => slo.SubcategoryId.HasValue)
+                             .ThenBy(slo => slo.Subcategory != null ? slo.Subcategory.Name : string.Empty)
+                             .ThenBy(slo => slo.Days)
+                             .ToListAsync();
         }
 
         public async Task<IEnumerable<SponsoredListingOffer>> GetAllByTypeAsync(SponsorshipType sponsorshipType)
         {
             return await this.context
                              .SponsoredListingOffers
-                             .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true).ToListAsync();
+                             .Include(slo => slo.Subcategory)
+                                 .ThenInclude(sub => sub.Category) // Include the Category associated with the Subcategory
+                             .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true)
+                             .ToListAsync();
         }
 
         public async Task<IEnumerable<SponsoredListingOffer>> GetByTypeAndSubCategoryAsync(SponsorshipType sponsorshipType, int? subcategoryId)
@@ -37,7 +45,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             if (results == null || results.Count == 0)
             {
-                return await this.GetAllByTypeAsync(sponsorshipType);
+                results = await this.context
+                                    .SponsoredListingOffers
+                                    .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true && x.SubcategoryId == null).ToListAsync();
             }
 
             return results;

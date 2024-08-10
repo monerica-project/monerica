@@ -660,15 +660,58 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Offers()
         {
-            var mainSponsorshipOffers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(SponsorshipType.MainSponsor);
-            var enabledMainSponsorshipOffers = mainSponsorshipOffers.Where(o => o.IsEnabled);
-            this.ViewBag.MainSponsorshipOffers = enabledMainSponsorshipOffers;
+            // Retrieve all MainSponsor offers and include the Subcategory and Category navigation properties
+            var mainSponsorshipOffers = await this.sponsoredListingOfferRepository
+                .GetAllByTypeAsync(SponsorshipType.MainSponsor);
 
-            var subCategorySponsorshipOffers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(SponsorshipType.SubcategorySponsor);
-            var enabledsubCategoryOffers = subCategorySponsorshipOffers.Where(o => o.IsEnabled);
-            this.ViewBag.SubCategorySponsorshipOffers = enabledsubCategoryOffers;
+            // Map, filter, and order the main sponsorship offers
+            var enabledMainSponsorshipOffers = mainSponsorshipOffers
+                .Select(o => new SponsoredListingOfferDisplayModel
+                {
+                    Description = o.Description,
+                    Days = o.Days,
+                    PriceCurrency = o.PriceCurrency,
+                    Price = o.Price,
+                    SponsorshipType = o.SponsorshipType,
+                    CategorySubcategory = o.Subcategory != null
+                        ? $"{o.Subcategory.Category?.Name ?? StringConstants.Default} > {o.Subcategory.Name}"
+                        : StringConstants.Default
+                })
+                .OrderBy(o => o.CategorySubcategory == StringConstants.Default ? 0 : 1) // Entries with no Subcategory come first
+                .ThenBy(o => o.CategorySubcategory)
+                .ThenBy(o => o.Days)
+                .ToList();
 
-            return this.View();
+            // Retrieve all SubcategorySponsor offers and include the Subcategory and Category navigation properties
+            var subCategorySponsorshipOffers = await this.sponsoredListingOfferRepository
+                .GetAllByTypeAsync(SponsorshipType.SubcategorySponsor);
+
+            // Map, filter, and order the subcategory sponsorship offers
+            var enabledSubCategoryOffers = subCategorySponsorshipOffers
+                .Select(o => new SponsoredListingOfferDisplayModel
+                {
+                    Description = o.Description,
+                    Days = o.Days,
+                    PriceCurrency = o.PriceCurrency,
+                    Price = o.Price,
+                    SponsorshipType = o.SponsorshipType,
+                    CategorySubcategory = o.Subcategory != null
+                        ? $"{o.Subcategory.Category?.Name ?? StringConstants.Default} > {o.Subcategory.Name}"
+                        : StringConstants.Default
+                })
+                .OrderBy(o => o.CategorySubcategory == StringConstants.Default ? 0 : 1) // Entries with no Subcategory come first
+                .ThenBy(o => o.CategorySubcategory)
+                .ThenBy(o => o.Days)
+                .ToList();
+
+            // Pass the data to the view using a strongly typed model
+            var model = new SponsoredListingOffersViewModel
+            {
+                MainSponsorshipOffers = enabledMainSponsorshipOffers,
+                SubCategorySponsorshipOffers = enabledSubCategoryOffers
+            };
+
+            return this.View(model);
         }
 
         [AllowAnonymous]

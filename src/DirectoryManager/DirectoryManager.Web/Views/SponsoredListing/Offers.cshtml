@@ -1,17 +1,17 @@
-﻿@using DirectoryManager.Data.Enums
-@using DirectoryManager.Web.Constants;
-@using DirectoryManager.Web.Models;
-@using DirectoryManager.Data.Models.SponsoredListings;
-@using DirectoryManager.Utilities.Helpers;
+﻿@model DirectoryManager.Web.Models.SponsoredListingOffersViewModel
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Utilities.Helpers
 
 @{
     ViewData[StringConstants.TitleHeader] = "Sponsored Listing Offers";
 }
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_BackToHome")
 <hr />
- 
+
 <h2>Offers</h2>
 
 <h3>@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</h3>
@@ -19,17 +19,17 @@
 <table>
     <thead>
         <tr>
-            <th>Description</th>
-            <th></th>
+            <th>Category > Subcategory</th>
+            <th>Days</th>
             <th>Price</th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var offer in this.ViewBag.MainSponsorshipOffers)
+        @foreach (var offer in Model.MainSponsorshipOffers)
         {
             <tr>
-                <td>@offer.Description</td>
-                <td> - </td>
+                <td>@offer.CategorySubcategory</td>
+                <td>@offer.Days</td>
                 <td>@offer.Price.ToString("C") (@offer.PriceCurrency.ToString())</td>
             </tr>
         }
@@ -42,17 +42,17 @@
 <table>
     <thead>
         <tr>
-            <th>Description</th>
-            <th></th>
+            <th>Category > Subcategory</th>
+            <th>Days</th>
             <th>Price</th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var offer in this.ViewBag.SubCategorySponsorshipOffers)
+        @foreach (var offer in Model.SubCategorySponsorshipOffers)
         {
             <tr>
-                <td>@offer.Description</td>
-                <td> - </td>
+                <td>@offer.CategorySubcategory</td>
+                <td>@offer.Days</td>
                 <td>@offer.Price.ToString("C") (@offer.PriceCurrency.ToString())</td>
             </tr>
         }
