@@ -270,6 +270,23 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .CountAsync();
         }
 
+        public async Task<Dictionary<int, DateTime>> GetLastModifiedDatesBySubCategoryAsync()
+        {
+            var lastModifiedDates = await this.context.DirectoryEntries
+                .Where(de => de.SubCategoryId.HasValue) // Ensure SubCategoryId is not null
+                .GroupBy(de => de.SubCategoryId.Value) // Group by non-nullable SubCategoryId
+                .Select(g => new
+                {
+                    SubCategoryId = g.Key,
+                    LastModified = g.Max(de => de.UpdateDate.HasValue && de.UpdateDate > de.CreateDate
+                                                ? de.UpdateDate.Value
+                                                : de.CreateDate)
+                })
+                .ToListAsync();
+
+            return lastModifiedDates.ToDictionary(x => x.SubCategoryId, x => x.LastModified);
+        }
+
         private async Task WriteToAuditLog(DirectoryEntry? existingEntry)
         {
             if (existingEntry == null)

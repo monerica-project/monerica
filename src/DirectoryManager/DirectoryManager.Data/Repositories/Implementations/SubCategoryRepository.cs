@@ -111,5 +111,20 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return activeSubCategories;
         }
+
+        public async Task<Dictionary<int, DateTime>> GetAllSubCategoriesLastChangeDatesAsync()
+        {
+            var subCategories = await this.context.SubCategories
+                .Select(sc => new
+                {
+                    sc.SubCategoryId,
+                    LastModified = sc.UpdateDate.HasValue && sc.UpdateDate > sc.CreateDate
+                        ? sc.UpdateDate.Value
+                        : sc.CreateDate
+                })
+                .ToListAsync();
+
+            return subCategories.ToDictionary(sc => sc.SubCategoryId, sc => sc.LastModified);
+        }
     }
 }

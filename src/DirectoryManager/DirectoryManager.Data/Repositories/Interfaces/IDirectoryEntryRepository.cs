@@ -20,5 +20,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int subCategoryId);
         Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync();
         Task<int> TotalActive();
+        Task<Dictionary<int, DateTime>> GetLastModifiedDatesBySubCategoryAsync();
     }
 }

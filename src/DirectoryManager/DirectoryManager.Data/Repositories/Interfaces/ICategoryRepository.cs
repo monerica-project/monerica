@@ -12,5 +12,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<Category> GetByNameAsync(string categoryName);
         Task<Category?> GetByKeyAsync(string categoryKey);
         Task<IEnumerable<Category>> GetActiveCategoriesAsync();
+        Task<Dictionary<int, DateTime>> GetAllCategoriesLastChangeDatesAsync();
     }
 }

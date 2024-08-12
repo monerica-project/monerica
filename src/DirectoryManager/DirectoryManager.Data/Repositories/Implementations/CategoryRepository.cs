@@ -77,5 +77,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return activeCategories;
         }
+
+        public async Task<Dictionary<int, DateTime>> GetAllCategoriesLastChangeDatesAsync()
+        {
+            var categories = await this.context.Categories
+                .Select(c => new
+                {
+                    c.CategoryId,
+                    LastModified = c.UpdateDate.HasValue && c.UpdateDate > c.CreateDate ? c.UpdateDate.Value : c.CreateDate
+                })
+                .ToListAsync();
+
+            return categories.ToDictionary(c => c.CategoryId, c => c.LastModified);
+        }
     }
 }

@@ -6,7 +6,7 @@ namespace DirectoryManager.Web.Models
     {
         public string Url { get; set; } = default!;
 
-        public DateTime LastMode { get; set; }
+        public DateTime LastMod { get; set; }
 
         public ChangeFrequency ChangeFrequency { get; set; }
 
