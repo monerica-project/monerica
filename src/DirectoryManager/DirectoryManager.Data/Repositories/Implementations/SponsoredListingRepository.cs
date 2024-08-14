@@ -202,14 +202,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             var lastModifiedDates = await this.context.SponsoredListings
                 .Where(x => x.SubCategoryId.HasValue) // Ensure SubCategoryId is not null
-                .GroupBy(x => x.SubCategoryId.Value) // Group by non-nullable SubCategoryId
+                .GroupBy(x => x.SubCategoryId) // Group by nullable SubCategoryId
                 .Select(g => new
                 {
-                    SubCategoryId = g.Key,
+                    SubCategoryId = g.Key ?? 0, // Use the null-coalescing operator as a fallback
                     LastModified = g.Max(x => x.UpdateDate.HasValue && x.UpdateDate > x.CreateDate
                                                 ? x.UpdateDate.Value
                                                 : x.CreateDate)
                 })
+                .Where(x => x.SubCategoryId != 0) // Filter out any entries with the fallback value
                 .ToListAsync();
 
             // If there are no items or no items with subcategories, the dictionary will be empty

@@ -29,12 +29,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<SponsoredListingOffer>> GetAllByTypeAsync(SponsorshipType sponsorshipType)
         {
-            return await this.context
-                             .SponsoredListingOffers
-                             .Include(slo => slo.Subcategory)
-                                 .ThenInclude(sub => sub.Category) // Include the Category associated with the Subcategory
-                             .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true)
-                             .ToListAsync();
+            var offers = await this.context
+                                   .SponsoredListingOffers
+                                   .Include(slo => slo.Subcategory)
+                                   .ThenInclude(sub => sub.Category) // Include the Category associated with the Subcategory
+                                   .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true)
+                                   .ToListAsync();
+
+            // Filter out any entries where Category might be null
+            return offers.Where(o => o.Subcategory?.Category != null).ToList();
         }
 
         public async Task<IEnumerable<SponsoredListingOffer>> GetByTypeAndSubCategoryAsync(SponsorshipType sponsorshipType, int? subcategoryId)

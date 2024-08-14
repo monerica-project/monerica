@@ -206,7 +206,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return groupedEntries;
         }
 
-
         public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int numberOfDays)
         {
             var recentDates = await this.context.DirectoryEntries
@@ -274,7 +273,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             var lastModifiedDates = await this.context.DirectoryEntries
                 .Where(de => de.SubCategoryId.HasValue) // Ensure SubCategoryId is not null
-                .GroupBy(de => de.SubCategoryId.Value) // Group by non-nullable SubCategoryId
+                .GroupBy(de => de.SubCategoryId.GetValueOrDefault()) // Safely convert nullable SubCategoryId to int
                 .Select(g => new
                 {
                     SubCategoryId = g.Key,

@@ -21,10 +21,18 @@ namespace DirectoryManager.Web.Controllers
         {
             var newestEntries = await this.directoryEntryRepository.GetNewestAdditions(IntegerConstants.MaxPageSize);
 
+            var feedLink = this.Url.Action("FeedXml", "Rss", null, this.Request.Scheme);
+
+            if (string.IsNullOrEmpty(feedLink))
+            {
+                // Handle the case where feedLink is null or empty
+                return this.BadRequest("Unable to generate feed link.");
+            }
+
             var rssFeed = this.rssFeedService.GenerateRssFeed(
                 newestEntries,
                 "Newest Additions",
-                this.Url.Action("FeedXml", "Rss", null, this.Request.Scheme), // Generate full URL for feed link
+                feedLink, // Pass the validated feedLink
                 "The latest additions to our directory.");
 
             return this.Content(rssFeed.ToString(), "application/xml");
