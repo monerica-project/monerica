@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
@@ -12,15 +13,18 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly ISponsoredListingInvoiceRepository invoiceRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly ISubCategoryRepository subCategoryRepository;
         private readonly ICacheService cacheService;
 
         public SponsoredListingInvoiceController(
             ISponsoredListingInvoiceRepository invoiceRepository,
             IDirectoryEntryRepository directoryEntryRepository,
+            ISubCategoryRepository subCategoryRepository,
             ICacheService cacheService)
         {
             this.invoiceRepository = invoiceRepository;
             this.directoryEntryRepository = directoryEntryRepository;
+            this.subCategoryRepository = subCategoryRepository;
             this.cacheService = cacheService;
         }
 
@@ -61,6 +65,17 @@ namespace DirectoryManager.Web.Controllers
             if (directoryEntry == null)
             {
                 return this.NotFound();
+            }
+
+            if (sponsoredListingInvoice.SubCategoryId.HasValue)
+            {
+                this.ViewBag.SubCategory = (await this.subCategoryRepository
+                                                        .GetAllActiveSubCategoriesAsync())
+                                                        .OrderBy(sc => sc.Category.Name)
+                                                        .ThenBy(sc => sc.Name)
+                                                        .Where(sc => sc.SubCategoryId == sponsoredListingInvoice.SubCategoryId.Value)
+                                                        .ToList()
+                                                        .First();
             }
 
             this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel()

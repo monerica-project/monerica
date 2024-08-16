@@ -967,12 +967,18 @@ namespace DirectoryManager.Web.Controllers
             entries = entries.OrderBy(e => e.Name)
                              .ToList();
 
+            await this.GetSubCateogryOptions();
+
+            return entries;
+        }
+
+        private async Task GetSubCateogryOptions()
+        {
             this.ViewBag.SubCategories = (await this.subCategoryRepository
                                                     .GetAllActiveSubCategoriesAsync())
                                                     .OrderBy(sc => sc.Category.Name)
                                                     .ThenBy(sc => sc.Name)
                                                     .ToList();
-            return entries;
         }
     }
 }
