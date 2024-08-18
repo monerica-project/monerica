@@ -28,5 +28,6 @@
         public const string TitleHeader = "Title";
         public const string CanonicalUrl = "CanonicalUrl";
         public const string Default = "(Default)";
+        public const string IsIndexable = "IsIndexable";
     }
 }

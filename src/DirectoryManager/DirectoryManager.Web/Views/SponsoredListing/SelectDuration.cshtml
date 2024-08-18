@@ -9,6 +9,7 @@
     ViewData[StringConstants.TitleHeader] = "Select Listing Duration";
     var offersList = Model.ToList();
     int defaultChoiceIndex = 0;
+    ViewData[StringConstants.IsIndexable] = false;
 }
 
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
