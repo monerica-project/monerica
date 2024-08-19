@@ -142,6 +142,8 @@ namespace DirectoryManager.Web.Controllers
 
             foreach (var entry in allActiveEntries.Where(x => x.DirectoryStatus != Data.Enums.DirectoryStatus.Removed))
             {
+                var directoryItemLastMod = new[] { entry.CreateDate, entry.UpdateDate ?? entry.CreateDate, lastSponsoredListingChange ?? entry.CreateDate }.Max();
+
                 siteMapHelper.SiteMapItems.Add(new SiteMapItem
                 {
                     Url = string.Format(
@@ -152,7 +154,7 @@ namespace DirectoryManager.Web.Controllers
                             entry.DirectoryEntryKey),
                     Priority = 1.0,
                     ChangeFrequency = ChangeFrequency.Weekly,
-                    LastMod = entry.UpdateDate == null ? entry.CreateDate : entry.UpdateDate.Value
+                    LastMod = directoryItemLastMod
                 });
             }
 
