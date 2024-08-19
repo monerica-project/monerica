@@ -14,10 +14,22 @@ namespace DirectoryManager.Web.Helpers
         {
             return directoryEntries.Select(entry => new DirectoryEntryViewModel
             {
-                DirectoryEntry = entry,
-                DateOption = option,
+                DateOption = Enums.DateDisplayOption.NotDisplayed,
+                IsSponsored = false,
                 Link2Name = link2Name,
                 Link3Name = link3Name,
+                Link = entry.Link,
+                Name = entry.Name,
+                Contact = entry.Contact,
+                Description = entry.Description,
+                DirectoryEntryId = entry.DirectoryEntryId,
+                DirectoryStatus = entry.DirectoryStatus,
+                Link2 = entry.Link2,
+                Link3 = entry.Link3,
+                Location = entry.Location,
+                Note = entry.Note,
+                Processor = entry.Processor,
+                SubCategoryId = entry.SubCategoryId,
             }).ToList();
         }
     }

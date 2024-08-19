@@ -64,7 +64,7 @@ namespace DirectoryManager.Data.Models
 
         public virtual Subcategory? SubCategory { get; set; }
 
-        public int? SubCategoryId { get; set; }
+        public int SubCategoryId { get; set; }
 
         public bool Equals(DirectoryEntry? other)
         {

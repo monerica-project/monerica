@@ -14,7 +14,7 @@ namespace DirectoryManager.Web.Controllers
     public class DirectoryEntryController : BaseController
     {
         private readonly UserManager<ApplicationUser> userManager;
-        private readonly IDirectoryEntryRepository entryRepository;
+        private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly ISubCategoryRepository subCategoryRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly IDirectoryEntriesAuditRepository auditRepository;
@@ -34,7 +34,7 @@ namespace DirectoryManager.Web.Controllers
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
-            this.entryRepository = entryRepository;
+            this.directoryEntryRepository = entryRepository;
             this.subCategoryRepository = subCategoryRepository;
             this.categoryRepository = categoryRepository;
             this.auditRepository = auditRepository;
@@ -45,7 +45,7 @@ namespace DirectoryManager.Web.Controllers
         [Route("directoryentry/index")]
         public async Task<IActionResult> Index(int? subCategoryId = null)
         {
-            var entries = await this.entryRepository.GetAllAsync();
+            var entries = await this.directoryEntryRepository.GetAllAsync();
 
             if (subCategoryId.HasValue)
             {
@@ -103,7 +103,7 @@ namespace DirectoryManager.Web.Controllers
                 entry.Location = entry.Location?.Trim();
                 entry.Processor = entry.Processor?.Trim();
 
-                await this.entryRepository.CreateAsync(entry);
+                await this.directoryEntryRepository.CreateAsync(entry);
 
                 this.ClearCachedItems();
 
@@ -119,7 +119,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
-            var entry = await this.entryRepository.GetByIdAsync(id);
+            var entry = await this.directoryEntryRepository.GetByIdAsync(id);
             if (entry == null)
             {
                 return this.NotFound();
@@ -133,7 +133,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(int id, DirectoryEntry entry)
         {
-            var existingEntry = await this.entryRepository.GetByIdAsync(id);
+            var existingEntry = await this.directoryEntryRepository.GetByIdAsync(id);
 
             if (existingEntry == null)
             {
@@ -156,7 +156,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Location = entry.Location?.Trim();
             existingEntry.Processor = entry.Processor?.Trim();
 
-            await this.entryRepository.UpdateAsync(existingEntry);
+            await this.directoryEntryRepository.UpdateAsync(existingEntry);
 
             this.ClearCachedItems();
 
@@ -171,7 +171,7 @@ namespace DirectoryManager.Web.Controllers
             var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
 
-            var directoryEntry = await this.entryRepository.GetByIdAsync(entryId);
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(entryId);
             if (directoryEntry == null)
             {
                 return this.NotFound();
@@ -179,9 +179,22 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel()
             {
-                DirectoryEntry = directoryEntry,
+                DateOption = Enums.DateDisplayOption.NotDisplayed,
+                IsSponsored = false,
                 Link2Name = link2Name,
-                Link3Name = link3Name
+                Link3Name = link3Name,
+                Link = directoryEntry.Link,
+                Name = directoryEntry.Name,
+                Contact = directoryEntry.Contact,
+                Description = directoryEntry.Description,
+                DirectoryEntryId = directoryEntry.DirectoryEntryId,
+                DirectoryStatus = directoryEntry.DirectoryStatus,
+                Link2 = directoryEntry.Link2,
+                Link3 = directoryEntry.Link3,
+                Location = directoryEntry.Location,
+                Note = directoryEntry.Note,
+                Processor = directoryEntry.Processor,
+                SubCategoryId = directoryEntry.SubCategoryId,
             };
 
             return this.View(audits);
@@ -190,11 +203,48 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("directoryentry/delete")]
         public async Task<IActionResult> Delete(int id)
         {
-            await this.entryRepository.DeleteAsync(id);
+            await this.directoryEntryRepository.DeleteAsync(id);
 
             this.ClearCachedItems();
 
             return this.RedirectToAction(nameof(this.Index));
+        }
+
+        [AllowAnonymous]
+        [HttpGet("{categorykey}/{subcategorykey}/{listingkey}")]
+        public async Task<IActionResult> SubCategoryListings(string categoryKey, string subCategoryKey, string listingkey)
+        {
+            var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
+
+            if (category == null)
+            {
+                return this.NotFound();
+            }
+
+            var subCategory = await this.subCategoryRepository.GetByCategoryIdAndKeyAsync(category.CategoryId, subCategoryKey);
+
+            if (subCategory == null)
+            {
+                return this.NotFound();
+            }
+
+            var entries = await this.directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
+
+            var model = new CategorySubCategoriesViewModel
+            {
+                PageHeader = $"{category.Name} > {subCategory.Name}",
+                PageTitle = $"{category.Name} > {subCategory.Name}",
+                MetaDescription = subCategory.MetaDescription,
+                PageDetails = subCategory.PageDetails,
+                Description = subCategory.Description,
+                Note = subCategory.Note,
+                SubCategoryId = subCategory.SubCategoryId,
+                DirectoryEntries = entries,
+                CategoryRelativePath = string.Format("/{0}", category.CategoryKey),
+                CategoryName = category.Name
+            };
+
+            return this.View("SubCategoryListings", model);
         }
     }
 }

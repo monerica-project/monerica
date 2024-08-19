@@ -178,9 +178,9 @@ namespace DirectoryManager.Web.Controllers
             int? subCategoryId = null;
 
             if (sponsorshipType == SponsorshipType.SubcategorySponsor &&
-                (directoryEntry != null && directoryEntry.SubCategoryId != null))
+                (directoryEntry != null))
             {
-                subCategoryId = directoryEntry.SubCategoryId.Value;
+                subCategoryId = directoryEntry.SubCategoryId;
             }
 
             var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(sponsorshipType);
@@ -400,7 +400,7 @@ namespace DirectoryManager.Web.Controllers
 
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
 
-            if (directoryEntry == null || directoryEntry.SubCategoryId == null)
+            if (directoryEntry == null)
             {
                 return this.BadRequest(new { Error = StringConstants.DirectoryEntryNotFound });
             }
@@ -414,7 +414,7 @@ namespace DirectoryManager.Web.Controllers
                                                         directoryEntry.SubCategoryId);
                 var reservationGroup = ReservationGroupHelper.CreateReservationGroup(
                                                                     sponsoredListingOffer.SponsorshipType,
-                                                                    directoryEntry.SubCategoryId.Value);
+                                                                    directoryEntry.SubCategoryId);
                 var totalActiveReservations = await this.sponsoredListingReservationRepository
                                                         .GetActiveReservationsCountAsync(reservationGroup);
 
@@ -780,9 +780,22 @@ namespace DirectoryManager.Web.Controllers
             {
                 SelectedDirectoryEntry = new DirectoryEntryViewModel()
                 {
-                    DirectoryEntry = directoryEntry,
+                    DateOption = Enums.DateDisplayOption.NotDisplayed,
+                    IsSponsored = false,
                     Link2Name = link2Name,
-                    Link3Name = link3Name
+                    Link3Name = link3Name,
+                    Link = directoryEntry.Link,
+                    Name = directoryEntry.Name,
+                    Contact = directoryEntry.Contact,
+                    Description = directoryEntry.Description,
+                    DirectoryEntryId = directoryEntry.DirectoryEntryId,
+                    DirectoryStatus = directoryEntry.DirectoryStatus,
+                    Link2 = directoryEntry.Link2,
+                    Link3 = directoryEntry.Link3,
+                    Location = directoryEntry.Location,
+                    Note = directoryEntry.Note,
+                    Processor = directoryEntry.Processor,
+                    SubCategoryId = directoryEntry.SubCategoryId
                 },
                 Offer = new SponsoredListingOfferModel()
                 {

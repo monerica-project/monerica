@@ -1,5 +1,4 @@
 ﻿using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
@@ -80,9 +79,22 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel()
             {
-                DirectoryEntry = directoryEntry,
+                DateOption = Enums.DateDisplayOption.NotDisplayed,
+                IsSponsored = false,
                 Link2Name = link2Name,
-                Link3Name = link3Name
+                Link3Name = link3Name,
+                Link = directoryEntry.Link,
+                Name = directoryEntry.Name,
+                Contact = directoryEntry.Contact,
+                Description = directoryEntry.Description,
+                DirectoryEntryId = directoryEntry.DirectoryEntryId,
+                DirectoryStatus = directoryEntry.DirectoryStatus,
+                Link2 = directoryEntry.Link2,
+                Link3 = directoryEntry.Link3,
+                Location = directoryEntry.Location,
+                Note = directoryEntry.Note,
+                Processor = directoryEntry.Processor,
+                SubCategoryId = directoryEntry.SubCategoryId
             };
 
             return this.View(sponsoredListingInvoice);

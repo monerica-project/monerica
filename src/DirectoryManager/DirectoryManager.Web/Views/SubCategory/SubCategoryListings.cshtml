@@ -48,7 +48,24 @@
                 TotalActiveSubCategoryListings = activeEntries.Count(),
                 DirectoryEntry = (subCategorySponsor != null && subCategorySponsor.DirectoryEntry != null) ? new DirectoryManager.Web.Models.DirectoryEntryViewModel()
                 {
-                    DirectoryEntry = subCategorySponsor.DirectoryEntry,
+
+                    DateOption = DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+ 
+                    Link = subCategorySponsor.DirectoryEntry.Link,
+                    Name = subCategorySponsor.DirectoryEntry.Name,
+                    Contact = subCategorySponsor.DirectoryEntry.Contact,
+                    Description = subCategorySponsor.DirectoryEntry.Description,
+                    DirectoryEntryId = subCategorySponsor.DirectoryEntry.DirectoryEntryId,
+                    DirectoryStatus = subCategorySponsor.DirectoryEntry.DirectoryStatus,
+                    Link2 = subCategorySponsor.DirectoryEntry.Link2,
+                    Link3 = subCategorySponsor.DirectoryEntry.Link3,
+                    Location = subCategorySponsor.DirectoryEntry.Location,
+                    Note = subCategorySponsor.DirectoryEntry.Note,
+                    Processor = subCategorySponsor.DirectoryEntry.Processor,
+                    SubCategoryId = subCategorySponsor.DirectoryEntry.SubCategoryId,
+                    CreateDate = subCategorySponsor.DirectoryEntry.CreateDate,
+                    UpdateDate = subCategorySponsor.DirectoryEntry.UpdateDate,
+
                     IsSponsored = true,
                     Link2Name = link2Name,
                     Link3Name = link3Name
@@ -59,13 +76,13 @@
 
     if (subCategorySponsor != null)
     {
-        viewModelList.RemoveAll(x => x.DirectoryEntry.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
+        viewModelList.RemoveAll(x => x.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
     }
 }
 <ul>
     @foreach (var viewModel in viewModelList)
     {
-        if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntry.DirectoryEntryId) != null)
+        if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntryId) != null)
         {
             viewModel.IsSponsored = true;
             viewModel.DisplayAsSponsoredItem = true;

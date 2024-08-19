@@ -272,8 +272,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<Dictionary<int, DateTime>> GetLastModifiedDatesBySubCategoryAsync()
         {
             var lastModifiedDates = await this.context.DirectoryEntries
-                .Where(de => de.SubCategoryId.HasValue) // Ensure SubCategoryId is not null
-                .GroupBy(de => de.SubCategoryId.GetValueOrDefault()) // Safely convert nullable SubCategoryId to int
+                .GroupBy(de => de.SubCategoryId)
                 .Select(g => new
                 {
                     SubCategoryId = g.Key,
