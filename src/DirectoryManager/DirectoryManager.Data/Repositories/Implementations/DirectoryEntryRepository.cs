@@ -21,7 +21,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<DirectoryEntry?> GetByIdAsync(int directoryEntryId)
         {
-            return await this.context.DirectoryEntries.FindAsync(directoryEntryId);
+            return await this.context.DirectoryEntries
+                .Include(de => de.SubCategory) // Include the SubCategory
+                .ThenInclude(sc => sc.Category) // Then include the related Category
+                .FirstOrDefaultAsync(de => de.DirectoryEntryId == directoryEntryId);
+        }
+
+        public async Task<DirectoryEntry?> GetBySubCategoryAndKeyAsync(int subCategoryId, string directoryEntryKey)
+        {
+            return await this.context.DirectoryEntries
+                        .FirstOrDefaultAsync(de => de.SubCategoryId == subCategoryId && de.DirectoryEntryKey == directoryEntryKey);
         }
 
         public async Task<DirectoryEntry?> GetByLinkAsync(string link)

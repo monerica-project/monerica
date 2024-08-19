@@ -84,5 +84,9 @@ namespace DirectoryManager.Web.Models
         public DateTime? UpdateDate { get; set; }
 
         public DateTime CreateDate { get; set; }
+
+        public LinkType LinkType { get; set; } = LinkType.Direct;
+
+        public string ItemPath { get; set; } = string.Empty;
     }
 }

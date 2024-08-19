@@ -14,12 +14,14 @@ namespace DirectoryManager.Web.Helpers
         {
             return directoryEntries.Select(entry => new DirectoryEntryViewModel
             {
-                DateOption = Enums.DateDisplayOption.NotDisplayed,
+                ItemPath = string.Format("/{0}/{1}/{2}", entry.SubCategory?.Category.CategoryKey, entry.SubCategory?.SubCategoryKey, entry.DirectoryEntryKey),
+                DateOption = DateDisplayOption.NotDisplayed,
                 IsSponsored = false,
                 Link2Name = link2Name,
                 Link3Name = link3Name,
                 Link = entry.Link,
                 Name = entry.Name,
+                DirectoryEntryKey = entry.DirectoryEntryKey,
                 Contact = entry.Contact,
                 Description = entry.Description,
                 DirectoryEntryId = entry.DirectoryEntryId,

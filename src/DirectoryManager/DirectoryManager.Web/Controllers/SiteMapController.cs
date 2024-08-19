@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Repositories.Interfaces;
+﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
@@ -135,6 +136,24 @@ namespace DirectoryManager.Web.Controllers
                         LastMod = lastModified
                     });
                 }
+            }
+
+            var allActiveEntries = await this.directoryEntryRepository.GetAllEntitiesAndPropertiesAsync();
+
+            foreach (var entry in allActiveEntries.Where(x => x.DirectoryStatus != Data.Enums.DirectoryStatus.Removed))
+            {
+                siteMapHelper.SiteMapItems.Add(new SiteMapItem
+                {
+                    Url = string.Format(
+                            "{0}/{1}/{2}/{3}",
+                            WebRequestHelper.GetCurrentDomain(this.HttpContext),
+                            entry.SubCategory?.Category.CategoryKey,
+                            entry.SubCategory?.SubCategoryKey,
+                            entry.DirectoryEntryKey),
+                    Priority = 1.0,
+                    ChangeFrequency = ChangeFrequency.Weekly,
+                    LastMod = entry.UpdateDate == null ? entry.CreateDate : entry.UpdateDate.Value
+                });
             }
 
             // Generate the sitemap XML

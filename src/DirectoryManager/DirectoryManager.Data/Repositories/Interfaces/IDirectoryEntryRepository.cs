@@ -5,6 +5,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
     public interface IDirectoryEntryRepository
     {
         Task<DirectoryEntry?> GetByIdAsync(int directoryEntryId);
+        Task<DirectoryEntry?> GetBySubCategoryAndKeyAsync(int subcategorydId, string directoryEntryKey);
         Task<DirectoryEntry?> GetByLinkAsync(string link);
         Task<IEnumerable<DirectoryEntry>> GetAllAsync();
         Task<IEnumerable<DirectoryEntry>> GetAllBySubCategoryIdAsync(int subCategoryId);

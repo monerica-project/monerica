@@ -156,6 +156,12 @@ namespace DirectoryManager.Web.Controllers
 
             var entries = await this.directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
 
+            // Populate ViewBag with the necessary values for breadcrumb and other data
+            this.ViewBag.CategoryKey = category.CategoryKey;
+            this.ViewBag.SubCategoryKey = subCategory.SubCategoryKey;
+            this.ViewBag.CategoryName = category.Name;
+            this.ViewBag.SubCategoryName = subCategory.Name;
+
             var model = new CategorySubCategoriesViewModel
             {
                 PageHeader = $"{category.Name} > {subCategory.Name}",

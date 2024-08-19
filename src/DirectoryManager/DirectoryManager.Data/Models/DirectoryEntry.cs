@@ -78,6 +78,7 @@ namespace DirectoryManager.Data.Models
 
             return this.DirectoryEntryId == other.DirectoryEntryId &&
                 this.Name == other.Name &&
+                this.DirectoryEntryKey == other.DirectoryEntryKey &&
                 this.Link == other.Link &&
                 this.Link2 == other.Link2 &&
                 this.DirectoryStatus == other.DirectoryStatus &&

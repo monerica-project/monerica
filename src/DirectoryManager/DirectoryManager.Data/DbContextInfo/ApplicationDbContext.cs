@@ -75,7 +75,7 @@ namespace DirectoryManager.Data.DbContextInfo
 
             builder.Entity<DirectoryEntry>()
                    .HasIndex(e => new { e.SubCategoryId, e.DirectoryEntryKey })
-                    .IsUnique();
+                   .IsUnique();
 
             builder.Entity<Category>()
                    .HasIndex(e => e.CategoryKey)

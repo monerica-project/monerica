@@ -151,7 +151,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Link3 = entry.Link3?.Trim();
             existingEntry.Link3A = entry.Link3A?.Trim();
             existingEntry.Name = entry.Name.Trim();
-            existingEntry.DirectoryEntryKey = StringHelpers.UrlKey(entry.DirectoryEntryKey);
+            existingEntry.DirectoryEntryKey = StringHelpers.UrlKey(entry.Name);
             existingEntry.Description = entry.Description?.Trim();
             existingEntry.Note = entry.Note?.Trim();
             existingEntry.DirectoryStatus = entry.DirectoryStatus;
@@ -215,8 +215,8 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("{categorykey}/{subcategorykey}/{listingkey}")]
-        public async Task<IActionResult> SubCategoryListings(string categoryKey, string subCategoryKey, string listingkey)
+        [HttpGet("{categorykey}/{subcategorykey}/{directoryEntryKey}")]
+        public async Task<IActionResult> DirectoryEntryView(string categoryKey, string subCategoryKey, string directoryEntryKey)
         {
             var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
 
@@ -232,23 +232,48 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var entries = await this.directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
+            var existingEntry = await this.directoryEntryRepository.GetBySubCategoryAndKeyAsync(subCategory.SubCategoryId, directoryEntryKey);
 
-            var model = new CategorySubCategoriesViewModel
+            if (existingEntry == null)
             {
-                PageHeader = $"{category.Name} > {subCategory.Name}",
-                PageTitle = $"{category.Name} > {subCategory.Name}",
-                MetaDescription = subCategory.MetaDescription,
-                PageDetails = subCategory.PageDetails,
-                Description = subCategory.Description,
-                Note = subCategory.Note,
-                SubCategoryId = subCategory.SubCategoryId,
-                DirectoryEntries = entries,
-                CategoryRelativePath = string.Format("/{0}", category.CategoryKey),
-                CategoryName = category.Name
+                return this.NotFound();
+            }
+
+            var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
+            var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
+
+            var model = new DirectoryEntryViewModel
+            {
+                DirectoryEntryId = existingEntry.DirectoryEntryId,
+                Name = existingEntry.Name,
+                DirectoryEntryKey = existingEntry.DirectoryEntryKey,
+                Link = existingEntry.Link,
+                LinkA = existingEntry.LinkA,
+                Link2 = existingEntry.Link2,
+                Link2A = existingEntry.Link2A,
+                Link3 = existingEntry.Link3,
+                Link3A = existingEntry.Link3A,
+                DirectoryStatus = existingEntry.DirectoryStatus,
+                DirectoryBadge = existingEntry.DirectoryBadge,
+                Description = existingEntry.Description,
+                Location = existingEntry.Location,
+                Processor = existingEntry.Processor,
+                Note = existingEntry.Note,
+                Contact = existingEntry.Contact,
+                SubCategory = existingEntry.SubCategory,
+                SubCategoryId = existingEntry.SubCategoryId,
+                UpdateDate = existingEntry.UpdateDate,
+                CreateDate = existingEntry.CreateDate,
+                Link2Name = link2Name,
+                Link3Name = link3Name,
             };
 
-            return this.View("SubCategoryListings", model);
+            this.ViewBag.CategoryName = category.Name;
+            this.ViewBag.SubCategoryName = subCategory.Name;
+            this.ViewBag.CategoryKey = categoryKey;
+            this.ViewBag.SubCategoryKey = subCategoryKey;
+
+            return this.View("DirectoryEntryView", model);
         }
     }
 }
