@@ -17,14 +17,43 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<SponsoredListingOffer>> GetAllAsync()
         {
-            return await this.context.SponsoredListingOffers.ToListAsync();
+            return await this.context
+                             .SponsoredListingOffers
+                             .Include(slo => slo.Subcategory)
+                             .OrderBy(slo => slo.SponsorshipType)
+                             .ThenBy(slo => slo.SubcategoryId.HasValue)
+                             .ThenBy(slo => slo.Subcategory != null ? slo.Subcategory.Name : string.Empty)
+                             .ThenBy(slo => slo.Days)
+                             .ToListAsync();
         }
 
         public async Task<IEnumerable<SponsoredListingOffer>> GetAllByTypeAsync(SponsorshipType sponsorshipType)
         {
-            return await this.context
+            var offers = await this.context
+                                   .SponsoredListingOffers
+                                   .Include(slo => slo.Subcategory)
+                                   .ThenInclude(sub => sub.Category) // Include the Category associated with the Subcategory
+                                   .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true)
+                                   .ToListAsync();
+
+            // Filter out any entries where Category might be null
+            return offers.Where(o => o.Subcategory?.Category != null).ToList();
+        }
+
+        public async Task<IEnumerable<SponsoredListingOffer>> GetByTypeAndSubCategoryAsync(SponsorshipType sponsorshipType, int? subcategoryId)
+        {
+            var results = await this.context
                              .SponsoredListingOffers
-                             .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true).ToListAsync();
+                             .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true && x.SubcategoryId == subcategoryId).ToListAsync();
+
+            if (results == null || results.Count == 0)
+            {
+                results = await this.context
+                                    .SponsoredListingOffers
+                                    .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true && x.SubcategoryId == null).ToListAsync();
+            }
+
+            return results;
         }
 
         public async Task<SponsoredListingOffer> GetByIdAsync(int sponsoredListingOfferId)

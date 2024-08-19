@@ -1,9 +1,24 @@
 ﻿@model DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOffer
+@using DirectoryManager.Data.Models
 @using DirectoryManager.Web.Constants;
 @{
     ViewData[StringConstants.TitleHeader] = "Edit Sponsored Listing Offer";
     SelectList currencySelectList = new SelectList(Enum.GetValues(typeof(DirectoryManager.Data.Enums.Currency)));
     SelectList sponsorshipTypeSelectList = new SelectList(Enum.GetValues(typeof(DirectoryManager.Data.Enums.SponsorshipType)));
+    var orderedSubCategories = new[]
+        {
+        new { SubCategoryId = (int?)null, DisplayName = "(All)" }
+    }
+        .Concat(
+    ((IEnumerable<Subcategory>)ViewBag.SubCategories)
+    .OrderBy(sc => sc.Category.Name)
+    .ThenBy(sc => sc.Name)
+    .Select(sc => new
+    {
+        SubCategoryId = (int?)sc.SubCategoryId,
+        DisplayName = $"{sc.Category.Name} > {sc.Name}"
+    })
+        );
 }
 
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
@@ -20,8 +35,12 @@
         <span asp-validation-for="SponsorshipType" class="text-danger"></span>
     </div>
     <div class="form-group">
+        <label asp-for="SubcategoryId">Subcategory</label>
+        <select asp-for="SubcategoryId" asp-items="@(new SelectList(orderedSubCategories, "SubCategoryId", "DisplayName"))" ></select>
+    </div>
+    <div class="form-group">
         <label asp-for="Description" class="control-label"></label>
-        <input asp-for="Description" class="form-control" />
+        <textarea cols="100" asp-for="Description"></textarea>
         <span asp-validation-for="Description" class="text-danger"></span>
     </div>
     <div class="form-group">
@@ -30,7 +49,7 @@
         <span asp-validation-for="Days" class="text-danger"></span>
     </div>
     <div class="form-group">
-        <label asp-for="Price" class="control-label"></label>
+        <label>Price (@DirectoryManager.Data.Enums.Currency.USD.ToString())</label>
         <input asp-for="Price" class="form-control" />
         <span asp-validation-for="Price" class="text-danger"></span>
     </div>

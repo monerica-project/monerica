@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using System.Reflection.PortableExecutable;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -200,11 +202,25 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel()
+            this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel
             {
-                DirectoryEntry = directoryEntry,
+                DateOption = Enums.DateDisplayOption.NotDisplayed,
+                IsSponsored = false,
                 Link2Name = link2Name,
-                Link3Name = link3Name
+                Link3Name = link3Name,
+                Link = directoryEntry.Link,
+                Name = directoryEntry.Name,
+                DirectoryEntryKey = directoryEntry.DirectoryEntryKey,
+                Contact = directoryEntry.Contact,
+                Description = directoryEntry.Description,
+                DirectoryEntryId = directoryEntry.DirectoryEntryId,
+                DirectoryStatus = directoryEntry.DirectoryStatus,
+                Link2 = directoryEntry.Link2,
+                Link3 = directoryEntry.Link3,
+                Location = directoryEntry.Location,
+                Note = directoryEntry.Note,
+                Processor = directoryEntry.Processor,
+                SubCategoryId = directoryEntry.SubCategoryId
             };
 
             return this.View("Audit", audits);
@@ -341,7 +357,7 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Index));
         }
 
-        private static SubmissionRequest GetSubmissionRequestModel(DirectoryEntry directoryEntry)
+        private static SubmissionRequest GetSubmissionRequestModel(Data.Models.DirectoryEntry directoryEntry)
         {
             return new SubmissionRequest()
             {
@@ -454,44 +470,48 @@ namespace DirectoryManager.Web.Controllers
                     IsSponsored = false,
                     Link2Name = link2Name,
                     Link3Name = link3Name,
-                    DirectoryEntry = new DirectoryEntry()
-                    {
-                        Link = submission.Link,
-                        Name = submission.Name,
-                        Contact = submission.Contact,
-                        Description = submission.Description,
-                        DirectoryEntryId = (submission.DirectoryEntryId != null) ? submission.DirectoryEntryId.Value : 0,
-                        DirectoryStatus = (submission.DirectoryStatus == null || submission.DirectoryStatus == DirectoryStatus.Unknown)
+                    Link = submission.Link,
+                    Name = submission.Name,
+                    Contact = submission.Contact,
+                    Description = submission.Description,
+                    DirectoryEntryId = (submission.DirectoryEntryId != null) ? submission.DirectoryEntryId.Value : 0,
+                    DirectoryStatus = (submission.DirectoryStatus == null || submission.DirectoryStatus == DirectoryStatus.Unknown)
                             ? DirectoryStatus.Admitted :
                             submission.DirectoryStatus.Value,
-                        Link2 = submission.Link2,
-                        Link3 = submission.Link3,
-                        Location = submission.Location,
-                        Note = submission.Note,
-                        Processor = submission.Processor,
-                        SubCategoryId = submission.SubCategoryId,
-                    }
+                    Link2 = submission.Link2,
+                    Link3 = submission.Link3,
+                    Location = submission.Location,
+                    Note = submission.Note,
+                    Processor = submission.Processor,
+                    SubCategoryId = submission.SubCategoryId
                 },
                 SubmissionId = submission.SubmissionId,
-                NoteToAdmin = submission.NoteToAdmin,
+                NoteToAdmin = submission.NoteToAdmin
             };
         }
 
         private async Task CreateDirectoryEntry(Submission model)
         {
+            if (model.SubCategoryId == null)
+            {
+                throw new NullReferenceException(nameof(model.SubCategoryId));
+            }
+
             await this.directoryEntryRepository.CreateAsync(
-                new DirectoryEntry
+                new Data.Models.DirectoryEntry
                 {
+                    DirectoryEntryKey = StringHelpers.UrlKey(model.Name),
                     Name = model.Name.Trim(),
                     Link = model.Link.Trim(),
                     Link2 = model.Link2?.Trim(),
+                    Link3 = model.Link3?.Trim(),
                     Description = model.Description?.Trim(),
                     Location = model.Location?.Trim(),
                     Processor = model.Processor?.Trim(),
                     Note = model.Note?.Trim(),
                     Contact = model.Contact?.Trim(),
                     DirectoryStatus = DirectoryStatus.Admitted,
-                    SubCategoryId = model.SubCategoryId,
+                    SubCategoryId = model.SubCategoryId.Value,
                     CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty
                 });
         }
@@ -503,11 +523,17 @@ namespace DirectoryManager.Web.Controllers
                 return;
             }
 
+            if (model.SubCategoryId == null)
+            {
+                throw new NullReferenceException(nameof(model.SubCategoryId));
+            }
+
             var existing = await this.directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value) ??
                                     throw new Exception("Submission has a directory entry id, but the entry does not exist.");
             existing.Name = model.Name.Trim();
             existing.Link = model.Link.Trim();
             existing.Link2 = model.Link2?.Trim();
+            existing.Link3 = model.Link3?.Trim();
             existing.Description = model.Description?.Trim();
             existing.Location = model.Location?.Trim();
             existing.Processor = model.Processor?.Trim();
@@ -519,7 +545,7 @@ namespace DirectoryManager.Web.Controllers
                 existing.DirectoryStatus = model.DirectoryStatus.Value;
             }
 
-            existing.SubCategoryId = model.SubCategoryId;
+            existing.SubCategoryId = model.SubCategoryId.Value;
             existing.UpdatedByUserId = this.userManager.GetUserId(this.User);
 
             await this.directoryEntryRepository.UpdateAsync(existing);

@@ -8,14 +8,17 @@ namespace DirectoryManager.Web.Services.Implementations
     {
         public XDocument GenerateRssFeed(IEnumerable<DirectoryEntry> directoryEntries, string feedTitle, string feedLink, string feedDescription)
         {
-            var rss = new XElement("rss",
+            var rss = new XElement(
+                "rss",
                 new XAttribute("version", "2.0"),
-                new XElement("channel",
+                new XElement(
+                    "channel",
                     new XElement("title", feedTitle),
                     new XElement("link", feedLink),
                     new XElement("description", feedDescription),
                     directoryEntries.Select(entry =>
-                        new XElement("item",
+                        new XElement(
+                            "item",
                             new XElement("title", entry.Name),
                             new XElement("link", entry.Link),
                             new XElement("description", entry.Description),

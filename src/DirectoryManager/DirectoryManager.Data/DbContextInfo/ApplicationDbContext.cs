@@ -73,6 +73,10 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasIndex(e => e.Link)
                    .IsUnique();
 
+            builder.Entity<DirectoryEntry>()
+                   .HasIndex(e => new { e.SubCategoryId, e.DirectoryEntryKey })
+                   .IsUnique();
+
             builder.Entity<Category>()
                    .HasIndex(e => e.CategoryKey)
                    .IsUnique();
@@ -123,6 +127,15 @@ namespace DirectoryManager.Data.DbContextInfo
                    .WithOne(sli => sli.SponsoredListing)
                    .HasForeignKey<SponsoredListing>(sl => sl.SponsoredListingInvoiceId)
                    .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<SponsoredListingOffer>()
+                   .HasIndex(e => new { e.SubcategoryId, e.SponsorshipType, e.Days })
+                   .IsUnique();
+
+            builder.Entity<SponsoredListingOffer>()
+                   .HasIndex(e => new { e.SponsorshipType, e.Days })
+                   .IsUnique()
+                   .HasFilter("SubcategoryId IS NULL");
 
             builder.Entity<ProcessorConfig>()
                    .HasIndex(e => e.PaymentProcessor)

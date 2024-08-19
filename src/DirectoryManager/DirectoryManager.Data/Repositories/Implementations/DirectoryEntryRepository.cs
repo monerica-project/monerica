@@ -21,7 +21,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<DirectoryEntry?> GetByIdAsync(int directoryEntryId)
         {
-            return await this.context.DirectoryEntries.FindAsync(directoryEntryId);
+            return await this.context.DirectoryEntries
+                .Include(de => de.SubCategory) // Include the SubCategory
+                .ThenInclude(sc => sc.Category) // Then include the related Category
+                .FirstOrDefaultAsync(de => de.DirectoryEntryId == directoryEntryId);
+        }
+
+        public async Task<DirectoryEntry?> GetBySubCategoryAndKeyAsync(int subCategoryId, string directoryEntryKey)
+        {
+            return await this.context.DirectoryEntries
+                        .FirstOrDefaultAsync(de => de.SubCategoryId == subCategoryId && de.DirectoryEntryKey == directoryEntryKey);
         }
 
         public async Task<DirectoryEntry?> GetByLinkAsync(string link)
@@ -51,7 +60,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                     .Select(e => new DirectoryEntry
                                     {
                                         // Map other properties of DirectoryEntry as needed
+                                        DirectoryBadge = e.DirectoryBadge,
                                         Name = e.Name,
+                                        DirectoryEntryKey = e.DirectoryEntryKey,
                                         Link = e.Link,
                                         Description = e.Description,
                                         DirectoryStatus = e.DirectoryStatus,
@@ -103,6 +114,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return;
             }
 
+            existingEntry.DirectoryEntryKey = entry.DirectoryEntryKey;
             existingEntry.Name = entry.Name;
             existingEntry.Link = entry.Link;
             existingEntry.Link2 = entry.Link2;
@@ -195,6 +207,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     Entries = dateGroup
                         .Select(entry => new DirectoryEntry
                         {
+                            DirectoryEntryKey = entry.DirectoryEntryKey,
                             Name = entry.Name,
                             Link = entry.Link,
                             Description = entry.Description
@@ -205,7 +218,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return groupedEntries;
         }
-
 
         public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int numberOfDays)
         {
@@ -232,6 +244,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     Entries = dateGroup
                         .Select(entry => new DirectoryEntry
                         {
+                            DirectoryEntryKey = entry.DirectoryEntryKey,
                             Name = entry.Name,
                             Link = entry.Link,
                             Description = entry.Description
@@ -268,6 +281,22 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
                             x.DirectoryStatus != DirectoryStatus.Unknown)
                 .CountAsync();
+        }
+
+        public async Task<Dictionary<int, DateTime>> GetLastModifiedDatesBySubCategoryAsync()
+        {
+            var lastModifiedDates = await this.context.DirectoryEntries
+                .GroupBy(de => de.SubCategoryId)
+                .Select(g => new
+                {
+                    SubCategoryId = g.Key,
+                    LastModified = g.Max(de => de.UpdateDate.HasValue && de.UpdateDate > de.CreateDate
+                                                ? de.UpdateDate.Value
+                                                : de.CreateDate)
+                })
+                .ToListAsync();
+
+            return lastModifiedDates.ToDictionary(x => x.SubCategoryId, x => x.LastModified);
         }
 
         private async Task WriteToAuditLog(DirectoryEntry? existingEntry)

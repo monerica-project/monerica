@@ -3,6 +3,10 @@
 @model IEnumerable<DirectoryEntry>
 @using DirectoryManager.Web.Constants;
 
+@{
+    ViewData[StringConstants.IsIndexable] = false;
+}
+
 @if (ViewBag.SponsorshipType == SponsorshipType.SubcategorySponsor)
 {
     ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing: " + Context.Request.Query["subCategoryId"];

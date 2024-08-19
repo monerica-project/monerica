@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.BaseModels;
 
 namespace DirectoryManager.Data.Models.SponsoredListings

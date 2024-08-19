@@ -12,7 +12,7 @@
     <thead>
         <tr>
             <th>Type</th>
-            <th>Description</th>
+            <th>Subcategory</th>
             <th>Days</th>
             <th>Price</th>
             <th>Is Enabled</th>
@@ -24,7 +24,16 @@
         {
             <tr>
                 <td>@item.SponsorshipType</td>
-                <td>@item.Description</td>
+                <td>
+                    @if (string.IsNullOrEmpty(item.Subcategory?.Name))
+                    {
+                        @StringConstants.Default
+                    }
+                    else
+                    {
+                        @item.Subcategory?.Name
+                    }
+                </td>
                 <td>@item.Days</td>
                 <td>@item.Price.ToString("C") (@item.PriceCurrency.ToString())</td>
                 <td>@item.IsEnabled</td>

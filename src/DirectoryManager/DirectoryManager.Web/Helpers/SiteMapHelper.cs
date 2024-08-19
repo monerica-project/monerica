@@ -13,7 +13,7 @@ namespace DirectoryManager.Web.Helpers
             this.SiteMapItems.Add(new SiteMapItem
             {
                 Url = url,
-                LastMode = lastMod,
+                LastMod = lastMod,
                 ChangeFrequency = changeFrequency,
                 Priority = priority
             });
@@ -29,7 +29,7 @@ namespace DirectoryManager.Web.Helpers
             {
                 sb.AppendLine(@"<url>");
                 sb.AppendFormat(@"<loc>{0}</loc>", siteMapItem.Url);
-                sb.AppendFormat(@"<lastmod>{0}</lastmod>", siteMapItem.LastMode.ToString("yyyy-MM-dd"));
+                sb.AppendFormat(@"<lastmod>{0}</lastmod>", siteMapItem.LastMod.ToString("yyyy-MM-dd"));
                 sb.AppendFormat(@"<changefreq>{0}</changefreq>", siteMapItem.ChangeFrequency.ToString());
                 sb.AppendFormat(@"<priority>{0}</priority>", Math.Round(siteMapItem.Priority, 2));
                 sb.AppendLine();

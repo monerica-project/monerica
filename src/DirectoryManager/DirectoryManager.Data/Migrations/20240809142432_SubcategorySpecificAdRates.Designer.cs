@@ -4,6 +4,7 @@ using DirectoryManager.Data.DbContextInfo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,13 +12,15 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DirectoryManager.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240809142432_SubcategorySpecificAdRates")]
+    partial class SubcategorySpecificAdRates
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.8")
+                .HasAnnotation("ProductVersion", "8.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -295,11 +298,6 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int>("DirectoryBadge")
                         .HasColumnType("int");
 
-                    b.Property<string>("DirectoryEntryKey")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)");
-
                     b.Property<int>("DirectoryStatus")
                         .HasColumnType("int");
 
@@ -345,7 +343,7 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<int>("SubCategoryId")
+                    b.Property<int?>("SubCategoryId")
                         .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdateDate")
@@ -360,8 +358,7 @@ namespace DirectoryManager.Data.Migrations
                     b.HasIndex("Link")
                         .IsUnique();
 
-                    b.HasIndex("SubCategoryId", "DirectoryEntryKey")
-                        .IsUnique();
+                    b.HasIndex("SubCategoryId");
 
                     b.ToTable("DirectoryEntries");
                 });
@@ -706,10 +703,6 @@ namespace DirectoryManager.Data.Migrations
                         .HasColumnType("nvarchar(36)");
 
                     b.HasKey("SponsoredListingOfferId");
-
-                    b.HasIndex("SponsorshipType", "Days")
-                        .IsUnique()
-                        .HasFilter("SubcategoryId IS NULL");
 
                     b.HasIndex("SubcategoryId", "SponsorshipType", "Days")
                         .IsUnique()
@@ -1084,9 +1077,7 @@ namespace DirectoryManager.Data.Migrations
                 {
                     b.HasOne("DirectoryManager.Data.Models.Subcategory", "SubCategory")
                         .WithMany()
-                        .HasForeignKey("SubCategoryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
+                        .HasForeignKey("SubCategoryId");
 
                     b.Navigation("SubCategory");
                 });

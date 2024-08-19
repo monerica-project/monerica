@@ -32,13 +32,19 @@
 <div>
     @for (int i = 1; i <= ViewBag.TotalPages; i++)
     {
+        if (i == 1 && i != ViewBag.PageNumber)
+        {
+            <a class="no-app-link" style="margin: 5px;" href="@Url.Action("Newest", "Home", new { pageNumber = i })">@i </a>
+            continue;
+        }
+
         if (i == ViewBag.PageNumber)
         {
             <text>@i </text>
         }
         else
         {
-            <a style="margin: 5px;" href="@Url.Action("Newest", "Home", new { pageNumber = i })">@i </a>
+            <a class="app-link" style="margin: 5px;" href="@Url.Action("Newest", "Home", new { pageNumber = i })">@i </a>
         }
     }
 </div>

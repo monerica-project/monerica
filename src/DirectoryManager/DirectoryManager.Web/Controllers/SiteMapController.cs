@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Repositories.Interfaces;
+﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
@@ -49,40 +50,80 @@ namespace DirectoryManager.Web.Controllers
         [Route("sitemap.xml")]
         public async Task<IActionResult> IndexAsync()
         {
+            // Get various last update dates from repositories
             var lastDirectoryEntryDate = this.directoryEntryRepository.GetLastRevisionDate();
             var lastContentSnippetUpdate = this.contentSnippetRepository.GetLastUpdateDate();
             var lastPaidInvoiceUpdate = this.sponsoredListingInvoiceRepository.GetLastPaidInvoiceUpdateDate();
             var nextAdExpiration = await this.sponsoredListingRepository.GetNextExpirationDate();
             var mostRecentUpdateDate = this.GetLatestUpdateDate(lastDirectoryEntryDate, lastContentSnippetUpdate, lastPaidInvoiceUpdate, nextAdExpiration);
+
+            // Get the last modification date for any sponsored listing
+            var lastSponsoredListingChange = await this.sponsoredListingRepository.GetLastChangeDateForMainSponsorAsync();
+            mostRecentUpdateDate = lastSponsoredListingChange.HasValue && lastSponsoredListingChange > mostRecentUpdateDate
+                ? lastSponsoredListingChange.Value
+                : mostRecentUpdateDate;
+
             var siteMapHelper = new SiteMapHelper();
 
+            // Add the root sitemap item
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
             {
                 Url = WebRequestHelper.GetCurrentDomain(this.HttpContext),
                 Priority = 1.0,
                 ChangeFrequency = ChangeFrequency.Daily,
-                LastMode = mostRecentUpdateDate
+                LastMod = mostRecentUpdateDate
             });
 
+            // Add additional pages to the sitemap
             this.AddNewestPagesList(mostRecentUpdateDate, siteMapHelper);
             this.AddPages(mostRecentUpdateDate, siteMapHelper);
 
+            // Get active categories and their last modified dates
             var categories = await this.categoryRepository.GetActiveCategoriesAsync();
+            var allCategoriesLastModified = await this.categoryRepository.GetAllCategoriesLastChangeDatesAsync();
 
+            // Get last modified dates for subcategories and items within subcategories
+            var allSubcategoriesLastModified = await this.subCategoryRepository.GetAllSubCategoriesLastChangeDatesAsync();
+            var allSubCategoriesItemsLastModified = await this.directoryEntryRepository.GetLastModifiedDatesBySubCategoryAsync();
+            var allSubCategoryAds = await this.sponsoredListingRepository.GetLastChangeDatesBySubCategoryAsync();
+
+            // Iterate through categories and subcategories to build the sitemap
             foreach (var category in categories)
             {
+                var lastChangeToCategory = allCategoriesLastModified[category.CategoryId];
+
+                // Incorporate the last modification of sponsored listings if it's more recent
+                lastChangeToCategory = lastSponsoredListingChange.HasValue && lastSponsoredListingChange > lastChangeToCategory
+                    ? lastSponsoredListingChange.Value
+                    : lastChangeToCategory;
+
+                // Add category to sitemap
                 siteMapHelper.SiteMapItems.Add(new SiteMapItem
                 {
                     Url = string.Format("{0}/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), category.CategoryKey),
                     Priority = 1.0,
                     ChangeFrequency = ChangeFrequency.Weekly,
-                    LastMode = mostRecentUpdateDate
+                    LastMod = lastChangeToCategory
                 });
 
+                // Get active subcategories for the current category
                 var subCategories = await this.subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId);
 
                 foreach (var subCategory in subCategories)
                 {
+                    var lastChangeToSubcategory = allSubcategoriesLastModified[subCategory.SubCategoryId];
+                    var lastChangeToSubcategoryItem = allSubCategoriesItemsLastModified.ContainsKey(subCategory.SubCategoryId)
+                        ? allSubCategoriesItemsLastModified[subCategory.SubCategoryId]
+                        : lastChangeToSubcategory;
+
+                    var lastChangeToSubcategoryAd = allSubCategoryAds.ContainsKey(subCategory.SubCategoryId)
+                        ? allSubCategoryAds[subCategory.SubCategoryId]
+                        : lastChangeToSubcategoryItem;
+
+                    // Determine the most recent change date, including the last sponsored listing change
+                    var lastModified = new[] { lastChangeToSubcategory, lastChangeToSubcategoryItem, lastChangeToSubcategoryAd, lastSponsoredListingChange ?? DateTime.MinValue }.Max();
+
+                    // Add subcategory to sitemap
                     siteMapHelper.SiteMapItems.Add(new SiteMapItem
                     {
                         Url = string.Format(
@@ -92,11 +133,32 @@ namespace DirectoryManager.Web.Controllers
                             subCategory.SubCategoryKey),
                         Priority = 1.0,
                         ChangeFrequency = ChangeFrequency.Weekly,
-                        LastMode = mostRecentUpdateDate
+                        LastMod = lastModified
                     });
                 }
             }
 
+            var allActiveEntries = await this.directoryEntryRepository.GetAllEntitiesAndPropertiesAsync();
+
+            foreach (var entry in allActiveEntries.Where(x => x.DirectoryStatus != Data.Enums.DirectoryStatus.Removed))
+            {
+                var directoryItemLastMod = new[] { entry.CreateDate, entry.UpdateDate ?? entry.CreateDate, lastSponsoredListingChange ?? entry.CreateDate }.Max();
+
+                siteMapHelper.SiteMapItems.Add(new SiteMapItem
+                {
+                    Url = string.Format(
+                            "{0}/{1}/{2}/{3}",
+                            WebRequestHelper.GetCurrentDomain(this.HttpContext),
+                            entry.SubCategory?.Category.CategoryKey,
+                            entry.SubCategory?.SubCategoryKey,
+                            entry.DirectoryEntryKey),
+                    Priority = 1.0,
+                    ChangeFrequency = ChangeFrequency.Weekly,
+                    LastMod = directoryItemLastMod
+                });
+            }
+
+            // Generate the sitemap XML
             var xml = siteMapHelper.GenerateXml();
 
             return this.Content(xml, "text/xml");
@@ -146,7 +208,7 @@ namespace DirectoryManager.Web.Controllers
                 Url = string.Format("{0}/newest", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
                 Priority = 1.0,
                 ChangeFrequency = ChangeFrequency.Daily,
-                LastMode = date
+                LastMod = date
             });
         }
 
@@ -157,7 +219,7 @@ namespace DirectoryManager.Web.Controllers
                 Url = string.Format("{0}/contact", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
                 Priority = 1.0,
                 ChangeFrequency = ChangeFrequency.Daily,
-                LastMode = date
+                LastMod = date
             });
 
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
@@ -165,7 +227,7 @@ namespace DirectoryManager.Web.Controllers
                 Url = string.Format("{0}/sitemap", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
                 Priority = 1.0,
                 ChangeFrequency = ChangeFrequency.Daily,
-                LastMode = date
+                LastMod = date
             });
 
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
@@ -173,7 +235,7 @@ namespace DirectoryManager.Web.Controllers
                 Url = string.Format("{0}/rss/feed.xml", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
                 Priority = 1.0,
                 ChangeFrequency = ChangeFrequency.Daily,
-                LastMode = date
+                LastMod = date
             });
         }
 

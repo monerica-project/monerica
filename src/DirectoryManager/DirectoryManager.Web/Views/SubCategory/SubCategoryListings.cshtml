@@ -2,6 +2,7 @@
 @using DirectoryManager.Data.Models
 @using DirectoryManager.Web.Constants;
 @using DirectoryManager.Data.Enums;
+@using DirectoryManager.Web.Enums
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
@@ -10,6 +11,10 @@
 @{
     ViewData[StringConstants.TitleHeader] = string.Format("{0}: {1}", cacheHelper.GetSnippet(SiteConfigSetting.SiteName), Model.PageTitle);
     ViewData[StringConstants.MetaDescription] = Model.MetaDescription;
+    var categoryKey = ViewBag.CategoryKey as string;
+    var subCategoryKey = ViewBag.SubCategoryKey as string;
+    var categoryName = ViewBag.CategoryName as string;
+    var subCategoryName = ViewBag.SubCategoryName as string;
 }
 
 <h1>@Model.PageHeader</h1>
@@ -17,7 +22,7 @@
 <hr />
 
 <p>
-    <a href="@Model.CategoryRelativePath">&lt; @Model.CategoryName</a>
+    <a class="no-app-link" href="@Model.CategoryRelativePath">&lt; @Model.CategoryName</a>
 </p>
 
 @if (!string.IsNullOrWhiteSpace(Model.PageDetails))
@@ -48,7 +53,23 @@
                 TotalActiveSubCategoryListings = activeEntries.Count(),
                 DirectoryEntry = (subCategorySponsor != null && subCategorySponsor.DirectoryEntry != null) ? new DirectoryManager.Web.Models.DirectoryEntryViewModel()
                 {
-                    DirectoryEntry = subCategorySponsor.DirectoryEntry,
+
+                    DateOption = DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+                    Link = subCategorySponsor.DirectoryEntry.Link,
+                    Name = subCategorySponsor.DirectoryEntry.Name,
+                    Contact = subCategorySponsor.DirectoryEntry.Contact,
+                    Description = subCategorySponsor.DirectoryEntry.Description,
+                    DirectoryEntryId = subCategorySponsor.DirectoryEntry.DirectoryEntryId,
+                    DirectoryStatus = subCategorySponsor.DirectoryEntry.DirectoryStatus,
+                    Link2 = subCategorySponsor.DirectoryEntry.Link2,
+                    Link3 = subCategorySponsor.DirectoryEntry.Link3,
+                    Location = subCategorySponsor.DirectoryEntry.Location,
+                    Note = subCategorySponsor.DirectoryEntry.Note,
+                    Processor = subCategorySponsor.DirectoryEntry.Processor,
+                    SubCategoryId = subCategorySponsor.DirectoryEntry.SubCategoryId,
+                    CreateDate = subCategorySponsor.DirectoryEntry.CreateDate,
+                    UpdateDate = subCategorySponsor.DirectoryEntry.UpdateDate,
+
                     IsSponsored = true,
                     Link2Name = link2Name,
                     Link3Name = link3Name
@@ -59,16 +80,19 @@
 
     if (subCategorySponsor != null)
     {
-        viewModelList.RemoveAll(x => x.DirectoryEntry.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
+        viewModelList.RemoveAll(x => x.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
     }
 }
 <ul>
     @foreach (var viewModel in viewModelList)
     {
-        if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntry.DirectoryEntryId) != null)
+        viewModel.LinkType = LinkType.ListingPage;
+
+        if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntryId) != null)
         {
             viewModel.IsSponsored = true;
             viewModel.DisplayAsSponsoredItem = true;
+            viewModel.LinkType = LinkType.Direct;
         }
 
         @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)

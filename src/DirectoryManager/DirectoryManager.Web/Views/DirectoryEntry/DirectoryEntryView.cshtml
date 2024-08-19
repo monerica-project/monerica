@@ -1,0 +1,100 @@
+﻿@model DirectoryManager.Web.Models.DirectoryEntryViewModel
+
+@{
+    ViewData["Title"] = Model.Name;
+    var categoryKey = ViewBag.CategoryKey as string;
+    var subCategoryKey = ViewBag.SubCategoryKey as string;
+    var categoryName = ViewBag.CategoryName as string;
+    var subCategoryName = ViewBag.SubCategoryName as string;
+
+    // Determine which links to use based on the availability of "A" versions
+    var finalLink = !string.IsNullOrEmpty(Model.LinkA) ? Model.LinkA : Model.Link;
+    var finalLink2 = !string.IsNullOrEmpty(Model.Link2A) ? Model.Link2A : Model.Link2;
+    var finalLink3 = !string.IsNullOrEmpty(Model.Link3A) ? Model.Link3A : Model.Link3;
+}
+
+<style>
+    /* Custom styling if needed */
+</style>
+
+
+<div class="directory-entry-details">
+    <h1>@Model.Name</h1>
+    <hr />
+
+    <nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a class="no-app-link" href="~/sitemap">Sitemap</a></li>
+        <li class="breadcrumb-item">
+                <a class="no-app-link" href="~/@categoryKey">@categoryName</a>
+        </li>
+        <li class="breadcrumb-item">
+                <a class="no-app-link" href="~/@categoryKey/@subCategoryKey">@subCategoryName</a>
+        </li>
+    </ol>
+</nav>
+
+
+    <div class="entry-details">
+        <p><strong>Name:</strong> @Model.Name</p>
+
+        @if (!string.IsNullOrEmpty(finalLink))
+        {
+            <p><strong>Link:</strong> <a href="@finalLink" target="_blank">@finalLink</a></p>
+        }
+
+        @if (!string.IsNullOrEmpty(finalLink2))
+        {
+            <p><strong>@Model.Link2Name:</strong> <a href="@finalLink2" target="_blank">@finalLink2</a></p>
+        }
+
+        @if (!string.IsNullOrEmpty(finalLink3))
+        {
+            <p><strong>@Model.Link3Name:</strong> <a href="@finalLink3" target="_blank">@finalLink3</a></p>
+        }
+
+        <p>
+            <strong>Status:</strong> @Model.DirectoryStatus
+
+            @if (Model.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Verified)
+            {
+                <text>&#9989;</text>
+            }
+            else if (Model.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Scam)
+            {
+                <text>&#10060;</text>
+            }
+        </p>
+
+        @if (!string.IsNullOrEmpty(Model.Description))
+        {
+            <p><strong>Description:</strong> @Model.Description</p>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.Location))
+        {
+            <p><strong>Location:</strong> @Model.Location</p>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.Note))
+        {
+            <p><strong>Note:</strong> @Html.Raw(Model.Note)</p>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.Contact))
+        {
+            <p><strong>Contact:</strong> @Model.Contact</p>
+        }
+
+        <p><strong>Created On:</strong> @Model.CreateDate.ToString("yyyy-MM-dd")</p>
+
+        @if (Model.UpdateDate.HasValue)
+        {
+            <p><strong>Last Updated:</strong> @Model.UpdateDate?.ToString("yyyy-MM-dd")</p>
+        }
+    </div>
+</div>
+
+<hr />
+
+@await Html.PartialAsync("_SponsoredListingPartial")

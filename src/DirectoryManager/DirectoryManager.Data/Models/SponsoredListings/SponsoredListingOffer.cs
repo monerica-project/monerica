@@ -21,6 +21,10 @@ namespace DirectoryManager.Data.Models.SponsoredListings
 
         public decimal Price { get; set; }
 
+        public virtual Subcategory? Subcategory { get; set; }
+
+        public int? SubcategoryId { get; set; }
+
         public SponsorshipType SponsorshipType { get; set; } = SponsorshipType.Unknown;
     }
 }

@@ -26,6 +26,10 @@
     {
     <link rel="canonical" href="@ViewData[StringConstants.CanonicalUrl]" />
     }
+    @if (ViewData[StringConstants.IsIndexable] != null && bool.TryParse(ViewData[StringConstants.IsIndexable]?.ToString(), out bool isIndexable) && !isIndexable)
+    {
+        <meta name="robots" content="noindex" />
+    }
     @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HeaderHtml))
     @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.CssHeader))
     </head>

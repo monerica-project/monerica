@@ -25,6 +25,12 @@
         <dt>Sponsorship Type</dt>
         <dd>@Model.SponsorshipType</dd>
 
+        @if (ViewBag.SubCategory != null)
+        {
+        <dt>Subcategory</dt>
+        <dd>@ViewBag.SubCategory.Category.Name > @ViewBag.SubCategory.Name</dd>
+        }
+
         <dt>Amount</dt>
         <dd>@Model.Amount</dd>
 

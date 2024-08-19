@@ -12,15 +12,18 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly ISponsoredListingInvoiceRepository invoiceRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly ISubCategoryRepository subCategoryRepository;
         private readonly ICacheService cacheService;
 
         public SponsoredListingInvoiceController(
             ISponsoredListingInvoiceRepository invoiceRepository,
             IDirectoryEntryRepository directoryEntryRepository,
+            ISubCategoryRepository subCategoryRepository,
             ICacheService cacheService)
         {
             this.invoiceRepository = invoiceRepository;
             this.directoryEntryRepository = directoryEntryRepository;
+            this.subCategoryRepository = subCategoryRepository;
             this.cacheService = cacheService;
         }
 
@@ -63,11 +66,36 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            if (sponsoredListingInvoice.SubCategoryId.HasValue)
+            {
+                this.ViewBag.SubCategory = (await this.subCategoryRepository
+                                                        .GetAllActiveSubCategoriesAsync())
+                                                        .OrderBy(sc => sc.Category.Name)
+                                                        .ThenBy(sc => sc.Name)
+                                                        .Where(sc => sc.SubCategoryId == sponsoredListingInvoice.SubCategoryId.Value)
+                                                        .ToList()
+                                                        .First();
+            }
+
             this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel()
             {
-                DirectoryEntry = directoryEntry,
+                DateOption = Enums.DateDisplayOption.NotDisplayed,
+                IsSponsored = false,
                 Link2Name = link2Name,
-                Link3Name = link3Name
+                Link3Name = link3Name,
+                Link = directoryEntry.Link,
+                Name = directoryEntry.Name,
+                DirectoryEntryKey = directoryEntry.DirectoryEntryKey,
+                Contact = directoryEntry.Contact,
+                Description = directoryEntry.Description,
+                DirectoryEntryId = directoryEntry.DirectoryEntryId,
+                DirectoryStatus = directoryEntry.DirectoryStatus,
+                Link2 = directoryEntry.Link2,
+                Link3 = directoryEntry.Link3,
+                Location = directoryEntry.Location,
+                Note = directoryEntry.Note,
+                Processor = directoryEntry.Processor,
+                SubCategoryId = directoryEntry.SubCategoryId
             };
 
             return this.View(sponsoredListingInvoice);

@@ -197,5 +197,37 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return result != null;
         }
+
+        public async Task<Dictionary<int, DateTime>> GetLastChangeDatesBySubCategoryAsync()
+        {
+            var lastModifiedDates = await this.context.SponsoredListings
+                .Where(x => x.SubCategoryId.HasValue) // Ensure SubCategoryId is not null
+                .GroupBy(x => x.SubCategoryId) // Group by nullable SubCategoryId
+                .Select(g => new
+                {
+                    SubCategoryId = g.Key ?? 0, // Use the null-coalescing operator as a fallback
+                    LastModified = g.Max(x => x.UpdateDate.HasValue && x.UpdateDate > x.CreateDate
+                                                ? x.UpdateDate.Value
+                                                : x.CreateDate)
+                })
+                .Where(x => x.SubCategoryId != 0) // Filter out any entries with the fallback value
+                .ToListAsync();
+
+            // If there are no items or no items with subcategories, the dictionary will be empty
+            return lastModifiedDates.ToDictionary(x => x.SubCategoryId, x => x.LastModified);
+        }
+
+        public async Task<DateTime?> GetLastChangeDateForMainSponsorAsync()
+        {
+            var lastChangeDate = await this.context.SponsoredListings
+                .Where(x => x.SponsorshipType == SponsorshipType.MainSponsor) // Filter for MainSponsor type
+                .Select(x => (DateTime?)((x.UpdateDate.HasValue && x.UpdateDate > x.CreateDate)
+                    ? x.UpdateDate.Value
+                    : x.CreateDate))
+                .OrderByDescending(date => date)
+                .FirstOrDefaultAsync();
+
+            return lastChangeDate;
+        }
     }
 }

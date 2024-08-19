@@ -4,6 +4,7 @@ using DirectoryManager.Data.DbContextInfo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DirectoryManager.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20240819123646_DirectoryEntryKey")]
+    partial class DirectoryEntryKey
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -360,8 +363,7 @@ namespace DirectoryManager.Data.Migrations
                     b.HasIndex("Link")
                         .IsUnique();
 
-                    b.HasIndex("SubCategoryId", "DirectoryEntryKey")
-                        .IsUnique();
+                    b.HasIndex("SubCategoryId");
 
                     b.ToTable("DirectoryEntries");
                 });

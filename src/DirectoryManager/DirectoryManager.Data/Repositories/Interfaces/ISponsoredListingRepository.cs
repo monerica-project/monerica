@@ -20,5 +20,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<bool> UpdateAsync(SponsoredListing sponsoredListing);
         Task DeleteAsync(int sponsoredListingId);
         Task<bool> IsSponsoredListingActive(int directoryEntryId, SponsorshipType sponsorshipType);
+        Task<Dictionary<int, DateTime>> GetLastChangeDatesBySubCategoryAsync();
+        Task<DateTime?> GetLastChangeDateForMainSponsorAsync();
     }
 }

@@ -13,6 +13,9 @@ namespace DirectoryManager.Data.Models
         [MaxLength(255)]
         required public string Name { get; set; }
 
+        [MaxLength(255)]
+        required public string DirectoryEntryKey { get; set; }
+
         [Required]
         [Url]
         [MaxLength(500)]
@@ -64,7 +67,7 @@ namespace DirectoryManager.Data.Models
 
         public virtual Subcategory? SubCategory { get; set; }
 
-        public int? SubCategoryId { get; set; }
+        public int SubCategoryId { get; set; }
 
         public bool Equals(DirectoryEntry? other)
         {
@@ -75,6 +78,7 @@ namespace DirectoryManager.Data.Models
 
             return this.DirectoryEntryId == other.DirectoryEntryId &&
                 this.Name == other.Name &&
+                this.DirectoryEntryKey == other.DirectoryEntryKey &&
                 this.Link == other.Link &&
                 this.Link2 == other.Link2 &&
                 this.DirectoryStatus == other.DirectoryStatus &&
