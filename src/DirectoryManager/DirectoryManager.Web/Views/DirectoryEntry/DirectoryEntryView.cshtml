@@ -78,7 +78,7 @@
 
         @if (!string.IsNullOrEmpty(Model.Note))
         {
-            <p><strong>Note:</strong> @Model.Note</p>
+            <p><strong>Note:</strong> @Html.Raw(Model.Note)</p>
         }
 
         @if (!string.IsNullOrEmpty(Model.Contact))
