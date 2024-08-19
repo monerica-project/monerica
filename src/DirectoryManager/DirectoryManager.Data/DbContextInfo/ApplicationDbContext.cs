@@ -73,6 +73,10 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasIndex(e => e.Link)
                    .IsUnique();
 
+            builder.Entity<DirectoryEntry>()
+                   .HasIndex(e => new { e.SubCategoryId, e.DirectoryEntryKey })
+                    .IsUnique();
+
             builder.Entity<Category>()
                    .HasIndex(e => e.CategoryKey)
                    .IsUnique();

@@ -13,6 +13,9 @@ namespace DirectoryManager.Web.Models
         [MaxLength(255)]
         required public string Name { get; set; }
 
+        [MaxLength(255)]
+        public string DirectoryEntryKey { get; set; } = string.Empty;
+
         [Required]
         [Url]
         [MaxLength(500)]

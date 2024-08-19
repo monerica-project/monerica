@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
@@ -8,6 +9,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using System.Reflection.PortableExecutable;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -208,6 +210,7 @@ namespace DirectoryManager.Web.Controllers
                 Link3Name = link3Name,
                 Link = directoryEntry.Link,
                 Name = directoryEntry.Name,
+                DirectoryEntryKey = directoryEntry.DirectoryEntryKey,
                 Contact = directoryEntry.Contact,
                 Description = directoryEntry.Description,
                 DirectoryEntryId = directoryEntry.DirectoryEntryId,
@@ -354,7 +357,7 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Index));
         }
 
-        private static SubmissionRequest GetSubmissionRequestModel(DirectoryEntry directoryEntry)
+        private static SubmissionRequest GetSubmissionRequestModel(Data.Models.DirectoryEntry directoryEntry)
         {
             return new SubmissionRequest()
             {
@@ -495,8 +498,9 @@ namespace DirectoryManager.Web.Controllers
             }
 
             await this.directoryEntryRepository.CreateAsync(
-                new DirectoryEntry
+                new Data.Models.DirectoryEntry
                 {
+                    DirectoryEntryKey = StringHelpers.UrlKey(model.Name),
                     Name = model.Name.Trim(),
                     Link = model.Link.Trim(),
                     Link2 = model.Link2?.Trim(),

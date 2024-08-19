@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -96,6 +97,7 @@ namespace DirectoryManager.Web.Controllers
                 entry.Link2 = entry.Link2?.Trim();
                 entry.Link3 = entry.Link3?.Trim();
                 entry.Name = entry.Name.Trim();
+                entry.DirectoryEntryKey = StringHelpers.UrlKey(entry.Name);
                 entry.Description = entry.Description?.Trim();
                 entry.Note = entry.Note?.Trim();
                 entry.DirectoryStatus = entry.DirectoryStatus;
@@ -149,6 +151,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Link3 = entry.Link3?.Trim();
             existingEntry.Link3A = entry.Link3A?.Trim();
             existingEntry.Name = entry.Name.Trim();
+            existingEntry.DirectoryEntryKey = StringHelpers.UrlKey(entry.DirectoryEntryKey);
             existingEntry.Description = entry.Description?.Trim();
             existingEntry.Note = entry.Note?.Trim();
             existingEntry.DirectoryStatus = entry.DirectoryStatus;
@@ -185,6 +188,7 @@ namespace DirectoryManager.Web.Controllers
                 Link3Name = link3Name,
                 Link = directoryEntry.Link,
                 Name = directoryEntry.Name,
+                DirectoryEntryKey = directoryEntry.DirectoryEntryKey,
                 Contact = directoryEntry.Contact,
                 Description = directoryEntry.Description,
                 DirectoryEntryId = directoryEntry.DirectoryEntryId,

@@ -786,6 +786,7 @@ namespace DirectoryManager.Web.Controllers
                     Link3Name = link3Name,
                     Link = directoryEntry.Link,
                     Name = directoryEntry.Name,
+                    DirectoryEntryKey = directoryEntry.DirectoryEntryKey,
                     Contact = directoryEntry.Contact,
                     Description = directoryEntry.Description,
                     DirectoryEntryId = directoryEntry.DirectoryEntryId,

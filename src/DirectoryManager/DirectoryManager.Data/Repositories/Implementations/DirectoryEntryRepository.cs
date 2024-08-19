@@ -51,7 +51,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                     .Select(e => new DirectoryEntry
                                     {
                                         // Map other properties of DirectoryEntry as needed
+                                        DirectoryBadge = e.DirectoryBadge,
                                         Name = e.Name,
+                                        DirectoryEntryKey = e.DirectoryEntryKey,
                                         Link = e.Link,
                                         Description = e.Description,
                                         DirectoryStatus = e.DirectoryStatus,
@@ -103,6 +105,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return;
             }
 
+            existingEntry.DirectoryEntryKey = entry.DirectoryEntryKey;
             existingEntry.Name = entry.Name;
             existingEntry.Link = entry.Link;
             existingEntry.Link2 = entry.Link2;
@@ -195,6 +198,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     Entries = dateGroup
                         .Select(entry => new DirectoryEntry
                         {
+                            DirectoryEntryKey = entry.DirectoryEntryKey,
                             Name = entry.Name,
                             Link = entry.Link,
                             Description = entry.Description
@@ -231,6 +235,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     Entries = dateGroup
                         .Select(entry => new DirectoryEntry
                         {
+                            DirectoryEntryKey = entry.DirectoryEntryKey,
                             Name = entry.Name,
                             Link = entry.Link,
                             Description = entry.Description

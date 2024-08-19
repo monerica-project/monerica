@@ -23,8 +23,8 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
 
             var testDirectoryEntriesList = new List<DirectoryEntry>
             {
-                new DirectoryEntry { DirectoryEntryId = 1, Name = "Test1", Link = "Link1" },
-                new DirectoryEntry { DirectoryEntryId = 2, Name = "Test2", Link = "Link2" }
+                new DirectoryEntry { DirectoryEntryId = 1, Name = "Test1", Link = "Link1", DirectoryEntryKey = "test1" },
+                new DirectoryEntry { DirectoryEntryId = 2, Name = "Test2", Link = "Link2", DirectoryEntryKey = "test2" }
             };
 
             this.testDirectoryEntries = testDirectoryEntriesList.ToAsyncEnumerable();
