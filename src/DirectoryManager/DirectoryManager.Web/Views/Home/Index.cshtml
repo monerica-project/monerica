@@ -53,7 +53,7 @@
     }
 
     @{
-        var newestEntries = await directoryEntryRepository.GetNewestAdditions(IntegerConstants.NewestRevisionsToDisplay);
+        var newestEntries = await directoryEntryRepository.GetNewestAdditions(IntegerConstants.NewestRevisionsToDisplay);       
     }
 
     @if (newestEntries != null && newestEntries.Count() > 0)
@@ -71,6 +71,7 @@
             }
             @foreach (var viewModel in viewModelList)
             {
+                viewModel.LinkType = DirectoryManager.Web.Enums.LinkType.ListingPage;
                 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
         </ul>
@@ -101,6 +102,7 @@
             }
             @foreach (var viewModel in viewModelList)
             {
+                viewModel.LinkType = DirectoryManager.Web.Enums.LinkType.ListingPage;
                 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
 

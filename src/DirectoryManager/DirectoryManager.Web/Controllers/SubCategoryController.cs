@@ -19,6 +19,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubCategoryRepository subCategoryRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly IContentSnippetRepository contentSnippetRepository;
         private readonly IMemoryCache cache;
 
         public SubCategoryController(
@@ -28,6 +29,7 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryRepository directoryEntryRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
+            IContentSnippetRepository contentSnippetRepository,
             IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
@@ -35,6 +37,7 @@ namespace DirectoryManager.Web.Controllers
             this.subCategoryRepository = subCategoryRepository;
             this.categoryRepository = categoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
+            this.contentSnippetRepository = contentSnippetRepository;
             this.cache = cache;
         }
 
@@ -193,8 +196,26 @@ namespace DirectoryManager.Web.Controllers
 
         private void SetCannonicalUrl()
         {
-            var originalUrl = $"{this.Request.Scheme}://{this.Request.Host}{this.Request.Path}{this.Request.QueryString}";
-            this.ViewData[StringConstants.CanonicalUrl] = UrlHelper.NormalizeUrl(originalUrl);
+            var canonicalDomainSnippet = this.contentSnippetRepository.Get(Data.Enums.SiteConfigSetting.CanonicalDomain);
+            var canonicalDomainValue = canonicalDomainSnippet != null ? canonicalDomainSnippet.Content : string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(canonicalDomainValue))
+            {
+                // Normalize the canonical domain by ensuring it doesn't end with a '/'
+                canonicalDomainValue = canonicalDomainValue.TrimEnd('/');
+
+                // Build the canonical URL
+                var originalPathAndQuery = $"{this.Request.Path}{this.Request.QueryString}";
+                var canonicalUrl = $"{canonicalDomainValue}{originalPathAndQuery}";
+
+                this.ViewData[StringConstants.CanonicalUrl] = UrlHelper.NormalizeUrl(canonicalUrl);
+            }
+            else
+            {
+                // Fallback to original URL if no canonical domain is set
+                var originalUrl = $"{this.Request.Scheme}://{this.Request.Host}{this.Request.Path}{this.Request.QueryString}";
+                this.ViewData[StringConstants.CanonicalUrl] = UrlHelper.NormalizeUrl(originalUrl);
+            }
         }
     }
 }

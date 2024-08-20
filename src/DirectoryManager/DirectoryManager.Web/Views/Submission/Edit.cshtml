@@ -6,6 +6,7 @@
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
     ViewData[StringConstants.TitleHeader] = "Edit Submission";
     ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    ViewData[StringConstants.IsIndexable] = false;
 }
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
  

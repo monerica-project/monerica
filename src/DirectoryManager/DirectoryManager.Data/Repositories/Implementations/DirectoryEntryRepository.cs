@@ -169,6 +169,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<IEnumerable<DirectoryEntry>> GetNewestRevisions(int count)
         {
             return await this.context.DirectoryEntries
+                .Include(de => de.SubCategory)
+                .ThenInclude(sc => sc.Category)
                 .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
                             x.DirectoryStatus != DirectoryStatus.Unknown &&
                             x.UpdateDate.HasValue)
@@ -180,6 +182,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<IEnumerable<DirectoryEntry>> GetNewestAdditions(int count)
         {
             return await this.context.DirectoryEntries
+                .Include(de => de.SubCategory)
+                .ThenInclude(sc => sc.Category)
                 .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
                             x.DirectoryStatus != DirectoryStatus.Unknown)
                 .OrderByDescending(entry => entry.CreateDate)
