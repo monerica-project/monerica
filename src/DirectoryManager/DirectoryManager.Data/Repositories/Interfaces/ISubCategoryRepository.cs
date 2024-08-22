@@ -2,7 +2,7 @@
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
-    public interface ISubCategoryRepository
+    public interface ISubcategoryRepository
     {
         Task<IEnumerable<Subcategory>> GetAllAsync();
         Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync();

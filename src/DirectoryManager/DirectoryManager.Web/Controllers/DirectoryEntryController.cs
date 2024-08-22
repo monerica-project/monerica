@@ -16,7 +16,7 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
-        private readonly ISubCategoryRepository subCategoryRepository;
+        private readonly ISubcategoryRepository subCategoryRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly IDirectoryEntriesAuditRepository auditRepository;
         private readonly ICacheService cacheService;
@@ -25,7 +25,7 @@ namespace DirectoryManager.Web.Controllers
         public DirectoryEntryController(
             UserManager<ApplicationUser> userManager,
             IDirectoryEntryRepository entryRepository,
-            ISubCategoryRepository subCategoryRepository,
+            ISubcategoryRepository subCategoryRepository,
             ICategoryRepository categoryRepository,
             IDirectoryEntriesAuditRepository auditRepository,
             ITrafficLogRepository trafficLogRepository,

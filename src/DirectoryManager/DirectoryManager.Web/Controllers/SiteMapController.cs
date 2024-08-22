@@ -16,7 +16,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IMemoryCache memoryCache;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly ICategoryRepository categoryRepository;
-        private readonly ISubCategoryRepository subCategoryRepository;
+        private readonly ISubcategoryRepository subCategoryRepository;
         private readonly IContentSnippetRepository contentSnippetRepository;
         private readonly ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository;
         private readonly ISponsoredListingRepository sponsoredListingRepository;
@@ -26,7 +26,7 @@ namespace DirectoryManager.Web.Controllers
             IMemoryCache memoryCache,
             IDirectoryEntryRepository directoryEntryRepository,
             ICategoryRepository categoryRepository,
-            ISubCategoryRepository subCategoryRepository,
+            ISubcategoryRepository subCategoryRepository,
             IContentSnippetRepository contentSnippetRepository,
             ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository,
             ISponsoredListingRepository sponsoredListingRepository)

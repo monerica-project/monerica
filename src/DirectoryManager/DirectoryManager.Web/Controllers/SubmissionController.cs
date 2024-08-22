@@ -17,7 +17,7 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ISubmissionRepository submissionRepository;
-        private readonly ISubCategoryRepository subCategoryRepository;
+        private readonly ISubcategoryRepository subCategoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly IDirectoryEntriesAuditRepository auditRepository;
         private readonly IBlockedIPRepository blockedIPRepository;
@@ -27,7 +27,7 @@ namespace DirectoryManager.Web.Controllers
         public SubmissionController(
             UserManager<ApplicationUser> userManager,
             ISubmissionRepository submissionRepository,
-            ISubCategoryRepository subCategoryRepository,
+            ISubcategoryRepository subCategoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
             IDirectoryEntriesAuditRepository auditRepository,
             ITrafficLogRepository trafficLogRepository,

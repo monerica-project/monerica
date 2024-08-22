@@ -19,7 +19,7 @@ namespace DirectoryManager.Web.Controllers
 {
     public class SponsoredListingController : BaseController
     {
-        private readonly ISubCategoryRepository subCategoryRepository;
+        private readonly ISubcategoryRepository subCategoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly ISponsoredListingRepository sponsoredListingRepository;
         private readonly ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository;
@@ -32,7 +32,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ILogger<SponsoredListingController> logger;
 
         public SponsoredListingController(
-            ISubCategoryRepository subCategoryRepository,
+            ISubcategoryRepository subCategoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
             ISponsoredListingRepository sponsoredListingRepository,
             ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository,

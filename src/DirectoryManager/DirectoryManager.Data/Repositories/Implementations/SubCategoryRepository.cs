@@ -6,11 +6,11 @@ using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Data.Repositories.Implementations
 {
-    public class SubCategoryRepository : ISubCategoryRepository
+    public class SubcategoryRepository : ISubcategoryRepository
     {
         private readonly IApplicationDbContext context;
 
-        public SubCategoryRepository(IApplicationDbContext context)
+        public SubcategoryRepository(IApplicationDbContext context)
         {
             this.context = context;
         }

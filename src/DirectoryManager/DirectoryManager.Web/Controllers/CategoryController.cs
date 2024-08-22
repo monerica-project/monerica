@@ -15,13 +15,13 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ICategoryRepository categoryRepository;
-        private readonly ISubCategoryRepository subCategoryRepository;
+        private readonly ISubcategoryRepository subCategoryRepository;
         private readonly IMemoryCache cache;
 
         public CategoryController(
             UserManager<ApplicationUser> userManager,
             ICategoryRepository categoryRepository,
-            ISubCategoryRepository subCategoryRepository,
+            ISubcategoryRepository subCategoryRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
