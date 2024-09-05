@@ -27,6 +27,19 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.context.Submissions.FindAsync(submissionId);
         }
 
+        public async Task<Submission?> GetByLinkAndStatusAsync(string link1, SubmissionStatus submissionStatus = SubmissionStatus.Pending)
+        {
+            if (string.IsNullOrWhiteSpace(link1))
+            {
+                return default;
+            }
+
+            return await this.context
+                             .Submissions
+                             .Where(x => x.Link == link1 && x.SubmissionStatus == submissionStatus)
+                             .FirstOrDefaultAsync();
+        }
+
         public async Task<Submission> CreateAsync(Submission submission)
         {
             await this.context.Submissions.AddAsync(submission);

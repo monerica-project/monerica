@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using System.Reflection.PortableExecutable;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -93,6 +92,16 @@ namespace DirectoryManager.Web.Controllers
                     string.IsNullOrWhiteSpace(model.NoteToAdmin))
                 {
                     return this.RedirectToAction("Success", "Submission");
+                }
+
+                var existingLinkSubmission = await this.submissionRepository.GetByLinkAndStatusAsync(model.Link);
+
+                if (existingLinkSubmission != null)
+                {
+                    this.ModelState.AddModelError(string.Empty, "There is already a pending submission for this link.");
+                    await this.LoadSubCategories();
+
+                    return this.View("SubmitEdit", model);
                 }
 
                 var submissionModel = this.GetSubmissionRequest(model);
