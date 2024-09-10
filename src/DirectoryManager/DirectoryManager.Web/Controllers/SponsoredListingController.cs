@@ -177,8 +177,7 @@ namespace DirectoryManager.Web.Controllers
 
             int? subCategoryId = null;
 
-            if (sponsorshipType == SponsorshipType.SubcategorySponsor &&
-                (directoryEntry != null))
+            if (directoryEntry != null)
             {
                 subCategoryId = directoryEntry.SubCategoryId;
             }
