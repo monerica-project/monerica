@@ -62,7 +62,6 @@ else
     {
         <text>&#10060;</text> <del><a rel="nofollow" href="@(Model.LinkType == LinkType.ListingPage ? Model.ItemPath : Model.Link)" @(Model.LinkType == LinkType.Direct ? "target=\"_blank\"" : "")>@Model.Name</a></del>
     }
-
     @if (Model.LinkType != LinkType.ListingPage)
     {
         @if (!string.IsNullOrWhiteSpace(Model.Link2))
@@ -70,7 +69,6 @@ else
             if (Model.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Scam)
             {
                 <text> | </text>
-
                 <del><a rel="nofollow" href="@(Model.LinkType == LinkType.Direct ? Model.Link2 : Model.ItemPath)" target="_blank">@Model.Link2Name</a></del>
             }
             else
@@ -89,13 +87,11 @@ else
                 }
             }
         }
-
         @if (!string.IsNullOrWhiteSpace(Model.Link3))
         {
             if (Model.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Scam)
             {
                 <text> | </text>
-
                 <del><a rel="nofollow" href="@(Model.LinkType == LinkType.Direct ? Model.Link3 : Model.ItemPath)" target="_blank">@Model.Link3Name</a></del>
             }
             else
@@ -115,11 +111,9 @@ else
             }
         }
     }
-
     @if (!string.IsNullOrWhiteSpace(Model.Description))
     {
         <text> - </text>
-
         @Html.Raw(Model.Description)
     }
 

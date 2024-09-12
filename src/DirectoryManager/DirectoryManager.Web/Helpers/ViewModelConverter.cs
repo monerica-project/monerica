@@ -34,6 +34,10 @@ namespace DirectoryManager.Web.Helpers
                 SubCategoryId = entry.SubCategoryId,
                 CreateDate = entry.CreateDate,
                 UpdateDate = entry.UpdateDate,
+                LinkA = entry.LinkA,
+                Link2A = entry.Link2A,
+                Link3A = entry.Link3A,
+                DirectoryBadge = entry.DirectoryBadge,
             }).ToList();
         }
     }
