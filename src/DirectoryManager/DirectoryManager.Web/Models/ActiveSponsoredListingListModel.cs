@@ -2,6 +2,7 @@
 {
     public class ActiveSponsoredListingViewModel
     {
-        public List<ActiveSponsoredListingModel> Items { get; set; } = new List<ActiveSponsoredListingModel>();
+        public List<ActiveSponsoredListingModel> MainSponsorItems { get; set; }
+        public List<ActiveSponsoredListingModel> SubCategorySponsorItems { get; set; }
     }
 }

@@ -10,5 +10,7 @@ namespace DirectoryManager.Web.Models
         public int DirectoryListingId { get; set; }
         required public string ListingUrl { get; set; }
         public SponsorshipType SponsorshipType { get; set; }
+
+        public string SubcategoryName { get; set; }
     }
 }

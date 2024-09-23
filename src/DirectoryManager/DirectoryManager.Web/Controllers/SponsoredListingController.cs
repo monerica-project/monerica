@@ -20,6 +20,7 @@ namespace DirectoryManager.Web.Controllers
     public class SponsoredListingController : BaseController
     {
         private readonly ISubcategoryRepository subCategoryRepository;
+        private readonly ICategoryRepository categoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly ISponsoredListingRepository sponsoredListingRepository;
         private readonly ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository;
@@ -33,6 +34,7 @@ namespace DirectoryManager.Web.Controllers
 
         public SponsoredListingController(
             ISubcategoryRepository subCategoryRepository,
+            ICategoryRepository categoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
             ISponsoredListingRepository sponsoredListingRepository,
             ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository,
@@ -48,6 +50,7 @@ namespace DirectoryManager.Web.Controllers
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.subCategoryRepository = subCategoryRepository;
+            this.categoryRepository = categoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
             this.sponsoredListingRepository = sponsoredListingRepository;
             this.sponsoredListingInvoiceRepository = sponsoredListingInvoiceRepository;
@@ -726,15 +729,31 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> ActiveListings()
         {
             var listings = await this.sponsoredListingRepository.GetAllActiveListingsAsync();
+
+            // Filter listings by type
+            var mainSponsorListings = listings.Where(l => l.SponsorshipType == SponsorshipType.MainSponsor).ToList();
+            var subCategorySponsorListings = listings.Where(l => l.SponsorshipType == SponsorshipType.SubcategorySponsor).ToList();
+
             var model = new ActiveSponsoredListingViewModel
             {
-                Items = listings.Select(listing => new ActiveSponsoredListingModel
+                MainSponsorItems = mainSponsorListings.Select(listing => new ActiveSponsoredListingModel
                 {
                     ListingName = listing.DirectoryEntry?.Name ?? StringConstants.DefaultName,
                     SponsoredListingId = listing.SponsoredListingId,
                     CampaignEndDate = listing.CampaignEndDate,
                     ListingUrl = listing.DirectoryEntry?.Link ?? string.Empty,
                     DirectoryListingId = listing.DirectoryEntryId,
+                    SponsorshipType = listing.SponsorshipType
+                }).ToList(),
+
+                SubCategorySponsorItems = subCategorySponsorListings.Select(listing => new ActiveSponsoredListingModel
+                {
+                    ListingName = listing.DirectoryEntry?.Name ?? StringConstants.DefaultName,
+                    SponsoredListingId = listing.SponsoredListingId,
+                    CampaignEndDate = listing.CampaignEndDate,
+                    ListingUrl = listing.DirectoryEntry?.Link ?? string.Empty,
+                    DirectoryListingId = listing.DirectoryEntryId,
+                    SubcategoryName = this.SetSubcategoryNameAsync(listing.SubCategoryId),
                     SponsorshipType = listing.SponsorshipType
                 }).ToList()
             };
@@ -863,6 +882,30 @@ namespace DirectoryManager.Web.Controllers
             }
 
             throw new NotImplementedException("SponsorshipType:" + sponsorshipType.ToString());
+        }
+
+        private string SetSubcategoryNameAsync(int? subCategoryId)
+        {
+            if (subCategoryId == null)
+            {
+                return string.Empty;
+            }
+
+            var subcategory = this.subCategoryRepository.GetByIdAsync(subCategoryId.Value).Result;
+
+            if (subcategory == null)
+            {
+                return string.Empty;
+            }
+
+            var category = this.categoryRepository.GetByIdAsync(subcategory.CategoryId).Result;
+
+            if (category == null)
+            {
+                return string.Empty;
+            }
+
+            return string.Format("{0} > {1}", category.Name, subcategory.Name);
         }
 
         private PaymentRequest GetInvoiceRequest(SponsoredListingOffer sponsoredListingOffer, SponsoredListingInvoice invoice)
