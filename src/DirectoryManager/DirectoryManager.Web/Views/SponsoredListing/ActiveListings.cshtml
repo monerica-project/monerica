@@ -7,7 +7,7 @@
 
 @await Html.PartialAsync("_BackToHome")
 <hr />
-<p>Select a listing to extend it before it expires.</p>
+<p>Select a listing to extend it before it expires. The current time is: @DateTime.UtcNow.ToString(StringConstants.DateTimeFormat).</p>
 
 <!-- Main Sponsor Listings Table -->
 <h2>Main Sponsors</h2>
@@ -24,7 +24,7 @@
         {
             <tr>
                 <td><a target="_blank" href="@listing.ListingUrl">@listing.ListingName</a></td>
-                <td>@listing.CampaignEndDate.ToString(StringConstants.DateTimeFormat2)</td>
+                <td>@listing.CampaignEndDate.ToString(StringConstants.DateTimeFormat)</td>
                 <td>
                     <a href="@Url.Action("selectduration", new { directoryEntryId = listing.DirectoryListingId, sponsorshipType = listing.SponsorshipType })">Select</a>
                 </td>
@@ -50,7 +50,7 @@
             <tr>
                 <td><a target="_blank" href="@listing.ListingUrl">@listing.ListingName</a></td>
                 <td>@listing.SubcategoryName</td>
-                <td>@listing.CampaignEndDate.ToString(StringConstants.DateTimeFormat2)</td>
+                <td>@listing.CampaignEndDate.ToString(StringConstants.DateTimeFormat)</td>
                 <td>
                     <a href="@Url.Action("selectduration", new { directoryEntryId = listing.DirectoryListingId, sponsorshipType = listing.SponsorshipType })">Select</a>
                 </td>
