@@ -71,7 +71,7 @@
             }
             @foreach (var viewModel in viewModelList)
             {
-                viewModel.LinkType = DirectoryManager.Web.Enums.LinkType.ListingPage;
+                viewModel.LinkType = DirectoryManager.Web.Enums.LinkType.Direct;
                 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
         </ul>
@@ -102,7 +102,7 @@
             }
             @foreach (var viewModel in viewModelList)
             {
-                viewModel.LinkType = DirectoryManager.Web.Enums.LinkType.ListingPage;
+                viewModel.LinkType = DirectoryManager.Web.Enums.LinkType.Direct;
                 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
 
