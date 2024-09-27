@@ -17,12 +17,12 @@
 
 @if (!string.IsNullOrWhiteSpace(Model.Description))
 {
-    <p><span>@Model.Description</span></p>
+    <p><span>@Html.Raw(Model.Description)</span></p>
 }
 
 @if (!string.IsNullOrWhiteSpace(Model.Note))
 {
-    <p><i>Note: @Model.Note</i></p>
+    <p><i>Note: @Html.Raw(Model.Note)</i></p>
 }
  
 <ul>
