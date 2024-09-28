@@ -142,11 +142,9 @@
         var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.MainSponsor);
         var subCategorySponsors = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.SubcategorySponsor);
     }
-
     @foreach (var category in activeCategories)
     {
         <h2 id="@category.CategoryKey">@category.Name</h2>
-
         @if (!string.IsNullOrEmpty(category.Description))
         {
             <p>@Html.Raw(category.Description)</p>
@@ -155,21 +153,17 @@
         {
             <p><i>(Note: @Html.Raw(category.Note)</i>)</p>
         }
-
         @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId))
         {
             <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>
-
             if (!string.IsNullOrEmpty(subCategory.Description))
             {
                 <p>@Html.Raw(subCategory.Description)</p>
             }
-
             if (!string.IsNullOrEmpty(subCategory.Note))
             {
                 <i>(Note: @Html.Raw(subCategory.Note))</i>
             }
-
             var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
 
             var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
@@ -213,18 +207,16 @@
                viewModelList.RemoveAll(x => x.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
             }
 
-            <ul>
-                @foreach (var viewModel in viewModelList)
-                {
-                    if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntryId) != null)
-                    {
-                        viewModel.IsSponsored = true;
-                        viewModel.DisplayAsSponsoredItem = true;
-                    }
+<ul>@foreach (var viewModel in viewModelList){
+if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntryId) != null)
+{
+    viewModel.IsSponsored = true;
+    viewModel.DisplayAsSponsoredItem = true;
+}
+@await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
+}
 
-                    @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
-                }
-            </ul>
+</ul>
         }
 
         <p class="right">
