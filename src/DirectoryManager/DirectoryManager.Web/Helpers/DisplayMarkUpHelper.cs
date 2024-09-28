@@ -66,7 +66,7 @@ namespace DirectoryManager.Web.Helpers
             // Add note if available
             if (!string.IsNullOrWhiteSpace(model.Note))
             {
-                sb.AppendFormat("<i>(Note: {0})</i>", model.Note); // Assuming it's safe HTML
+                sb.AppendFormat(" <i>(Note: {0})</i>", model.Note); // Assuming it's safe HTML
             }
 
             // Closing paragraph and li tag
@@ -105,7 +105,7 @@ namespace DirectoryManager.Web.Helpers
             if (!string.IsNullOrWhiteSpace(link))
             {
                 sb.Append(" | ");
-                string actualLink = affiliateLink ?? link;
+                var actualLink = affiliateLink ?? link;
                 if (isScam)
                 {
                     sb.AppendFormat("<del><a rel=\"nofollow\" href=\"{0}\" target=\"_blank\">{1}</a></del>", actualLink, linkName);
