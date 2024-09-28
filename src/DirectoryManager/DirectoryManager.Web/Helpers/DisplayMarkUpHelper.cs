@@ -36,7 +36,7 @@ namespace DirectoryManager.Web.Helpers
             // Handle directory status and links
             if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Verified)
             {
-                sb.Append("&#9989;");
+                sb.Append("&#9989; ");
 
                 if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
                 {
