@@ -26,27 +26,50 @@ namespace DirectoryManager.Web.Helpers
             // Handle date display options
             if (model.DateOption == DateDisplayOption.DisplayCreateDate)
             {
-                sb.AppendFormat("<i>{0}</i>", model.CreateDate.ToString(StringConstants.DateFormat));
+                sb.AppendFormat("<i>{0}</i> ", model.CreateDate.ToString(StringConstants.DateFormat));
             }
             else if (model.DateOption == DateDisplayOption.DisplayUpdateDate)
             {
-                sb.AppendFormat("<i>{0}</i>", (model.UpdateDate ?? model.CreateDate).ToString(StringConstants.DateFormat));
+                sb.AppendFormat("<i>{0}</i> ", (model.UpdateDate ?? model.CreateDate).ToString(StringConstants.DateFormat));
             }
 
             // Handle directory status and links
             if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Verified)
             {
                 sb.Append("&#9989;");
-                AppendLink(sb, model, model.LinkA);
+
+                if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
+                {
+                    AppendLink(sb, model, model.Link, true); // Use LinkA if sponsored
+                }
+                else if (!string.IsNullOrWhiteSpace(model.LinkA))
+                {
+                    AppendLink(sb, model, model.LinkA, false); // Use LinkA as fallback
+                }
+                else
+                {
+                    AppendLink(sb, model, model.Link, false); // Default to Link
+                }
             }
             else if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Admitted)
             {
-                AppendLink(sb, model, model.LinkA);
+                if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
+                {
+                    AppendLink(sb, model, model.Link, true); // Use LinkA if sponsored
+                }
+                else if (!string.IsNullOrWhiteSpace(model.LinkA))
+                {
+                    AppendLink(sb, model, model.LinkA, false); // Use LinkA as fallback
+                }
+                else
+                {
+                    AppendLink(sb, model, model.Link, false); // Default to Link
+                }
             }
             else if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Scam)
             {
                 sb.Append("&#10060; <del>");
-                AppendLink(sb, model, null, true);
+                AppendLink(sb, model, model.Link, false, true); // Scam case
                 sb.Append("</del>");
             }
 
@@ -66,7 +89,7 @@ namespace DirectoryManager.Web.Helpers
             // Add note if available
             if (!string.IsNullOrWhiteSpace(model.Note))
             {
-                sb.AppendFormat(" <i>(Note: {0})</i>", model.Note); // Assuming it's safe HTML
+                sb.AppendFormat(" <i>(Note: {0})</i> ", model.Note); // Assuming it's safe HTML
             }
 
             // Closing paragraph and li tag
@@ -114,6 +137,23 @@ namespace DirectoryManager.Web.Helpers
                 {
                     sb.AppendFormat("<a href=\"{0}\" target=\"_blank\">{1}</a>", actualLink, linkName);
                 }
+            }
+        }
+
+        // Helper method to append the link based on the logic
+        private static void AppendLink(StringBuilder sb, DirectoryEntryViewModel model, string link, bool isSponsored = false, bool isScam = false)
+        {
+            string finalLink = model.LinkType == LinkType.ListingPage ? model.ItemPath : link;
+            string target = model.LinkType == LinkType.Direct ? "target=\"_blank\"" : string.Empty;
+            string name = model.Name;
+
+            if (isScam)
+            {
+                sb.AppendFormat("<a rel=\"nofollow\" href=\"{0}\" {1}>{2}</a>", finalLink, target, name);
+            }
+            else
+            {
+                sb.AppendFormat("<a href=\"{0}\" {1}>{2}</a>", finalLink, target, name);
             }
         }
     }
