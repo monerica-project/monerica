@@ -12,13 +12,13 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly ISponsoredListingInvoiceRepository invoiceRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
-        private readonly ISubCategoryRepository subCategoryRepository;
+        private readonly ISubcategoryRepository subCategoryRepository;
         private readonly ICacheService cacheService;
 
         public SponsoredListingInvoiceController(
             ISponsoredListingInvoiceRepository invoiceRepository,
             IDirectoryEntryRepository directoryEntryRepository,
-            ISubCategoryRepository subCategoryRepository,
+            ISubcategoryRepository subCategoryRepository,
             ICacheService cacheService)
         {
             this.invoiceRepository = invoiceRepository;

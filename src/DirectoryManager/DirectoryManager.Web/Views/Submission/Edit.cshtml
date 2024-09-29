@@ -6,6 +6,7 @@
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
     ViewData[StringConstants.TitleHeader] = "Edit Submission";
     ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    ViewData[StringConstants.IsIndexable] = false;
 }
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
  
@@ -40,18 +41,6 @@
         <label asp-for="SuggestedSubCategory">Suggested Category</label>
         <input asp-for="SuggestedSubCategory" class="form-control input-width" />
         <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
-    </div>
-
-    <!-- For SubmissionStatus Enum Dropdown -->
-    <div class="form-group">
-        <label asp-for="SubmissionStatus">Submission Status</label>
-        <select asp-for="SubmissionStatus" class="form-control ">
-            @foreach (var status in submissionStatuses)
-            {
-                <option value="@status">@status</option>
-            }
-        </select>
-        <span asp-validation-for="SubmissionStatus" class="text-danger"></span>
     </div>
 
     <!-- Other Fields -->
@@ -131,6 +120,19 @@
     <span>IP Address:</span>
     <span>@Model.IpAddress</span>
     <br />    <br />
+
+
+    <!-- For SubmissionStatus Enum Dropdown -->
+    <div class="form-group">
+        <label asp-for="SubmissionStatus">Submission Status</label>
+        <select asp-for="SubmissionStatus" class="form-control ">
+            @foreach (var status in submissionStatuses)
+            {
+                <option value="@status">@status</option>
+            }
+        </select>
+        <span asp-validation-for="SubmissionStatus" class="text-danger"></span>
+    </div>
 
     <!-- Submit Button -->
     <button type="submit" class="btn btn-primary">Update</button>

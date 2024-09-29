@@ -15,7 +15,7 @@ namespace DirectoryManager.Web.Helpers
             return directoryEntries.Select(entry => new DirectoryEntryViewModel
             {
                 ItemPath = string.Format("/{0}/{1}/{2}", entry.SubCategory?.Category.CategoryKey, entry.SubCategory?.SubCategoryKey, entry.DirectoryEntryKey),
-                DateOption = DateDisplayOption.NotDisplayed,
+                DateOption = option,
                 IsSponsored = false,
                 Link2Name = link2Name,
                 Link3Name = link3Name,
@@ -32,6 +32,12 @@ namespace DirectoryManager.Web.Helpers
                 Note = entry.Note,
                 Processor = entry.Processor,
                 SubCategoryId = entry.SubCategoryId,
+                CreateDate = entry.CreateDate,
+                UpdateDate = entry.UpdateDate,
+                LinkA = entry.LinkA,
+                Link2A = entry.Link2A,
+                Link3A = entry.Link3A,
+                DirectoryBadge = entry.DirectoryBadge,
             }).ToList();
         }
     }

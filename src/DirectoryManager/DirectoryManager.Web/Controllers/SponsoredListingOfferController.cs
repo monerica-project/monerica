@@ -11,11 +11,11 @@ namespace DirectoryManager.Web.Controllers
     public class SponsoredListingOfferController : Controller
     {
         private readonly ISponsoredListingOfferRepository sponsoredListingOfferRepository;
-        private readonly ISubCategoryRepository subCategoryRepository;
+        private readonly ISubcategoryRepository subCategoryRepository;
 
         public SponsoredListingOfferController(
             ISponsoredListingOfferRepository sponsoredListingOfferRepository,
-            ISubCategoryRepository subCategoryRepository)
+            ISubcategoryRepository subCategoryRepository)
         {
             this.sponsoredListingOfferRepository = sponsoredListingOfferRepository;
             this.subCategoryRepository = subCategoryRepository;

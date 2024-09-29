@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using System.Reflection.PortableExecutable;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -17,7 +16,7 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ISubmissionRepository submissionRepository;
-        private readonly ISubCategoryRepository subCategoryRepository;
+        private readonly ISubcategoryRepository subCategoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly IDirectoryEntriesAuditRepository auditRepository;
         private readonly IBlockedIPRepository blockedIPRepository;
@@ -27,7 +26,7 @@ namespace DirectoryManager.Web.Controllers
         public SubmissionController(
             UserManager<ApplicationUser> userManager,
             ISubmissionRepository submissionRepository,
-            ISubCategoryRepository subCategoryRepository,
+            ISubcategoryRepository subCategoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
             IDirectoryEntriesAuditRepository auditRepository,
             ITrafficLogRepository trafficLogRepository,
@@ -93,6 +92,16 @@ namespace DirectoryManager.Web.Controllers
                     string.IsNullOrWhiteSpace(model.NoteToAdmin))
                 {
                     return this.RedirectToAction("Success", "Submission");
+                }
+
+                var existingLinkSubmission = await this.submissionRepository.GetByLinkAndStatusAsync(model.Link);
+
+                if (existingLinkSubmission != null)
+                {
+                    this.ModelState.AddModelError(string.Empty, "There is already a pending submission for this link.");
+                    await this.LoadSubCategories();
+
+                    return this.View("SubmitEdit", model);
                 }
 
                 var submissionModel = this.GetSubmissionRequest(model);

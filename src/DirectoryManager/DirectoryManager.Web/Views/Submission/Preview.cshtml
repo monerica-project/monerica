@@ -1,13 +1,15 @@
 ﻿@model DirectoryManager.Web.Models.SubmissionPreviewModel
 @using DirectoryManager.Web.Constants;
 @{
-    ViewData[StringConstants.TitleHeader] = "Submission Preview";
+    ViewData[StringConstants.TitleHeader] = "Preview";
 }
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
-<p><b>PREVIEW ONLY! This is not yet submitted.</b></p>
+<div class="submission-guidelines">
+<p><b>NOT SUBMITTED YET!</b></p>
+</div>
 <p>
-    <a href="~/submit?submissionid=@Model.SubmissionId">Click here</a> to edit your submission.
+    <a href="~/submit?submissionid=@Model.SubmissionId">Edit</a>
 </p>
 
 <hr />

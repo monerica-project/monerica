@@ -37,8 +37,8 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
                 Assert.NotNull(result);
                 Assert.Equal("TestEntry", result.Name);
                 Assert.Equal("test-entry", result.DirectoryEntryKey);
-                Assert.Equal("TestSubCategory", result.SubCategory.Name);
-                Assert.Equal("TestCategory", result.SubCategory.Category.Name);
+                Assert.Equal("TestSubCategory", result?.SubCategory?.Name);
+                Assert.Equal("TestCategory", result?.SubCategory?.Category.Name);
             }
         }
     }

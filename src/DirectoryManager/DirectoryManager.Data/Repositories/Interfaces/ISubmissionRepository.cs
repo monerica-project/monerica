@@ -7,6 +7,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
     {
         Task<IEnumerable<Submission>> GetAllAsync();
         Task<Submission?> GetByIdAsync(int submissionId);
+        Task<Submission?> GetByLinkAndStatusAsync(string link1, SubmissionStatus submissionStatus = SubmissionStatus.Pending);
         Task<Submission> CreateAsync(Submission submission);
         Task UpdateAsync(Submission submission);
         Task DeleteAsync(int submissionId);

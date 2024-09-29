@@ -3,7 +3,7 @@
 @using DirectoryManager.Data.Enums;
 @model DirectoryManager.Data.Models.Category
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepository
-@inject DirectoryManager.Data.Repositories.Interfaces.ISubCategoryRepository subCategoryRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository subCategoryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntrySelectionRepository directoryEntrySelectionRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
@@ -53,7 +53,7 @@
     }
 
     @{
-        var newestEntries = await directoryEntryRepository.GetNewestAdditions(IntegerConstants.NewestRevisionsToDisplay);
+        var newestEntries = await directoryEntryRepository.GetNewestAdditions(IntegerConstants.NewestRevisionsToDisplay);       
     }
 
     @if (newestEntries != null && newestEntries.Count() > 0)
@@ -71,6 +71,7 @@
             }
             @foreach (var viewModel in viewModelList)
             {
+                viewModel.LinkType = DirectoryManager.Web.Enums.LinkType.Direct;
                 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
         </ul>
@@ -101,6 +102,7 @@
             }
             @foreach (var viewModel in viewModelList)
             {
+                viewModel.LinkType = DirectoryManager.Web.Enums.LinkType.Direct;
                 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
 
@@ -140,34 +142,28 @@
         var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.MainSponsor);
         var subCategorySponsors = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.SubcategorySponsor);
     }
-
     @foreach (var category in activeCategories)
     {
         <h2 id="@category.CategoryKey">@category.Name</h2>
-
         @if (!string.IsNullOrEmpty(category.Description))
         {
-            <p>@category.Description</p>
+            <p>@Html.Raw(category.Description)</p>
         }
         @if (!string.IsNullOrEmpty(category.Note))
         {
-            <p><i>(Note: @category.Note</i>)</p>
+            <p><i>(Note: @Html.Raw(category.Note)</i>)</p>
         }
-
         @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId))
         {
             <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>
-
             if (!string.IsNullOrEmpty(subCategory.Description))
             {
-                <p>@subCategory.Description</p>
+                <p>@Html.Raw(subCategory.Description)</p>
             }
-
             if (!string.IsNullOrEmpty(subCategory.Note))
             {
-                <i>(Note: @subCategory.Note)</i>
+                <i>(Note: @Html.Raw(subCategory.Note))</i>
             }
-
             var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
 
             var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
@@ -211,18 +207,16 @@
                viewModelList.RemoveAll(x => x.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
             }
 
-            <ul>
-                @foreach (var viewModel in viewModelList)
-                {
-                    if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntryId) != null)
-                    {
-                        viewModel.IsSponsored = true;
-                        viewModel.DisplayAsSponsoredItem = true;
-                    }
+<ul>@foreach (var viewModel in viewModelList){
+if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntryId) != null)
+{
+    viewModel.IsSponsored = true;
+    viewModel.DisplayAsSponsoredItem = true;
+}
+@await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
+}
 
-                    @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
-                }
-            </ul>
+</ul>
         }
 
         <p class="right">

@@ -15,7 +15,7 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IDirectoryEntryRepository entryRepository;
-        private readonly ISubCategoryRepository subCategoryRepository;
+        private readonly ISubcategoryRepository subCategoryRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly IDirectoryEntriesAuditRepository auditRepository;
         private readonly IDirectoryEntrySelectionRepository directoryEntrySelectionRepository;
@@ -24,7 +24,7 @@ namespace DirectoryManager.Web.Controllers
         public DirectoryEntrySelectionController(
               UserManager<ApplicationUser> userManager,
               IDirectoryEntryRepository entryRepository,
-              ISubCategoryRepository subCategoryRepository,
+              ISubcategoryRepository subCategoryRepository,
               ICategoryRepository categoryRepository,
               IDirectoryEntriesAuditRepository auditRepository,
               ITrafficLogRepository trafficLogRepository,

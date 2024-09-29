@@ -26,5 +26,6 @@
         SubcategorySponsoredListingDetails = 21,
         TopBanner = 22,
         FullRootUrl = 23,
+        CanonicalDomain = 24,
     }
 }

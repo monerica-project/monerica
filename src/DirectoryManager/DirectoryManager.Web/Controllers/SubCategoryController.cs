@@ -16,25 +16,28 @@ namespace DirectoryManager.Web.Controllers
     public class SubCategoryController : BaseController
     {
         private readonly UserManager<ApplicationUser> userManager;
-        private readonly ISubCategoryRepository subCategoryRepository;
+        private readonly ISubcategoryRepository subcategoryRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly IContentSnippetRepository contentSnippetRepository;
         private readonly IMemoryCache cache;
 
         public SubCategoryController(
             UserManager<ApplicationUser> userManager,
-            ISubCategoryRepository subCategoryRepository,
+            ISubcategoryRepository subcategoryRepository,
             ICategoryRepository categoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
+            IContentSnippetRepository contentSnippetRepository,
             IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
-            this.subCategoryRepository = subCategoryRepository;
+            this.subcategoryRepository = subcategoryRepository;
             this.categoryRepository = categoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
+            this.contentSnippetRepository = contentSnippetRepository;
             this.cache = cache;
         }
 
@@ -46,12 +49,12 @@ namespace DirectoryManager.Web.Controllers
 
             if (categoryId.HasValue)
             {
-                subCategories = await this.subCategoryRepository.GetAllAsync();
+                subCategories = await this.subcategoryRepository.GetAllAsync();
                 subCategories = subCategories.Where(sc => sc.CategoryId == categoryId.Value);
             }
             else
             {
-                subCategories = await this.subCategoryRepository.GetAllAsync();
+                subCategories = await this.subcategoryRepository.GetAllAsync();
             }
 
             this.ViewBag.Categories = await this.categoryRepository.GetAllAsync(); // For dropdown list
@@ -79,7 +82,7 @@ namespace DirectoryManager.Web.Controllers
             subCategory.MetaDescription = subCategory.MetaDescription?.Trim();
             subCategory.PageDetails = subCategory.PageDetails?.Trim();
 
-            await this.subCategoryRepository.CreateAsync(subCategory);
+            await this.subcategoryRepository.CreateAsync(subCategory);
 
             this.ClearCachedItems();
 
@@ -90,7 +93,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Edit(int id)
         {
-            var subCategory = await this.subCategoryRepository.GetByIdAsync(id);
+            var subCategory = await this.subcategoryRepository.GetByIdAsync(id);
             if (subCategory == null)
             {
                 return this.NotFound();
@@ -104,7 +107,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost]
         public async Task<IActionResult> Edit(Subcategory subCategory)
         {
-            var existingSubCategory = await this.subCategoryRepository.GetByIdAsync(subCategory.SubCategoryId);
+            var existingSubCategory = await this.subcategoryRepository.GetByIdAsync(subCategory.SubCategoryId);
 
             if (existingSubCategory == null)
             {
@@ -129,7 +132,7 @@ namespace DirectoryManager.Web.Controllers
             existingSubCategory.MetaDescription = subCategory.MetaDescription?.Trim();
             existingSubCategory.PageDetails = subCategory.PageDetails?.Trim();
 
-            await this.subCategoryRepository.UpdateAsync(existingSubCategory);
+            await this.subcategoryRepository.UpdateAsync(existingSubCategory);
 
             this.ClearCachedItems();
 
@@ -147,7 +150,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var subCategory = await this.subCategoryRepository.GetByCategoryIdAndKeyAsync(category.CategoryId, subCategoryKey);
+            var subCategory = await this.subcategoryRepository.GetByCategoryIdAndKeyAsync(category.CategoryId, subCategoryKey);
 
             if (subCategory == null)
             {
@@ -184,7 +187,7 @@ namespace DirectoryManager.Web.Controllers
         [Route("subcategory/delete")]
         public async Task<IActionResult> Delete(int id)
         {
-            await this.subCategoryRepository.DeleteAsync(id);
+            await this.subcategoryRepository.DeleteAsync(id);
 
             this.ClearCachedItems();
 
@@ -193,8 +196,26 @@ namespace DirectoryManager.Web.Controllers
 
         private void SetCannonicalUrl()
         {
-            var originalUrl = $"{this.Request.Scheme}://{this.Request.Host}{this.Request.Path}{this.Request.QueryString}";
-            this.ViewData[StringConstants.CanonicalUrl] = UrlHelper.NormalizeUrl(originalUrl);
+            var canonicalDomainSnippet = this.contentSnippetRepository.Get(Data.Enums.SiteConfigSetting.CanonicalDomain);
+            var canonicalDomainValue = canonicalDomainSnippet != null ? canonicalDomainSnippet.Content : string.Empty;
+
+            if (!string.IsNullOrWhiteSpace(canonicalDomainValue))
+            {
+                // Normalize the canonical domain by ensuring it doesn't end with a '/'
+                canonicalDomainValue = canonicalDomainValue.TrimEnd('/');
+
+                // Build the canonical URL
+                var originalPathAndQuery = $"{this.Request.Path}{this.Request.QueryString}";
+                var canonicalUrl = $"{canonicalDomainValue}{originalPathAndQuery}";
+
+                this.ViewData[StringConstants.CanonicalUrl] = UrlHelper.NormalizeUrl(canonicalUrl);
+            }
+            else
+            {
+                // Fallback to original URL if no canonical domain is set
+                var originalUrl = $"{this.Request.Scheme}://{this.Request.Host}{this.Request.Path}{this.Request.QueryString}";
+                this.ViewData[StringConstants.CanonicalUrl] = UrlHelper.NormalizeUrl(originalUrl);
+            }
         }
     }
 }

@@ -2,30 +2,55 @@
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.Utilities.Helpers;
 @using DirectoryManager.Web.Constants;
-@{
-    ViewData[StringConstants.TitleHeader] = "Active Sponsored Listings";
-}
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+<h1>Active Sponsored Listings</h1>
 
 @await Html.PartialAsync("_BackToHome")
 <hr />
- 
+<p>Select a listing to extend it before it expires. The current time is: @DateTime.UtcNow.ToString(StringConstants.DateTimeFormat).</p>
+
+<!-- Main Sponsor Listings Table -->
+<h2>Main Sponsors</h2>
 <table class="table">
     <thead>
         <tr>
             <th>Listing Name</th>
             <th>Expires At</th>
-            <th>Sponsorship Type</th>
-            <th></th>  <!-- For the select link -->
+            <th></th> <!-- For the select link -->
         </tr>
     </thead>
     <tbody>
-        @foreach (var listing in Model.Items)
+        @foreach (var listing in Model.MainSponsorItems)
         {
             <tr>
                 <td><a target="_blank" href="@listing.ListingUrl">@listing.ListingName</a></td>
-                <td>@listing.CampaignEndDate.ToString(StringConstants.DateTimeFormat2)</td>
-                <td>@EnumHelper.GetDescription(listing.SponsorshipType)</td>
+                <td>@listing.CampaignEndDate.ToString(StringConstants.DateTimeFormat)</td>
+                <td>
+                    <a href="@Url.Action("selectduration", new { directoryEntryId = listing.DirectoryListingId, sponsorshipType = listing.SponsorshipType })">Select</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Subcategory Sponsor Listings Table -->
+<h2>Subcategory Sponsors</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Listing Name</th>
+            <th>Subcategory</th>
+            <th>Expires At</th>
+            <th></th> <!-- For the select link -->
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var listing in Model.SubCategorySponsorItems)
+        {
+            <tr>
+                <td><a target="_blank" href="@listing.ListingUrl">@listing.ListingName</a></td>
+                <td>@listing.SubcategoryName</td>
+                <td>@listing.CampaignEndDate.ToString(StringConstants.DateTimeFormat)</td>
                 <td>
                     <a href="@Url.Action("selectduration", new { directoryEntryId = listing.DirectoryListingId, sponsorshipType = listing.SponsorshipType })">Select</a>
                 </td>
