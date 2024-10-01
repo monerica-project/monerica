@@ -97,21 +97,45 @@ namespace DirectoryManager.Web.Controllers
                     ? lastSponsoredListingChange.Value
                     : lastChangeToCategory;
 
+                // Get active subcategories for the current category
+                var subCategories = await this.subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId);
+
+                // Determine the most recent subcategory change date
+                DateTime? mostRecentSubcategoryDate = subCategories
+                    .Select(subCategory => new[]
+                    {
+                allSubcategoriesLastModified.ContainsKey(subCategory.SubCategoryId)
+                    ? allSubcategoriesLastModified[subCategory.SubCategoryId]
+                    : DateTime.MinValue,
+                allSubCategoriesItemsLastModified.ContainsKey(subCategory.SubCategoryId)
+                    ? allSubCategoriesItemsLastModified[subCategory.SubCategoryId]
+                    : DateTime.MinValue,
+                allSubCategoryAds.ContainsKey(subCategory.SubCategoryId)
+                    ? allSubCategoryAds[subCategory.SubCategoryId]
+                    : DateTime.MinValue
+                    }.Max())
+                    .Max();
+
+                // Compare the most recent subcategory change date with the category change date
+                var lastChangeForCategoryOrSubcategory = mostRecentSubcategoryDate.HasValue && mostRecentSubcategoryDate > lastChangeToCategory
+                    ? mostRecentSubcategoryDate.Value
+                    : lastChangeToCategory;
+
                 // Add category to sitemap
                 siteMapHelper.SiteMapItems.Add(new SiteMapItem
                 {
                     Url = string.Format("{0}/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), category.CategoryKey),
                     Priority = 1.0,
                     ChangeFrequency = ChangeFrequency.Weekly,
-                    LastMod = lastChangeToCategory
+                    LastMod = lastChangeForCategoryOrSubcategory
                 });
-
-                // Get active subcategories for the current category
-                var subCategories = await this.subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId);
 
                 foreach (var subCategory in subCategories)
                 {
-                    var lastChangeToSubcategory = allSubcategoriesLastModified[subCategory.SubCategoryId];
+                    var lastChangeToSubcategory = allSubcategoriesLastModified.ContainsKey(subCategory.SubCategoryId)
+                        ? allSubcategoriesLastModified[subCategory.SubCategoryId]
+                        : lastChangeToCategory;
+
                     var lastChangeToSubcategoryItem = allSubCategoriesItemsLastModified.ContainsKey(subCategory.SubCategoryId)
                         ? allSubCategoriesItemsLastModified[subCategory.SubCategoryId]
                         : lastChangeToSubcategory;
@@ -121,7 +145,13 @@ namespace DirectoryManager.Web.Controllers
                         : lastChangeToSubcategoryItem;
 
                     // Determine the most recent change date, including the last sponsored listing change
-                    var lastModified = new[] { lastChangeToSubcategory, lastChangeToSubcategoryItem, lastChangeToSubcategoryAd, lastSponsoredListingChange ?? DateTime.MinValue }.Max();
+                    var lastModified = new[]
+                    {
+                        lastChangeToSubcategory,
+                        lastChangeToSubcategoryItem,
+                        lastChangeToSubcategoryAd,
+                        lastSponsoredListingChange ?? DateTime.MinValue
+                    }.Max();
 
                     // Add subcategory to sitemap
                     siteMapHelper.SiteMapItems.Add(new SiteMapItem
