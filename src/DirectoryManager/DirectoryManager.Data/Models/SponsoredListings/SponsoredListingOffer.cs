@@ -9,6 +9,7 @@ namespace DirectoryManager.Data.Models.SponsoredListings
         [Key]
         public int SponsoredListingOfferId { get; set; }
 
+        [Display(Name = "Is Enabled")]
         public bool IsEnabled { get; set; }
 
         [Required]
@@ -17,6 +18,7 @@ namespace DirectoryManager.Data.Models.SponsoredListings
 
         public int Days { get; set; }
 
+        [Display(Name = "Price Currency")]
         public Currency PriceCurrency { get; set; }
 
         public decimal Price { get; set; }
