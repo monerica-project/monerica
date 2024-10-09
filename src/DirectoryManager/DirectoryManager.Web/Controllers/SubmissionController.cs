@@ -213,6 +213,8 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel
             {
+                CreateDate = directoryEntry.CreateDate,
+                UpdateDate = directoryEntry.UpdateDate,
                 DateOption = Enums.DateDisplayOption.NotDisplayed,
                 IsSponsored = false,
                 Link2Name = link2Name,

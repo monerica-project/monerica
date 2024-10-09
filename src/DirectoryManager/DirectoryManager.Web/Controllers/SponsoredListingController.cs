@@ -798,6 +798,9 @@ namespace DirectoryManager.Web.Controllers
             {
                 SelectedDirectoryEntry = new DirectoryEntryViewModel()
                 {
+                    CreateDate = directoryEntry.CreateDate,
+                    UpdateDate = directoryEntry.UpdateDate,
+                    ItemDisplayType = Enums.ItemDisplayType.Normal,
                     DateOption = Enums.DateDisplayOption.NotDisplayed,
                     IsSponsored = false,
                     Link2Name = link2Name,

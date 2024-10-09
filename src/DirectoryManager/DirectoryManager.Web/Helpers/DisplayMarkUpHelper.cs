@@ -108,7 +108,14 @@ namespace DirectoryManager.Web.Helpers
             sb.Append("<div class=\"hidden\">");
             sb.Append("<ul>");
 
-            sb.AppendFormat("<li>Added: {0}</li>", model.CreateDate.ToString(StringConstants.DateFormat));
+            if (model.CreateDate == DateTime.MinValue)
+            {
+                sb.Append("<li>Added: N/A</li>");
+            }
+            else
+            {
+                sb.AppendFormat("<li>Added: {0}</li>", model.CreateDate.ToString(StringConstants.DateFormat));
+            }
 
             if (model.UpdateDate != null)
             {
