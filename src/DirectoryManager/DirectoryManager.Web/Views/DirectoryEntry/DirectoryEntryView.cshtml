@@ -1,4 +1,5 @@
-﻿@model DirectoryManager.Web.Models.DirectoryEntryViewModel
+﻿@using DirectoryManager.Web.Constants
+@model DirectoryManager.Web.Models.DirectoryEntryViewModel
 
 @{
     ViewData["Title"] = Model.Name;
@@ -81,11 +82,11 @@
             <p><strong>Contact:</strong> <span class="multi-line-text">@Model.Contact</span></p>
         }
 
-        <p><strong>Created On:</strong> @Model.CreateDate.ToString("yyyy-MM-dd")</p>
+        <p><strong>Added On:</strong> @Model.CreateDate.ToString(StringConstants.DateFormat)</p>
 
         @if (Model.UpdateDate.HasValue)
         {
-            <p><strong>Last Updated:</strong> @Model.UpdateDate?.ToString("yyyy-MM-dd")</p>
+            <p><strong>Last Updated:</strong> @Model.UpdateDate?.ToString(StringConstants.DateFormat)</p>
         }
     </div>
 </div>
