@@ -94,8 +94,11 @@ namespace DirectoryManager.Web.Controllers
                 entry.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
                 entry.SubCategoryId = entry.SubCategoryId;
                 entry.Link = entry.Link.Trim();
+                entry.LinkA = entry.LinkA?.Trim();
                 entry.Link2 = entry.Link2?.Trim();
+                entry.Link2A = entry.Link2A?.Trim();
                 entry.Link3 = entry.Link3?.Trim();
+                entry.Link3A = entry.Link3A?.Trim();
                 entry.Name = entry.Name.Trim();
                 entry.DirectoryEntryKey = StringHelpers.UrlKey(entry.Name);
                 entry.Description = entry.Description?.Trim();

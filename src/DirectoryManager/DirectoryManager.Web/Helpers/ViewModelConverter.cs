@@ -9,6 +9,7 @@ namespace DirectoryManager.Web.Helpers
         public static List<DirectoryEntryViewModel> ConvertToViewModels(
                 List<DirectoryEntry> directoryEntries,
                 DateDisplayOption option = DateDisplayOption.NotDisplayed,
+                ItemDisplayType itemDisplayType = ItemDisplayType.Normal,
                 string link2Name = "",
                 string link3Name = "")
         {
@@ -38,6 +39,7 @@ namespace DirectoryManager.Web.Helpers
                 Link2A = entry.Link2A,
                 Link3A = entry.Link3A,
                 DirectoryBadge = entry.DirectoryBadge,
+                ItemDisplayType = itemDisplayType,
             }).ToList();
         }
     }

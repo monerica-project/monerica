@@ -42,6 +42,7 @@
                 var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
                     featuredEntries.ToList(),
                     DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+                    DirectoryManager.Web.Enums.ItemDisplayType.Featured,
                     link2Name,
                     link3Name);
             }
@@ -66,6 +67,7 @@
                 var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
                     newestEntries.ToList(),
                     DirectoryManager.Web.Enums.DateDisplayOption.DisplayCreateDate,
+                    DirectoryManager.Web.Enums.ItemDisplayType.Featured,
                     link2Name,
                     link3Name);
             }
@@ -97,6 +99,7 @@
                 var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
                 newestRevisions.ToList(),
                 DirectoryManager.Web.Enums.DateDisplayOption.DisplayUpdateDate,
+                DirectoryManager.Web.Enums.ItemDisplayType.NewestRevion,
                 link2Name,
                 link3Name);
             }
@@ -168,7 +171,8 @@
 
             var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
                                         activeEntries.ToList(),
-                                        DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+                                        DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed, 
+                                        DirectoryManager.Web.Enums.ItemDisplayType.Normal,
                                         link2Name,
                                         link3Name);
 
@@ -180,6 +184,8 @@
                         TotalActiveSubCategoryListings = activeEntries.Count(),
                         DirectoryEntry = (subCategorySponsor != null && subCategorySponsor.DirectoryEntry != null) ? new DirectoryManager.Web.Models.DirectoryEntryViewModel()
                         {
+                            CreateDate = subCategorySponsor.CreateDate,
+                            UpdateDate = subCategorySponsor.UpdateDate,
                             DateOption = DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
                             Link = subCategorySponsor.DirectoryEntry.Link,
                             Name = subCategorySponsor.DirectoryEntry.Name,
