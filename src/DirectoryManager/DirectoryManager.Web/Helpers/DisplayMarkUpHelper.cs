@@ -46,7 +46,7 @@ namespace DirectoryManager.Web.Helpers
                 sb.Append("&#9989; ");
                 if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.Link, true); // Use LinkA if sponsored
+                    AppendLink(sb, model, model.Link, false); // Use LinkA if sponsored
                 }
                 else if (!string.IsNullOrWhiteSpace(model.LinkA))
                 {
@@ -108,9 +108,6 @@ namespace DirectoryManager.Web.Helpers
             sb.Append("<div class=\"hidden\">");
             sb.Append("<ul>");
 
-
-            // TODO: not all of these entries have this data so it will be misleading to have all this information
-
             sb.AppendFormat("<li>Added: {0}</li>", model.CreateDate.ToString(StringConstants.DateFormat));
 
             if (model.UpdateDate != null)
@@ -137,8 +134,6 @@ namespace DirectoryManager.Web.Helpers
 
             return sb.ToString();
         }
-
-
 
         // Helper method for appending the main link
         private static void AppendLink(StringBuilder sb, DirectoryEntryViewModel model, string? affiliateLink, bool isScam = false)
