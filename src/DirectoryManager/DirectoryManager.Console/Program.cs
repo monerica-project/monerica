@@ -39,33 +39,30 @@ if (choice == "1")
 
     var offlines = new List<string>();
 
-    foreach (var entry in allEntries)
-    {
-        if (entry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Unknown ||
-            entry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Removed)
+    // Run the checks in parallel using Task.WhenAll for all entries
+    var tasks = allEntries
+        .Where(entry => entry.DirectoryStatus != DirectoryManager.Data.Enums.DirectoryStatus.Unknown &&
+                        entry.DirectoryStatus != DirectoryManager.Data.Enums.DirectoryStatus.Removed &&
+                        !entry.Link.Contains(".onion"))
+        .Select(async entry =>
         {
-            continue;
-        }
+            var isOnline = await WebPageChecker.IsWebPageOnlineAsync(new Uri(entry.Link));
 
-        if (entry.Link.Contains(".onion"))
-        {
-            continue;
-        }
+            if (!isOnline)
+            {
+                isOnline = WebPageChecker.IsWebPageOnlinePing(new Uri(entry.Link));
+            }
 
-        var isOnline = await WebPageChecker.IsWebPageOnlineAsync(new Uri(entry.Link));
+            Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : "offline")}");
 
-        if (!isOnline)
-        {
-            isOnline = WebPageChecker.IsWebPageOnlinePing(new Uri(entry.Link));
-        }
+            if (!isOnline)
+            {
+                offlines.Add($"{entry.Link}   -   ID: {entry.DirectoryEntryId}");
+            }
+        });
 
-        Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : "offline")}");
-
-        if (!isOnline)
-        {
-            offlines.Add(entry.Link + "    -    ID: " + entry.DirectoryEntryId);
-        }
-    }
+    // Wait for all the tasks to complete
+    await Task.WhenAll(tasks);
 
     Console.WriteLine("-----------------");
     Console.WriteLine("Offline:");
@@ -73,6 +70,9 @@ if (choice == "1")
     {
         Console.WriteLine(offline);
     }
+
+    Console.WriteLine("-----------------");
+    Console.WriteLine("Done.");
 
     Console.ReadLine();
 }
