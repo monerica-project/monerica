@@ -130,8 +130,14 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            this.ViewBag.SubCategories = await this.subCategoryRepository.GetAllAsync();
-            return this.View(entry);
+            // Get all subcategories without projection into an anonymous type
+            var subCategories = (await this.subCategoryRepository.GetAllAsync())
+                .OrderBy(sc => sc.Category.Name)
+                .ThenBy(sc => sc.Name)
+                .ToList();
+
+            this.ViewBag.SubCategories = subCategories;  // Pass the actual Subcategory objects
+            return this.View(entry);  // Pass the entry model for editing
         }
 
         [Route("directoryentry/edit/{id}")]

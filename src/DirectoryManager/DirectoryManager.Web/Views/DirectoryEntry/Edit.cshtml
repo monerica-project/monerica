@@ -14,13 +14,15 @@
                                         SubCategoryId = sc.SubCategoryId,
                                         DisplayName = $"{sc.Category.Name} > {sc.Name}"
                                     });
+
+    ViewBag.SubCategories = orderedSubCategories; // Populate ViewBag with ordered subcategories
 }
 
 @{
     ViewData[StringConstants.TitleHeader] = "Edit Directory Entry";
 }
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
- 
+
 @await Html.PartialAsync("_AdminMenu")
 
 <hr />
@@ -33,58 +35,9 @@
 
 <form method="post">
     <input type="hidden" value="@Model.DirectoryEntryId" name="DirectoryEntryId" />
-    <div class="form-group">
-        <label asp-for="DirectoryStatus">Status</label>
-        <select asp-for="DirectoryStatus" asp-items="Html.GetEnumSelectList<DirectoryStatus>()"></select>
-    </div>
-    <div class="form-group">
-        <label asp-for="SubCategoryId">Subcategory</label>
-        <select asp-for="SubCategoryId" asp-items="@(new SelectList(orderedSubCategories, "SubCategoryId", "DisplayName"))" required></select>
-    </div>
-    <div class="form-group">
-        <label asp-for="Name">Name</label>
-        <input class="input-width"  type="text" asp-for="Name" required />
-    </div>
-    <div class="form-group">
-        <label asp-for="Link">Link</label>
-        <input class="input-width"  type="text" asp-for="Link" required />
-    </div>
-    <div class="form-group">
-        <label asp-for="LinkA">Link (affiliate)</label>
-        <input class="input-width" type="text" asp-for="LinkA" />
-    </div>
-    <div class="form-group">
-        <label asp-for="Link2">@cacheHelper.GetSnippet(SiteConfigSetting.Link2Name)</label>
-        <input class="input-width"  type="text" asp-for="Link2" />
-    </div>
-    <div class="form-group">
-        <label asp-for="Link2A">@cacheHelper.GetSnippet(SiteConfigSetting.Link2Name)  (affiliate)</label>
-        <input class="input-width" type="text" asp-for="Link2A" />
-    </div>
-    <div class="form-group">
-        <label asp-for="Link3">@cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)</label>
-        <input class="input-width" type="text" asp-for="Link3" />
-    </div>
-    <div class="form-group">
-        <label asp-for="Link3A">@cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)  (affiliate)</label>
-        <input class="input-width" type="text" asp-for="Link3A" />
-    </div>
-    <div class="form-group">
-        <label asp-for="Contact">Contact</label>
-        <input class="input-width"  type="text" asp-for="Contact" />
-    </div>
-    <div class="form-group">
-        <label asp-for="Location">Location</label>
-        <input class="input-width"  type="text" asp-for="Location" />
-    </div>
-    <div class="form-group">
-        <label asp-for="Description">Description</label>
-        <textarea cols="100" asp-for="Description"></textarea>
-    </div>
-    <div class="form-group">
-        <label asp-for="Note">Note</label>
-        <textarea cols="100" asp-for="Note"></textarea>
-    </div>
+
+    <!-- Use the partial view for the form -->
+    @await Html.PartialAsync("_DirectoryEntryForm")
 
     <button type="submit">Update</button>
 </form>
