@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Constants;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
@@ -78,7 +79,7 @@ namespace DirectoryManager.Web.Controllers
                 })
                 .ToList();
 
-            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = "Please select a category" });
+            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
 
             this.ViewBag.SubCategories = subCategories;
 
