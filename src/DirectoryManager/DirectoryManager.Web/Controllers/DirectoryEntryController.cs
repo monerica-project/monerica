@@ -3,6 +3,7 @@ using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -230,6 +231,8 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("{categorykey}/{subcategorykey}/{directoryEntryKey}")]
         public async Task<IActionResult> DirectoryEntryView(string categoryKey, string subCategoryKey, string directoryEntryKey)
         {
+            var canoicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            this.ViewData[Constants.StringConstants.CanonicalUrl] = UrlHelper.CombineUrl(canoicalDomain, $"{categoryKey}/{subCategoryKey}/{directoryEntryKey}");
             var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
 
             if (category == null)
