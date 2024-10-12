@@ -213,7 +213,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var directoryItem = ViewModelConverter.ConvertToViewModels([directoryEntry]).First();
-            directoryItem.ItemPath = UrlHelper.CombineUrl(canonicalDomain, directoryItem.ItemPath);
+            directoryItem.ItemPath = UrlBuilder.CombineUrl(canonicalDomain, directoryItem.ItemPath);
 
             this.ViewBag.SelectedDirectoryEntry = directoryItem;
 

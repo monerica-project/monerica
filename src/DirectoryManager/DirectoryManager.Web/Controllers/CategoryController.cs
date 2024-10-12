@@ -1,4 +1,6 @@
-﻿using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Migrations;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Models;
@@ -16,6 +18,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ICategoryRepository categoryRepository;
         private readonly ISubcategoryRepository subCategoryRepository;
+        private readonly ICacheService cacheService;
         private readonly IMemoryCache cache;
 
         public CategoryController(
@@ -24,12 +27,14 @@ namespace DirectoryManager.Web.Controllers
             ISubcategoryRepository subCategoryRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
+            ICacheService cacheService,
             IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
             this.categoryRepository = categoryRepository;
             this.subCategoryRepository = subCategoryRepository;
+            this.cacheService = cacheService;
             this.cache = cache;
         }
 
@@ -56,6 +61,9 @@ namespace DirectoryManager.Web.Controllers
             {
                 return this.NotFound();
             }
+
+            var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            this.ViewData[Constants.StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, categoryKey);
 
             var subCategories = await this.subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId);
             var subCategoryItems = subCategories.Select(sc => new SubCategoryViewModel

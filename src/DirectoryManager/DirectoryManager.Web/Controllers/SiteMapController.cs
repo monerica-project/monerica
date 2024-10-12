@@ -1,4 +1,6 @@
-﻿using DirectoryManager.Data.Repositories.Interfaces;
+﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
@@ -235,6 +237,10 @@ namespace DirectoryManager.Web.Controllers
 
                 model.SectionPages.Add(categoryPages);
             }
+
+            var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+
+            this.ViewData[Constants.StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "sitemap");
 
             return this.View("Index", model);
         }
