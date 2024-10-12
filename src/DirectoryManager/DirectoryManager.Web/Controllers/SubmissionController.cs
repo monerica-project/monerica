@@ -204,14 +204,18 @@ namespace DirectoryManager.Web.Controllers
             var audits = await this.auditRepository.GetAuditsForEntryAsync(entryId);
             var link2Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
-
+            var canonicalDomain = this.cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(entryId);
+
             if (directoryEntry == null)
             {
                 return this.NotFound();
             }
 
-            this.ViewBag.SelectedDirectoryEntry = ViewModelConverter.ConvertToViewModels([directoryEntry]).First();
+            var directoryItem = ViewModelConverter.ConvertToViewModels([directoryEntry]).First();
+            directoryItem.ItemPath = UrlHelper.CombineUrl(canonicalDomain, directoryItem.ItemPath);
+
+            this.ViewBag.SelectedDirectoryEntry = directoryItem;
 
             return this.View("Audit", audits);
         }

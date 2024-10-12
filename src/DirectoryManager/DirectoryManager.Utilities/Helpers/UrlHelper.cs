@@ -28,6 +28,16 @@ namespace DirectoryManager.Web.Helpers
                    && (uriResult.Scheme == Uri.UriSchemeHttp || uriResult.Scheme == Uri.UriSchemeHttps);
         }
 
+        public static string CombineUrl(string domain, string path)
+        {
+            // Trim any trailing slashes from the domain and leading slashes from the path
+            domain = domain.TrimEnd('/');
+            path = path.TrimStart('/');
+
+            // Combine the domain and the path with a single slash
+            return $"{domain}/{path}";
+        }
+
         public static string NormalizeUrl(string url)
         {
             if (string.IsNullOrEmpty(url))
