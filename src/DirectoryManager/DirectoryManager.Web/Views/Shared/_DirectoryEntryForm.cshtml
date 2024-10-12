@@ -3,7 +3,13 @@
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.Web.Constants;
 
+<div class="form-group">
+    <label asp-for="DirectoryStatus">Status</label>
+    <select asp-for="DirectoryStatus" asp-items="@Html.GetEnumSelectList<DirectoryStatus>()"></select>
+</div>
+
 <!-- SubCategoryId dropdown, expects ViewBag.SubCategories -->
+
 <div class="form-group">
     <label asp-for="SubCategoryId">Subcategory</label>
     <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "SubCategoryId", "DisplayName"))" required></select>
@@ -42,11 +48,6 @@
 <div class="form-group">
     <label asp-for="Link3A">@cacheHelper.GetSnippet(SiteConfigSetting.Link3Name) (affiliate)</label>
     <input class="input-width" type="text" asp-for="Link3A" />
-</div>
-
-<div class="form-group">
-    <label asp-for="DirectoryStatus">Status</label>
-    <select asp-for="DirectoryStatus" asp-items="@Html.GetEnumSelectList<DirectoryStatus>()"></select>
 </div>
 
 <div class="form-group">

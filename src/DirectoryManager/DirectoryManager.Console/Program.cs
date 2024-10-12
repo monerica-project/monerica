@@ -65,10 +65,18 @@ if (choice == "1")
     await Task.WhenAll(tasks);
 
     Console.WriteLine("-----------------");
-    Console.WriteLine("Offline:");
-    foreach (var offline in offlines)
+
+    if (offlines.Count() > 0)
     {
-        Console.WriteLine(offline);
+        Console.WriteLine("Offline:");
+        foreach (var offline in offlines)
+        {
+            Console.WriteLine(offline);
+        }
+    }
+    else
+    {
+        Console.WriteLine("None offline");
     }
 
     Console.WriteLine("-----------------");
