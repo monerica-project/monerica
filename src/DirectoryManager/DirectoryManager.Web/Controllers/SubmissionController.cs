@@ -211,28 +211,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel
-            {
-                CreateDate = directoryEntry.CreateDate,
-                UpdateDate = directoryEntry.UpdateDate,
-                DateOption = Enums.DateDisplayOption.NotDisplayed,
-                IsSponsored = false,
-                Link2Name = link2Name,
-                Link3Name = link3Name,
-                Link = directoryEntry.Link,
-                Name = directoryEntry.Name,
-                DirectoryEntryKey = directoryEntry.DirectoryEntryKey,
-                Contact = directoryEntry.Contact,
-                Description = directoryEntry.Description,
-                DirectoryEntryId = directoryEntry.DirectoryEntryId,
-                DirectoryStatus = directoryEntry.DirectoryStatus,
-                Link2 = directoryEntry.Link2,
-                Link3 = directoryEntry.Link3,
-                Location = directoryEntry.Location,
-                Note = directoryEntry.Note,
-                Processor = directoryEntry.Processor,
-                SubCategoryId = directoryEntry.SubCategoryId
-            };
+            this.ViewBag.SelectedDirectoryEntry = ViewModelConverter.ConvertToViewModels([directoryEntry]).First();
 
             return this.View("Audit", audits);
         }

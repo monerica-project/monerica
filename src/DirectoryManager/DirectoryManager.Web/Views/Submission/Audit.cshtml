@@ -1,5 +1,6 @@
 ﻿@model IEnumerable<DirectoryManager.Data.Models.DirectoryEntriesAudit>
 @using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Enums
 @using DirectoryManager.Web.Models
 @{
     var firstOrDefault = Model.FirstOrDefault();
@@ -27,6 +28,24 @@
 
 <hr />
 
+@{
+    var selectedDirectoryEntry = (DirectoryEntryViewModel)ViewBag.SelectedDirectoryEntry;
+    selectedDirectoryEntry.LinkType = LinkType.ListingPage;
+}
+
+@if (((DirectoryEntryViewModel)ViewBag.SelectedDirectoryEntry).DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Removed)
+{
+    <i>Removed</i>
+}
+else 
+{
+
+<ul>
+    @await Html.PartialAsync("_DirectoryEntryPartial", selectedDirectoryEntry)
+</ul>
+}
+<hr />
+
 <table>
     <thead>
         <tr>
@@ -38,8 +57,8 @@
             <th>Note</th>
             <th>Contact</th>
             <th>SubCategoryId</th>
-            <th>Created Date</th> 
-            <th>Updated Date</th> 
+            <th>Created Date</th>
+            <th>Updated Date</th>
         </tr>
     </thead>
     <tbody>
@@ -49,13 +68,13 @@
                 <td>
                     @if (audit.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Verified)
                     {
-                        <text>&#9989;</text> 
+                        <text>&#9989;</text>
                     }
                     else if (audit.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Scam)
                     {
                         <text>&#10060;</text>
                     }
-                    else 
+                    else
                     {
                         @audit.DirectoryStatus
                     }
@@ -67,26 +86,14 @@
                 <td>@audit.Note</td>
                 <td>@audit.Contact</td>
                 <td>@audit.SubCategoryId</td>
-                <td>@audit.CreateDate</td>  
-                <td>@audit.UpdateDate</td>  
+                <td>@audit.CreateDate</td>
+                <td>@audit.UpdateDate</td>
             </tr>
         }
     </tbody>
 </table>
 
 <hr />
-<h3>Current View Of Listing</h3>
 
-@if (((DirectoryEntryViewModel)ViewBag.SelectedDirectoryEntry).DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Removed)
-{
-    <i>Removed</i>
-}
-else 
-{
-    <ul>
-        @await Html.PartialAsync("_DirectoryEntryPartial", (DirectoryEntryViewModel)ViewBag.SelectedDirectoryEntry)
-    </ul>
-}
-<hr />
 
 @await Html.PartialAsync("_SponsoredListingPartial")
