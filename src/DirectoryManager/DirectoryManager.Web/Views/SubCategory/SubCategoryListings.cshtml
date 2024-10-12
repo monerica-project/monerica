@@ -84,7 +84,7 @@
         viewModelList.RemoveAll(x => x.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
     }
 }
-<ul>
+<ul class="blank_list_item">
     @foreach (var viewModel in viewModelList)
     {
         viewModel.LinkType = LinkType.ListingPage;

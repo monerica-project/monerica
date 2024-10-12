@@ -37,7 +37,7 @@
         <hr />
         <p><b>Featured</b></p>
 
-        <ul>
+        <ul class="blank_list_item">
             @{
                 var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
                     featuredEntries.ToList(),
@@ -62,7 +62,7 @@
         <hr />
         <p><b>Newest Additions</b></p>
         <i>See: <a href="~/newest">all new additions</a></i>
-        <ul>
+        <ul class="blank_list_item">
             @{
                 var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
                     newestEntries.ToList(),
@@ -93,7 +93,7 @@
     {
         <p><b>Newest Revisions</b></p>
 
-        <ul>
+        <ul class="blank_list_item">
             @{
                 var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
                 newestRevisions.ToList(),
@@ -203,7 +203,9 @@
             {
                viewModelList.RemoveAll(x => x.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
             }
-<ul>@foreach (var viewModel in viewModelList){
+<ul class="blank_list_item">
+@foreach (var viewModel in viewModelList)
+{
 if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntryId) != null)
 {
     viewModel.IsSponsored = true;
@@ -211,7 +213,6 @@ if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.Direct
 }
 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
 }
-
 </ul>
         }
 

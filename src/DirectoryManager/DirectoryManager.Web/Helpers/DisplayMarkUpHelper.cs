@@ -19,12 +19,7 @@ namespace DirectoryManager.Web.Helpers
 
             if (model.IsSponsored && model.DisplayAsSponsoredItem)
             {
-                sb.Append(@" class=""sponsored blank_list_item"" ");
-            }
-            else
-            {
-
-                sb.Append(@" class=""blank_list_item"" ");
+                sb.Append(@" class=""sponsored"" ");
             }
 
             sb.Append(">");
