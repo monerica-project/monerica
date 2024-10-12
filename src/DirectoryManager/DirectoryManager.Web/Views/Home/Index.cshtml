@@ -83,8 +83,7 @@
     @{
         var newestRevisions = await directoryEntryRepository.GetNewestRevisions(6);
 
-        if ((newestRevisions != null && newestRevisions.Count() > 0) &&
-        (newestEntries != null && newestEntries.Count() > 0))
+        if ((newestRevisions != null && newestRevisions.Count() > 0) && (newestEntries != null && newestEntries.Count() > 0))
         {
             newestRevisions = newestRevisions.Except(newestEntries).ToList().Take(IntegerConstants.NewestRevisionsToDisplay);
         }
@@ -108,16 +107,13 @@
                 viewModel.LinkType = DirectoryManager.Web.Enums.LinkType.Direct;
                 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
-
         </ul>
 
         <hr />
     }
-
     @{
         var activeCategories = await categoryRepository.GetActiveCategoriesAsync();
     }
-
     <p><b id="categories">Categories</b></p>
     <ul id="categories_list">
         @foreach (var category in activeCategories)
@@ -168,16 +164,13 @@
                 <i>(Note: @Html.Raw(subCategory.Note))</i>
             }
             var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
-
             var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
                                         activeEntries.ToList(),
                                         DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed, 
                                         DirectoryManager.Web.Enums.ItemDisplayType.Normal,
                                         link2Name,
                                         link3Name);
-
             var subCategorySponsor = subCategorySponsors.FirstOrDefault(x => x.SubCategoryId == subCategory.SubCategoryId);
-
             var subCategorySponsorModel = new DirectoryManager.Web.Models.SubCategorySponsorModel()
             {
                         SubCategoryId = subCategory.SubCategoryId,
@@ -205,14 +198,11 @@
                             Link3Name = link3Name
                         } : null
             };
-
             @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", subCategorySponsorModel)
-
             if (subCategorySponsor != null)
             {
                viewModelList.RemoveAll(x => x.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
             }
-
 <ul>@foreach (var viewModel in viewModelList){
 if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntryId) != null)
 {
