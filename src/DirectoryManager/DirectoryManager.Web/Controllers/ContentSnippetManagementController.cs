@@ -48,32 +48,6 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [Route("contentsnippetmanagement/create")]
-        [HttpPost]
-        public IActionResult Create(ContentSnippetEditModel model)
-        {
-            if (!this.ModelState.IsValid)
-            {
-                return this.View(model);
-            }
-
-            var dbModel = this.contentSnippetRepository.Get(model.ContentSnippetId);
-
-            if (dbModel != null)
-            {
-                throw new Exception("type already exists");
-            }
-
-            this.contentSnippetRepository.Create(new ContentSnippet()
-            {
-                Content = model.Content?.Trim(),
-                ContentSnippetId = model.ContentSnippetId,
-                SnippetType = model.SnippetType
-            });
-
-            return this.RedirectToAction("index");
-        }
-
-        [Route("contentsnippetmanagement/create")]
         [HttpGet]
         public IActionResult Create()
         {
@@ -103,35 +77,30 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
-        [Route("contentsnippetmanagement/edit")]
+        [Route("contentsnippetmanagement/create")]
         [HttpPost]
-        public IActionResult Edit(ContentSnippetEditModel model)
+        public IActionResult Create(ContentSnippetEditModel model)
         {
             if (!this.ModelState.IsValid)
             {
                 return this.View(model);
             }
 
-            if (model.Content == null)
-            {
-                model.Content = string.Empty;
-            }
+            ValidateInput(model);
 
             var dbModel = this.contentSnippetRepository.Get(model.ContentSnippetId);
 
-            if (dbModel == null)
+            if (dbModel != null)
             {
-                throw new Exception("Content Snippet does not exist");
+                throw new Exception("type already exists");
             }
 
-            dbModel.Content = model.Content.Trim();
-            dbModel.SnippetType = model.SnippetType;
-
-            this.contentSnippetRepository.Update(dbModel);
-
-            this.contentSnippetHelper.ClearSnippetCache(model.SnippetType);
-
-            this.ClearCachedItems();
+            this.contentSnippetRepository.Create(new ContentSnippet()
+            {
+                Content = model.Content?.Trim(),
+                ContentSnippetId = model.ContentSnippetId,
+                SnippetType = model.SnippetType
+            });
 
             return this.RedirectToAction("index");
         }
@@ -157,6 +126,41 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
+        [Route("contentsnippetmanagement/edit")]
+        [HttpPost]
+        public IActionResult Edit(ContentSnippetEditModel model)
+        {
+            if (!this.ModelState.IsValid)
+            {
+                return this.View(model);
+            }
+
+            if (model.Content == null)
+            {
+                model.Content = string.Empty;
+            }
+
+            ValidateInput(model);
+
+            var dbModel = this.contentSnippetRepository.Get(model.ContentSnippetId);
+
+            if (dbModel == null)
+            {
+                throw new Exception("Content Snippet does not exist");
+            }
+
+            dbModel.Content = model.Content.Trim();
+            dbModel.SnippetType = model.SnippetType;
+
+            this.contentSnippetRepository.Update(dbModel);
+
+            this.contentSnippetHelper.ClearSnippetCache(model.SnippetType);
+
+            this.ClearCachedItems();
+
+            return this.RedirectToAction("index");
+        }
+
         [Route("contentsnippetmanagement/delete")]
         [HttpPost]
         public IActionResult Delete(int contentSnippetId)
@@ -164,6 +168,16 @@ namespace DirectoryManager.Web.Controllers
             this.contentSnippetRepository.Delete(contentSnippetId);
 
             return this.RedirectToAction("index");
+        }
+
+        private static void ValidateInput(ContentSnippetEditModel model)
+        {
+            if (model.SnippetType == Data.Enums.SiteConfigSetting.CssHeader &&
+                model.Content != null &&
+                !CssValidator.IsCssValid(model.Content))
+            {
+                throw new Exception("Invalid CSS");
+            }
         }
     }
 }
