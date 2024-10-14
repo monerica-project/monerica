@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.DbContextInfo;
+﻿using DirectoryManager.Data.Constants;
+using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -100,9 +101,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task CreateAsync(DirectoryEntry entry)
         {
-            await this.context.DirectoryEntries.AddAsync(entry);
-            await this.context.SaveChangesAsync();
-            await this.WriteToAuditLog(entry);
+            try
+            {
+                await this.context.DirectoryEntries.AddAsync(entry);
+                await this.context.SaveChangesAsync();
+                await this.WriteToAuditLog(entry);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
+            }
         }
 
         public async Task UpdateAsync(DirectoryEntry entry)
