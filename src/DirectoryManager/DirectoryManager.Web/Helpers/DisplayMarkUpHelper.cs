@@ -2,6 +2,7 @@
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Models;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace DirectoryManager.Web.Helpers
 {
@@ -127,7 +128,7 @@ namespace DirectoryManager.Web.Helpers
 
             if (!string.IsNullOrWhiteSpace(model.Contact))
             {
-                sb.AppendFormat("<li>Contact: {0}</li>", model.Contact);
+                sb.AppendFormat("<li class=\"multi-line-text\"> Contact: {0}</li>", model.Contact);
             }
 
             sb.Append("</ul>");
