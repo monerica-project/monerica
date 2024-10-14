@@ -18,7 +18,6 @@
             <tr>
                 <th>Key</th>
                 <th></th>
-                @* <th></th> *@
             </tr>
         </thead>
         <tbody>
@@ -31,13 +30,6 @@
                     <td>
                         <a href="~/ContentSnippetManagement/edit?ContentSnippetId=@item.ContentSnippetId">Edit</a>
                     </td>
-                   @*  <td style="width:200px; text-align:right;">
-                        @using (Html.BeginForm("Delete", "ContentSnippetManagement", FormMethod.Post,
-                       new { role = "form", onsubmit = string.Format(@"return confirm('Do you really want to delete this?');") }))
-                        {
-                            <button type="submit" name="ContentSnippetId" value="@item.ContentSnippetId"> &#x1F5D1;</button>
-                        }
-                    </td> *@
                 </tr>
             }
         </tbody>
