@@ -87,6 +87,8 @@ namespace DirectoryManager.Web.Models
 
         public LinkType LinkType { get; set; } = LinkType.Direct;
 
+        public ItemDisplayType ItemDisplayType { get; set; } = ItemDisplayType.Normal;
+
         public string ItemPath { get; set; } = string.Empty;
     }
 }

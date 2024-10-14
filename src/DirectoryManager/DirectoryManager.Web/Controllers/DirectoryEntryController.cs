@@ -1,7 +1,9 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Constants;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -78,7 +80,7 @@ namespace DirectoryManager.Web.Controllers
                 })
                 .ToList();
 
-            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = "Please select a category" });
+            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
 
             this.ViewBag.SubCategories = subCategories;
 
@@ -94,8 +96,11 @@ namespace DirectoryManager.Web.Controllers
                 entry.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
                 entry.SubCategoryId = entry.SubCategoryId;
                 entry.Link = entry.Link.Trim();
+                entry.LinkA = entry.LinkA?.Trim();
                 entry.Link2 = entry.Link2?.Trim();
+                entry.Link2A = entry.Link2A?.Trim();
                 entry.Link3 = entry.Link3?.Trim();
+                entry.Link3A = entry.Link3A?.Trim();
                 entry.Name = entry.Name.Trim();
                 entry.DirectoryEntryKey = StringHelpers.UrlKey(entry.Name);
                 entry.Description = entry.Description?.Trim();
@@ -127,8 +132,14 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            this.ViewBag.SubCategories = await this.subCategoryRepository.GetAllAsync();
-            return this.View(entry);
+            // Get all subcategories without projection into an anonymous type
+            var subCategories = (await this.subCategoryRepository.GetAllAsync())
+                .OrderBy(sc => sc.Category.Name)
+                .ThenBy(sc => sc.Name)
+                .ToList();
+
+            this.ViewBag.SubCategories = subCategories;  // Pass the actual Subcategory objects
+            return this.View(entry);  // Pass the entry model for editing
         }
 
         [Route("directoryentry/edit/{id}")]
@@ -182,6 +193,8 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel()
             {
+                CreateDate = directoryEntry.CreateDate,
+                UpdateDate = directoryEntry.UpdateDate,
                 DateOption = Enums.DateDisplayOption.NotDisplayed,
                 IsSponsored = false,
                 Link2Name = link2Name,
@@ -218,6 +231,8 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("{categorykey}/{subcategorykey}/{directoryEntryKey}")]
         public async Task<IActionResult> DirectoryEntryView(string categoryKey, string subCategoryKey, string directoryEntryKey)
         {
+            var canoicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            this.ViewData[Constants.StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canoicalDomain, $"{categoryKey}/{subCategoryKey}/{directoryEntryKey}");
             var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
 
             if (category == null)

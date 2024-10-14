@@ -1,5 +1,6 @@
-﻿using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
@@ -20,6 +21,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IContentSnippetRepository contentSnippetRepository;
         private readonly ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository;
         private readonly ISponsoredListingRepository sponsoredListingRepository;
+        private readonly IDirectoryEntrySelectionRepository directoryEntrySelectionRepository;
 
         public SiteMapController(
             ICacheService cacheService,
@@ -29,7 +31,8 @@ namespace DirectoryManager.Web.Controllers
             ISubcategoryRepository subCategoryRepository,
             IContentSnippetRepository contentSnippetRepository,
             ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository,
-            ISponsoredListingRepository sponsoredListingRepository)
+            ISponsoredListingRepository sponsoredListingRepository,
+            IDirectoryEntrySelectionRepository directoryEntrySelectionRepository)
         {
             this.cacheService = cacheService;
             this.memoryCache = memoryCache;
@@ -39,6 +42,7 @@ namespace DirectoryManager.Web.Controllers
             this.contentSnippetRepository = contentSnippetRepository;
             this.sponsoredListingInvoiceRepository = sponsoredListingInvoiceRepository;
             this.sponsoredListingRepository = sponsoredListingRepository;
+            this.directoryEntrySelectionRepository = directoryEntrySelectionRepository;
         }
 
         [Route("sitemap_index.xml")]
@@ -50,7 +54,8 @@ namespace DirectoryManager.Web.Controllers
         [Route("sitemap.xml")]
         public async Task<IActionResult> IndexAsync()
         {
-            // Get various last update dates from repositories
+            var lastFeatured = await this.directoryEntrySelectionRepository.GetEntriesForSelection(Data.Enums.EntrySelectionType.Featured);
+            var lastFeaturedDate = lastFeatured.Max(x => x.UpdateDate ?? x.CreateDate);
             var lastDirectoryEntryDate = this.directoryEntryRepository.GetLastRevisionDate();
             var lastContentSnippetUpdate = this.contentSnippetRepository.GetLastUpdateDate();
             var lastPaidInvoiceUpdate = this.sponsoredListingInvoiceRepository.GetLastPaidInvoiceUpdateDate();
@@ -71,12 +76,12 @@ namespace DirectoryManager.Web.Controllers
                 Url = WebRequestHelper.GetCurrentDomain(this.HttpContext),
                 Priority = 1.0,
                 ChangeFrequency = ChangeFrequency.Daily,
-                LastMod = mostRecentUpdateDate
+                LastMod = mostRecentUpdateDate // Always use mostRecentUpdateDate here
             });
 
             // Add additional pages to the sitemap
-            this.AddNewestPagesList(mostRecentUpdateDate, siteMapHelper);
-            this.AddPages(mostRecentUpdateDate, siteMapHelper);
+            this.AddNewestPagesList(mostRecentUpdateDate, siteMapHelper); // Passing mostRecentUpdateDate
+            this.AddPages(mostRecentUpdateDate, siteMapHelper); // Passing mostRecentUpdateDate
 
             // Get active categories and their last modified dates
             var categories = await this.categoryRepository.GetActiveCategoriesAsync();
@@ -92,10 +97,39 @@ namespace DirectoryManager.Web.Controllers
             {
                 var lastChangeToCategory = allCategoriesLastModified[category.CategoryId];
 
-                // Incorporate the last modification of sponsored listings if it's more recent
-                lastChangeToCategory = lastSponsoredListingChange.HasValue && lastSponsoredListingChange > lastChangeToCategory
-                    ? lastSponsoredListingChange.Value
+                // Use mostRecentUpdateDate for categories
+                lastChangeToCategory = mostRecentUpdateDate > lastChangeToCategory
+                    ? mostRecentUpdateDate
                     : lastChangeToCategory;
+
+                // Get active subcategories for the current category
+                var subCategories = await this.subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId);
+
+                // Determine the most recent subcategory change date
+                DateTime? mostRecentSubcategoryDate = subCategories
+                    .Select(subCategory => new[]
+                    {
+                allSubcategoriesLastModified.ContainsKey(subCategory.SubCategoryId)
+                    ? allSubcategoriesLastModified[subCategory.SubCategoryId]
+                    : DateTime.MinValue,
+                allSubCategoriesItemsLastModified.ContainsKey(subCategory.SubCategoryId)
+                    ? allSubCategoriesItemsLastModified[subCategory.SubCategoryId]
+                    : DateTime.MinValue,
+                allSubCategoryAds.ContainsKey(subCategory.SubCategoryId)
+                    ? allSubCategoryAds[subCategory.SubCategoryId]
+                    : DateTime.MinValue
+                    }.Max())
+                    .Max();
+
+                // Compare the most recent subcategory change date with the category change date
+                var lastChangeForCategoryOrSubcategory = mostRecentSubcategoryDate.HasValue && mostRecentSubcategoryDate > lastChangeToCategory
+                    ? mostRecentSubcategoryDate.Value
+                    : lastChangeToCategory;
+
+                // Override with mostRecentUpdateDate if needed
+                lastChangeForCategoryOrSubcategory = mostRecentUpdateDate > lastChangeForCategoryOrSubcategory
+                    ? mostRecentUpdateDate
+                    : lastChangeForCategoryOrSubcategory;
 
                 // Add category to sitemap
                 siteMapHelper.SiteMapItems.Add(new SiteMapItem
@@ -103,15 +137,15 @@ namespace DirectoryManager.Web.Controllers
                     Url = string.Format("{0}/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), category.CategoryKey),
                     Priority = 1.0,
                     ChangeFrequency = ChangeFrequency.Weekly,
-                    LastMod = lastChangeToCategory
+                    LastMod = lastChangeForCategoryOrSubcategory // Use mostRecentUpdateDate
                 });
-
-                // Get active subcategories for the current category
-                var subCategories = await this.subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId);
 
                 foreach (var subCategory in subCategories)
                 {
-                    var lastChangeToSubcategory = allSubcategoriesLastModified[subCategory.SubCategoryId];
+                    var lastChangeToSubcategory = allSubcategoriesLastModified.ContainsKey(subCategory.SubCategoryId)
+                        ? allSubcategoriesLastModified[subCategory.SubCategoryId]
+                        : lastChangeToCategory;
+
                     var lastChangeToSubcategoryItem = allSubCategoriesItemsLastModified.ContainsKey(subCategory.SubCategoryId)
                         ? allSubCategoriesItemsLastModified[subCategory.SubCategoryId]
                         : lastChangeToSubcategory;
@@ -120,8 +154,15 @@ namespace DirectoryManager.Web.Controllers
                         ? allSubCategoryAds[subCategory.SubCategoryId]
                         : lastChangeToSubcategoryItem;
 
-                    // Determine the most recent change date, including the last sponsored listing change
-                    var lastModified = new[] { lastChangeToSubcategory, lastChangeToSubcategoryItem, lastChangeToSubcategoryAd, lastSponsoredListingChange ?? DateTime.MinValue }.Max();
+                    // Determine the most recent change date
+                    var lastModified = new[]
+                    {
+                        lastFeaturedDate,
+                        lastChangeToSubcategory,
+                        lastChangeToSubcategoryItem,
+                        lastChangeToSubcategoryAd,
+                        mostRecentUpdateDate
+                    }.Max();
 
                     // Add subcategory to sitemap
                     siteMapHelper.SiteMapItems.Add(new SiteMapItem
@@ -133,7 +174,7 @@ namespace DirectoryManager.Web.Controllers
                             subCategory.SubCategoryKey),
                         Priority = 1.0,
                         ChangeFrequency = ChangeFrequency.Weekly,
-                        LastMod = lastModified
+                        LastMod = lastModified // Use mostRecentUpdateDate
                     });
                 }
             }
@@ -142,7 +183,7 @@ namespace DirectoryManager.Web.Controllers
 
             foreach (var entry in allActiveEntries.Where(x => x.DirectoryStatus != Data.Enums.DirectoryStatus.Removed))
             {
-                var directoryItemLastMod = new[] { entry.CreateDate, entry.UpdateDate ?? entry.CreateDate, lastSponsoredListingChange ?? entry.CreateDate }.Max();
+                var directoryItemLastMod = new[] { entry.CreateDate, entry.UpdateDate ?? entry.CreateDate, mostRecentUpdateDate }.Max();
 
                 siteMapHelper.SiteMapItems.Add(new SiteMapItem
                 {
@@ -154,7 +195,7 @@ namespace DirectoryManager.Web.Controllers
                             entry.DirectoryEntryKey),
                     Priority = 1.0,
                     ChangeFrequency = ChangeFrequency.Weekly,
-                    LastMod = directoryItemLastMod
+                    LastMod = directoryItemLastMod // Use mostRecentUpdateDate
                 });
             }
 
@@ -196,6 +237,10 @@ namespace DirectoryManager.Web.Controllers
 
                 model.SectionPages.Add(categoryPages);
             }
+
+            var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+
+            this.ViewData[Constants.StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "sitemap");
 
             return this.View("Index", model);
         }

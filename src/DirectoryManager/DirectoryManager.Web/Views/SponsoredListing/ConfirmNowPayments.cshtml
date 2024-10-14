@@ -23,7 +23,7 @@
     {
         <h2>Selected Listing</h2>
 
-        <ul>
+        <ul class="blank_list_item">
             @await Html.PartialAsync("_DirectoryEntryPartial", Model.SelectedDirectoryEntry)
         </ul>
 
@@ -40,7 +40,7 @@
         if (Model.IsExtension)
         {
             <p>
-                <b>Order note:</b> These days will be added to the current listing.
+                These days will be added to the current listing.
             </p>
         }
 

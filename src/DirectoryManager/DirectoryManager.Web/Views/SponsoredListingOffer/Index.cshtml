@@ -8,6 +8,10 @@
 @await Html.PartialAsync("_AdminMenu")
 
 <hr />
+<p>
+    <a class="btn btn-primary" asp-action="Create">Create New</a>
+</p>
+
 <table class="table">
     <thead>
         <tr>
@@ -15,6 +19,7 @@
             <th>Subcategory</th>
             <th>Days</th>
             <th>Price</th>
+            <th>Price/ Day</th>
             <th>Is Enabled</th>
             <th></th>
         </tr>
@@ -36,6 +41,19 @@
                 </td>
                 <td>@item.Days</td>
                 <td>@item.Price.ToString("C") (@item.PriceCurrency.ToString())</td>
+                <td>
+                    @{
+                        if (item.Days > 0)
+                        {
+                            var pricePerDay = item.Price / item.Days;
+                            <text>@pricePerDay.ToString("C2")</text>
+                        }
+                        else
+                        {
+                            <text>N/A</text>
+                        }
+                    }
+                </td>
                 <td>@item.IsEnabled</td>
                 <td>
                     <a asp-action="Edit" asp-route-id="@item.SponsoredListingOfferId">Edit</a>                    
@@ -45,6 +63,3 @@
     </tbody>
 </table>
 
-<p>
-    <a class="btn btn-primary" asp-action="Create">Create New</a>
-</p>

@@ -8,6 +8,7 @@
     <IsPackable>false</IsPackable>
     <IsTestProject>true</IsTestProject>
 	  <CodeAnalysisRuleSet>../../StyleCop.Analyzers.ruleset</CodeAnalysisRuleSet>
+	  <OutputType>Library</OutputType>
   </PropertyGroup>
 
   <ItemGroup>

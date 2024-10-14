@@ -1,0 +1,96 @@
+﻿@using DirectoryManager.Data.Enums
+@model DirectoryManager.Web.Models.SubmissionRequest
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+
+<!-- Hidden fields for Submission and DirectoryEntry Ids -->
+@Html.HiddenFor(x => x.SubmissionId)
+@Html.HiddenFor(x => x.DirectoryEntryId)
+
+<h3>Required Information</h3>
+
+@if (Model.DirectoryEntryId != null)
+{
+    <div class="form-group">
+        <label asp-for="DirectoryStatus">Directory Status</label>
+        <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control">
+            @foreach (var status in Enum.GetValues(typeof(DirectoryManager.Data.Enums.DirectoryStatus)))
+            {
+                if ((DirectoryManager.Data.Enums.DirectoryStatus)status == DirectoryManager.Data.Enums.DirectoryStatus.Unknown)
+                {
+                    continue;
+                }
+                <option value="@((int)status)">@status.ToString()</option>
+            }
+        </select>
+    </div>
+}
+
+<div class="form-group">
+    <label asp-for="SubCategoryId">Subcategory</label>
+    <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "SubCategoryId", "DisplayName"))" required></select>
+</div>
+
+<div class="form-group">
+    <label asp-for="SuggestedSubCategory">Suggested Category (Optional)</label>
+    <input asp-for="SuggestedSubCategory" class="form-control input-width" />
+    <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Name">Name</label>
+    <input asp-for="Name" class="form-control input-width" />
+    <span asp-validation-for="Name" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Link">Link</label>
+    <input asp-for="Link" class="form-control input-width" />
+    <span asp-validation-for="Link" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Description">Description</label>
+    <textarea asp-for="Description" class="form-control input-width"></textarea>
+    <span asp-validation-for="Description" class="text-danger"></span>
+</div>
+
+<h3>Optional Information</h3>
+
+<div class="form-group">
+    <label asp-for="Link2">@cacheHelper.GetSnippet(SiteConfigSetting.Link2Name)</label>
+    <input asp-for="Link2" class="form-control input-width" />
+    <span asp-validation-for="Link2" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Link3">@cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)</label>
+    <input asp-for="Link3" class="form-control input-width" />
+    <span asp-validation-for="Link3" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Contact">Contact</label>
+    <input asp-for="Contact" class="form-control input-width" />
+    <span asp-validation-for="Contact" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Location">Location</label>
+    <input asp-for="Location" class="form-control input-width" />
+    <span asp-validation-for="Location" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Note">Note</label>
+    <textarea asp-for="Note" class="form-control input-width"></textarea>
+    <span asp-validation-for="Note" class="text-danger"></span>
+</div>
+
+<hr />
+
+<h3>To Reviewer</h3>
+<div class="form-group">
+    <label asp-for="NoteToAdmin">Note To Admin</label>
+    <textarea asp-for="NoteToAdmin" class="form-control input-width"></textarea>
+    <span asp-validation-for="NoteToAdmin" class="text-danger"></span>
+</div>

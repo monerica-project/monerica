@@ -16,6 +16,8 @@
 
 <i>Note: Default prices are used unless there is a specific price for a subcategory.</i>
 
+<hr />
+
 <h3>@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</h3>
 
 <table>
@@ -23,7 +25,7 @@
         <tr>
             <th>Category > Subcategory</th>
             <th>Days</th>
-            <th>Price</th>
+            <th>Price (@DirectoryManager.Data.Enums.Currency.USD.ToString())</th>
         </tr>
     </thead>
     <tbody>
@@ -32,7 +34,7 @@
             <tr>
                 <td>@offer.CategorySubcategory</td>
                 <td>@offer.Days</td>
-                <td>@offer.Price.ToString("C") (@offer.PriceCurrency.ToString())</td>
+                <td>@offer.Price.ToString("C")</td>
             </tr>
         }
     </tbody>
@@ -46,7 +48,7 @@
         <tr>
             <th>Category > Subcategory</th>
             <th>Days</th>
-            <th>Price</th>
+            <th>Price (@DirectoryManager.Data.Enums.Currency.USD.ToString())</th>
         </tr>
     </thead>
     <tbody>
@@ -55,7 +57,7 @@
             <tr>
                 <td>@offer.CategorySubcategory</td>
                 <td>@offer.Days</td>
-                <td>@offer.Price.ToString("C") (@offer.PriceCurrency.ToString())</td>
+                <td>@offer.Price.ToString("C")</td>
             </tr>
         }
     </tbody>

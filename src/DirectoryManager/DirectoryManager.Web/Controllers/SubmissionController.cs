@@ -204,33 +204,18 @@ namespace DirectoryManager.Web.Controllers
             var audits = await this.auditRepository.GetAuditsForEntryAsync(entryId);
             var link2Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
-
+            var canonicalDomain = this.cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(entryId);
+
             if (directoryEntry == null)
             {
                 return this.NotFound();
             }
 
-            this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel
-            {
-                DateOption = Enums.DateDisplayOption.NotDisplayed,
-                IsSponsored = false,
-                Link2Name = link2Name,
-                Link3Name = link3Name,
-                Link = directoryEntry.Link,
-                Name = directoryEntry.Name,
-                DirectoryEntryKey = directoryEntry.DirectoryEntryKey,
-                Contact = directoryEntry.Contact,
-                Description = directoryEntry.Description,
-                DirectoryEntryId = directoryEntry.DirectoryEntryId,
-                DirectoryStatus = directoryEntry.DirectoryStatus,
-                Link2 = directoryEntry.Link2,
-                Link3 = directoryEntry.Link3,
-                Location = directoryEntry.Location,
-                Note = directoryEntry.Note,
-                Processor = directoryEntry.Processor,
-                SubCategoryId = directoryEntry.SubCategoryId
-            };
+            var directoryItem = ViewModelConverter.ConvertToViewModels([directoryEntry]).First();
+            directoryItem.ItemPath = UrlBuilder.CombineUrl(canonicalDomain, directoryItem.ItemPath);
+
+            this.ViewBag.SelectedDirectoryEntry = directoryItem;
 
             return this.View("Audit", audits);
         }

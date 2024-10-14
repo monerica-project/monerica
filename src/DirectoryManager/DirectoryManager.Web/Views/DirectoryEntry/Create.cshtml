@@ -1,83 +1,22 @@
 ﻿@using DirectoryManager.Data.Models
 @using DirectoryManager.Data.Enums
 @model DirectoryEntry
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @using DirectoryManager.Web.Constants;
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Create Diretory Entry";
+    ViewData[StringConstants.TitleHeader] = "Create Directory Entry";
 }
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
-
-@{
-    IEnumerable<SelectListItem> GetSelectListItemsForDirectoryStatus()
-    {
-        return Enum.GetValues(typeof(DirectoryStatus))
-                   .Cast<DirectoryStatus>()
-                   .Select(e => new SelectListItem
-                           {
-                               Value = ((int)e).ToString(),
-                               Text = e.ToString()
-                           });
-    }
-}
 
 @await Html.PartialAsync("_AdminMenu")
 
 <hr />
 
 <form method="post" action="~/directoryentry/create">
-
-    <div class="form-group">
-        <label asp-for="SubCategoryId">Subcategory</label>
-        <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "SubCategoryId", "DisplayName"))" required></select>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Name">Name</label>
-        <input class="input-width"  type="text" asp-for="Name" required />
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Link">Link</label>
-        <input class="input-width"  type="text" asp-for="Link" required />
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Link2">Link 2</label>
-        <input class="input-width"  type="text" asp-for="Link2" />
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Link3">Link 3</label>
-        <input class="input-width" type="text" asp-for="Link3" />
-    </div>
-
-    <div class="form-group">
-        <label asp-for="DirectoryStatus">Status</label>
-        <select asp-for="DirectoryStatus" asp-items="@GetSelectListItemsForDirectoryStatus()"></select>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Location">Location</label>
-        <input class="input-width"  type="text" asp-for="Location" />
-    </div>
-
-
-    <div class="form-group">
-        <label asp-for="Location">Contact</label>
-        <input class="input-width" type="text" asp-for="Contact" />
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Description">Description</label>
-        <textarea class="input-width"   asp-for="Description"></textarea>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Note">Note</label>
-        <textarea class="input-width"  asp-for="Note"></textarea>
-    </div>
+    <!-- Use the partial view for the form -->
+    @await Html.PartialAsync("_DirectoryEntryForm")
 
     <button type="submit">Create</button>
 </form>

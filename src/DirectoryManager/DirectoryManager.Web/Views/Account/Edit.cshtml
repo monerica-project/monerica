@@ -57,11 +57,11 @@
                 <li>
                     @if (string.IsNullOrWhiteSpace(directoryEntry.Description))
                     {
-                        <p>  <a href="@directoryEntry.Link">@directoryEntry.Name</a></p>  <a href="~/directoryentry/edit/@directoryEntry.DirectoryEntryId">Edit</a>
+                        <a href="@directoryEntry.Link">@directoryEntry.Name</a>  <a href="~/directoryentry/edit/@directoryEntry.DirectoryEntryId">Edit</a>
                     }
                     else
                     {
-                        <p>  <a href="@directoryEntry.Link">@directoryEntry.Name</a> - @directoryEntry.Description</p>  <a href="~/directoryentry/edit/@directoryEntry.DirectoryEntryId">Edit</a>
+                        <a href="@directoryEntry.Link">@directoryEntry.Name</a> <span>- @directoryEntry.Description</span>  <a href="~/directoryentry/edit/@directoryEntry.DirectoryEntryId">Edit</a>
                     }
                 </li>
             }

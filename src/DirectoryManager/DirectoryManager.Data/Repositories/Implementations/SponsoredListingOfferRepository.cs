@@ -36,8 +36,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                    .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true)
                                    .ToListAsync();
 
-            // Filter out any entries where Category might be null
-            return offers.Where(o => o.Subcategory?.Category != null).ToList();
+            // Sort the list to put entries without Subcategory at the top
+            return offers.OrderByDescending(o => o.Subcategory == null).ToList();
         }
 
         public async Task<IEnumerable<SponsoredListingOffer>> GetByTypeAndSubCategoryAsync(SponsorshipType sponsorshipType, int? subcategoryId)

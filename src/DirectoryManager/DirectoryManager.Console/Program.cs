@@ -39,40 +39,48 @@ if (choice == "1")
 
     var offlines = new List<string>();
 
-    foreach (var entry in allEntries)
+    // Run the checks in parallel using Task.WhenAll for all entries
+    var tasks = allEntries
+        .Where(entry => entry.DirectoryStatus != DirectoryManager.Data.Enums.DirectoryStatus.Unknown &&
+                        entry.DirectoryStatus != DirectoryManager.Data.Enums.DirectoryStatus.Removed &&
+                        !entry.Link.Contains(".onion"))
+        .Select(async entry =>
+        {
+            var isOnline = await WebPageChecker.IsWebPageOnlineAsync(new Uri(entry.Link));
+
+            if (!isOnline)
+            {
+                isOnline = WebPageChecker.IsWebPageOnlinePing(new Uri(entry.Link));
+            }
+
+            Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : "offline")}");
+
+            if (!isOnline)
+            {
+                offlines.Add($"{entry.Link}   -   ID: {entry.DirectoryEntryId}");
+            }
+        });
+
+    // Wait for all the tasks to complete
+    await Task.WhenAll(tasks);
+
+    Console.WriteLine("-----------------");
+
+    if (offlines.Count() > 0)
     {
-        if (entry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Unknown ||
-            entry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Removed)
+        Console.WriteLine("Offline:");
+        foreach (var offline in offlines)
         {
-            continue;
+            Console.WriteLine(offline);
         }
-
-        if (entry.Link.Contains(".onion"))
-        {
-            continue;
-        }
-
-        var isOnline = await WebPageChecker.IsWebPageOnlineAsync(new Uri(entry.Link));
-
-        if (!isOnline)
-        {
-            isOnline = WebPageChecker.IsWebPageOnlinePing(new Uri(entry.Link));
-        }
-
-        Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : "offline")}");
-
-        if (!isOnline)
-        {
-            offlines.Add(entry.Link + "    -    ID: " + entry.DirectoryEntryId);
-        }
+    }
+    else
+    {
+        Console.WriteLine("None offline");
     }
 
     Console.WriteLine("-----------------");
-    Console.WriteLine("Offline:");
-    foreach (var offline in offlines)
-    {
-        Console.WriteLine(offline);
-    }
+    Console.WriteLine("Done.");
 
     Console.ReadLine();
 }

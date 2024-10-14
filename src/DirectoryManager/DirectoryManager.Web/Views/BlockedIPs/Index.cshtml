@@ -23,7 +23,7 @@
             <td>@Html.DisplayFor(modelItem => item.IpAddress)</td>
             <td>
                 @Html.ActionLink("Delete", "Delete", new { id = item.BlockedIPId }, 
-                new { @class = "btn btn-danger", onclick = "return confirm('Are you sure you want to delete this IP?');" })
+                new { onclick = "return confirm('Are you sure you want to delete this IP?');" })
             </td>
         </tr>
     }

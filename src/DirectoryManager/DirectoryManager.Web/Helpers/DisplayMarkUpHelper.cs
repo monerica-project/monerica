@@ -11,17 +11,22 @@ namespace DirectoryManager.Web.Helpers
         {
             var sb = new StringBuilder();
 
-            // Opening li tag with optional sponsored class
+            // Generate a unique ID for the checkbox (to avoid conflicts)
+            var checkboxId = $"entry_checkbox_{model.DirectoryEntryId}_{model.ItemDisplayType.ToString()}";
+
+            // Opening <li> tag with optional sponsored class
             sb.Append("<li");
+
             if (model.IsSponsored && model.DisplayAsSponsoredItem)
             {
-                sb.Append(" class=\"sponsored\"");
+                sb.Append(@" class=""sponsored"" ");
             }
 
             sb.Append(">");
 
-            // Opening paragraph tag
+            // Main content in a paragraph with the expandable label
             sb.Append("<p>");
+            sb.AppendFormat(@"<label for=""{0}"" class=""expansion_item"">+</label>", checkboxId);
 
             // Handle date display options
             if (model.DateOption == DateDisplayOption.DisplayCreateDate)
@@ -37,10 +42,9 @@ namespace DirectoryManager.Web.Helpers
             if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Verified)
             {
                 sb.Append("&#9989; ");
-
                 if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.Link, true); // Use LinkA if sponsored
+                    AppendLink(sb, model, model.Link, false); // Use LinkA if sponsored
                 }
                 else if (!string.IsNullOrWhiteSpace(model.LinkA))
                 {
@@ -92,8 +96,46 @@ namespace DirectoryManager.Web.Helpers
                 sb.AppendFormat(" <i>(Note: {0})</i> ", model.Note); // Assuming it's safe HTML
             }
 
-            // Closing paragraph and li tag
-            sb.Append("</p></li>");
+            // Close the paragraph
+            sb.Append("</p>");
+
+            // Hidden checkbox that controls the expandable content
+            sb.AppendFormat("<input type=\"checkbox\" id=\"{0}\" style=\"display:none;\" />", checkboxId);
+
+            // Hidden div that will expand (additional content placeholder "TODO")
+            sb.Append("<div class=\"hidden\">");
+            sb.Append("<ul>");
+
+            if (model.CreateDate == DateTime.MinValue)
+            {
+                sb.Append("<li>Added: N/A</li>");
+            }
+            else
+            {
+                sb.AppendFormat("<li>Added: {0}</li>", model.CreateDate.ToString(StringConstants.DateFormat));
+            }
+
+            if (model.UpdateDate != null)
+            {
+                sb.AppendFormat("<li>Updated: {0}</li>", model.UpdateDate?.ToString(StringConstants.DateFormat));
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Location))
+            {
+                sb.AppendFormat("<li>Location: {0}</li>", model.Location);
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Contact))
+            {
+                sb.AppendFormat("<li>Contact: {0}</li>", model.Contact);
+            }
+
+            sb.Append("</ul>");
+
+            sb.Append("</div>");
+
+            // Closing </li> tag
+            sb.Append("</li>");
 
             return sb.ToString();
         }

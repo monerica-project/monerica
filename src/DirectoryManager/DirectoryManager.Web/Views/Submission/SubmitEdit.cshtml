@@ -1,18 +1,20 @@
 ﻿@model DirectoryManager.Web.Models.SubmissionRequest
-@inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @using DirectoryManager.Data.Enums
-@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Constants;
+
 @{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
     ViewData[StringConstants.TitleHeader] = "Edit Listing";
     ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
 }
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
- 
+
 <a href="~/submission/findexisting">&lt; find listing to edit</a>
 <hr />
 
-@if (ViewData.ModelState.IsValid == false)
+@if (!ViewData.ModelState.IsValid)
 {
     <div class="alert alert-danger">
         <strong>There were errors with your submission</strong>
@@ -21,94 +23,9 @@
 }
 
 <form asp-action="Create" method="post">
-    
-    <h3>Submission</h3>
+    <!-- Use the partial view for the form -->
+    @await Html.PartialAsync("_SubmissionForm")
 
-    @Html.HiddenFor(m => m.DirectoryEntryId)
-
-    <div class="form-group">
-        <label asp-for="DirectoryStatus">Directory Status</label>
-        <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control">
-            @foreach (var status in Enum.GetValues(typeof(DirectoryStatus)))
-            {
-                if ((DirectoryStatus)status == DirectoryStatus.Unknown)
-                {
-                    continue;
-                }
-                <option value="@((int)status)">@status.ToString()</option>
-            }
-        </select>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="SubCategoryId">Subcategory</label>
-        <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "SubCategoryId", "DisplayName"))"></select>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="SuggestedSubCategory">Suggested Category</label>
-        <input asp-for="SuggestedSubCategory" class="form-control input-width" />
-        <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
-    </div>
-
-    <!-- Other Fields -->
-
-    <div class="form-group">
-        <label asp-for="Name">Name</label>
-        <input asp-for="Name" class="form-control input-width" />
-        <span asp-validation-for="Name" class="text-danger"></span>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Link">Link</label>
-        <input asp-for="Link" class="form-control input-width" />
-        <span asp-validation-for="Link" class="text-danger"></span>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Link2">@_cacheHelper.GetSnippet(SiteConfigSetting.Link2Name)</label>
-        <input asp-for="Link2" class="form-control input-width" />
-        <span asp-validation-for="Link2" class="text-danger"></span>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Link3">@_cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)</label>
-        <input asp-for="Link3" class="form-control input-width" />
-        <span asp-validation-for="Link2" class="text-danger"></span>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Description">Description</label>
-        <textarea class="input-width"  cols="100" asp-for="Description"></textarea>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Note">Note</label>
-        <textarea  class="input-width"  cols="100" asp-for="Note"></textarea>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Contact">Contact</label>
-        <input  asp-for="Contact" class="form-control input-width" />
-        <span asp-validation-for="Contact" class="text-danger"></span>
-    </div>
-
-    <div class="form-group">
-        <label asp-for="Location">Location</label>
-        <input  asp-for="Location" class="form-control input-width" />
-        <span asp-validation-for="Location" class="text-danger"></span>
-    </div>
-
-    <hr />
-
-    <h3>To Reviewer</h3>
-    <div class="form-group">
-        <label asp-for="NoteToAdmin">Note To Admin</label>
-        <textarea asp-for="NoteToAdmin" class="form-control input-width"></textarea>
-        <span asp-validation-for="NoteToAdmin" class="text-danger"></span>
-    </div>
-
-    <!-- Submit Button -->
     <button type="submit" class="btn btn-primary">Preview Submission</button>
 </form>
 

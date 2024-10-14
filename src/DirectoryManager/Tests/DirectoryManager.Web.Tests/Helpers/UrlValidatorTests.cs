@@ -11,6 +11,7 @@ namespace DirectoryManager.Web.Tests.Helpers
         [InlineData("http://abcdefghij12345k.onion", true)]
         [InlineData("http://abcdefghij12345k.onion/", true)]
         [InlineData("http://abcdefghij12345k.onion/somepath", true)]
+        [InlineData("http://lpn5pb34rpsee3ycqtjf3vzngpibxsvzx4a3kdc3rmavgpbpclvq.b32.i2p/en/prepaidcards/?ref=QOAQCBOx11", true)]
         [InlineData("http://www.google.com", true)]
         [InlineData("https://www.google.com", true)]
         [InlineData("ftp://www.google.com", false)] // Only HTTP and HTTPS are valid

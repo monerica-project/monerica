@@ -1,44 +1,13 @@
 ﻿@model DirectoryManager.Web.Models.ContentSnippet.ContentSnippetEditModel
-@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Constants
+
 @{
     ViewData[StringConstants.TitleHeader] = "Edit Snippet";
+    ViewData["Action"] = "Edit";
+    ViewData["ButtonLabel"] = "Update";
+    ViewBag.SnippetTypes = Html.GetEnumSelectList<DirectoryManager.Data.Enums.SiteConfigSetting>();
 }
 
 <h2>@ViewData[StringConstants.TitleHeader]</h2>
 
-@await Html.PartialAsync("_AdminMenu")
-
-<hr />
-
-<form asp-controller="ContentSnippetManagement" asp-action="Edit" method="post" class="form-horizontal">
-
-    @Html.HiddenFor(x => x.ContentSnippetId)
-    <div class="form-group">
-        <label asp-for="SnippetType" class="col-md-2 control-label"></label>
-        <div class="col-md-10">
-            <select  asp-for="SnippetType" asp-items="Html.GetEnumSelectList<DirectoryManager.Data.Enums.SiteConfigSetting>()"></select>
-        </div>
-    </div>
-
-
-
-    <div class="form-group">
-        <label asp-for="Content" class="col-md-2 control-label"></label>
-        <div class="col-md-10">
-            <textarea asp-for="Content" class="form-control" rows="10"></textarea>
-        </div>
-    </div>
-
-
-    <div class="form-group">
-        <div class="col-md-offset-2 col-md-10">
-            <button type="submit" class="btn btn-success">Update</button>
-        </div>
-    </div>
-
-</form>
-
- 
-
-
-
+@await Html.PartialAsync("_ContentSnippetForm", Model)

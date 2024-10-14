@@ -81,6 +81,7 @@ namespace DirectoryManager.Data.Models
                 this.DirectoryEntryKey == other.DirectoryEntryKey &&
                 this.Link == other.Link &&
                 this.Link2 == other.Link2 &&
+                this.Link3 == other.Link3 &&
                 this.DirectoryStatus == other.DirectoryStatus &&
                 this.Description == other.Description &&
                 this.Location == other.Location &&

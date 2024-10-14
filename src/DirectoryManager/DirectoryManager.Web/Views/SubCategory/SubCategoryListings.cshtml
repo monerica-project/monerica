@@ -42,6 +42,7 @@
     var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
                                         Model.DirectoryEntries.ToList(),
                                         DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+                                        ItemDisplayType.SubcategorySponsor,
                                         link2Name,
                                         link3Name);
     var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.MainSponsor);
@@ -83,7 +84,7 @@
         viewModelList.RemoveAll(x => x.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
     }
 }
-<ul>
+<ul class="blank_list_item">
     @foreach (var viewModel in viewModelList)
     {
         viewModel.LinkType = LinkType.ListingPage;

@@ -9,6 +9,7 @@ namespace DirectoryManager.Data.Models
         [Key] // Primary Key
         public int SubmissionId { get; set; }
 
+        [Display(Name = "Submission Status")]
         [Required]
         public SubmissionStatus SubmissionStatus { get; set; }
 
