@@ -53,7 +53,7 @@ namespace DirectoryManager.Web.Models
         public int? SubCategoryId { get; set; }
 
         [MaxLength(255)]
-        [Display(Name = "Suggested Category", Prompt = "New category > New Subcategory")]
+        [Display(Name = "Suggested Category", Prompt = "New Category > New Subcategory")]
         public string? SuggestedSubCategory { get; set; }
 
         public int? DirectoryEntryId { get; set; }
