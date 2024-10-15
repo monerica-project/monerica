@@ -222,7 +222,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                             DirectoryEntryKey = entry.DirectoryEntryKey,
                             Name = entry.Name,
                             Link = entry.Link,
-                            Description = entry.Description
+                            Description = entry.Description,
+                            DirectoryStatus = entry.DirectoryStatus
                         })
                         .ToList()
                 })
