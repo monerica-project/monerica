@@ -21,8 +21,8 @@ namespace DirectoryManager.Web.Services.Implementations
                             "item",
                             new XElement(
                                 "title",
-                                entry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Scam
-                                    ? $"{DirectoryManager.Data.Enums.DirectoryStatus.Scam}! - {entry.Name}"
+                                entry.DirectoryStatus == Data.Enums.DirectoryStatus.Scam
+                                    ? $"{Data.Enums.DirectoryStatus.Scam}! - {entry.Name}"
                                     : entry.Name),
                             new XElement("link", entry.Link),
                             new XElement(
