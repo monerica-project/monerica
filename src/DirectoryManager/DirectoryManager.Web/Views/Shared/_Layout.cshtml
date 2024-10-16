@@ -9,14 +9,15 @@
     @if (ViewData[StringConstants.MetaDescription] != null &&
     !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.MetaDescription])))
     {
-    <meta name="description" content="@ViewData[StringConstants.MetaDescription]" />
-    <meta name="twitter:description" content="@ViewData[StringConstants.MetaDescription]" />
+        <meta name="description" content="@ViewData[StringConstants.MetaDescription]" />
+        <meta name="twitter:description" content="@ViewData[StringConstants.MetaDescription]" />
     }
     @if (ViewData[StringConstants.MetaContent] != null &&
     !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.MetaContent])))
     {
         @Html.Raw(ViewData[StringConstants.MetaContent])
     }
+
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
