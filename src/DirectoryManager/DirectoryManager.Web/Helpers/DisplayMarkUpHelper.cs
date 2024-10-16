@@ -101,7 +101,7 @@ namespace DirectoryManager.Web.Helpers
             sb.Append("</p>");
 
             // Hidden checkbox that controls the expandable content
-            sb.AppendFormat("<input type=\"checkbox\" id=\"{0}\" style=\"display:none;\" />", checkboxId);
+            sb.AppendFormat("<input type=\"checkbox\" id=\"{0}\" class=\"hidden\" />", checkboxId);
 
             // Hidden div that will expand (additional content placeholder "TODO")
             sb.Append("<div class=\"hidden\">");
