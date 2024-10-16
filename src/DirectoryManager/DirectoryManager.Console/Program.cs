@@ -66,7 +66,7 @@ if (choice == "1")
 
     Console.WriteLine("-----------------");
 
-    if (offlines.Count() > 0)
+    if (offlines.Count > 0)
     {
         Console.WriteLine("Offline:");
         foreach (var offline in offlines)
