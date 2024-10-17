@@ -1,6 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using System.Text;
-using DirectoryManager.Console.Helpers;
 using DirectoryManager.Console.Models;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Repositories.Implementations;
@@ -27,64 +26,10 @@ var serviceProvider = new ServiceCollection()
     .AddTransient<IExcludeUserAgentRepository, ExcludeUserAgentRepository>()
     .BuildServiceProvider();
 
-Console.WriteLine("Type 1 for page checker, 2 for user agent loaded");
+Console.WriteLine("Type 1 for user agent loaded");
 var choice = Console.ReadLine();
 
 if (choice == "1")
-{
-    var entries = serviceProvider.GetService<IDirectoryEntryRepository>() ??
-        throw new InvalidOperationException("The IDirectoryEntryRepository service is not registered.");
-
-    var allEntries = await entries.GetAllAsync();
-
-    var offlines = new List<string>();
-
-    // Run the checks in parallel using Task.WhenAll for all entries
-    var tasks = allEntries
-        .Where(entry => entry.DirectoryStatus != DirectoryManager.Data.Enums.DirectoryStatus.Unknown &&
-                        entry.DirectoryStatus != DirectoryManager.Data.Enums.DirectoryStatus.Removed &&
-                        !entry.Link.Contains(".onion"))
-        .Select(async entry =>
-        {
-            var isOnline = await WebPageChecker.IsWebPageOnlineAsync(new Uri(entry.Link));
-
-            if (!isOnline)
-            {
-                isOnline = WebPageChecker.IsWebPageOnlinePing(new Uri(entry.Link));
-            }
-
-            Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : "offline")}");
-
-            if (!isOnline)
-            {
-                offlines.Add($"{entry.Link}   -   ID: {entry.DirectoryEntryId}");
-            }
-        });
-
-    // Wait for all the tasks to complete
-    await Task.WhenAll(tasks);
-
-    Console.WriteLine("-----------------");
-
-    if (offlines.Count() > 0)
-    {
-        Console.WriteLine("Offline:");
-        foreach (var offline in offlines)
-        {
-            Console.WriteLine(offline);
-        }
-    }
-    else
-    {
-        Console.WriteLine("None offline");
-    }
-
-    Console.WriteLine("-----------------");
-    Console.WriteLine("Done.");
-
-    Console.ReadLine();
-}
-else if (choice == "2")
 {
     var fileDir = Directory.GetCurrentDirectory() + @"\Content";
     var json = File.ReadAllText(Path.Combine(fileDir, "crawler-user-agents.json"), Encoding.UTF8);

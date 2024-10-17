@@ -23,8 +23,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<DirectoryEntry?> GetByIdAsync(int directoryEntryId)
         {
             return await this.context.DirectoryEntries
-                .Include(de => de.SubCategory) // Include the SubCategory
-                .ThenInclude(sc => sc.Category) // Then include the related Category
+                .Include(de => de.SubCategory!)
+                .ThenInclude(sc => sc.Category!)
                 .FirstOrDefaultAsync(de => de.DirectoryEntryId == directoryEntryId);
         }
 
@@ -177,8 +177,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<IEnumerable<DirectoryEntry>> GetNewestRevisions(int count)
         {
             return await this.context.DirectoryEntries
-                .Include(de => de.SubCategory)
-                .ThenInclude(sc => sc.Category)
+                .Include(de => de.SubCategory!)
+                .ThenInclude(sc => sc.Category!)
                 .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
                             x.DirectoryStatus != DirectoryStatus.Unknown &&
                             x.UpdateDate.HasValue)
@@ -190,8 +190,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<IEnumerable<DirectoryEntry>> GetNewestAdditions(int count)
         {
             return await this.context.DirectoryEntries
-                .Include(de => de.SubCategory)
-                .ThenInclude(sc => sc.Category)
+                .Include(de => de.SubCategory!)
+                .ThenInclude(sc => sc.Category!)
                 .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
                             x.DirectoryStatus != DirectoryStatus.Unknown)
                 .OrderByDescending(entry => entry.CreateDate)
@@ -222,7 +222,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                             DirectoryEntryKey = entry.DirectoryEntryKey,
                             Name = entry.Name,
                             Link = entry.Link,
-                            Description = entry.Description
+                            Description = entry.Description,
+                            DirectoryStatus = entry.DirectoryStatus
                         })
                         .ToList()
                 })

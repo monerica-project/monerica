@@ -97,7 +97,7 @@ namespace DirectoryManager.Web.Controllers
 
             this.contentSnippetRepository.Create(new ContentSnippet()
             {
-                Content = model.Content?.Trim(),
+                Content = this.CleanContentInput(model),
                 ContentSnippetId = model.ContentSnippetId,
                 SnippetType = model.SnippetType
             });
@@ -135,11 +135,6 @@ namespace DirectoryManager.Web.Controllers
                 return this.View(model);
             }
 
-            if (model.Content == null)
-            {
-                model.Content = string.Empty;
-            }
-
             ValidateInput(model);
 
             var dbModel = this.contentSnippetRepository.Get(model.ContentSnippetId);
@@ -149,7 +144,7 @@ namespace DirectoryManager.Web.Controllers
                 throw new Exception("Content Snippet does not exist");
             }
 
-            dbModel.Content = model.Content.Trim();
+            dbModel.Content = this.CleanContentInput(model);
             dbModel.SnippetType = model.SnippetType;
 
             this.contentSnippetRepository.Update(dbModel);
@@ -178,6 +173,24 @@ namespace DirectoryManager.Web.Controllers
             {
                 throw new Exception("Invalid CSS");
             }
+        }
+
+        private string? CleanContentInput(ContentSnippetEditModel model)
+        {
+            var content = string.Empty;
+
+            model.Content ??= content;
+
+            if (model.SnippetType == Data.Enums.SiteConfigSetting.HomePageMetaTags)
+            {
+                content = model.Content;
+            }
+            else
+            {
+                content = model.Content.Trim();
+            }
+
+            return content;
         }
     }
 }

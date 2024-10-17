@@ -11,9 +11,8 @@
 <hr />
 
 <form method="get">
-    <label for="combinedFilter">Select: </label>
     <select id="combinedFilter" name="subCategoryId">
-        <option value="">--Category > Subcategory--</option>
+        <option value="">--Select: Category > Subcategory--</option>
         @foreach (var subCategory in (IEnumerable<Subcategory>)ViewBag.SubCategories)
         {
             <option value="@subCategory.SubCategoryId"

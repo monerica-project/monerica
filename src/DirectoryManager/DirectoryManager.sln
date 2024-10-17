@@ -41,7 +41,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectoryManager.Utilities"
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectoryManager.FileStorage", "DirectoryManager.FileStorage\DirectoryManager.FileStorage.csproj", "{4A383FED-B6BE-474E-B898-5AE6417925C7}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectoryManager.Utilities.Tests", "Tests\DirectoryManager.Utilities.Tests\DirectoryManager.Utilities.Tests.csproj", "{AA9B23EF-8F71-4E4C-96E9-FF5F13A1826C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectoryManager.Utilities.Tests", "Tests\DirectoryManager.Utilities.Tests\DirectoryManager.Utilities.Tests.csproj", "{AA9B23EF-8F71-4E4C-96E9-FF5F13A1826C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectoryManager.SiteChecker", "DirectoryManager.SiteChecker\DirectoryManager.SiteChecker.csproj", "{8ADCEB1D-F660-4034-B659-8F0E413A71A9}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -85,6 +87,10 @@ Global
 		{AA9B23EF-8F71-4E4C-96E9-FF5F13A1826C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{AA9B23EF-8F71-4E4C-96E9-FF5F13A1826C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{AA9B23EF-8F71-4E4C-96E9-FF5F13A1826C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8ADCEB1D-F660-4034-B659-8F0E413A71A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8ADCEB1D-F660-4034-B659-8F0E413A71A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8ADCEB1D-F660-4034-B659-8F0E413A71A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8ADCEB1D-F660-4034-B659-8F0E413A71A9}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

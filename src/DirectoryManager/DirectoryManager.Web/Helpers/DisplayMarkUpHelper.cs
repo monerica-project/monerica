@@ -2,6 +2,7 @@
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Models;
+using static System.Net.Mime.MediaTypeNames;
 
 namespace DirectoryManager.Web.Helpers
 {
@@ -100,7 +101,7 @@ namespace DirectoryManager.Web.Helpers
             sb.Append("</p>");
 
             // Hidden checkbox that controls the expandable content
-            sb.AppendFormat("<input type=\"checkbox\" id=\"{0}\" style=\"display:none;\" />", checkboxId);
+            sb.AppendFormat("<input type=\"checkbox\" id=\"{0}\" class=\"hidden\" />", checkboxId);
 
             // Hidden div that will expand (additional content placeholder "TODO")
             sb.Append("<div class=\"hidden\">");
@@ -127,7 +128,7 @@ namespace DirectoryManager.Web.Helpers
 
             if (!string.IsNullOrWhiteSpace(model.Contact))
             {
-                sb.AppendFormat("<li>Contact: {0}</li>", model.Contact);
+                sb.AppendFormat("<li class=\"multi-line-text\"> Contact: {0}</li>", model.Contact);
             }
 
             sb.Append("</ul>");

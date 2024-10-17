@@ -19,9 +19,17 @@ namespace DirectoryManager.Web.Services.Implementations
                     directoryEntries.Select(entry =>
                         new XElement(
                             "item",
-                            new XElement("title", entry.Name),
+                            new XElement(
+                                "title",
+                                entry.DirectoryStatus == Data.Enums.DirectoryStatus.Scam
+                                    ? $"{Data.Enums.DirectoryStatus.Scam}! - {entry.Name}"
+                                    : entry.Name),
                             new XElement("link", entry.Link),
-                            new XElement("description", entry.Description),
+                            new XElement(
+                                "description",
+                                string.IsNullOrEmpty(entry.Note)
+                                    ? entry.Description
+                                    : $"{entry.Description} Note: {entry.Note}"),
                             new XElement("pubDate", entry.CreateDate.ToString("R"))))));
 
             return new XDocument(rss);

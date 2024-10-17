@@ -177,8 +177,8 @@
                         TotalActiveSubCategoryListings = activeEntries.Count(),
                         DirectoryEntry = (subCategorySponsor != null && subCategorySponsor.DirectoryEntry != null) ? new DirectoryManager.Web.Models.DirectoryEntryViewModel()
                         {
-                            CreateDate = subCategorySponsor.CreateDate,
-                            UpdateDate = subCategorySponsor.UpdateDate,
+                            CreateDate = subCategorySponsor.DirectoryEntry.CreateDate,
+                            UpdateDate = subCategorySponsor.DirectoryEntry.UpdateDate,
                             DateOption = DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
                             Link = subCategorySponsor.DirectoryEntry.Link,
                             Name = subCategorySponsor.DirectoryEntry.Name,
