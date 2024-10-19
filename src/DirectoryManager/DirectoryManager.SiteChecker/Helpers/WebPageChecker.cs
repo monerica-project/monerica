@@ -27,6 +27,7 @@
                 {
                     return false;
                 }
+
                 return false;
             }
             catch (HttpRequestException)

@@ -31,7 +31,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             var offers = await this.context
                                    .SponsoredListingOffers
-                                   .Include(slo => slo.Subcategory)
+                                   .Include(slo => slo.Subcategory!)
                                    .ThenInclude(sub => sub.Category) // Include the Category associated with the Subcategory
                                    .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true)
                                    .ToListAsync();
