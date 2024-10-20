@@ -57,8 +57,10 @@ namespace DirectoryManager.Utilities.Validation
                 else if (ch == '}')
                 {
                     openBraces--;
-                    if (openBraces < 0) // More closing braces than opening
+
+                    if (openBraces < 0)
                     {
+                        // More closing braces than opening
                         return false;
                     }
                 }
