@@ -2,7 +2,6 @@
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Implementations;
 using Microsoft.EntityFrameworkCore;
-using Xunit;
 
 namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
 {

@@ -21,7 +21,7 @@ The goal is to create a directory of websites and services facilitating a circul
 
 ### Contact
 
-Email: `monerica@ghostbox.cc`
+Email: `admin@monerica.com`
 
 ### Contributing
 
