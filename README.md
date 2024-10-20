@@ -2,7 +2,7 @@
 
 A Directory For A Monero Circular Economy
 
-[Submit your link to Monerica here!](https://monerica.com/submit)
+[Submit your link to Monerica here!](https://app.monerica.com/submit)
 
 --------------
 
