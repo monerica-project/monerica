@@ -110,6 +110,17 @@ namespace DirectoryManager.Web.Controllers
                 if (submissionId == null)
                 {
                     var existingDirectoryEntryId = await this.GetExistingListingFromLinkAsync(model.Link);
+
+                    if (existingDirectoryEntryId != null)
+                    {
+                        var existingDirectoryEntry = await this.directoryEntryRepository.GetByIdAsync(existingDirectoryEntryId.Value);
+
+                        if (existingDirectoryEntry != null)
+                        {
+                            submissionModel.DirectoryStatus = existingDirectoryEntry.DirectoryStatus;
+                        }
+                    }
+
                     submissionModel.DirectoryEntryId = existingDirectoryEntryId;
                     var submission = await this.submissionRepository.CreateAsync(submissionModel);
                     submissionId = submission.SubmissionId;
@@ -492,7 +503,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             await this.directoryEntryRepository.CreateAsync(
-                new Data.Models.DirectoryEntry
+                new DirectoryEntry
                 {
                     DirectoryEntryKey = StringHelpers.UrlKey(model.Name),
                     Name = model.Name.Trim(),
