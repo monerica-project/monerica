@@ -114,11 +114,6 @@ namespace DirectoryManager.Web.Controllers
                     if (existingDirectoryEntryId != null)
                     {
                         var existingDirectoryEntry = await this.directoryEntryRepository.GetByIdAsync(existingDirectoryEntryId.Value);
-
-                        if (existingDirectoryEntry != null)
-                        {
-                            submissionModel.DirectoryStatus = existingDirectoryEntry.DirectoryStatus;
-                        }
                     }
 
                     submissionModel.DirectoryEntryId = existingDirectoryEntryId;
@@ -324,6 +319,11 @@ namespace DirectoryManager.Web.Controllers
             if (!this.ModelState.IsValid)
             {
                 return this.View(model);
+            }
+
+            if (model.DirectoryStatus == DirectoryStatus.Unknown)
+            {
+                throw new Exception($"Invalid directory status: {model.DirectoryStatus}");
             }
 
             var submission = await this.submissionRepository.GetByIdAsync(id);
