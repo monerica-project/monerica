@@ -1,4 +1,5 @@
 ﻿@model DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice
+@using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Constants;
 @using DirectoryManager.Web.Models
 
@@ -47,7 +48,7 @@
         <dd>@Model.PaidInCurrency</dd>
 
         <dt>Payment Status</dt>
-        <dd>@Model.PaymentStatus</dd>
+        <dd>@EnumHelper.GetDescription(Model.PaymentStatus)</dd>
 
         <dt>Campaign Start Date</dt>
         <dd>@Model.CampaignStartDate.ToString(StringConstants.DateTimeFormat)</dd>

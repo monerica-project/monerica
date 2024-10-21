@@ -1,4 +1,5 @@
-﻿@using DirectoryManager.Web.Constants;
+﻿@using DirectoryManager.Utilities.Helpers
+@using DirectoryManager.Web.Constants;
 @model IEnumerable<DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice>
 
 @{
@@ -25,22 +26,44 @@
     <thead>
         <tr>
             <th>Create Date</th>
+            <th>Payment Status</th>
             <th>Amount Asked</th>
             <th>Outcome Amount</th>
             <th>Paid In Currency</th>
-            <th>Payment Status</th>
             <th>Actions</th>
         </tr>
     </thead>
     <tbody>
+        @{
+        var endedStatuses = new HashSet<DirectoryManager.Data.Enums.PaymentStatus>
+        {
+            DirectoryManager.Data.Enums.PaymentStatus.Failed,
+            DirectoryManager.Data.Enums.PaymentStatus.Expired
+        };
+        }
+
         @foreach (var invoice in Model)
         {
             <tr>
                 <td>@invoice.CreateDate.ToString(StringConstants.DateTimeFormat)</td>
+                <td>
+
+                    @if (invoice.PaymentStatus == DirectoryManager.Data.Enums.PaymentStatus.Paid)
+                    {
+                        <text>&#x1F4B0;</text> @EnumHelper.GetDescription(invoice.PaymentStatus)
+                    }
+                    else if (endedStatuses.Contains(invoice.PaymentStatus))
+                    {
+                        <i>@EnumHelper.GetDescription(invoice.PaymentStatus)</i>
+                    }
+                    else
+                    {
+                        @EnumHelper.GetDescription(invoice.PaymentStatus)
+                    }
+                    </td>
                 <td>@invoice.Amount.ToString("C") (@invoice.Currency.ToString())</td>
                 <td>@invoice.OutcomeAmount</td>
                 <td>@invoice.PaidInCurrency</td>
-                <td>@invoice.PaymentStatus</td>
                 <td>
                     <a href="@Url.Action("Details", new { id = invoice.SponsoredListingInvoiceId })">Details</a>
                 </td>
