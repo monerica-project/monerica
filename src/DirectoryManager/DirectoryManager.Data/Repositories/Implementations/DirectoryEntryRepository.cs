@@ -126,6 +126,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existingEntry.Name = entry.Name;
             existingEntry.Link = entry.Link;
             existingEntry.Link2 = entry.Link2;
+            existingEntry.Link3 = entry.Link3;
             existingEntry.DirectoryStatus = entry.DirectoryStatus;
             existingEntry.Description = entry.Description;
             existingEntry.Location = entry.Location;
