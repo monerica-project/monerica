@@ -54,8 +54,8 @@ namespace DirectoryManager.Web.Controllers
         [Route("sitemap.xml")]
         public async Task<IActionResult> IndexAsync()
         {
-            var lastFeatured = await this.directoryEntrySelectionRepository.GetEntriesForSelection(Data.Enums.EntrySelectionType.Featured);
-            var lastFeaturedDate = lastFeatured.Max(x => x.UpdateDate ?? x.CreateDate);
+            var lastFeatured = await this.directoryEntrySelectionRepository.GetEntriesForSelection(EntrySelectionType.Featured);
+            var lastFeaturedDate = lastFeatured.Select(x => x.UpdateDate ?? x.CreateDate).DefaultIfEmpty(DateTime.MinValue).Max();
             var lastDirectoryEntryDate = this.directoryEntryRepository.GetLastRevisionDate();
             var lastContentSnippetUpdate = this.contentSnippetRepository.GetLastUpdateDate();
             var lastPaidInvoiceUpdate = this.sponsoredListingInvoiceRepository.GetLastPaidInvoiceUpdateDate();
