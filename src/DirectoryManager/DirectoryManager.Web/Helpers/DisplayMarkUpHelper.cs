@@ -126,6 +126,11 @@ namespace DirectoryManager.Web.Helpers
                 sb.AppendFormat("<li>Location: {0}</li>", model.Location);
             }
 
+            if (!string.IsNullOrWhiteSpace(model.Processor))
+            {
+                sb.AppendFormat("<li>Processor: {0}</li>", model.Processor);
+            }
+
             if (!string.IsNullOrWhiteSpace(model.Contact))
             {
                 sb.AppendFormat("<li class=\"multi-line-text\"> Contact: {0}</li>", model.Contact);
