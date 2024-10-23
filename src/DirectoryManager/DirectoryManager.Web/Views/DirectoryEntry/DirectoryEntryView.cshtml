@@ -62,6 +62,10 @@
         {
             <p><strong>Location:</strong> @Model.Location</p>
         }
+        @if (!string.IsNullOrEmpty(Model.Processor))
+        {
+            <p><strong>Processor:</strong> @Model.Processor</p>
+        }
         @if (!string.IsNullOrEmpty(Model.Note))
         {
             <p><strong>Note:</strong> @Html.Raw(Model.Note)</p>
@@ -79,5 +83,4 @@
 </div>
 
 <hr />
-
 @await Html.PartialAsync("_SponsoredListingPartial")
