@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using System.Net.WebSockets;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -70,19 +71,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            var subCategories = (await this.subCategoryRepository.GetAllAsync())
-                .OrderBy(sc => sc.Category.Name)
-                .ThenBy(sc => sc.Name)
-                .Select(sc => new
-                {
-                    sc.SubCategoryId,
-                    DisplayName = $"{sc.Category.Name} > {sc.Name}"
-                })
-                .ToList();
-
-            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
-
-            this.ViewBag.SubCategories = subCategories;
+            await this.SetSubcategories();
 
             return this.View();
         }
@@ -95,25 +84,36 @@ namespace DirectoryManager.Web.Controllers
                 model.DirectoryStatus == DirectoryStatus.Unknown ||
                 model.SubCategoryId == 0)
             {
+                await this.SetSubcategories();
+
                 return this.View("create", model);
             }
 
+            // Check if the link is already used
+            var link = model.Link.Trim();
+            var existingEntry = await this.directoryEntryRepository.GetByLinkAsync(link);
+            if (existingEntry != null)
+            {
+                await this.SetSubcategories();
+
+                this.ModelState.AddModelError("Link", "The provided link is already used by another entry.");
+                return this.View("create", model); // Return view with model error
+            }
+
             model.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
-            model.SubCategoryId = model.SubCategoryId;
-            model.Link = model.Link.Trim();
+            model.Link = link;
+            model.Name = model.Name.Trim();
+            model.DirectoryEntryKey = StringHelpers.UrlKey(model.Name);
+            model.Description = model.Description?.Trim();
+            model.Note = model.Note?.Trim();
+            model.Contact = model.Contact?.Trim();
+            model.Location = model.Location?.Trim();
+            model.Processor = model.Processor?.Trim();
             model.LinkA = model.LinkA?.Trim();
             model.Link2 = model.Link2?.Trim();
             model.Link2A = model.Link2A?.Trim();
             model.Link3 = model.Link3?.Trim();
             model.Link3A = model.Link3A?.Trim();
-            model.Name = model.Name.Trim();
-            model.DirectoryEntryKey = StringHelpers.UrlKey(model.Name);
-            model.Description = model.Description?.Trim();
-            model.Note = model.Note?.Trim();
-            model.DirectoryStatus = model.DirectoryStatus;
-            model.Contact = model.Contact?.Trim();
-            model.Location = model.Location?.Trim();
-            model.Processor = model.Processor?.Trim();
 
             await this.directoryEntryRepository.CreateAsync(model);
 
@@ -289,6 +289,23 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.SubCategoryKey = subCategoryKey;
 
             return this.View("DirectoryEntryView", model);
+        }
+
+        private async Task SetSubcategories()
+        {
+            var subCategories = (await this.subCategoryRepository.GetAllAsync())
+                .OrderBy(sc => sc.Category.Name)
+                .ThenBy(sc => sc.Name)
+                .Select(sc => new
+                {
+                    sc.SubCategoryId,
+                    DisplayName = $"{sc.Category.Name} > {sc.Name}"
+                })
+                .ToList();
+
+            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
+
+            this.ViewBag.SubCategories = subCategories;
         }
     }
 }

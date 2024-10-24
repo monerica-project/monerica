@@ -12,13 +12,6 @@
 
 @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SubmissionGuidelines))
 
-@if (!ViewData.ModelState.IsValid)
-{
-    <div class="alert alert-danger">
-        <strong>There were errors with your submission</strong>
-        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-    </div>
-}
 <hr />
 
 <a href="~/submission/findexisting">click here to edit an existing listing</a>
