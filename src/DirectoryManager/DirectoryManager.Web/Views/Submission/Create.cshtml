@@ -13,8 +13,10 @@
 @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SubmissionGuidelines))
 
 <hr />
-
-<a href="~/submission/findexisting">click here to edit an existing listing</a>
+<p>
+    <a href="~/submission/findexisting">Click here to edit an existing listing</a> <i>(the form below is for NEW listings)</i>
+</p>
+<br />
 
 <form asp-action="Create" method="post">
     <!-- Use the partial view for the form -->
