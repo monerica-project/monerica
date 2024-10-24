@@ -89,37 +89,37 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("directoryentry/create")]
         [HttpPost]
-        public async Task<IActionResult> Create(DirectoryEntry entry)
+        public async Task<IActionResult> Create(DirectoryEntry model)
         {
-            if (this.ModelState.IsValid)
+            if (!this.ModelState.IsValid ||
+                model.DirectoryStatus == DirectoryStatus.Unknown ||
+                model.SubCategoryId == 0)
             {
-                entry.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
-                entry.SubCategoryId = entry.SubCategoryId;
-                entry.Link = entry.Link.Trim();
-                entry.LinkA = entry.LinkA?.Trim();
-                entry.Link2 = entry.Link2?.Trim();
-                entry.Link2A = entry.Link2A?.Trim();
-                entry.Link3 = entry.Link3?.Trim();
-                entry.Link3A = entry.Link3A?.Trim();
-                entry.Name = entry.Name.Trim();
-                entry.DirectoryEntryKey = StringHelpers.UrlKey(entry.Name);
-                entry.Description = entry.Description?.Trim();
-                entry.Note = entry.Note?.Trim();
-                entry.DirectoryStatus = entry.DirectoryStatus;
-                entry.Contact = entry.Contact?.Trim();
-                entry.Location = entry.Location?.Trim();
-                entry.Processor = entry.Processor?.Trim();
-
-                await this.directoryEntryRepository.CreateAsync(entry);
-
-                this.ClearCachedItems();
-
-                return this.RedirectToAction(nameof(this.Index));
+                return this.View("create", model);
             }
-            else
-            {
-                return this.View("Error");
-            }
+
+            model.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
+            model.SubCategoryId = model.SubCategoryId;
+            model.Link = model.Link.Trim();
+            model.LinkA = model.LinkA?.Trim();
+            model.Link2 = model.Link2?.Trim();
+            model.Link2A = model.Link2A?.Trim();
+            model.Link3 = model.Link3?.Trim();
+            model.Link3A = model.Link3A?.Trim();
+            model.Name = model.Name.Trim();
+            model.DirectoryEntryKey = StringHelpers.UrlKey(model.Name);
+            model.Description = model.Description?.Trim();
+            model.Note = model.Note?.Trim();
+            model.DirectoryStatus = model.DirectoryStatus;
+            model.Contact = model.Contact?.Trim();
+            model.Location = model.Location?.Trim();
+            model.Processor = model.Processor?.Trim();
+
+            await this.directoryEntryRepository.CreateAsync(model);
+
+            this.ClearCachedItems();
+
+            return this.RedirectToAction(nameof(this.Index));
         }
 
         [Route("directoryentry/edit/{id}")]
