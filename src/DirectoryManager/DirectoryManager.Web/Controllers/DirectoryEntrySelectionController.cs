@@ -56,7 +56,8 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction("Index");
             }
 
-            this.ViewBag.DirectoryEntryList = new SelectList(await this.entryRepository.GetAllAsync(), "DirectoryEntryId", "Name");
+            this.ViewBag.DirectoryEntryList = new SelectList(
+                await this.entryRepository.GetAllActiveEntries(), "DirectoryEntryId", "Name");
             return this.View(selection);
         }
 
@@ -92,7 +93,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> AddToList()
         {
             this.ViewBag.DirectoryEntryList = new SelectList(
-                await this.entryRepository.GetAllAsync(), "DirectoryEntryId", "Name");
+                await this.entryRepository.GetAllActiveEntries(), "DirectoryEntryId", "Name");
             return this.View();
         }
     }

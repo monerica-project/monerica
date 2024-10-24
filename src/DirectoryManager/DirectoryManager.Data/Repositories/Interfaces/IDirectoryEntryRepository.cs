@@ -10,6 +10,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<IEnumerable<DirectoryEntry>> GetAllAsync();
         Task<IEnumerable<DirectoryEntry>> GetAllBySubCategoryIdAsync(int subCategoryId);
         Task<IEnumerable<DirectoryEntry>> GetAllowableEntries();
+        Task<IEnumerable<DirectoryEntry>> GetAllActiveEntries();
         Task CreateAsync(DirectoryEntry entry);
         Task UpdateAsync(DirectoryEntry entry);
         Task DeleteAsync(int directoryEntryId);
