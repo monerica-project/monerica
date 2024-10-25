@@ -2,6 +2,7 @@
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
+using DirectoryManager.Utilities.Validation;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
@@ -80,7 +81,7 @@ namespace DirectoryManager.Web.Controllers
 
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
 
-            if (ContainsScriptTag(model) ||
+            if (ScriptValidation.ContainsScriptTag(model) ||
                 this.blockedIPRepository.IsBlockedIp(ipAddress))
             {
                 return this.RedirectToAction("Success", "Submission");
@@ -350,29 +351,6 @@ namespace DirectoryManager.Web.Controllers
                 Processor = submission.Processor,
                 SuggestedSubCategory = submission.SuggestedSubCategory,
             };
-        }
-
-        private static bool ContainsScriptTag(SubmissionRequest model)
-        {
-            var properties = model.GetType().GetProperties();
-            foreach (var property in properties)
-            {
-                if (property.PropertyType == typeof(string))
-                {
-                    var value = property.GetValue(model) as string;
-                    if (!string.IsNullOrEmpty(value))
-                    {
-                        var decodedValue = System.Net.WebUtility.HtmlDecode(value);
-                        var normalizedValue = System.Text.RegularExpressions.Regex.Replace(decodedValue, @"\s+", " ").ToLower();
-                        if (normalizedValue.Contains("<script") || normalizedValue.Contains("< script") || normalizedValue.Contains("&lt;script&gt;"))
-                        {
-                            return true;
-                        }
-                    }
-                }
-            }
-
-            return false;
         }
 
         private async Task<int?> GetExistingListingFromLinkAsync(string link)

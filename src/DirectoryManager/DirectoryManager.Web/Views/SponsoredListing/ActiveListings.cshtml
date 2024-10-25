@@ -27,7 +27,7 @@
                 <td><a target="_blank" href="@listing.ListingUrl">@listing.ListingName</a></td>
                 <td>@listing.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
                 <td>
-                    <a href="@Url.Action("selectduration", new { directoryEntryId = listing.DirectoryListingId, sponsorshipType = listing.SponsorshipType })">Select</a>
+                    <a href="@Url.Action("selectduration", new { directoryEntryId = listing.DirectoryListingId, sponsorshipType = listing.SponsorshipType })">Extend</a>
                 </td>
             </tr>
         }
@@ -53,7 +53,7 @@
                 <td>@listing.SubcategoryName</td>
                 <td>@listing.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
                 <td>
-                    <a href="@Url.Action("selectduration", new { directoryEntryId = listing.DirectoryListingId, sponsorshipType = listing.SponsorshipType })">Select</a>
+                    <a href="@Url.Action("selectduration", new { directoryEntryId = listing.DirectoryListingId, sponsorshipType = listing.SponsorshipType })">Extend</a>
                 </td>
             </tr>
         }
