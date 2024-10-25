@@ -5,5 +5,6 @@
         required public DirectoryEntryViewModel DirectoryEntryViewModel { get; set; }
         public string? NoteToAdmin { get; set; }
         public int SubmissionId { get; set; }
+        public string SubcategoryName { get; set; } = string.Empty;
     }
 }

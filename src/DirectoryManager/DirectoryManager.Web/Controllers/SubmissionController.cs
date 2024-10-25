@@ -110,7 +110,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(Constants.StringConstants.SubmissionDoesNotExist);
             }
 
-            var model = this.GetSubmissionPreview(submission);
+            var model = await this.GetSubmissionPreviewAsync(submission);
 
             return this.View(model);
         }
@@ -408,10 +408,15 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.SubCategories = subCategories;
         }
 
-        private SubmissionPreviewModel GetSubmissionPreview(Submission submission)
+        private async Task<SubmissionPreviewModel> GetSubmissionPreviewAsync(Submission submission)
         {
             var link2Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+
+            if (submission.SubCategoryId != null)
+            {
+                submission.SubCategory = await this.subCategoryRepository.GetByIdAsync(submission.SubCategoryId.Value);
+            }
 
             return new SubmissionPreviewModel
             {
@@ -437,7 +442,8 @@ namespace DirectoryManager.Web.Controllers
                     SubCategoryId = submission.SubCategoryId
                 },
                 SubmissionId = submission.SubmissionId,
-                NoteToAdmin = submission.NoteToAdmin
+                NoteToAdmin = submission.NoteToAdmin,
+                SubcategoryName = $"{submission?.SubCategory?.Category?.Name} > {submission?.SubCategory?.Name}"
             };
         }
 

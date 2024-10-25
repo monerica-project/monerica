@@ -50,7 +50,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<Subcategory?> GetByIdAsync(int subCategoryId)
         {
-            return await this.context.SubCategories.FindAsync(subCategoryId);
+            return await this.context.SubCategories
+                .Include(sc => sc.Category)
+                .FirstOrDefaultAsync(sc => sc.SubCategoryId == subCategoryId);
         }
 
         public async Task CreateAsync(Subcategory subCategory)
