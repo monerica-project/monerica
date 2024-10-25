@@ -59,9 +59,13 @@ namespace DirectoryManager.Web.Helpers
                 differences.Add($"Different Contact: {entry.Contact ?? "null"} vs {submission.Contact ?? "null"}.");
             }
 
+            // Compare SubCategory and Category names if they differ
             if (entry.SubCategoryId != submission.SubCategoryId)
             {
-                differences.Add($"Different SubCategoryId: {entry.SubCategoryId} vs {submission.SubCategoryId}.");
+                string entrySubCategory = $"{entry.SubCategory?.Category?.Name} > {entry.SubCategory?.Name}";
+                string submissionSubCategory = $"{submission.SubCategory?.Category?.Name} > {submission.SubCategory?.Name}";
+
+                differences.Add($"Different SubCategory: {entrySubCategory} vs {submissionSubCategory}.");
             }
 
             if (entry.DirectoryStatus != submission.DirectoryStatus)

@@ -158,7 +158,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("submission/audit/{entryId}")]
         public async Task<IActionResult> AuditAync(int entryId)
         {
-            var audits = await this.auditRepository.GetAuditsForEntryAsync(entryId);
+            var audits = await this.auditRepository.GetAuditsWithSubCategoriesForEntryAsync(entryId);
             var link2Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
             var canonicalDomain = this.cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
@@ -173,6 +173,19 @@ namespace DirectoryManager.Web.Controllers
             directoryItem.ItemPath = UrlBuilder.CombineUrl(canonicalDomain, directoryItem.ItemPath);
 
             this.ViewBag.SelectedDirectoryEntry = directoryItem;
+
+            // Set category and subcategory names for each audit entry
+            foreach (var audit in audits)
+            {
+                if (audit.SubCategory != null)
+                {
+                    audit.SubCategoryName = $"{audit.SubCategory.Category?.Name} > {audit.SubCategory.Name}";
+                }
+                else
+                {
+                    audit.SubCategoryName = "No SubCategory Assigned";
+                }
+            }
 
             return this.View("Audit", audits);
         }
@@ -206,6 +219,11 @@ namespace DirectoryManager.Web.Controllers
             if (submission != null &&
                 submission.DirectoryEntryId != null)
             {
+                if (submission.SubCategory == null && submission.SubCategoryId != null)
+                {
+                    submission.SubCategory = await this.subCategoryRepository.GetByIdAsync(submission.SubCategoryId.Value);
+                }
+
                 var existing = await this.directoryEntryRepository.GetByIdAsync(submission.DirectoryEntryId.Value);
                 if (existing != null)
                 {

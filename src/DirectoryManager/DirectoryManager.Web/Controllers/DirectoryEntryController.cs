@@ -178,7 +178,7 @@ namespace DirectoryManager.Web.Controllers
         [Route("directoryentry/entryaudits/{entryId}")]
         public async Task<IActionResult> EntryAudits(int entryId)
         {
-            var audits = await this.auditRepository.GetAuditsForEntryAsync(entryId);
+            var audits = await this.auditRepository.GetAuditsWithSubCategoriesForEntryAsync(entryId);
             var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
 
@@ -210,6 +210,19 @@ namespace DirectoryManager.Web.Controllers
                 Processor = directoryEntry.Processor,
                 SubCategoryId = directoryEntry.SubCategoryId,
             };
+
+            // Set category and subcategory names for each audit entry
+            foreach (var audit in audits)
+            {
+                if (audit.SubCategory != null)
+                {
+                    audit.SubCategoryName = $"{audit.SubCategory.Category?.Name} > {audit.SubCategory.Name}";
+                }
+                else
+                {
+                    audit.SubCategoryName = "No SubCategory Assigned";
+                }
+            }
 
             return this.View(audits);
         }

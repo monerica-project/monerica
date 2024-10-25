@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.BaseModels;
 
@@ -43,5 +44,10 @@ namespace DirectoryManager.Data.Models
         public string? Contact { get; set; }
 
         public int? SubCategoryId { get; set; }
+
+        public virtual Subcategory? SubCategory { get; set; }
+
+        [NotMapped]
+        public string SubCategoryName { get; set; } = string.Empty;
     }
 }
