@@ -16,7 +16,8 @@
     @foreach (var group in Model)
     {
         <li>
-            <pre>@DateTime.ParseExact(group.Date, StringConstants.DateFormat, CultureInfo.InvariantCulture).ToString(StringConstants.DateFormat) Additions:</pre>
+            <pre>@DateTime.ParseExact(group.Date, DirectoryManager.Common.Constants.StringConstants.DateFormat,
+                                      CultureInfo.InvariantCulture).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) Additions:</pre>
             <ul>
                 @foreach (var entry in group.Entries)
                 {

@@ -1,8 +1,6 @@
 ﻿using System.Text;
-using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Models;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace DirectoryManager.Web.Helpers
 {
@@ -32,11 +30,11 @@ namespace DirectoryManager.Web.Helpers
             // Handle date display options
             if (model.DateOption == DateDisplayOption.DisplayCreateDate)
             {
-                sb.AppendFormat("<i>{0}</i> ", model.CreateDate.ToString(StringConstants.DateFormat));
+                sb.AppendFormat("<i>{0}</i> ", model.CreateDate.ToString(Common.Constants.StringConstants.DateFormat));
             }
             else if (model.DateOption == DateDisplayOption.DisplayUpdateDate)
             {
-                sb.AppendFormat("<i>{0}</i> ", (model.UpdateDate ?? model.CreateDate).ToString(StringConstants.DateFormat));
+                sb.AppendFormat("<i>{0}</i> ", (model.UpdateDate ?? model.CreateDate).ToString(Common.Constants.StringConstants.DateFormat));
             }
 
             // Handle directory status and links
@@ -113,12 +111,12 @@ namespace DirectoryManager.Web.Helpers
             }
             else
             {
-                sb.AppendFormat("<li>Added: {0}</li>", model.CreateDate.ToString(StringConstants.DateFormat));
+                sb.AppendFormat("<li>Added: {0}</li>", model.CreateDate.ToString(Common.Constants.StringConstants.DateFormat));
             }
 
             if (model.UpdateDate != null)
             {
-                sb.AppendFormat("<li>Updated: {0}</li>", model.UpdateDate?.ToString(StringConstants.DateFormat));
+                sb.AppendFormat("<li>Updated: {0}</li>", model.UpdateDate?.ToString(Common.Constants.StringConstants.DateFormat));
             }
 
             if (!string.IsNullOrWhiteSpace(model.Location))

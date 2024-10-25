@@ -31,6 +31,10 @@
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
   </ItemGroup>
+ 
+  <ItemGroup>
+    <ProjectReference Include="..\DirectoryManager.Common\DirectoryManager.Common.csproj" />
+  </ItemGroup>
 
 	<!-- For DirectoryManager.Data.csproj -->
 	<ItemGroup>

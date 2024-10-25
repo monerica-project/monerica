@@ -33,7 +33,8 @@
         <p>
             <b>Sponsorship Type:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.Offer.SponsorshipType) <br />
             <b>Description:</b> @Model.Offer.Description<br />
-            <b>Price:</b> @Model.Offer.USDPrice.ToString("C", new CultureInfo(StringConstants.DefaultCulure)) USD<br />
+            <b>Price:</b> @Model.Offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
+        new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure)) @DirectoryManager.Data.Enums.Currency.USD.ToString()<br />
             <b>Days:</b> @Model.Offer.Days
         </p>
 

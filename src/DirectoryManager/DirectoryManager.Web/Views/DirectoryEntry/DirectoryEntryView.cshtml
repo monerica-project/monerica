@@ -74,10 +74,10 @@
         {
             <p><strong>Contact:</strong> <span class="multi-line-text">@Model.Contact</span></p>
         }
-        <p><strong>Added On:</strong> @Model.CreateDate.ToString(StringConstants.DateFormat)</p>
+        <p><strong>Added On:</strong> @Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</p>
         @if (Model.UpdateDate.HasValue)
         {
-            <p><strong>Last Updated:</strong> @Model.UpdateDate?.ToString(StringConstants.DateFormat)</p>
+            <p><strong>Last Updated:</strong> @Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</p>
         }
     </div>
 </div>

@@ -30,7 +30,8 @@
             <div class="form-check">
                 <label class="form-check-label" style="display: flex; align-items: center;">
                     <input class="form-check-input" type="radio" name="SelectedOfferId" value="@offer.SponsoredListingOfferId" @(i == defaultChoiceIndex ? "checked" : string.Empty)>
-                    @offer.Description - @offer.USDPrice.ToString("C", new CultureInfo(StringConstants.DefaultCulure)) @Currency.USD.ToString()
+                    @offer.Description - @offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
+                        new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure)) @Currency.USD.ToString()
                 </label>
             </div>
         }

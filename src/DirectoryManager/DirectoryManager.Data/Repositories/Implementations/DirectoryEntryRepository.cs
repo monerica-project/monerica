@@ -244,7 +244,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .OrderByDescending(group => group.Key)
                 .Select(group => new GroupedDirectoryEntry
                 {
-                    Date = group.Key.ToString("yyyy-MM-dd"),
+                    Date = group.Key.ToString(Common.Constants.StringConstants.DateFormat),
                     Entries = group.ToList()
                 })
                 .ToList();

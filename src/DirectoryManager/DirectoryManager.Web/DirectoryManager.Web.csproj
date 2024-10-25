@@ -12,7 +12,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.68" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.11.69" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="8.0.10" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="8.0.10" />
     <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="8.0.1" />
@@ -27,6 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <ProjectReference Include="..\DirectoryManager.Common\DirectoryManager.Common.csproj" />
     <ProjectReference Include="..\DirectoryManager.Data\DirectoryManager.Data.csproj" />
     <ProjectReference Include="..\DirectoryManager.FileStorage\DirectoryManager.FileStorage.csproj" />
     <ProjectReference Include="..\DirectoryManager.Utilities\DirectoryManager.Utilities.csproj" />

@@ -45,7 +45,7 @@
         @foreach (var invoice in Model)
         {
             <tr>
-                <td>@invoice.CreateDate.ToString(StringConstants.DateTimeFormat)</td>
+                    <td>@invoice.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
                 <td>
 
                     @if (invoice.PaymentStatus == DirectoryManager.Data.Enums.PaymentStatus.Paid)
@@ -61,7 +61,7 @@
                         @EnumHelper.GetDescription(invoice.PaymentStatus)
                     }
                     </td>
-                <td>@invoice.Amount.ToString("C") (@invoice.Currency.ToString())</td>
+                    <td>@invoice.Amount.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat) (@invoice.Currency.ToString())</td>
                 <td>@invoice.OutcomeAmount</td>
                 <td>@invoice.PaidInCurrency</td>
                 <td>

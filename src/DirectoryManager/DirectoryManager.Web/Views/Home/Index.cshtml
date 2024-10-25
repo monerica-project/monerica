@@ -18,7 +18,7 @@
     @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageDisplayHtml))
     <hr />
     <p class="last_update">
-        <b>Last Update:</b> @directoryEntryRepository.GetLastRevisionDate().ToString(StringConstants.DateTimeFormat)
+        <b>Last Update:</b> @directoryEntryRepository.GetLastRevisionDate().ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
     </p>
     <hr />
         @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.DirectoryLegendHtml))

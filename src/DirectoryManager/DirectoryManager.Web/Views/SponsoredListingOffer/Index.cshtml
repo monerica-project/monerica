@@ -1,5 +1,6 @@
 ﻿@model IEnumerable<DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOffer>
 @using DirectoryManager.Web.Constants;
+
 @{
     ViewData[StringConstants.TitleHeader] = "Sponsored Listing Offers";
 }
@@ -40,13 +41,13 @@
                     }
                 </td>
                 <td>@item.Days</td>
-                <td>@item.Price.ToString("C") (@item.PriceCurrency.ToString())</td>
+                <td>@item.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat) (@item.PriceCurrency.ToString())</td>
                 <td>
                     @{
                         if (item.Days > 0)
                         {
                             var pricePerDay = item.Price / item.Days;
-                            <text>@pricePerDay.ToString("C2")</text>
+                            <text>@pricePerDay.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat2)</text>
                         }
                         else
                         {

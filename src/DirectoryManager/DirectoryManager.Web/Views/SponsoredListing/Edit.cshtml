@@ -18,11 +18,11 @@
     </div>
     <div class="form-group">
         <label for="CampaignStartDate">Start Date and Time</label>
-        <input type="datetime-local" class="form-control" id="CampaignStartDate" name="CampaignStartDate" value="@Model.CampaignStartDate.ToString(StringConstants.DateTimeFormat2)" required />
+        <input type="datetime-local" class="form-control" id="CampaignStartDate" name="CampaignStartDate" value="@Model.CampaignStartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat2)" required />
     </div>
     <div class="form-group">
         <label for="CampaignEndDate">End Date and Time</label>
-        <input type="datetime-local" class="form-control" id="CampaignEndDate" name="CampaignEndDate" value="@Model.CampaignEndDate.ToString(StringConstants.DateTimeFormat2)" required />
+        <input type="datetime-local" class="form-control" id="CampaignEndDate" name="CampaignEndDate" value="@Model.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat2)" required />
     </div>
     <button type="submit" class="btn btn-primary">Update</button>
 </form>
