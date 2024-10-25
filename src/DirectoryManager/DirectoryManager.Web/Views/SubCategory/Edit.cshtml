@@ -11,7 +11,7 @@
 <hr />
 
 <form method="post" action="~/subcategory/edit">
-    <input type="hidden" name="SubCategoryId" value="@Model.SubCategoryId" />
+    <input autocomplete="off" type="hidden" name="SubCategoryId" value="@Model.SubCategoryId" />
     <div class="form-group">
         <label>Parent Category</label>
         <select name="CategoryId" required>
@@ -23,15 +23,15 @@
     </div>
     <div class="form-group">
         <label>Name</label>
-        <input type="text" name="Name" value="@Model.Name" required />
+        <input autocomplete="off" type="text" name="Name" value="@Model.Name" required />
     </div>
     <div class="form-group">
         <label>Subcategory Key</label>
-        <input type="text" name="SubCategoryKey" value="@Model.SubCategoryKey" required />
+        <input autocomplete="off" type="text" name="SubCategoryKey" value="@Model.SubCategoryKey" required />
     </div>
     <div class="form-group">
         <label asp-for="MetaDescription">Meta Description</label>
-        <input class="input-width" maxlength="160" cols="100" name="MetaDescription" value="@Model.MetaDescription" />
+        <input autocomplete="off" class="input-width" maxlength="160" cols="100" name="MetaDescription" value="@Model.MetaDescription" />
     </div>
     <div class="form-group">
         <label asp-for="Note">Description</label>
@@ -43,7 +43,7 @@
     </div>
     <div class="form-group">
         <label asp-for="PageDetails">Page Details</label>
-        <input class="input-width" maxlength="160" cols="100" name="PageDetails" value="@Model.PageDetails" />
+        <input autocomplete="off" class="input-width" maxlength="160" cols="100" name="PageDetails" value="@Model.PageDetails" />
     </div>
     <button type="submit">Update</button>
 </form>

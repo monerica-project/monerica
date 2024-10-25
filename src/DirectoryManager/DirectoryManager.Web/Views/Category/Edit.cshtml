@@ -13,15 +13,15 @@
 <form method="post">
     <div class="form-group">
         <label>Name</label>
-        <input class="input-width" type="text" name="Name" value="@Model.Name" required />
+        <input autocomplete="off" class="input-width" type="text" name="Name" value="@Model.Name" required />
     </div>
     <div class="form-group">
         <label>Category Key</label>
-        <input type="text" name="Name" value="@Model.CategoryKey" required />
+        <input autocomplete="off" type="text" name="Name" value="@Model.CategoryKey" required />
     </div>
     <div class="form-group">
         <label asp-for="MetaDescription">Meta Description</label>
-        <input class="input-width" maxlength="160" cols="100" name="MetaDescription" value="@Model.MetaDescription" />
+        <input autocomplete="off" class="input-width" maxlength="160" cols="100" name="MetaDescription" value="@Model.MetaDescription" />
     </div>
     <div class="form-group">
         <label asp-for="Note">Description</label>
