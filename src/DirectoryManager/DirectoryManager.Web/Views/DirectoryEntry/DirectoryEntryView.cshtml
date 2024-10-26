@@ -44,7 +44,8 @@
         {
             <p><strong>@Model.Link3Name:</strong> <a class="multi-line-text" href="@finalLink3" target="_blank">@Model.Link3</a></p>
         }
-        <p><strong>Status:</strong> @Model.DirectoryStatus
+        <p>
+            <strong>Status:</strong>
             @if (Model.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Verified)
             {
                 <text>&#9989;</text>
@@ -53,6 +54,7 @@
             {
                 <text>&#10060;</text>
             }
+          @Model.DirectoryStatus
         </p>
         @if (!string.IsNullOrEmpty(Model.Description))
         {
