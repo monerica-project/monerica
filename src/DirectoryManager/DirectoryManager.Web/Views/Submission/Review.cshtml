@@ -19,16 +19,17 @@
     {
         @Html.HiddenFor(m => m.DirectoryEntryId)
         
-        <i>Existing: </i>
+        <p><b>Existing:</b>
         <a href="~/directoryentry/edit/@Model.DirectoryEntryId">Edit</a>
+        </p>
+ 
 
-        <br />
-
-        <i>Differences:</i>
+       <p>
+           <i>Differences:</i>
         @ViewBag.Differences
+        </p>
     }
-
-    <br />
+ 
     <a target="_blank" href="@Model.Link">@Model.Link</a>
     <br />
     <br />

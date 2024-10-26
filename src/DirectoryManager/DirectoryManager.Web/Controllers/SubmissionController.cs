@@ -212,7 +212,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Authorize]
         [HttpGet("submission/{id}")]
-        public async Task<IActionResult> Edit(int id)
+        public async Task<IActionResult> Review(int id)
         {
             var submission = await this.submissionRepository.GetByIdAsync(id);
 
@@ -243,47 +243,9 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [Authorize]
-        [HttpGet("submission/delete/{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            await this.submissionRepository.DeleteAsync(id);
-            return this.RedirectToAction(nameof(this.Index));
-        }
-
-        [AllowAnonymous]
-        [HttpGet("submission/success")]
-        public IActionResult Success()
-        {
-            return this.View("Success");
-        }
-
-        [AllowAnonymous]
-        [HttpPost("confirm")]
-        public async Task<IActionResult> ConfirmAsync(int submissionId)
-        {
-            var submission = await this.submissionRepository.GetByIdAsync(submissionId);
-
-            if (submission == null)
-            {
-                return this.BadRequest(Constants.StringConstants.SubmissionDoesNotExist);
-            }
-
-            if (submission.SubmissionStatus == SubmissionStatus.Pending)
-            {
-                return this.BadRequest(Constants.StringConstants.SubmissionAlreadySubmitted);
-            }
-
-            submission.SubmissionStatus = SubmissionStatus.Pending;
-
-            await this.submissionRepository.UpdateAsync(submission);
-
-            return this.View("Success");
-        }
-
-        [Authorize]
         [HttpPost("submission/{id}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Submission model)
+        public async Task<IActionResult> Review(int id, Submission model)
         {
             if (!this.ModelState.IsValid)
             {
@@ -329,6 +291,44 @@ namespace DirectoryManager.Web.Controllers
             await this.submissionRepository.UpdateAsync(submission);
 
             return this.RedirectToAction(nameof(this.Index));
+        }
+
+        [Authorize]
+        [HttpGet("submission/delete/{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            await this.submissionRepository.DeleteAsync(id);
+            return this.RedirectToAction(nameof(this.Index));
+        }
+
+        [AllowAnonymous]
+        [HttpGet("submission/success")]
+        public IActionResult Success()
+        {
+            return this.View("Success");
+        }
+
+        [AllowAnonymous]
+        [HttpPost("confirm")]
+        public async Task<IActionResult> ConfirmAsync(int submissionId)
+        {
+            var submission = await this.submissionRepository.GetByIdAsync(submissionId);
+
+            if (submission == null)
+            {
+                return this.BadRequest(Constants.StringConstants.SubmissionDoesNotExist);
+            }
+
+            if (submission.SubmissionStatus == SubmissionStatus.Pending)
+            {
+                return this.BadRequest(Constants.StringConstants.SubmissionAlreadySubmitted);
+            }
+
+            submission.SubmissionStatus = SubmissionStatus.Pending;
+
+            await this.submissionRepository.UpdateAsync(submission);
+
+            return this.View("Success");
         }
 
         private static SubmissionRequest GetSubmissionRequestModel(Data.Models.DirectoryEntry directoryEntry)
