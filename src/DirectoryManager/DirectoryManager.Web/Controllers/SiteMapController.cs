@@ -164,6 +164,9 @@ namespace DirectoryManager.Web.Controllers
                         mostRecentUpdateDate
                     }.Max();
 
+                    // add time so polling can pick up changes
+                    lastModified = lastModified.AddHours(1);
+
                     // Add subcategory to sitemap
                     siteMapHelper.SiteMapItems.Add(new SiteMapItem
                     {
