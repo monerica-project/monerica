@@ -223,11 +223,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         private static List<DirectoryStatus> GetNonActiveStatuses()
         {
-            return new List<DirectoryStatus>
-            {
+            return
+            [
                 DirectoryStatus.Removed,
                 DirectoryStatus.Unknown
-            };
+            ];
         }
 
         private IQueryable<DirectoryEntry> GetActiveEntriesQuery()
