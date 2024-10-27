@@ -57,12 +57,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<DateTime> GetMostRecentModifiedDateAsync()
         {
             var mostRecentDate = await this.context.DirectoryEntrySelections
-                .Select(d => d.UpdateDate ?? d.CreateDate)  // Use CreateDate if UpdateDate is null
+                .Select(d => d.UpdateDate ?? d.CreateDate)
                 .OrderByDescending(date => date)
                 .FirstOrDefaultAsync();
 
             // Return the most recent date or DateTime.MinValue if no entries are found
-            return mostRecentDate == default(DateTime) ? DateTime.MinValue : mostRecentDate;
+            return mostRecentDate == default ? DateTime.MinValue : mostRecentDate;
         }
     }
 }
