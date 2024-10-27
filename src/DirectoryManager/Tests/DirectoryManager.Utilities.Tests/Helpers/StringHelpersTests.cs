@@ -34,7 +34,9 @@ namespace DirectoryManager.Utilities.Tests.Helpers
         public void UrlKey_NullInput_ReturnsEmptyString()
         {
             // Act
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
             string result = StringHelpers.UrlKey(null);
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
             // Assert
             Assert.Equal(string.Empty, result);
