@@ -1,4 +1,6 @@
-﻿using System.Text.RegularExpressions;
+﻿using System.Globalization;
+using System.Text;
+using System.Text.RegularExpressions;
 
 namespace DirectoryManager.Utilities.Helpers
 {
@@ -6,26 +8,40 @@ namespace DirectoryManager.Utilities.Helpers
     {
         public static string UrlKey(string p)
         {
-            var replaceRegex = Regex.Replace(p, @"[\W_-[#]]+", " ");
-
-            var beforeTrim = replaceRegex.Trim()
-                                         .Replace("  ", " ")
-                                         .Replace(" ", "-")
-                                         .Replace("%", string.Empty)
-                                         .Replace("&", "and")
-                                         .ToLowerInvariant();
-
-            if (beforeTrim.EndsWith("#"))
+            if (string.IsNullOrWhiteSpace(p))
             {
-                beforeTrim = beforeTrim.TrimEnd('#');
+                return string.Empty;
             }
 
-            if (beforeTrim.StartsWith("#"))
+            // Step 1: Normalize the string to decompose accented characters.
+            string normalized = p.Normalize(NormalizationForm.FormD);
+
+            // Step 2: Remove non-ASCII characters (like accents).
+            var stringBuilder = new StringBuilder();
+            foreach (char c in normalized)
             {
-                beforeTrim = beforeTrim.TrimStart('#');
+                // Keep only base characters (e.g., 'e' instead of 'é').
+                var unicodeCategory = CharUnicodeInfo.GetUnicodeCategory(c);
+                if (unicodeCategory != UnicodeCategory.NonSpacingMark)
+                {
+                    stringBuilder.Append(c);
+                }
             }
 
-            return beforeTrim;
+            // Step 3: Convert the cleaned string back to normal form.
+            string cleaned = stringBuilder.ToString().Normalize(NormalizationForm.FormC);
+
+            // Step 4: Replace special characters with meaningful equivalents.
+            cleaned = cleaned.Replace("&", "and");
+
+            // Step 5: Use regex to replace non-alphanumeric characters with a single space.
+            var replaceRegex = Regex.Replace(cleaned, @"[^a-zA-Z0-9\s-]+", " ");
+
+            // Step 6: Collapse multiple spaces or dashes into a single dash.
+            var urlSafe = Regex.Replace(replaceRegex, @"[\s-]+", "-").Trim('-');
+
+            // Step 7: Convert to lowercase.
+            return urlSafe.ToLowerInvariant();
         }
     }
 }

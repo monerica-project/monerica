@@ -115,16 +115,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             existingSubCategory.Name = subCategory.Name.Trim();
-
-            if (!string.IsNullOrWhiteSpace(subCategory.SubCategoryKey))
-            {
-                existingSubCategory.SubCategoryKey = StringHelpers.UrlKey(subCategory.SubCategoryKey.Trim());
-            }
-            else
-            {
-                existingSubCategory.SubCategoryKey = StringHelpers.UrlKey(existingSubCategory.Name);
-            }
-
+            existingSubCategory.SubCategoryKey = StringHelpers.UrlKey(existingSubCategory.Name);
             existingSubCategory.CategoryId = subCategory.CategoryId;
             existingSubCategory.Description = subCategory.Description?.Trim();
             existingSubCategory.Note = subCategory.Note?.Trim();
