@@ -74,6 +74,8 @@ namespace DirectoryManager.Web.Controllers
         {
             var selection = await this.directoryEntrySelectionRepository.GetByID(id);
 
+            this.ViewBag.EntryDeletedFromList = await this.entryRepository.GetByIdAsync(selection.DirectoryEntryId);
+
             this.cache.Remove(StringConstants.EntriesCacheKey);
 
             return this.View(selection);

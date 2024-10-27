@@ -6,7 +6,7 @@
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <h2>Are you sure you want to remove this entry from the list?</h2>
-<p>@Model.DirectoryEntryId</p>
+<p>@ViewBag.EntryDeletedFromList.Name</p>
 
 <form asp-action="DeleteFromListConfirmed" method="post">
     <input type="hidden" asp-for="DirectoryEntrySelectionId" />

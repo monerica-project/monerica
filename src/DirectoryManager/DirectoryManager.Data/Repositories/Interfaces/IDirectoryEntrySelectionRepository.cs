@@ -10,5 +10,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task DeleteFromList(int id);
         IEnumerable<DirectoryEntrySelection> GetAll();
         Task<IEnumerable<DirectoryEntry>> GetEntriesForSelection(EntrySelectionType type);
+        Task<DateTime> GetMostRecentModifiedDateAsync();
     }
 }
