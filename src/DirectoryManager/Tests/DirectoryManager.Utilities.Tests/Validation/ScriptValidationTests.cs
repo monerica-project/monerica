@@ -1,17 +1,10 @@
-﻿using DirectoryManager.Utilities.Validation;
+﻿using DirectoryManager.Utilities.Tests.Models;
+using DirectoryManager.Utilities.Validation;
 
 namespace DirectoryManager.Utilities.Tests.Validation
 {
-
     public class ScriptValidationTests
     {
-        // Helper class to test ScriptValidation with different object structures
-        private class TestObject
-        {
-            public string Content { get; set; } = string.Empty;
-            public string OtherProperty { get; set; } = string.Empty;
-        }
-
         [Fact]
         public void ContainsScriptTag_ShouldReturnTrue_WhenScriptTagExists()
         {
@@ -68,7 +61,9 @@ namespace DirectoryManager.Utilities.Tests.Validation
         public void ContainsScriptTag_ShouldReturnFalse_WhenPropertyIsNull()
         {
             // Arrange
+#pragma warning disable CS8625 // Cannot convert null literal to non-nullable reference type.
             var obj = new TestObject { Content = null };
+#pragma warning restore CS8625 // Cannot convert null literal to non-nullable reference type.
 
             // Act
             var result = ScriptValidation.ContainsScriptTag(obj);
