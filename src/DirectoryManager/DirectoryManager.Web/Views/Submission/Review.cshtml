@@ -13,7 +13,7 @@
 @await Html.PartialAsync("_AdminMenu")
 <hr />
 
-<form asp-action="Edit" asp-route-id="@Model.SubmissionId" method="post">
+<form asp-action="Review" asp-route-id="@Model.SubmissionId" method="post">
 
     @if (Model.DirectoryEntryId  != null)
     {
