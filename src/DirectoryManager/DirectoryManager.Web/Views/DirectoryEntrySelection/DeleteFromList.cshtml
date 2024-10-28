@@ -5,6 +5,11 @@
 }
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
+<hr />
+@await Html.PartialAsync("_AdminMenu")
+<hr />
+
+
 <h2>Are you sure you want to remove this entry from the list?</h2>
 <p>@ViewBag.EntryDeletedFromList.Name</p>
 

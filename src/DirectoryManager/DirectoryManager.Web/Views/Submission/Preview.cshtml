@@ -4,12 +4,11 @@
     ViewData[StringConstants.TitleHeader] = "Preview";
 }
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
-
+<hr />
 <div class="submission-guidelines">
     <p><b class="text-danger">NOT SUBMITTED YET!</b></p>
 </div>
-
-<hr />
+ 
 
 @if (Model.DirectoryEntryViewModel.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Removed)
 {

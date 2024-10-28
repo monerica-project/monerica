@@ -8,8 +8,9 @@
 
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
+<hr />
 @await Html.PartialAsync("_BackToHome")
-
+<hr />
 @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SubmissionGuidelines))
 
 <hr />

@@ -6,11 +6,13 @@
 }
 
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+<hr />
 @await Html.PartialAsync("_AdminMenu")
 
 <hr />
 <p>
-    <a class="btn btn-primary" asp-action="Create">Create New</a>
+    <a asp-action="Create">Create New</a>
 </p>
 
 <table class="table">

@@ -14,9 +14,15 @@
     var finalLink3 = !string.IsNullOrEmpty(Model.Link3A) ? Model.Link3A : Model.Link3;
 }
 
+<h1>@Model.Name</h1>
+
+<hr />
+
+@await Html.PartialAsync("_AdminMenu")
+
+<hr />
+
 <div class="directory-entry-details">
-    <h1>@Model.Name</h1>
-    <hr />
 
     <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
