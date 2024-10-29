@@ -22,12 +22,8 @@
         <p><b>Existing:</b>
         <a href="~/directoryentry/edit/@Model.DirectoryEntryId">Edit</a>
         </p>
- 
-
-       <p>
-           <i>Differences:</i>
-        @ViewBag.Differences
-        </p>
+        <p><i>Differences:</i></p>
+        @Html.Raw(ViewBag.Differences)
     }
  
     <a target="_blank" href="@Model.Link">@Model.Link</a>

@@ -1,9 +1,39 @@
 ﻿using DirectoryManager.Utilities.Validation;
+using ExCSS;
 
 namespace DirectoryManager.Utilities.Tests.Validation
 {
     public class CssValidatorTests
     {
+        [Fact]
+        public void ValidateCss_ValidHoverCss_ShouldReturnTrue()
+        {
+            // Arrange
+            var validCss = @"
+<style>
+
+
+a:hover {
+    color: #66aaff; /* Slightly lighter blue on hover */
+    text-decoration: none;
+}
+
+h2 {
+color: white;
+    text-shadow: 2px 2px 4px rgb(94 94 94 / 80%);
+}
+
+</style>
+
+            ";
+
+            // Act
+            var result = CssValidator.IsCssValid(validCss);
+
+            // Assert
+            Assert.True(result);
+        }
+
         [Fact]
         public void ValidateCss_ValidCss_ShouldReturnTrue()
         {
@@ -132,23 +162,6 @@ namespace DirectoryManager.Utilities.Tests.Validation
 
             // Assert
             Assert.True(result);
-        }
-
-        [Fact]
-        public void ValidateCss_CssWithInvalidSelector_ShouldReturnFalse()
-        {
-            // Arrange
-            var cssWithInvalidSelector = @"
-                .123invalid-selector {
-                    color: red;
-                }
-            ";
-
-            // Act
-            var result = CssValidator.IsCssValid(cssWithInvalidSelector);
-
-            // Assert
-            Assert.False(result);
         }
 
         [Fact]

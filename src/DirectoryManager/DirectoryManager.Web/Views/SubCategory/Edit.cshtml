@@ -8,7 +8,6 @@
 
 <hr />
 @await Html.PartialAsync("_AdminMenu")
-
 <hr />
 
 <form method="post" action="~/subcategory/edit">
@@ -24,7 +23,7 @@
     </div>
     <div class="form-group">
         <label>Name</label>
-        <input autocomplete="off" type="text" name="Name" value="@Model.Name" required />
+        <input class="input-width" autocomplete="off" type="text" name="Name" value="@Model.Name" required />
     </div>
     <div class="form-group">
         <label asp-for="MetaDescription">Meta Description</label>

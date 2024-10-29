@@ -227,7 +227,7 @@ namespace DirectoryManager.Web.Controllers
                 var existing = await this.directoryEntryRepository.GetByIdAsync(submission.DirectoryEntryId.Value);
                 if (existing != null)
                 {
-                    this.ViewBag.Differences = ModelComparisionHelpers.CompareEntries(existing, submission);
+                    this.ViewBag.Differences = ModelComparisonHelpers.CompareEntries(existing, submission);
                 }
             }
 
