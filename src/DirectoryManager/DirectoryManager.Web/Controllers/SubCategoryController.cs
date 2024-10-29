@@ -67,7 +67,10 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Create()
         {
             this.ViewBag.Categories = await this.categoryRepository.GetAllAsync();
-            return this.View();
+
+            // Pass a new Subcategory model to the view
+            var model = new Subcategory();
+            return this.View(model);
         }
 
         [Route("subcategory/create")]
@@ -96,10 +99,12 @@ namespace DirectoryManager.Web.Controllers
             var subCategory = await this.subcategoryRepository.GetByIdAsync(id);
             if (subCategory == null)
             {
-                return this.NotFound();
+                return this.NotFound(); // Handle if the subcategory is not found
             }
 
             this.ViewBag.Categories = await this.categoryRepository.GetAllAsync();
+
+            // Return the view with the subcategory model
             return this.View(subCategory);
         }
 

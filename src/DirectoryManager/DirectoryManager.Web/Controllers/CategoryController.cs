@@ -91,14 +91,29 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Create(Category category)
         {
             category.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
-            category.Name = category.Name.Trim();
-            category.CategoryKey = StringHelpers.UrlKey(category.Name);
-            category.Description = category.Description?.Trim();
-            category.Note = category.Note?.Trim();
-            category.MetaDescription = category.MetaDescription?.Trim();
+            this.PrepareCategory(category);
 
             await this.categoryRepository.CreateAsync(category);
+            this.ClearCachedItems();
 
+            return this.RedirectToAction(nameof(this.Index));
+        }
+
+        [Route("category/edit")]
+        [HttpPost]
+        public async Task<IActionResult> Edit(int id, Category category)
+        {
+            var existingCategory = await this.categoryRepository.GetByIdAsync(id);
+
+            if (existingCategory == null)
+            {
+                return this.NotFound();
+            }
+
+            this.UpdateExistingCategory(existingCategory, category);
+            existingCategory.UpdatedByUserId = this.userManager.GetUserId(this.User);
+
+            await this.categoryRepository.UpdateAsync(existingCategory);
             this.ClearCachedItems();
 
             return this.RedirectToAction(nameof(this.Index));
@@ -117,31 +132,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View(category);
         }
 
-        [Route("category/edit")]
-        [HttpPost]
-        public async Task<IActionResult> Edit(int id, Category category)
-        {
-            var existingCategory = await this.categoryRepository.GetByIdAsync(id);
-
-            if (existingCategory == null)
-            {
-                return this.NotFound();
-            }
-
-            existingCategory.Name = category.Name.Trim();
-            existingCategory.CategoryKey = StringHelpers.UrlKey(category.Name);
-            existingCategory.Description = category.Description?.Trim();
-            existingCategory.Note = category.Note?.Trim();
-            existingCategory.UpdatedByUserId = this.userManager.GetUserId(this.User);
-            existingCategory.MetaDescription = category.MetaDescription?.Trim();
-
-            await this.categoryRepository.UpdateAsync(existingCategory);
-
-            this.ClearCachedItems();
-
-            return this.RedirectToAction(nameof(this.Index));
-        }
-
         [Route("category/delete")]
         public async Task<IActionResult> Delete(int id)
         {
@@ -150,6 +140,24 @@ namespace DirectoryManager.Web.Controllers
             this.ClearCachedItems();
 
             return this.RedirectToAction(nameof(this.Index));
+        }
+
+        private void PrepareCategory(Category category)
+        {
+            category.Name = category.Name.Trim();
+            category.CategoryKey = StringHelpers.UrlKey(category.Name);
+            category.Description = category.Description?.Trim();
+            category.Note = category.Note?.Trim();
+            category.MetaDescription = category.MetaDescription?.Trim();
+        }
+
+        private void UpdateExistingCategory(Category existingCategory, Category newCategory)
+        {
+            existingCategory.Name = newCategory.Name.Trim();
+            existingCategory.CategoryKey = StringHelpers.UrlKey(newCategory.Name);
+            existingCategory.Description = newCategory.Description?.Trim();
+            existingCategory.Note = newCategory.Note?.Trim();
+            existingCategory.MetaDescription = newCategory.MetaDescription?.Trim();
         }
     }
 }

@@ -18,6 +18,8 @@
 
 <form method="post" action="~/directoryentry/create">
 
+<hr />
+
 @if (!ViewData.ModelState.IsValid)
 {
     <div class="alert alert-danger">
@@ -29,7 +31,6 @@
         </ul>
     </div>
 }
-
     <!-- Use the partial view for the form -->
     @await Html.PartialAsync("_DirectoryEntryForm")
 
