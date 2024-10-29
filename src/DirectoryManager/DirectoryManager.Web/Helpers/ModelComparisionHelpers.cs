@@ -11,11 +11,16 @@ namespace DirectoryManager.Web.Helpers
                 return "<p>Either the DirectoryEntry or the Submission is null.</p>";
             }
 
-            // Helper function to compare trimmed strings, considering null values.
+            // Helper function to compare strings, treating null and empty as equivalent.
             static bool NotEqualTrimmed(string? a, string? b)
             {
-                return string.Compare(a?.Trim(), b?.Trim(), StringComparison.OrdinalIgnoreCase) != 0;
+                string normalizedA = NormalizeString(a);
+                string normalizedB = NormalizeString(b);
+                return !string.Equals(normalizedA, normalizedB, StringComparison.OrdinalIgnoreCase);
             }
+
+            // Normalize strings by trimming and treating null, empty, or whitespace-only as empty.
+            static string NormalizeString(string? value) => string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
 
             var differences = new List<string>();
 
@@ -27,10 +32,10 @@ namespace DirectoryManager.Web.Helpers
                     $"<em>Submission:</em> {FormatValue(submissionValue)}</p>");
             }
 
-            // Format null or non-string values safely
+            // Format null or non-string values safely.
             static string FormatValue(object? value) => value?.ToString() ?? "null";
 
-            // Compare properties and add differences to the list
+            // Compare properties and add differences to the list.
             if (NotEqualTrimmed(entry.Name, submission.Name))
             {
                 AddDifference("Name", entry.Name, submission.Name);
@@ -71,7 +76,7 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("Contact", entry.Contact, submission.Contact);
             }
 
-            // Compare SubCategory and Category names safely
+            // Compare SubCategory and Category names safely.
             if (entry.SubCategoryId != submission.SubCategoryId)
             {
                 string entrySubCategory = $"{FormatValue(entry.SubCategory?.Category?.Name)} > {FormatValue(entry.SubCategory?.Name)}";
@@ -79,7 +84,7 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("Subcategory", entrySubCategory, submissionSubCategory);
             }
 
-            // Compare DirectoryStatus safely
+            // Compare DirectoryStatus safely.
             if (entry.DirectoryStatus != submission.DirectoryStatus)
             {
                 AddDifference("Directory Status", entry.DirectoryStatus, submission.DirectoryStatus);
