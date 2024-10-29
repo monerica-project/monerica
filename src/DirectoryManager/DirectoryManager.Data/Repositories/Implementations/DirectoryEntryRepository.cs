@@ -100,9 +100,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existingEntry.UpdateDate = DateTime.UtcNow;
             existingEntry.UpdatedByUserId = entry.UpdatedByUserId;
 
-            this.context.DirectoryEntries.Update(existingEntry);
-            await this.context.SaveChangesAsync();
-            await this.WriteToAuditLog(existingEntry);
+            try
+            {
+                this.context.DirectoryEntries.Update(existingEntry);
+                await this.context.SaveChangesAsync();
+                await this.WriteToAuditLog(existingEntry);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
+            }
         }
 
         public async Task DeleteAsync(int directoryEntryId)
