@@ -106,13 +106,23 @@ async Task CreateOfflineSubmissionIfNotExists(
     // Create a new submission with the appropriate details
     var submission = new Submission
     {
+        // submission changes
+        Note = newNote,
+        DirectoryStatus = DirectoryStatus.Removed,
+
+        // stays the same
         DirectoryEntryId = entry.DirectoryEntryId,
         Name = entry.Name,
         Link = entry.Link,
-        DirectoryStatus = DirectoryStatus.Removed,
-        Note = newNote,
         SubmissionStatus = SubmissionStatus.Pending,
-        SubCategoryId = entry.SubCategoryId
+        SubCategoryId = entry.SubCategoryId,
+        Description = entry.Description,
+        Contact = entry.Contact,
+        Link2 = entry.Link2,
+        Link3 = entry.Link3,
+        Location = entry.Location,
+        Processor = entry.Processor,
+        SubCategory = entry.SubCategory,
     };
 
     await submissionRepository.CreateAsync(submission);
