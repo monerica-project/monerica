@@ -12,6 +12,7 @@
 <hr />
 
 <a href="~/directoryentry/create">Create directory entry</a>
+<hr />
 
 <form method="get">
     <label for="combinedFilter">Category > Subcategory: </label>
@@ -29,7 +30,6 @@
 @foreach (var entry in Model)
 {
     <div>
-        <a href="@entry.Link">@entry.Name</a> - 
-        <a href="@Url.Action("Edit", new { id = entry.DirectoryEntryId })">Edit</a>
+        <a href="@entry.Link">@entry.Name</a> - <a href="@Url.Action("Edit", new { id = entry.DirectoryEntryId })">Edit</a>
     </div>
 }
