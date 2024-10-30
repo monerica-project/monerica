@@ -150,7 +150,7 @@
         }
         @if (!string.IsNullOrEmpty(category.Note))
         {
-            <p><i>(Note: @Html.Raw(category.Note)</i>)</p>
+            <p><i>Note: @Html.Raw(category.Note)</i></p>
         }
         @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId))
         {
@@ -161,7 +161,7 @@
             }
             if (!string.IsNullOrEmpty(subCategory.Note))
             {
-                <i>(Note: @Html.Raw(subCategory.Note))</i>
+                <i>Note: @Html.Raw(subCategory.Note)</i>
             }
             var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
             var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
