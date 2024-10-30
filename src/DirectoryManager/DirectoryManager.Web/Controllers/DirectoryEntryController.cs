@@ -259,7 +259,7 @@ namespace DirectoryManager.Web.Controllers
 
             var existingEntry = await this.directoryEntryRepository.GetBySubCategoryAndKeyAsync(subCategory.SubCategoryId, directoryEntryKey);
 
-            if (existingEntry == null)
+            if (existingEntry == null || existingEntry.DirectoryStatus == DirectoryStatus.Removed)
             {
                 return this.NotFound();
             }
