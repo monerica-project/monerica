@@ -45,6 +45,7 @@ properties {
 
    # Application Resources    
     $customDomain               = ""
+    $requestProtocol            = "https://"
 }
 
 task default # required task
@@ -179,7 +180,7 @@ task -name DeployWebApp -depends SetConfigs, RestorePackages, BuildProject, RunU
 
     exec {
 
-        $url = "http://$webAppHost"
+        $url = $requestProtocol + $webAppHost
         Write-Host "Deployment completed, requesting page '$url'..."    
 
         Retry-Command -ScriptBlock {
