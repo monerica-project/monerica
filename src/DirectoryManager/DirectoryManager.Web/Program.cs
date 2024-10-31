@@ -22,6 +22,7 @@ using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Configure Serilog logging
 var logger = new LoggerConfiguration()
    .ReadFrom.Configuration(builder.Configuration)
    .Enrich.FromLogContext()
@@ -30,15 +31,19 @@ builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(logger);
 
 builder.Services.AddResponseCaching();
-builder.Services.AddControllersWithViews(); // Add MVC services to the DI container
+builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 builder.Services.AddMemoryCache();
 builder.Services.AddMvc();
 
-// database context
-builder.Services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
+// Register ApplicationDbContext with DbContextOptions
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// database repositories
+// Register ApplicationDbContext as IApplicationDbContext
+builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
+
+// Database repositories
 builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
 builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
 builder.Services.AddScoped<ISubcategoryRepository, SubcategoryRepository>();
@@ -56,7 +61,7 @@ builder.Services.AddScoped<IProcessorConfigRepository, ProcessorConfigRepository
 builder.Services.AddScoped<IEmailSubscriptionRepository, EmailSubscriptionRepository>();
 builder.Services.AddScoped<IBlockedIPRepository, BlockedIPRepository>();
 
-// services
+// Services
 builder.Services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
 builder.Services.AddTransient<ICacheService, CacheService>();
 builder.Services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
@@ -94,24 +99,7 @@ builder.Services.AddSingleton<IBlobService>(provider =>
     }).GetAwaiter().GetResult();
 });
 
-builder.Services.AddSingleton<IBlobService>(provider =>
-{
-    return Task.Run(async () =>
-    {
-        using var scope = provider.CreateScope();
-        var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
-        var azureStorageConnection = cacheService.GetSnippet(SiteConfigSetting.AzureStorageConnectionString);
-        var blobServiceClient = new BlobServiceClient(azureStorageConnection);
-
-        return await BlobService.CreateAsync(blobServiceClient);
-    }).GetAwaiter().GetResult();
-});
-
 builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
-
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
     .AddEntityFrameworkStores<ApplicationDbContext>()
