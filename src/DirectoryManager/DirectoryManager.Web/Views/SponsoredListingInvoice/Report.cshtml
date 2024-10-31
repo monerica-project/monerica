@@ -12,6 +12,11 @@
 
 <hr />
 
+<div>
+    <a href="@Url.Action("Index")">Back to list</a>
+</div>
+<hr />
+
 <form method="get" action="@Url.Action("Report")">
     <div class="form-group">
         <label for="StartDate">Start Date</label>
@@ -24,13 +29,11 @@
     <button type="submit" class="btn btn-primary">Get Totals</button>
 </form>
 
+<br />
+
 <p>
     Range: @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat) - @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
 </p>
 
 <p>Total Paid Amount: @Model.TotalPaidAmount @Model.PaidInCurrency</p>
 <p>Total Amount Requested: @Model.TotalAmount @Model.Currency</p>
-
-<div>
-    <a href="@Url.Action("Index")">Back to list</a>
-</div>
