@@ -2,7 +2,6 @@
 {
     public class ApplicationSettings
     {
-        public bool UseHttpsRedirection { get; set; }
-        public int KestrelPort { get; set; }
+        public int TorPort { get; set; } = 8081;
     }
 }
