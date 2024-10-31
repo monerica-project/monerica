@@ -1,23 +1,9 @@
-using Azure.Storage.Blobs;
-using DirectoryManager.Data.DbContextInfo;
-using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Repositories.Implementations;
-using DirectoryManager.Data.Repositories.Interfaces;
-using DirectoryManager.FileStorage.Repositories.Implementations;
-using DirectoryManager.FileStorage.Repositories.Interfaces;
 using DirectoryManager.Web.AppRules;
+using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Middleware;
 using DirectoryManager.Web.Services.Implementations;
-using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
-using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
-using NowPayments.API.Implementations;
-using NowPayments.API.Interfaces;
-using NowPayments.API.Models;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -30,80 +16,7 @@ var logger = new LoggerConfiguration()
 builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(logger);
 
-builder.Services.AddResponseCaching();
-builder.Services.AddControllersWithViews();
-builder.Services.AddRazorPages();
-builder.Services.AddMemoryCache();
-builder.Services.AddMvc();
-
-// Register ApplicationDbContext with DbContextOptions
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-
-// Register ApplicationDbContext as IApplicationDbContext
-builder.Services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
-
-// Database repositories
-builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<ISubcategoryRepository, SubcategoryRepository>();
-builder.Services.AddScoped<IDirectoryEntryRepository, DirectoryEntryRepository>();
-builder.Services.AddScoped<IDirectoryEntriesAuditRepository, DirectoryEntriesAuditRepository>();
-builder.Services.AddScoped<IDirectoryEntrySelectionRepository, DirectoryEntrySelectionRepository>();
-builder.Services.AddScoped<ITrafficLogRepository, TrafficLogRepository>();
-builder.Services.AddScoped<IExcludeUserAgentRepository, ExcludeUserAgentRepository>();
-builder.Services.AddScoped<ISponsoredListingInvoiceRepository, SponsoredListingInvoiceRepository>();
-builder.Services.AddScoped<ISponsoredListingRepository, SponsoredListingRepository>();
-builder.Services.AddScoped<ISponsoredListingReservationRepository, SponsoredListingReservationRepository>();
-builder.Services.AddScoped<ISponsoredListingOfferRepository, SponsoredListingOfferRepository>();
-builder.Services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
-builder.Services.AddScoped<IProcessorConfigRepository, ProcessorConfigRepository>();
-builder.Services.AddScoped<IEmailSubscriptionRepository, EmailSubscriptionRepository>();
-builder.Services.AddScoped<IBlockedIPRepository, BlockedIPRepository>();
-
-// Services
-builder.Services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
-builder.Services.AddTransient<ICacheService, CacheService>();
-builder.Services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
-builder.Services.AddScoped<IRssFeedService, RssFeedService>();
-
-builder.Services.AddScoped(provider =>
-{
-    var configRepo = provider.GetRequiredService<IProcessorConfigRepository>();
-    var processorConfigTask = configRepo.GetByProcessorAsync(PaymentProcessor.NOWPayments);
-    processorConfigTask.Wait();
-    var processorConfig = processorConfigTask.Result;
-
-    if (processorConfig == null)
-    {
-        throw new Exception("NOWPayments processor config not found");
-    }
-
-    var nowPaymentsConfig = JsonConvert.DeserializeObject<NowPaymentConfigs>(processorConfig.Configuration);
-
-    return nowPaymentsConfig == null ?
-        throw new Exception("NOWPayments config not found") :
-        (INowPaymentsService)new NowPaymentsService(nowPaymentsConfig);
-});
-
-builder.Services.AddSingleton<IBlobService>(provider =>
-{
-    return Task.Run(async () =>
-    {
-        using var scope = provider.CreateScope();
-        var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
-        var azureStorageConnection = cacheService.GetSnippet(SiteConfigSetting.AzureStorageConnectionString);
-        var blobServiceClient = new BlobServiceClient(azureStorageConnection);
-
-        return await BlobService.CreateAsync(blobServiceClient);
-    }).GetAwaiter().GetResult();
-});
-
-builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
-
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders();
+builder.Services.AddApplicationServices(builder.Configuration);
 
 var app = builder.Build();
 
