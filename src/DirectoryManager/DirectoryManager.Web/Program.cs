@@ -64,6 +64,7 @@ app.Use(async (context, next) =>
         context.Response.Redirect(httpsUrl, permanent: true);
         return;
     }
+
     // Allow requests on TorPort to remain HTTP-only
     await next();
 });
@@ -84,9 +85,9 @@ else
             if (exception != null)
             {
                 var logger = app.Services.GetRequiredService<ILogger<Program>>();
-                logger.LogError(exception, "An unhandled exception occurred.");
+                logger.LogError(exception, StringConstants.GenericExceptionMessage);
                 context.Response.StatusCode = 500;
-                await context.Response.WriteAsync("An unexpected error happened.");
+                await context.Response.WriteAsync(StringConstants.GenericExceptionMessage);
             }
         });
     });
