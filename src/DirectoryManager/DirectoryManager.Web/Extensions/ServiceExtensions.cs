@@ -26,6 +26,7 @@ namespace DirectoryManager.Web.Extensions
             services.AddRazorPages();
             services.AddMemoryCache();
             services.AddMvc();
+            services.AddHttpContextAccessor();
 
             // Register ApplicationDbContext with DbContextOptions
             services.AddDbContext<ApplicationDbContext>(options =>
@@ -33,7 +34,6 @@ namespace DirectoryManager.Web.Extensions
 
             // Register ApplicationDbContext as IApplicationDbContext
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
-            // Register application services
 
             // Register ApplicationDbContext as IApplicationDbContext
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
