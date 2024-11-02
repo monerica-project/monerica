@@ -17,7 +17,15 @@
     {
         @Html.Raw(ViewData[StringConstants.MetaContent])
     }
-
+    @{
+        var torUrl = cacheHelper.GetSnippet(SiteConfigSetting.FullRootTorUrl);
+        if (!string.IsNullOrWhiteSpace(torUrl))
+        {
+            torUrl = DirectoryManager.Web.Helpers.UrlHelper.NormalizeUrl(torUrl);
+            var currentPath = Context.Request.Path + Context.Request.QueryString;
+    <meta http-equiv="onion-location" content="@($"{torUrl}{currentPath}")" />
+        }
+    }
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />

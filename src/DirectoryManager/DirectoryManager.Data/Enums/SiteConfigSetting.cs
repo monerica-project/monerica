@@ -27,6 +27,6 @@
         TopBanner = 22,
         FullRootUrl = 23,
         CanonicalDomain = 24,
-        TorHostnameFilePath = 25,
+        FullRootTorUrl = 25,
     }
 }
