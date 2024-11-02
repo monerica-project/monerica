@@ -24,7 +24,7 @@ namespace DirectoryManager.Web.Services.Implementations
                                 entry.DirectoryStatus == Data.Enums.DirectoryStatus.Scam
                                     ? $"{Data.Enums.DirectoryStatus.Scam}! - {entry.Name}"
                                     : entry.Name),
-                            new XElement("link", entry.Link),
+                            new XElement("link", string.IsNullOrEmpty(entry.LinkA) ? entry.Link : entry.LinkA),
                             new XElement(
                                 "description",
                                 string.IsNullOrEmpty(entry.Note)
