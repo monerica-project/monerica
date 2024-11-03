@@ -197,6 +197,7 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
+            this.ViewBag.Subcategory = string.Format("{0} > {1}", directoryEntry?.SubCategory?.Category.Name, directoryEntry?.SubCategory?.Name);
             this.ViewBag.SubCategoryId = directoryEntry?.SubCategoryId;
             this.ViewBag.DirectoryEntryId = directoryEntryId;
             this.ViewBag.SponsorshipType = sponsorshipType;

@@ -16,8 +16,9 @@
 
 <hr />
 <a href="~/sponsoredlisting/selectlisting?sponsorshipType=@ViewBag.SponsorshipType&subCategoryId=@ViewBag.SubCategoryId">&lt; back</a>
-
 <hr />
+
+<p>Category: @this.ViewBag.Subcategory</p>
 
 <p><i>@Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.PaymentCurrencyMessage))</i></p>
 
