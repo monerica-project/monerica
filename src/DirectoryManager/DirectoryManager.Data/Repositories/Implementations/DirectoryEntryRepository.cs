@@ -154,6 +154,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             return await this.GetActiveEntriesQuery()
                 .OrderByDescending(entry => entry.CreateDate)
+                .Include(de => de.SubCategory!)
+                .ThenInclude(sc => sc.Category!)
                 .Take(count)
                 .ToListAsync();
         }

@@ -9,16 +9,22 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly IRssFeedService rssFeedService;
+        private readonly ICacheService cacheService;
 
-        public RssController(IDirectoryEntryRepository directoryEntryRepository, IRssFeedService rssFeedService)
+        public RssController(
+            IDirectoryEntryRepository directoryEntryRepository,
+            IRssFeedService rssFeedService,
+            ICacheService cacheService)
         {
             this.directoryEntryRepository = directoryEntryRepository;
             this.rssFeedService = rssFeedService;
+            this.cacheService = cacheService;
         }
 
         [HttpGet("rss/feed.xml")]
         public async Task<IActionResult> FeedXml()
         {
+            var siteName = this.cacheService.GetSnippet(Data.Enums.SiteConfigSetting.SiteName);
             var newestEntries = await this.directoryEntryRepository.GetNewestAdditions(IntegerConstants.MaxPageSize);
 
             var feedLink = this.Url.Action("FeedXml", "Rss", null, this.Request.Scheme);
@@ -31,7 +37,7 @@ namespace DirectoryManager.Web.Controllers
 
             var rssFeed = this.rssFeedService.GenerateRssFeed(
                 newestEntries,
-                "Newest Additions",
+                $"{siteName} - {IntegerConstants.MaxPageSize} Newest Additions",
                 feedLink, // Pass the validated feedLink
                 "The latest additions to our directory.");
 
