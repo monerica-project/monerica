@@ -174,7 +174,10 @@ namespace DirectoryManager.Web.Helpers
                     sb.Append(entry.Name);
                     sb.Append("</p>");
                     sb.Append(" - ");
-                    sb.AppendFormat("<a target=\"_blank\" class=\"multi-line-text small-font\" href=\"{0}\">{1}</a>", entry.Link, entry.Link);
+
+                    // Use LinkA as href if available, otherwise fall back to Link, but display Link text
+                    var href = !string.IsNullOrWhiteSpace(entry.LinkA) ? entry.LinkA : entry.Link;
+                    sb.AppendFormat("<a target=\"_blank\" class=\"multi-line-text small-font\" href=\"{0}\">{1}</a>", href, entry.Link);
 
                     if (!string.IsNullOrWhiteSpace(entry.Description))
                     {
