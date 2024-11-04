@@ -1,4 +1,6 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Models;
 
@@ -141,6 +143,54 @@ namespace DirectoryManager.Web.Helpers
             // Closing </li> tag
             sb.Append("</li>");
 
+            return sb.ToString();
+        }
+
+        public static string GenerateGroupedDirectoryEntryHtml(IEnumerable<GroupedDirectoryEntry> groupedEntries)
+        {
+            var sb = new StringBuilder();
+
+            sb.Append("<ul class=\"newest_items\">");
+
+            foreach (var group in groupedEntries)
+            {
+                sb.Append("<li>");
+                sb.AppendFormat(
+                    "<pre>{0} Additions:</pre>",
+                    DateTime.ParseExact(group.Date, Common.Constants.StringConstants.DateFormat, CultureInfo.InvariantCulture)
+                        .ToString(Common.Constants.StringConstants.DateFormat));
+
+                sb.Append("<ul>");
+                foreach (var entry in group.Entries)
+                {
+                    sb.Append("<li>");
+                    sb.Append("<p style=\"display:inline;\" class=\"small-font\">");
+
+                    if (entry.DirectoryStatus == Data.Enums.DirectoryStatus.Scam)
+                    {
+                        sb.Append("<strong>Scam!</strong> - ");
+                    }
+
+                    sb.Append(entry.Name);
+                    sb.Append("</p>");
+                    sb.Append(" - ");
+                    sb.AppendFormat("<a target=\"_blank\" class=\"multi-line-text small-font\" href=\"{0}\">{1}</a>", entry.Link, entry.Link);
+
+                    if (!string.IsNullOrWhiteSpace(entry.Description))
+                    {
+                        sb.Append(" - ");
+                        sb.AppendFormat("<p style=\"display:inline;\" class=\"small-font\">{0}</p>", entry.Description);
+                    }
+
+                    sb.Append("</li>");
+                }
+
+                sb.Append("</ul>");
+                sb.Append("</li>");
+                sb.AppendLine();
+            }
+
+            sb.Append("</ul>");
             return sb.ToString();
         }
 
