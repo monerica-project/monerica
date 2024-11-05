@@ -1,4 +1,5 @@
 ﻿using Azure.Storage.Blobs;
+using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
@@ -30,7 +31,7 @@ namespace DirectoryManager.Web.Extensions
 
             // Register ApplicationDbContext with DbContextOptions
             services.AddDbContext<ApplicationDbContext>(options =>
-                  options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
+                  options.UseSqlServer(configuration.GetConnectionString(StringConstants.DefaultConnection)));
 
             // Register ApplicationDbContext as IApplicationDbContext
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());

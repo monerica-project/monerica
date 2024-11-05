@@ -1,4 +1,5 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
@@ -12,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 // Build configuration
 var config = new ConfigurationBuilder()
     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-    .AddJsonFile("appsettings.json")
+    .AddJsonFile(StringConstants.AppSettingsFileName)
     .Build();
 
 // Get the User-Agent header value from the configuration
@@ -21,7 +22,7 @@ var userAgentHeader = config["UserAgent:Header"] ?? throw new InvalidOperationEx
 // Register services in the service container
 var serviceProvider = new ServiceCollection()
     .AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlServer(config.GetConnectionString("DefaultConnection")))
+        options.UseSqlServer(config.GetConnectionString(StringConstants.DefaultConnection)))
     .AddTransient<IApplicationDbContext, ApplicationDbContext>()
     .AddTransient<IDirectoryEntryRepository, DirectoryEntryRepository>()
     .AddTransient<ISubmissionRepository, SubmissionRepository>()
