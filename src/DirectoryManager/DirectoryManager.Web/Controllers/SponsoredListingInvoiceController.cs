@@ -40,8 +40,26 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.PageSize = pageSize;
             this.ViewBag.TotalItems = totalItems;
             this.ViewBag.TotalPages = totalPages;
+            this.ViewBag.IsPaidOnly = false; // For all invoices
 
             return this.View(invoices);
+        }
+
+        [Route("sponsoredlistinginvoice/paid")]
+        [HttpGet]
+        public async Task<IActionResult> PaidIndex(int page = 1, int pageSize = 10)
+        {
+            var (invoices, totalItems) = await this.invoiceRepository.GetPageByTypeAsync(page, pageSize, PaymentStatus.Paid);
+
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            this.ViewBag.CurrentPage = page;
+            this.ViewBag.PageSize = pageSize;
+            this.ViewBag.TotalItems = totalItems;
+            this.ViewBag.TotalPages = totalPages;
+            this.ViewBag.IsPaidOnly = true; // For paid invoices only
+
+            return this.View("Index", invoices); // Reuse the same view
         }
 
         [Route("sponsoredlistinginvoice/details")]

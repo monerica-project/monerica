@@ -66,6 +66,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return (invoices, totalItems);
         }
 
+        public async Task<(IEnumerable<SponsoredListingInvoice>, int)> GetPageByTypeAsync(
+            int page,
+            int pageSize,
+            Enums.PaymentStatus paymentStatus)
+        {
+            var totalItems = await this.context
+                                       .SponsoredListingInvoices
+                                       .Where(x => x.PaymentStatus == paymentStatus).CountAsync();
+            var invoices = await this.context.SponsoredListingInvoices
+                                             .OrderByDescending(i => i.CreateDate)
+                                             .Where(x => x.PaymentStatus == paymentStatus)
+                                             .Skip((page - 1) * pageSize)
+                                             .Take(pageSize)
+                                             .ToListAsync();
+
+            return (invoices, totalItems);
+        }
+
         public async Task DeleteAsync(int sponsoredListingInvoiceId)
         {
             var invoice = await this.GetByIdAsync(sponsoredListingInvoiceId);

@@ -8,12 +8,16 @@
     int pageSize = ViewBag.PageSize ?? 10;
     int totalItems = ViewBag.TotalItems ?? 0;
     int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+    bool isPaidOnly = ViewBag.IsPaidOnly ?? false;
 }
 
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@(isPaidOnly ? "Paid Invoices" : "All Invoices")</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 
+<!-- Links to toggle between all invoices and paid invoices -->
+<a href="@Url.Action("Index")">All Invoices</a> |
+<a href="@Url.Action("PaidIndex")">Paid Invoices</a> | 
 <a href="@Url.Action("Report")">Report</a>
 
 <hr />
@@ -31,10 +35,10 @@
     </thead>
     <tbody>
         @{
-        var endedStatuses = new HashSet<DirectoryManager.Data.Enums.PaymentStatus>
+            var endedStatuses = new HashSet<DirectoryManager.Data.Enums.PaymentStatus>
         {
-            DirectoryManager.Data.Enums.PaymentStatus.Failed,
-            DirectoryManager.Data.Enums.PaymentStatus.Expired
+        DirectoryManager.Data.Enums.PaymentStatus.Failed,
+        DirectoryManager.Data.Enums.PaymentStatus.Expired
         };
         }
         @foreach (var invoice in Model)
@@ -72,7 +76,7 @@
         <tr>
             <td>
                 <!-- Previous Page Link -->
-                <a href="@Url.Action("Index", new { page = Math.Max(1, currentPage - 1) })" aria-label="Previous" @(currentPage == 1 ? "disabled" : "")>
+                <a href="@Url.Action(isPaidOnly ? "PaidIndex" : "Index", new { page = Math.Max(1, currentPage - 1) })" aria-label="Previous" @(currentPage == 1 ? "disabled" : "")>
                     &laquo;
                 </a>
             </td>
@@ -86,13 +90,13 @@
                     }
                     else
                     {
-                        <a href="@Url.Action("Index", new { page = i })">@i</a>
+                        <a href="@Url.Action(isPaidOnly ? "PaidIndex" : "Index", new { page = i })">@i</a>
                     }
                 </td>
             }
             <td>
                 <!-- Next Page Link -->
-                <a href="@Url.Action("Index", new { page = Math.Min(totalPages, currentPage + 1) })" aria-label="Next" @(currentPage == totalPages ? "disabled" : "")>
+                <a href="@Url.Action(isPaidOnly ? "PaidIndex" : "Index", new { page = Math.Min(totalPages, currentPage + 1) })" aria-label="Next" @(currentPage == totalPages ? "disabled" : "")>
                     &raquo;
                 </a>
             </td>
