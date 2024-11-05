@@ -164,7 +164,7 @@ namespace DirectoryManager.Web.Helpers
                 foreach (var entry in group.Entries)
                 {
                     sb.Append("<li>");
-                    sb.Append("<p style=\"display:inline;\" class=\"small-font\">");
+                    sb.Append("<p class=\"small-font text-inline\">");
 
                     if (entry.DirectoryStatus == Data.Enums.DirectoryStatus.Scam)
                     {
@@ -182,7 +182,7 @@ namespace DirectoryManager.Web.Helpers
                     if (!string.IsNullOrWhiteSpace(entry.Description))
                     {
                         sb.Append(" - ");
-                        sb.AppendFormat("<p style=\"display:inline;\" class=\"small-font\">{0}</p>", entry.Description);
+                        sb.AppendFormat("<p class=\"small-font text-inline\">{0}</p>", entry.Description);
                     }
 
                     sb.Append("</li>");
