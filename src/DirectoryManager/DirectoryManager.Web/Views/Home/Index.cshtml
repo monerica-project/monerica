@@ -14,14 +14,25 @@
     ViewData[StringConstants.TitleHeader] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageTitle));
     ViewData[StringConstants.MetaContent] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageMetaTags));
 }
+
 <cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.EntriesCacheKey">
     @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageDisplayHtml))
+
     <hr />
-    <p class="last_update">
-        <b>Last Update:</b> @directoryEntryRepository.GetLastRevisionDate().ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
-    </p>
+
+    <div class="top-container">
+        <div class="top-container-left-column">
+            <p class="centered-text"><b>Last Update:</b> @directoryEntryRepository.GetLastRevisionDate().ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</p>
+        </div>
+        <div class="top-container-right-column">
+                @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.TopMenuActionsHtml))
+            </div>
+        </div>
+
     <hr />
-        @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.DirectoryLegendHtml))
+
+    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.DirectoryLegendHtml)) 
+
     <hr />
     
     @await Html.PartialAsync("_SponsoredListingPartial")
