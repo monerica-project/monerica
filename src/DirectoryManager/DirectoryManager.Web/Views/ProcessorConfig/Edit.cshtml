@@ -8,11 +8,8 @@
 
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
-<hr />
 @await Html.PartialAsync("_AdminMenu")
 
-<hr />
- 
 <form asp-action="Edit" method="post">
     <input type="hidden" asp-for="ProcessorConfigId" />
     <div class="form-group">

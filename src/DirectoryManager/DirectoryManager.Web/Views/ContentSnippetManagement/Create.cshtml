@@ -8,11 +8,8 @@
     ViewBag.SnippetTypes = new SelectList(Model.UnusedSnippetTypes, "Value", "Text");
 }
 
-<h2>@ViewData[StringConstants.TitleHeader]</h2>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
-<hr />
 @await Html.PartialAsync("_AdminMenu")
-
-<hr />
 
 @await Html.PartialAsync("_ContentSnippetForm", Model)

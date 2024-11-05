@@ -6,6 +6,5 @@
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_BackToHome")
-<hr />
  
 @Html.Raw(cacheHelper.GetSnippet(DirectoryManager.Data.Enums.SiteConfigSetting.ContactHtml))
