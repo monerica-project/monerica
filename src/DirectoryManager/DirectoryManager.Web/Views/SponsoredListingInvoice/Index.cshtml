@@ -14,9 +14,7 @@
 
 @await Html.PartialAsync("_AdminMenu")
 
-<div>
-    <a href="@Url.Action("Report")">Report</a>
-</div>
+<a href="@Url.Action("Report")">Report</a>
 
 <hr />
 
@@ -43,7 +41,7 @@
         @foreach (var invoice in Model)
         {
             <tr>
-                    <td>@invoice.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
+                <td>@invoice.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
                 <td>
 
                     @if (invoice.PaymentStatus == DirectoryManager.Data.Enums.PaymentStatus.Paid)
