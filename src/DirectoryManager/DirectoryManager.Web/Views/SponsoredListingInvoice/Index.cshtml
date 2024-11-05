@@ -37,13 +37,11 @@
             DirectoryManager.Data.Enums.PaymentStatus.Expired
         };
         }
-
         @foreach (var invoice in Model)
         {
             <tr>
                 <td>@invoice.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
                 <td>
-
                     @if (invoice.PaymentStatus == DirectoryManager.Data.Enums.PaymentStatus.Paid)
                     {
                         <text>&#x1F4B0;</text> @EnumHelper.GetDescription(invoice.PaymentStatus)
@@ -56,8 +54,8 @@
                     {
                         @EnumHelper.GetDescription(invoice.PaymentStatus)
                     }
-                    </td>
-                    <td>@invoice.Amount.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat) (@invoice.Currency.ToString())</td>
+                </td>
+                <td>@invoice.Amount.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat) (@invoice.Currency.ToString())</td>
                 <td>@invoice.OutcomeAmount</td>
                 <td>@invoice.PaidInCurrency</td>
                 <td>

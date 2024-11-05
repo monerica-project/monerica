@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
@@ -66,15 +67,26 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            if (sponsoredListingInvoice.SubCategoryId.HasValue)
+            Subcategory? subcategory = null;
+
+            if (sponsoredListingInvoice.SubCategoryId != null)
             {
-                this.ViewBag.SubCategory = (await this.subCategoryRepository
-                                                        .GetAllActiveSubCategoriesAsync())
-                                                        .OrderBy(sc => sc.Category.Name)
-                                                        .ThenBy(sc => sc.Name)
-                                                        .Where(sc => sc.SubCategoryId == sponsoredListingInvoice.SubCategoryId.Value)
-                                                        .ToList()
-                                                        .First();
+                subcategory = (await this.subCategoryRepository
+                                             .GetAllActiveSubCategoriesAsync())
+                                             .OrderBy(sc => sc.Category.Name)
+                                             .ThenBy(sc => sc.Name)
+                                             .Where(sc => sc.SubCategoryId == sponsoredListingInvoice.SubCategoryId.Value)
+                                             .FirstOrDefault();
+            }
+
+            if (subcategory != null)
+            {
+                this.ViewBag.SubCategory = subcategory;
+            }
+            else
+            {
+                // Handle the case when no matching subcategory is found
+                this.ViewBag.SubCategory = null; // or provide a default value if appropriate
             }
 
             this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel()
