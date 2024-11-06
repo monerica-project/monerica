@@ -13,6 +13,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DirectoryManager.Data\DirectoryManager.Data.csproj" />
+    <ProjectReference Include="..\DirectoryManager.Services\DirectoryManager.Services.csproj" />
   </ItemGroup>
 
 </Project>
