@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.DbContextInfo;
+﻿using DirectoryManager.Data.Constants;
+using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -19,7 +20,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             return await this.context
                              .SponsoredListingOffers
-                             .Include(slo => slo.Subcategory)
+                             .Include(slo => slo.Subcategory!)
+                             .ThenInclude(sub => sub.Category)
                              .OrderBy(slo => slo.SponsorshipType)
                              .ThenBy(slo => slo.SubcategoryId.HasValue)
                              .ThenBy(slo => slo.Subcategory != null ? slo.Subcategory.Name : string.Empty)
@@ -71,8 +73,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task UpdateAsync(SponsoredListingOffer offer)
         {
-            this.context.SponsoredListingOffers.Update(offer);
-            await this.context.SaveChangesAsync();
+            try
+            {
+                this.context.SponsoredListingOffers.Update(offer);
+                await this.context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
+            }
         }
 
         public async Task DeleteOfferAsync(int sponsoredListingOfferId)
