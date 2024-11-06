@@ -1,4 +1,5 @@
-﻿using System.Xml.Linq;
+﻿using System.Text;
+using System.Xml.Linq;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Web.Services.Interfaces;
 
@@ -6,7 +7,11 @@ namespace DirectoryManager.Web.Services.Implementations
 {
     public class RssFeedService : IRssFeedService
     {
-        public XDocument GenerateRssFeed(IEnumerable<DirectoryEntry> directoryEntries, string feedTitle, string feedLink, string feedDescription)
+        public XDocument GenerateRssFeed(
+            IEnumerable<DirectoryEntry> directoryEntries,
+            string feedTitle,
+            string feedLink,
+            string feedDescription)
         {
             var rss = new XElement(
                 "rss",
@@ -35,35 +40,37 @@ namespace DirectoryManager.Web.Services.Implementations
 
         private string FormatDescription(DirectoryEntry entry)
         {
+            var descriptionBuilder = new StringBuilder();
+
             // Retrieve category and subcategory info
             var categoryInfo = entry.SubCategory?.Category != null
                 ? $"{entry.SubCategory.Category.Name} > {entry.SubCategory.Name}"
                 : entry.SubCategory?.Name ?? "Uncategorized";
 
-            // Build the description with Category > Subcategory : Description - Note format
-            var formattedDescription = $"{categoryInfo} : {entry.Description}";
+            // Append category info and main description
+            descriptionBuilder.Append(categoryInfo).Append(" : ").Append(entry.Description);
 
             // Append note if it exists
             if (!string.IsNullOrWhiteSpace(entry.Note))
             {
-                formattedDescription += $" - Note: {entry.Note}";
+                descriptionBuilder.Append(" - Note: ").Append(entry.Note);
             }
 
             // Append additional fields if they are not null or empty
             if (!string.IsNullOrWhiteSpace(entry.Location))
             {
-                formattedDescription += $" - Location: {entry.Location}";
+                descriptionBuilder.Append(" - Location: ").Append(entry.Location);
             }
             if (!string.IsNullOrWhiteSpace(entry.Processor))
             {
-                formattedDescription += $" - Processor: {entry.Processor}";
+                descriptionBuilder.Append(" - Processor: ").Append(entry.Processor);
             }
             if (!string.IsNullOrWhiteSpace(entry.Contact))
             {
-                formattedDescription += $" - Contact: {entry.Contact}";
+                descriptionBuilder.Append(" - Contact: ").Append(entry.Contact);
             }
 
-            return formattedDescription;
+            return descriptionBuilder.ToString();
         }
     }
 }
