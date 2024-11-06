@@ -38,6 +38,12 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
+        [HttpGet("donate")]
+        public IActionResult Donate()
+        {
+            return this.View();
+        }
+
         [HttpGet("newest")]
         public async Task<IActionResult> Newest(int pageNumber = 1, int pageSize = IntegerConstants.DefaultPageSize)
         {
