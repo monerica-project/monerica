@@ -35,7 +35,7 @@
                     }
                     else
                     {
-                        @item.Subcategory?.Name
+                        @string.Format("{0} > {1}", item.Subcategory.Category?.Name, @item.Subcategory?.Name)
                     }
                 </td>
                 <td>@item.Days</td>
