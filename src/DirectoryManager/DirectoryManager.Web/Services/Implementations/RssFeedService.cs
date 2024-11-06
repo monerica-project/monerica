@@ -49,6 +49,20 @@ namespace DirectoryManager.Web.Services.Implementations
                 formattedDescription += $" - Note: {entry.Note}";
             }
 
+            // Append additional fields if they are not null or empty
+            if (!string.IsNullOrWhiteSpace(entry.Location))
+            {
+                formattedDescription += $" - Location: {entry.Location}";
+            }
+            if (!string.IsNullOrWhiteSpace(entry.Processor))
+            {
+                formattedDescription += $" - Processor: {entry.Processor}";
+            }
+            if (!string.IsNullOrWhiteSpace(entry.Contact))
+            {
+                formattedDescription += $" - Contact: {entry.Contact}";
+            }
+
             return formattedDescription;
         }
     }
