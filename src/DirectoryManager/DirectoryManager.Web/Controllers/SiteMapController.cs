@@ -134,7 +134,7 @@ namespace DirectoryManager.Web.Controllers
                 siteMapHelper.SiteMapItems.Add(new SiteMapItem
                 {
                     Url = string.Format("{0}/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), category.CategoryKey),
-                    Priority = 1.0,
+                    Priority = 0.6,
                     ChangeFrequency = ChangeFrequency.Weekly,
                     LastMod = lastChangeForCategoryOrSubcategory // Use mostRecentUpdateDate
                 });
@@ -174,7 +174,7 @@ namespace DirectoryManager.Web.Controllers
                             WebRequestHelper.GetCurrentDomain(this.HttpContext),
                             category.CategoryKey,
                             subCategory.SubCategoryKey),
-                        Priority = 1.0,
+                        Priority = 0.5,
                         ChangeFrequency = ChangeFrequency.Weekly,
                         LastMod = lastModified // Use mostRecentUpdateDate
                     });
@@ -183,7 +183,7 @@ namespace DirectoryManager.Web.Controllers
 
             var allActiveEntries = await this.directoryEntryRepository.GetAllEntitiesAndPropertiesAsync();
 
-            foreach (var entry in allActiveEntries.Where(x => x.DirectoryStatus != Data.Enums.DirectoryStatus.Removed))
+            foreach (var entry in allActiveEntries.Where(x => x.DirectoryStatus != DirectoryStatus.Removed))
             {
                 var directoryItemLastMod = new[] { entry.CreateDate, entry.UpdateDate ?? entry.CreateDate, mostRecentUpdateDate }.Max();
 
@@ -195,7 +195,7 @@ namespace DirectoryManager.Web.Controllers
                             entry.SubCategory?.Category.CategoryKey,
                             entry.SubCategory?.SubCategoryKey,
                             entry.DirectoryEntryKey),
-                    Priority = 1.0,
+                    Priority = 0.7,
                     ChangeFrequency = ChangeFrequency.Weekly,
                     LastMod = directoryItemLastMod // Use mostRecentUpdateDate
                 });
@@ -253,7 +253,7 @@ namespace DirectoryManager.Web.Controllers
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
             {
                 Url = string.Format("{0}/newest", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                Priority = 1.0,
+                Priority = 0.4,
                 ChangeFrequency = ChangeFrequency.Daily,
                 LastMod = date
             });
@@ -261,18 +261,40 @@ namespace DirectoryManager.Web.Controllers
 
         private void AddPages(DateTime date, SiteMapHelper siteMapHelper)
         {
-            siteMapHelper.SiteMapItems.Add(new SiteMapItem
+            var contactHtmlConfig = this.contentSnippetRepository.Get(SiteConfigSetting.ContactHtml);
+
+            if (contactHtmlConfig != null && !string.IsNullOrWhiteSpace(contactHtmlConfig.Content))
             {
-                Url = string.Format("{0}/contact", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                Priority = 1.0,
-                ChangeFrequency = ChangeFrequency.Daily,
-                LastMod = date
-            });
+                var contactHtmlLastModified = contactHtmlConfig?.UpdateDate ?? contactHtmlConfig?.CreateDate ?? date;
+
+                siteMapHelper.SiteMapItems.Add(new SiteMapItem
+                {
+                    Url = string.Format("{0}/contact", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                    Priority = 0.8,
+                    ChangeFrequency = ChangeFrequency.Monthly,
+                    LastMod = contactHtmlLastModified
+                });
+            }
+
+            var donationHtmlConfig = this.contentSnippetRepository.Get(SiteConfigSetting.DonationHtml);
+
+            if (donationHtmlConfig != null && !string.IsNullOrWhiteSpace(donationHtmlConfig.Content))
+            {
+                var donationHtmlLastModified = donationHtmlConfig?.UpdateDate ?? donationHtmlConfig?.CreateDate ?? date;
+
+                siteMapHelper.SiteMapItems.Add(new SiteMapItem
+                {
+                    Url = string.Format("{0}/donate", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                    Priority = 0.2,
+                    ChangeFrequency = ChangeFrequency.Monthly,
+                    LastMod = donationHtmlLastModified
+                });
+            }
 
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
             {
                 Url = string.Format("{0}/sitemap", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                Priority = 1.0,
+                Priority = 0.3,
                 ChangeFrequency = ChangeFrequency.Daily,
                 LastMod = date
             });
@@ -280,7 +302,7 @@ namespace DirectoryManager.Web.Controllers
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
             {
                 Url = string.Format("{0}/rss/feed.xml", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                Priority = 1.0,
+                Priority = 0.9,
                 ChangeFrequency = ChangeFrequency.Daily,
                 LastMod = date
             });
