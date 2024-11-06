@@ -28,6 +28,7 @@
         FullRootUrl = 23,
         CanonicalDomain = 24,
         FullRootTorUrl = 25,
-        TopMenuActionsHtml = 26
+        TopMenuActionsHtml = 26,
+        InvoiceSuccessMessageHtml = 27
     }
 }

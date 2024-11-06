@@ -1,4 +1,5 @@
 ﻿@using DirectoryManager.Web.Constants;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @model DirectoryManager.Web.Models.SuccessViewModel
 @{
     ViewData[StringConstants.TitleHeader] = "Successful Sponsored Listing";
@@ -13,4 +14,4 @@
 
 <p>Your listing is currently live and will remain displayed until: @Model.ListingEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</p>
 
-<p>Please allow some time for caching to clear before it will be displayed.</p>
+@Html.Raw(cacheHelper.GetSnippet(DirectoryManager.Data.Enums.SiteConfigSetting.InvoiceSuccessMessageHtml))
