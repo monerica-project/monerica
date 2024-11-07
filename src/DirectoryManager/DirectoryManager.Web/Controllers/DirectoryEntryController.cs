@@ -246,7 +246,6 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("directoryentry/weeklyplotimage")]
-
         public async Task<IActionResult> WeeklyPlotImageAsync()
         {
             DirectoryEntryPlotting plottingChart = new DirectoryEntryPlotting();

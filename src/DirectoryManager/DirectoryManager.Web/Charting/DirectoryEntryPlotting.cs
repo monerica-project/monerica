@@ -8,12 +8,16 @@ namespace DirectoryManager.Web.Charting
     {
         public byte[] CreateWeeklyPlot(List<DirectoryEntry> entries)
         {
-            entries = entries.Where(x => x.DirectoryStatus == Data.Enums.DirectoryStatus.Admitted || x.DirectoryStatus == Data.Enums.DirectoryStatus.Verified).ToList();
             // Ensure entries list is not empty
             if (!entries.Any())
             {
                 throw new ArgumentException("Entries list is empty.");
             }
+
+            entries = entries.Where(x =>
+                x.DirectoryStatus == Data.Enums.DirectoryStatus.Admitted ||
+                x.DirectoryStatus == Data.Enums.DirectoryStatus.Verified ||
+                x.DirectoryStatus == Data.Enums.DirectoryStatus.Scam).ToList();
 
             // Group data by week and calculate cumulative total for each week
             var weeklyData = entries
@@ -51,12 +55,12 @@ namespace DirectoryManager.Web.Charting
             myPlot.Axes.DateTimeTicksBottom();
 
             // Label the plot
-            myPlot.Title("Weekly Cumulative Totals To");
+            myPlot.Title("Weekly Cumulative Totals");
             myPlot.XLabel("Week Starting");
             myPlot.YLabel("Total Accumulated Entries");
 
             // Return the plot as a byte array to display in the view
-            return myPlot.GetImageBytes(600, 400, ImageFormat.Png);
+            return myPlot.GetImageBytes(1200, 800, ImageFormat.Png);
         }
     }
 }

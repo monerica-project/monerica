@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Charting;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -156,6 +157,17 @@ namespace DirectoryManager.Web.Controllers
             model.PaidInCurrency = result.PaidInCurrency;
 
             return this.View(model);
+        }
+
+        [HttpGet("sponsoredlistinginvoice/monthlyincomebarchart")]
+        public async Task<IActionResult> WeeklyPlotImageAsync()
+        {
+            InvoicePlotting plottingChart = new InvoicePlotting();
+
+            var invoices = await this.invoiceRepository.GetAllAsync();
+
+            var imageBytes = plottingChart.CreateMonthlyIncomeBarChart(invoices.ToList());
+            return this.File(imageBytes, "image/png");
         }
     }
 }
