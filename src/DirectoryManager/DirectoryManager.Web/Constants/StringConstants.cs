@@ -27,5 +27,6 @@
         public const string IsIndexable = "IsIndexable";
         public const string GenericExceptionMessage = "An unhandled exception occurred.";
         public const string TorDomain = ".onion";
+        public const string PngImage = "image/png";
     }
 }

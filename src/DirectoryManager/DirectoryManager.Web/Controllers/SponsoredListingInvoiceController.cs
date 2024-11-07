@@ -2,6 +2,7 @@
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Charting;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -167,7 +168,7 @@ namespace DirectoryManager.Web.Controllers
             var invoices = await this.invoiceRepository.GetAllAsync();
 
             var imageBytes = plottingChart.CreateMonthlyIncomeBarChart(invoices.ToList());
-            return this.File(imageBytes, "image/png");
+            return this.File(imageBytes, StringConstants.PngImage);
         }
     }
 }

@@ -3,8 +3,8 @@ using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Charting;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
-using DirectoryManager.Web.Services;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
@@ -253,7 +253,7 @@ namespace DirectoryManager.Web.Controllers
             var entries = await this.directoryEntryRepository.GetAllAsync();
 
             var imageBytes = plottingChart.CreateWeeklyPlot(entries.ToList());
-            return this.File(imageBytes, "image/png");
+            return this.File(imageBytes, StringConstants.PngImage);
         }
 
         [AllowAnonymous]
