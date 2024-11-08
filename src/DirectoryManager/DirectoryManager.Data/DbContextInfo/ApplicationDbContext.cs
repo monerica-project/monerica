@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.BaseModels;
+using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.SponsoredListings;
 using Microsoft.EntityFrameworkCore;
 
@@ -49,6 +50,10 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<EmailSubscription> EmailSubscriptions { get; set; }
 
         public DbSet<BlockedIP> BlockedIPs { get; set; }
+
+        public DbSet<EmailMessage> EmailMessages { get; set; }
+
+        public DbSet<SentEmailRecord> SentEmailRecords { get; set; }
 
         public override int SaveChanges()
         {
@@ -142,11 +147,22 @@ namespace DirectoryManager.Data.DbContextInfo
                    .IsUnique();
 
             builder.Entity<SponsoredListingReservation>()
-                    .HasIndex(e => e.ReservationGuid)
-                    .IsUnique();
+                   .HasIndex(e => e.ReservationGuid)
+                   .IsUnique();
 
             builder.Entity<SponsoredListingReservation>()
-                    .HasIndex(e => e.ExpirationDateTime);
+                   .HasIndex(e => e.ExpirationDateTime);
+
+            builder.Entity<EmailMessage>()
+                   .HasIndex(e => e.EmailKey)
+                   .IsUnique();
+
+            builder.Entity<SentEmailRecord>()
+                   .HasIndex(e => new { e.EmailSubscriptionId, e.EmailMessageId })
+                   .IsUnique();
+
+            builder.Entity<EmailSubscription>()
+                   .HasIndex(e => e.IsSubscribed);
         }
 
         private void SetDates()

@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.SponsoredListings;
 using Microsoft.EntityFrameworkCore;
 
@@ -43,6 +44,10 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<EmailSubscription> EmailSubscriptions { get; set; }
 
         public DbSet<BlockedIP> BlockedIPs { get; set; }
+
+        public DbSet<EmailMessage> EmailMessages { get; set; }
+
+        public DbSet<SentEmailRecord> SentEmailRecords { get; set; }
 
         int SaveChanges();
 
