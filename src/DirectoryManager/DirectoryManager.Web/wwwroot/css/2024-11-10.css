@@ -20,9 +20,9 @@ h1 {
     text-shadow: 2px 2px 4px rgb(94 94 94 / 80%);
 }
 
-    h1.home, h4.home {
+h1.home, h4.home {
         text-align: center;
-    }
+}
 
 h3 {
     margin-bottom: 0;
@@ -33,13 +33,13 @@ a {
     color: #008cff;
 }
 
-    a:hover {
-        text-decoration: none;
-    }
+a:hover {
+    text-decoration: none;
+}
 
-    a.btn {
-        text-decoration: none;
-    }
+a.btn {
+    text-decoration: none;
+}
 
 li p {
     margin: 0;
@@ -226,7 +226,7 @@ div#banner-content {
 }
 
 div#main-content {
-    padding-top: 50px;
+    padding-top: 5px;
     margin-left: 10px;
     margin-right: 10px;
 }
