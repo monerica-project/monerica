@@ -49,6 +49,10 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<SentEmailRecord> SentEmailRecords { get; set; }
 
+        public DbSet<EmailCampaignMessage> EmailCampaignMessages { get; set; }
+
+        public DbSet<EmailCampaign> EmailCampaigns { get; set; }
+
         int SaveChanges();
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

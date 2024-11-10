@@ -61,10 +61,12 @@ namespace DirectoryManager.Web.Services.Implementations
             {
                 descriptionBuilder.Append(" - Location: ").Append(entry.Location);
             }
+
             if (!string.IsNullOrWhiteSpace(entry.Processor))
             {
                 descriptionBuilder.Append(" - Processor: ").Append(entry.Processor);
             }
+
             if (!string.IsNullOrWhiteSpace(entry.Contact))
             {
                 descriptionBuilder.Append(" - Contact: ").Append(entry.Contact);

@@ -49,7 +49,6 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Index(int? subCategoryId = null)
         {
             var entries = await this.directoryEntryRepository.GetAllAsync();
- 
             if (subCategoryId.HasValue)
             {
                 entries = entries.Where(e => e.SubCategory != null && e.SubCategory.SubCategoryId == subCategoryId.Value).ToList();

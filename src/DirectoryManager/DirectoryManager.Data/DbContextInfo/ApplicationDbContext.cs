@@ -54,6 +54,8 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<EmailMessage> EmailMessages { get; set; }
 
         public DbSet<SentEmailRecord> SentEmailRecords { get; set; }
+        public DbSet<EmailCampaignMessage> EmailCampaignMessages { get; set; }
+        public DbSet<EmailCampaign> EmailCampaigns { get; set; }
 
         public override int SaveChanges()
         {
