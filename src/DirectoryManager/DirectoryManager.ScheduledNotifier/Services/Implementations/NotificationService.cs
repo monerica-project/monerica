@@ -1,10 +1,11 @@
 ﻿using System.Net.Mail;
 using DirectoryManager.Data.Models.Notifications;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.ScheduledNotifier.Services.Interfaces;
 
-namespace DirectoryManager.ScheduledNotifier.Services
+namespace DirectoryManager.ScheduledNotifier.Services.Implementations
 {
-    public class NotificationService
+    public class NotificationService : INotificationService
     {
         public async Task SendEmailAsync(string email, string subject, string body)
         {

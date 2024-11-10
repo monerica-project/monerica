@@ -1,16 +1,10 @@
 ﻿using DirectoryManager.Data.Models.Notifications;
-using DirectoryManager.ScheduledNotifier.Services;
-using Hangfire;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using DirectoryManager.ScheduledNotifier.Services.Interfaces;
 
-namespace DirectoryManager.ScheduledNotifier.Services
+namespace DirectoryManager.ScheduledNotifier.Services.Implementations
 {
 
-    public class Scheduler
+    public class Scheduler : IScheduler
     {
         private readonly AdAvailabilityChecker _checker;
 
@@ -32,13 +26,13 @@ namespace DirectoryManager.ScheduledNotifier.Services
             //}, Cron.Hourly);
         }
 
-        private Task<List<Notification>> GetNotificationsAsync()
+        public Task<List<Notification>> GetNotificationsAsync()
         {
             // Simulate fetching notifications from the database
             return Task.FromResult(new List<Notification>());
         }
 
-        private Task<List<AdSpot>> GetAdSpotsAsync()
+        public Task<List<AdSpot>> GetAdSpotsAsync()
         {
             // Simulate fetching ad spots from the database
             return Task.FromResult(new List<AdSpot>());

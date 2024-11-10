@@ -1,6 +1,6 @@
 ﻿using System.Text;
 using DirectoryManager.Data.Repositories.Interfaces;
-using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Models.Emails;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -32,7 +32,8 @@ namespace DirectoryManager.Web.Controllers
                 {
                     Email = sub.Email,
                     IsSubscribed = sub.IsSubscribed,
-                    EmailSubscriptionId = sub.EmailSubscriptionId
+                    EmailSubscriptionId = sub.EmailSubscriptionId,
+                    CreateDate = sub.CreateDate
                 });
             }
 

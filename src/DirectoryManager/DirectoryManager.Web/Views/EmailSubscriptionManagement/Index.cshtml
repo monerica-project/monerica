@@ -1,5 +1,6 @@
-﻿@model DirectoryManager.Web.Models.EmailSubscribeEditListModel
+﻿@model EmailSubscribeEditListModel
 @using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Models.Emails;
 @{
     ViewData[StringConstants.TitleHeader] = "Emails";
 }
@@ -20,7 +21,7 @@
             <thead>
                 <tr>
                     <th>Email</th>
-
+                    <th>Create Date</th>
                     <th>Is Subscribed</th>
                     <th></th>
                 </tr>
@@ -32,6 +33,7 @@
                         <td>
                             @item.Email
                         </td>
+                        <td>@item.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
                         <td>@item.IsSubscribed</td>
                         <td>
                             <a href="~/account/emailsubscriptionmanagement/edit?EmailSubscriptionId=@item.EmailSubscriptionId">Edit</a>

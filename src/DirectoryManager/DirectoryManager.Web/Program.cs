@@ -26,6 +26,12 @@ builder.Logging.AddSerilog(logger);
 // Configure application services
 builder.Services.AddApplicationServices(builder.Configuration);
 
+// if (builder.Environment.IsDevelopment())
+// {
+//    builder.Services.AddControllersWithViews()
+//                    .AddRazorRuntimeCompilation();
+// }
+
 // Configure Kestrel based on environment and certificate availability
 builder.WebHost.ConfigureKestrel(options =>
 {

@@ -2,7 +2,7 @@
 using System.ComponentModel.DataAnnotations.Schema;
 using DirectoryManager.Data.Models.BaseModels;
 
-namespace DirectoryManager.Data.Models
+namespace DirectoryManager.Data.Models.Emails
 {
     public class EmailSubscription : StateInfo
     {

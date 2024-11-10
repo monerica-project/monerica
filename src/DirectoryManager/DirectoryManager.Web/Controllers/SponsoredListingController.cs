@@ -767,7 +767,7 @@ namespace DirectoryManager.Web.Controllers
         [Authorize]
         public async Task<IActionResult> List(int page = 1)
         {
-            int pageSize = 10;
+            int pageSize = IntegerConstants.DefaultPageSize;
             var totalListings = await this.sponsoredListingRepository.GetTotalCountAsync();
             var listings = await this.sponsoredListingRepository.GetPaginatedListingsAsync(page, pageSize);
 

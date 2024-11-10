@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.FileStorage.Constants;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Utilities.Validation;
 using DirectoryManager.Web.Helpers;
@@ -192,7 +193,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Authorize]
         [HttpGet("submission/index")]
-        public async Task<IActionResult> Index(int? page, int pageSize = 10)
+        public async Task<IActionResult> Index(int? page, int pageSize = Constants.IntegerConstants.DefaultPageSize)
         {
             int pageNumber = page ?? 1;
             var submissions = await this.submissionRepository.GetAllAsync();

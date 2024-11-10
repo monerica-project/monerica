@@ -1,5 +1,5 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
-using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.Emails;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {

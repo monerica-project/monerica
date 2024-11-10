@@ -1,0 +1,45 @@
+﻿@using DirectoryManager.Web.Constants;
+
+@model DirectoryManager.Web.Models.EmailMessageListModel
+@{
+    ViewData[StringConstants.TitleHeader] = "Email Messages";
+}
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<a href="~/account/emailmessagemanagement/create">Create</a>
+<hr />
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Subject</th>
+            <th>Key</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var message in Model.Messages)
+        {
+            <tr>
+                <td>@message.EmailSubject</td>
+                <td>@message.EmailKey</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@message.EmailMessageId">Edit</a> |
+                    <form asp-action="Delete" asp-route-id="@message.EmailMessageId" method="post">
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div>
+    Page @Model.PageIndex of @((Model.TotalCount + Model.PageSize - 1) / Model.PageSize)
+    <div>
+        <a asp-action="Index" asp-route-pageIndex="@(Model.PageIndex - 1)" asp-route-pageSize="@Model.PageSize" disabled="@(Model.PageIndex <= 0)">Previous</a>
+        <a asp-action="Index" asp-route-pageIndex="@(Model.PageIndex + 1)" asp-route-pageSize="@Model.PageSize" disabled="@(Model.PageIndex >= (Model.TotalCount / Model.PageSize))">Next</a>
+    </div>
+</div>

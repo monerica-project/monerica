@@ -55,6 +55,7 @@ namespace DirectoryManager.Web.Extensions
             services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
             services.AddScoped<IProcessorConfigRepository, ProcessorConfigRepository>();
             services.AddScoped<IEmailSubscriptionRepository, EmailSubscriptionRepository>();
+            services.AddScoped<IEmailMessageRepository, EmailMessageRepository>();
             services.AddScoped<IBlockedIPRepository, BlockedIPRepository>();
 
             // Services

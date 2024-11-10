@@ -32,7 +32,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("sponsoredlistinginvoice")]
         [HttpGet]
-        public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
+        public async Task<IActionResult> Index(int page = 1, int pageSize = IntegerConstants.DefaultPageSize)
         {
             var (invoices, totalItems) = await this.invoiceRepository.GetPageAsync(page, pageSize);
 
@@ -49,7 +49,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("sponsoredlistinginvoice/paid")]
         [HttpGet]
-        public async Task<IActionResult> PaidIndex(int page = 1, int pageSize = 10)
+        public async Task<IActionResult> PaidIndex(int page = 1, int pageSize = IntegerConstants.DefaultPageSize)
         {
             var (invoices, totalItems) = await this.invoiceRepository.GetPageByTypeAsync(page, pageSize, PaymentStatus.Paid);
 
@@ -163,11 +163,10 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("sponsoredlistinginvoice/monthlyincomebarchart")]
         public async Task<IActionResult> WeeklyPlotImageAsync()
         {
-            InvoicePlotting plottingChart = new InvoicePlotting();
-
+            var plottingChart = new InvoicePlotting();
             var invoices = await this.invoiceRepository.GetAllAsync();
+            var imageBytes = plottingChart.CreateMonthlyIncomeBarChart(invoices);
 
-            var imageBytes = plottingChart.CreateMonthlyIncomeBarChart(invoices.ToList());
             return this.File(imageBytes, StringConstants.PngImage);
         }
     }

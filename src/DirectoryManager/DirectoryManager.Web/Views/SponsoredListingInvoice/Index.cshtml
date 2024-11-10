@@ -5,7 +5,7 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Invoices";
     int currentPage = ViewBag.CurrentPage ?? 1;
-    int pageSize = ViewBag.PageSize ?? 10;
+    int pageSize = ViewBag.PageSize ?? IntegerConstants.DefaultPageSize;
     int totalItems = ViewBag.TotalItems ?? 0;
     int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
     bool isPaidOnly = ViewBag.IsPaidOnly ?? false;

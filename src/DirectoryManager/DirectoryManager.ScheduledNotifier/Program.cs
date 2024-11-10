@@ -1,11 +1,13 @@
-﻿using DirectoryManager.ScheduledNotifier.Services;
-using DirectoryManager.Services.Models;
+﻿using DirectoryManager.Services.Models;
 using DirectoryManager.Services.Implementations;
 using DirectoryManager.Services.Interfaces;
 using Hangfire;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
+using DirectoryManager.Data.DbContextInfo;
+using Microsoft.EntityFrameworkCore;
+using DirectoryManager.ScheduledNotifier.Services.Implementations;
 
 public class Program
 {
@@ -17,6 +19,10 @@ public class Program
                 // Configure Hangfire with SQL Server
                 services.AddHangfire(config =>
                     config.UseSqlServerStorage("your-connection-string"));
+
+      //          services.AddDbContext<ApplicationDbContext>(options =>
+      //options.UseSqlServer(configuration.GetConnectionString(StringConstants.DefaultConnection)));
+
 
                 services.AddHangfireServer();
 

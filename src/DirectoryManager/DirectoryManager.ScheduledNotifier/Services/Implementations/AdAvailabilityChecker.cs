@@ -1,11 +1,12 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.Notifications;
+using DirectoryManager.ScheduledNotifier.Services.Interfaces;
 using Hangfire;
 using System.Text.Json;
 
-namespace DirectoryManager.ScheduledNotifier.Services
+namespace DirectoryManager.ScheduledNotifier.Services.Implementations
 {
-    public class AdAvailabilityChecker
+    public class AdAvailabilityChecker : IAdAvailabilityChecker
     {
         private readonly NotificationService _notificationService;
         private readonly HttpClient _httpClient;

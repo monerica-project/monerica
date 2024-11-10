@@ -5,8 +5,14 @@ namespace DirectoryManager.Web.Charting
 {
     public class InvoicePlotting
     {
-        public byte[] CreateMonthlyIncomeBarChart(List<SponsoredListingInvoice> invoices)
+        public byte[] CreateMonthlyIncomeBarChart(IEnumerable<SponsoredListingInvoice> invoices)
         {
+            if (invoices == null || !invoices.Any())
+            {
+                // Return an empty byte array if there is no data
+                return Array.Empty<byte>();
+            }
+
             // Filter for paid invoices in USD currency
             var paidInvoices = invoices
                 .Where(i => i.PaymentStatus == Data.Enums.PaymentStatus.Paid && i.Currency == Data.Enums.Currency.USD)

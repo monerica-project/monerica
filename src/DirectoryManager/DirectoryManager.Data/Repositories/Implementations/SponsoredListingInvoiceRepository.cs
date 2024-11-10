@@ -126,7 +126,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                      .FirstOrDefaultAsync(x => x.ProcessorInvoiceId == processorInvoiceId);
 
             return result ??
-                throw new InvalidOperationException($"No SponsoredListingInvoice found for the provided {nameof(processorInvoiceId)}.");
+                throw new InvalidOperationException(
+                    $"No SponsoredListingInvoice found for the provided {nameof(processorInvoiceId)}.");
         }
 
         public DateTime? GetLastPaidInvoiceUpdateDate()

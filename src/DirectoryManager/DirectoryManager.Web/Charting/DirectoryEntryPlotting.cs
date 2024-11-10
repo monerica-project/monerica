@@ -14,14 +14,14 @@ namespace DirectoryManager.Web.Charting
                 throw new ArgumentException("Entries list is empty.");
             }
 
-            entries = entries.Where(x =>
-                x.DirectoryStatus == Data.Enums.DirectoryStatus.Admitted ||
-                x.DirectoryStatus == Data.Enums.DirectoryStatus.Verified ||
-                x.DirectoryStatus == Data.Enums.DirectoryStatus.Scam).ToList();
+            entries = entries.Where(x => IncludedStatus(x)).ToList();
 
             // Group data by week and calculate cumulative total for each week
             var weeklyData = entries
-                .GroupBy(entry => CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(entry.CreateDate, CalendarWeekRule.FirstFourDayWeek, DayOfWeek.Monday))
+                .GroupBy(entry => CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
+                                entry.CreateDate,
+                                CalendarWeekRule.FirstFourDayWeek,
+                                DayOfWeek.Monday))
                 .Select(group => new
                 {
                     WeekStartDate = group.Min(entry => entry.CreateDate), // Take the earliest date in the week as the X-axis point
@@ -61,6 +61,14 @@ namespace DirectoryManager.Web.Charting
 
             // Return the plot as a byte array to display in the view
             return myPlot.GetImageBytes(1200, 800, ImageFormat.Png);
+        }
+
+        private static bool IncludedStatus(DirectoryEntry x)
+        {
+            return
+                            x.DirectoryStatus == Data.Enums.DirectoryStatus.Admitted ||
+                            x.DirectoryStatus == Data.Enums.DirectoryStatus.Verified ||
+                            x.DirectoryStatus == Data.Enums.DirectoryStatus.Scam;
         }
     }
 }

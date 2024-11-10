@@ -1,6 +1,7 @@
-﻿using DirectoryManager.Data.Repositories.Interfaces;
+﻿using DirectoryManager.Data.Models.Emails;
+using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Helpers;
-using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Models.Emails;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
@@ -44,7 +45,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (emailDbModel == null || emailDbModel.EmailSubscriptionId == 0)
             {
-                this.emailSubscriptionRepository.Create(new Data.Models.EmailSubscription()
+                this.emailSubscriptionRepository.Create(new EmailSubscription()
                 {
                     Email = model.Email,
                     IsSubscribed = true
