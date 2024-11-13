@@ -1,0 +1,36 @@
+﻿@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Subscribe to Campaign";
+}
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+
+<div class="mb-3">
+    <p><strong>Campaign Details:</strong></p>
+    <ul>
+        <li><strong>Name:</strong> @ViewBag.CampaignName</li>
+        <li><strong>Interval (Days):</strong> @ViewBag.CampaignIntervalDays</li>
+        <li><strong>Start Date:</strong> @ViewBag.CampaignStartDate</li>
+    </ul>
+</div>
+
+<form asp-controller="EmailCampaignSubscription" asp-action="Subscribe" asp-route-campaignId="@ViewBag.CampaignId" method="post">
+    <input type="hidden" name="campaignId" value="@ViewBag.CampaignId" />
+
+    <div class="form-group">
+        <label for="emailSubscriptionId">Select Email Subscription:</label>
+        <select id="emailSubscriptionId" name="emailSubscriptionId" class="form-control" required>
+            <option value="">-- Select --</option>
+            @foreach (var subscription in ViewBag.EmailSubscriptions)
+            {
+                <option value="@subscription.EmailSubscriptionId">@subscription.Email</option>
+            }
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Subscribe</button>
+</form>
+
+<a asp-action="Index" asp-route-campaignId="@ViewBag.CampaignId">Back to Subscriptions</a>

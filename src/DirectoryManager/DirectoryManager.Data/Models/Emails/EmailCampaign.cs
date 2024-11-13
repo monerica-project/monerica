@@ -13,6 +13,8 @@ namespace DirectoryManager.Data.Models.Emails
         [Required]
         public string Name { get; set; } = string.Empty;
 
+        public bool IsDefault { get; set; }
+
         // Defines the number of days between messages in the campaign sequence
         public int IntervalDays { get; set; }
 

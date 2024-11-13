@@ -1,14 +1,14 @@
-﻿@using DirectoryManager.Web.Constants;
-
+﻿@using DirectoryManager.Web.Constants
 @model IEnumerable<DirectoryManager.Data.Models.Emails.EmailCampaignSubscription>
+
 @{
-    ViewData[StringConstants.TitleHeader] = "Campaign Subscriptions";
+    ViewData[StringConstants.TitleHeader] = "Subscriptions for Campaign: " + @ViewBag.CampaignName;
 }
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
-
-<table class="table">
+ 
+<table class="table table-striped">
     <thead>
         <tr>
             <th>Email</th>
@@ -22,15 +22,15 @@
         {
             <tr>
                 <td>@subscription.EmailSubscription.Email</td>
-                <td>@subscription.SubscribedDate.ToString("yyyy-MM-dd")</td>
+                <td>@subscription.SubscribedDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                 <td>@(subscription.IsActive ? "Active" : "Inactive")</td>
                 <td>
                     @if (subscription.IsActive)
                     {
-                        <form asp-action="Unsubscribe" method="post" style="display:inline;">
+                        <form asp-action="Unsubscribe" method="post">
                             <input type="hidden" name="campaignId" value="@subscription.EmailCampaignId" />
                             <input type="hidden" name="emailSubscriptionId" value="@subscription.EmailSubscriptionId" />
-                            <button type="submit" class="btn btn-danger btn-sm">Unsubscribe</button>
+                            <button type="submit" >Unsubscribe</button>
                         </form>
                     }
                 </td>
@@ -39,4 +39,5 @@
     </tbody>
 </table>
 
-<a asp-action="Subscribe" asp-route-campaignId="@ViewBag.CampaignId" class="btn btn-primary">Add Subscription</a>
+<a asp-action="Subscribe" asp-route-campaignId="@ViewBag.CampaignId">Add New Subscription</a>
+<a asp-controller="EmailCampaignManagement" asp-action="Index" >Back to Campaigns</a>

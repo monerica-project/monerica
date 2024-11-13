@@ -1,0 +1,99 @@
+﻿@using DirectoryManager.Web.Constants
+@model DirectoryManager.Web.Models.Emails.EmailCampaignModel
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Edit Email Campaign";
+}
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<!-- Form to Save Main Campaign Details -->
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="EmailCampaignId" />
+
+    <div class="form-group">
+        <label asp-for="Name">Campaign Name:</label>
+        <input type="text" class="form-control" asp-for="Name" required />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="IntervalDays">Interval (Days Between Messages):</label>
+        <input type="number" class="form-control" asp-for="IntervalDays" required />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="StartDate">Start Date:</label>
+        <input type="date" class="form-control" asp-for="StartDate" />
+    </div>
+
+    <div class="form-group form-check">
+        <input type="checkbox" class="form-check-input" asp-for="IsDefault" />
+        <label class="form-check-label" asp-for="IsDefault">Set as Default Campaign</label>
+    </div>
+
+
+    <button type="submit">Save Campaign Details</button>
+</form>
+
+<hr />
+<h3>Campaign Messages</h3>
+
+@if (Model.CampaignMessages?.Any() == true)
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Sequence Order</th>
+                <th>Message Subject</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @for (int i = 0; i < Model.CampaignMessages.Count; i++)
+            {
+                <tr>
+                    <td>@Model.CampaignMessages[i].SequenceOrder</td>
+                    <td>                         
+                        @foreach (DirectoryManager.Data.Models.Emails.EmailMessage message in ViewBag.AvailableMessages)
+                        {
+                                if (message.EmailMessageId == Model.CampaignMessages[i].EmailMessageId)
+                                {
+                                    <span>@message.EmailSubject</span>  
+                                }
+                        }
+                    </td>
+                    <td>
+                        <form asp-controller="EmailCampaignManagement" asp-action="DeleteMessage" asp-route-id="@Model.EmailCampaignId" method="post">
+                            <input type="hidden" name="emailCampaignMessageId" value="@Model.CampaignMessages[i].EmailCampaignMessageId" />
+                            <button type="submit">Remove</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p>No messages added to this campaign yet.</p>
+}
+
+<hr />
+
+<h3>Add New Message to Campaign</h3>
+<!-- Form to Add a New Message -->
+<form asp-controller="EmailCampaignManagement" asp-action="AddMessage" asp-route-id="@Model.EmailCampaignId" method="post">
+    <div class="form-group">
+        <label for="selectedMessageId">Select Message</label>
+        <select name="selectedMessageId" class="form-control" required>
+            <option value="">Select a message</option>
+            @foreach (var message in ViewBag.AvailableMessages)
+            {
+                <option value="@message.EmailMessageId">@message.EmailSubject</option>
+            }
+        </select>
+    </div>
+    <button type="submit">Add Message</button>
+</form>

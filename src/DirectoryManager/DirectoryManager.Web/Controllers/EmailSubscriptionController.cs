@@ -10,13 +10,19 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly IEmailSubscriptionRepository emailSubscriptionRepository;
         private readonly IBlockedIPRepository blockedIPRepository;
+        private readonly IEmailCampaignRepository emailCampaignRepository;
+        private readonly IEmailCampaignSubscriptionRepository emailCampaignSubscriptionRepository;
 
         public EmailSubscriptionController(
             IEmailSubscriptionRepository emailSubscriptionRepository,
-            IBlockedIPRepository blockedIPRepository)
+            IBlockedIPRepository blockedIPRepository,
+            IEmailCampaignRepository emailCampaignRepository,
+            IEmailCampaignSubscriptionRepository emailCampaignSubscriptionRepository)
         {
             this.emailSubscriptionRepository = emailSubscriptionRepository;
             this.blockedIPRepository = blockedIPRepository;
+            this.emailCampaignRepository = emailCampaignRepository;
+            this.emailCampaignSubscriptionRepository = emailCampaignSubscriptionRepository;
         }
 
         [Route("newsletter")]
@@ -45,11 +51,20 @@ namespace DirectoryManager.Web.Controllers
 
             if (emailDbModel == null || emailDbModel.EmailSubscriptionId == 0)
             {
-                this.emailSubscriptionRepository.Create(new EmailSubscription()
+                var emailSubscription = this.emailSubscriptionRepository.Create(new EmailSubscription()
                 {
                     Email = model.Email,
                     IsSubscribed = true
                 });
+
+                var defaultCampaign = this.emailCampaignRepository.GetDefault();
+
+                if (defaultCampaign != null)
+                {
+                    this.emailCampaignSubscriptionRepository.SubscribeToCampaign(
+                            defaultCampaign.EmailCampaignId,
+                            emailSubscription.EmailSubscriptionId);
+                }
             }
 
             return this.View("ConfirmSubscribed");

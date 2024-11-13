@@ -39,7 +39,20 @@ namespace DirectoryManager.Web.Extensions
             // Register ApplicationDbContext as IApplicationDbContext
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
 
-            // Database repositories
+            // sponsorship repositories
+            services.AddScoped<ISponsoredListingInvoiceRepository, SponsoredListingInvoiceRepository>();
+            services.AddScoped<ISponsoredListingRepository, SponsoredListingRepository>();
+            services.AddScoped<ISponsoredListingReservationRepository, SponsoredListingReservationRepository>();
+            services.AddScoped<ISponsoredListingOfferRepository, SponsoredListingOfferRepository>();
+
+            // email repositories
+            services.AddScoped<IEmailSubscriptionRepository, EmailSubscriptionRepository>();
+            services.AddScoped<IEmailMessageRepository, EmailMessageRepository>();
+            services.AddScoped<IEmailCampaignMessageRepository, EmailCampaignMessageRepository>();
+            services.AddScoped<IEmailCampaignRepository, EmailCampaignRepository>();
+            services.AddScoped<IEmailCampaignSubscriptionRepository, EmailCampaignSubscriptionRepository>();
+
+            // other repositories
             services.AddScoped<ISubmissionRepository, SubmissionRepository>();
             services.AddScoped<ICategoryRepository, CategoryRepository>();
             services.AddScoped<ISubcategoryRepository, SubcategoryRepository>();
@@ -48,14 +61,8 @@ namespace DirectoryManager.Web.Extensions
             services.AddScoped<IDirectoryEntrySelectionRepository, DirectoryEntrySelectionRepository>();
             services.AddScoped<ITrafficLogRepository, TrafficLogRepository>();
             services.AddScoped<IExcludeUserAgentRepository, ExcludeUserAgentRepository>();
-            services.AddScoped<ISponsoredListingInvoiceRepository, SponsoredListingInvoiceRepository>();
-            services.AddScoped<ISponsoredListingRepository, SponsoredListingRepository>();
-            services.AddScoped<ISponsoredListingReservationRepository, SponsoredListingReservationRepository>();
-            services.AddScoped<ISponsoredListingOfferRepository, SponsoredListingOfferRepository>();
             services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
             services.AddScoped<IProcessorConfigRepository, ProcessorConfigRepository>();
-            services.AddScoped<IEmailSubscriptionRepository, EmailSubscriptionRepository>();
-            services.AddScoped<IEmailMessageRepository, EmailMessageRepository>();
             services.AddScoped<IBlockedIPRepository, BlockedIPRepository>();
 
             // Services

@@ -53,6 +53,8 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<EmailCampaign> EmailCampaigns { get; set; }
 
+        public DbSet<EmailCampaignSubscription> EmailCampaignSubscriptions { get; set; }
+
         int SaveChanges();
 
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
