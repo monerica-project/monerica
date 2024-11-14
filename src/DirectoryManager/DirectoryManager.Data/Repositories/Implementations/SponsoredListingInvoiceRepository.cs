@@ -26,6 +26,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                      .FirstOrDefaultAsync(x => x.InvoiceId == invoiceId);
         }
 
+        public async Task<SponsoredListingInvoice?> GetByReservationGuidAsync(Guid reservationGuid)
+        {
+            return await this.context.SponsoredListingInvoices
+                                     .FirstOrDefaultAsync(x => x.ReservationGuid == reservationGuid);
+        }
+
         public async Task<IEnumerable<SponsoredListingInvoice>> GetAllAsync()
         {
             return await this.context.SponsoredListingInvoices.ToListAsync();

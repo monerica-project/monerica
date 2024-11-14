@@ -435,6 +435,13 @@ namespace DirectoryManager.Web.Controllers
                 {
                     return this.BadRequest(new { Error = StringConstants.ErrorWithCheckoutProcess });
                 }
+
+                var existingInvoice = await this.sponsoredListingInvoiceRepository.GetByReservationGuidAsync(existingReservation.ReservationGuid);
+
+                if (existingInvoice != null)
+                {
+                    return this.BadRequest(new { Error = StringConstants.InvoiceAlreadyCreated });
+                }
             }
 
             this.ViewBag.ReservationGuid = rsvId;
@@ -463,6 +470,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = "Failed to create invoice ID." });
             }
 
+            invoice.ReservationGuid = (rsvId == null) ? Guid.Empty : rsvId.Value;
             invoice.ProcessorInvoiceId = invoiceFromProcessor.Id;
             invoice.PaymentProcessor = PaymentProcessor.NOWPayments;
             invoice.InvoiceRequest = JsonConvert.SerializeObject(invoiceRequest);

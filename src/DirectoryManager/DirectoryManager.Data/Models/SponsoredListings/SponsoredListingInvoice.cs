@@ -68,6 +68,8 @@ namespace DirectoryManager.Data.Models.SponsoredListings
         [MaxLength(255)]
         public string? IpAddress { get; set; }
 
+        public Guid ReservationGuid { get; set; }
+
         public virtual DirectoryEntry? DirectoryEntry { get; set; }
 
         public virtual SponsoredListing? SponsoredListing { get; set; }
