@@ -36,8 +36,6 @@ var serviceProvider = new ServiceCollection()
 // Retrieve required services
 var entriesRepo = serviceProvider.GetService<IDirectoryEntryRepository>()
     ?? throw new InvalidOperationException("The IDirectoryEntryRepository service is not registered.");
-var submissionRepo = serviceProvider.GetService<ISubmissionRepository>()
-    ?? throw new InvalidOperationException("The ISubmissionRepository service is not registered.");
 var webPageChecker = serviceProvider.GetRequiredService<WebPageChecker>();
 
 // Get all entries
@@ -51,19 +49,25 @@ var tasks = allEntries
                     !entry.Link.Contains(".onion"))
     .Select(async entry =>
     {
-        var isOnline = await webPageChecker.IsWebPageOnlineAsync(new Uri(entry.Link));
-
-        if (!isOnline)
+        // Create a new scope for each task to isolate DbContext instances
+        using (var scope = serviceProvider.CreateScope())
         {
-            isOnline = webPageChecker.IsWebPageOnlinePing(new Uri(entry.Link));
-        }
+            var scopedSubmissionRepo = scope.ServiceProvider.GetRequiredService<ISubmissionRepository>();
 
-        Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : "offline")}");
+            var isOnline = await webPageChecker.IsWebPageOnlineAsync(new Uri(entry.Link));
 
-        if (!isOnline)
-        {
-            offlines.Add($"{entry.Link}   -   ID: {entry.DirectoryEntryId}");
-            await CreateOfflineSubmissionIfNotExists(entry, submissionRepo);
+            if (!isOnline)
+            {
+                isOnline = webPageChecker.IsWebPageOnlinePing(new Uri(entry.Link));
+            }
+
+            Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : "offline")}");
+
+            if (!isOnline)
+            {
+                offlines.Add($"{entry.Link}   -   ID: {entry.DirectoryEntryId}");
+                await CreateOfflineSubmissionIfNotExists(entry, scopedSubmissionRepo);
+            }
         }
     });
 
@@ -107,11 +111,8 @@ async Task CreateOfflineSubmissionIfNotExists(
     // Create a new submission with the appropriate details
     var submission = new Submission
     {
-        // submission changes
         Note = newNote,
         DirectoryStatus = DirectoryStatus.Removed,
-
-        // stays the same
         DirectoryEntryId = entry.DirectoryEntryId,
         Name = entry.Name,
         Link = entry.Link,

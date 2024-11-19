@@ -42,6 +42,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<Submission> CreateAsync(Submission submission)
         {
+            // Ensure only the ID is set for the foreign key, and EF does not track the SubCategory entity itself
+            submission.SubCategory = null;
+
             await this.context.Submissions.AddAsync(submission);
             await this.context.SaveChangesAsync();
 
