@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Text;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
@@ -385,7 +386,8 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> ConfirmedNowPaymentsAsync(
             int directoryEntryId,
             int selectedOfferId,
-            Guid? rsvId = null)
+            Guid? rsvId = null,
+            string? email = null)
         {
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
 
@@ -475,6 +477,7 @@ namespace DirectoryManager.Web.Controllers
             invoice.PaymentProcessor = PaymentProcessor.NOWPayments;
             invoice.InvoiceRequest = JsonConvert.SerializeObject(invoiceRequest);
             invoice.InvoiceResponse = JsonConvert.SerializeObject(invoiceFromProcessor);
+            invoice.Email = SetEmail(email);
 
             await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
 
@@ -874,6 +877,13 @@ namespace DirectoryManager.Web.Controllers
             }
 
             throw new InvalidOperationException("SponsorshipType:" + sponsorshipType.ToString());
+        }
+
+        private static string SetEmail(string? email)
+        {
+            var emailAttribute = new EmailAddressAttribute();
+
+            return (email != null && emailAttribute.IsValid(email)) ? email.Trim() : string.Empty;
         }
 
         private static bool CanPurchaseListing(

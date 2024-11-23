@@ -1,13 +1,12 @@
-﻿using DirectoryManager.Services.Models;
+﻿using DirectoryManager.ScheduledNotifier.Services.Implementations;
 using DirectoryManager.Services.Implementations;
 using DirectoryManager.Services.Interfaces;
+using DirectoryManager.Services.Models;
 using Hangfire;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
-using DirectoryManager.Data.DbContextInfo;
-using Microsoft.EntityFrameworkCore;
-using DirectoryManager.ScheduledNotifier.Services.Implementations;
 
 public class Program
 {
@@ -25,10 +24,7 @@ public class Program
 
 
                 services.AddHangfireServer();
-
-                // Register services
-                services.AddSingleton<NotificationService>();
-                services.AddSingleton<AdAvailabilityChecker>();
+ 
 
                 // Register HttpClient
                 services.AddHttpClient();

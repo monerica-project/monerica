@@ -10,5 +10,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         EmailCampaign Create(EmailCampaign campaign);
         bool Update(EmailCampaign campaign);
         bool Delete(int campaignId);
+        IEnumerable<EmailCampaignMessage> GetOrderedMessages(int campaignId);
     }
 }

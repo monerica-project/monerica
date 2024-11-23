@@ -5,10 +5,16 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	  <CodeAnalysisRuleSet>../StyleCop.Analyzers.ruleset</CodeAnalysisRuleSet>
   </PropertyGroup>
-
+ 
+	<ItemGroup>
+		<AdditionalFiles Include="..\stylecop.json" />
+	</ItemGroup>
+	
   <ItemGroup>
     <PackageReference Include="Hangfire" Version="1.8.15" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118" />
   </ItemGroup>
 
   <ItemGroup>

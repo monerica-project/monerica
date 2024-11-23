@@ -75,6 +75,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return this.context.SaveChanges() > 0;
         }
 
+        public IEnumerable<EmailCampaignMessage> GetOrderedMessages(int campaignId)
+        {
+            return this.context.EmailCampaignMessages
+                          .Where(m => m.EmailCampaignId == campaignId)
+                          .OrderBy(m => m.SequenceOrder)
+                          .ToList();
+        }
+
         private void UnsetOtherDefaults(int? excludeCampaignId = null)
         {
             var otherDefaultCampaigns = this.context.EmailCampaigns

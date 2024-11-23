@@ -6,6 +6,8 @@ namespace DirectoryManager.Web.Helpers
 {
     public class SiteMapHelper
     {
+        private const int MaxPageSizeForSiteMap = 50000;
+
         public List<SiteMapItem> SiteMapItems { get; set; } = new List<SiteMapItem>();
 
         public void AddUrl(string url, DateTime lastMod, ChangeFrequency changeFrequency, double priority)
@@ -25,7 +27,7 @@ namespace DirectoryManager.Web.Helpers
             sb.Append(@"<?xml version=""1.0"" encoding=""UTF-8""?>");
             sb.AppendLine(@"<urlset xmlns=""https://www.sitemaps.org/schemas/sitemap/0.9"" xmlns:image=""https://www.google.com/schemas/sitemap-image/1.1"">");
 
-            foreach (var siteMapItem in this.SiteMapItems)
+            foreach (var siteMapItem in this.SiteMapItems.Take(MaxPageSizeForSiteMap))
             {
                 sb.AppendLine(@"<url>");
                 sb.AppendFormat(@"<loc>{0}</loc>", siteMapItem.Url);

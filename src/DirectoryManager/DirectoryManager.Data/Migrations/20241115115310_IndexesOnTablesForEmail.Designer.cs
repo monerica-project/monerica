@@ -4,6 +4,7 @@ using DirectoryManager.Data.DbContextInfo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace DirectoryManager.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20241115115310_IndexesOnTablesForEmail")]
+    partial class IndexesOnTablesForEmail
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -562,9 +565,6 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasKey("EmailSubscriptionId");
 
-                    b.HasIndex("Email")
-                        .IsUnique();
-
                     b.HasIndex("IsSubscribed");
 
                     b.ToTable("EmailSubscriptions");
@@ -658,33 +658,6 @@ namespace DirectoryManager.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("LogEntries");
-                });
-
-            modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.AdSpotNotificationSubscription", b =>
-                {
-                    b.Property<int>("AdSpotNotificationSubscriptionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AdSpotNotificationSubscriptionId"));
-
-                    b.Property<int>("EmailSubscriptionId")
-                        .HasColumnType("int");
-
-                    b.Property<bool>("NotifyOnExpiry")
-                        .HasColumnType("bit");
-
-                    b.Property<bool>("NotifyOnOpening")
-                        .HasColumnType("bit");
-
-                    b.Property<int>("PreferredSponsorshipType")
-                        .HasColumnType("int");
-
-                    b.HasKey("AdSpotNotificationSubscriptionId");
-
-                    b.HasIndex("EmailSubscriptionId");
-
-                    b.ToTable("AdSpotNotificationSubscriptions");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.ProcessorConfig", b =>
@@ -797,11 +770,6 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<int>("DirectoryEntryId")
                         .HasColumnType("int");
-
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
 
                     b.Property<string>("InvoiceDescription")
                         .IsRequired()
@@ -1376,17 +1344,6 @@ namespace DirectoryManager.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("EmailMessage");
-
-                    b.Navigation("EmailSubscription");
-                });
-
-            modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.AdSpotNotificationSubscription", b =>
-                {
-                    b.HasOne("DirectoryManager.Data.Models.Emails.EmailSubscription", "EmailSubscription")
-                        .WithMany()
-                        .HasForeignKey("EmailSubscriptionId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
 
                     b.Navigation("EmailSubscription");
                 });

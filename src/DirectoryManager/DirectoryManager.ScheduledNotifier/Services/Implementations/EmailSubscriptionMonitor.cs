@@ -6,24 +6,24 @@ namespace DirectoryManager.BackgroundServices
 {
     public class EmailSubscriptionMonitor : IEmailSubscriptionMonitor
     {
-        private readonly IEmailSubscriptionRepository _repository;
-        private readonly IEmailService _emailService;
-        private bool _isRunning;
+        private readonly IEmailSubscriptionRepository repository;
+        private readonly IEmailService emailService;
+        private bool isRunning;
 
         public EmailSubscriptionMonitor(IEmailSubscriptionRepository repository, IEmailService emailService)
         {
-            _repository = repository;
-            _emailService = emailService;
+            this.repository = repository;
+            this.emailService = emailService;
         }
 
         public async Task StartAsync(CancellationToken cancellationToken)
         {
-            _isRunning = true;
+            this.isRunning = true;
             var lastProcessedId = 0;
 
-            while (!cancellationToken.IsCancellationRequested && _isRunning)
+            while (!cancellationToken.IsCancellationRequested && this.isRunning)
             {
-                var newSubscriptions = _repository
+                var newSubscriptions = this.repository
                     .GetAll()
                     .Where(x => x.EmailSubscriptionId > lastProcessedId)
                     .OrderBy(x => x.EmailSubscriptionId)
@@ -42,7 +42,7 @@ namespace DirectoryManager.BackgroundServices
 
         public void Stop()
         {
-            _isRunning = false;
+            this.isRunning = false;
         }
     }
 }

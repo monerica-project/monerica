@@ -113,5 +113,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
             }
         }
+
+        public void LogMessageDelivery(int emailSubscriptionId, int emailMessageId)
+        {
+            var record = new SentEmailRecord
+            {
+                EmailSubscriptionId = emailSubscriptionId,
+                EmailMessageId = emailMessageId,
+                SentDate = DateTime.UtcNow
+            };
+            this.context.SentEmailRecords.Add(record);
+            this.context.SaveChanges();
+        }
     }
 }

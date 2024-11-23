@@ -44,7 +44,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.CampaignId = campaignId;
             this.ViewBag.CampaignName = campaign.Name;
             this.ViewBag.CampaignIntervalDays = campaign.IntervalDays;
-            this.ViewBag.CampaignStartDate = campaign.StartDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
+            this.ViewBag.CampaignStartDate = campaign.StartDate?.ToString(Common.Constants.StringConstants.DateFormat);
             this.ViewBag.EmailSubscriptions = this.emailSubscriptionRepository.GetAll();
             return this.View();
         }

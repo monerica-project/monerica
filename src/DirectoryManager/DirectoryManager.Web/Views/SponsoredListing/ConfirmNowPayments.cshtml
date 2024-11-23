@@ -47,19 +47,30 @@
 
         <p>
             <i>
-                @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.NowPaymentsMessage))             
+                @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.NowPaymentsMessage))
             </i>
         </p>
 
+
         <form method="post" action="~/sponsoredlisting/confirmnowpayments">
+            <hr />
+            
+            <div class="form-group">
+                <i>Receive a reminder 48 hours before your listing expires so you can renew in time.</i>
+                <label>Email (optional)</label>
+                <input style="width:34%;" name="email" type="email" placeholder="yourname@email.com" />
+            </div>
+           
             <input name="rsvId" type="hidden" value="@ViewBag.ReservationGuid" />
             <input type="hidden" name="directoryEntryId" value="@Model.SelectedDirectoryEntry.DirectoryEntryId" />
             <input type="hidden" name="selectedOfferId" value="@Model.Offer.SponsoredListingOfferId" />
+
             <button class="btn" type="submit">Purchase Listing</button>
         </form>
     }
     else
     {
+
         @await Html.PartialAsync("_AdSpaceFull", new ListingInventoryModel() 
         { CanCreateSponsoredListing = Model.CanCreateSponsoredListing,
          NextListingExpiration = Model.NextListingExpiration});

@@ -11,5 +11,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         bool UnsubscribeFromCampaign(int campaignId, int emailSubscriptionId);
         bool IsSubscribed(int campaignId, int emailSubscriptionId);
         int TotalSubscriptionsForCampaign(int campaignId);
+        IEnumerable<EmailSubscription> GetActiveSubscribers(int campaignId);
+        bool HasReceivedMessage(int emailSubscriptionId, int emailMessageId);
     }
 }

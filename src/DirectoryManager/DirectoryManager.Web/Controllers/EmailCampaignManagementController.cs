@@ -113,7 +113,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
-
         [HttpPost("Edit/{id}/AddMessage")]
         [ValidateAntiForgeryToken]
         public IActionResult AddMessage(int id, int selectedMessageId)

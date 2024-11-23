@@ -100,5 +100,21 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return this.context.EmailCampaignSubscriptions
                 .Count(e => e.EmailCampaignId == campaignId && e.IsActive);
         }
+
+        public IEnumerable<EmailSubscription> GetActiveSubscribers(int campaignId)
+        {
+            return this.context.EmailCampaignSubscriptions
+                               .Where(s => s.EmailCampaignId == campaignId &&
+                                           s.IsActive &&
+                                           s.EmailSubscription.IsSubscribed)
+                               .Select(s => s.EmailSubscription)
+                               .ToList();
+        }
+
+        public bool HasReceivedMessage(int emailSubscriptionId, int emailMessageId)
+        {
+            return this.context.SentEmailRecords
+                          .Any(r => r.EmailSubscriptionId == emailSubscriptionId && r.EmailMessageId == emailMessageId);
+        }
     }
 }

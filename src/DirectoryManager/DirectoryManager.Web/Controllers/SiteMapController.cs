@@ -12,7 +12,6 @@ namespace DirectoryManager.Web.Controllers
 {
     public class SiteMapController : Controller
     {
-        private const int MaxPageSizeForSiteMap = 50000;
         private readonly ICacheService cacheService;
         private readonly IMemoryCache memoryCache;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
@@ -309,7 +308,9 @@ namespace DirectoryManager.Web.Controllers
 
             if (contactHtmlConfig != null && !string.IsNullOrWhiteSpace(contactHtmlConfig.Content))
             {
-                var contactHtmlLastModified = contactHtmlConfig?.UpdateDate ?? contactHtmlConfig?.CreateDate ?? date;
+                var contactHtmlLastModified = new[] { contactHtmlConfig?.UpdateDate, contactHtmlConfig?.CreateDate, date }
+                    .Where(d => d.HasValue)
+                    .Max() ?? date;
 
                 siteMapHelper.SiteMapItems.Add(new SiteMapItem
                 {
@@ -324,7 +325,9 @@ namespace DirectoryManager.Web.Controllers
 
             if (donationHtmlConfig != null && !string.IsNullOrWhiteSpace(donationHtmlConfig.Content))
             {
-                var donationHtmlLastModified = donationHtmlConfig?.UpdateDate ?? donationHtmlConfig?.CreateDate ?? date;
+                var donationHtmlLastModified = new[] { donationHtmlConfig?.UpdateDate, donationHtmlConfig?.CreateDate, date }
+                    .Where(d => d != null)
+                    .Max() ?? date;
 
                 siteMapHelper.SiteMapItems.Add(new SiteMapItem
                 {

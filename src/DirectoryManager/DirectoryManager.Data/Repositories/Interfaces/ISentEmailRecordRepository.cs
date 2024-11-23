@@ -11,5 +11,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         bool Update(SentEmailRecord model);
         bool Delete(int sentEmailRecordId);
         IList<SentEmailRecord> GetAll();
+        void LogMessageDelivery(int emailSubscriptionId, int emailMessageId);
     }
 }

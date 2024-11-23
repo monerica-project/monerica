@@ -70,6 +70,9 @@ namespace DirectoryManager.Data.Models.SponsoredListings
 
         public Guid ReservationGuid { get; set; }
 
+        [StringLength(100)]
+        public string Email { get; set; } = string.Empty;
+
         public virtual DirectoryEntry? DirectoryEntry { get; set; }
 
         public virtual SponsoredListing? SponsoredListing { get; set; }
