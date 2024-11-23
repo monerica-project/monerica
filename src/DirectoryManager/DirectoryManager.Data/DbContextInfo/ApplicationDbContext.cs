@@ -99,11 +99,14 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasColumnType("decimal(20, 12)");
 
             builder.Entity<SponsoredListingOffer>()
-                    .Property(e => e.Price)
-                    .HasColumnType("decimal(20, 12)");
+                   .Property(e => e.Price)
+                   .HasColumnType("decimal(20, 12)");
 
             builder.Entity<SponsoredListing>()
                    .HasIndex(e => new { e.CreateDate, e.UpdateDate });
+
+            builder.Entity<SponsoredListing>()
+                   .HasIndex(e => new { e.CampaignEndDate });
 
             builder.Entity<SponsoredListing>()
                    .HasOne(sl => sl.DirectoryEntry)
@@ -157,6 +160,10 @@ namespace DirectoryManager.Data.DbContextInfo
 
             builder.Entity<EmailCampaignSubscription>()
                    .HasIndex(e => e.EmailSubscriptionId);
+
+            builder.Entity<BlockedIP>()
+                   .HasIndex(e => e.IpAddress)
+                   .IsUnique();
         }
 
         private void SetDates()
