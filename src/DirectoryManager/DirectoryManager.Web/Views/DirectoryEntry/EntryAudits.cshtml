@@ -7,7 +7,6 @@
 
 @await Html.PartialAsync("_AdminMenu")
 
-<hr />
 <table>
     <thead>
         <tr>
@@ -20,7 +19,8 @@
             <th>Location</th>
             <th>Note</th>
             <th>Contact</th>
-            <th>SubCategoryId</th>
+            <th>Processor</th>
+            <th>Subcategory</th>
             <th>Created Date</th> 
             <th>Updated Date</th> 
         </tr>
@@ -38,7 +38,8 @@
                 <td>@audit.Location</td>
                 <td>@audit.Note</td>
                 <td>@audit.Contact</td>
-                <td>@audit.SubCategoryId</td>
+                <td>@audit.Processor</td>
+                <td>@audit.SubCategoryName</td>
                 <td>@audit.CreateDate</td>
                 <td>@audit.UpdateDate</td> 
             </tr>

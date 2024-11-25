@@ -18,7 +18,7 @@ properties {
    # Build
    $BuildConfiguration          = "release"
    $DotNetRunTime               = "win-x64"
-   $DotNetFramework             = "net8.0"
+   $DotNetFramework             = "net9.0"
    $msDeploy                    = "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe"    
    
    # Project paths
@@ -45,6 +45,7 @@ properties {
 
    # Application Resources    
     $customDomain               = ""
+    $requestProtocol            = "https://"
 }
 
 task default # required task
@@ -179,7 +180,7 @@ task -name DeployWebApp -depends SetConfigs, RestorePackages, BuildProject, RunU
 
     exec {
 
-        $url = "http://$webAppHost"
+        $url = $requestProtocol + $webAppHost
         Write-Host "Deployment completed, requesting page '$url'..."    
 
         Retry-Command -ScriptBlock {

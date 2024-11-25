@@ -6,7 +6,6 @@
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
-<hr />
 
 <!-- Add these links for predefined report durations -->
 <div>
@@ -19,10 +18,10 @@
 <form method="get">
     <div>
         <label for="start">Start Date:</label>
-        <input type="date" id="start" name="start" value="@Model.StartDate.ToString(StringConstants.DateFormat)">
+        <input type="date" id="start" name="start" value="@Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)">
 
         <label for="end">End Date:</label>
-        <input type="date" id="end" name="end" value="@Model.EndDate.ToString(StringConstants.DateFormat)">
+        <input type="date" id="end" name="end" value="@Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)">
 
         <button type="submit">Generate Report</button>
     </div>

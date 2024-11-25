@@ -1,0 +1,17 @@
+﻿@using DirectoryManager.Web.Constants;
+
+@model DirectoryManager.Data.Models.Emails.EmailCampaignSubscription
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Subscription Details";
+}
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<p><strong>Campaign:</strong> @Model.EmailCampaign.Name</p>
+<p><strong>Email:</strong> @Model.EmailSubscription.Email</p>
+<p><strong>Subscribed Date:</strong> @Model.SubscribedDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</p>
+<p><strong>Status:</strong> @(Model.IsActive ? "Active" : "Inactive")</p>
+
+<a asp-action="Index" asp-route-campaignId="@Model.EmailCampaignId">Back to List</a>

@@ -24,8 +24,11 @@
         MainSponsoredListingDetails = 19,
         SiteName = 20,
         SubcategorySponsoredListingDetails = 21,
-        TopBanner = 22,
+        TopBannerHtml = 22,
         FullRootUrl = 23,
         CanonicalDomain = 24,
+        FullRootTorUrl = 25,
+        TopMenuActionsHtml = 26,
+        InvoiceSuccessMessageHtml = 27
     }
 }

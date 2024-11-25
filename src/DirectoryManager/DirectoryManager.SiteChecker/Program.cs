@@ -1,8 +1,9 @@
 ﻿// See https://aka.ms/new-console-template for more information
+using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Extensions; // Import for AddRepositories
 using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.SiteChecker.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -12,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 // Build configuration
 var config = new ConfigurationBuilder()
     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-    .AddJsonFile("appsettings.json")
+    .AddJsonFile(DirectoryManager.Common.Constants.StringConstants.AppSettingsFileName)
     .Build();
 
 // Get the User-Agent header value from the configuration
@@ -21,22 +22,13 @@ var userAgentHeader = config["UserAgent:Header"] ?? throw new InvalidOperationEx
 // Register services in the service container
 var serviceProvider = new ServiceCollection()
     .AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlServer(config.GetConnectionString("DefaultConnection")))
-    .AddTransient<IApplicationDbContext, ApplicationDbContext>()
-    .AddTransient<IDirectoryEntryRepository, DirectoryEntryRepository>()
-    .AddTransient<ISubmissionRepository, SubmissionRepository>()
-    .AddTransient<IDbInitializer, DbInitializer>()
-    .AddTransient<IDirectoryEntriesAuditRepository, DirectoryEntriesAuditRepository>()
-    .AddTransient<ICategoryRepository, CategoryRepository>()
-    .AddTransient<IExcludeUserAgentRepository, ExcludeUserAgentRepository>()
-    .AddSingleton(new WebPageChecker(userAgentHeader))
+        options.UseSqlServer(config.GetConnectionString(StringConstants.DefaultConnection)))
+    .AddRepositories() // Register all repositories through the centralized method
+    .AddSingleton(new WebPageChecker(userAgentHeader)) // WebPageChecker
     .BuildServiceProvider();
 
 // Retrieve required services
-var entriesRepo = serviceProvider.GetService<IDirectoryEntryRepository>()
-    ?? throw new InvalidOperationException("The IDirectoryEntryRepository service is not registered.");
-var submissionRepo = serviceProvider.GetService<ISubmissionRepository>()
-    ?? throw new InvalidOperationException("The ISubmissionRepository service is not registered.");
+var entriesRepo = serviceProvider.GetRequiredService<IDirectoryEntryRepository>();
 var webPageChecker = serviceProvider.GetRequiredService<WebPageChecker>();
 
 // Get all entries
@@ -50,6 +42,10 @@ var tasks = allEntries
                     !entry.Link.Contains(".onion"))
     .Select(async entry =>
     {
+        // Create a new scope for each task to isolate DbContext instances
+        using var scope = serviceProvider.CreateScope();
+        var scopedSubmissionRepo = scope.ServiceProvider.GetRequiredService<ISubmissionRepository>();
+
         var isOnline = await webPageChecker.IsWebPageOnlineAsync(new Uri(entry.Link));
 
         if (!isOnline)
@@ -62,7 +58,7 @@ var tasks = allEntries
         if (!isOnline)
         {
             offlines.Add($"{entry.Link}   -   ID: {entry.DirectoryEntryId}");
-            await CreateOfflineSubmissionIfNotExists(entry, submissionRepo);
+            await CreateOfflineSubmissionIfNotExists(entry, scopedSubmissionRepo);
         }
     });
 
@@ -106,13 +102,20 @@ async Task CreateOfflineSubmissionIfNotExists(
     // Create a new submission with the appropriate details
     var submission = new Submission
     {
+        Note = newNote,
+        DirectoryStatus = DirectoryStatus.Removed,
         DirectoryEntryId = entry.DirectoryEntryId,
         Name = entry.Name,
         Link = entry.Link,
-        DirectoryStatus = DirectoryStatus.Removed,
-        Note = newNote,
         SubmissionStatus = SubmissionStatus.Pending,
-        SubCategoryId = entry.SubCategoryId
+        SubCategoryId = entry.SubCategoryId,
+        Description = entry.Description,
+        Contact = entry.Contact,
+        Link2 = entry.Link2,
+        Link3 = entry.Link3,
+        Location = entry.Location,
+        Processor = entry.Processor,
+        SubCategory = entry.SubCategory,
     };
 
     await submissionRepository.CreateAsync(submission);

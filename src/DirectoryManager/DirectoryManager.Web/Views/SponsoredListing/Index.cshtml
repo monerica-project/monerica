@@ -10,12 +10,13 @@
 }
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
+<hr />
 @await Html.PartialAsync("_BackToHome")
 <hr />
 
 <h2>Listing Details</h2>
 
-<p>There are two types of advertising, @EnumHelper.GetDescription(SponsorshipType.MainSponsor) and @EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor).</p>
+<p>There are two types of advertising, <b>@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</b> and <b>@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</b>.</p>
 <p>See current offers and pricing: <a href="~/sponsoredlisting/offers">here</a>.</p>
 
 <p>

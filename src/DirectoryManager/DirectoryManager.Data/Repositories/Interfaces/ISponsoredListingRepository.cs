@@ -11,7 +11,8 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync(SponsorshipType sponsorshipType);
         Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync();
         Task<int> GetActiveListingsCountAsync(SponsorshipType sponsorshipType, int? subCategoryId);
-        Task<DateTime?> GetNextExpirationDate();
+        Task<DateTime?> GetNextExpirationDateAsync();
+        Task<IEnumerable<SponsoredListing>> GetExpiringListingsWithinAsync(TimeSpan timeSpan);
         Task<int> GetTotalCountAsync();
         Task<List<SponsoredListing>> GetPaginatedListingsAsync(int page, int pageSize);
         Task<SponsoredListing?> GetActiveListing(int directoryEntryId, SponsorshipType sponsorshipType);

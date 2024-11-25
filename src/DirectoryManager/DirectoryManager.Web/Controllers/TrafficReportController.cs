@@ -45,7 +45,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!start.HasValue)
             {
-                start = DateTime.UtcNow.AddDays(-30);
+                start = DateTime.UtcNow.AddDays(-1);
             }
 
             if (!end.HasValue)

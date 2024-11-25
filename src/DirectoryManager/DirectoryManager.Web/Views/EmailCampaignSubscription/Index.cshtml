@@ -1,0 +1,43 @@
+﻿@using DirectoryManager.Web.Constants
+@model IEnumerable<DirectoryManager.Data.Models.Emails.EmailCampaignSubscription>
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Subscriptions for Campaign: " + @ViewBag.CampaignName;
+}
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+ 
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Email</th>
+            <th>Subscribed Date</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var subscription in Model)
+        {
+            <tr>
+                <td>@subscription.EmailSubscription.Email</td>
+                <td>@subscription.SubscribedDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                <td>@(subscription.IsActive ? "Active" : "Inactive")</td>
+                <td>
+                    @if (subscription.IsActive)
+                    {
+                        <form asp-action="Unsubscribe" method="post">
+                            <input type="hidden" name="campaignId" value="@subscription.EmailCampaignId" />
+                            <input type="hidden" name="emailSubscriptionId" value="@subscription.EmailSubscriptionId" />
+                            <button type="submit" >Unsubscribe</button>
+                        </form>
+                    }
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<a asp-action="Subscribe" asp-route-campaignId="@ViewBag.CampaignId">Add New Subscription</a>
+<a asp-controller="EmailCampaignManagement" asp-action="Index" >Back to Campaigns</a>

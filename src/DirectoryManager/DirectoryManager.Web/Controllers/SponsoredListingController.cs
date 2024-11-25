@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.ComponentModel.DataAnnotations;
+using System.Text;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
@@ -197,6 +198,7 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
+            this.ViewBag.Subcategory = string.Format("{0} > {1}", directoryEntry?.SubCategory?.Category.Name, directoryEntry?.SubCategory?.Name);
             this.ViewBag.SubCategoryId = directoryEntry?.SubCategoryId;
             this.ViewBag.DirectoryEntryId = directoryEntryId;
             this.ViewBag.SponsorshipType = sponsorshipType;
@@ -384,7 +386,8 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> ConfirmedNowPaymentsAsync(
             int directoryEntryId,
             int selectedOfferId,
-            Guid? rsvId = null)
+            Guid? rsvId = null,
+            string? email = null)
         {
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
 
@@ -434,6 +437,13 @@ namespace DirectoryManager.Web.Controllers
                 {
                     return this.BadRequest(new { Error = StringConstants.ErrorWithCheckoutProcess });
                 }
+
+                var existingInvoice = await this.sponsoredListingInvoiceRepository.GetByReservationGuidAsync(existingReservation.ReservationGuid);
+
+                if (existingInvoice != null)
+                {
+                    return this.BadRequest(new { Error = StringConstants.InvoiceAlreadyCreated });
+                }
             }
 
             this.ViewBag.ReservationGuid = rsvId;
@@ -462,10 +472,12 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = "Failed to create invoice ID." });
             }
 
+            invoice.ReservationGuid = (rsvId == null) ? Guid.Empty : rsvId.Value;
             invoice.ProcessorInvoiceId = invoiceFromProcessor.Id;
             invoice.PaymentProcessor = PaymentProcessor.NOWPayments;
             invoice.InvoiceRequest = JsonConvert.SerializeObject(invoiceRequest);
             invoice.InvoiceResponse = JsonConvert.SerializeObject(invoiceFromProcessor);
+            invoice.Email = SetEmail(email);
 
             await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
 
@@ -766,7 +778,7 @@ namespace DirectoryManager.Web.Controllers
         [Authorize]
         public async Task<IActionResult> List(int page = 1)
         {
-            int pageSize = 10;
+            int pageSize = IntegerConstants.DefaultPageSize;
             var totalListings = await this.sponsoredListingRepository.GetTotalCountAsync();
             var listings = await this.sponsoredListingRepository.GetPaginatedListingsAsync(page, pageSize);
 
@@ -865,6 +877,13 @@ namespace DirectoryManager.Web.Controllers
             }
 
             throw new InvalidOperationException("SponsorshipType:" + sponsorshipType.ToString());
+        }
+
+        private static string SetEmail(string? email)
+        {
+            var emailAttribute = new EmailAddressAttribute();
+
+            return (email != null && emailAttribute.IsValid(email)) ? email.Trim() : string.Empty;
         }
 
         private static bool CanPurchaseListing(

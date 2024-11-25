@@ -1,6 +1,6 @@
 @echo off
 
-echo DirectoryManager CI - Version 1.1.1
+echo DirectoryManager CI - Version 1.1.2
 echo Copyright DirectoryManager (tm) - All right reserved.
 
 powershell -command "if (!(Get-Module psake -ListAvailable)) { if (!(Get-Module PsGet -ListAvailable)) { Find-Module -Name 'psake' | Save-Module -Path; Install-Module 'psake'}}"

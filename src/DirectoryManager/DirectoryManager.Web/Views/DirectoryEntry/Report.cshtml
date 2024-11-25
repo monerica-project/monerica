@@ -1,0 +1,11 @@
+﻿@using DirectoryManager.Data.Models
+@model IEnumerable<DirectoryEntry>
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Directory Entries - Report";
+}
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+ 
+<img style="width:100%" src="@Url.Action("WeeklyPlotImage", "DirectoryEntry")" alt="Weekly Cumulative Totals Plot" />

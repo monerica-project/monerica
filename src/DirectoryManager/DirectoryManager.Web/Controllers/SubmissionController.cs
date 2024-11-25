@@ -1,7 +1,9 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.FileStorage.Constants;
 using DirectoryManager.Utilities.Helpers;
+using DirectoryManager.Utilities.Validation;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
@@ -80,7 +82,7 @@ namespace DirectoryManager.Web.Controllers
 
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
 
-            if (ContainsScriptTag(model) ||
+            if (ScriptValidation.ContainsScriptTag(model) ||
                 this.blockedIPRepository.IsBlockedIp(ipAddress))
             {
                 return this.RedirectToAction("Success", "Submission");
@@ -88,51 +90,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (this.ModelState.IsValid)
             {
-                if (!await this.HasChangesAsync(model) &&
-                    string.IsNullOrWhiteSpace(model.NoteToAdmin))
-                {
-                    return this.RedirectToAction("Success", "Submission");
-                }
-
-                var existingLinkSubmission = await this.submissionRepository.GetByLinkAndStatusAsync(model.Link);
-
-                if (existingLinkSubmission != null)
-                {
-                    this.ModelState.AddModelError(string.Empty, "There is already a pending submission for this link.");
-                    await this.LoadSubCategories();
-
-                    return this.View("SubmitEdit", model);
-                }
-
-                var submissionModel = this.GetSubmissionRequest(model);
-                var submissionId = model.SubmissionId;
-
-                if (submissionId == null)
-                {
-                    var existingDirectoryEntryId = await this.GetExistingListingFromLinkAsync(model.Link);
-                    submissionModel.DirectoryEntryId = existingDirectoryEntryId;
-                    var submission = await this.submissionRepository.CreateAsync(submissionModel);
-                    submissionId = submission.SubmissionId;
-                }
-                else
-                {
-                    var existingSubmission = await this.submissionRepository.GetByIdAsync(submissionId.Value);
-
-                    if (existingSubmission == null)
-                    {
-                        return this.BadRequest(Constants.StringConstants.SubmissionDoesNotExist);
-                    }
-
-                    await this.UpdateSubmission(submissionModel, existingSubmission);
-                }
-
-                return this.RedirectToAction(
-                    "Preview",
-                    "Submission",
-                    new
-                    {
-                        id = submissionId
-                    });
+                return await this.CreateSubmission(model);
             }
             else
             {
@@ -153,7 +111,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(Constants.StringConstants.SubmissionDoesNotExist);
             }
 
-            var model = this.GetSubmissionPreview(submission);
+            var model = await this.GetSubmissionPreviewAsync(submission);
 
             return this.View(model);
         }
@@ -201,7 +159,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("submission/audit/{entryId}")]
         public async Task<IActionResult> AuditAync(int entryId)
         {
-            var audits = await this.auditRepository.GetAuditsForEntryAsync(entryId);
+            var audits = await this.auditRepository.GetAuditsWithSubCategoriesForEntryAsync(entryId);
             var link2Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
             var canonicalDomain = this.cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
@@ -217,12 +175,25 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.SelectedDirectoryEntry = directoryItem;
 
+            // Set category and subcategory names for each audit entry
+            foreach (var audit in audits)
+            {
+                if (audit.SubCategory != null)
+                {
+                    audit.SubCategoryName = $"{audit.SubCategory.Category?.Name} > {audit.SubCategory.Name}";
+                }
+                else
+                {
+                    audit.SubCategoryName = "No SubCategory Assigned";
+                }
+            }
+
             return this.View("Audit", audits);
         }
 
         [Authorize]
         [HttpGet("submission/index")]
-        public async Task<IActionResult> Index(int? page, int pageSize = 10)
+        public async Task<IActionResult> Index(int? page, int pageSize = Constants.IntegerConstants.DefaultPageSize)
         {
             int pageNumber = page ?? 1;
             var submissions = await this.submissionRepository.GetAllAsync();
@@ -242,17 +213,22 @@ namespace DirectoryManager.Web.Controllers
 
         [Authorize]
         [HttpGet("submission/{id}")]
-        public async Task<IActionResult> Edit(int id)
+        public async Task<IActionResult> Review(int id)
         {
             var submission = await this.submissionRepository.GetByIdAsync(id);
 
             if (submission != null &&
                 submission.DirectoryEntryId != null)
             {
+                if (submission.SubCategory == null && submission.SubCategoryId != null)
+                {
+                    submission.SubCategory = await this.subCategoryRepository.GetByIdAsync(submission.SubCategoryId.Value);
+                }
+
                 var existing = await this.directoryEntryRepository.GetByIdAsync(submission.DirectoryEntryId.Value);
                 if (existing != null)
                 {
-                    this.ViewBag.Differences = ModelComparisionHelpers.CompareEntries(existing, submission);
+                    this.ViewBag.Differences = ModelComparisonHelpers.CompareEntries(existing, submission);
                 }
             }
 
@@ -265,6 +241,57 @@ namespace DirectoryManager.Web.Controllers
 
             // Convert the submission to a ViewModel if necessary, or use the model directly
             return this.View(submission);
+        }
+
+        [Authorize]
+        [HttpPost("submission/{id}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Review(int id, Submission model)
+        {
+            if (!this.ModelState.IsValid)
+            {
+                return this.View(model);
+            }
+
+            if (model.DirectoryStatus == DirectoryStatus.Unknown)
+            {
+                throw new Exception($"Invalid directory status: {model.DirectoryStatus}");
+            }
+
+            var submission = await this.submissionRepository.GetByIdAsync(id);
+
+            if (submission == null)
+            {
+                return this.NotFound();
+            }
+
+            if (model.SubCategoryId == null ||
+                model.SubCategoryId == 0)
+            {
+                throw new Exception("Submission does not have a subcategory");
+            }
+
+            if (submission.SubmissionStatus == SubmissionStatus.Pending &&
+                model.SubmissionStatus == SubmissionStatus.Approved)
+            {
+                if (model.DirectoryEntryId == null)
+                {
+                    // it's now approved
+                    await this.CreateDirectoryEntry(model);
+                }
+                else
+                {
+                    await this.UpdateDirectoryEntry(model);
+                }
+
+                this.ClearCachedItems();
+            }
+
+            submission.SubmissionStatus = model.SubmissionStatus;
+
+            await this.submissionRepository.UpdateAsync(submission);
+
+            return this.RedirectToAction(nameof(this.Index));
         }
 
         [Authorize]
@@ -303,52 +330,6 @@ namespace DirectoryManager.Web.Controllers
             await this.submissionRepository.UpdateAsync(submission);
 
             return this.View("Success");
-        }
-
-        [Authorize]
-        [HttpPost("submission/{id}")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Submission model)
-        {
-            if (!this.ModelState.IsValid)
-            {
-                return this.View(model);
-            }
-
-            var submission = await this.submissionRepository.GetByIdAsync(id);
-
-            if (submission == null)
-            {
-                return this.NotFound();
-            }
-
-            if (model.SubCategoryId == null ||
-                model.SubCategoryId == 0)
-            {
-                throw new Exception("Submission does not have a subcategory");
-            }
-
-            if (submission.SubmissionStatus == SubmissionStatus.Pending &&
-                model.SubmissionStatus == SubmissionStatus.Approved)
-            {
-                if (model.DirectoryEntryId == null)
-                {
-                    // it's now approved
-                    await this.CreateDirectoryEntry(model);
-                }
-                else
-                {
-                    await this.UpdateDirectoryEntry(model);
-                }
-
-                this.ClearCachedItems();
-            }
-
-            submission.SubmissionStatus = model.SubmissionStatus;
-
-            await this.submissionRepository.UpdateAsync(submission);
-
-            return this.RedirectToAction(nameof(this.Index));
         }
 
         private static SubmissionRequest GetSubmissionRequestModel(Data.Models.DirectoryEntry directoryEntry)
@@ -391,29 +372,6 @@ namespace DirectoryManager.Web.Controllers
             };
         }
 
-        private static bool ContainsScriptTag(SubmissionRequest model)
-        {
-            var properties = model.GetType().GetProperties();
-            foreach (var property in properties)
-            {
-                if (property.PropertyType == typeof(string))
-                {
-                    var value = property.GetValue(model) as string;
-                    if (!string.IsNullOrEmpty(value))
-                    {
-                        var decodedValue = System.Net.WebUtility.HtmlDecode(value);
-                        var normalizedValue = System.Text.RegularExpressions.Regex.Replace(decodedValue, @"\s+", " ").ToLower();
-                        if (normalizedValue.Contains("<script") || normalizedValue.Contains("< script") || normalizedValue.Contains("&lt;script&gt;"))
-                        {
-                            return true;
-                        }
-                    }
-                }
-            }
-
-            return false;
-        }
-
         private async Task<int?> GetExistingListingFromLinkAsync(string link)
         {
             var existingLink = await this.directoryEntryRepository.GetByLinkAsync(link);
@@ -451,10 +409,15 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.SubCategories = subCategories;
         }
 
-        private SubmissionPreviewModel GetSubmissionPreview(Submission submission)
+        private async Task<SubmissionPreviewModel> GetSubmissionPreviewAsync(Submission submission)
         {
             var link2Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+
+            if (submission.SubCategoryId != null)
+            {
+                submission.SubCategory = await this.subCategoryRepository.GetByIdAsync(submission.SubCategoryId.Value);
+            }
 
             return new SubmissionPreviewModel
             {
@@ -480,8 +443,64 @@ namespace DirectoryManager.Web.Controllers
                     SubCategoryId = submission.SubCategoryId
                 },
                 SubmissionId = submission.SubmissionId,
-                NoteToAdmin = submission.NoteToAdmin
+                NoteToAdmin = submission.NoteToAdmin,
+                SubcategoryName = $"{submission?.SubCategory?.Category?.Name} > {submission?.SubCategory?.Name}"
             };
+        }
+
+        private async Task<IActionResult> CreateSubmission(SubmissionRequest model)
+        {
+            if (!await this.HasChangesAsync(model) &&
+                string.IsNullOrWhiteSpace(model.NoteToAdmin))
+            {
+                return this.RedirectToAction("Success", "Submission");
+            }
+
+            var existingLinkSubmission = await this.submissionRepository.GetByLinkAndStatusAsync(model.Link);
+
+            if (existingLinkSubmission != null)
+            {
+                this.ModelState.AddModelError(string.Empty, "There is already a pending submission for this link.");
+                await this.LoadSubCategories();
+
+                return this.View("SubmitEdit", model);
+            }
+
+            var submissionModel = this.GetSubmissionRequest(model);
+            var submissionId = model.SubmissionId;
+
+            if (submissionId == null)
+            {
+                var existingDirectoryEntryId = await this.GetExistingListingFromLinkAsync(model.Link);
+
+                if (existingDirectoryEntryId != null)
+                {
+                    var existingDirectoryEntry = await this.directoryEntryRepository.GetByIdAsync(existingDirectoryEntryId.Value);
+                }
+
+                submissionModel.DirectoryEntryId = existingDirectoryEntryId;
+                var submission = await this.submissionRepository.CreateAsync(submissionModel);
+                submissionId = submission.SubmissionId;
+            }
+            else
+            {
+                var existingSubmission = await this.submissionRepository.GetByIdAsync(submissionId.Value);
+
+                if (existingSubmission == null)
+                {
+                    return this.BadRequest(Constants.StringConstants.SubmissionDoesNotExist);
+                }
+
+                await this.UpdateSubmission(submissionModel, existingSubmission);
+            }
+
+            return this.RedirectToAction(
+                "Preview",
+                "Submission",
+                new
+                {
+                    id = submissionId
+                });
         }
 
         private async Task CreateDirectoryEntry(Submission model)
@@ -492,7 +511,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             await this.directoryEntryRepository.CreateAsync(
-                new Data.Models.DirectoryEntry
+                new DirectoryEntry
                 {
                     DirectoryEntryKey = StringHelpers.UrlKey(model.Name),
                     Name = model.Name.Trim(),

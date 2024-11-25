@@ -1,23 +1,24 @@
-﻿@using DirectoryManager.Web.Constants;
+﻿@using DirectoryManager.Utilities.Helpers
+@using DirectoryManager.Web.Constants;
 @model IEnumerable<DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice>
 
 @{
     ViewData[StringConstants.TitleHeader] = "Invoices";
     int currentPage = ViewBag.CurrentPage ?? 1;
-    int pageSize = ViewBag.PageSize ?? 10;
+    int pageSize = ViewBag.PageSize ?? IntegerConstants.DefaultPageSize;
     int totalItems = ViewBag.TotalItems ?? 0;
     int totalPages = (int)Math.Ceiling((double)totalItems / pageSize);
+    bool isPaidOnly = ViewBag.IsPaidOnly ?? false;
 }
 
-<h2>@ViewData[StringConstants.TitleHeader]</h2>
+<h1>@(isPaidOnly ? "Paid Invoices" : "All Invoices")</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 
-<hr />
-
-<div>
-    <a href="@Url.Action("Report")">Report</a>
-</div>
+<!-- Links to toggle between all invoices and paid invoices -->
+<a href="@Url.Action("Index")">All Invoices</a> |
+<a href="@Url.Action("PaidIndex")">Paid Invoices</a> | 
+<a href="@Url.Action("Report")">Report</a>
 
 <hr />
 
@@ -25,22 +26,42 @@
     <thead>
         <tr>
             <th>Create Date</th>
+            <th>Payment Status</th>
             <th>Amount Asked</th>
             <th>Outcome Amount</th>
             <th>Paid In Currency</th>
-            <th>Payment Status</th>
             <th>Actions</th>
         </tr>
     </thead>
     <tbody>
+        @{
+            var endedStatuses = new HashSet<DirectoryManager.Data.Enums.PaymentStatus>
+        {
+        DirectoryManager.Data.Enums.PaymentStatus.Failed,
+        DirectoryManager.Data.Enums.PaymentStatus.Expired
+        };
+        }
         @foreach (var invoice in Model)
         {
             <tr>
-                <td>@invoice.CreateDate.ToString(StringConstants.DateTimeFormat)</td>
-                <td>@invoice.Amount.ToString("C") (@invoice.Currency.ToString())</td>
+                <td>@invoice.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
+                <td>
+                    @if (invoice.PaymentStatus == DirectoryManager.Data.Enums.PaymentStatus.Paid)
+                    {
+                        <text>&#x1F4B0;</text> @EnumHelper.GetDescription(invoice.PaymentStatus)
+                    }
+                    else if (endedStatuses.Contains(invoice.PaymentStatus))
+                    {
+                        <i>@EnumHelper.GetDescription(invoice.PaymentStatus)</i>
+                    }
+                    else
+                    {
+                        @EnumHelper.GetDescription(invoice.PaymentStatus)
+                    }
+                </td>
+                <td>@invoice.Amount.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat) (@invoice.Currency.ToString())</td>
                 <td>@invoice.OutcomeAmount</td>
                 <td>@invoice.PaidInCurrency</td>
-                <td>@invoice.PaymentStatus</td>
                 <td>
                     <a href="@Url.Action("Details", new { id = invoice.SponsoredListingInvoiceId })">Details</a>
                 </td>
@@ -55,7 +76,7 @@
         <tr>
             <td>
                 <!-- Previous Page Link -->
-                <a href="@Url.Action("Index", new { page = Math.Max(1, currentPage - 1) })" aria-label="Previous" @(currentPage == 1 ? "disabled" : "")>
+                <a href="@Url.Action(isPaidOnly ? "PaidIndex" : "Index", new { page = Math.Max(1, currentPage - 1) })" aria-label="Previous" @(currentPage == 1 ? "disabled" : "")>
                     &laquo;
                 </a>
             </td>
@@ -65,17 +86,17 @@
                     <!-- Page Number Links or Text -->
                     @if (i == currentPage)
                     {
-                        <span style="font-weight:bold;">@i</span>
+                        <span class="bold">@i</span>
                     }
                     else
                     {
-                        <a href="@Url.Action("Index", new { page = i })">@i</a>
+                        <a href="@Url.Action(isPaidOnly ? "PaidIndex" : "Index", new { page = i })">@i</a>
                     }
                 </td>
             }
             <td>
                 <!-- Next Page Link -->
-                <a href="@Url.Action("Index", new { page = Math.Min(totalPages, currentPage + 1) })" aria-label="Next" @(currentPage == totalPages ? "disabled" : "")>
+                <a href="@Url.Action(isPaidOnly ? "PaidIndex" : "Index", new { page = Math.Min(totalPages, currentPage + 1) })" aria-label="Next" @(currentPage == totalPages ? "disabled" : "")>
                     &raquo;
                 </a>
             </td>

@@ -7,7 +7,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
     {
         IApplicationDbContext Context { get; }
 
-        Task<BlockedIP> CreateAsync(BlockedIP model);
+        Task<BlockedIP?> CreateAsync(BlockedIP model);
 
         bool IsBlockedIp(string ipAddress);
 

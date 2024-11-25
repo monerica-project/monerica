@@ -1,17 +1,16 @@
 ﻿@model IEnumerable<DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOffer>
 @using DirectoryManager.Web.Constants;
+
 @{
     ViewData[StringConstants.TitleHeader] = "Sponsored Listing Offers";
 }
 
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
 @await Html.PartialAsync("_AdminMenu")
 
+<a asp-action="Create">Create New</a>
 <hr />
-<p>
-    <a class="btn btn-primary" asp-action="Create">Create New</a>
-</p>
-
 <table class="table">
     <thead>
         <tr>
@@ -36,17 +35,17 @@
                     }
                     else
                     {
-                        @item.Subcategory?.Name
+                        @string.Format("{0} > {1}", item.Subcategory.Category?.Name, @item.Subcategory?.Name)
                     }
                 </td>
                 <td>@item.Days</td>
-                <td>@item.Price.ToString("C") (@item.PriceCurrency.ToString())</td>
+                <td>@item.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat) (@item.PriceCurrency.ToString())</td>
                 <td>
                     @{
                         if (item.Days > 0)
                         {
                             var pricePerDay = item.Price / item.Days;
-                            <text>@pricePerDay.ToString("C2")</text>
+                            <text>@pricePerDay.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat2)</text>
                         }
                         else
                         {
@@ -62,4 +61,3 @@
         }
     </tbody>
 </table>
-

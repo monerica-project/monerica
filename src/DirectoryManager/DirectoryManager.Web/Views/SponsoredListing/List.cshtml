@@ -9,8 +9,6 @@
 
 @await Html.PartialAsync("_AdminMenu")
 
-<hr />
-
 <table class="table">
     <thead>
         <tr>
@@ -29,9 +27,9 @@
             <tr>
                 <td>@listing.DirectoryEntryName</td>
                 <td>@listing.SponsorshipType</td>
-                <td>@listing.StartDate.ToString(StringConstants.DateTimeFormat)</td>
+                <td>@listing.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
                 <td> - </td>
-                <td>@listing.EndDate.ToString(StringConstants.DateTimeFormat)</td>
+                <td>@listing.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
                 <td> 
                     @if (listing.IsActive)
                     {
@@ -62,7 +60,7 @@
     {
         if (i == Model.CurrentPage)
         {
-            <span style="font-weight:bold;">@i</span>
+            <span class="bold">@i</span>
         }
         else
         {

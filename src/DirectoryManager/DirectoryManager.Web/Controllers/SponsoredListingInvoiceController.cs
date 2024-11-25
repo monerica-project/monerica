@@ -1,5 +1,8 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Charting;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -29,7 +32,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("sponsoredlistinginvoice")]
         [HttpGet]
-        public async Task<IActionResult> Index(int page = 1, int pageSize = 10)
+        public async Task<IActionResult> Index(int page = 1, int pageSize = IntegerConstants.DefaultPageSize)
         {
             var (invoices, totalItems) = await this.invoiceRepository.GetPageAsync(page, pageSize);
 
@@ -39,8 +42,26 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.PageSize = pageSize;
             this.ViewBag.TotalItems = totalItems;
             this.ViewBag.TotalPages = totalPages;
+            this.ViewBag.IsPaidOnly = false; // For all invoices
 
             return this.View(invoices);
+        }
+
+        [Route("sponsoredlistinginvoice/paid")]
+        [HttpGet]
+        public async Task<IActionResult> PaidIndex(int page = 1, int pageSize = IntegerConstants.DefaultPageSize)
+        {
+            var (invoices, totalItems) = await this.invoiceRepository.GetPageByTypeAsync(page, pageSize, PaymentStatus.Paid);
+
+            int totalPages = (int)Math.Ceiling(totalItems / (double)pageSize);
+
+            this.ViewBag.CurrentPage = page;
+            this.ViewBag.PageSize = pageSize;
+            this.ViewBag.TotalItems = totalItems;
+            this.ViewBag.TotalPages = totalPages;
+            this.ViewBag.IsPaidOnly = true; // For paid invoices only
+
+            return this.View("Index", invoices); // Reuse the same view
         }
 
         [Route("sponsoredlistinginvoice/details")]
@@ -66,15 +87,26 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            if (sponsoredListingInvoice.SubCategoryId.HasValue)
+            Subcategory? subcategory = null;
+
+            if (sponsoredListingInvoice.SubCategoryId != null)
             {
-                this.ViewBag.SubCategory = (await this.subCategoryRepository
-                                                        .GetAllActiveSubCategoriesAsync())
-                                                        .OrderBy(sc => sc.Category.Name)
-                                                        .ThenBy(sc => sc.Name)
-                                                        .Where(sc => sc.SubCategoryId == sponsoredListingInvoice.SubCategoryId.Value)
-                                                        .ToList()
-                                                        .First();
+                subcategory = (await this.subCategoryRepository
+                                             .GetAllActiveSubCategoriesAsync())
+                                             .OrderBy(sc => sc.Category.Name)
+                                             .ThenBy(sc => sc.Name)
+                                             .Where(sc => sc.SubCategoryId == sponsoredListingInvoice.SubCategoryId.Value)
+                                             .FirstOrDefault();
+            }
+
+            if (subcategory != null)
+            {
+                this.ViewBag.SubCategory = subcategory;
+            }
+            else
+            {
+                // Handle the case when no matching subcategory is found
+                this.ViewBag.SubCategory = null; // or provide a default value if appropriate
             }
 
             this.ViewBag.SelectedDirectoryEntry = new DirectoryEntryViewModel()
@@ -126,6 +158,16 @@ namespace DirectoryManager.Web.Controllers
             model.PaidInCurrency = result.PaidInCurrency;
 
             return this.View(model);
+        }
+
+        [HttpGet("sponsoredlistinginvoice/monthlyincomebarchart")]
+        public async Task<IActionResult> WeeklyPlotImageAsync()
+        {
+            var plottingChart = new InvoicePlotting();
+            var invoices = await this.invoiceRepository.GetAllAsync();
+            var imageBytes = plottingChart.CreateMonthlyIncomeBarChart(invoices);
+
+            return this.File(imageBytes, StringConstants.PngImage);
         }
     }
 }

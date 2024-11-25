@@ -1,0 +1,10 @@
+﻿@using DirectoryManager.Web.Constants;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@{
+    ViewData[StringConstants.TitleHeader] = "Donate";
+}
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<hr />
+@await Html.PartialAsync("_BackToHome")
+<hr />
+@Html.Raw(cacheHelper.GetSnippet(DirectoryManager.Data.Enums.SiteConfigSetting.DonationHtml))

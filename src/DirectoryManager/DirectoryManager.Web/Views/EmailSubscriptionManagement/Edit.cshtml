@@ -1,14 +1,13 @@
-﻿@model DirectoryManager.Web.Models.EmailSubscribeEditModel
+﻿@model EmailSubscribeEditModel
 @using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Models.Emails;
 @{
     ViewData[StringConstants.TitleHeader] = "Edit Email";
 }
 
-<h2>@ViewData[StringConstants.TitleHeader]</h2>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
-
-<hr />
 
 <form asp-controller="EmailSubscriptionManagement" asp-action="Edit" method="post" class="form-horizontal">
 
@@ -27,7 +26,6 @@
             <input asp-for="IsSubscribed" class="form-control" />
         </div>
     </div>
-  
 
     <div class="form-group">
         <div class="col-md-offset-2 col-md-10">

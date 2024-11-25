@@ -1,0 +1,61 @@
+﻿@using DirectoryManager.Web.Constants
+@model DirectoryManager.Web.Models.EmailMessageListModel
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Email Messages";
+}
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Email Key</th>
+            <th>Subject</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var message in Model.Messages)
+        {
+            <tr>
+                <td>@message.EmailKey</td>
+                <td>@message.EmailSubject</td>           
+                <td>
+                    <a asp-action="Edit" asp-route-id="@message.EmailMessageId">Edit</a>
+                    <form asp-action="Delete" asp-route-id="@message.EmailMessageId" method="post" style="display:inline;">
+                        <button type="submit">Delete</button>
+                    </form>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<div class="pagination">
+    @if (Model.PageIndex > 0)
+    {
+        <a asp-action="Index" asp-route-pageIndex="@(Model.PageIndex - 1)">Previous</a>
+    }
+
+    @for (int i = 0; i < (Model.TotalCount + Model.PageSize - 1) / Model.PageSize; i++)
+    {
+        if (i == Model.PageIndex)
+        {
+            <span>@(i + 1)</span> <!-- Render as plain text for the current page -->
+        }
+        else
+        {
+            <a asp-action="Index" asp-route-pageIndex="@i">@(@i + 1)</a> <!-- Render as a link for other pages -->
+        }
+    }
+
+    @if (Model.PageIndex < ((Model.TotalCount + Model.PageSize - 1) / Model.PageSize) - 1)
+    {
+        <a asp-action="Index" asp-route-pageIndex="@(Model.PageIndex + 1)">Next</a>
+    }
+</div>
+
+
+<a asp-action="Create">Add New Email Message</a>

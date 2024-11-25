@@ -1,0 +1,36 @@
+﻿@using DirectoryManager.Web.Constants;
+@model DirectoryManager.Web.Models.Emails.EmailMessageModel
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Edit Email Message";
+}
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="EmailMessageId" />
+
+    <div class="form-group">
+        <label asp-for="EmailKey">Email Key:</label>
+        <input type="text" class="form-control" asp-for="EmailKey" required />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="EmailSubject">Subject:</label>
+        <input type="text" class="form-control input-width" asp-for="EmailSubject" required />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="EmailBodyText">Body Text:</label>
+        <textarea class="form-control input-width" asp-for="EmailBodyText"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="EmailBodyHtml">Body HTML:</label>
+        <textarea class="form-control input-width" asp-for="EmailBodyHtml"></textarea>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+</form>

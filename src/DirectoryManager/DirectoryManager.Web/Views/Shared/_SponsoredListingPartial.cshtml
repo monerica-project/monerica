@@ -5,7 +5,6 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 
 <cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.SponsoredListingsCacheKey">
-
 @{
     var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.MainSponsor);
     var directoryEntries = new List<DirectoryManager.Data.Models.DirectoryEntry>();
@@ -22,7 +21,6 @@
         }
     }
 }
-
     @if (sponsoredListings != null && sponsoredListings.Count() > 0)
     {
         <div class="sponsored-section">
@@ -64,5 +62,4 @@
             <a class="app-link" href="~/sponsoredlisting">Advertise here</a>
         </p>
     }
-
 </cache-content>

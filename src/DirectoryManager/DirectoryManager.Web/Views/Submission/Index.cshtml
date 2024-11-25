@@ -7,8 +7,6 @@
 
 @await Html.PartialAsync("_AdminMenu")
 
-<hr />
-
 <table class="table">
     <thead>
         <tr>
@@ -34,7 +32,7 @@
                     }
                 </td>
                 <td>
-                    <a asp-action="Edit" asp-controller="Submission" asp-route-id="@submission?.SubmissionId">Edit</a>
+                    <a asp-action="Review" asp-controller="Submission" asp-route-id="@submission?.SubmissionId">Edit</a>
                 </td>
             </tr>
         }

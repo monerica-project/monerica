@@ -1,7 +1,9 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Implementations;
+using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using Moq;
 
 namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
 {
@@ -27,7 +29,10 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
                 context.DirectoryEntries.Add(directoryEntry);
                 await context.SaveChangesAsync();
 
-                var repository = new DirectoryEntryRepository(context, null); // Assuming null for the audit repository here
+                // Create a mock for the IDirectoryEntriesAuditRepository
+                var mockAuditRepository = new Mock<IDirectoryEntriesAuditRepository>();
+
+                var repository = new DirectoryEntryRepository(context, mockAuditRepository.Object);
 
                 // Act
                 var result = await repository.GetByIdAsync(1);

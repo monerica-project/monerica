@@ -1,124 +1,81 @@
-using Azure.Storage.Blobs;
-using DirectoryManager.Data.DbContextInfo;
-using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Repositories.Implementations;
-using DirectoryManager.Data.Repositories.Interfaces;
-using DirectoryManager.FileStorage.Repositories.Implementations;
-using DirectoryManager.FileStorage.Repositories.Interfaces;
 using DirectoryManager.Web.AppRules;
+using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Middleware;
-using DirectoryManager.Web.Services.Implementations;
-using DirectoryManager.Web.Services.Interfaces;
+using DirectoryManager.Web.Models;
 using Microsoft.AspNetCore.Diagnostics;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Rewrite;
-using Microsoft.EntityFrameworkCore;
-using Newtonsoft.Json;
-using NowPayments.API.Implementations;
-using NowPayments.API.Interfaces;
-using NowPayments.API.Models;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
 
+// Load application settings with TorPort fallback if missing
+var appSettings = builder.Configuration.GetSection("ApplicationSettings").Get<ApplicationSettings>()
+        ?? new ApplicationSettings { TorPort = IntegerConstants.DefaultAlternativePort };
+
+// Configure Serilog logging
 var logger = new LoggerConfiguration()
-   .ReadFrom.Configuration(builder.Configuration)
-   .Enrich.FromLogContext()
-   .CreateLogger();
+    .WriteTo.Console()
+    .ReadFrom.Configuration(builder.Configuration)
+    .Enrich.FromLogContext()
+    .CreateLogger();
+
 builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(logger);
 
-builder.Services.AddResponseCaching();
-builder.Services.AddControllersWithViews(); // Add MVC services to the DI container
-builder.Services.AddRazorPages();
-builder.Services.AddMemoryCache();
-builder.Services.AddMvc();
+// Configure application services
+builder.Services.AddApplicationServices(builder.Configuration);
 
-// database context
-builder.Services.AddScoped<IApplicationDbContext, ApplicationDbContext>();
+// if (builder.Environment.IsDevelopment())
+// {
+//    builder.Services.AddControllersWithViews()
+//                    .AddRazorRuntimeCompilation();
+// }
 
-// database repositories
-builder.Services.AddScoped<ISubmissionRepository, SubmissionRepository>();
-builder.Services.AddScoped<ICategoryRepository, CategoryRepository>();
-builder.Services.AddScoped<ISubcategoryRepository, SubcategoryRepository>();
-builder.Services.AddScoped<IDirectoryEntryRepository, DirectoryEntryRepository>();
-builder.Services.AddScoped<IDirectoryEntriesAuditRepository, DirectoryEntriesAuditRepository>();
-builder.Services.AddScoped<IDirectoryEntrySelectionRepository, DirectoryEntrySelectionRepository>();
-builder.Services.AddScoped<ITrafficLogRepository, TrafficLogRepository>();
-builder.Services.AddScoped<IExcludeUserAgentRepository, ExcludeUserAgentRepository>();
-builder.Services.AddScoped<ISponsoredListingInvoiceRepository, SponsoredListingInvoiceRepository>();
-builder.Services.AddScoped<ISponsoredListingRepository, SponsoredListingRepository>();
-builder.Services.AddScoped<ISponsoredListingReservationRepository, SponsoredListingReservationRepository>();
-builder.Services.AddScoped<ISponsoredListingOfferRepository, SponsoredListingOfferRepository>();
-builder.Services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
-builder.Services.AddScoped<IProcessorConfigRepository, ProcessorConfigRepository>();
-builder.Services.AddScoped<IEmailSubscriptionRepository, EmailSubscriptionRepository>();
-builder.Services.AddScoped<IBlockedIPRepository, BlockedIPRepository>();
-
-// services
-builder.Services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
-builder.Services.AddTransient<ICacheService, CacheService>();
-builder.Services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
-builder.Services.AddScoped<IRssFeedService, RssFeedService>();
-
-builder.Services.AddScoped(provider =>
+// Configure Kestrel based on environment and certificate availability
+builder.WebHost.ConfigureKestrel(options =>
 {
-    var configRepo = provider.GetRequiredService<IProcessorConfigRepository>();
-    var processorConfigTask = configRepo.GetByProcessorAsync(PaymentProcessor.NOWPayments);
-    processorConfigTask.Wait();
-    var processorConfig = processorConfigTask.Result;
-
-    if (processorConfig == null)
+    if (builder.Environment.IsDevelopment())
     {
-        throw new Exception("NOWPayments processor config not found");
+        // Development ports for Visual Studio debugging with HTTPS
+        options.ListenLocalhost(IntegerConstants.DefaultDebuggingHttpPort); // HTTP
+        options.ListenLocalhost(IntegerConstants.DefaultDebuggingHttpsPort, listenOptions => listenOptions.UseHttps()); // HTTPS
     }
-
-    var nowPaymentsConfig = JsonConvert.DeserializeObject<NowPaymentConfigs>(processorConfig.Configuration);
-
-    return nowPaymentsConfig == null ?
-        throw new Exception("NOWPayments config not found") :
-        (INowPaymentsService)new NowPaymentsService(nowPaymentsConfig);
-});
-
-builder.Services.AddSingleton<IBlobService>(provider =>
-{
-    return Task.Run(async () =>
+    else
     {
-        using var scope = provider.CreateScope();
-        var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
-        var azureStorageConnection = cacheService.GetSnippet(SiteConfigSetting.AzureStorageConnectionString);
-        var blobServiceClient = new BlobServiceClient(azureStorageConnection);
-
-        return await BlobService.CreateAsync(blobServiceClient);
-    }).GetAwaiter().GetResult();
+        // Check if a certificate path is configured for production
+        if (builder.Configuration.GetValue<string>("Kestrel:Certificates:Default:Path") != null)
+        {
+            options.ListenAnyIP(IntegerConstants.DefaultRemoteHttpPort); // HTTP for redirection purposes
+            options.ListenAnyIP(IntegerConstants.DefaultRemoteHttpsPort, listenOptions => listenOptions.UseHttps()); // HTTPS
+        }
+        else
+        {
+            // No certificate available
+            options.ListenAnyIP(IntegerConstants.DefaultRemoteHttpPort); // HTTP
+            options.ListenAnyIP(appSettings.TorPort); // HTTP for Tor
+        }
+    }
 });
-
-builder.Services.AddSingleton<IBlobService>(provider =>
-{
-    return Task.Run(async () =>
-    {
-        using var scope = provider.CreateScope();
-        var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
-        var azureStorageConnection = cacheService.GetSnippet(SiteConfigSetting.AzureStorageConnectionString);
-        var blobServiceClient = new BlobServiceClient(azureStorageConnection);
-
-        return await BlobService.CreateAsync(blobServiceClient);
-    }).GetAwaiter().GetResult();
-});
-
-builder.Services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
-
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
-
-builder.Services.AddIdentity<ApplicationUser, IdentityRole>()
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders();
 
 var app = builder.Build();
 
+// Middleware for HTTPS redirection
+app.Use(async (context, next) =>
+{
+    // Redirect HTTP requests
+    if (context.Connection.LocalPort == IntegerConstants.DefaultRemoteHttpPort && !context.Request.IsHttps)
+    {
+        var httpsUrl = $"https://{context.Request.Host.Host}{context.Request.Path}{context.Request.QueryString}";
+        context.Response.Redirect(httpsUrl, permanent: true);
+        return;
+    }
+
+    // Allow requests on TorPort to remain HTTP-only
+    await next();
+});
+
+// Exception handling
 if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
@@ -130,45 +87,33 @@ else
         errorApp.Run(async context =>
         {
             var exceptionHandlerPathFeature = context.Features.Get<IExceptionHandlerPathFeature>();
-            if (exceptionHandlerPathFeature != null)
+            var exception = exceptionHandlerPathFeature?.Error;
+            if (exception != null)
             {
-                var exception = exceptionHandlerPathFeature.Error;
-
                 var logger = app.Services.GetRequiredService<ILogger<Program>>();
-
-                // Log the exception
-                logger.LogError(exception, "An unhandled exception occurred.");
-
-                // Optionally, you can add custom response handling here
+                logger.LogError(exception, StringConstants.GenericExceptionMessage);
                 context.Response.StatusCode = 500;
-                await context.Response.WriteAsync("An unexpected error happened.");
+                await context.Response.WriteAsync(StringConstants.GenericExceptionMessage);
             }
         });
     });
 }
 
+// Additional Middleware and Route Configurations
 app.UseResponseCaching();
-
-var userAgentService = app.Services.GetService<UserAgentCacheService>();
-
-var options = new RewriteOptions()
-    .AddRedirectToHttpsPermanent()
-    .Add(new RedirectWwwToNonWwwRule());
-
-app.UseRewriter(options);
-
-// Configure middleware in the HTTP request pipeline.
-app.UseStaticFiles(); // Use static files
-
+app.UseStaticFiles();
 app.UseMiddleware<ETagMiddleware>();
 
+// Configure URL rewriting for Production
+if (!app.Environment.IsDevelopment())
+{
+    var rewriteOptions = new RewriteOptions().Add(new RedirectWwwToNonWwwRule());
+    app.UseRewriter(rewriteOptions);
+}
+
 app.UseStatusCodePagesWithRedirects("/errors/{0}");
-
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
-app.MapDefaultControllerRoute(); // Map default controller route (usually to HomeController's Index action)
-
+app.MapDefaultControllerRoute();
 app.Run();

@@ -102,3 +102,7 @@ rcf/
 /src/DirectoryManager/DirectoryManager.Web/appsettings.template.Development.json
 /src/DirectoryManager/DirectoryManager.Console/appsettings.json
 /src/DirectoryManager/DirectoryManager.SiteChecker/appsettings.json
+/src/DirectoryManager/DirectoryManager.Services/appsettings.json
+/src/DirectoryManager/DirectoryManager.ScheduledNotifier/appsettings.json
+/src/DirectoryManager/DirectoryMangager.SponsoredListingReminder/appsettings.json
+/src/DirectoryManager/DirectoryManager.SponsoredListingReminder/appsettings.json

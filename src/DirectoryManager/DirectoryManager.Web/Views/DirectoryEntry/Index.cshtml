@@ -7,6 +7,8 @@
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
+
+<a href="~/directoryentry/create">Create directory entry</a>
 <hr />
 
 <form method="get">
@@ -25,7 +27,6 @@
 @foreach (var entry in Model)
 {
     <div>
-        <a href="@entry.Link">@entry.Name</a> - 
-        <a href="@Url.Action("Edit", new { id = entry.DirectoryEntryId })">Edit</a>
+        <a href="@entry.Link">@entry.Name</a> - <a href="@Url.Action("Edit", new { id = entry.DirectoryEntryId })">Edit</a>
     </div>
 }

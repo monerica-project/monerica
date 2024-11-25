@@ -1,4 +1,5 @@
-﻿using ExCSS;
+﻿using System.Text.RegularExpressions;
+using ExCSS;
 
 namespace DirectoryManager.Utilities.Validation
 {
@@ -6,6 +7,14 @@ namespace DirectoryManager.Utilities.Validation
     {
         public static bool IsCssValid(string cssInput)
         {
+            if (cssInput == string.Empty)
+            {
+                return false;
+            }
+
+            // Remove <style> tags if present
+            cssInput = StripStyleTags(cssInput);
+
             // Check for balanced braces
             if (!AreBracesBalanced(cssInput))
             {
@@ -15,34 +24,35 @@ namespace DirectoryManager.Utilities.Validation
             var parser = new StylesheetParser();
             var stylesheet = parser.Parse(cssInput);
 
-            // Check if the stylesheet is valid and contains rules
-            if (stylesheet == null || !stylesheet.Children.OfType<StyleRule>().Any())
+            if (stylesheet == null)
             {
                 return false;
             }
 
-            // Loop through the style rules
             foreach (var rule in stylesheet.Children.OfType<StyleRule>())
             {
                 var styleDeclaration = rule.Children.OfType<StyleDeclaration>().FirstOrDefault();
 
-                if (styleDeclaration == null || !styleDeclaration.Any())
+                if (styleDeclaration == null || !styleDeclaration.Declarations.Any())
                 {
-                    return false; // Invalid if there are no declarations
+                    return false;
                 }
 
-                // Check each property declaration for correct formatting
                 foreach (var declaration in styleDeclaration)
                 {
-                    // Check if the declaration has a value
                     if (string.IsNullOrWhiteSpace(declaration.Value))
                     {
-                        return false; // Invalid if a property has no value
+                        return false;
                     }
                 }
             }
 
-            return true; // All rules and declarations are valid
+            return true;
+        }
+
+        private static string StripStyleTags(string input)
+        {
+            return Regex.Replace(input, "<style[^>]*>|</style>", "", RegexOptions.IgnoreCase).Trim();
         }
 
         private static bool AreBracesBalanced(string input)
@@ -57,8 +67,10 @@ namespace DirectoryManager.Utilities.Validation
                 else if (ch == '}')
                 {
                     openBraces--;
-                    if (openBraces < 0) // More closing braces than opening
+
+                    if (openBraces < 0)
                     {
+                        // More closing braces than opening
                         return false;
                     }
                 }

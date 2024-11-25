@@ -26,6 +26,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                      .FirstOrDefaultAsync(x => x.InvoiceId == invoiceId);
         }
 
+        public async Task<SponsoredListingInvoice?> GetByReservationGuidAsync(Guid reservationGuid)
+        {
+            return await this.context.SponsoredListingInvoices
+                                     .FirstOrDefaultAsync(x => x.ReservationGuid == reservationGuid);
+        }
+
         public async Task<IEnumerable<SponsoredListingInvoice>> GetAllAsync()
         {
             return await this.context.SponsoredListingInvoices.ToListAsync();
@@ -59,6 +65,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var totalItems = await this.context.SponsoredListingInvoices.CountAsync();
             var invoices = await this.context.SponsoredListingInvoices
                                              .OrderByDescending(i => i.CreateDate)
+                                             .Skip((page - 1) * pageSize)
+                                             .Take(pageSize)
+                                             .ToListAsync();
+
+            return (invoices, totalItems);
+        }
+
+        public async Task<(IEnumerable<SponsoredListingInvoice>, int)> GetPageByTypeAsync(
+            int page,
+            int pageSize,
+            Enums.PaymentStatus paymentStatus)
+        {
+            var totalItems = await this.context
+                                       .SponsoredListingInvoices
+                                       .Where(x => x.PaymentStatus == paymentStatus).CountAsync();
+            var invoices = await this.context.SponsoredListingInvoices
+                                             .OrderByDescending(i => i.CreateDate)
+                                             .Where(x => x.PaymentStatus == paymentStatus)
                                              .Skip((page - 1) * pageSize)
                                              .Take(pageSize)
                                              .ToListAsync();
@@ -108,7 +132,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                      .FirstOrDefaultAsync(x => x.ProcessorInvoiceId == processorInvoiceId);
 
             return result ??
-                throw new InvalidOperationException($"No SponsoredListingInvoice found for the provided {nameof(processorInvoiceId)}.");
+                throw new InvalidOperationException(
+                    $"No SponsoredListingInvoice found for the provided {nameof(processorInvoiceId)}.");
         }
 
         public DateTime? GetLastPaidInvoiceUpdateDate()

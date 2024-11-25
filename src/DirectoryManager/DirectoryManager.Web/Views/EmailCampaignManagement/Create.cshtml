@@ -1,0 +1,60 @@
+﻿@using DirectoryManager.Web.Constants
+@model DirectoryManager.Web.Models.Emails.EmailCampaignModel
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Create Email Campaign";
+}
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<form asp-action="Create" method="post">
+    <div class="form-group">
+        <label asp-for="Name">Campaign Name:</label>
+        <input type="text" class="form-control" asp-for="Name" required />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="IntervalDays">Interval (Days Between Messages):</label>
+        <input type="number" class="form-control" asp-for="IntervalDays" required />
+    </div>
+
+    <div class="form-group">
+        <label asp-for="StartDate">Start Date:</label>
+        <input type="date" class="form-control" asp-for="StartDate" />
+    </div>
+
+    <hr />
+    <h3>Campaign Messages</h3>
+
+    @for (int i = 0; i < Model.CampaignMessages.Count; i++)
+    {
+        <div class="form-group">
+            <label>Message Sequence @(@i + 1)</label>
+            <select asp-for="CampaignMessages[@i].EmailMessageId" class="form-control">
+                @foreach (var message in ViewBag.AvailableMessages)
+                {
+                    <option value="@message.EmailMessageId"
+                            selected="@(message.EmailMessageId == Model.CampaignMessages[i].EmailMessageId ? "selected" : null)">
+                        @message.EmailSubject
+                    </option>
+                }
+            </select>
+            <input type="hidden" asp-for="CampaignMessages[@i].SequenceOrder" value="@(i + 1)" />
+        </div>
+    }
+
+    <div class="form-group">
+        <label>Select Message to Add</label>
+        <select name="SelectedMessageId" class="form-control">
+            <option value="">Select a message to add</option>
+            @foreach (var message in ViewBag.AvailableMessages)
+            {
+                <option value="@message.EmailMessageId">@message.EmailSubject</option>
+            }
+        </select>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Create Campaign</button>
+</form>

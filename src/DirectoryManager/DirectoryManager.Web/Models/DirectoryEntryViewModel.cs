@@ -9,44 +9,32 @@ namespace DirectoryManager.Web.Models
     {
         public int DirectoryEntryId { get; set; }
 
-        [Required]
         [MaxLength(255)]
-        required public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [MaxLength(255)]
         public string DirectoryEntryKey { get; set; } = string.Empty;
 
-        [Required]
         [Url]
         [MaxLength(500)]
         public string Link { get; set; } = string.Empty;
 
-        /// <summary>
-        /// Affiliate link of main link.
-        /// </summary>
         [MaxLength(500)]
         public string? LinkA { get; set; } = string.Empty;
 
         [MaxLength(500)]
         public string? Link2 { get; set; }
 
-        /// <summary>
-        /// Affiliate link of second link.
-        /// </summary>
         [MaxLength(500)]
         public string? Link2A { get; set; }
 
         [MaxLength(500)]
         public string? Link3 { get; set; }
 
-        /// <summary>
-        /// Affiliate link of third link.
-        /// </summary>
         [MaxLength(500)]
         public string? Link3A { get; set; }
 
-        [Required]
-        public DirectoryStatus DirectoryStatus { get; set; }
+        public DirectoryStatus DirectoryStatus { get; set; } = DirectoryStatus.Unknown;
 
         public DirectoryBadge DirectoryBadge { get; set; } = DirectoryBadge.Unknown;
 

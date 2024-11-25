@@ -35,7 +35,7 @@ namespace DirectoryManager.Web.TagHelpers
         {
             if (!this.cache.TryGetValue(this.CacheKey, out string? cachedContent))
             {
-                var nextExpirationDate = await this.sponsoredListingRepository.GetNextExpirationDate();
+                var nextExpirationDate = await this.sponsoredListingRepository.GetNextExpirationDateAsync();
                 var childContent = await output.GetChildContentAsync();
                 cachedContent = childContent.GetContent();
 

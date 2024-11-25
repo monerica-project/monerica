@@ -6,7 +6,10 @@
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
  
 <hr />
+
 <i>Signed in as: </i> @User?.Identity?.Name
+
+<hr />
 
 <h3>Submissions</h3>
 <ul>
@@ -52,7 +55,24 @@
             <li>
                 <a href="~/account/edit">Edit from page</a>
             </li>
+            <li>
+                <a href="~/directoryentry/report">Report</a>
+            </li>
         </ul>
+    </li>
+</ul>
+
+<h3>Email Management</h3>
+
+<ul>
+    <li>
+        <a href="~/account/emailcampaignmanagement">Email campaigns</a>
+    </li>
+    <li>
+        <a href="~/account/emailmessagemanagement">Email messages</a>
+    </li>
+    <li>
+        <a href="~/account/emailsubscriptionmanagement">Email subscriptions</a>
     </li>
 </ul>
 
@@ -65,13 +85,10 @@
         <a href="~/contentsnippetmanagement">Content snippets</a>
     </li>
     <li>
-        <a href="~/account/emailsubscriptionmanagement">Email management</a>
+        <a href="~/directoryentryselection/index">Directory entry selections <i>(featured listings)</i></a>
     </li>
     <li>
         <a href="~/processorconfig/index">Processor configs</a>
-    </li>
-    <li>
-        <a href="~/directoryentryselection/index">Selected entries</a>
     </li>
     <li>
         <a href="~/sitefilesmanagement">Site file management</a>

@@ -1,6 +1,6 @@
 ﻿using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
-using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Repositories.Interfaces;
 
 namespace DirectoryManager.Data.Repositories.Implementations

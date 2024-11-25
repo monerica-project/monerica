@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace DirectoryManager.Web.Models
+namespace DirectoryManager.Web.Models.Emails
 {
     public class EmailSubscribeModel
     {

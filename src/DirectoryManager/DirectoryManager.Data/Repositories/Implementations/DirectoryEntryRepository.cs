@@ -31,7 +31,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<DirectoryEntry?> GetBySubCategoryAndKeyAsync(int subCategoryId, string directoryEntryKey)
         {
             return await this.context.DirectoryEntries
-                        .FirstOrDefaultAsync(de => de.SubCategoryId == subCategoryId && de.DirectoryEntryKey == directoryEntryKey);
+                .FirstOrDefaultAsync(de => de.SubCategoryId == subCategoryId && de.DirectoryEntryKey == directoryEntryKey);
         }
 
         public async Task<DirectoryEntry?> GetByLinkAsync(string link)
@@ -42,61 +42,23 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<IEnumerable<DirectoryEntry>> GetAllowableEntries()
         {
             return await this.context.DirectoryEntries
-                        .Where(de =>
-                                de.DirectoryStatus == DirectoryStatus.Admitted ||
-                                de.DirectoryStatus == DirectoryStatus.Verified)
-                        .ToListAsync();
+                .Where(de => de.DirectoryStatus == DirectoryStatus.Admitted ||
+                             de.DirectoryStatus == DirectoryStatus.Verified)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<DirectoryEntry>> GetAllAsync()
         {
-            // Ensure that the DbSet DirectoryEntries is not null.
             if (this.context.DirectoryEntries == null)
             {
                 return new List<DirectoryEntry>();
             }
 
-            // Include both SubCategory and its related Category.
             return await this.context.DirectoryEntries
-                                    .Select(e => new DirectoryEntry
-                                    {
-                                        // Map other properties of DirectoryEntry as needed
-                                        DirectoryBadge = e.DirectoryBadge,
-                                        Name = e.Name,
-                                        DirectoryEntryKey = e.DirectoryEntryKey,
-                                        Link = e.Link,
-                                        Description = e.Description,
-                                        DirectoryStatus = e.DirectoryStatus,
-                                        Location = e.Location,
-                                        Note = e.Note,
-                                        Processor = e.Processor,
-                                        Contact = e.Contact,
-                                        Link2 = e.Link2,
-                                        CreateDate = e.CreateDate,
-                                        UpdateDate = e.UpdateDate,
-                                        CreatedByUserId = e.CreatedByUserId,
-                                        UpdatedByUserId = e.UpdatedByUserId,
-                                        DirectoryEntryId = e.DirectoryEntryId,
-                                        SubCategoryId = e.SubCategoryId,
-
-                                        SubCategory = e.SubCategory == null ? null : new Subcategory
-                                        {
-                                            // Map other properties of SubCategory as needed
-                                            Name = e.SubCategory.Name,
-                                            Category = e.SubCategory.Category,
-                                            CategoryId = e.SubCategory.CategoryId,
-                                            SubCategoryId = e.SubCategory.SubCategoryId,
-                                            SubCategoryKey = e.SubCategory.SubCategoryKey,
-                                            Description = e.SubCategory.Description,
-                                            Note = e.SubCategory.Note,
-                                            CreateDate = e.SubCategory.CreateDate,
-                                            UpdateDate = e.SubCategory.UpdateDate,
-                                            CreatedByUserId = e.SubCategory.CreatedByUserId,
-                                            UpdatedByUserId = e.SubCategory.UpdatedByUserId
-                                        }
-                                    })
-                                    .OrderBy(de => de.Name)
-                                    .ToListAsync();
+                .Include(e => e.SubCategory!)
+                .ThenInclude(sc => sc.Category)
+                .OrderBy(de => de.Name)
+                .ToListAsync();
         }
 
         public async Task CreateAsync(DirectoryEntry entry)
@@ -115,7 +77,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task UpdateAsync(DirectoryEntry entry)
         {
-            var existingEntry = await this.context.DirectoryEntries.FirstOrDefaultAsync(x => x.DirectoryEntryId == entry.DirectoryEntryId);
+            var existingEntry = await this.context.DirectoryEntries
+                .FirstOrDefaultAsync(x => x.DirectoryEntryId == entry.DirectoryEntryId);
 
             if (existingEntry == null)
             {
@@ -126,6 +89,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existingEntry.Name = entry.Name;
             existingEntry.Link = entry.Link;
             existingEntry.Link2 = entry.Link2;
+            existingEntry.Link3 = entry.Link3;
             existingEntry.DirectoryStatus = entry.DirectoryStatus;
             existingEntry.Description = entry.Description;
             existingEntry.Location = entry.Location;
@@ -136,9 +100,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existingEntry.UpdateDate = DateTime.UtcNow;
             existingEntry.UpdatedByUserId = entry.UpdatedByUserId;
 
-            this.context.DirectoryEntries.Update(existingEntry);
-            await this.context.SaveChangesAsync();
-            await this.WriteToAuditLog(existingEntry);
+            try
+            {
+                this.context.DirectoryEntries.Update(existingEntry);
+                await this.context.SaveChangesAsync();
+                await this.WriteToAuditLog(existingEntry);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
+            }
         }
 
         public async Task DeleteAsync(int directoryEntryId)
@@ -153,35 +124,27 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<DirectoryEntry>> GetAllBySubCategoryIdAsync(int subCategoryId)
         {
-            return await this.context.DirectoryEntries
-                                 .Where(e => e.SubCategory != null && e.SubCategory.SubCategoryId == subCategoryId)
-                                 .OrderBy(e => e.Name)
-                                 .ToListAsync();
+            return await this.GetActiveEntriesQuery()
+                .Where(entry => entry.SubCategoryId == subCategoryId)
+                .OrderBy(entry => entry.Name)
+                .ToListAsync();
         }
 
         public DateTime GetLastRevisionDate()
         {
-            // Fetch the latest CreateDate and UpdateDate
             var latestCreateDate = this.context.DirectoryEntries
-                                   .Where(e => e != null)
-                                   .Max(e => (DateTime?)e.CreateDate);
+                .Max(e => (DateTime?)e.CreateDate);
 
             var latestUpdateDate = this.context.DirectoryEntries
-                                   .Where(e => e != null)
-                                   .Max(e => e.UpdateDate) ?? DateTime.MinValue;
+                .Max(e => e.UpdateDate) ?? DateTime.MinValue;
 
-            // Return the more recent of the two dates
             return (DateTime)(latestCreateDate > latestUpdateDate ? latestCreateDate : latestUpdateDate);
         }
 
         public async Task<IEnumerable<DirectoryEntry>> GetNewestRevisions(int count)
         {
-            return await this.context.DirectoryEntries
-                .Include(de => de.SubCategory!)
-                .ThenInclude(sc => sc.Category!)
-                .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
-                            x.DirectoryStatus != DirectoryStatus.Unknown &&
-                            x.UpdateDate.HasValue)
+            return await this.GetActiveEntriesQuery()
+                .Where(entry => entry.UpdateDate.HasValue)
                 .OrderByDescending(entry => entry.UpdateDate ?? DateTime.MinValue)
                 .Take(count)
                 .ToListAsync();
@@ -189,111 +152,49 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<DirectoryEntry>> GetNewestAdditions(int count)
         {
-            return await this.context.DirectoryEntries
+            return await this.GetActiveEntriesQuery()
+                .OrderByDescending(entry => entry.CreateDate)
                 .Include(de => de.SubCategory!)
                 .ThenInclude(sc => sc.Category!)
-                .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
-                            x.DirectoryStatus != DirectoryStatus.Unknown)
-                .OrderByDescending(entry => entry.CreateDate)
                 .Take(count)
                 .ToListAsync();
         }
 
         public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int pageSize, int pageNumber)
         {
-            // Get entries for pagination
-            var paginatedEntries = await this.context.DirectoryEntries
-                .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
-                            x.DirectoryStatus != DirectoryStatus.Unknown)
+            var paginatedEntries = await this.GetActiveEntriesQuery()
                 .OrderByDescending(entry => entry.CreateDate)
                 .Skip((pageNumber - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
 
-            var groupedEntries = paginatedEntries
-                .GroupBy(entry => entry.CreateDate.Date)
-                .OrderByDescending(group => group.Key)
-                .Select(dateGroup => new GroupedDirectoryEntry
-                {
-                    Date = dateGroup.Key.ToString("yyyy-MM-dd"), // Convert date to string
-                    Entries = dateGroup
-                        .Select(entry => new DirectoryEntry
-                        {
-                            DirectoryEntryKey = entry.DirectoryEntryKey,
-                            Name = entry.Name,
-                            Link = entry.Link,
-                            Description = entry.Description,
-                            DirectoryStatus = entry.DirectoryStatus
-                        })
-                        .ToList()
-                })
-                .ToList();
-
-            return groupedEntries;
+            return this.GroupByDate(paginatedEntries);
         }
 
         public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int numberOfDays)
         {
-            var recentDates = await this.context.DirectoryEntries
-                .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
-                            x.DirectoryStatus != DirectoryStatus.Unknown)
+            var recentDates = await this.GetActiveEntriesQuery()
                 .OrderByDescending(entry => entry.CreateDate)
                 .Select(entry => entry.CreateDate.Date)
                 .Distinct()
                 .Take(numberOfDays)
                 .ToListAsync();
 
-            // Retrieve all entries and perform filtering and grouping on the client side
-            var allEntries = await this.context.DirectoryEntries
-                .ToListAsync();
+            var activeEntries = await this.GetActiveEntriesQuery().ToListAsync();
 
-            var groupedEntries = allEntries
-                .Where(entry => recentDates.Contains(entry.CreateDate.Date))
-                .GroupBy(entry => entry.CreateDate.Date)
-                .OrderByDescending(group => group.Key)
-                .Select(dateGroup => new GroupedDirectoryEntry
-                {
-                    Date = dateGroup.Key.ToString("yyyy-MM-dd"), // Convert date to string
-                    Entries = dateGroup
-                        .Select(entry => new DirectoryEntry
-                        {
-                            DirectoryEntryKey = entry.DirectoryEntryKey,
-                            Name = entry.Name,
-                            Link = entry.Link,
-                            Description = entry.Description
-                        })
-                        .ToList()
-                })
-                .ToList();
-
-            return groupedEntries;
+            return this.GroupByDate(activeEntries.Where(entry => recentDates.Contains(entry.CreateDate.Date)).ToList());
         }
 
-        public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int subCategoryId)
+        public async Task<IEnumerable<DirectoryEntry>> GetAllActiveEntries()
         {
-            return await this.context.DirectoryEntries
-                            .Where(entry => entry.SubCategoryId == subCategoryId &&
-                                        entry.DirectoryStatus != DirectoryStatus.Removed &&
-                                        entry.DirectoryStatus != DirectoryStatus.Unknown)
-                                .OrderBy(entry => entry.Name)
-                                .ToListAsync();
-        }
-
-        public async Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync()
-        {
-            return await this.context.DirectoryEntries
-                .Include(e => e.SubCategory!)
-                .ThenInclude(sc => sc.Category)
-                .OrderBy(de => de.Name)
+            return await this.GetActiveEntriesQuery()
+                .OrderBy(entry => entry.Name)
                 .ToListAsync();
         }
 
         public async Task<int> TotalActive()
         {
-            return await this.context.DirectoryEntries
-                .Where(x => x.DirectoryStatus != DirectoryStatus.Removed &&
-                            x.DirectoryStatus != DirectoryStatus.Unknown)
-                .CountAsync();
+            return await this.GetActiveEntriesQuery().CountAsync();
         }
 
         public async Task<Dictionary<int, DateTime>> GetLastModifiedDatesBySubCategoryAsync()
@@ -303,13 +204,59 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Select(g => new
                 {
                     SubCategoryId = g.Key,
-                    LastModified = g.Max(de => de.UpdateDate.HasValue && de.UpdateDate > de.CreateDate
-                                                ? de.UpdateDate.Value
-                                                : de.CreateDate)
+                    LastModified = g.Max(de => de.UpdateDate ?? de.CreateDate)
                 })
                 .ToListAsync();
 
             return lastModifiedDates.ToDictionary(x => x.SubCategoryId, x => x.LastModified);
+        }
+
+        public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int subCategoryId)
+        {
+            // Use the GetActiveEntriesQuery() to ensure only active entries are retrieved.
+            return await this.GetActiveEntriesQuery()
+                .Where(entry => entry.SubCategoryId == subCategoryId)
+                .OrderBy(entry => entry.Name)
+                .ToListAsync();
+        }
+
+        public async Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync()
+        {
+            // Retrieve all entries including their related SubCategory and Category.
+            return await this.context.DirectoryEntries
+                .Include(e => e.SubCategory!)
+                .ThenInclude(sc => sc.Category)
+                .OrderBy(e => e.Name)
+                .ToListAsync();
+        }
+
+        private static List<DirectoryStatus> GetNonActiveStatuses()
+        {
+            return
+            [
+                DirectoryStatus.Removed,
+                DirectoryStatus.Unknown
+            ];
+        }
+
+        private IQueryable<DirectoryEntry> GetActiveEntriesQuery()
+        {
+            var nonActiveStatuses = GetNonActiveStatuses();
+            return this.context.DirectoryEntries
+                .Where(entry => !nonActiveStatuses.Contains(entry.DirectoryStatus));
+        }
+
+        private List<GroupedDirectoryEntry> GroupByDate(List<DirectoryEntry> entries)
+        {
+            return entries
+                .GroupBy(entry => entry.CreateDate.Date)
+                .OrderByDescending(group => group.Key)
+                .Select(group => new GroupedDirectoryEntry
+                {
+                    Date = group.Key.ToString(Common.Constants.StringConstants.DateFormat),
+                    Entries = group.ToList()
+                })
+                .ToList();
         }
 
         private async Task WriteToAuditLog(DirectoryEntry? existingEntry)
@@ -319,26 +266,25 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return;
             }
 
-            await this.directoryEntryAuditRepository.CreateAsync(
-                new DirectoryEntriesAudit
-                {
-                    Contact = existingEntry.Contact,
-                    CreateDate = existingEntry.CreateDate,
-                    Description = existingEntry.Description,
-                    CreatedByUserId = existingEntry.CreatedByUserId,
-                    DirectoryStatus = existingEntry.DirectoryStatus,
-                    DirectoryEntryId = existingEntry.DirectoryEntryId,
-                    Link = existingEntry.Link,
-                    Name = existingEntry.Name,
-                    SubCategoryId = existingEntry.SubCategoryId,
-                    UpdateDate = existingEntry.UpdateDate,
-                    UpdatedByUserId = existingEntry.UpdatedByUserId,
-                    Link2 = existingEntry.Link2,
-                    Link3 = existingEntry.Link3,
-                    Location = existingEntry.Location,
-                    Note = existingEntry.Note,
-                    Processor = existingEntry.Processor
-                });
+            await this.directoryEntryAuditRepository.CreateAsync(new DirectoryEntriesAudit
+            {
+                Contact = existingEntry.Contact,
+                CreateDate = existingEntry.CreateDate,
+                Description = existingEntry.Description,
+                CreatedByUserId = existingEntry.CreatedByUserId,
+                DirectoryStatus = existingEntry.DirectoryStatus,
+                DirectoryEntryId = existingEntry.DirectoryEntryId,
+                Name = existingEntry.Name,
+                SubCategoryId = existingEntry.SubCategoryId,
+                UpdateDate = existingEntry.UpdateDate,
+                UpdatedByUserId = existingEntry.UpdatedByUserId,
+                Link = existingEntry.Link,
+                Link2 = existingEntry.Link2,
+                Link3 = existingEntry.Link3,
+                Location = existingEntry.Location,
+                Note = existingEntry.Note,
+                Processor = existingEntry.Processor
+            });
         }
     }
 }

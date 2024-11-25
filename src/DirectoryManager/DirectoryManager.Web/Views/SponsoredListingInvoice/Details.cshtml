@@ -1,4 +1,5 @@
 ﻿@model DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice
+@using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Constants;
 @using DirectoryManager.Web.Models
 
@@ -6,11 +7,9 @@
     ViewData[StringConstants.TitleHeader] = "Invoice Details";
 }
 
-<h2>@ViewData[StringConstants.TitleHeader]</h2>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
-
-<hr />
 
 <div>
     <h4>Invoice Details</h4>
@@ -27,8 +26,8 @@
 
         @if (ViewBag.SubCategory != null)
         {
-        <dt>Subcategory</dt>
-        <dd>@ViewBag.SubCategory.Category.Name > @ViewBag.SubCategory.Name</dd>
+            <dt>Subcategory</dt>
+            <dd>@ViewBag.SubCategory.Category.Name > @ViewBag.SubCategory.Name</dd>
         }
 
         <dt>Amount</dt>
@@ -46,17 +45,26 @@
         <dt>Paid In Currency</dt>
         <dd>@Model.PaidInCurrency</dd>
 
+        <dt>Payment Status</dt>
+        <dd>@EnumHelper.GetDescription(Model.PaymentStatus)</dd>
+
+        <dt>Campaign Start Date</dt>
+        <dd>@Model.CampaignStartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</dd>
+
+        <dt>Campaign End Date</dt>
+        <dd>@Model.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</dd>
+
         <dt>Payment Processor</dt>
         <dd>@Model.PaymentProcessor</dd>
 
-        <dt>Payment Status</dt>
-        <dd>@Model.PaymentStatus</dd>
+        <dt>Processor Invoice Id</dt>
+        <dd>@Model.ProcessorInvoiceId</dd>
 
-        <dt>Campaign Start Date</dt>
-        <dd>@Model.CampaignStartDate.ToString(StringConstants.DateTimeFormat)</dd>
-
-        <dt>Campaign End Date</dt>
-        <dd>@Model.CampaignEndDate.ToString(StringConstants.DateTimeFormat)</dd>
+        @if (!string.IsNullOrWhiteSpace(Model.Email))
+        {
+            <dt>Email</dt>
+            <dd>@Model.Email</dd>
+        }
 
         <dt>Ip Address</dt>
         <dd>@Model.IpAddress</dd>

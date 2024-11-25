@@ -10,5 +10,10 @@
         public const int ReservationMinutes = 60;
         public const int MinimumSponsoredActiveSubcategories = 3;
         public const int NewestRevisionsToDisplay = 3;
+        public const int DefaultAlternativePort = 8081;
+        public const int DefaultRemoteHttpPort = 80;
+        public const int DefaultRemoteHttpsPort = 443;
+        public const int DefaultDebuggingHttpPort = 5007;
+        public const int DefaultDebuggingHttpsPort = 7145;
     }
 }

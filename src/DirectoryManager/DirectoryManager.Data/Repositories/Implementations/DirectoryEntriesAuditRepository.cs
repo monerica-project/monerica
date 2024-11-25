@@ -34,12 +34,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync();
         }
 
-        public async Task<IEnumerable<DirectoryEntriesAudit>> GetAuditsForEntryAsync(int directoryEntryId)
+        public async Task<IEnumerable<DirectoryEntriesAudit>> GetAuditsWithSubCategoriesForEntryAsync(int entryId)
         {
             return await this.context.DirectoryEntriesAudit
-                                 .Where(dea => dea.DirectoryEntryId == directoryEntryId)
-                                 .OrderByDescending(dea => dea.CreateDate)
-                                 .ToListAsync();
+                .Where(audit => audit.DirectoryEntryId == entryId)
+                .Include(audit => audit.SubCategory!)
+                .ThenInclude(subCategory => subCategory.Category!)
+                .ToListAsync();
         }
     }
 }

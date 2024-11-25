@@ -6,7 +6,7 @@
     SelectList sponsorshipTypeSelectList = new SelectList(Enum.GetValues(typeof(DirectoryManager.Data.Enums.SponsorshipType)));
     var orderedSubCategories = new[]
     {
-        new { SubCategoryId = (int?)null, DisplayName = "(All)" }
+        new { SubCategoryId = (int?)null, DisplayName = DirectoryManager.Common.Constants.StringConstants.AllOptions }
     }
     .Concat(
         ((IEnumerable<Subcategory>)ViewBag.SubCategories)
@@ -18,13 +18,12 @@
             DisplayName = $"{sc.Category.Name} > {sc.Name}"
         })
     );
-
 }
 
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
 @await Html.PartialAsync("_AdminMenu")
 
-<br />
 <a href="~/sponsoredlistingoffer/index">&lt; back</a>
 <hr />
 <form asp-action="Create">

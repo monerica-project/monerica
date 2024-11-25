@@ -25,7 +25,7 @@ namespace DirectoryManager.Web.AppRules
                 return;
             }
 
-            var newHost = host.Value.Replace("www.", string.Empty);
+            var newHost = !string.IsNullOrEmpty(host.Value) ? host.Value.Replace("www.", string.Empty) : string.Empty;
 
             var newLocation = string.Format(
                 "{0}://{1}{2}{3}{4}",

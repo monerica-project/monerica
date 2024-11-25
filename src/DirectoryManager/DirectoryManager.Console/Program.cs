@@ -1,6 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using System.Text;
 using DirectoryManager.Console.Models;
+using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -11,13 +12,13 @@ using Newtonsoft.Json;
 
 var config = new ConfigurationBuilder()
     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory) // Set the base path to your project's directory
-    .AddJsonFile("appsettings.json")
+    .AddJsonFile(StringConstants.AppSettingsFileName)
     .Build();
 
 var serviceProvider = new ServiceCollection()
     .AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlServer(
-        config.GetConnectionString("DefaultConnection")))
+        config.GetConnectionString(StringConstants.DefaultConnection)))
     .AddTransient<IApplicationDbContext, ApplicationDbContext>()
     .AddTransient<IDbInitializer, DbInitializer>()
     .AddTransient<IDirectoryEntryRepository, DirectoryEntryRepository>()

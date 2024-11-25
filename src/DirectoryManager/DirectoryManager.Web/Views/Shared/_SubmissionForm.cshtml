@@ -32,13 +32,13 @@
 
 <div class="form-group">
     <label asp-for="Name">Name</label>
-    <input asp-for="Name" class="form-control input-width" />
+    <input autocomplete="off" asp-for="Name" class="form-control input-width" />
     <span asp-validation-for="Name" class="text-danger"></span>
 </div>
 
 <div class="form-group">
     <label asp-for="Link">Link</label>
-    <input asp-for="Link" class="form-control input-width" />
+    <input autocomplete="off" asp-for="Link" class="form-control input-width" />
     <span asp-validation-for="Link" class="text-danger"></span>
 </div>
 
@@ -48,29 +48,37 @@
     <span asp-validation-for="Description" class="text-danger"></span>
 </div>
 
+<hr />
+
 <h3>Optional Information</h3>
 
 <div class="form-group">
     <label asp-for="Link2">@cacheHelper.GetSnippet(SiteConfigSetting.Link2Name)</label>
-    <input asp-for="Link2" class="form-control input-width" />
+    <input autocomplete="off" asp-for="Link2" class="form-control input-width" />
     <span asp-validation-for="Link2" class="text-danger"></span>
 </div>
 
 <div class="form-group">
     <label asp-for="Link3">@cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)</label>
-    <input asp-for="Link3" class="form-control input-width" />
+    <input autocomplete="off" asp-for="Link3" class="form-control input-width" />
     <span asp-validation-for="Link3" class="text-danger"></span>
 </div>
 
 <div class="form-group">
     <label asp-for="Contact">Contact</label>
-    <input asp-for="Contact" class="form-control input-width" />
+    <input autocomplete="off" asp-for="Contact" class="form-control input-width" />
     <span asp-validation-for="Contact" class="text-danger"></span>
 </div>
 
 <div class="form-group">
+    <label asp-for="Processor">Payment Processor</label>
+    <input autocomplete="off" asp-for="Processor" class="form-control input-width" />
+    <span asp-validation-for="Processor" class="text-danger"></span>
+</div>
+
+<div class="form-group">
     <label asp-for="Location">Location</label>
-    <input asp-for="Location" class="form-control input-width" />
+    <input autocomplete="off" asp-for="Location" class="form-control input-width" />
     <span asp-validation-for="Location" class="text-danger"></span>
 </div>
 
@@ -82,7 +90,7 @@
 
 <div class="form-group">
     <label asp-for="SuggestedSubCategory">Suggested Category (if choice not provided)</label>
-    <input asp-for="SuggestedSubCategory" class="form-control input-width" />
+    <input autocomplete="off" asp-for="SuggestedSubCategory" class="form-control input-width" />
     <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
 </div>
 
@@ -90,7 +98,7 @@
 
 <h3>To Reviewer</h3>
 <div class="form-group">
-    <label asp-for="NoteToAdmin">Note To Admin</label>
+    <label asp-for="NoteToAdmin">Note To Admin (private)</label>
     <textarea asp-for="NoteToAdmin" class="form-control input-width"></textarea>
     <span asp-validation-for="NoteToAdmin" class="text-danger"></span>
 </div>

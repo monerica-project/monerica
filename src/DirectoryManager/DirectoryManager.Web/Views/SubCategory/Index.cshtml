@@ -6,8 +6,10 @@
 }
 
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
 @await Html.PartialAsync("_AdminMenu")
 
+<a href="~/subcategory/create">Create sub category</a>
 <hr />
 
 <form method="get">
@@ -21,7 +23,7 @@
     </select>
     <button type="submit">Filter</button>
 </form>
-
+<br />
 @foreach (var subCategory in Model)
 {
     <div>@subCategory.Name - Parent Category: @subCategory.Category.Name</div>

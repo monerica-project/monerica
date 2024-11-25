@@ -9,26 +9,22 @@
     ViewData[StringConstants.IsIndexable] = false;
 }
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
- 
-@await Html.PartialAsync("_AdminMenu")
-<hr />
 
-<form asp-action="Edit" asp-route-id="@Model.SubmissionId" method="post">
+@await Html.PartialAsync("_AdminMenu")
+
+<form asp-action="Review" asp-route-id="@Model.SubmissionId" method="post">
 
     @if (Model.DirectoryEntryId  != null)
     {
         @Html.HiddenFor(m => m.DirectoryEntryId)
         
-        <i>Existing: </i>
+        <p><b>Existing:</b>
         <a href="~/directoryentry/edit/@Model.DirectoryEntryId">Edit</a>
-
-        <br />
-
-        <i>Differences:</i>
-        @ViewBag.Differences
+        </p>
+        <p><i>Differences:</i></p>
+        @Html.Raw(ViewBag.Differences)
     }
-
-    <br />
+ 
     <a target="_blank" href="@Model.Link">@Model.Link</a>
     <br />
     <br />
@@ -39,13 +35,10 @@
  
     <div class="form-group">
         <label asp-for="SuggestedSubCategory">Suggested Category</label>
-        <input asp-for="SuggestedSubCategory" class="form-control input-width" />
+        <input autocomplete="off" asp-for="SuggestedSubCategory" class="form-control input-width" />
         <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
     </div>
 
-    <!-- Other Fields -->
-    @if (Model.DirectoryStatus != null && Model.DirectoryStatus != DirectoryStatus.Unknown)
-    {
     <div class="form-group">
         <label asp-for="DirectoryStatus">Directory Status:</label>
             <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control ">
@@ -60,29 +53,28 @@
             }
         </select>
     </div>
-    }
 
     <div class="form-group">
         <label asp-for="Name">Name</label>
-        <input asp-for="Name" class="form-control input-width" />
+        <input autocomplete="off" asp-for="Name" class="form-control input-width" />
         <span asp-validation-for="Name" class="text-danger"></span>
     </div>
 
     <div class="form-group">
         <label asp-for="Link">Link</label>
-        <input  asp-for="Link" class="form-control input-width" />
+        <input autocomplete="off"  asp-for="Link" class="form-control input-width" />
         <span asp-validation-for="Link" class="text-danger"></span>
     </div>
 
     <div class="form-group">
         <label asp-for="Link2">@cacheHelper.GetSnippet(SiteConfigSetting.Link2Name)</label>
-        <input asp-for="Link2" class="form-control input-width" />
+        <input autocomplete="off" asp-for="Link2" class="form-control input-width" />
         <span asp-validation-for="Link2" class="text-danger"></span>
     </div>
 
     <div class="form-group">
         <label asp-for="Link3">@cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)</label>
-        <input asp-for="Link3" class="form-control input-width" />
+        <input autocomplete="off" asp-for="Link3" class="form-control input-width" />
         <span asp-validation-for="Link3" class="text-danger"></span>
     </div>
     
@@ -98,13 +90,19 @@
 
     <div class="form-group">
         <label asp-for="Contact">Contact</label>
-        <input asp-for="Contact" class="form-control input-width" />
+        <input autocomplete="off" asp-for="Contact" class="form-control input-width" />
         <span asp-validation-for="Contact" class="text-danger"></span>
     </div>
 
     <div class="form-group">
+        <label asp-for="Processor">Processor</label>
+        <input autocomplete="off" asp-for="Processor" class="form-control input-width" />
+        <span asp-validation-for="Processor" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
         <label asp-for="Location">Location</label>
-        <input asp-for="Location" class="form-control input-width" />
+        <input autocomplete="off" asp-for="Location" class="form-control input-width" />
         <span asp-validation-for="Location" class="text-danger"></span>
     </div>
 
@@ -119,7 +117,8 @@
 
     <span>IP Address:</span>
     <span>@Model.IpAddress</span>
-    <br />    <br />
+    <br />
+    <br />
 
 
     <!-- For SubmissionStatus Enum Dropdown -->

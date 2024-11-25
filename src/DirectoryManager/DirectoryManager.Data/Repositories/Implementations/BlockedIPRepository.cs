@@ -15,10 +15,21 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public IApplicationDbContext Context { get; private set; }
 
-        public async Task<BlockedIP> CreateAsync(BlockedIP model)
+        public async Task<BlockedIP?> CreateAsync(BlockedIP model)
         {
             try
             {
+                // Check if an entry with the same IpAddress already exists
+                var existingBlockedIP = await this.Context.BlockedIPs
+                    .FirstOrDefaultAsync(b => b.IpAddress == model.IpAddress);
+
+                // If it exists, return the existing entity without inserting
+                if (existingBlockedIP != null)
+                {
+                    return null;
+                }
+
+                // Add and save the new model
                 this.Context.BlockedIPs.Add(model);
                 await this.Context.SaveChangesAsync();
 

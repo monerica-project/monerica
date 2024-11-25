@@ -1,9 +1,9 @@
-﻿using DirectoryManager.Data.Constants;
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
-using DirectoryManager.Web.Helpers;
+using DirectoryManager.Web.Charting;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -49,7 +49,6 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Index(int? subCategoryId = null)
         {
             var entries = await this.directoryEntryRepository.GetAllAsync();
-
             if (subCategoryId.HasValue)
             {
                 entries = entries.Where(e => e.SubCategory != null && e.SubCategory.SubCategoryId == subCategoryId.Value).ToList();
@@ -70,56 +69,55 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            var subCategories = (await this.subCategoryRepository.GetAllAsync())
-                .OrderBy(sc => sc.Category.Name)
-                .ThenBy(sc => sc.Name)
-                .Select(sc => new
-                {
-                    sc.SubCategoryId,
-                    DisplayName = $"{sc.Category.Name} > {sc.Name}"
-                })
-                .ToList();
-
-            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
-
-            this.ViewBag.SubCategories = subCategories;
+            await this.SetSubcategories();
 
             return this.View();
         }
 
         [Route("directoryentry/create")]
         [HttpPost]
-        public async Task<IActionResult> Create(DirectoryEntry entry)
+        public async Task<IActionResult> Create(DirectoryEntry model)
         {
-            if (this.ModelState.IsValid)
+            if (!this.ModelState.IsValid ||
+                model.DirectoryStatus == DirectoryStatus.Unknown ||
+                model.SubCategoryId == 0)
             {
-                entry.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
-                entry.SubCategoryId = entry.SubCategoryId;
-                entry.Link = entry.Link.Trim();
-                entry.LinkA = entry.LinkA?.Trim();
-                entry.Link2 = entry.Link2?.Trim();
-                entry.Link2A = entry.Link2A?.Trim();
-                entry.Link3 = entry.Link3?.Trim();
-                entry.Link3A = entry.Link3A?.Trim();
-                entry.Name = entry.Name.Trim();
-                entry.DirectoryEntryKey = StringHelpers.UrlKey(entry.Name);
-                entry.Description = entry.Description?.Trim();
-                entry.Note = entry.Note?.Trim();
-                entry.DirectoryStatus = entry.DirectoryStatus;
-                entry.Contact = entry.Contact?.Trim();
-                entry.Location = entry.Location?.Trim();
-                entry.Processor = entry.Processor?.Trim();
+                await this.SetSubcategories();
 
-                await this.directoryEntryRepository.CreateAsync(entry);
-
-                this.ClearCachedItems();
-
-                return this.RedirectToAction(nameof(this.Index));
+                return this.View("create", model);
             }
-            else
+
+            // Check if the link is already used
+            var link = model.Link.Trim();
+            var existingEntry = await this.directoryEntryRepository.GetByLinkAsync(link);
+            if (existingEntry != null)
             {
-                return this.View("Error");
+                await this.SetSubcategories();
+
+                this.ModelState.AddModelError("Link", "The provided link is already used by another entry.");
+                return this.View("create", model); // Return view with model error
             }
+
+            model.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
+            model.Link = link;
+            model.Name = model.Name.Trim();
+            model.DirectoryEntryKey = StringHelpers.UrlKey(model.Name);
+            model.Description = model.Description?.Trim();
+            model.Note = model.Note?.Trim();
+            model.Contact = model.Contact?.Trim();
+            model.Location = model.Location?.Trim();
+            model.Processor = model.Processor?.Trim();
+            model.LinkA = model.LinkA?.Trim();
+            model.Link2 = model.Link2?.Trim();
+            model.Link2A = model.Link2A?.Trim();
+            model.Link3 = model.Link3?.Trim();
+            model.Link3A = model.Link3A?.Trim();
+
+            await this.directoryEntryRepository.CreateAsync(model);
+
+            this.ClearCachedItems();
+
+            return this.RedirectToAction(nameof(this.Index));
         }
 
         [Route("directoryentry/edit/{id}")]
@@ -181,7 +179,7 @@ namespace DirectoryManager.Web.Controllers
         [Route("directoryentry/entryaudits/{entryId}")]
         public async Task<IActionResult> EntryAudits(int entryId)
         {
-            var audits = await this.auditRepository.GetAuditsForEntryAsync(entryId);
+            var audits = await this.auditRepository.GetAuditsWithSubCategoriesForEntryAsync(entryId);
             var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
 
@@ -214,6 +212,19 @@ namespace DirectoryManager.Web.Controllers
                 SubCategoryId = directoryEntry.SubCategoryId,
             };
 
+            // Set category and subcategory names for each audit entry
+            foreach (var audit in audits)
+            {
+                if (audit.SubCategory != null)
+                {
+                    audit.SubCategoryName = $"{audit.SubCategory.Category?.Name} > {audit.SubCategory.Name}";
+                }
+                else
+                {
+                    audit.SubCategoryName = "No SubCategory Assigned";
+                }
+            }
+
             return this.View(audits);
         }
 
@@ -225,6 +236,23 @@ namespace DirectoryManager.Web.Controllers
             this.ClearCachedItems();
 
             return this.RedirectToAction(nameof(this.Index));
+        }
+
+        [HttpGet("directoryentry/report")]
+        public IActionResult Report()
+        {
+            return this.View();
+        }
+
+        [HttpGet("directoryentry/weeklyplotimage")]
+        public async Task<IActionResult> WeeklyPlotImageAsync()
+        {
+            DirectoryEntryPlotting plottingChart = new DirectoryEntryPlotting();
+
+            var entries = await this.directoryEntryRepository.GetAllAsync();
+
+            var imageBytes = plottingChart.CreateWeeklyPlot(entries.ToList());
+            return this.File(imageBytes, StringConstants.PngImage);
         }
 
         [AllowAnonymous]
@@ -249,7 +277,7 @@ namespace DirectoryManager.Web.Controllers
 
             var existingEntry = await this.directoryEntryRepository.GetBySubCategoryAndKeyAsync(subCategory.SubCategoryId, directoryEntryKey);
 
-            if (existingEntry == null)
+            if (existingEntry == null || existingEntry.DirectoryStatus == DirectoryStatus.Removed)
             {
                 return this.NotFound();
             }
@@ -289,6 +317,23 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.SubCategoryKey = subCategoryKey;
 
             return this.View("DirectoryEntryView", model);
+        }
+
+        private async Task SetSubcategories()
+        {
+            var subCategories = (await this.subCategoryRepository.GetAllAsync())
+                .OrderBy(sc => sc.Category.Name)
+                .ThenBy(sc => sc.Name)
+                .Select(sc => new
+                {
+                    sc.SubCategoryId,
+                    DisplayName = $"{sc.Category.Name} > {sc.Name}"
+                })
+                .ToList();
+
+            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
+
+            this.ViewBag.SubCategories = subCategories;
         }
     }
 }

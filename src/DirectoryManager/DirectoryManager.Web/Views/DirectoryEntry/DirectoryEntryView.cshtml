@@ -14,9 +14,10 @@
     var finalLink3 = !string.IsNullOrEmpty(Model.Link3A) ? Model.Link3A : Model.Link3;
 }
 
+<h1>@Model.Name</h1>
+<hr />
+
 <div class="directory-entry-details">
-    <h1>@Model.Name</h1>
-    <hr />
 
     <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
@@ -30,28 +31,22 @@
     </ol>
 </nav>
 
-
     <div class="entry-details">
         <p><strong>Name:</strong> @Model.Name</p>
-
         @if (!string.IsNullOrEmpty(finalLink))
         {
             <p><strong>Link:</strong> <a class="multi-line-text" href="@finalLink" target="_blank">@Model.Link</a></p>
         }
-
         @if (!string.IsNullOrEmpty(finalLink2))
         {
             <p><strong>@Model.Link2Name:</strong> <a class="multi-line-text" href="@finalLink2" target="_blank">@Model.Link2</a></p>
         }
-
         @if (!string.IsNullOrEmpty(finalLink3))
         {
             <p><strong>@Model.Link3Name:</strong> <a class="multi-line-text" href="@finalLink3" target="_blank">@Model.Link3</a></p>
         }
-
         <p>
-            <strong>Status:</strong> @Model.DirectoryStatus
-
+            <strong>Status:</strong>
             @if (Model.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Verified)
             {
                 <text>&#9989;</text>
@@ -60,37 +55,35 @@
             {
                 <text>&#10060;</text>
             }
+          @Model.DirectoryStatus
         </p>
-
         @if (!string.IsNullOrEmpty(Model.Description))
         {
             <p><strong>Description:</strong> @Model.Description</p>
         }
-
         @if (!string.IsNullOrEmpty(Model.Location))
         {
             <p><strong>Location:</strong> @Model.Location</p>
         }
-
+        @if (!string.IsNullOrEmpty(Model.Processor))
+        {
+            <p><strong>Processor:</strong> @Model.Processor</p>
+        }
         @if (!string.IsNullOrEmpty(Model.Note))
         {
             <p><strong>Note:</strong> @Html.Raw(Model.Note)</p>
         }
-
         @if (!string.IsNullOrEmpty(Model.Contact))
         {
             <p><strong>Contact:</strong> <span class="multi-line-text">@Model.Contact</span></p>
         }
-
-        <p><strong>Added On:</strong> @Model.CreateDate.ToString(StringConstants.DateFormat)</p>
-
+        <p><strong>Added On:</strong> @Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</p>
         @if (Model.UpdateDate.HasValue)
         {
-            <p><strong>Last Updated:</strong> @Model.UpdateDate?.ToString(StringConstants.DateFormat)</p>
+            <p><strong>Last Updated:</strong> @Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</p>
         }
     </div>
 </div>
 
 <hr />
-
 @await Html.PartialAsync("_SponsoredListingPartial")

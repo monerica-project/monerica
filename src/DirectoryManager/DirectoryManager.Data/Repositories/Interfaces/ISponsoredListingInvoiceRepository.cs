@@ -8,9 +8,11 @@ namespace DirectoryManager.Data.Repositories.Interfaces
     {
         Task<SponsoredListingInvoice?> GetByIdAsync(int sponsoredListingInvoiceId);
         Task<SponsoredListingInvoice?> GetByInvoiceIdAsync(Guid invoiceId);
+        Task<SponsoredListingInvoice?> GetByReservationGuidAsync(Guid invoiceId);
         Task<SponsoredListingInvoice> GetByInvoiceProcessorIdAsync(string processorInvoiceId);
         Task<IEnumerable<SponsoredListingInvoice>> GetAllAsync();
         Task<(IEnumerable<SponsoredListingInvoice>, int)> GetPageAsync(int page, int pageSize);
+        Task<(IEnumerable<SponsoredListingInvoice>, int)> GetPageByTypeAsync(int page, int pageSize, PaymentStatus paymentStatus);
         Task<SponsoredListingInvoice> CreateAsync(SponsoredListingInvoice invoice);
         Task<bool> UpdateAsync(SponsoredListingInvoice invoice);
         Task<InvoiceTotalsResult> GetTotalsPaidAsync(DateTime startDate, DateTime endDate);

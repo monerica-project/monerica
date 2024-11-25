@@ -33,7 +33,8 @@
         <p>
             <b>Sponsorship Type:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.Offer.SponsorshipType) <br />
             <b>Description:</b> @Model.Offer.Description<br />
-            <b>Price:</b> @Model.Offer.USDPrice.ToString("C", new CultureInfo(StringConstants.DefaultCulure)) USD<br />
+            <b>Price:</b> @Model.Offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
+        new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure)) @DirectoryManager.Data.Enums.Currency.USD.ToString()<br />
             <b>Days:</b> @Model.Offer.Days
         </p>
 
@@ -46,19 +47,30 @@
 
         <p>
             <i>
-                @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.NowPaymentsMessage))             
+                @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.NowPaymentsMessage))
             </i>
         </p>
 
+
         <form method="post" action="~/sponsoredlisting/confirmnowpayments">
+            <hr />
+            
+            <div class="form-group">
+                <i>Receive a reminder before your listing expires so you can renew in time.</i>
+                <label>Email (optional)</label>
+                <input style="width:34%;" name="email" type="email" placeholder="yourname@email.com" />
+            </div>
+           
             <input name="rsvId" type="hidden" value="@ViewBag.ReservationGuid" />
             <input type="hidden" name="directoryEntryId" value="@Model.SelectedDirectoryEntry.DirectoryEntryId" />
             <input type="hidden" name="selectedOfferId" value="@Model.Offer.SponsoredListingOfferId" />
+
             <button class="btn" type="submit">Purchase Listing</button>
         </form>
     }
     else
     {
+
         @await Html.PartialAsync("_AdSpaceFull", new ListingInventoryModel() 
         { CanCreateSponsoredListing = Model.CanCreateSponsoredListing,
          NextListingExpiration = Model.NextListingExpiration});

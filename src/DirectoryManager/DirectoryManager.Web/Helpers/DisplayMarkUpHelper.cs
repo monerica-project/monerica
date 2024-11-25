@@ -1,8 +1,8 @@
-﻿using System.Text;
-using DirectoryManager.Web.Constants;
+﻿using System.Globalization;
+using System.Text;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Models;
-using static System.Net.Mime.MediaTypeNames;
 
 namespace DirectoryManager.Web.Helpers
 {
@@ -32,11 +32,11 @@ namespace DirectoryManager.Web.Helpers
             // Handle date display options
             if (model.DateOption == DateDisplayOption.DisplayCreateDate)
             {
-                sb.AppendFormat("<i>{0}</i> ", model.CreateDate.ToString(StringConstants.DateFormat));
+                sb.AppendFormat("<i>{0}</i> ", model.CreateDate.ToString(Common.Constants.StringConstants.DateFormat));
             }
             else if (model.DateOption == DateDisplayOption.DisplayUpdateDate)
             {
-                sb.AppendFormat("<i>{0}</i> ", (model.UpdateDate ?? model.CreateDate).ToString(StringConstants.DateFormat));
+                sb.AppendFormat("<i>{0}</i> ", (model.UpdateDate ?? model.CreateDate).ToString(Common.Constants.StringConstants.DateFormat));
             }
 
             // Handle directory status and links
@@ -113,17 +113,22 @@ namespace DirectoryManager.Web.Helpers
             }
             else
             {
-                sb.AppendFormat("<li>Added: {0}</li>", model.CreateDate.ToString(StringConstants.DateFormat));
+                sb.AppendFormat("<li>Added: {0}</li>", model.CreateDate.ToString(Common.Constants.StringConstants.DateFormat));
             }
 
             if (model.UpdateDate != null)
             {
-                sb.AppendFormat("<li>Updated: {0}</li>", model.UpdateDate?.ToString(StringConstants.DateFormat));
+                sb.AppendFormat("<li>Updated: {0}</li>", model.UpdateDate?.ToString(Common.Constants.StringConstants.DateFormat));
             }
 
             if (!string.IsNullOrWhiteSpace(model.Location))
             {
                 sb.AppendFormat("<li>Location: {0}</li>", model.Location);
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Processor))
+            {
+                sb.AppendFormat("<li>Processor: {0}</li>", model.Processor);
             }
 
             if (!string.IsNullOrWhiteSpace(model.Contact))
@@ -138,6 +143,57 @@ namespace DirectoryManager.Web.Helpers
             // Closing </li> tag
             sb.Append("</li>");
 
+            return sb.ToString();
+        }
+
+        public static string GenerateGroupedDirectoryEntryHtml(IEnumerable<GroupedDirectoryEntry> groupedEntries)
+        {
+            var sb = new StringBuilder();
+
+            sb.Append("<ul class=\"newest_items\">");
+
+            foreach (var group in groupedEntries)
+            {
+                sb.Append("<li>");
+                sb.AppendFormat(
+                    "<pre>{0} Additions:</pre>",
+                    DateTime.ParseExact(group.Date, Common.Constants.StringConstants.DateFormat, CultureInfo.InvariantCulture)
+                        .ToString(Common.Constants.StringConstants.DateFormat));
+
+                sb.Append("<ul>");
+                foreach (var entry in group.Entries)
+                {
+                    sb.Append("<li>");
+                    sb.Append("<p class=\"small-font text-inline\">");
+
+                    if (entry.DirectoryStatus == Data.Enums.DirectoryStatus.Scam)
+                    {
+                        sb.Append("<strong>Scam!</strong> - ");
+                    }
+
+                    sb.Append(entry.Name);
+                    sb.Append("</p>");
+                    sb.Append(" - ");
+
+                    // Use LinkA as href if available, otherwise fall back to Link, but display Link text
+                    var href = !string.IsNullOrWhiteSpace(entry.LinkA) ? entry.LinkA : entry.Link;
+                    sb.AppendFormat("<a target=\"_blank\" class=\"multi-line-text small-font\" href=\"{0}\">{1}</a>", href, entry.Link);
+
+                    if (!string.IsNullOrWhiteSpace(entry.Description))
+                    {
+                        sb.Append(" - ");
+                        sb.AppendFormat("<p class=\"small-font text-inline\">{0}</p>", entry.Description);
+                    }
+
+                    sb.Append("</li>");
+                }
+
+                sb.Append("</ul>");
+                sb.Append("</li>");
+                sb.AppendLine();
+            }
+
+            sb.Append("</ul>");
             return sb.ToString();
         }
 

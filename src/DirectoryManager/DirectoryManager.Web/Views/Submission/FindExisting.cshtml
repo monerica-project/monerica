@@ -6,7 +6,7 @@
     ViewData[StringConstants.IsIndexable] = false;
 }
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
- 
+<hr />
 @await Html.PartialAsync("_BackToHome")<text> | </text><a href="~/submit">create new listing</a>
 <hr />
 
@@ -30,6 +30,6 @@
     <div>
         <a target="_blank" href="@entry.Link">@entry.Name</a> <text> - </text>
         <a rel="nofollow" href="@Url.Action("SubmitEdit", new { id = entry.DirectoryEntryId })">Edit</a> |
-        <a href="@Url.Action("Audit", new { id = entry.DirectoryEntryId })">Audit</a>
+        <a rel="nofollow" href="@Url.Action("Audit", new { id = entry.DirectoryEntryId })">Audit</a>
     </div>
 }

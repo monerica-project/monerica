@@ -17,7 +17,7 @@ namespace DirectoryManager.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "8.0.8")
+                .HasAnnotation("ProductVersion", "9.0.0")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -111,6 +111,9 @@ namespace DirectoryManager.Data.Migrations
                         .HasColumnType("nvarchar(75)");
 
                     b.HasKey("BlockedIPId");
+
+                    b.HasIndex("IpAddress")
+                        .IsUnique();
 
                     b.ToTable("BlockedIPs");
                 });
@@ -265,6 +268,8 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasKey("DirectoryEntriesAuditId");
 
+                    b.HasIndex("SubCategoryId");
+
                     b.ToTable("DirectoryEntriesAudit");
                 });
 
@@ -402,7 +407,141 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("DirectoryEntrySelections");
                 });
 
-            modelBuilder.Entity("DirectoryManager.Data.Models.EmailSubscription", b =>
+            modelBuilder.Entity("DirectoryManager.Data.Models.Emails.EmailCampaign", b =>
+                {
+                    b.Property<int>("EmailCampaignId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailCampaignId"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("IntervalDays")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDefault")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<DateTime?>("StartDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("EmailCampaignId");
+
+                    b.ToTable("EmailCampaigns");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Emails.EmailCampaignMessage", b =>
+                {
+                    b.Property<int>("EmailCampaignMessageId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailCampaignMessageId"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EmailCampaignId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EmailMessageId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SequenceOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("EmailCampaignMessageId");
+
+                    b.HasIndex("EmailCampaignId");
+
+                    b.HasIndex("EmailMessageId");
+
+                    b.ToTable("EmailCampaignMessages");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Emails.EmailCampaignSubscription", b =>
+                {
+                    b.Property<int>("EmailCampaignSubscriptionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailCampaignSubscriptionId"));
+
+                    b.Property<int>("EmailCampaignId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EmailSubscriptionId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("SubscribedDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("EmailCampaignSubscriptionId");
+
+                    b.HasIndex("EmailSubscriptionId");
+
+                    b.HasIndex("EmailCampaignId", "IsActive");
+
+                    b.ToTable("EmailCampaignSubscriptions");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Emails.EmailMessage", b =>
+                {
+                    b.Property<int>("EmailMessageId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("EmailMessageId"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("EmailBodyHtml")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EmailBodyText")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("EmailKey")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<string>("EmailSubject")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("EmailMessageId");
+
+                    b.HasIndex("EmailKey")
+                        .IsUnique();
+
+                    b.ToTable("EmailMessages");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Emails.EmailSubscription", b =>
                 {
                     b.Property<int>("EmailSubscriptionId")
                         .ValueGeneratedOnAdd()
@@ -426,7 +565,48 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasKey("EmailSubscriptionId");
 
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("IsSubscribed");
+
                     b.ToTable("EmailSubscriptions");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Emails.SentEmailRecord", b =>
+                {
+                    b.Property<int>("SentEmailRecordId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SentEmailRecordId"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("EmailMessageId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("EmailSubscriptionId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("IsDelivered")
+                        .HasColumnType("bit");
+
+                    b.Property<DateTime>("SentDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("SentEmailRecordId");
+
+                    b.HasIndex("EmailMessageId");
+
+                    b.HasIndex("EmailSubscriptionId", "EmailMessageId")
+                        .IsUnique();
+
+                    b.ToTable("SentEmailRecords");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.ExcludeUserAgent", b =>
@@ -481,6 +661,33 @@ namespace DirectoryManager.Data.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("LogEntries");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.AdSpotNotificationSubscription", b =>
+                {
+                    b.Property<int>("AdSpotNotificationSubscriptionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AdSpotNotificationSubscriptionId"));
+
+                    b.Property<int>("EmailSubscriptionId")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("NotifyOnExpiry")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("NotifyOnOpening")
+                        .HasColumnType("bit");
+
+                    b.Property<int>("PreferredSponsorshipType")
+                        .HasColumnType("int");
+
+                    b.HasKey("AdSpotNotificationSubscriptionId");
+
+                    b.HasIndex("EmailSubscriptionId");
+
+                    b.ToTable("AdSpotNotificationSubscriptions");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.ProcessorConfig", b =>
@@ -558,6 +765,8 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasKey("SponsoredListingId");
 
+                    b.HasIndex("CampaignEndDate");
+
                     b.HasIndex("DirectoryEntryId");
 
                     b.HasIndex("SponsoredListingInvoiceId")
@@ -594,6 +803,11 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int>("DirectoryEntryId")
                         .HasColumnType("int");
 
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("InvoiceDescription")
                         .IsRequired()
                         .HasColumnType("nvarchar(max)");
@@ -612,6 +826,9 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("IpAddress")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<bool>("IsReminderSent")
+                        .HasColumnType("bit");
 
                     b.Property<decimal>("OutcomeAmount")
                         .HasColumnType("decimal(20, 12)");
@@ -636,6 +853,9 @@ namespace DirectoryManager.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<Guid>("ReservationGuid")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int?>("SponsoredListingId")
                         .HasColumnType("int");
@@ -1080,6 +1300,15 @@ namespace DirectoryManager.Data.Migrations
                     b.HasDiscriminator().HasValue("ApplicationUserRole");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntriesAudit", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.Subcategory", "SubCategory")
+                        .WithMany()
+                        .HasForeignKey("SubCategoryId");
+
+                    b.Navigation("SubCategory");
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntry", b =>
                 {
                     b.HasOne("DirectoryManager.Data.Models.Subcategory", "SubCategory")
@@ -1100,6 +1329,74 @@ namespace DirectoryManager.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("DirectoryEntry");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Emails.EmailCampaignMessage", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.Emails.EmailCampaign", "EmailCampaign")
+                        .WithMany("CampaignMessages")
+                        .HasForeignKey("EmailCampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DirectoryManager.Data.Models.Emails.EmailMessage", "EmailMessage")
+                        .WithMany()
+                        .HasForeignKey("EmailMessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EmailCampaign");
+
+                    b.Navigation("EmailMessage");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Emails.EmailCampaignSubscription", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.Emails.EmailCampaign", "EmailCampaign")
+                        .WithMany()
+                        .HasForeignKey("EmailCampaignId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DirectoryManager.Data.Models.Emails.EmailSubscription", "EmailSubscription")
+                        .WithMany()
+                        .HasForeignKey("EmailSubscriptionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EmailCampaign");
+
+                    b.Navigation("EmailSubscription");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Emails.SentEmailRecord", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.Emails.EmailMessage", "EmailMessage")
+                        .WithMany()
+                        .HasForeignKey("EmailMessageId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DirectoryManager.Data.Models.Emails.EmailSubscription", "EmailSubscription")
+                        .WithMany()
+                        .HasForeignKey("EmailSubscriptionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EmailMessage");
+
+                    b.Navigation("EmailSubscription");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.AdSpotNotificationSubscription", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.Emails.EmailSubscription", "EmailSubscription")
+                        .WithMany()
+                        .HasForeignKey("EmailSubscriptionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("EmailSubscription");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.SponsoredListing", b =>
@@ -1216,6 +1513,11 @@ namespace DirectoryManager.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Emails.EmailCampaign", b =>
+                {
+                    b.Navigation("CampaignMessages");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice", b =>

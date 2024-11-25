@@ -4,19 +4,20 @@
     ViewData[StringConstants.TitleHeader] = "Preview";
 }
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
-
-<div class="submission-guidelines">
-<p><b>NOT SUBMITTED YET!</b></p>
-</div>
-<p>
-    <a href="~/submit?submissionid=@Model.SubmissionId">Edit</a>
-</p>
-
 <hr />
+<div class="submission-guidelines">
+    <p><b class="text-danger">NOT SUBMITTED YET!</b></p>
+</div>
+ 
 
 @if (Model.DirectoryEntryViewModel.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Removed)
 {
     <p><i>You want the listing below to be removed from the directory.</i></p>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.SubcategoryName))
+{
+    <p><b>Categorization:</b> @Model.SubcategoryName</p>
 }
 
 <ul class="blank_list_item">
@@ -27,7 +28,7 @@
 
 @if (!string.IsNullOrWhiteSpace(Model.NoteToAdmin))
 {
-    <h4>Note To Admin</h4>
+    <h4>Note To Admin (private)</h4>
 
     <p>@Model.NoteToAdmin</p>
 
@@ -36,7 +37,11 @@
 
 <br />
 
-<form asp-action="Confirm" method="post">
-    @Html.HiddenFor(x => x.SubmissionId)
-    <button type="submit" class="btn btn-primary">Submit</button>
-</form>
+<div style="display: flex; align-items: center; gap: 25px;">
+    <a href="~/submit?submissionid=@Model.SubmissionId" >Continue editing</a>
+
+    <form asp-action="Confirm" method="post" style="margin: 0;">
+        @Html.HiddenFor(x => x.SubmissionId)
+        <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+</div>
