@@ -15,7 +15,7 @@ namespace DirectoryManager.Data.DbContextInfo
 
             var builderConfigs = new ConfigurationBuilder()
                         .SetBasePath(Directory.GetCurrentDirectory())
-                        .AddJsonFile(StringConstants.AppSettingsFileName);
+                        .AddJsonFile(Common.Constants.StringConstants.AppSettingsFileName);
 
             this.Configuration = builderConfigs.Build();
 

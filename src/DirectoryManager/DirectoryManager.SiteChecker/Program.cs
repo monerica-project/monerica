@@ -2,8 +2,8 @@
 using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Extensions; // Import for AddRepositories
 using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.SiteChecker.Helpers;
 using Microsoft.EntityFrameworkCore;
@@ -13,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 // Build configuration
 var config = new ConfigurationBuilder()
     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-    .AddJsonFile(StringConstants.AppSettingsFileName)
+    .AddJsonFile(DirectoryManager.Common.Constants.StringConstants.AppSettingsFileName)
     .Build();
 
 // Get the User-Agent header value from the configuration
@@ -23,19 +23,12 @@ var userAgentHeader = config["UserAgent:Header"] ?? throw new InvalidOperationEx
 var serviceProvider = new ServiceCollection()
     .AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(config.GetConnectionString(StringConstants.DefaultConnection)))
-    .AddTransient<IApplicationDbContext, ApplicationDbContext>()
-    .AddTransient<IDirectoryEntryRepository, DirectoryEntryRepository>()
-    .AddTransient<ISubmissionRepository, SubmissionRepository>()
-    .AddTransient<IDbInitializer, DbInitializer>()
-    .AddTransient<IDirectoryEntriesAuditRepository, DirectoryEntriesAuditRepository>()
-    .AddTransient<ICategoryRepository, CategoryRepository>()
-    .AddTransient<IExcludeUserAgentRepository, ExcludeUserAgentRepository>()
-    .AddSingleton(new WebPageChecker(userAgentHeader))
+    .AddRepositories() // Register all repositories through the centralized method
+    .AddSingleton(new WebPageChecker(userAgentHeader)) // WebPageChecker
     .BuildServiceProvider();
 
 // Retrieve required services
-var entriesRepo = serviceProvider.GetService<IDirectoryEntryRepository>()
-    ?? throw new InvalidOperationException("The IDirectoryEntryRepository service is not registered.");
+var entriesRepo = serviceProvider.GetRequiredService<IDirectoryEntryRepository>();
 var webPageChecker = serviceProvider.GetRequiredService<WebPageChecker>();
 
 // Get all entries
@@ -50,24 +43,22 @@ var tasks = allEntries
     .Select(async entry =>
     {
         // Create a new scope for each task to isolate DbContext instances
-        using (var scope = serviceProvider.CreateScope())
+        using var scope = serviceProvider.CreateScope();
+        var scopedSubmissionRepo = scope.ServiceProvider.GetRequiredService<ISubmissionRepository>();
+
+        var isOnline = await webPageChecker.IsWebPageOnlineAsync(new Uri(entry.Link));
+
+        if (!isOnline)
         {
-            var scopedSubmissionRepo = scope.ServiceProvider.GetRequiredService<ISubmissionRepository>();
+            isOnline = webPageChecker.IsWebPageOnlinePing(new Uri(entry.Link));
+        }
 
-            var isOnline = await webPageChecker.IsWebPageOnlineAsync(new Uri(entry.Link));
+        Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : "offline")}");
 
-            if (!isOnline)
-            {
-                isOnline = webPageChecker.IsWebPageOnlinePing(new Uri(entry.Link));
-            }
-
-            Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : "offline")}");
-
-            if (!isOnline)
-            {
-                offlines.Add($"{entry.Link}   -   ID: {entry.DirectoryEntryId}");
-                await CreateOfflineSubmissionIfNotExists(entry, scopedSubmissionRepo);
-            }
+        if (!isOnline)
+        {
+            offlines.Add($"{entry.Link}   -   ID: {entry.DirectoryEntryId}");
+            await CreateOfflineSubmissionIfNotExists(entry, scopedSubmissionRepo);
         }
     });
 

@@ -170,7 +170,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                           x.CampaignEndDate >= now);
         }
 
-        public async Task<DateTime?> GetNextExpirationDate()
+        public async Task<DateTime?> GetNextExpirationDateAsync()
         {
             var now = DateTime.UtcNow;
 
@@ -228,6 +228,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .FirstOrDefaultAsync();
 
             return lastChangeDate;
+        }
+
+        public async Task<IEnumerable<SponsoredListing>> GetExpiringListingsWithinAsync(TimeSpan timeSpan)
+        {
+            var currentDate = DateTime.UtcNow;
+            var targetDate = currentDate + timeSpan;
+
+            return await this.context.SponsoredListings
+                .Include(x => x.DirectoryEntry) // Include related DirectoryEntry for additional data if needed
+                .Where(x => x.CampaignEndDate > currentDate && x.CampaignEndDate <= targetDate)
+                .OrderBy(x => x.CampaignEndDate) // Order by the soonest to expire
+                .ToListAsync();
         }
     }
 }

@@ -73,6 +73,8 @@ namespace DirectoryManager.Data.Models.SponsoredListings
         [StringLength(100)]
         public string Email { get; set; } = string.Empty;
 
+        public bool IsReminderSent { get; set; }
+
         public virtual DirectoryEntry? DirectoryEntry { get; set; }
 
         public virtual SponsoredListing? SponsoredListing { get; set; }

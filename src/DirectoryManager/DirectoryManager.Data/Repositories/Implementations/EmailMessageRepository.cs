@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Data.Repositories.Implementations
 {
@@ -46,5 +47,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 this.context.SaveChanges();
             }
         }
+
+        public EmailMessage? GetByKey(string emailKey) =>
+            this.context.EmailMessages
+                .AsNoTracking()
+                .FirstOrDefault(e => e.EmailKey == emailKey);
     }
 }

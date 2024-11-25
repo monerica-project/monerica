@@ -57,7 +57,7 @@ namespace DirectoryManager.Web.Controllers
             var lastDirectoryEntryDate = this.directoryEntryRepository.GetLastRevisionDate();
             var lastContentSnippetUpdate = this.contentSnippetRepository.GetLastUpdateDate();
             var lastPaidInvoiceUpdate = this.sponsoredListingInvoiceRepository.GetLastPaidInvoiceUpdateDate();
-            var nextAdExpiration = await this.sponsoredListingRepository.GetNextExpirationDate();
+            var nextAdExpiration = await this.sponsoredListingRepository.GetNextExpirationDateAsync();
             var mostRecentUpdateDate = this.GetLatestUpdateDate(lastDirectoryEntryDate, lastContentSnippetUpdate, lastPaidInvoiceUpdate, nextAdExpiration);
 
             // Get the last modification date for any sponsored listing

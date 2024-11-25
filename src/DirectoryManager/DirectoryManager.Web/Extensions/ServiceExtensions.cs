@@ -2,8 +2,8 @@
 using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Extensions;
 using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.FileStorage.Repositories.Implementations;
 using DirectoryManager.FileStorage.Repositories.Interfaces;
@@ -33,37 +33,8 @@ namespace DirectoryManager.Web.Extensions
             services.AddDbContext<ApplicationDbContext>(options =>
                   options.UseSqlServer(configuration.GetConnectionString(StringConstants.DefaultConnection)));
 
-            // Register ApplicationDbContext as IApplicationDbContext
-            services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
-
-            // Register ApplicationDbContext as IApplicationDbContext
-            services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
-
-            // sponsorship repositories
-            services.AddScoped<ISponsoredListingInvoiceRepository, SponsoredListingInvoiceRepository>();
-            services.AddScoped<ISponsoredListingRepository, SponsoredListingRepository>();
-            services.AddScoped<ISponsoredListingReservationRepository, SponsoredListingReservationRepository>();
-            services.AddScoped<ISponsoredListingOfferRepository, SponsoredListingOfferRepository>();
-
-            // email repositories
-            services.AddScoped<IEmailSubscriptionRepository, EmailSubscriptionRepository>();
-            services.AddScoped<IEmailMessageRepository, EmailMessageRepository>();
-            services.AddScoped<IEmailCampaignMessageRepository, EmailCampaignMessageRepository>();
-            services.AddScoped<IEmailCampaignRepository, EmailCampaignRepository>();
-            services.AddScoped<IEmailCampaignSubscriptionRepository, EmailCampaignSubscriptionRepository>();
-
-            // other repositories
-            services.AddScoped<ISubmissionRepository, SubmissionRepository>();
-            services.AddScoped<ICategoryRepository, CategoryRepository>();
-            services.AddScoped<ISubcategoryRepository, SubcategoryRepository>();
-            services.AddScoped<IDirectoryEntryRepository, DirectoryEntryRepository>();
-            services.AddScoped<IDirectoryEntriesAuditRepository, DirectoryEntriesAuditRepository>();
-            services.AddScoped<IDirectoryEntrySelectionRepository, DirectoryEntrySelectionRepository>();
-            services.AddScoped<ITrafficLogRepository, TrafficLogRepository>();
-            services.AddScoped<IExcludeUserAgentRepository, ExcludeUserAgentRepository>();
-            services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
-            services.AddScoped<IProcessorConfigRepository, ProcessorConfigRepository>();
-            services.AddScoped<IBlockedIPRepository, BlockedIPRepository>();
+            // Register all repositories from DatabaseExtensions
+            services.AddRepositories();
 
             // Services
             services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
