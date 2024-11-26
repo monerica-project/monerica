@@ -1,9 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using DirectoryManager.Data.Models.BaseModels;
 
 namespace DirectoryManager.Data.Models.Emails
 {
-    public class EmailCampaignSubscription
+    public class EmailCampaignSubscription : StateInfo
     {
         [Key]
         public int EmailCampaignSubscriptionId { get; set; }

@@ -1,10 +1,13 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.BaseModels;
 
 namespace DirectoryManager.Data.Models.SponsoredListings
 {
     public class SponsoredListing : StateInfo
     {
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int SponsoredListingId { get; set; }
 
         public DateTime CampaignStartDate { get; set; }

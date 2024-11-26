@@ -62,7 +62,15 @@ else
     {
         <p><i>@Model.Message</i></p>
     }
-}
+
+    <p>
+    <a asp-controller="SponsoredListingNotification"
+       asp-action="Subscribe"
+       asp-route-sponsorshipType="MainSponsor">
+        Notify me of openings for: @EnumHelper.GetDescription(SponsorshipType.MainSponsor)
+    </a>
+    </p>
+}   
 
 <hr />
 

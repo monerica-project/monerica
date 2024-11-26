@@ -1,5 +1,4 @@
-﻿using DirectoryManager.Data.Constants;
-using DirectoryManager.Data.DbContextInfo;
+﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
@@ -23,6 +22,7 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<ISponsoredListingRepository, SponsoredListingRepository>();
             services.AddScoped<ISponsoredListingReservationRepository, SponsoredListingReservationRepository>();
             services.AddScoped<ISponsoredListingOfferRepository, SponsoredListingOfferRepository>();
+            services.AddScoped<ISponsoredListingOpeningNotificationRepository, SponsoredListingOpeningNotificationRepository>();
 
             // Email repositories
             services.AddScoped<IEmailSubscriptionRepository, EmailSubscriptionRepository>();

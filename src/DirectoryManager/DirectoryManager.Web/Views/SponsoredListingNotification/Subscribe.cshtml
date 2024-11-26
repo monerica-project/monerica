@@ -1,0 +1,47 @@
+﻿@model DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification
+
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Get Notified For Next Sponsored Listing Opening";
+}
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+<hr />
+@await Html.PartialAsync("_BackToHome")
+<hr />
+
+ 
+@if (TempData[DirectoryManager.Web.Constants.StringConstants.ErrorMessage] != null)
+{
+    <p class="alert alert-danger">@TempData[DirectoryManager.Web.Constants.StringConstants.ErrorMessage]</p>
+}
+
+@if (TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage] != null)
+{
+    <p>
+        &#9989; @TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage]
+    </p>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.SponsorshipType.ToString()))
+{
+    <p>You are subscribing for notifications about: <strong>@Model.SponsorshipType</strong></p>
+}
+
+@if (Model.SubCategoryId.HasValue)
+{
+    <p>Subcategory ID: <strong>@Model.SubCategoryId</strong></p>
+}
+
+<form asp-action="Subscribe" method="post">
+    <input type="hidden" asp-for="SponsorshipType" />
+    <input type="hidden" asp-for="SubCategoryId" />
+
+    <div class="form-group">
+        <label asp-for="Email">Email Address:</label>
+        <input asp-for="Email" class="form-control" style="width:34%;" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Subscribe</button>
+</form>

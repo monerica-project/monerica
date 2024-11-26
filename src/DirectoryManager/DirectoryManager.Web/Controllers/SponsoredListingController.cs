@@ -477,7 +477,7 @@ namespace DirectoryManager.Web.Controllers
             invoice.PaymentProcessor = PaymentProcessor.NOWPayments;
             invoice.InvoiceRequest = JsonConvert.SerializeObject(invoiceRequest);
             invoice.InvoiceResponse = JsonConvert.SerializeObject(invoiceFromProcessor);
-            invoice.Email = SetEmail(email);
+            invoice.Email = InputHelper.SetEmail(email);
 
             await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
 
@@ -877,13 +877,6 @@ namespace DirectoryManager.Web.Controllers
             }
 
             throw new InvalidOperationException("SponsorshipType:" + sponsorshipType.ToString());
-        }
-
-        private static string SetEmail(string? email)
-        {
-            var emailAttribute = new EmailAddressAttribute();
-
-            return (email != null && emailAttribute.IsValid(email)) ? email.Trim() : string.Empty;
         }
 
         private static bool CanPurchaseListing(

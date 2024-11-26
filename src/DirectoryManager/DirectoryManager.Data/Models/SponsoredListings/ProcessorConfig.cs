@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations.Schema;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.BaseModels;
 
@@ -6,7 +6,7 @@ namespace DirectoryManager.Data.Models.SponsoredListings
 {
     public class ProcessorConfig : UserStateInfo
     {
-        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int ProcessorConfigId { get; set; }
 
         public PaymentProcessor PaymentProcessor { get; set; }

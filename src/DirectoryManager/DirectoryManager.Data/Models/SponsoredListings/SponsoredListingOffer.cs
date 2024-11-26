@@ -1,4 +1,5 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.BaseModels;
 
@@ -6,7 +7,7 @@ namespace DirectoryManager.Data.Models.SponsoredListings
 {
     public class SponsoredListingOffer : UserStateInfo
     {
-        [Key]
+        [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
         public int SponsoredListingOfferId { get; set; }
 
         [Display(Name = "Is Enabled")]
