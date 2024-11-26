@@ -2,6 +2,7 @@
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
+using DirectoryManager.Web.Helpers;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
@@ -9,21 +10,39 @@ namespace DirectoryManager.Web.Controllers
     public class SponsoredListingNotificationController : Controller
     {
         private readonly ISponsoredListingOpeningNotificationRepository notificationRepository;
+        private readonly ICategoryRepository categoryRepository;
+        private readonly ISubcategoryRepository subcategoryRepository;
 
-        public SponsoredListingNotificationController(ISponsoredListingOpeningNotificationRepository notificationRepository)
+        public SponsoredListingNotificationController(
+            ISponsoredListingOpeningNotificationRepository notificationRepository,
+            ICategoryRepository categoryRepository,
+            ISubcategoryRepository subcategoryRepository)
         {
             this.notificationRepository = notificationRepository;
+            this.categoryRepository = categoryRepository;
+            this.subcategoryRepository = subcategoryRepository;
         }
 
         [Route("sponsoredlistingnotification/subscribe")]
         [HttpGet]
-        public IActionResult Subscribe(SponsorshipType sponsorshipType, int? subCategoryId)
+        public async Task<IActionResult> SubscribeAsync(SponsorshipType sponsorshipType, int? subcategoryId)
         {
             var model = new SponsoredListingOpeningNotification
             {
                 SponsorshipType = sponsorshipType,
-                SubCategoryId = subCategoryId
+                SubCategoryId = subcategoryId
             };
+
+            if (subcategoryId != null)
+            {
+                var subcategory = await this.subcategoryRepository.GetByIdAsync(subcategoryId.Value);
+
+                if (subcategory != null)
+                {
+                    var category = await this.categoryRepository.GetByIdAsync(subcategory.CategoryId);
+                    this.TempData[Constants.StringConstants.SubcategoryName] = FormattingHelper.SubcategoryFormatting(category?.Name, subcategory.Name);
+                }
+            }
 
             return this.View(model);
         }

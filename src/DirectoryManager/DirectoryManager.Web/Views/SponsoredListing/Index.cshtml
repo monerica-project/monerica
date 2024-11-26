@@ -80,8 +80,32 @@ else
     @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SubcategorySponsoredListingDetails))
 </p>
 
+@if (Model.UnavailableSubCatetgories != null && Model.UnavailableSubCatetgories.Any())
+{
+    <p>Unavailable subcategory advertising:</p>
+
+    <ul>
+        @foreach (var item in Model.UnavailableSubCatetgories)
+        {
+            <li>
+                @item.Value - 
+                <a asp-controller="SponsoredListingNotification"
+                   asp-action="Subscribe"
+                   asp-route-sponsorshipType="MainSponsor"
+                   asp-route-subcategoryId="@item.Key">Notify me of openings</a>
+            </li>
+        }
+    </ul>
+
+    <p>You can extend the duration of an existing listing: <a href="~/sponsoredlisting/activelistings">here</a>.</p>
+
+    <hr />
+}
+
 @if (Model.AvailableSubCatetgories != null && Model.AvailableSubCatetgories.Any())
 {
+    <p>Available subcategory advertising:</p>
+
     <ul>
     @foreach (var item in Model.AvailableSubCatetgories)
     {

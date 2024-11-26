@@ -31,5 +31,6 @@
         public const string PngImage = "image/png";
         public const string ErrorMessage = "ErrorMessage";
         public const string SuccessMessage = "SuccessMessage";
+        public const string SubcategoryName = "SubcategoryName";
     }
 }

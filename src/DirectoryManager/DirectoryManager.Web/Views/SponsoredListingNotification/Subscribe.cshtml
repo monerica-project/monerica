@@ -1,5 +1,6 @@
 ﻿@model DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification
 
+@using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Constants;
 @{
     ViewData[StringConstants.TitleHeader] = "Get Notified For Next Sponsored Listing Opening";
@@ -9,7 +10,6 @@
 <hr />
 @await Html.PartialAsync("_BackToHome")
 <hr />
-
  
 @if (TempData[DirectoryManager.Web.Constants.StringConstants.ErrorMessage] != null)
 {
@@ -25,14 +25,16 @@
 
 @if (!string.IsNullOrWhiteSpace(Model.SponsorshipType.ToString()))
 {
-    <p>You are subscribing for notifications about: <strong>@Model.SponsorshipType</strong></p>
+    <p>You are subscribing for notifications about: <strong>@EnumHelper.GetDescription(Model.SponsorshipType)</strong></p>
 }
 
 @if (Model.SubCategoryId.HasValue)
 {
-    <p>Subcategory ID: <strong>@Model.SubCategoryId</strong></p>
+    <p>@TempData[DirectoryManager.Web.Constants.StringConstants.SubcategoryName]</p>
 }
 
+@if (TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage] == null)
+{
 <form asp-action="Subscribe" method="post">
     <input type="hidden" asp-for="SponsorshipType" />
     <input type="hidden" asp-for="SubCategoryId" />
@@ -45,3 +47,4 @@
 
     <button type="submit" class="btn btn-primary">Subscribe</button>
 </form>
+}
