@@ -28,5 +28,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task MarkReminderAsSentAsync(int notificationId);
+
+        Task<bool> UpdateAsync(SponsoredListingOpeningNotification notification);
     }
 }

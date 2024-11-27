@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Text;
+﻿using System.Text;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
@@ -79,7 +78,7 @@ namespace DirectoryManager.Web.Controllers
 
                 model.CurrentListingCount = count;
 
-                if (count >= IntegerConstants.MaxMainSponsoredListings)
+                if (count >= Common.Constants.IntegerConstants.MaxMainSponsoredListings)
                 {
                     // max listings reached
                     model.CanCreateMainListing = false;
@@ -110,7 +109,7 @@ namespace DirectoryManager.Web.Controllers
                 model.CanCreateMainListing = true;
             }
 
-            var allActiveSubcategories = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync(IntegerConstants.MinimumSponsoredActiveSubcategories);
+            var allActiveSubcategories = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync(Common.Constants.IntegerConstants.MinimumSponsoredActiveSubcategories);
             var currentSubCategorySponsorListings = await this.sponsoredListingRepository
                                                               .GetAllActiveListingsAsync(SponsorshipType.SubcategorySponsor);
 
@@ -154,8 +153,8 @@ namespace DirectoryManager.Web.Controllers
                                                                  .GetActiveEntriesByCategoryAsync(subCategoryId.Value);
 
                     this.ViewBag.CanAdvertise =
-                            totalActiveListings < IntegerConstants.MaxSubCategorySponsoredListings &&
-                            totalActiveEntriesInCategory.Count() >= IntegerConstants.MinimumSponsoredActiveSubcategories;
+                            totalActiveListings < Common.Constants.IntegerConstants.MaxSubCategorySponsoredListings &&
+                            totalActiveEntriesInCategory.Count() >= Common.Constants.IntegerConstants.MinimumSponsoredActiveSubcategories;
                 }
             }
 
@@ -874,12 +873,12 @@ namespace DirectoryManager.Web.Controllers
         {
             if (sponsorshipType == SponsorshipType.MainSponsor)
             {
-                return totalForTypeInGroup < IntegerConstants.MaxMainSponsoredListings;
+                return totalForTypeInGroup < Common.Constants.IntegerConstants.MaxMainSponsoredListings;
             }
 
             if (sponsorshipType == SponsorshipType.SubcategorySponsor)
             {
-                return totalForTypeInGroup < IntegerConstants.MaxSubCategorySponsoredListings;
+                return totalForTypeInGroup < DirectoryManager.Common.Constants.IntegerConstants.MaxSubCategorySponsoredListings;
             }
 
             throw new InvalidOperationException("SponsorshipType:" + sponsorshipType.ToString());
@@ -892,14 +891,14 @@ namespace DirectoryManager.Web.Controllers
         {
             if (sponsorshipType == SponsorshipType.MainSponsor)
             {
-                return (totalActiveListings <= IntegerConstants.MaxMainSponsoredListings) &&
-                       (totalActiveReservations < (IntegerConstants.MaxMainSponsoredListings - totalActiveListings));
+                return (totalActiveListings <= Common.Constants.IntegerConstants.MaxMainSponsoredListings) &&
+                       (totalActiveReservations < (Common.Constants.IntegerConstants.MaxMainSponsoredListings - totalActiveListings));
             }
 
             if (sponsorshipType == SponsorshipType.SubcategorySponsor)
             {
-                return (totalActiveListings <= IntegerConstants.MaxSubCategorySponsoredListings) &&
-                       (totalActiveReservations < (IntegerConstants.MaxSubCategorySponsoredListings - totalActiveListings));
+                return (totalActiveListings <= DirectoryManager.Common.Constants.IntegerConstants.MaxSubCategorySponsoredListings) &&
+                       (totalActiveReservations < (DirectoryManager.Common.Constants.IntegerConstants.MaxSubCategorySponsoredListings - totalActiveListings));
             }
 
             throw new NotImplementedException("SponsorshipType:" + sponsorshipType.ToString());

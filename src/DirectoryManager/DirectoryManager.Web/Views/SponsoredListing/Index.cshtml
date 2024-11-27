@@ -44,7 +44,7 @@
     <p>
         <a class="btn" href="~/sponsoredlisting/selectlisting">Select Listing</a>        
     </p>
-    <p><i>@(IntegerConstants.MaxMainSponsoredListings - Model.CurrentListingCount) spot@((IntegerConstants.MaxMainSponsoredListings - Model.CurrentListingCount) == 1 ? "" : "s") remaining</i></p>
+    <p><i>@(DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings - Model.CurrentListingCount) spot@((DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings - Model.CurrentListingCount) == 1 ? "" : "s") remaining</i></p>
 }
 else
 {
@@ -91,7 +91,7 @@ else
                 @item.Value - 
                 <a asp-controller="SponsoredListingNotification"
                    asp-action="Subscribe"
-                   asp-route-sponsorshipType="MainSponsor"
+                   asp-route-sponsorshipType="SubcategorySponsor"
                    asp-route-subcategoryId="@item.Key">Notify me of openings</a>
             </li>
         }

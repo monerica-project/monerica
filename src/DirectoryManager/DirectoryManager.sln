@@ -55,6 +55,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectoryManager.Services",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectoryManager.SponsoredListingReminder", "DirectoryManager.SponsoredListingReminder\DirectoryManager.SponsoredListingReminder.csproj", "{8A7CDAB3-0C31-4CF4-A36B-9CBE5D919031}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectoryManager.SponsoredListingOpening", "DirectoryManager.SponsoredListingOpening\DirectoryManager.SponsoredListingOpening.csproj", "{C683E152-F01E-428E-83F8-6D625392B561}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -117,6 +119,10 @@ Global
 		{8A7CDAB3-0C31-4CF4-A36B-9CBE5D919031}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8A7CDAB3-0C31-4CF4-A36B-9CBE5D919031}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8A7CDAB3-0C31-4CF4-A36B-9CBE5D919031}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C683E152-F01E-428E-83F8-6D625392B561}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C683E152-F01E-428E-83F8-6D625392B561}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C683E152-F01E-428E-83F8-6D625392B561}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C683E152-F01E-428E-83F8-6D625392B561}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -129,6 +135,7 @@ Global
 		{8ADCEB1D-F660-4034-B659-8F0E413A71A9} = {BF26B5A5-4125-4A79-A925-80C28C713E1A}
 		{6F78CB85-16F5-4460-AA3B-015B3F8EEC7F} = {BF26B5A5-4125-4A79-A925-80C28C713E1A}
 		{8A7CDAB3-0C31-4CF4-A36B-9CBE5D919031} = {BF26B5A5-4125-4A79-A925-80C28C713E1A}
+		{C683E152-F01E-428E-83F8-6D625392B561} = {BF26B5A5-4125-4A79-A925-80C28C713E1A}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {09AD4830-FAD7-4CA3-A0F0-E64142DA6CAC}

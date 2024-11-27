@@ -35,4 +35,6 @@
 <p>Total Paid Amount: @Model.TotalPaidAmount @Model.PaidInCurrency</p>
 <p>Total Amount Requested: @Model.TotalAmount @Model.Currency</p>
 
-<img style="width:100%" src="@Url.Action("monthlyincomebarchart", "sponsoredlistinginvoice")" alt="chart" />
+<img style="width:100%"
+     src="@Url.Action("monthlyincomebarchart", "sponsoredlistinginvoice", new { startDate = Model.StartDate, endDate = Model.EndDate })"
+     alt="chart" />

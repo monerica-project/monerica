@@ -38,6 +38,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync();
         }
 
+        public async Task<bool> UpdateAsync(SponsoredListingOpeningNotification notification)
+        {
+            this.context.SponsoredListingOpeningNotifications.Update(notification);
+            return await this.context.SaveChangesAsync() > 0;
+        }
+
         public async Task MarkReminderAsSentAsync(int notificationId)
         {
             var notification = await this.context.SponsoredListingOpeningNotifications
