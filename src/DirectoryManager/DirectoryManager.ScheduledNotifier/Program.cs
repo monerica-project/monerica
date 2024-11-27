@@ -43,7 +43,7 @@ public class Program
 
 
       //  var emailService = host.Services.GetRequiredService<IEmailService>();
-      //  await emailService.SendEmailAsync("test456", "test message", "<p>test html message</p>", new List<string>() { "admin@bootbaron.com" });
+      //  await emailService.SendEmailAsync("test456", "test message", "<p>test html message</p>", new List<string>() { "" });
 
       //  await host.RunAsync();
     }
