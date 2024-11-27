@@ -12,7 +12,7 @@ using Newtonsoft.Json;
 
 var config = new ConfigurationBuilder()
     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory) // Set the base path to your project's directory
-    .AddJsonFile(StringConstants.AppSettingsFileName)
+    .AddJsonFile(DirectoryManager.Common.Constants.StringConstants.AppSettingsFileName)
     .Build();
 
 var serviceProvider = new ServiceCollection()

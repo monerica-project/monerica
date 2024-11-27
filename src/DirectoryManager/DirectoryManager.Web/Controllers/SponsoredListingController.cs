@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using System.Text;
+﻿using System.Text;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
@@ -79,7 +78,7 @@ namespace DirectoryManager.Web.Controllers
 
                 model.CurrentListingCount = count;
 
-                if (count >= IntegerConstants.MaxMainSponsoredListings)
+                if (count >= Common.Constants.IntegerConstants.MaxMainSponsoredListings)
                 {
                     // max listings reached
                     model.CanCreateMainListing = false;
@@ -110,7 +109,7 @@ namespace DirectoryManager.Web.Controllers
                 model.CanCreateMainListing = true;
             }
 
-            var allActiveSubcategories = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync(IntegerConstants.MinimumSponsoredActiveSubcategories);
+            var allActiveSubcategories = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync(Common.Constants.IntegerConstants.MinimumSponsoredActiveSubcategories);
             var currentSubCategorySponsorListings = await this.sponsoredListingRepository
                                                               .GetAllActiveListingsAsync(SponsorshipType.SubcategorySponsor);
 
@@ -120,11 +119,17 @@ namespace DirectoryManager.Web.Controllers
                 {
                     if (currentSubCategorySponsorListings.FirstOrDefault(x => x.SubCategoryId == subcategory.SubCategoryId) == null)
                     {
-                        model.AvailableSubCatetgories.Add(subcategory.SubCategoryId, string.Format("{0} - {1}", subcategory.Category.Name, subcategory.Name));
+                        model.AvailableSubCatetgories.Add(subcategory.SubCategoryId, FormattingHelper.SubcategoryFormatting(subcategory.Category.Name, subcategory.Name));
+                    }
+                    else
+                    {
+                        model.UnavailableSubCatetgories.Add(subcategory.SubCategoryId, FormattingHelper.SubcategoryFormatting(subcategory.Category.Name, subcategory.Name));
                     }
                 }
 
                 model.AvailableSubCatetgories = model.AvailableSubCatetgories.OrderBy(x => x.Value).ToDictionary<int, string>();
+                model.UnavailableSubCatetgories = model.UnavailableSubCatetgories.OrderBy(x => x.Value).ToDictionary<int, string>();
+
             }
 
             return this.View(model);
@@ -148,8 +153,8 @@ namespace DirectoryManager.Web.Controllers
                                                                  .GetActiveEntriesByCategoryAsync(subCategoryId.Value);
 
                     this.ViewBag.CanAdvertise =
-                            totalActiveListings < IntegerConstants.MaxSubCategorySponsoredListings &&
-                            totalActiveEntriesInCategory.Count() >= IntegerConstants.MinimumSponsoredActiveSubcategories;
+                            totalActiveListings < Common.Constants.IntegerConstants.MaxSubCategorySponsoredListings &&
+                            totalActiveEntriesInCategory.Count() >= Common.Constants.IntegerConstants.MinimumSponsoredActiveSubcategories;
                 }
             }
 
@@ -198,7 +203,7 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            this.ViewBag.Subcategory = string.Format("{0} > {1}", directoryEntry?.SubCategory?.Category.Name, directoryEntry?.SubCategory?.Name);
+            this.ViewBag.Subcategory = FormattingHelper.SubcategoryFormatting(directoryEntry?.SubCategory?.Category.Name, directoryEntry?.SubCategory?.Name);
             this.ViewBag.SubCategoryId = directoryEntry?.SubCategoryId;
             this.ViewBag.DirectoryEntryId = directoryEntryId;
             this.ViewBag.SponsorshipType = sponsorshipType;
@@ -477,7 +482,7 @@ namespace DirectoryManager.Web.Controllers
             invoice.PaymentProcessor = PaymentProcessor.NOWPayments;
             invoice.InvoiceRequest = JsonConvert.SerializeObject(invoiceRequest);
             invoice.InvoiceResponse = JsonConvert.SerializeObject(invoiceFromProcessor);
-            invoice.Email = SetEmail(email);
+            invoice.Email = InputHelper.SetEmail(email);
 
             await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
 
@@ -688,7 +693,7 @@ namespace DirectoryManager.Web.Controllers
                     Price = o.Price,
                     SponsorshipType = o.SponsorshipType,
                     CategorySubcategory = o.Subcategory != null
-                        ? $"{o.Subcategory.Category?.Name ?? StringConstants.Default} > {o.Subcategory.Name}"
+                        ? FormattingHelper.SubcategoryFormatting(o.Subcategory.Category?.Name ?? StringConstants.Default, o.Subcategory.Name)
                         : StringConstants.Default
                 })
                 .OrderBy(o => o.CategorySubcategory == StringConstants.Default ? 0 : 1) // Entries with no Subcategory come first
@@ -710,7 +715,7 @@ namespace DirectoryManager.Web.Controllers
                     Price = o.Price,
                     SponsorshipType = o.SponsorshipType,
                     CategorySubcategory = o.Subcategory != null
-                        ? $"{o.Subcategory.Category?.Name ?? StringConstants.Default} > {o.Subcategory.Name}"
+                        ? FormattingHelper.SubcategoryFormatting(o.Subcategory.Category?.Name ?? StringConstants.Default, o.Subcategory.Name)
                         : StringConstants.Default
                 })
                 .OrderBy(o => o.CategorySubcategory == StringConstants.Default ? 0 : 1) // Entries with no Subcategory come first
@@ -868,22 +873,15 @@ namespace DirectoryManager.Web.Controllers
         {
             if (sponsorshipType == SponsorshipType.MainSponsor)
             {
-                return totalForTypeInGroup < IntegerConstants.MaxMainSponsoredListings;
+                return totalForTypeInGroup < Common.Constants.IntegerConstants.MaxMainSponsoredListings;
             }
 
             if (sponsorshipType == SponsorshipType.SubcategorySponsor)
             {
-                return totalForTypeInGroup < IntegerConstants.MaxSubCategorySponsoredListings;
+                return totalForTypeInGroup < DirectoryManager.Common.Constants.IntegerConstants.MaxSubCategorySponsoredListings;
             }
 
             throw new InvalidOperationException("SponsorshipType:" + sponsorshipType.ToString());
-        }
-
-        private static string SetEmail(string? email)
-        {
-            var emailAttribute = new EmailAddressAttribute();
-
-            return (email != null && emailAttribute.IsValid(email)) ? email.Trim() : string.Empty;
         }
 
         private static bool CanPurchaseListing(
@@ -893,14 +891,14 @@ namespace DirectoryManager.Web.Controllers
         {
             if (sponsorshipType == SponsorshipType.MainSponsor)
             {
-                return (totalActiveListings <= IntegerConstants.MaxMainSponsoredListings) &&
-                       (totalActiveReservations < (IntegerConstants.MaxMainSponsoredListings - totalActiveListings));
+                return (totalActiveListings <= Common.Constants.IntegerConstants.MaxMainSponsoredListings) &&
+                       (totalActiveReservations < (Common.Constants.IntegerConstants.MaxMainSponsoredListings - totalActiveListings));
             }
 
             if (sponsorshipType == SponsorshipType.SubcategorySponsor)
             {
-                return (totalActiveListings <= IntegerConstants.MaxSubCategorySponsoredListings) &&
-                       (totalActiveReservations < (IntegerConstants.MaxSubCategorySponsoredListings - totalActiveListings));
+                return (totalActiveListings <= DirectoryManager.Common.Constants.IntegerConstants.MaxSubCategorySponsoredListings) &&
+                       (totalActiveReservations < (DirectoryManager.Common.Constants.IntegerConstants.MaxSubCategorySponsoredListings - totalActiveListings));
             }
 
             throw new NotImplementedException("SponsorshipType:" + sponsorshipType.ToString());
@@ -927,7 +925,7 @@ namespace DirectoryManager.Web.Controllers
                 return string.Empty;
             }
 
-            return string.Format("{0} > {1}", category.Name, subcategory.Name);
+            return FormattingHelper.SubcategoryFormatting(category.Name, subcategory.Name);
         }
 
         private PaymentRequest GetInvoiceRequest(SponsoredListingOffer sponsoredListingOffer, SponsoredListingInvoice invoice)

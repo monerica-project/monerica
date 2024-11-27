@@ -20,11 +20,12 @@
 	<ItemGroup>
 		<ProjectReference Include="..\DirectoryManager.Data\DirectoryManager.Data.csproj" />
 		<ProjectReference Include="..\DirectoryManager.Services\DirectoryManager.Services.csproj" />
+		<ProjectReference Include="..\DirectoryManager.Utilities\DirectoryManager.Utilities.csproj" />
 	</ItemGroup>
 
 	<ItemGroup>
 		<None Update="appsettings.json">
-		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="appsettings.template.json" TargetPath="data\appsettings.template.json">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>

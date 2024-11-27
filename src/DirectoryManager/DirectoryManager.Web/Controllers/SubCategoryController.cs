@@ -163,8 +163,8 @@ namespace DirectoryManager.Web.Controllers
 
             var model = new CategorySubCategoriesViewModel
             {
-                PageHeader = $"{category.Name} > {subCategory.Name}",
-                PageTitle = $"{category.Name} > {subCategory.Name}",
+                PageHeader = FormattingHelper.SubcategoryFormatting(category.Name, subCategory.Name),
+                PageTitle = FormattingHelper.SubcategoryFormatting(category.Name, subCategory.Name),
                 MetaDescription = subCategory.MetaDescription,
                 PageDetails = subCategory.PageDetails,
                 Description = subCategory.Description,

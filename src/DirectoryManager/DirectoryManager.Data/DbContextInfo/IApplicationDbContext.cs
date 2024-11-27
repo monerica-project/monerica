@@ -7,7 +7,6 @@ namespace DirectoryManager.Data.DbContextInfo
 {
     public interface IApplicationDbContext : IDisposable
     {
-        public DbSet<AdSpotNotificationSubscription> AdSpotNotificationSubscriptions { get; set; }
         public DbSet<ApplicationUser> ApplicationUser { get; set; }
         public DbSet<ApplicationUserRole> ApplicationUserRole { get; set; }
         public DbSet<BlockedIP> BlockedIPs { get; set; }
@@ -25,6 +24,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<LogEntry> LogEntries { get; set; }
         public DbSet<ProcessorConfig> ProcessorConfigs { get; set; }
         public DbSet<SentEmailRecord> SentEmailRecords { get; set; }
+        public DbSet<SponsoredListingOpeningNotification> SponsoredListingOpeningNotifications { get; set; }
         public DbSet<SponsoredListing> SponsoredListings { get; set; }
         public DbSet<SponsoredListingInvoice> SponsoredListingInvoices { get; set; }
         public DbSet<SponsoredListingOffer> SponsoredListingOffers { get; set; }

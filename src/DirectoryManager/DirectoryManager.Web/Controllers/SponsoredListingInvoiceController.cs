@@ -139,8 +139,9 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Report(DateTime? startDate, DateTime? endDate)
         {
+            var defaultDays = 180;
             var now = DateTime.UtcNow;
-            var modelStartDate = startDate?.Date ?? now.AddDays(-30).Date;
+            var modelStartDate = startDate?.Date ?? now.AddDays(-defaultDays).Date;
             var modelEndDate = endDate?.Date ?? now.Date;
             var startOfDayUtc = new DateTime(modelStartDate.Year, modelStartDate.Month, modelStartDate.Day, 0, 0, 0, DateTimeKind.Utc);
             var endOfDayUtc = new DateTime(modelEndDate.Year, modelEndDate.Month, modelEndDate.Day, 23, 59, 59, DateTimeKind.Utc);
@@ -161,11 +162,16 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("sponsoredlistinginvoice/monthlyincomebarchart")]
-        public async Task<IActionResult> WeeklyPlotImageAsync()
+        public async Task<IActionResult> MonthlyIncomeBarChartAsync(DateTime startDate, DateTime endDate)
         {
             var plottingChart = new InvoicePlotting();
             var invoices = await this.invoiceRepository.GetAllAsync();
-            var imageBytes = plottingChart.CreateMonthlyIncomeBarChart(invoices);
+
+            // Filter invoices based on the selected date range
+            var filteredInvoices = invoices
+                .Where(invoice => invoice.CreateDate >= startDate && invoice.CreateDate <= endDate);
+
+            var imageBytes = plottingChart.CreateMonthlyIncomeBarChart(filteredInvoices);
 
             return this.File(imageBytes, StringConstants.PngImage);
         }

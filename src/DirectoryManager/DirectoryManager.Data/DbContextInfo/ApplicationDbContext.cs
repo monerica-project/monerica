@@ -3,6 +3,7 @@ using DirectoryManager.Data.Models.BaseModels;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.SponsoredListings;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace DirectoryManager.Data.DbContextInfo
 {
@@ -12,8 +13,6 @@ namespace DirectoryManager.Data.DbContextInfo
             : base(options)
         {
         }
-
-        public DbSet<AdSpotNotificationSubscription> AdSpotNotificationSubscriptions { get; set; }
         public DbSet<ApplicationUser> ApplicationUser { get; set; }
         public DbSet<ApplicationUserRole> ApplicationUserRole { get; set; }
         public DbSet<BlockedIP> BlockedIPs { get; set; }
@@ -31,6 +30,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<LogEntry> LogEntries { get; set; }
         public DbSet<ProcessorConfig> ProcessorConfigs { get; set; }
         public DbSet<SentEmailRecord> SentEmailRecords { get; set; }
+        public DbSet<SponsoredListingOpeningNotification> SponsoredListingOpeningNotifications { get; set; }
         public DbSet<SponsoredListing> SponsoredListings { get; set; }
         public DbSet<SponsoredListingInvoice> SponsoredListingInvoices { get; set; }
         public DbSet<SponsoredListingOffer> SponsoredListingOffers { get; set; }
@@ -163,7 +163,12 @@ namespace DirectoryManager.Data.DbContextInfo
 
             builder.Entity<BlockedIP>()
                    .HasIndex(e => e.IpAddress)
-                   .IsUnique();
+            .IsUnique();
+
+            builder.Entity<SponsoredListingOpeningNotification>()
+                   .HasIndex(e => new { e.Email, e.SponsorshipType, e.SubCategoryId, e.SubscribedDate })
+                   .IsUnique()
+                   .HasDatabaseName("IX_SponsoredListingOpeningNotification_Unique");
         }
 
         private void SetDates()

@@ -45,14 +45,14 @@
         </div>
 
         <p class="create-sponsored-listing">
-           @if (DirectoryManager.Web.Constants.IntegerConstants.MaxMainSponsoredListings > sponsoredListings.Count())
+           @if (DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings > sponsoredListings.Count())
             {
                 <a class="app-link" href="~/sponsoredlisting/selectlisting?sponsorshipType=@SponsorshipType.MainSponsor">Advertise here</a>
-                <span>(@(DirectoryManager.Web.Constants.IntegerConstants.MaxMainSponsoredListings-sponsoredListings.Count()) available)</span>
+                <span>(@(DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings - sponsoredListings.Count()) available)</span>
             }
             else
             {
-                <a class="app-link" href="~/sponsoredlisting">About sponsored listings</a>  <span>(@(DirectoryManager.Web.Constants.IntegerConstants.MaxMainSponsoredListings-sponsoredListings.Count()) available)</span>
+                <a class="app-link" href="~/sponsoredlisting">About sponsored listings</a>  <span>(@(DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings - sponsoredListings.Count()) available)</span>
             }
         </p>
     }

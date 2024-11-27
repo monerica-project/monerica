@@ -29,5 +29,8 @@
         public const string GenericExceptionMessage = "An unhandled exception occurred.";
         public const string TorDomain = ".onion";
         public const string PngImage = "image/png";
+        public const string ErrorMessage = "ErrorMessage";
+        public const string SuccessMessage = "SuccessMessage";
+        public const string SubcategoryName = "SubcategoryName";
     }
 }
