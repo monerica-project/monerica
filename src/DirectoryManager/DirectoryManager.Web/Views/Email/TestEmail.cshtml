@@ -1,0 +1,44 @@
+﻿@model DirectoryManager.Web.Models.TestEmailViewModel
+@using DirectoryManager.Web.Constants
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Send Test Email";
+}
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">
+        @TempData["SuccessMessage"]
+    </div>
+}
+
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">
+        @TempData["ErrorMessage"]
+    </div>
+}
+
+<form asp-action="TestEmail" method="post">
+    <div class="form-group">
+        <label for="RecipientEmail">Recipient Email</label>
+        <input type="email" class="form-control" id="RecipientEmail" name="RecipientEmail" value="@Model.RecipientEmail" required />
+    </div>
+    <div class="form-group">
+        <label for="Subject">Subject</label>
+        <input type="text" class="form-control" id="Subject" name="Subject" value="@Model.Subject" required />
+    </div>
+    <div class="form-group">
+        <label for="BodyText">Body (Text)</label>
+        <textarea class="form-control" id="BodyText" name="BodyText" rows="5">@Model.BodyText</textarea>
+    </div>
+    <div class="form-group">
+        <label for="BodyHtml">Body (HTML)</label>
+        <textarea class="form-control" id="BodyHtml" name="BodyHtml" rows="5">@Model.BodyHtml</textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Send Test Email</button>
+</form>
