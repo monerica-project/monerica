@@ -7,6 +7,9 @@ using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.FileStorage.Repositories.Implementations;
 using DirectoryManager.FileStorage.Repositories.Interfaces;
+using DirectoryManager.Services.Implementations;
+using DirectoryManager.Services.Interfaces;
+using DirectoryManager.Services.Models;
 using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
@@ -41,6 +44,17 @@ namespace DirectoryManager.Web.Extensions
             services.AddTransient<ICacheService, CacheService>();
             services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
             services.AddScoped<IRssFeedService, RssFeedService>();
+            services.AddScoped<IEmailService, EmailService>(provider =>
+              {
+                  var emailConfig = new SendGridConfig
+                  {
+                      ApiKey = configuration["SendGrid:ApiKey"] ?? throw new InvalidOperationException("SendGrid:ApiKey is missing in configuration."),
+                      SenderEmail = configuration["SendGrid:SenderEmail"] ?? throw new InvalidOperationException("SendGrid:SenderEmail is missing in configuration."),
+                      SenderName = configuration["SendGrid:SenderName"] ?? "Default Sender Name" // Default value if SenderName is not provided.
+                  };
+
+                  return new EmailService(emailConfig);
+              });
 
             // NOWPayments configuration and service registration
             services.AddScoped<INowPaymentsService>(provider =>
