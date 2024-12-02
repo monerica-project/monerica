@@ -34,5 +34,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<SponsoredListingOpeningNotification?> GetByIdAsync(int id);
 
         Task<IEnumerable<SponsoredListingOpeningNotification>> GetAllAsync();
+
+        Task<bool> DeleteAsync(int id);
     }
 }

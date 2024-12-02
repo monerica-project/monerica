@@ -40,11 +40,11 @@ namespace DirectoryManager.Web.Controllers
                     model.BodyHtml,
                     new List<string> { model.RecipientEmail });
 
-                this.TempData["SuccessMessage"] = "Test email sent successfully.";
+                this.TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage] = "Test email sent successfully.";
             }
             catch (Exception ex)
             {
-                this.TempData["ErrorMessage"] = $"Failed to send test email: {ex.Message}";
+                this.TempData[DirectoryManager.Web.Constants.StringConstants.ErrorMessage] = $"Failed to send test email: {ex.Message}";
             }
 
             return this.RedirectToAction(nameof(this.TestEmail));

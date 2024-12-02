@@ -107,7 +107,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (notification == null)
             {
-                this.TempData["ErrorMessage"] = "Notification not found.";
+                this.TempData[Constants.StringConstants.ErrorMessage] = "Notification not found.";
                 return this.RedirectToAction(nameof(this.List));
             }
 
@@ -128,7 +128,7 @@ namespace DirectoryManager.Web.Controllers
             var existingNotification = await this.notificationRepository.GetByIdAsync(model.SponsoredListingOpeningNotificationId);
             if (existingNotification == null)
             {
-                this.TempData["ErrorMessage"] = "Notification not found.";
+                this.TempData[Constants.StringConstants.ErrorMessage] = "Notification not found.";
                 return this.RedirectToAction(nameof(this.List));
             }
 
@@ -141,11 +141,31 @@ namespace DirectoryManager.Web.Controllers
             var updated = await this.notificationRepository.UpdateAsync(existingNotification);
             if (updated)
             {
-                this.TempData["SuccessMessage"] = "Notification updated successfully.";
+                this.TempData[Constants.StringConstants.SuccessMessage] = "Notification updated successfully.";
             }
             else
             {
-                this.TempData["ErrorMessage"] = "Failed to update notification.";
+                this.TempData[Constants.StringConstants.ErrorMessage] = "Failed to update notification.";
+            }
+
+            return this.RedirectToAction(nameof(this.List));
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("sponsoredlistingnotification/delete/{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var deleted = await this.notificationRepository.DeleteAsync(id);
+
+            if (deleted)
+            {
+                this.TempData[Constants.StringConstants.SuccessMessage] = "Notification deleted successfully.";
+            }
+            else
+            {
+                this.TempData[Constants.StringConstants.ErrorMessage] = "Failed to delete notification. It may not exist.";
             }
 
             return this.RedirectToAction(nameof(this.List));

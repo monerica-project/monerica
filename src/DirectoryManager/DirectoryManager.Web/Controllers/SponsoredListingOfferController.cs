@@ -108,11 +108,11 @@ namespace DirectoryManager.Web.Controllers
             try
             {
                 await this.sponsoredListingOfferRepository.DeleteOfferAsync(id);
-                this.TempData["SuccessMessage"] = "The sponsored listing offer has been successfully deleted.";
+                this.TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage] = "The sponsored listing offer has been successfully deleted.";
             }
             catch (Exception ex)
             {
-                this.TempData["ErrorMessage"] = $"Failed to delete the offer: {ex.Message}";
+                this.TempData[DirectoryManager.Web.Constants.StringConstants.ErrorMessage] = $"Failed to delete the offer: {ex.Message}";
             }
 
             return this.RedirectToAction(nameof(this.Index));

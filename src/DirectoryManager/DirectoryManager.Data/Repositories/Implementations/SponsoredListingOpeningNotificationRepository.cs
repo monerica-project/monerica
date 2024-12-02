@@ -67,5 +67,19 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.context.SponsoredListingOpeningNotifications.ToListAsync();
         }
 
+        public async Task<bool> DeleteAsync(int id)
+        {
+            var notification = await this.context.SponsoredListingOpeningNotifications
+                .FirstOrDefaultAsync(n => n.SponsoredListingOpeningNotificationId == id);
+
+            if (notification == null)
+            {
+                return false;
+            }
+
+            this.context.SponsoredListingOpeningNotifications.Remove(notification);
+            return await this.context.SaveChangesAsync() > 0;
+        }
+
     }
 }
