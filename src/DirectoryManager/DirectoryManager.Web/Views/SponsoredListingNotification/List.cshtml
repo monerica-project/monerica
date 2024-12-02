@@ -1,0 +1,40 @@
+﻿@using DirectoryManager.Web.Constants
+@model IEnumerable<DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification>
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Manage Notifications";
+}
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<h2>Manage Notifications</h2>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Email</th>
+            <th>Sponsorship Type</th>
+            <th>Subcategory ID</th>
+            <th>Reminder Sent</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var notification in Model)
+        {
+            <tr>
+                <td>@notification.SponsoredListingOpeningNotificationId</td>
+                <td>@notification.Email</td>
+                <td>@notification.SponsorshipType</td>
+                <td>@notification.SubCategoryId</td>
+                <td>@notification.IsReminderSent</td>
+                <td>
+                    <a href="@Url.Action("Edit", new { id = notification.SponsoredListingOpeningNotificationId })">Edit</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

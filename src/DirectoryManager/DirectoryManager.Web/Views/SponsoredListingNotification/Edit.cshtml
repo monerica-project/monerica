@@ -1,0 +1,54 @@
+﻿@using DirectoryManager.Web.Constants
+@model DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Edit Notification";
+}
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="SponsoredListingOpeningNotificationId" />
+
+    <div class="form-group">
+        <label asp-for="Email"></label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="SponsorshipType"></label>
+        <select asp-for="SponsorshipType" class="form-control">
+            @foreach (var value in Enum.GetValues(typeof(DirectoryManager.Data.Enums.SponsorshipType)).Cast<DirectoryManager.Data.Enums.SponsorshipType>())
+            {
+                if (Model.SponsorshipType == value)
+                {
+                    <option value="@value" selected="selected">@value</option>
+                }
+                else
+                {
+                    <option value="@value">@value</option>
+                }
+            }
+        </select>
+
+
+
+    </div>
+
+    <div class="form-group">
+        <label asp-for="SubCategoryId"></label>
+        <input asp-for="SubCategoryId" class="form-control" />
+        <span asp-validation-for="SubCategoryId" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="IsReminderSent"></label>
+        <input asp-for="IsReminderSent" class="form-check-input" type="checkbox" />
+    </div>
+
+    <button type="submit">Save</button>
+    <a asp-action="List">Cancel</a>
+</form>

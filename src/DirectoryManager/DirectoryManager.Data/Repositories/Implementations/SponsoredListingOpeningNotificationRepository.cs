@@ -55,5 +55,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 await this.context.SaveChangesAsync();
             }
         }
+
+        public async Task<SponsoredListingOpeningNotification?> GetByIdAsync(int id)
+        {
+            return await this.context.SponsoredListingOpeningNotifications
+                .FirstOrDefaultAsync(n => n.SponsoredListingOpeningNotificationId == id);
+        }
+
+        public async Task<IEnumerable<SponsoredListingOpeningNotification>> GetAllAsync()
+        {
+            return await this.context.SponsoredListingOpeningNotifications.ToListAsync();
+        }
+
     }
 }

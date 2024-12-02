@@ -99,5 +99,23 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(sponsoredListingOffer);
         }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("sponsoredlistingoffer/delete")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            try
+            {
+                await this.sponsoredListingOfferRepository.DeleteOfferAsync(id);
+                this.TempData["SuccessMessage"] = "The sponsored listing offer has been successfully deleted.";
+            }
+            catch (Exception ex)
+            {
+                this.TempData["ErrorMessage"] = $"Failed to delete the offer: {ex.Message}";
+            }
+
+            return this.RedirectToAction(nameof(this.Index));
+        }
     }
 }

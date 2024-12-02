@@ -30,5 +30,9 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task MarkReminderAsSentAsync(int notificationId);
 
         Task<bool> UpdateAsync(SponsoredListingOpeningNotification notification);
+
+        Task<SponsoredListingOpeningNotification?> GetByIdAsync(int id);
+
+        Task<IEnumerable<SponsoredListingOpeningNotification>> GetAllAsync();
     }
 }
