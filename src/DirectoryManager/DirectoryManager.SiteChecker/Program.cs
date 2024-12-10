@@ -10,6 +10,9 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+const string UserAgentHeader = "UserAgent:Header";
+const string SiteOfflineMessage = "site offline";
+
 // Build configuration
 var config = new ConfigurationBuilder()
     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
@@ -17,7 +20,7 @@ var config = new ConfigurationBuilder()
     .Build();
 
 // Get the User-Agent header value from the configuration
-var userAgentHeader = config["UserAgent:Header"] ?? throw new InvalidOperationException("UserAgent header is missing.");
+var userAgentHeader = config[UserAgentHeader] ?? throw new InvalidOperationException($"{UserAgentHeader} is missing.");
 
 // Register services in the service container
 var serviceProvider = new ServiceCollection()
@@ -39,7 +42,7 @@ var offlines = new List<string>();
 var tasks = allEntries
     .Where(entry => entry.DirectoryStatus != DirectoryStatus.Unknown &&
                     entry.DirectoryStatus != DirectoryStatus.Removed &&
-                    !entry.Link.Contains(".onion"))
+                    (!entry.Link.Contains(".onion") || !entry.Link.Contains(".i2p")))
     .Select(async entry =>
     {
         // Create a new scope for each task to isolate DbContext instances
@@ -53,11 +56,11 @@ var tasks = allEntries
             isOnline = webPageChecker.IsWebPageOnlinePing(new Uri(entry.Link));
         }
 
-        Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : "offline")}");
+        Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : SiteOfflineMessage)}");
 
         if (!isOnline)
         {
-            offlines.Add($"{entry.Link}   -   ID: {entry.DirectoryEntryId}");
+            offlines.Add($"{entry.Link} - ID: {entry.DirectoryEntryId}");
             await CreateOfflineSubmissionIfNotExists(entry, scopedSubmissionRepo);
         }
     });
@@ -85,19 +88,20 @@ async Task CreateOfflineSubmissionIfNotExists(
     DirectoryEntry entry,
     ISubmissionRepository submissionRepository)
 {
+
     // Check if there's already a pending "offline" submission for this entry
     var existingSubmission = await submissionRepository.GetByLinkAndStatusAsync(entry.Link, SubmissionStatus.Pending);
 
-    if (existingSubmission != null && existingSubmission.Note?.Contains("site offline") == true)
+    if (existingSubmission != null && existingSubmission.Note?.Contains(SiteOfflineMessage) == true)
     {
-        Console.WriteLine($"Skipping submission for entry ID {entry.DirectoryEntryId}, already marked as offline.");
+        Console.WriteLine($"Skipping submission for entry ID {entry.DirectoryEntryId}, already marked as '{SiteOfflineMessage}'.");
         return;
     }
 
     // Prepare the note, only appending " | site offline" if the current note isn't empty
     var newNote = string.IsNullOrWhiteSpace(entry.Note)
-        ? "site offline"
-        : $"{entry.Note} | site offline";
+        ? SiteOfflineMessage
+        : $"{entry.Note} | {SiteOfflineMessage}";
 
     // Create a new submission with the appropriate details
     var submission = new Submission
@@ -119,5 +123,5 @@ async Task CreateOfflineSubmissionIfNotExists(
     };
 
     await submissionRepository.CreateAsync(submission);
-    Console.WriteLine($"Created submission for entry ID {entry.DirectoryEntryId} marked as offline.");
+    Console.WriteLine($"Created submission for entry ID {entry.DirectoryEntryId} marked as '{SiteOfflineMessage}'.");
 }
