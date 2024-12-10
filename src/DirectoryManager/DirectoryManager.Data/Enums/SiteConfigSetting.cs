@@ -29,6 +29,13 @@
         CanonicalDomain = 24,
         FullRootTorUrl = 25,
         TopMenuActionsHtml = 26,
-        InvoiceSuccessMessageHtml = 27
+        InvoiceSuccessMessageHtml = 27,
+        EmailSettingUnsubscribeEmail = 28,
+        EmailSettingUnsubscribeUrl = 29,
+        EmailSettingUnsubscribeFooterText = 30,
+        EmailSettingUnsubscribeFooterHtml = 31,
+        SendGridApiKey = 32,
+        SendGridSenderEmail = 33,
+        SendGridSenderName = 34
     }
 }

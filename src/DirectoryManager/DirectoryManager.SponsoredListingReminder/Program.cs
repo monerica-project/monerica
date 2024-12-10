@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Common.Constants;
 using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Extensions;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Services.Implementations;
@@ -12,7 +13,7 @@ using Microsoft.Extensions.DependencyInjection;
 // Build configuration
 var config = new ConfigurationBuilder()
     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-    .AddJsonFile(DirectoryManager.Common.Constants.StringConstants.AppSettingsFileName, optional: true, reloadOnChange: true)
+    .AddJsonFile(StringConstants.AppSettingsFileName, optional: true, reloadOnChange: true)
     .Build();
 
 // Get the default expiration time span from configuration
@@ -32,11 +33,14 @@ var serviceProvider = new ServiceCollection()
     .AddRepositories() // Add repositories using the extension method
     .AddSingleton<IEmailService, EmailService>(provider =>
     {
+        using var scope = provider.CreateScope();
+        var contentSnippetRepo = scope.ServiceProvider.GetRequiredService<IContentSnippetRepository>();
+
         var emailConfig = new SendGridConfig
         {
-            ApiKey = config[StringConstants.SendGridApiKey] ?? throw new InvalidOperationException($"{StringConstants.SendGridApiKey} is missing in configuration."),
-            SenderEmail = config[StringConstants.SendGridSenderEmail] ?? throw new InvalidOperationException($"{StringConstants.SendGridSenderEmail} is missing in configuration."),
-            SenderName = config[StringConstants.SendGridSenderName] ?? StringConstants.DefaultSenderName
+            ApiKey = contentSnippetRepo.GetValue(SiteConfigSetting.SendGridApiKey),
+            SenderEmail = contentSnippetRepo.GetValue(SiteConfigSetting.SendGridSenderEmail),
+            SenderName = contentSnippetRepo.GetValue(SiteConfigSetting.SendGridSenderName)
         };
 
         return new EmailService(emailConfig);

@@ -63,6 +63,25 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
+        public string GetValue(SiteConfigSetting snippetType)
+        {
+            try
+            {
+                var contentSnippet = this.Context.ContentSnippets.FirstOrDefault(x => x.SnippetType == snippetType);
+
+                if (contentSnippet == null || contentSnippet.Content == null)
+                {
+                    return string.Empty;
+                }
+
+                return contentSnippet.Content;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
+            }
+        }
+
         public bool Update(ContentSnippet model)
         {
             try

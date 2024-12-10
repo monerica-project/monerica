@@ -10,9 +10,5 @@
         public const string CurrentFormat2 = "C2";
         public const string AllOptions = "(All)";
         public const string AppSettingsFileName = "appsettings.json";
-        public const string SendGridApiKey = "SendGrid:ApiKey";
-        public const string SendGridSenderEmail = "SendGrid:SenderEmail";
-        public const string SendGridSenderName = "SendGrid:SenderName";
-        public const string DefaultSenderName = "Sender";
     }
 }

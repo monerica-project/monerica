@@ -39,6 +39,8 @@ namespace DirectoryManager.Services.Implementations
                 HtmlContent = htmlContent
             };
 
+            msg.AddHeader("List-Unsubscribe", "<mailto:unsubscribe@yourdomain.com>, <https://yourdomain.com/unsubscribe?email=recipient@example.com>");
+
             if (recipients.Count == 1)
             {
                 msg.AddTo(new EmailAddress(recipients[0]));

@@ -46,11 +46,14 @@ namespace DirectoryManager.Web.Extensions
             services.AddScoped<IRssFeedService, RssFeedService>();
             services.AddScoped<IEmailService, EmailService>(provider =>
               {
+                  using var scope = provider.CreateScope();
+                  var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
+
                   var emailConfig = new SendGridConfig
                   {
-                      ApiKey = config[Common.Constants.StringConstants.SendGridApiKey] ?? throw new InvalidOperationException($"{Common.Constants.StringConstants.SendGridApiKey} is missing in configuration."),
-                      SenderEmail = config[Common.Constants.StringConstants.SendGridSenderEmail] ?? throw new InvalidOperationException($"{Common.Constants.StringConstants.SendGridSenderEmail} is missing in configuration."),
-                      SenderName = config[Common.Constants.StringConstants.SendGridSenderName] ?? Common.Constants.StringConstants.DefaultSenderName
+                      ApiKey = cacheService.GetSnippet(SiteConfigSetting.SendGridApiKey),
+                      SenderEmail = cacheService.GetSnippet(SiteConfigSetting.SendGridSenderEmail),
+                      SenderName = cacheService.GetSnippet(SiteConfigSetting.SendGridSenderName)
                   };
 
                   return new EmailService(emailConfig);
