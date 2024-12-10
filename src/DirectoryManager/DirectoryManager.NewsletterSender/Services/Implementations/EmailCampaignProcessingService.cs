@@ -53,11 +53,6 @@ namespace DirectoryManager.NewsletterSender.Services.Implementations
 
                 foreach (var subscriber in subscribers)
                 {
-                    if (subscriber.Email != "admin@bootbaron.com")
-                    {
-                        continue;
-                    }
-
                     // Get all sent messages for this subscriber
                     var sentMessages = this.sentEmailRecordRepository.GetBySubscriptionId(subscriber.EmailSubscriptionId)
                         .OrderByDescending(record => record.SentDate)

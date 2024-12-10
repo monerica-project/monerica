@@ -33,9 +33,9 @@ var serviceProvider = new ServiceCollection()
     {
         var emailConfig = new SendGridConfig
         {
-            ApiKey = config["SendGrid:ApiKey"] ?? throw new InvalidOperationException("SendGrid:ApiKey is missing in configuration."),
-            SenderEmail = config["SendGrid:SenderEmail"] ?? throw new InvalidOperationException("SendGrid:SenderEmail is missing in configuration."),
-            SenderName = config["SendGrid:SenderName"] ?? "Default Sender Name" // Default value if SenderName is not provided.
+            ApiKey = config[StringConstants.SendGridApiKey] ?? throw new InvalidOperationException($"{StringConstants.SendGridApiKey} is missing in configuration."),
+            SenderEmail = config[StringConstants.SendGridSenderEmail] ?? throw new InvalidOperationException($"{StringConstants.SendGridSenderEmail} is missing in configuration."),
+            SenderName = config[StringConstants.SendGridSenderName] ?? StringConstants.DefaultSenderName
         };
 
         return new EmailService(emailConfig);

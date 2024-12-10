@@ -23,7 +23,7 @@ namespace DirectoryManager.Web.Extensions
 {
     public static class ServiceExtensions
     {
-        public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration config)
         {
             services.AddResponseCaching();
             services.AddControllersWithViews();
@@ -34,7 +34,7 @@ namespace DirectoryManager.Web.Extensions
 
             // Register ApplicationDbContext with DbContextOptions
             services.AddDbContext<ApplicationDbContext>(options =>
-                  options.UseSqlServer(configuration.GetConnectionString(StringConstants.DefaultConnection)));
+                  options.UseSqlServer(config.GetConnectionString(StringConstants.DefaultConnection)));
 
             // Register all repositories from DatabaseExtensions
             services.AddRepositories();
@@ -48,9 +48,9 @@ namespace DirectoryManager.Web.Extensions
               {
                   var emailConfig = new SendGridConfig
                   {
-                      ApiKey = configuration["SendGrid:ApiKey"] ?? throw new InvalidOperationException("SendGrid:ApiKey is missing in configuration."),
-                      SenderEmail = configuration["SendGrid:SenderEmail"] ?? throw new InvalidOperationException("SendGrid:SenderEmail is missing in configuration."),
-                      SenderName = configuration["SendGrid:SenderName"] ?? "Default Sender Name" // Default value if SenderName is not provided.
+                      ApiKey = config[Common.Constants.StringConstants.SendGridApiKey] ?? throw new InvalidOperationException($"{Common.Constants.StringConstants.SendGridApiKey} is missing in configuration."),
+                      SenderEmail = config[Common.Constants.StringConstants.SendGridSenderEmail] ?? throw new InvalidOperationException($"{Common.Constants.StringConstants.SendGridSenderEmail} is missing in configuration."),
+                      SenderName = config[Common.Constants.StringConstants.SendGridSenderName] ?? Common.Constants.StringConstants.DefaultSenderName
                   };
 
                   return new EmailService(emailConfig);
