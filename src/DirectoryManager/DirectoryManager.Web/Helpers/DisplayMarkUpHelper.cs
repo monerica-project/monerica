@@ -71,6 +71,23 @@ namespace DirectoryManager.Web.Helpers
                     AppendLink(sb, model, model.Link, false); // Default to Link
                 }
             }
+            else if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Questionable)
+            {
+                sb.Append("&#10067; ");
+
+                if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
+                {
+                    AppendLink(sb, model, model.Link, true); // Use LinkA if sponsored
+                }
+                else if (!string.IsNullOrWhiteSpace(model.LinkA))
+                {
+                    AppendLink(sb, model, model.LinkA, false); // Use LinkA as fallback
+                }
+                else
+                {
+                    AppendLink(sb, model, model.Link, false); // Default to Link
+                }
+            }
             else if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Scam)
             {
                 sb.Append("&#10060; <del>");
