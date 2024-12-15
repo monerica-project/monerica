@@ -51,6 +51,12 @@ namespace DirectoryManager.NewsletterSender.Services.Implementations
                     continue;
                 }
 
+                if (!campaign.IsEnabled)
+                {
+                    Console.WriteLine($"Skipping campaign '{campaign.Name}' as isn't enabled.");
+                    continue;
+                }
+
                 var subscribers = this.emailCampaignSubscriptionRepository.GetByCampaign(campaign.EmailCampaignId);
 
                 foreach (var subscription in subscribers)

@@ -21,6 +21,8 @@ namespace DirectoryManager.Web.Models.Emails
 
         public bool SendMessagesPriorToSubscription { get; set; }
 
+        public bool IsEnabled { get; set; }
+
         // Collection of campaign messages to define the sequence
         public List<EmailCampaignMessageModel> CampaignMessages { get; set; } = new List<EmailCampaignMessageModel>();
     }
