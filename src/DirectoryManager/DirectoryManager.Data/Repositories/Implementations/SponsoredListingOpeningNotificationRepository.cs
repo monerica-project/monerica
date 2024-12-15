@@ -80,6 +80,5 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context.SponsoredListingOpeningNotifications.Remove(notification);
             return await this.context.SaveChangesAsync() > 0;
         }
-
     }
 }

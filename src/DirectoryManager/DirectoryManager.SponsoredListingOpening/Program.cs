@@ -41,7 +41,13 @@ var serviceProvider = new ServiceCollection()
             SenderName = contentSnippetRepo.GetValue(SiteConfigSetting.SendGridSenderName)
         };
 
-        return new EmailService(emailConfig);
+        var emailSettings = new EmailSettings
+        {
+            UnsubscribeUrlFormat = contentSnippetRepo.GetValue(SiteConfigSetting.EmailSettingUnsubscribeUrlFormat),
+            UnsubscribeEmail = contentSnippetRepo.GetValue(SiteConfigSetting.EmailSettingUnsubscribeEmail),
+        };
+
+        return new EmailService(emailConfig, emailSettings);
     })
     .BuildServiceProvider();
 

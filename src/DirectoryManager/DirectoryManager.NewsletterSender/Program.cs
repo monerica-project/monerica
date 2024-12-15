@@ -2,7 +2,6 @@
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Extensions;
-using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.NewsletterSender.Services.Implementations;
 using DirectoryManager.NewsletterSender.Services.Interfaces;
@@ -12,7 +11,6 @@ using DirectoryManager.Services.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 public class Program
 {
@@ -42,7 +40,13 @@ public class Program
                     SenderName = contentSnippetRepo.GetValue(SiteConfigSetting.SendGridSenderName)
                 };
 
-                return new EmailService(emailConfig);
+                var emailSettings = new EmailSettings
+                {
+                    UnsubscribeUrlFormat = contentSnippetRepo.GetValue(SiteConfigSetting.EmailSettingUnsubscribeUrlFormat),
+                    UnsubscribeEmail = contentSnippetRepo.GetValue(SiteConfigSetting.EmailSettingUnsubscribeEmail),
+                };
+
+                return new EmailService(emailConfig, emailSettings);
             })
             .BuildServiceProvider();
 

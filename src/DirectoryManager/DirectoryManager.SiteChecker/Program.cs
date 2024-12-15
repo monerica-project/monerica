@@ -88,7 +88,6 @@ async Task CreateOfflineSubmissionIfNotExists(
     DirectoryEntry entry,
     ISubmissionRepository submissionRepository)
 {
-
     // Check if there's already a pending "offline" submission for this entry
     var existingSubmission = await submissionRepository.GetByLinkAndStatusAsync(entry.Link, SubmissionStatus.Pending);
 

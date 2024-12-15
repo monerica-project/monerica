@@ -68,6 +68,7 @@ namespace DirectoryManager.Web.Charting
             return
                             x.DirectoryStatus == Data.Enums.DirectoryStatus.Admitted ||
                             x.DirectoryStatus == Data.Enums.DirectoryStatus.Verified ||
+                            x.DirectoryStatus == Data.Enums.DirectoryStatus.Questionable ||
                             x.DirectoryStatus == Data.Enums.DirectoryStatus.Scam;
         }
     }

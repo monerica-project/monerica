@@ -1,17 +1,29 @@
-﻿ 
-@if (ViewBag.Success != null && Convert.ToBoolean(ViewBag.Success))
-{
-    <span class="success">&#9989; Unsubscribed</span>
+﻿@using DirectoryManager.Web.Constants;
+
+@{
+    ViewData["Title"] = "Unsubscribe";
 }
 
-<h1>Unsubscribe</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
-<hr />
+@if (string.IsNullOrWhiteSpace(Model))
+{
+    <p>Please enter your email to unsubscribe</p>
 
-<form asp-controller="EmailSubscription" asp-action="Unsubscribe" method="post" class="form-inline">
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            @Html.ValidationSummary()
+        </div>
+    }
+    <form asp-controller="EmailSubscription" asp-action="Unsubscribe" method="post" class="form-inline">
 
-    <input name="Email" type="email" class="form-control mb-2 mr-sm-2 mb-sm-0" id="inlineFormInput" placeholder="you@email.com">
+        <input name="formEmail" type="email" id="inlineFormInput" placeholder="yourname@email.com" required>
 
-    <button type="submit" class="btn btn-success">Unsubscribe</button>
-</form>
-<br />
+        <button type="submit" class="btn btn-success">Unsubscribe</button>
+    </form>
+}
+else
+{
+    <p>The email <strong>@Model</strong> has been successfully unsubscribed.</p>
+}

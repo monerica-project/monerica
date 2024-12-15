@@ -56,7 +56,14 @@ namespace DirectoryManager.Web.Extensions
                       SenderName = cacheService.GetSnippet(SiteConfigSetting.SendGridSenderName)
                   };
 
-                  return new EmailService(emailConfig);
+
+                  var emailSettings = new EmailSettings
+                  {
+                      UnsubscribeUrlFormat = cacheService.GetSnippet(SiteConfigSetting.EmailSettingUnsubscribeUrlFormat),
+                      UnsubscribeEmail = cacheService.GetSnippet(SiteConfigSetting.EmailSettingUnsubscribeEmail),
+                  };
+
+                  return new EmailService(emailConfig, emailSettings);
               });
 
             // NOWPayments configuration and service registration
