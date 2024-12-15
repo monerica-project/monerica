@@ -21,6 +21,10 @@ namespace DirectoryManager.Data.Models.Emails
         // Start date for the campaign if needed
         public DateTime? StartDate { get; set; }
 
+        public bool SendMessagesPriorToSubscription { get; set; } = false;
+
+        public bool IsEnabled { get; set; } = false;
+
         // Collection of campaign messages with a defined sequence order
         public virtual ICollection<EmailCampaignMessage> CampaignMessages { get; set; } = new List<EmailCampaignMessage>();
     }

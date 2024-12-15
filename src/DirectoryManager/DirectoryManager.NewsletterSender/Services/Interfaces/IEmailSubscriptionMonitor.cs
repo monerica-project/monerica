@@ -1,4 +1,4 @@
-﻿namespace DirectoryManager.BackgroundServices.Interfaces
+﻿namespace DirectoryManager.NewsletterSender.Interfaces
 {
     public interface IEmailSubscriptionMonitor
     {

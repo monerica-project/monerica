@@ -12,5 +12,12 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         bool Delete(int sentEmailRecordId);
         IList<SentEmailRecord> GetAll();
         void LogMessageDelivery(int emailSubscriptionId, int emailMessageId);
+
+        /// <summary>
+        /// Gets the last sent message for the specified subscription.
+        /// </summary>
+        /// <param name="emailSubscriptionId">The subscription ID.</param>
+        /// <returns>The last sent email record.</returns>
+        SentEmailRecord? GetLastSentMessage(int emailSubscriptionId);
     }
 }

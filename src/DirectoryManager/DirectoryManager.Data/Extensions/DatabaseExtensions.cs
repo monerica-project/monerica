@@ -30,6 +30,7 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IEmailCampaignMessageRepository, EmailCampaignMessageRepository>();
             services.AddScoped<IEmailCampaignRepository, EmailCampaignRepository>();
             services.AddScoped<IEmailCampaignSubscriptionRepository, EmailCampaignSubscriptionRepository>();
+            services.AddScoped<ISentEmailRecordRepository, SentEmailRecordRepository>();
 
             // Other repositories
             services.AddScoped<ISubmissionRepository, SubmissionRepository>();

@@ -23,7 +23,7 @@ namespace DirectoryManager.Web.Extensions
 {
     public static class ServiceExtensions
     {
-        public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration configuration)
+        public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration config)
         {
             services.AddResponseCaching();
             services.AddControllersWithViews();
@@ -34,7 +34,7 @@ namespace DirectoryManager.Web.Extensions
 
             // Register ApplicationDbContext with DbContextOptions
             services.AddDbContext<ApplicationDbContext>(options =>
-                  options.UseSqlServer(configuration.GetConnectionString(StringConstants.DefaultConnection)));
+                  options.UseSqlServer(config.GetConnectionString(StringConstants.DefaultConnection)));
 
             // Register all repositories from DatabaseExtensions
             services.AddRepositories();
@@ -46,14 +46,24 @@ namespace DirectoryManager.Web.Extensions
             services.AddScoped<IRssFeedService, RssFeedService>();
             services.AddScoped<IEmailService, EmailService>(provider =>
               {
+                  using var scope = provider.CreateScope();
+                  var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
+
                   var emailConfig = new SendGridConfig
                   {
-                      ApiKey = configuration["SendGrid:ApiKey"] ?? throw new InvalidOperationException("SendGrid:ApiKey is missing in configuration."),
-                      SenderEmail = configuration["SendGrid:SenderEmail"] ?? throw new InvalidOperationException("SendGrid:SenderEmail is missing in configuration."),
-                      SenderName = configuration["SendGrid:SenderName"] ?? "Default Sender Name" // Default value if SenderName is not provided.
+                      ApiKey = cacheService.GetSnippet(SiteConfigSetting.SendGridApiKey),
+                      SenderEmail = cacheService.GetSnippet(SiteConfigSetting.SendGridSenderEmail),
+                      SenderName = cacheService.GetSnippet(SiteConfigSetting.SendGridSenderName)
                   };
 
-                  return new EmailService(emailConfig);
+
+                  var emailSettings = new EmailSettings
+                  {
+                      UnsubscribeUrlFormat = cacheService.GetSnippet(SiteConfigSetting.EmailSettingUnsubscribeUrlFormat),
+                      UnsubscribeEmail = cacheService.GetSnippet(SiteConfigSetting.EmailSettingUnsubscribeEmail),
+                  };
+
+                  return new EmailService(emailConfig, emailSettings);
               });
 
             // NOWPayments configuration and service registration

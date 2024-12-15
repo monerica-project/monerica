@@ -94,6 +94,8 @@ namespace DirectoryManager.Web.Controllers
 
             var model = new EmailCampaignModel
             {
+                SendMessagesPriorToSubscription = campaign.SendMessagesPriorToSubscription,
+                IsEnabled = campaign.IsEnabled,
                 IsDefault = campaign.IsDefault,
                 EmailCampaignId = campaign.EmailCampaignId,
                 Name = campaign.Name,
@@ -172,6 +174,8 @@ namespace DirectoryManager.Web.Controllers
             campaign.IntervalDays = model.IntervalDays;
             campaign.StartDate = model.StartDate;
             campaign.IsDefault = model.IsDefault;
+            campaign.SendMessagesPriorToSubscription = model.SendMessagesPriorToSubscription;
+            campaign.IsEnabled = model.IsEnabled;
             this.emailCampaignRepository.Update(campaign);
 
             this.emailCampaignMessageRepository.Delete(campaign.EmailCampaignId);

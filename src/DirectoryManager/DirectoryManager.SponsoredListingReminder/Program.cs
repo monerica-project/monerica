@@ -1,4 +1,6 @@
-﻿using DirectoryManager.Data.DbContextInfo;
+﻿using DirectoryManager.Common.Constants;
+using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Extensions;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Services.Implementations;
@@ -7,11 +9,12 @@ using DirectoryManager.Services.Models;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using SendGrid.Helpers.Mail;
 
 // Build configuration
 var config = new ConfigurationBuilder()
     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-    .AddJsonFile(DirectoryManager.Common.Constants.StringConstants.AppSettingsFileName, optional: true, reloadOnChange: true)
+    .AddJsonFile(StringConstants.AppSettingsFileName, optional: true, reloadOnChange: true)
     .Build();
 
 // Get the default expiration time span from configuration
@@ -31,14 +34,23 @@ var serviceProvider = new ServiceCollection()
     .AddRepositories() // Add repositories using the extension method
     .AddSingleton<IEmailService, EmailService>(provider =>
     {
+        using var scope = provider.CreateScope();
+        var contentSnippetRepo = scope.ServiceProvider.GetRequiredService<IContentSnippetRepository>();
+
         var emailConfig = new SendGridConfig
         {
-            ApiKey = config["SendGrid:ApiKey"] ?? throw new InvalidOperationException("SendGrid:ApiKey is missing in configuration."),
-            SenderEmail = config["SendGrid:SenderEmail"] ?? throw new InvalidOperationException("SendGrid:SenderEmail is missing in configuration."),
-            SenderName = config["SendGrid:SenderName"] ?? "Default Sender Name" // Default value if SenderName is not provided.
+            ApiKey = contentSnippetRepo.GetValue(SiteConfigSetting.SendGridApiKey),
+            SenderEmail = contentSnippetRepo.GetValue(SiteConfigSetting.SendGridSenderEmail),
+            SenderName = contentSnippetRepo.GetValue(SiteConfigSetting.SendGridSenderName)
         };
 
-        return new EmailService(emailConfig);
+        var emailSettings = new EmailSettings
+        {
+            UnsubscribeUrlFormat = contentSnippetRepo.GetValue(SiteConfigSetting.EmailSettingUnsubscribeUrlFormat),
+            UnsubscribeEmail = contentSnippetRepo.GetValue(SiteConfigSetting.EmailSettingUnsubscribeEmail),
+        };
+
+        return new EmailService(emailConfig, emailSettings);
     })
     .BuildServiceProvider();
 

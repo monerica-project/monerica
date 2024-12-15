@@ -10,8 +10,12 @@ namespace DirectoryManager.Services.Implementations
         private readonly SendGridClient client;
         private readonly string senderEmail;
         private readonly string senderName;
+        private readonly EmailSettings emailSettings;
+        private readonly bool useUnsubscribeHeader = false;
+        private readonly string unsubscribeEmail = string.Empty;
+        private readonly string unsubscribeUrlFormat = string.Empty;
 
-        public EmailService(SendGridConfig config)
+        public EmailService(SendGridConfig config, EmailSettings emailSettings)
         {
             if (string.IsNullOrEmpty(config.ApiKey))
             {
@@ -21,6 +25,16 @@ namespace DirectoryManager.Services.Implementations
             this.client = new SendGridClient(config.ApiKey);
             this.senderEmail = config.SenderEmail;
             this.senderName = config.SenderName;
+            this.emailSettings = emailSettings;
+
+            if (this.emailSettings != null &&
+                !string.IsNullOrWhiteSpace(this.emailSettings.UnsubscribeEmail) &&
+                !string.IsNullOrWhiteSpace(this.emailSettings.UnsubscribeUrlFormat))
+            {
+                this.unsubscribeEmail = this.emailSettings.UnsubscribeEmail.Trim();
+                this.unsubscribeUrlFormat = this.emailSettings.UnsubscribeUrlFormat.Trim();
+                this.useUnsubscribeHeader = true;
+            }
         }
 
         public async Task SendEmailAsync(string subject, string plainTextContent, string htmlContent, List<string> recipients)
@@ -41,31 +55,46 @@ namespace DirectoryManager.Services.Implementations
 
             if (recipients.Count == 1)
             {
-                msg.AddTo(new EmailAddress(recipients[0]));
+                var recipient = recipients[0];
+                msg.AddTo(new EmailAddress(recipient));
+                this.AddUnsubscribeHeaders(recipient, msg);
             }
             else
             {
-                var emailAddresses = new List<EmailAddress>();
-                foreach (var recipient in recipients)
-                {
-                    emailAddresses.Add(new EmailAddress(recipient));
-                }
-
+                // Add recipients as BCC for bulk sending
+                var emailAddresses = recipients.Select(recipient => new EmailAddress(recipient)).ToList();
                 msg.AddBccs(emailAddresses);
+
+                // todo: add unsub for here
             }
 
             try
             {
                 var response = await this.client.SendEmailAsync(msg);
-
-                // Optionally, log or handle response here
                 Console.WriteLine(response.StatusCode);
                 Console.WriteLine(await response.Body.ReadAsStringAsync());
-                Console.WriteLine(response.Headers);
             }
-            catch
+            catch (Exception ex)
             {
+                Console.WriteLine($"Failed to send email: {ex.Message}");
             }
+        }
+
+        public void AddUnsubscribeHeaders(string recipientEmail, SendGridMessage msg)
+        {
+            if (!this.useUnsubscribeHeader)
+            {
+                return;
+            }
+
+            // Generate unsubscribe link using the dynamic recipient email
+            var unsubscribeUrl = string.Format(this.unsubscribeUrlFormat, Uri.EscapeDataString(recipientEmail));
+
+            // Add List-Unsubscribe header with both mailto and HTTPS options
+            msg.AddHeader("List-Unsubscribe", $"<mailto:{this.unsubscribeEmail}>, <{unsubscribeUrl}>");
+
+            // Add List-Unsubscribe-Post header for one-click unsubscribe
+            msg.AddHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
         }
     }
 }

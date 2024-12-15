@@ -9,17 +9,17 @@
 
 @await Html.PartialAsync("_AdminMenu")
 
-@if (TempData["SuccessMessage"] != null)
+@if (TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage] != null)
 {
     <div class="alert alert-success">
-        @TempData["SuccessMessage"]
+        @TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage]
     </div>
 }
 
-@if (TempData["ErrorMessage"] != null)
+@if (TempData[DirectoryManager.Web.Constants.StringConstants.ErrorMessage] != null)
 {
     <div class="alert alert-danger">
-        @TempData["ErrorMessage"]
+        @TempData[DirectoryManager.Web.Constants.StringConstants.ErrorMessage]
     </div>
 }
 

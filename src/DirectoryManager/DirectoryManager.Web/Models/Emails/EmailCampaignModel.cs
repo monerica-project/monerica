@@ -11,13 +11,17 @@ namespace DirectoryManager.Web.Models.Emails
         public string Name { get; set; } = string.Empty;
 
         [Required]
-        [Range(1, 365, ErrorMessage = "Interval days should be between 1 and 365.")]
+        [Range(0, 365, ErrorMessage = "Interval days should be between 0 and 365.")]
         public int IntervalDays { get; set; }
 
         [DataType(DataType.Date)]
         public DateTime? StartDate { get; set; }
 
         public bool IsDefault { get; set; }
+
+        public bool SendMessagesPriorToSubscription { get; set; }
+
+        public bool IsEnabled { get; set; }
 
         // Collection of campaign messages to define the sequence
         public List<EmailCampaignMessageModel> CampaignMessages { get; set; } = new List<EmailCampaignMessageModel>();

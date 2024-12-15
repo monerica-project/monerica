@@ -1,8 +1,8 @@
-﻿using DirectoryManager.BackgroundServices.Interfaces;
-using DirectoryManager.Data.Repositories.Interfaces;
+﻿using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.NewsletterSender.Interfaces;
 using DirectoryManager.Services.Interfaces;
 
-namespace DirectoryManager.BackgroundServices
+namespace DirectoryManager.NewsletterSender.Implementations
 {
     public class EmailSubscriptionMonitor : IEmailSubscriptionMonitor
     {

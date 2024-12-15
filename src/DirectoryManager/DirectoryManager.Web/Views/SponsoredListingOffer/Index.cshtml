@@ -39,8 +39,8 @@
                     }
                 </td>
                 <td>@item.Days</td>
-                <td>@item.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat) (@item.PriceCurrency.ToString())</td>
-                <td>
+                <td title="@item.Description">@item.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat) (@item.PriceCurrency.ToString())</td>
+                <td title="@item.Description">
                     @{
                         if (item.Days > 0)
                         {

@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Xml.Linq;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Web.Services.Interfaces;
 
@@ -24,20 +25,31 @@ namespace DirectoryManager.Web.Services.Implementations
                     directoryEntries.Select(entry =>
                         new XElement(
                             "item",
-                            new XElement(
-                                "title",
-                                entry.DirectoryStatus == Data.Enums.DirectoryStatus.Scam
-                                    ? $"{Data.Enums.DirectoryStatus.Scam}! - {entry.Name}"
-                                    : entry.Name),
+                            new XElement("title", this.GetFormattedTitle(entry)),
                             new XElement("link", string.IsNullOrEmpty(entry.LinkA) ? entry.Link : entry.LinkA),
-                            new XElement(
-                                "description",
-                                this.FormatDescription(entry)),
+                            new XElement("description", this.FormatDescription(entry)),
                             new XElement("pubDate", entry.CreateDate.ToString("R"))))));
 
             return new XDocument(rss);
         }
 
+        /// <summary>
+        /// Formats the RSS item title based on the directory status.
+        /// </summary>
+        private string GetFormattedTitle(DirectoryEntry entry)
+        {
+            return entry.DirectoryStatus switch
+            {
+                DirectoryStatus.Scam => $"&#x274C; {entry.Name}",
+                DirectoryStatus.Verified => $"&#x2705; {entry.Name}",
+                DirectoryStatus.Questionable => $"&#x2753; {entry.Name}",
+                _ => entry.Name
+            };
+        }
+
+        /// <summary>
+        /// Formats the description of the RSS item.
+        /// </summary>
         private string FormatDescription(DirectoryEntry entry)
         {
             var descriptionBuilder = new StringBuilder();
@@ -47,7 +59,7 @@ namespace DirectoryManager.Web.Services.Implementations
                 ? $"{entry.SubCategory.Category.Name} > {entry.SubCategory.Name}"
                 : entry.SubCategory?.Name ?? "Uncategorized";
 
-            // Append category info and main description
+            // Append category info and main description (encoded)
             descriptionBuilder.Append(categoryInfo).Append(" : ").Append(entry.Description);
 
             // Append note if it exists

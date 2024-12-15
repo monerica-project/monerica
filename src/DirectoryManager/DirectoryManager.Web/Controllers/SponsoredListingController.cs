@@ -129,7 +129,6 @@ namespace DirectoryManager.Web.Controllers
 
                 model.AvailableSubCatetgories = model.AvailableSubCatetgories.OrderBy(x => x.Value).ToDictionary<int, string>();
                 model.UnavailableSubCatetgories = model.UnavailableSubCatetgories.OrderBy(x => x.Value).ToDictionary<int, string>();
-
             }
 
             return this.View(model);

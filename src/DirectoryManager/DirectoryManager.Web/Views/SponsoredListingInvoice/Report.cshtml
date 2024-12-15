@@ -1,5 +1,6 @@
 ﻿@model DirectoryManager.Web.Models.InvoiceQueryViewModel
 @using DirectoryManager.Web.Constants;
+@using System.Globalization
 
 @{
     ViewData[StringConstants.TitleHeader] = "Sponsored Listing Invoice Report";
@@ -33,7 +34,7 @@
 </p>
 
 <p>Total Paid Amount: @Model.TotalPaidAmount @Model.PaidInCurrency</p>
-<p>Total Amount Requested: @Model.TotalAmount @Model.Currency</p>
+<p>Total Amount Requested: @Model.TotalAmount.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS)) @Model.Currency</p>
 
 <img style="width:100%"
      src="@Url.Action("monthlyincomebarchart", "sponsoredlistinginvoice", new { startDate = Model.StartDate, endDate = Model.EndDate })"

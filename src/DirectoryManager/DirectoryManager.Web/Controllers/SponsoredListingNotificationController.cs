@@ -3,6 +3,7 @@ using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Helpers;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
@@ -85,6 +86,89 @@ namespace DirectoryManager.Web.Controllers
 
             // Redirect back to the same subscription page with the parameters
             return this.RedirectToAction(nameof(this.Subscribe), new { sponsorshipType = model.SponsorshipType, subCategoryId = model.SubCategoryId });
+        }
+
+        // Existing constructor and other methods...
+        [Authorize]
+        [HttpGet]
+        [Route("sponsoredlistingnotification/list")]
+        public async Task<IActionResult> List()
+        {
+            var notifications = await this.notificationRepository.GetAllAsync();
+            return this.View(notifications);
+        }
+
+        [Authorize]
+        [HttpGet]
+        [Route("sponsoredlistingnotification/edit/{id}")]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var notification = await this.notificationRepository.GetByIdAsync(id);
+
+            if (notification == null)
+            {
+                this.TempData[Constants.StringConstants.ErrorMessage] = "Notification not found.";
+                return this.RedirectToAction(nameof(this.List));
+            }
+
+            return this.View(notification);
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("sponsoredlistingnotification/edit/{id}")]
+        public async Task<IActionResult> Edit(SponsoredListingOpeningNotification model)
+        {
+            if (!this.ModelState.IsValid)
+            {
+                return this.View(model);
+            }
+
+            var existingNotification = await this.notificationRepository.GetByIdAsync(model.SponsoredListingOpeningNotificationId);
+            if (existingNotification == null)
+            {
+                this.TempData[Constants.StringConstants.ErrorMessage] = "Notification not found.";
+                return this.RedirectToAction(nameof(this.List));
+            }
+
+            // Update notification
+            existingNotification.Email = model.Email;
+            existingNotification.SponsorshipType = model.SponsorshipType;
+            existingNotification.SubCategoryId = model.SubCategoryId;
+            existingNotification.IsReminderSent = model.IsReminderSent;
+
+            var updated = await this.notificationRepository.UpdateAsync(existingNotification);
+            if (updated)
+            {
+                this.TempData[Constants.StringConstants.SuccessMessage] = "Notification updated successfully.";
+            }
+            else
+            {
+                this.TempData[Constants.StringConstants.ErrorMessage] = "Failed to update notification.";
+            }
+
+            return this.RedirectToAction(nameof(this.List));
+        }
+
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("sponsoredlistingnotification/delete/{id}")]
+        public async Task<IActionResult> Delete(int id)
+        {
+            var deleted = await this.notificationRepository.DeleteAsync(id);
+
+            if (deleted)
+            {
+                this.TempData[Constants.StringConstants.SuccessMessage] = "Notification deleted successfully.";
+            }
+            else
+            {
+                this.TempData[Constants.StringConstants.ErrorMessage] = "Failed to delete notification. It may not exist.";
+            }
+
+            return this.RedirectToAction(nameof(this.List));
         }
     }
 }

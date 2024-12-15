@@ -125,5 +125,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context.SentEmailRecords.Add(record);
             this.context.SaveChanges();
         }
+
+        /// <inheritdoc/>
+        public SentEmailRecord? GetLastSentMessage(int emailSubscriptionId)
+        {
+            return this.context.SentEmailRecords
+                .Where(r => r.EmailSubscriptionId == emailSubscriptionId)
+                .OrderByDescending(r => r.SentDate)
+                .FirstOrDefault();
+        }
     }
 }
