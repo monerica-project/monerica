@@ -134,5 +134,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .OrderByDescending(r => r.SentDate)
                 .FirstOrDefault();
         }
+
+        public IList<SentEmailRecord> GetPagedRecords(int pageIndex, int pageSize, out int totalRecords)
+        {
+            try
+            {
+                totalRecords = this.context.SentEmailRecords.Count();
+
+                return this.context.SentEmailRecords
+                    .OrderByDescending(x => x.SentDate) // Sort by most recent first
+                    .Skip(pageIndex * pageSize)
+                    .Take(pageSize)
+                    .ToList();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
+            }
+        }
+
     }
 }

@@ -19,5 +19,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// <param name="emailSubscriptionId">The subscription ID.</param>
         /// <returns>The last sent email record.</returns>
         SentEmailRecord? GetLastSentMessage(int emailSubscriptionId);
+
+        IList<SentEmailRecord> GetPagedRecords(int pageIndex, int pageSize, out int totalRecords);
     }
 }
