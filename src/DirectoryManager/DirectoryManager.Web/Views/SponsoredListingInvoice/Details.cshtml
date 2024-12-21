@@ -52,6 +52,12 @@
         <dt>Payment Status</dt>
         <dd>@EnumHelper.GetDescription(Model.PaymentStatus)</dd>
 
+        <dt>Create Date</dt>
+        <dd>@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</dd>
+
+        <dt>Update Date</dt>
+        <dd>@Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</dd>
+
         <dt>Campaign Start Date</dt>
         <dd>@Model.CampaignStartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</dd>
 

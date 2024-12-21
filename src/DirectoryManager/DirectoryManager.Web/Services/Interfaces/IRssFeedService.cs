@@ -1,10 +1,10 @@
 ﻿using System.Xml.Linq;
-using DirectoryManager.Data.Models;
+using DirectoryManager.Web.Models;
 
 namespace DirectoryManager.Web.Services.Interfaces
 {
     public interface IRssFeedService
     {
-        XDocument GenerateRssFeed(IEnumerable<DirectoryEntry> directoryEntries, string feedTitle, string feedLink, string feedDescription);
+        XDocument GenerateRssFeed(IEnumerable<DirectoryEntryWrapper> directoryEntries, string feedTitle, string feedLink, string feedDescription);
     }
 }
