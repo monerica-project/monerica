@@ -108,3 +108,4 @@ rcf/
 /src/DirectoryManager/DirectoryManager.SponsoredListingReminder/appsettings.json
 /src/DirectoryManager/DirectoryManager.SponsoredListingOpening/appsettings.json
 /src/DirectoryManager/DirectoryManager.NewsletterSender/appsettings.json
+/src/DirectoryManager/DirectoryManager.EmailMessageMaker/appsettings.json
