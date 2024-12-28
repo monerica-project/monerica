@@ -73,19 +73,12 @@ public class RssController : Controller
 
             // Fetch the most recent invoice associated with this listing
             var invoice = await invoiceRepo.GetByIdAsync(sponsoredListing.SponsoredListingInvoiceId);
-
-            // Determine the latest date among CampaignStartDate, invoice CreateDate, and invoice UpdateDate
-            var invoiceDate = invoice?.UpdateDate > invoice?.CreateDate
-                ? invoice?.UpdateDate
-                : invoice?.CreateDate;
-
             var invoiceCampaiognDate = (invoice == null) ? DateTime.MinValue : invoice.CampaignStartDate;
 
             var latestDate = new[]
             {
                 sponsoredListing.CampaignStartDate,
                 sponsoredListing.UpdateDate ?? DateTime.MinValue,
-                invoiceDate ?? DateTime.MinValue,
                 invoiceCampaiognDate
             }.Max();
 

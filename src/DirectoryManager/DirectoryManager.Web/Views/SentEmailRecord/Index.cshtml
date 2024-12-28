@@ -1,13 +1,15 @@
-﻿@using DirectoryManager.Common.Constants
+﻿@using DirectoryManager.Web.Constants;
 @model IEnumerable<DirectoryManager.Data.Models.Emails.SentEmailRecord>
 
 @{
-    ViewData["Title"] = "Sent Email Records";
+    ViewData[StringConstants.TitleHeader] = "Sent Email Records";
     int currentPage = ViewBag.CurrentPage;
     int totalPages = ViewBag.TotalPages;
 }
 
-<h1>Sent Email Records</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
 
 <table class="table table-bordered">
     <thead>
@@ -28,7 +30,7 @@
                     <td>@record.SentEmailRecordId</td>
                     <td>@record.EmailSubscriptionId</td>
                     <td>@record.EmailMessageId</td>
-                    <td>@record.SentDate.ToString(StringConstants.DateTimeFormat)</td>
+                    <td>@record.SentDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
                     <td>@(record.IsDelivered ? "Yes" : "No")</td>
                 </tr>
             }

@@ -1032,7 +1032,7 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task<IEnumerable<DirectoryEntry>> FilterEntries(int? subCategoryId)
         {
-            var entries = await this.directoryEntryRepository.GetAllowableEntries();
+            var entries = await this.directoryEntryRepository.GetAllowableAdvertisers();
 
             if (subCategoryId.HasValue)
             {

@@ -8,6 +8,8 @@
 
 @await Html.PartialAsync("_AdminMenu")
 
+<a asp-action="Create">Add New Email Message</a>
+
 <table class="table">
     <thead>
         <tr>
@@ -56,6 +58,3 @@
         <a asp-action="Index" asp-route-pageIndex="@(Model.PageIndex + 1)">Next</a>
     }
 </div>
-
-
-<a asp-action="Create">Add New Email Message</a>

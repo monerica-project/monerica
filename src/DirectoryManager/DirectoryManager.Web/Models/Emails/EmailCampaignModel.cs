@@ -11,6 +11,10 @@ namespace DirectoryManager.Web.Models.Emails
         public string Name { get; set; } = string.Empty;
 
         [Required]
+        [StringLength(100)]
+        public string EmailCampaignKey { get; set; } = Guid.NewGuid().ToString();
+
+        [Required]
         [Range(0, 365, ErrorMessage = "Interval days should be between 0 and 365.")]
         public int IntervalDays { get; set; }
 

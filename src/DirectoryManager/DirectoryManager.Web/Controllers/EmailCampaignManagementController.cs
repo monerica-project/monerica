@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models.Emails;
 using Microsoft.AspNetCore.Authorization;
@@ -63,8 +64,12 @@ namespace DirectoryManager.Web.Controllers
             var newCampaign = new EmailCampaign
             {
                 Name = model.Name,
+                EmailCampaignKey = StringHelpers.UrlKey(model.EmailCampaignKey),
                 IntervalDays = model.IntervalDays,
-                StartDate = model.StartDate
+                StartDate = model.StartDate,
+                IsDefault = model.IsDefault,
+                SendMessagesPriorToSubscription = model.SendMessagesPriorToSubscription,
+                IsEnabled = model.IsEnabled
             };
 
             this.emailCampaignRepository.Create(newCampaign);
@@ -94,13 +99,14 @@ namespace DirectoryManager.Web.Controllers
 
             var model = new EmailCampaignModel
             {
-                SendMessagesPriorToSubscription = campaign.SendMessagesPriorToSubscription,
-                IsEnabled = campaign.IsEnabled,
-                IsDefault = campaign.IsDefault,
                 EmailCampaignId = campaign.EmailCampaignId,
                 Name = campaign.Name,
+                EmailCampaignKey = campaign.EmailCampaignKey,
                 IntervalDays = campaign.IntervalDays,
                 StartDate = campaign.StartDate,
+                IsDefault = campaign.IsDefault,
+                SendMessagesPriorToSubscription = campaign.SendMessagesPriorToSubscription,
+                IsEnabled = campaign.IsEnabled,
                 CampaignMessages = campaign.CampaignMessages
                     .OrderBy(m => m.SequenceOrder)
                     .Select(m => new EmailCampaignMessageModel
@@ -171,6 +177,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             campaign.Name = model.Name;
+            campaign.EmailCampaignKey = StringHelpers.UrlKey(model.EmailCampaignKey);
             campaign.IntervalDays = model.IntervalDays;
             campaign.StartDate = model.StartDate;
             campaign.IsDefault = model.IsDefault;

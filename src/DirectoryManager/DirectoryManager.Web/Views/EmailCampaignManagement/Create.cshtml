@@ -24,6 +24,11 @@
     </div>
 
     <div class="form-group">
+        <label asp-for="EmailCampaignKey">Campaign Key:</label>
+        <input type="text" class="form-control" asp-for="EmailCampaignKey" required />
+    </div>
+
+    <div class="form-group">
         <label asp-for="IntervalDays">Interval (Days Between Messages):</label>
         <input type="number" class="form-control" asp-for="IntervalDays" required />
     </div>
