@@ -42,8 +42,8 @@ namespace DirectoryManager.Web.Controllers
                 .Where(category => filteredSubcategoriesWithEntries.Any(sc => sc.CategoryId == category.CategoryId))
                 .ToList();
 
-            var mainSponsors = await this.sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.MainSponsor);
-            var subCategorySponsors = await this.sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.SubcategorySponsor);
+            var mainSponsors = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
+            var subCategorySponsors = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor);
 
             this.ViewBag.FilteredEntries = filteredEntries;
             this.ViewBag.FilteredSubcategories = filteredSubcategoriesWithEntries;

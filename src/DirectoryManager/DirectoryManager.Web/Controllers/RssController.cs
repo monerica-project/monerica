@@ -64,7 +64,7 @@ public class RssController : Controller
 
     private async Task<IEnumerable<DirectoryEntryWrapper>> GetSponsoredEntriesWithRecentDatesAsync()
     {
-        var sponsoredListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync();
+        var sponsoredListings = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
 
         var tasks = sponsoredListings.Select(async sponsoredListing =>
         {

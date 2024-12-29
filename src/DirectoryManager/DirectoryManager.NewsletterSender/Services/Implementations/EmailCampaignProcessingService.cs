@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.NewsletterSender.Services.Interfaces;
 using DirectoryManager.Services.Interfaces;
+using Microsoft.Extensions.Configuration;
 
 namespace DirectoryManager.NewsletterSender.Services.Implementations
 {
@@ -9,7 +10,8 @@ namespace DirectoryManager.NewsletterSender.Services.Implementations
     /// </summary>
     public class EmailCampaignProcessingService : IEmailCampaignProcessingService
     {
-        private const int DelayMilliseconds = 500;
+        private const int DefaultDelayMilliseconds = 250;
+        private readonly int delayMilliseconds;
         private readonly IEmailCampaignRepository emailCampaignRepository;
         private readonly IEmailCampaignSubscriptionRepository emailCampaignSubscriptionRepository;
         private readonly IEmailCampaignMessageRepository emailCampaignMessageRepository;
@@ -26,7 +28,8 @@ namespace DirectoryManager.NewsletterSender.Services.Implementations
             IEmailCampaignMessageRepository emailCampaignMessageRepository,
             ISentEmailRecordRepository sentEmailRecordRepository,
             IEmailService emailService,
-            IContentSnippetRepository contentSnippetRepository)
+            IContentSnippetRepository contentSnippetRepository,
+            IConfiguration configuration)
         {
             this.emailCampaignRepository = emailCampaignRepository;
             this.emailCampaignSubscriptionRepository = emailCampaignSubscriptionRepository;
@@ -34,6 +37,7 @@ namespace DirectoryManager.NewsletterSender.Services.Implementations
             this.sentEmailRecordRepository = sentEmailRecordRepository;
             this.emailService = emailService;
             this.contentSnippetRepository = contentSnippetRepository;
+            this.delayMilliseconds = configuration.GetValue<int>("EmailCampaignProcessing:DelayMilliseconds", DefaultDelayMilliseconds);
         }
 
         public async Task ProcessCampaignsAsync()
@@ -104,7 +108,7 @@ namespace DirectoryManager.NewsletterSender.Services.Implementations
 
                     // Send the email
                     await this.SendEmailAsync(subject, plainTextContent, htmlContent, subscription.EmailSubscription.Email);
-                    await Task.Delay(DelayMilliseconds); // Add delay to respect SendGrid's rate limits
+                    await Task.Delay(this.delayMilliseconds); // Add delay to respect SendGrid's rate limits
 
                     // Log message delivery
                     this.sentEmailRecordRepository.LogMessageDelivery(
@@ -123,7 +127,9 @@ namespace DirectoryManager.NewsletterSender.Services.Implementations
                 return body;
             }
 
-            return string.Format("{0} {1}{1}{1}{1}{1} {2}", body, Environment.NewLine, footer);
+            var replacedText = body.Replace(Common.Constants.StringConstants.UnsubscribeToken, footer);
+
+            return replacedText;
         }
 
         /// <summary>

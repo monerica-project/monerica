@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.DbContextInfo;
+﻿using System.Text;
+using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -26,7 +27,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                      .FirstOrDefaultAsync(x => x.SponsoredListingInvoiceId == sponsoredListingInvoiceId);
         }
 
-        public async Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync(SponsorshipType sponsorshipType)
+        public async Task<IEnumerable<SponsoredListing>> GetActiveSponsorsByTypeAsync(SponsorshipType sponsorshipType)
         {
             var currentDate = DateTime.UtcNow;
 
@@ -40,12 +41,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                      .ToListAsync();
         }
 
-        public async Task<IEnumerable<SponsoredListing>> GetAllActiveListingsAsync()
+        public async Task<IEnumerable<SponsoredListing>> GetAllActiveSponsorsAsync()
         {
             var currentDate = DateTime.UtcNow;
 
             return await this.context.SponsoredListings
-                                     .Include(x => x.DirectoryEntry) // Include DirectoryEntry navigation property
+                                     .Include(x => x.DirectoryEntry!)
+                                     .ThenInclude(x => x.SubCategory!)
+                                     .ThenInclude(x => x.Category!)
                                      .Where(x => x.CampaignStartDate <= currentDate &&
                                                  x.CampaignEndDate >= currentDate) // Filter active listings
                                      .OrderByDescending(x => x.CampaignEndDate) // Sort primarily by end date
@@ -70,7 +73,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return subCategorySponsors;
         }
 
-        public async Task<int> GetActiveListingsCountAsync(SponsorshipType sponsorshipType, int? subCategoryId)
+        public async Task<int> GetActiveSponsorsCountAsync(SponsorshipType sponsorshipType, int? subCategoryId)
         {
             var currentDate = DateTime.UtcNow;
             var totalActive = 0;
@@ -159,7 +162,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
-        public Task<SponsoredListing?> GetActiveListing(int directoryEntryId, SponsorshipType sponsorshipType)
+        public Task<SponsoredListing?> GetActiveSponsorAsync(int directoryEntryId, SponsorshipType sponsorshipType)
         {
             var now = DateTime.UtcNow;
 
@@ -230,7 +233,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return lastChangeDate;
         }
 
-        public async Task<IEnumerable<SponsoredListing>> GetExpiringListingsWithinAsync(TimeSpan timeSpan)
+        public async Task<IEnumerable<SponsoredListing>> GetExpiringSponsorsWithinTimeAsync(TimeSpan timeSpan)
         {
             var currentDate = DateTime.UtcNow;
             var targetDate = currentDate + timeSpan;

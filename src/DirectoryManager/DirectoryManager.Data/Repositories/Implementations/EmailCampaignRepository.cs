@@ -22,6 +22,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
                            .FirstOrDefault(c => c.EmailCampaignId == campaignId);
         }
 
+        public EmailCampaign? GetByKey(string emailCampaignKey)
+        {
+            return this.context.EmailCampaigns
+                               .FirstOrDefault(c => c.EmailCampaignKey == emailCampaignKey);
+        }
+
         public IEnumerable<EmailCampaign> GetAll(int pageIndex, int pageSize, out int totalItems)
         {
             totalItems = this.context.EmailCampaigns.Count();

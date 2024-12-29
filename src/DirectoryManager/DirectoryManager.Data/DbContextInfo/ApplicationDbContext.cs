@@ -163,7 +163,11 @@ namespace DirectoryManager.Data.DbContextInfo
 
             builder.Entity<BlockedIP>()
                    .HasIndex(e => e.IpAddress)
-            .IsUnique();
+                   .IsUnique();
+
+            builder.Entity<EmailCampaign>()
+                   .HasIndex(e => e.EmailCampaignKey)
+                   .IsUnique();
 
             builder.Entity<SponsoredListingOpeningNotification>()
                    .HasIndex(e => new { e.Email, e.SponsorshipType, e.SubCategoryId, e.SubscribedDate })

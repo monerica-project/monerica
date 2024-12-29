@@ -48,6 +48,7 @@ public class Program
 
                 return new EmailService(emailConfig, emailSettings);
             })
+            .AddSingleton<IConfiguration>(config) // Pass configuration
             .BuildServiceProvider();
 
         // Resolve the EmailCampaignProcessingService

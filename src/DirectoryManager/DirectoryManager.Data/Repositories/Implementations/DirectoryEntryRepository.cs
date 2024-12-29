@@ -2,6 +2,7 @@
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -39,7 +40,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.context.DirectoryEntries.FirstOrDefaultAsync(de => de.Link == link);
         }
 
-        public async Task<IEnumerable<DirectoryEntry>> GetAllowableEntries()
+        public async Task<IEnumerable<DirectoryEntry>> GetAllowableAdvertisers()
         {
             return await this.context.DirectoryEntries
                 .Where(de => de.DirectoryStatus == DirectoryStatus.Admitted ||
@@ -219,6 +220,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .OrderBy(entry => entry.Name)
                 .ToListAsync();
         }
+ 
 
         public async Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync()
         {
@@ -228,6 +230,65 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ThenInclude(sc => sc.Category)
                 .OrderBy(e => e.Name)
                 .ToListAsync();
+        }
+
+        public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByStatusAsync(DirectoryStatus status)
+        {
+            return await this.context.DirectoryEntries
+                .Where(entry => entry.DirectoryStatus == status)
+                .Include(entry => entry.SubCategory!)
+                .ThenInclude(subCategory => subCategory.Category)
+                .OrderBy(entry => entry.Name)
+                .ToListAsync();
+        }
+
+        public async Task<MonthlyDirectoryEntries> GetEntriesCreatedForPreviousMonthWithMonthKeyAsync()
+        {
+            // Calculate the start and end of the previous month
+            var currentDate = DateTime.UtcNow;
+            var startOfCurrentMonth = new DateTime(currentDate.Year, currentDate.Month, 1);
+            var startOfPreviousMonth = startOfCurrentMonth.AddMonths(-1);
+            var endOfPreviousMonth = startOfCurrentMonth;
+
+            // Fetch entries
+            var entries = await this.GetActiveEntriesQuery()
+                .Where(entry => entry.CreateDate >= startOfPreviousMonth && entry.CreateDate < endOfPreviousMonth)
+                .OrderBy(entry => entry.CreateDate)
+                .Include(de => de.SubCategory!)
+                .ThenInclude(sc => sc.Category!)
+                .ToListAsync();
+
+            // Return result with the ISO month start date as the key
+            return new MonthlyDirectoryEntries
+            {
+                MonthKey = startOfPreviousMonth.ToString(Common.Constants.StringConstants.YearMonth), // ISO 8601 formatted month
+                Entries = entries
+            };
+        }
+
+        public async Task<WeeklyDirectoryEntries> GetEntriesCreatedForPreviousWeekWithWeekKeyAsync()
+        {
+            // Calculate the start and end of the previous calendar week
+            var currentDate = DateTime.UtcNow;
+            var daysSinceMonday = (int)currentDate.DayOfWeek == 0 ? 6 : (int)currentDate.DayOfWeek - 1; // Adjust for Sunday (0)
+            var startOfCurrentWeek = currentDate.Date.AddDays(-daysSinceMonday); // Start of the current week (Monday)
+            var startOfPreviousWeek = startOfCurrentWeek.AddDays(-7); // Monday of the previous week
+            var endOfPreviousWeek = startOfCurrentWeek; // End of the previous week (exclusive)
+
+            // Fetch entries
+            var entries = await this.GetActiveEntriesQuery()
+                .Where(entry => entry.CreateDate >= startOfPreviousWeek && entry.CreateDate < endOfPreviousWeek)
+                .OrderByDescending(entry => entry.CreateDate)
+                .Include(de => de.SubCategory!)
+                .ThenInclude(sc => sc.Category!)
+                .ToListAsync();
+
+            // Return result with the ISO week start date as the key
+            return new WeeklyDirectoryEntries
+            {
+                WeekStartDate = startOfPreviousWeek.ToString(Common.Constants.StringConstants.DateFormat), // ISO 8601 formatted date
+                Entries = entries
+            };
         }
 
         private static List<DirectoryStatus> GetNonActiveStatuses()
