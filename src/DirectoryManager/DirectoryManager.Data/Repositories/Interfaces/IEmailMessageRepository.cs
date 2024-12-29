@@ -8,7 +8,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         EmailMessage? GetByKey(string emailKey);
         IList <EmailMessage> GetAll(int pageIndex, int pageSize);
         int TotalCount();
-        void Create(EmailMessage emailMessage);
+        EmailMessage Create(EmailMessage emailMessage);
         void Update(EmailMessage emailMessage);
         void Delete(int emailMessageId);
     }

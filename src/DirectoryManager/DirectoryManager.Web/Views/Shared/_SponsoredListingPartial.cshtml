@@ -6,7 +6,7 @@
 
 <cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.SponsoredListingsCacheKey">
 @{
-    var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.MainSponsor);
+    var sponsoredListings = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
     var directoryEntries = new List<DirectoryManager.Data.Models.DirectoryEntry>();
     var link2Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
     var link3Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);

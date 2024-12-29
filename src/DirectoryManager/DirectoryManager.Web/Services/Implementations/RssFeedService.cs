@@ -1,7 +1,6 @@
 ﻿using System.Text;
 using System.Xml.Linq;
-using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models;
+using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 
 namespace DirectoryManager.Web.Services.Implementations
@@ -9,7 +8,7 @@ namespace DirectoryManager.Web.Services.Implementations
     public class RssFeedService : IRssFeedService
     {
         public XDocument GenerateRssFeed(
-            IEnumerable<DirectoryEntry> directoryEntries,
+            IEnumerable<DirectoryEntryWrapper> directoryEntries,
             string feedTitle,
             string feedLink,
             string feedDescription)
@@ -22,53 +21,46 @@ namespace DirectoryManager.Web.Services.Implementations
                     new XElement("title", feedTitle),
                     new XElement("link", feedLink),
                     new XElement("description", feedDescription),
-                    directoryEntries.Select(entry =>
+                    directoryEntries.Select(entryWrapper =>
                         new XElement(
                             "item",
-                            new XElement("title", this.GetFormattedTitle(entry)),
-                            new XElement("link", string.IsNullOrEmpty(entry.LinkA) ? entry.Link : entry.LinkA),
-                            new XElement("description", this.FormatDescription(entry)),
-                            new XElement("pubDate", entry.CreateDate.ToString("R"))))));
+                            new XElement("title", this.GetFormattedTitle(entryWrapper)),
+                            new XElement("link", entryWrapper.GetLink()),
+                            new XElement("description", this.FormatDescription(entryWrapper.DirectoryEntry)),
+                            new XElement("pubDate", entryWrapper.DirectoryEntry.CreateDate.ToString("R"))))));
 
             return new XDocument(rss);
         }
 
-        /// <summary>
-        /// Formats the RSS item title based on the directory status.
-        /// </summary>
-        private string GetFormattedTitle(DirectoryEntry entry)
+        private string GetFormattedTitle(DirectoryEntryWrapper wrapper)
         {
-            return entry.DirectoryStatus switch
+            var baseTitle = wrapper.DirectoryEntry.DirectoryStatus switch
             {
-                DirectoryStatus.Scam => $"&#x274C; {entry.Name}",
-                DirectoryStatus.Verified => $"&#x2705; {entry.Name}",
-                DirectoryStatus.Questionable => $"&#x2753; {entry.Name}",
-                _ => entry.Name
+                Data.Enums.DirectoryStatus.Scam => $"&#x274C; {wrapper.GetName()}",
+                Data.Enums.DirectoryStatus.Verified => $"&#x2705; {wrapper.GetName()}",
+                Data.Enums.DirectoryStatus.Questionable => $"&#x2753; {wrapper.GetName()}",
+                _ => wrapper.GetName()
             };
+
+            // Append "(sponsored)" if it is sponsored
+            return wrapper.IsSponsored ? $"{baseTitle} (sponsored)" : baseTitle;
         }
 
-        /// <summary>
-        /// Formats the description of the RSS item.
-        /// </summary>
-        private string FormatDescription(DirectoryEntry entry)
+        private string FormatDescription(Data.Models.DirectoryEntry entry)
         {
             var descriptionBuilder = new StringBuilder();
 
-            // Retrieve category and subcategory info
             var categoryInfo = entry.SubCategory?.Category != null
                 ? $"{entry.SubCategory.Category.Name} > {entry.SubCategory.Name}"
                 : entry.SubCategory?.Name ?? "Uncategorized";
 
-            // Append category info and main description (encoded)
             descriptionBuilder.Append(categoryInfo).Append(" : ").Append(entry.Description);
 
-            // Append note if it exists
             if (!string.IsNullOrWhiteSpace(entry.Note))
             {
                 descriptionBuilder.Append(" - Note: ").Append(entry.Note);
             }
 
-            // Append additional fields if they are not null or empty
             if (!string.IsNullOrWhiteSpace(entry.Location))
             {
                 descriptionBuilder.Append(" - Location: ").Append(entry.Location);

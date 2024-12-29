@@ -69,7 +69,7 @@ namespace DirectoryManager.Web.Controllers
         {
             var mainSponsorType = SponsorshipType.MainSponsor;
             var mainSponsorReserverationGroup = ReservationGroupHelper.CreateReservationGroup(mainSponsorType, 0);
-            var currentMainSponsorListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(mainSponsorType);
+            var currentMainSponsorListings = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(mainSponsorType);
             var model = new SponsoredListingHomeModel();
 
             if (currentMainSponsorListings != null && currentMainSponsorListings.Any())
@@ -86,7 +86,7 @@ namespace DirectoryManager.Web.Controllers
                 else
                 {
                     var totalActiveListings = await this.sponsoredListingRepository
-                                                        .GetActiveListingsCountAsync(mainSponsorType, null);
+                                                        .GetActiveSponsorsCountAsync(mainSponsorType, null);
                     var totalActiveReservations = await this.sponsoredListingReservationRepository
                                                             .GetActiveReservationsCountAsync(mainSponsorReserverationGroup);
 
@@ -111,7 +111,7 @@ namespace DirectoryManager.Web.Controllers
 
             var allActiveSubcategories = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync(Common.Constants.IntegerConstants.MinimumSponsoredActiveSubcategories);
             var currentSubCategorySponsorListings = await this.sponsoredListingRepository
-                                                              .GetAllActiveListingsAsync(SponsorshipType.SubcategorySponsor);
+                                                              .GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor);
 
             if (currentSubCategorySponsorListings != null)
             {
@@ -142,7 +142,7 @@ namespace DirectoryManager.Web.Controllers
             int? subCategoryId = null)
         {
             var totalActiveListings = await this.sponsoredListingRepository
-                                                .GetActiveListingsCountAsync(sponsorshipType, subCategoryId);
+                                                .GetActiveSponsorsCountAsync(sponsorshipType, subCategoryId);
 
             if (sponsorshipType == SponsorshipType.SubcategorySponsor)
             {
@@ -190,10 +190,10 @@ namespace DirectoryManager.Web.Controllers
                 subCategoryId = directoryEntry.SubCategoryId;
             }
 
-            var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(sponsorshipType);
+            var currentListings = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(sponsorshipType);
             var isCurrentSponsor = currentListings?.FirstOrDefault(x => x.DirectoryEntryId == directoryEntryId) != null;
             var totalActiveListings = await this.sponsoredListingRepository
-                                                .GetActiveListingsCountAsync(sponsorshipType, subCategoryId);
+                                                .GetActiveSponsorsCountAsync(sponsorshipType, subCategoryId);
             if (currentListings != null)
             {
                 if (!isCurrentSponsor && !CanAdvertise(sponsorshipType, totalActiveListings))
@@ -243,7 +243,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var totalActiveListings = await this.sponsoredListingRepository
-                                                .GetActiveListingsCountAsync(selectedOffer.SponsorshipType, sponsorshipSubCategoryId);
+                                                .GetActiveSponsorsCountAsync(selectedOffer.SponsorshipType, sponsorshipSubCategoryId);
             var totalActiveReservations = await this.sponsoredListingReservationRepository
                                                     .GetActiveReservationsCountAsync(reservationGroup);
 
@@ -279,7 +279,7 @@ namespace DirectoryManager.Web.Controllers
             if (rsvId == null)
             {
                 var totalActiveListings = await this.sponsoredListingRepository
-                                                    .GetActiveListingsCountAsync(sponsorshipType, subCategoryId);
+                                                    .GetActiveSponsorsCountAsync(sponsorshipType, subCategoryId);
                 var reservationGroup = ReservationGroupHelper.CreateReservationGroup(sponsorshipType, subCategoryId);
                 var totalActiveReservations = await this.sponsoredListingReservationRepository
                                                         .GetActiveReservationsCountAsync(reservationGroup);
@@ -337,7 +337,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var totalActiveListings = await this.sponsoredListingRepository
-                                                .GetActiveListingsCountAsync(offer.SponsorshipType, directoryEntry.SubCategoryId);
+                                                .GetActiveSponsorsCountAsync(offer.SponsorshipType, directoryEntry.SubCategoryId);
 
             if (rsvId == null)
             {
@@ -365,7 +365,7 @@ namespace DirectoryManager.Web.Controllers
 
             var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
-            var currentListings = await this.sponsoredListingRepository.GetAllActiveListingsAsync(offer.SponsorshipType);
+            var currentListings = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(offer.SponsorshipType);
             var viewModel = GetConfirmationModel(offer, directoryEntry, link2Name, link3Name, currentListings);
             var isCurrentSponsor = currentListings?.FirstOrDefault(x => x.DirectoryEntryId == directoryEntryId) != null;
 
@@ -418,7 +418,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId, sponsoredListingOffer.SponsorshipType);
                 var totalActiveListings = await this.sponsoredListingRepository
-                                                    .GetActiveListingsCountAsync(
+                                                    .GetActiveSponsorsCountAsync(
                                                         sponsoredListingOffer.SponsorshipType,
                                                         directoryEntry.SubCategoryId);
                 var reservationGroup = ReservationGroupHelper.CreateReservationGroup(
@@ -451,7 +451,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             this.ViewBag.ReservationGuid = rsvId;
-            var existingListing = await this.sponsoredListingRepository.GetActiveListing(directoryEntryId, sponsoredListingOffer.SponsorshipType);
+            var existingListing = await this.sponsoredListingRepository.GetActiveSponsorAsync(directoryEntryId, sponsoredListingOffer.SponsorshipType);
             var startDate = DateTime.UtcNow;
 
             if (existingListing != null)
@@ -744,7 +744,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> ActiveListings()
         {
-            var listings = await this.sponsoredListingRepository.GetAllActiveListingsAsync();
+            var listings = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
 
             // Filter listings by type
             var mainSponsorListings = listings.Where(l => l.SponsorshipType == SponsorshipType.MainSponsor).ToList();
@@ -992,7 +992,7 @@ namespace DirectoryManager.Web.Controllers
                 if (existingSponsoredListing == null && invoice.PaymentStatus == PaymentStatus.Paid)
                 {
                     var activeListing = await this.sponsoredListingRepository
-                                                  .GetActiveListing(invoice.DirectoryEntryId, invoice.SponsorshipType);
+                                                  .GetActiveSponsorAsync(invoice.DirectoryEntryId, invoice.SponsorshipType);
 
                     if (activeListing == null)
                     {
@@ -1032,7 +1032,7 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task<IEnumerable<DirectoryEntry>> FilterEntries(int? subCategoryId)
         {
-            var entries = await this.directoryEntryRepository.GetAllowableEntries();
+            var entries = await this.directoryEntryRepository.GetAllowableAdvertisers();
 
             if (subCategoryId.HasValue)
             {

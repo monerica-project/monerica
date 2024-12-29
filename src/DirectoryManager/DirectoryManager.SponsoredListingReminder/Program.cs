@@ -70,7 +70,7 @@ if (emailMessage == null)
 }
 
 // Fetch expiring listings
-var expiringListings = await listingRepo.GetExpiringListingsWithinAsync(expirationTimeSpan);
+var expiringListings = await listingRepo.GetExpiringSponsorsWithinTimeAsync(expirationTimeSpan);
 
 Console.WriteLine($"Found {expiringListings.Count()} listings expiring within {hours} hours.");
 

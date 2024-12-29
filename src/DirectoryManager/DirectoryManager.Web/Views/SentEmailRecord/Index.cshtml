@@ -1,0 +1,62 @@
+﻿@using DirectoryManager.Web.Constants;
+@model IEnumerable<DirectoryManager.Data.Models.Emails.SentEmailRecord>
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Sent Email Records";
+    int currentPage = ViewBag.CurrentPage;
+    int totalPages = ViewBag.TotalPages;
+}
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Email Subscription ID</th>
+            <th>Email Message ID</th>
+            <th>Sent Date</th>
+            <th>Is Delivered</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model != null && Model.Any())
+        {
+            foreach (var record in Model)
+            {
+                <tr>
+                    <td>@record.SentEmailRecordId</td>
+                    <td>@record.EmailSubscriptionId</td>
+                    <td>@record.EmailMessageId</td>
+                    <td>@record.SentDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
+                    <td>@(record.IsDelivered ? "Yes" : "No")</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="5" class="text-center">No records found.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Pagination Controls -->
+<div class="pagination">
+    @if (currentPage > 1)
+    {
+        <a href="?page=1">&laquo; First</a>
+        <a href="?page=@(currentPage - 1)" >Previous</a>
+    }
+
+    <span>Page @currentPage of @totalPages</span>
+
+    @if (currentPage < totalPages)
+    {
+        <a href="?page=@(currentPage + 1)">Next</a>
+        <a href="?page=@totalPages" >Last &raquo;</a>
+    }
+</div>

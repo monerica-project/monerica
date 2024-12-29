@@ -2,6 +2,7 @@
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models.Emails;
+using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
@@ -12,17 +13,20 @@ namespace DirectoryManager.Web.Controllers
         private readonly IBlockedIPRepository blockedIPRepository;
         private readonly IEmailCampaignRepository emailCampaignRepository;
         private readonly IEmailCampaignSubscriptionRepository emailCampaignSubscriptionRepository;
+        private readonly ICacheService cacheService;
 
         public EmailSubscriptionController(
             IEmailSubscriptionRepository emailSubscriptionRepository,
             IBlockedIPRepository blockedIPRepository,
             IEmailCampaignRepository emailCampaignRepository,
-            IEmailCampaignSubscriptionRepository emailCampaignSubscriptionRepository)
+            IEmailCampaignSubscriptionRepository emailCampaignSubscriptionRepository,
+            ICacheService cacheService)
         {
             this.emailSubscriptionRepository = emailSubscriptionRepository;
             this.blockedIPRepository = blockedIPRepository;
             this.emailCampaignRepository = emailCampaignRepository;
             this.emailCampaignSubscriptionRepository = emailCampaignSubscriptionRepository;
+            this.cacheService = cacheService;
         }
 
         [Route("unsubscribe")]
@@ -61,6 +65,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public IActionResult Subscribe()
         {
+            this.ViewBag.NewsletterSummaryHtml = this.cacheService.GetSnippet(Data.Enums.SiteConfigSetting.NewsletterSummaryHtml);
             return this.View();
         }
 

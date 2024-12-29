@@ -348,6 +348,30 @@ namespace DirectoryManager.Web.Controllers
 
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
             {
+                Url = string.Format("{0}/status/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), DirectoryStatus.Verified.ToString().ToLower()),
+                Priority = 0.3,
+                ChangeFrequency = ChangeFrequency.Weekly,
+                LastMod = date
+            });
+
+            siteMapHelper.SiteMapItems.Add(new SiteMapItem
+            {
+                Url = string.Format("{0}/status/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), DirectoryStatus.Scam.ToString().ToLower()),
+                Priority = 0.3,
+                ChangeFrequency = ChangeFrequency.Weekly,
+                LastMod = date
+            });
+
+            siteMapHelper.SiteMapItems.Add(new SiteMapItem
+            {
+                Url = string.Format("{0}/status/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), DirectoryStatus.Questionable.ToString().ToLower()),
+                Priority = 0.3,
+                ChangeFrequency = ChangeFrequency.Weekly,
+                LastMod = date
+            });
+
+            siteMapHelper.SiteMapItems.Add(new SiteMapItem
+            {
                 Url = string.Format("{0}/rss/feed.xml", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
                 Priority = 0.9,
                 ChangeFrequency = ChangeFrequency.Daily,

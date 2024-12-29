@@ -72,7 +72,7 @@ if (emailMessage == null)
 // Determine if there is an opening for Main Sponsor
 var mainSponsorType = SponsorshipType.MainSponsor;
 var mainSponsorReservationGroup = ReservationGroupHelper.CreateReservationGroup(mainSponsorType, 0);
-var currentMainSponsorListings = await listingRepo.GetAllActiveListingsAsync(mainSponsorType);
+var currentMainSponsorListings = await listingRepo.GetActiveSponsorsByTypeAsync(mainSponsorType);
 
 var hasOpeningForMainSponsor = false;
 
@@ -81,7 +81,7 @@ if (currentMainSponsorListings.Any())
     var activeCount = currentMainSponsorListings.Count();
     if (activeCount < IntegerConstants.MaxMainSponsoredListings)
     {
-        var totalActiveListings = await listingRepo.GetActiveListingsCountAsync(mainSponsorType, null);
+        var totalActiveListings = await listingRepo.GetActiveSponsorsCountAsync(mainSponsorType, null);
         var totalActiveReservations = await reservationRepo.GetActiveReservationsCountAsync(mainSponsorReservationGroup);
 
         hasOpeningForMainSponsor = CanPurchaseMainSponsorListing(totalActiveListings, totalActiveReservations, mainSponsorType);
@@ -171,7 +171,7 @@ static async Task<bool> CanPurchaseSubcategoryListing(
                                          .GetActiveEntriesByCategoryAsync(notification.SubCategoryId.Value);
 
     var totalActiveListings = await sponsoredListingRepository
-                                .GetActiveListingsCountAsync(notification.SponsorshipType, notification.SubCategoryId.Value);
+                                .GetActiveSponsorsCountAsync(notification.SponsorshipType, notification.SubCategoryId.Value);
 
     var canBuySubcategorySponsor =
             totalActiveListings < IntegerConstants.MaxSubCategorySponsoredListings &&

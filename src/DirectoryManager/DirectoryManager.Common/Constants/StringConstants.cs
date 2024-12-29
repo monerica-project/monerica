@@ -1,4 +1,5 @@
-﻿namespace DirectoryManager.Common.Constants
+﻿
+namespace DirectoryManager.Common.Constants
 {
     public class StringConstants
     {
@@ -10,5 +11,7 @@
         public const string CurrentFormat2 = "C2";
         public const string AllOptions = "(All)";
         public const string AppSettingsFileName = "appsettings.json";
+        public const string YearMonth = "yyy-MM";
+        public const string UnsubscribeToken = "[UNSUBSCRIBE]";
     }
 }

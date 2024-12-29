@@ -149,8 +149,8 @@
 
     <hr />
     @{
-        var sponsoredListings = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.MainSponsor);
-        var subCategorySponsors = await sponsoredListingRepository.GetAllActiveListingsAsync(SponsorshipType.SubcategorySponsor);
+        var sponsoredListings = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
+        var subCategorySponsors = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor);
     }
     @foreach (var category in activeCategories)
     {

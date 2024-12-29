@@ -25,6 +25,7 @@
 <table class="table">
     <thead>
         <tr>
+            <th>ID</th>
             <th>Create Date</th>
             <th>Payment Status</th>
             <th>Amount Asked</th>
@@ -44,6 +45,7 @@
         @foreach (var invoice in Model)
         {
             <tr>
+                <td>@invoice.SponsoredListingInvoiceId</td>
                 <td>@invoice.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
                 <td>
                     @if (invoice.PaymentStatus == DirectoryManager.Data.Enums.PaymentStatus.Paid)

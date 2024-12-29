@@ -26,10 +26,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public int TotalCount() => this.context.EmailMessages.Count();
 
-        public void Create(EmailMessage emailMessage)
+        public EmailMessage Create(EmailMessage emailMessage)
         {
             this.context.EmailMessages.Add(emailMessage);
             this.context.SaveChanges();
+
+            return emailMessage;
         }
 
         public void Update(EmailMessage emailMessage)

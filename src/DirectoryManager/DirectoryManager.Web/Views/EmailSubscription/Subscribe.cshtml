@@ -6,6 +6,11 @@
 
 <hr />
 
+@if (this.ViewBag.NewsletterSummaryHtml != null)
+{
+    @Html.Raw(this.ViewBag.NewsletterSummaryHtml)
+}
+
 <form asp-controller="EmailSubscription" asp-action="Subscribe" method="post" class="form-inline">
 
     <input name="Email" type="email" id="inlineFormInput" placeholder="yourname@email.com">

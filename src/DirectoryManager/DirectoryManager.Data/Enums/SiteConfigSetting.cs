@@ -36,6 +36,7 @@
         EmailSettingUnsubscribeFooterHtml = 31,
         SendGridApiKey = 32,
         SendGridSenderEmail = 33,
-        SendGridSenderName = 34
+        SendGridSenderName = 34,
+        NewsletterSummaryHtml = 35
     }
 }

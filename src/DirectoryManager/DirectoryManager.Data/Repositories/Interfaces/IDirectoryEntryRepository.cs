@@ -1,4 +1,6 @@
-﻿using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.TransferModels;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
@@ -9,7 +11,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<DirectoryEntry?> GetByLinkAsync(string link);
         Task<IEnumerable<DirectoryEntry>> GetAllAsync();
         Task<IEnumerable<DirectoryEntry>> GetAllBySubCategoryIdAsync(int subCategoryId);
-        Task<IEnumerable<DirectoryEntry>> GetAllowableEntries();
+        Task<IEnumerable<DirectoryEntry>> GetAllowableAdvertisers();
         Task<IEnumerable<DirectoryEntry>> GetAllActiveEntries();
         Task CreateAsync(DirectoryEntry entry);
         Task UpdateAsync(DirectoryEntry entry);
@@ -23,5 +25,8 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync();
         Task<int> TotalActive();
         Task<Dictionary<int, DateTime>> GetLastModifiedDatesBySubCategoryAsync();
+        Task<WeeklyDirectoryEntries> GetEntriesCreatedForPreviousWeekWithWeekKeyAsync();
+        Task<MonthlyDirectoryEntries> GetEntriesCreatedForPreviousMonthWithMonthKeyAsync();
+        Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByStatusAsync(DirectoryStatus status);
     }
 }
