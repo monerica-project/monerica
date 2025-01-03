@@ -183,6 +183,11 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
 
+            if (!this.IsOldEnough(directoryEntry))
+            {
+                return this.BadRequest(new { Error = $"Listing must be listed for at least {IntegerConstants.MinimumDaysListedBeforeAdvertising} days before advertisting." });
+            }
+
             int? subCategoryId = null;
 
             if (directoryEntry != null)
@@ -1054,6 +1059,17 @@ namespace DirectoryManager.Web.Controllers
                                                     .OrderBy(sc => sc.Category.Name)
                                                     .ThenBy(sc => sc.Name)
                                                     .ToList();
+        }
+
+        private bool IsOldEnough(DirectoryEntry directoryEntry)
+        {
+            if (directoryEntry.CreateDate == DateTime.MinValue)
+            {
+                return false; // Or throw an exception if CreateDate is required
+            }
+
+            // Check if the entry is at least 30 days old
+            return (DateTime.UtcNow - directoryEntry.CreateDate).TotalDays >= IntegerConstants.MinimumDaysListedBeforeAdvertising;
         }
     }
 }
