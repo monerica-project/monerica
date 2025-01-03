@@ -64,6 +64,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             IEnumerable<DirectoryEntry> newEntries,
             IEnumerable<SponsoredListing> mainSponsors,
             IEnumerable<SponsoredListing> subCategorySponsors,
+            string siteName = "",
             string footerHtml = "")
         {
             var result = new StringBuilder();
@@ -80,7 +81,16 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
 
             // Header Section
             result.AppendLine("<div class=\"header\">");
-            result.AppendLine("<h1>Directory Updates</h1>");
+
+            if (string.IsNullOrWhiteSpace(siteName))
+            {
+                result.AppendLine($"<h1>Directory Updates</h1>");
+            }
+            else
+            {
+                result.AppendLine($"<h1>{siteName} - Directory Updates</h1>");
+            }
+
             result.AppendLine("</div>");
 
             // New Entries Section
@@ -104,7 +114,18 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
                         result.AppendLine("<ul>");
                         foreach (var entry in subCategoryGroup.OrderBy(e => e.Name))
                         {
-                            result.AppendLine($"<li><a href='{entry.Link}' target='_blank'>{entry.Name}</a> - {entry.Description}</li>");
+                            string statusIcon = entry.DirectoryStatus switch
+                            {
+                                Data.Enums.DirectoryStatus.Verified => "&#9989; ",
+                                Data.Enums.DirectoryStatus.Admitted => "", // No icon for Admitted
+                                Data.Enums.DirectoryStatus.Questionable => "&#10067; ",
+                                Data.Enums.DirectoryStatus.Scam => "&#10060; <del>",
+                                _ => ""
+                            };
+
+                            string closingTag = entry.DirectoryStatus == Data.Enums.DirectoryStatus.Scam ? "</del>" : "";
+
+                            result.AppendLine($"<li>{statusIcon}<a href='{entry.Link}' target='_blank'>{entry.Name}</a>{closingTag} - {entry.Description}</li>");
                         }
 
                         result.AppendLine("</ul>");
