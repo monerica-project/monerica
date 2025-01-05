@@ -187,6 +187,14 @@ namespace DirectoryManager.Web.Helpers
                     {
                         sb.Append("<strong>Scam!</strong> - ");
                     }
+                    else if (entry.DirectoryStatus == Data.Enums.DirectoryStatus.Questionable)
+                    {
+                        sb.Append("<strong>Questionable!</strong> - ");
+                    }
+                    else if (entry.DirectoryStatus == Data.Enums.DirectoryStatus.Verified)
+                    {
+                        sb.Append("<strong>Verified</strong> - ");
+                    }
 
                     sb.Append(entry.Name);
                     sb.Append("</p>");

@@ -1,9 +1,12 @@
 ﻿using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Services.Interfaces;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models.Emails;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -12,7 +15,10 @@ namespace DirectoryManager.Web.Controllers
         private readonly IEmailSubscriptionRepository emailSubscriptionRepository;
         private readonly IBlockedIPRepository blockedIPRepository;
         private readonly IEmailCampaignRepository emailCampaignRepository;
+        private readonly IEmailCampaignMessageRepository emailCampaignMessageRepository;
         private readonly IEmailCampaignSubscriptionRepository emailCampaignSubscriptionRepository;
+        private readonly ISentEmailRecordRepository sentEmailRecordRepository;
+        private readonly IEmailService emailService;
         private readonly ICacheService cacheService;
 
         public EmailSubscriptionController(
@@ -20,12 +26,18 @@ namespace DirectoryManager.Web.Controllers
             IBlockedIPRepository blockedIPRepository,
             IEmailCampaignRepository emailCampaignRepository,
             IEmailCampaignSubscriptionRepository emailCampaignSubscriptionRepository,
+            IEmailCampaignMessageRepository emailCampaignMessageRepository,
+            ISentEmailRecordRepository sentEmailRecordRepository,
+            IEmailService emailService,
             ICacheService cacheService)
         {
             this.emailSubscriptionRepository = emailSubscriptionRepository;
             this.blockedIPRepository = blockedIPRepository;
             this.emailCampaignRepository = emailCampaignRepository;
             this.emailCampaignSubscriptionRepository = emailCampaignSubscriptionRepository;
+            this.emailCampaignMessageRepository = emailCampaignMessageRepository;
+            this.sentEmailRecordRepository = sentEmailRecordRepository;
+            this.emailService = emailService;
             this.cacheService = cacheService;
         }
 
@@ -33,12 +45,10 @@ namespace DirectoryManager.Web.Controllers
         [AcceptVerbs("GET", "POST")]
         public IActionResult Unsubscribe([FromQuery] string? email, [FromForm] string? formEmail)
         {
-            // Determine the email value from query string or form input
             var finalEmail = !string.IsNullOrWhiteSpace(email) ? email : formEmail;
 
             if (string.IsNullOrWhiteSpace(finalEmail))
             {
-                // If no email provided, render the form for user input
                 return this.View(nameof(this.Unsubscribe), null);
             }
 
@@ -47,16 +57,13 @@ namespace DirectoryManager.Web.Controllers
             var subscription = this.emailSubscriptionRepository.Get(finalEmail);
             if (subscription == null)
             {
-                // Add an error if email is not found and return the view with the form
                 this.ModelState.AddModelError(string.Empty, "Email not found in our subscription list.");
                 return this.View(nameof(this.Unsubscribe), null);
             }
 
-            // Mark as unsubscribed
             subscription.IsSubscribed = false;
             this.emailSubscriptionRepository.Update(subscription);
 
-            // Pass the email to the view for confirmation message
             return this.View(nameof(this.Unsubscribe), finalEmail);
         }
 
@@ -72,7 +79,7 @@ namespace DirectoryManager.Web.Controllers
         [Route("newsletter")]
         [Route("subscribe")]
         [HttpPost]
-        public IActionResult Subscribe(EmailSubscribeModel model)
+        public async Task<IActionResult> Subscribe(EmailSubscribeModel model)
         {
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
 
@@ -103,10 +110,52 @@ namespace DirectoryManager.Web.Controllers
                                 campaign.EmailCampaignId,
                                 emailSubscription.EmailSubscriptionId);
                     }
+
+                    var emailCampaign = this.emailCampaignRepository.GetDefault();
+
+                    if (emailCampaign != null)
+                    {
+                        var subscribedDate = emailSubscription.CreateDate;
+
+                        var sentMessageIds = this.sentEmailRecordRepository
+                            .GetBySubscriptionId(emailSubscription.EmailSubscriptionId)
+                            .Select(record => record.EmailMessageId)
+                            .ToList();
+
+                        var nextMessage = this.emailCampaignMessageRepository
+                            .GetMessagesByCampaign(emailCampaign.EmailCampaignId)
+                            .Where(m =>
+                                !sentMessageIds.Contains(m.EmailMessageId) &&
+                                (emailCampaign.SendMessagesPriorToSubscription || m.CreateDate >= subscribedDate))
+                            .OrderBy(m => m.SequenceOrder)
+                            .FirstOrDefault();
+
+                        if (nextMessage != null)
+                        {
+                            var subject = nextMessage.EmailMessage.EmailSubject;
+                            var plainTextContent = this.AppendFooter(nextMessage.EmailMessage.EmailBodyText);
+                            var htmlContent = this.AppendFooter(nextMessage.EmailMessage.EmailBodyHtml);
+
+                            // Wrap the email in a list as the method expects a List<string>
+                            var recipients = new List<string> { emailSubscription.Email };
+
+                            await this.emailService.SendEmailAsync(subject, plainTextContent, htmlContent, recipients);
+
+                            this.sentEmailRecordRepository.LogMessageDelivery(
+                                emailSubscription.EmailSubscriptionId,
+                                nextMessage.EmailMessageId);
+                        }
+                    }
                 }
             }
 
             return this.View("ConfirmSubscribed");
+        }
+
+        private string AppendFooter(string emailContent)
+        {
+            var unsubscribeText = this.cacheService.GetSnippet(Data.Enums.SiteConfigSetting.EmailSettingUnsubscribeFooterText);
+            return $"{emailContent}\n\n{unsubscribeText}";
         }
     }
 }

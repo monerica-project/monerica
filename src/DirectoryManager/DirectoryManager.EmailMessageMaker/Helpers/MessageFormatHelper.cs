@@ -190,7 +190,22 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
                     // List entries in alphabetical order
                     foreach (var entry in subCategoryGroup.OrderBy(e => e.Name))
                     {
-                        result.AppendLine($"     + {entry.Name} - {entry.Link} - {entry.Description}".TrimEnd());
+                        if (entry.DirectoryStatus == Data.Enums.DirectoryStatus.Scam)
+                        {
+                            result.AppendLine($"     + Scam! - {entry.Name} - {entry.Link} - {entry.Description}".TrimEnd());
+                        }
+                        else if (entry.DirectoryStatus == Data.Enums.DirectoryStatus.Questionable)
+                        {
+                            result.AppendLine($"     + Questionable! - {entry.Name} - {entry.Link} - {entry.Description}".TrimEnd());
+                        }
+                        else if (entry.DirectoryStatus == Data.Enums.DirectoryStatus.Verified)
+                        {
+                            result.AppendLine($"     + Verified - {entry.Name} - {entry.Link} - {entry.Description}".TrimEnd());
+                        }
+                        else
+                        {
+                            result.AppendLine($"     + {entry.Name} - {entry.Link} - {entry.Description}".TrimEnd());
+                        }
                     }
 
                     // Add a blank line after each SubCategory
