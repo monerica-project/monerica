@@ -5,8 +5,6 @@ using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models.Emails;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -133,8 +131,8 @@ namespace DirectoryManager.Web.Controllers
                         if (nextMessage != null)
                         {
                             var subject = nextMessage.EmailMessage.EmailSubject;
-                            var plainTextContent = this.AppendFooter(nextMessage.EmailMessage.EmailBodyText);
-                            var htmlContent = this.AppendFooter(nextMessage.EmailMessage.EmailBodyHtml);
+                            var plainTextContent = nextMessage.EmailMessage.EmailBodyText;
+                            var htmlContent = nextMessage.EmailMessage.EmailBodyHtml;
 
                             // Wrap the email in a list as the method expects a List<string>
                             var recipients = new List<string> { emailSubscription.Email };
@@ -150,12 +148,6 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return this.View("ConfirmSubscribed");
-        }
-
-        private string AppendFooter(string emailContent)
-        {
-            var unsubscribeText = this.cacheService.GetSnippet(Data.Enums.SiteConfigSetting.EmailSettingUnsubscribeFooterText);
-            return $"{emailContent}\n\n{unsubscribeText}";
         }
     }
 }
