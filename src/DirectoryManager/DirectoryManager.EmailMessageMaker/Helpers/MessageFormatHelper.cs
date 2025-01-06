@@ -125,7 +125,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
 
                             string closingTag = entry.DirectoryStatus == Data.Enums.DirectoryStatus.Scam ? "</del>" : "";
 
-                            result.AppendLine($"<li>{statusIcon}<a href='{entry.Link}' target='_blank'>{entry.Name}</a>{closingTag} - {entry.Description}</li>");
+                            result.AppendLine($"<li>{statusIcon}<a href='{entry.Link}' target='_blank'>{entry.Name}</a>{closingTag} - {entry.Description}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $" <i>({entry.Note})</i>")}</li>");
                         }
 
                         result.AppendLine("</ul>");
@@ -192,19 +192,19 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
                     {
                         if (entry.DirectoryStatus == Data.Enums.DirectoryStatus.Scam)
                         {
-                            result.AppendLine($"     + Scam! - {entry.Name} - {entry.Link} - {entry.Description}".TrimEnd());
+                            result.AppendLine($"     + Scam! - {entry.Name} - {entry.Link} - {entry.Description}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $" <i>({entry.Note})</i>")}".TrimEnd());
                         }
                         else if (entry.DirectoryStatus == Data.Enums.DirectoryStatus.Questionable)
                         {
-                            result.AppendLine($"     + Questionable! - {entry.Name} - {entry.Link} - {entry.Description}".TrimEnd());
+                            result.AppendLine($"     + Questionable! - {entry.Name} - {entry.Link} - {entry.Description}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $" <i>({entry.Note})</i>")}".TrimEnd());
                         }
                         else if (entry.DirectoryStatus == Data.Enums.DirectoryStatus.Verified)
                         {
-                            result.AppendLine($"     + Verified - {entry.Name} - {entry.Link} - {entry.Description}".TrimEnd());
+                            result.AppendLine($"     + Verified - {entry.Name} - {entry.Link} - {entry.Description}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $" <i>({entry.Note})</i>")}".TrimEnd());
                         }
                         else
                         {
-                            result.AppendLine($"     + {entry.Name} - {entry.Link} - {entry.Description}".TrimEnd());
+                            result.AppendLine($"     + {entry.Name} - {entry.Link} - {entry.Description}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $" <i>({entry.Note})</i>")}".TrimEnd());
                         }
                     }
 
@@ -292,7 +292,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
                 {
                     if (sponsor.DirectoryEntry != null)
                     {
-                        result.AppendLine($"<li><a href='{sponsor.DirectoryEntry.Link}' target='_blank'>{sponsor.DirectoryEntry.Name}</a> - {sponsor.DirectoryEntry.Description}</li>");
+                        AppendEntry(result, sponsor);
                     }
                 }
 
@@ -327,14 +327,19 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
                     // Display the sponsors under this Subcategory
                     foreach (var sponsor in group)
                     {
-                        if (sponsor.DirectoryEntry != null)
-                        {
-                            result.AppendLine($"<li><a href='{sponsor.DirectoryEntry.Link}' target='_blank'>{sponsor.DirectoryEntry.Name}</a> - {sponsor.DirectoryEntry.Description}</li>");
-                        }
+                        AppendEntry(result, sponsor);
                     }
 
                     result.AppendLine("</ul>");
                 }
+            }
+        }
+
+        private static void AppendEntry(StringBuilder result, SponsoredListing sponsor)
+        {
+            if (sponsor.DirectoryEntry != null)
+            {
+                result.AppendLine($"<li><a href='{sponsor.DirectoryEntry.Link}' target='_blank'>{sponsor.DirectoryEntry.Name}</a> - {sponsor.DirectoryEntry.Description}{(string.IsNullOrWhiteSpace(sponsor.DirectoryEntry.Note) ? "" : $" <i>(Note: {sponsor.DirectoryEntry.Note})</i>")}</li>");
             }
         }
     }
