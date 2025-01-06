@@ -88,13 +88,14 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest("Invalid email");
             }
 
-            var emailDbModel = this.emailSubscriptionRepository.Get(model.Email);
+            var email = model.Email.Trim();
+            var emailDbModel = this.emailSubscriptionRepository.Get(email);
 
             if (emailDbModel == null || emailDbModel.EmailSubscriptionId == 0)
             {
                 var emailSubscription = this.emailSubscriptionRepository.Create(new EmailSubscription()
                 {
-                    Email = model.Email,
+                    Email = email,
                     IsSubscribed = true
                 });
 
