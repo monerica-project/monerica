@@ -1,51 +1,54 @@
-﻿@model EmailSubscribeEditListModel
+﻿@model PagedEmailSubscribeEditListModel
 @using DirectoryManager.Web.Constants;
-@using DirectoryManager.Web.Models.Emails;
+@using DirectoryManager.Web.Models.Emails
+
 @{
     ViewData[StringConstants.TitleHeader] = "Emails";
 }
- <h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 
-@if (Model != null && Model.Items.Count() > 0)
+@if (Model != null && Model.Items.Any())
 {
-        <b>Subscribers:</b>
-        <p>@Model.Emails</p>
-
-        <br />
-        <b>Unsubscribe:</b>
-        <span>@Model.UnsubscribeLink</span>
-
-        <table class="table">
-            <thead>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Create Date</th>
+                <th>Is Subscribed</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Items)
+            {
                 <tr>
-                    <th>Email</th>
-                    <th>Create Date</th>
-                    <th>Is Subscribed</th>
-                    <th></th>
+                    <td>@item.Email</td>
+                    <td>@item.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
+                    <td>@item.IsSubscribed</td>
+                    <td>
+                        <a href="~/account/emailsubscriptionmanagement/edit?EmailSubscriptionId=@item.EmailSubscriptionId">Edit</a>
+                    </td>
                 </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model.Items)
-                {
-                    <tr>
-                        <td>
-                            @item.Email
-                        </td>
-                        <td>@item.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
-                        <td>@item.IsSubscribed</td>
-                        <td>
-                            <a href="~/account/emailsubscriptionmanagement/edit?EmailSubscriptionId=@item.EmailSubscriptionId">Edit</a>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+            }
+        </tbody>
+    </table>
 
-        <p><b>Total Subscribed:</b> @Model.TotalSubscribed</p>
+    <div>
+        @if (Model.HasPreviousPage)
+        {
+            <a href="~/account/emailsubscriptionmanagement?page=@(Model.CurrentPage - 1)">Previous</a>
+        }
+        @if (Model.HasNextPage)
+        {
+            <a href="~/account/emailsubscriptionmanagement?page=@(Model.CurrentPage + 1)">Next</a>
+        }
+    </div>
+
+    <p><b>Total Subscribed:</b> @Model.TotalSubscribed</p>
 }
 else
 {
-        <i>No emails</i>
+    <i>No emails found.</i>
 }

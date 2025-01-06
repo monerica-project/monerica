@@ -1,0 +1,35 @@
+﻿@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Upload Bounce File";
+}
+
+<h1>@ViewData[StringConstants.TitleHeader] </h1>
+
+
+@await Html.PartialAsync("_AdminMenu")
+
+
+@if (TempData[StringConstants.SuccessMessage] != null)
+{
+    <div class="alert alert-success">@TempData[StringConstants.SuccessMessage]</div>
+}
+
+<form asp-action="Upload" asp-controller="EmailSubscriptionManagement" method="post" enctype="multipart/form-data">
+    <div class="form-group">
+        <label for="file">Select a CSV file to upload</label>
+        <input type="file" class="form-control-file" id="file" name="file" accept=".csv" />
+    </div>
+    <button type="submit" class="btn btn-primary">Upload</button>
+</form>
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        <ul>
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <li>@error.ErrorMessage</li>
+            }
+        </ul>
+    </div>
+}

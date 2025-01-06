@@ -1,5 +1,10 @@
-﻿using System.Text;
+﻿using System.Formats.Asn1;
+using System.Globalization;
+using System.Text;
+using CsvHelper;
+using CsvHelper.Configuration;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models.Emails;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,47 +23,29 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [Route("account/emailsubscriptionmanagement")]
-        public IActionResult Index()
+        public IActionResult Index(int page = 1, int pageSize = 10)
         {
             var allEmails = this.emailSubscriptionRepository.GetAll();
-            var model = new EmailSubscribeEditListModel
-            {
-                TotalSubscribed = this.emailSubscriptionRepository.Total()
-            };
 
-            foreach (var sub in allEmails)
+            var pagedEmails = allEmails
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var model = new PagedEmailSubscribeEditListModel
             {
-                model.Items.Add(new EmailSubscribeEditModel()
+                TotalSubscribed = this.emailSubscriptionRepository.Total(),
+                Items = pagedEmails.Select(sub => new EmailSubscribeEditModel
                 {
                     Email = sub.Email,
                     IsSubscribed = sub.IsSubscribed,
                     EmailSubscriptionId = sub.EmailSubscriptionId,
                     CreateDate = sub.CreateDate
-                });
-            }
-
-            if (allEmails != null && allEmails.Count > 0)
-            {
-                var sb = new StringBuilder();
-                foreach (var sub in allEmails)
-                {
-                    if (!sub.IsSubscribed)
-                    {
-                        continue;
-                    }
-
-                    sb.AppendFormat("{0}, ", sub.Email);
-                }
-
-                model.Emails = sb.ToString();
-                model.Emails = model.Emails.Trim().TrimEnd(',');
-            }
-
-            var link = string.Format(
-                "{0}://{1}/emailsubscription/Unsubscribe",
-                this.HttpContext.Request.Scheme,
-                this.HttpContext.Request.Host);
-            model.UnsubscribeLink = link;
+                }).ToList(),
+                CurrentPage = page,
+                PageSize = pageSize,
+                TotalItems = allEmails.Count
+            };
 
             return this.View(model);
         }
@@ -106,6 +93,57 @@ namespace DirectoryManager.Web.Controllers
             };
 
             return this.View(model);
+        }
+
+        [Route("account/emailsubscriptionmanagement/upload")]
+        [HttpGet]
+        public IActionResult Upload()
+        {
+            return this.View();
+        }
+
+        [Route("account/emailsubscriptionmanagement/upload")]
+        [HttpPost]
+        public IActionResult Upload(IFormFile file)
+        {
+            if (file == null || file.Length == 0)
+            {
+                this.ModelState.AddModelError(string.Empty, "Please upload a valid CSV file.");
+                return this.View();
+            }
+
+            try
+            {
+                using var streamReader = new StreamReader(file.OpenReadStream());
+                using var csvReader = new CsvReader(streamReader, new CsvConfiguration(CultureInfo.InvariantCulture)
+                {
+                    HasHeaderRecord = true,
+                    Delimiter = ",",
+                    PrepareHeaderForMatch = args => args.Header.ToLower() // Normalize headers to lowercase
+                });
+
+                csvReader.Context.RegisterClassMap<EmailBounceMap>();
+
+                var bounces = csvReader.GetRecords<EmailBounce>().ToList();
+
+                foreach (var bounce in bounces)
+                {
+                    var subscription = this.emailSubscriptionRepository.Get(bounce.Email);
+                    if (subscription != null)
+                    {
+                        subscription.IsSubscribed = false;
+                        this.emailSubscriptionRepository.Update(subscription);
+                    }
+                }
+
+                this.TempData[StringConstants.SuccessMessage] = "Unsubscribed emails successfully.";
+            }
+            catch (Exception ex)
+            {
+                this.ModelState.AddModelError(string.Empty, $"An error occurred while processing the file: {ex.Message}");
+            }
+
+            return this.View();
         }
     }
 }
