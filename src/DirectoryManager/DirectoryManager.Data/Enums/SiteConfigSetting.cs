@@ -37,6 +37,7 @@
         SendGridApiKey = 32,
         SendGridSenderEmail = 33,
         SendGridSenderName = 34,
-        NewsletterSummaryHtml = 35
+        NewsletterSummaryHtml = 35,
+        SiteLogoUrl = 36
     }
 }

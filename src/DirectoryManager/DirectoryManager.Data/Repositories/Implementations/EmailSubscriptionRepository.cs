@@ -126,5 +126,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
             }
         }
+
+        public IList<EmailSubscription> GetPagedDescending(int page, int pageSize, out int totalItems)
+        {
+            try
+            {
+                var query = this.Context.EmailSubscriptions
+                                .OrderByDescending(x => x.CreateDate); // Sort by CreateDate descending
+
+                totalItems = query.Count(); // Get total count for pagination
+
+                return query.Skip((page - 1) * pageSize)
+                            .Take(pageSize)
+                            .ToList(); // Return paginated results
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
+            }
+        }
     }
 }

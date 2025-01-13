@@ -23,14 +23,10 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [Route("account/emailsubscriptionmanagement")]
-        public IActionResult Index(int page = 1, int pageSize = 10)
+        public IActionResult Index(int page = 1, int pageSize = IntegerConstants.DefaultPageSize)
         {
-            var allEmails = this.emailSubscriptionRepository.GetAll();
-
-            var pagedEmails = allEmails
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToList();
+            int totalItems; // To capture the total number of items in the repository
+            var pagedEmails = this.emailSubscriptionRepository.GetPagedDescending(page, pageSize, out totalItems);
 
             var model = new PagedEmailSubscribeEditListModel
             {
@@ -44,7 +40,7 @@ namespace DirectoryManager.Web.Controllers
                 }).ToList(),
                 CurrentPage = page,
                 PageSize = pageSize,
-                TotalItems = allEmails.Count
+                TotalItems = totalItems
             };
 
             return this.View(model);
