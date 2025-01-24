@@ -4,7 +4,7 @@ namespace DirectoryManager.Web.Helpers
 {
     public class ReservationGroupHelper
     {
-        public static string CreateReservationGroup(SponsorshipType sponsorshipType, int? subCategoryId = null)
+        public static string BuildReservationGroupName(SponsorshipType sponsorshipType, int? subCategoryId = null)
         {
             subCategoryId ??= 0;
 

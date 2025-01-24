@@ -68,7 +68,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> IndexAsync()
         {
             var mainSponsorType = SponsorshipType.MainSponsor;
-            var mainSponsorReserverationGroup = ReservationGroupHelper.CreateReservationGroup(mainSponsorType, 0);
+            var mainSponsorReserverationGroup = ReservationGroupHelper.BuildReservationGroupName(mainSponsorType, 0);
             var currentMainSponsorListings = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(mainSponsorType);
             var model = new SponsoredListingHomeModel();
 
@@ -238,7 +238,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = StringConstants.InvalidListing });
             }
 
-            var reservationGroup = ReservationGroupHelper.CreateReservationGroup(selectedOffer.SponsorshipType, directoryEntry.SubCategoryId);
+            var reservationGroup = ReservationGroupHelper.BuildReservationGroupName(selectedOffer.SponsorshipType, directoryEntry.SubCategoryId);
             var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId, selectedOffer.SponsorshipType);
             int? sponsorshipSubCategoryId = null;
 
@@ -285,7 +285,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 var totalActiveListings = await this.sponsoredListingRepository
                                                     .GetActiveSponsorsCountAsync(sponsorshipType, subCategoryId);
-                var reservationGroup = ReservationGroupHelper.CreateReservationGroup(sponsorshipType, subCategoryId);
+                var reservationGroup = ReservationGroupHelper.BuildReservationGroupName(sponsorshipType, subCategoryId);
                 var totalActiveReservations = await this.sponsoredListingReservationRepository
                                                         .GetActiveReservationsCountAsync(reservationGroup);
 
@@ -346,7 +346,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (rsvId == null)
             {
-                var reservationGroup = ReservationGroupHelper.CreateReservationGroup(offer.SponsorshipType, directoryEntry.SubCategoryId);
+                var reservationGroup = ReservationGroupHelper.BuildReservationGroupName(offer.SponsorshipType, directoryEntry.SubCategoryId);
                 var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId, offer.SponsorshipType);
                 var totalActiveReservations = await this.sponsoredListingReservationRepository
                                                         .GetActiveReservationsCountAsync(reservationGroup);
@@ -426,7 +426,7 @@ namespace DirectoryManager.Web.Controllers
                                                     .GetActiveSponsorsCountAsync(
                                                         sponsoredListingOffer.SponsorshipType,
                                                         directoryEntry.SubCategoryId);
-                var reservationGroup = ReservationGroupHelper.CreateReservationGroup(
+                var reservationGroup = ReservationGroupHelper.BuildReservationGroupName(
                                                                     sponsoredListingOffer.SponsorshipType,
                                                                     directoryEntry.SubCategoryId);
                 var totalActiveReservations = await this.sponsoredListingReservationRepository
@@ -901,8 +901,8 @@ namespace DirectoryManager.Web.Controllers
 
             if (sponsorshipType == SponsorshipType.SubcategorySponsor)
             {
-                return (totalActiveListings <= DirectoryManager.Common.Constants.IntegerConstants.MaxSubCategorySponsoredListings) &&
-                       (totalActiveReservations < (DirectoryManager.Common.Constants.IntegerConstants.MaxSubCategorySponsoredListings - totalActiveListings));
+                return (totalActiveListings <= Common.Constants.IntegerConstants.MaxSubCategorySponsoredListings) &&
+                       (totalActiveReservations < (Common.Constants.IntegerConstants.MaxSubCategorySponsoredListings - totalActiveListings));
             }
 
             throw new NotImplementedException("SponsorshipType:" + sponsorshipType.ToString());

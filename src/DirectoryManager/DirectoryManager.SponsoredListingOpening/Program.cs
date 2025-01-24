@@ -71,7 +71,7 @@ if (emailMessage == null)
 
 // Determine if there is an opening for Main Sponsor
 var mainSponsorType = SponsorshipType.MainSponsor;
-var mainSponsorReservationGroup = ReservationGroupHelper.CreateReservationGroup(mainSponsorType, 0);
+var mainSponsorReservationGroup = ReservationGroupHelper.BuildReservationGroupName(mainSponsorType, 0);
 var currentMainSponsorListings = await listingRepo.GetActiveSponsorsByTypeAsync(mainSponsorType);
 
 var hasOpeningForMainSponsor = false;

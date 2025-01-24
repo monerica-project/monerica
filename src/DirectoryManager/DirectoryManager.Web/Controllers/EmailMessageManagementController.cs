@@ -77,7 +77,8 @@ namespace DirectoryManager.Web.Controllers
                 EmailKey = emailMessage.EmailKey,
                 EmailSubject = emailMessage.EmailSubject,
                 EmailBodyText = emailMessage.EmailBodyText,
-                EmailBodyHtml = emailMessage.EmailBodyHtml
+                EmailBodyHtml = emailMessage.EmailBodyHtml,
+                CreateDate = emailMessage.CreateDate
             };
             return this.View(model);
         }

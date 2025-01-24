@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Migrations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Enums;
@@ -58,7 +59,15 @@ namespace DirectoryManager.Web.Controllers
             var lastContentSnippetUpdate = this.contentSnippetRepository.GetLastUpdateDate();
             var lastPaidInvoiceUpdate = this.sponsoredListingInvoiceRepository.GetLastPaidInvoiceUpdateDate();
             var nextAdExpiration = await this.sponsoredListingRepository.GetNextExpirationDateAsync();
+            var sponsoredListings = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
+            var isAdSpaceAvailable = sponsoredListings.Count() < Common.Constants.IntegerConstants.MaxMainSponsoredListings;
             var mostRecentUpdateDate = this.GetLatestUpdateDate(lastDirectoryEntryDate, lastContentSnippetUpdate, lastPaidInvoiceUpdate, nextAdExpiration);
+
+            if (isAdSpaceAvailable)
+            {
+                // TODO: do this for sub category sponsors
+                mostRecentUpdateDate = DateTime.UtcNow;
+            }
 
             // Get the last modification date for any sponsored listing
             var lastSponsoredListingChange = await this.sponsoredListingRepository.GetLastChangeDateForMainSponsorAsync();
@@ -375,7 +384,7 @@ namespace DirectoryManager.Web.Controllers
                 Url = string.Format("{0}/rss/feed.xml", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
                 Priority = 0.9,
                 ChangeFrequency = ChangeFrequency.Daily,
-                LastMod = date
+                LastMod = DateTime.UtcNow
             });
         }
 

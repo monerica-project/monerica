@@ -13,6 +13,11 @@
     <input type="hidden" asp-for="EmailMessageId" />
 
     <div class="form-group">
+        <label asp-for="CreateDate">Create Date:</label>
+        <span>@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</span>
+    </div>
+
+    <div class="form-group">
         <label asp-for="EmailKey">Email Key:</label>
         <input type="text" class="form-control" asp-for="EmailKey" required />
     </div>

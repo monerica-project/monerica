@@ -27,9 +27,7 @@ namespace DirectoryManager.Web.Services.Implementations
                 channelElements.Add(
                     new XElement(
                         "image",
-                        new XElement("url", logoUrl),
-                        new XElement("title", feedTitle),
-                        new XElement("link", feedLink)));
+                        new XAttribute("url", logoUrl)));
             }
 
             // Add directory entries
