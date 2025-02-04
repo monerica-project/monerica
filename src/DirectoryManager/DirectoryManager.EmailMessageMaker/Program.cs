@@ -66,10 +66,12 @@ public class Program
         // Fetch footer content
         var emailSettingUnsubscribeFooterHtml = contentSnippetRepository.GetValue(SiteConfigSetting.EmailSettingUnsubscribeFooterHtml);
         var emailSettingUnsubscribeFooterText = contentSnippetRepository.GetValue(SiteConfigSetting.EmailSettingUnsubscribeFooterText);
+        var link2Name = contentSnippetRepository.GetValue(SiteConfigSetting.Link2Name);
+        var link3Name = contentSnippetRepository.GetValue(SiteConfigSetting.Link3Name);
         var siteName = contentSnippetRepository.GetValue(SiteConfigSetting.SiteName);
 
         // Generate the final email HTML
-        var emailHtml = MessageFormatHelper.GenerateHtmlEmail(weeklyResults.Entries, mainSponsors, subCategorySponsors, siteName, emailSettingUnsubscribeFooterHtml);
+        var emailHtml = MessageFormatHelper.GenerateHtmlEmail(weeklyResults.Entries, mainSponsors, subCategorySponsors, siteName, emailSettingUnsubscribeFooterHtml, link2Name, link3Name);
         var emailText = MessageFormatHelper.GenerateTextEmail(weeklyResults.Entries, mainSponsors, subCategorySponsors, emailSettingUnsubscribeFooterText);
 
         // Output HTML for debugging or further processing

@@ -42,10 +42,10 @@
         <p><b>Sponsored</b></p>
         <ul class="blank_list_item">
             @{
-                var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+                var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
                 directoryEntries,
-                DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
-                DirectoryManager.Web.Enums.ItemDisplayType.MainSponsor,
+                DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+                DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.MainSponsor,
                 link2Name,
                 link3Name);
             }

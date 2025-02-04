@@ -3,6 +3,8 @@ using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.DisplayFormatting.Helpers;
+using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
@@ -821,8 +823,8 @@ namespace DirectoryManager.Web.Controllers
                 {
                     CreateDate = directoryEntry.CreateDate,
                     UpdateDate = directoryEntry.UpdateDate,
-                    ItemDisplayType = Enums.ItemDisplayType.Normal,
-                    DateOption = Enums.DateDisplayOption.NotDisplayed,
+                    ItemDisplayType = DisplayFormatting.Enums.ItemDisplayType.Normal,
+                    DateOption = DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
                     IsSponsored = false,
                     Link2Name = link2Name,
                     Link3Name = link3Name,

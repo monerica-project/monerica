@@ -1,5 +1,7 @@
 ﻿@using DirectoryManager.Data.Models
 @using DirectoryManager.Data.Models.SponsoredListings
+@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.DisplayFormatting.Models
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Helpers
 @using DirectoryManager.Web.Models
@@ -125,8 +127,8 @@
 
             var viewModelList = ViewModelConverter.ConvertToViewModels(
                 subCategoryEntries.ToList(),
-                DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
-                DirectoryManager.Web.Enums.ItemDisplayType.Normal,
+                DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+                DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Normal,
                 link2Name,
                 link3Name
             );

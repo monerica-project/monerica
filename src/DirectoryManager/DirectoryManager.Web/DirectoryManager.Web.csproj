@@ -32,6 +32,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DirectoryManager.Common\DirectoryManager.Common.csproj" />
     <ProjectReference Include="..\DirectoryManager.Data\DirectoryManager.Data.csproj" />
+    <ProjectReference Include="..\DirectoryManager.DisplayFormatting\DirectoryManager.DisplayFormatting.csproj" />
     <ProjectReference Include="..\DirectoryManager.FileStorage\DirectoryManager.FileStorage.csproj" />
     <ProjectReference Include="..\DirectoryManager.Services\DirectoryManager.Services.csproj" />
     <ProjectReference Include="..\DirectoryManager.Utilities\DirectoryManager.Utilities.csproj" />

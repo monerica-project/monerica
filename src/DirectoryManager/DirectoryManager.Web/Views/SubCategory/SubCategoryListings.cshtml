@@ -39,10 +39,10 @@
     var subCategorySponsors = await this.sponsoredListingRepository.GetSponsoredListingsForSubCategory(Model.SubCategoryId);
     var link2Name = cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
     var link3Name = cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
-    var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+    var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
                                         Model.DirectoryEntries.ToList(),
-                                        DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
-                                        ItemDisplayType.SubcategorySponsor,
+                                        DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+                                        DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.SubcategorySponsor,
                                         link2Name,
                                         link3Name);
     var sponsoredListings = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
@@ -52,10 +52,10 @@
             {
                 SubCategoryId = Model.SubCategoryId,
                 TotalActiveSubCategoryListings = activeEntries.Count(),
-                DirectoryEntry = (subCategorySponsor != null && subCategorySponsor.DirectoryEntry != null) ? new DirectoryManager.Web.Models.DirectoryEntryViewModel()
+                DirectoryEntry = (subCategorySponsor != null && subCategorySponsor.DirectoryEntry != null) ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel()
                 {
 
-                    DateOption = DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+                    DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
                     Link = subCategorySponsor.DirectoryEntry.Link,
                     Name = subCategorySponsor.DirectoryEntry.Name,
                     Contact = subCategorySponsor.DirectoryEntry.Contact,
@@ -87,13 +87,13 @@
 <ul class="blank_list_item">
     @foreach (var viewModel in viewModelList)
     {
-        viewModel.LinkType = LinkType.ListingPage;
+        viewModel.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
 
         if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntryId) != null)
         {
             viewModel.IsSponsored = true;
             viewModel.DisplayAsSponsoredItem = true;
-            viewModel.LinkType = LinkType.Direct;
+            viewModel.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.Direct;
         }
 
         @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)

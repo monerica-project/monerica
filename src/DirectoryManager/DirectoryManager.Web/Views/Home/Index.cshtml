@@ -50,10 +50,10 @@
 
         <ul class="blank_list_item">
             @{
-                var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+                var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
                     featuredEntries.ToList(),
-                    DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
-                    DirectoryManager.Web.Enums.ItemDisplayType.Featured,
+                DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+                DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Featured,
                     link2Name,
                     link3Name);
             }
@@ -75,16 +75,16 @@
         <i>See: <a href="~/newest">all new additions</a> or <a class="no-app-link" href="~/rss/feed.xml">RSS</a></i>
         <ul class="blank_list_item">
             @{
-                var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+                var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
                     newestEntries.ToList(),
-                    DirectoryManager.Web.Enums.DateDisplayOption.DisplayCreateDate,
-                    DirectoryManager.Web.Enums.ItemDisplayType.Featured,
+                DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.DisplayCreateDate,
+                DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Featured,
                     link2Name,
                     link3Name);
             }
             @foreach (var viewModel in viewModelList)
             {
-                viewModel.LinkType = DirectoryManager.Web.Enums.LinkType.Direct;
+                viewModel.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.Direct;
                 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
         </ul>
@@ -106,16 +106,16 @@
 
         <ul class="blank_list_item">
             @{
-                var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+                var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
                 newestRevisions.ToList(),
-                DirectoryManager.Web.Enums.DateDisplayOption.DisplayUpdateDate,
-                DirectoryManager.Web.Enums.ItemDisplayType.NewestRevion,
+                DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.DisplayUpdateDate,
+                DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.NewestRevion,
                 link2Name,
                 link3Name);
             }
             @foreach (var viewModel in viewModelList)
             {
-                viewModel.LinkType = DirectoryManager.Web.Enums.LinkType.Direct;
+                viewModel.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.Direct;
                 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
         </ul>
@@ -175,10 +175,10 @@
                 <i>Note: @Html.Raw(subCategory.Note)</i>
             }
             var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
-            var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+            var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
                                         activeEntries.ToList(),
-                                        DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed, 
-                                        DirectoryManager.Web.Enums.ItemDisplayType.Normal,
+            DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+            DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Normal,
                                         link2Name,
                                         link3Name);
             var subCategorySponsor = subCategorySponsors.FirstOrDefault(x => x.SubCategoryId == subCategory.SubCategoryId);
@@ -186,11 +186,11 @@
             {
                         SubCategoryId = subCategory.SubCategoryId,
                         TotalActiveSubCategoryListings = activeEntries.Count(),
-                        DirectoryEntry = (subCategorySponsor != null && subCategorySponsor.DirectoryEntry != null) ? new DirectoryManager.Web.Models.DirectoryEntryViewModel()
+                        DirectoryEntry = (subCategorySponsor != null && subCategorySponsor.DirectoryEntry != null) ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel()
                         {
                             CreateDate = subCategorySponsor.DirectoryEntry.CreateDate,
                             UpdateDate = subCategorySponsor.DirectoryEntry.UpdateDate,
-                            DateOption = DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
+                            DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
                             Link = subCategorySponsor.DirectoryEntry.Link,
                             Link2 = subCategorySponsor.DirectoryEntry.Link2,
                             Link3 = subCategorySponsor.DirectoryEntry.Link3,

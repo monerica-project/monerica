@@ -1,4 +1,4 @@
-﻿namespace DirectoryManager.Web.Enums
+﻿namespace DirectoryManager.DisplayFormatting.Enums
 {
     public enum ItemDisplayType
     {

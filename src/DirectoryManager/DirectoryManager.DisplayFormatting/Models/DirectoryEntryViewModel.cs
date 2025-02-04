@@ -1,9 +1,9 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
-using DirectoryManager.Web.Enums;
+using DirectoryManager.DisplayFormatting.Enums;
 
-namespace DirectoryManager.Web.Models
+namespace DirectoryManager.DisplayFormatting.Models
 {
     public class DirectoryEntryViewModel
     {

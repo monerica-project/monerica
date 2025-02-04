@@ -1,10 +1,10 @@
 ﻿using System.Globalization;
 using System.Text;
 using DirectoryManager.Data.Models;
-using DirectoryManager.Web.Enums;
-using DirectoryManager.Web.Models;
+using DirectoryManager.DisplayFormatting.Enums;
+using DirectoryManager.DisplayFormatting.Models;
 
-namespace DirectoryManager.Web.Helpers
+namespace DirectoryManager.DisplayFormatting.Helpers
 {
     public class DisplayMarkUpHelper
     {

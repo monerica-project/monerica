@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Web.Charting;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
@@ -113,7 +114,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 CreateDate = directoryEntry.CreateDate,
                 UpdateDate = directoryEntry.UpdateDate,
-                DateOption = Enums.DateDisplayOption.NotDisplayed,
+                DateOption = DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
                 IsSponsored = false,
                 Link2Name = link2Name,
                 Link3Name = link3Name,
