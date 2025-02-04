@@ -1,6 +1,8 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.DisplayFormatting.Helpers;
+using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Utilities.Validation;
 using DirectoryManager.Web.Helpers;
@@ -422,7 +424,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 DirectoryEntryViewModel = new DirectoryEntryViewModel
                 {
-                    DateOption = Enums.DateDisplayOption.NotDisplayed,
+                    DateOption = DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
                     IsSponsored = false,
                     Link2Name = link2Name,
                     Link3Name = link3Name,
@@ -474,7 +476,7 @@ namespace DirectoryManager.Web.Controllers
 
                 if (existingDirectoryEntryId != null)
                 {
-                    var existingDirectoryEntry = await this.directoryEntryRepository.GetByIdAsync(existingDirectoryEntryId.Value);
+                    await this.AssignExistingProperties(submissionModel, existingDirectoryEntryId.Value);
                 }
 
                 submissionModel.DirectoryEntryId = existingDirectoryEntryId;
@@ -500,6 +502,17 @@ namespace DirectoryManager.Web.Controllers
                 {
                     id = submissionId
                 });
+        }
+
+        private async Task AssignExistingProperties(Submission submissionModel, int existingDirectoryEntryId)
+        {
+            var existingDirectoryEntry = await this.directoryEntryRepository.GetByIdAsync(existingDirectoryEntryId);
+
+            if (existingDirectoryEntry != null)
+            {
+                // they are submitting a listing that is an override, not an edit, copy the status from the existing listing
+                submissionModel.DirectoryStatus = existingDirectoryEntry?.DirectoryStatus;
+            }
         }
 
         private async Task CreateDirectoryEntry(Submission model)
