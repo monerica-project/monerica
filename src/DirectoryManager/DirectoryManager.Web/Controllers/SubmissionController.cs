@@ -373,8 +373,9 @@ namespace DirectoryManager.Web.Controllers
             };
         }
 
-        private async Task<int?> GetExistingListingFromLinkAsync(string link)
+        private async Task<int?> GetExistingEntryAsync(SubmissionRequest request)
         {
+            var link = request.Link;
             var existingLink = await this.directoryEntryRepository.GetByLinkAsync(link);
 
             if (existingLink != null)
@@ -388,6 +389,13 @@ namespace DirectoryManager.Web.Controllers
             if (existingLinkVariation1 != null)
             {
                 return existingLinkVariation1.DirectoryEntryId;
+            }
+
+            var existingName = await this.directoryEntryRepository.GetByNameAsync(request.Name);
+
+            if (existingName != null)
+            {
+                return existingName.DirectoryEntryId;
             }
 
             return null;
@@ -467,12 +475,12 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("SubmitEdit", model);
             }
 
-            var submissionModel = this.GetSubmissionRequest(model);
+            var submissionModel = this.FormatSubmissionRequest(model);
             var submissionId = model.SubmissionId;
 
             if (submissionId == null)
             {
-                var existingDirectoryEntryId = await this.GetExistingListingFromLinkAsync(model.Link);
+                var existingDirectoryEntryId = await this.GetExistingEntryAsync(model);
 
                 if (existingDirectoryEntryId != null)
                 {
@@ -576,7 +584,7 @@ namespace DirectoryManager.Web.Controllers
             await this.directoryEntryRepository.UpdateAsync(existing);
         }
 
-        private Submission GetSubmissionRequest(SubmissionRequest model)
+        private Submission FormatSubmissionRequest(SubmissionRequest model)
         {
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
 

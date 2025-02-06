@@ -40,6 +40,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.context.DirectoryEntries.FirstOrDefaultAsync(de => de.Link == link);
         }
 
+        public async Task<DirectoryEntry?> GetByNameAsync(string name)
+        {
+            return await this.context.DirectoryEntries.FirstOrDefaultAsync(de => de.Name == name);
+        }
+
         public async Task<IEnumerable<DirectoryEntry>> GetAllowableAdvertisers()
         {
             return await this.context.DirectoryEntries
