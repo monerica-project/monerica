@@ -465,6 +465,15 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction("Success", "Submission");
             }
 
+            if ((model.SubCategoryId == null || model.SubCategoryId == 0) &&
+                string.IsNullOrWhiteSpace(model.SuggestedSubCategory))
+            {
+                this.ModelState.AddModelError(string.Empty, "You must select a subcategory or supply a suggested one.");
+                await this.LoadSubCategories();
+
+                return this.View("SubmitEdit", model);
+            }
+
             var existingLinkSubmission = await this.submissionRepository.GetByLinkAndStatusAsync(model.Link);
 
             if (existingLinkSubmission != null)
