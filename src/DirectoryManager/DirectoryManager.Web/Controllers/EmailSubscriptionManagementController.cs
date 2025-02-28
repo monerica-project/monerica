@@ -36,7 +36,8 @@ namespace DirectoryManager.Web.Controllers
                     Email = sub.Email,
                     IsSubscribed = sub.IsSubscribed,
                     EmailSubscriptionId = sub.EmailSubscriptionId,
-                    CreateDate = sub.CreateDate
+                    CreateDate = sub.CreateDate,
+                    IpAddress = sub.IpAddress
                 }).ToList(),
                 CurrentPage = page,
                 PageSize = pageSize,

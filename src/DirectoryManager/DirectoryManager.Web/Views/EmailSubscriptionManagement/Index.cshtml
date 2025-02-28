@@ -17,6 +17,7 @@
                 <th>Email</th>
                 <th>Create Date</th>
                 <th>Is Subscribed</th>
+                <th>IP Address</th>
                 <th></th>
             </tr>
         </thead>
@@ -27,6 +28,7 @@
                     <td>@item.Email</td>
                     <td>@item.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
                     <td>@item.IsSubscribed</td>
+                    <td>@item.IpAddress</td>
                     <td>
                         <a href="~/account/emailsubscriptionmanagement/edit?EmailSubscriptionId=@item.EmailSubscriptionId">Edit</a>
                     </td>

@@ -90,13 +90,14 @@ namespace DirectoryManager.Web.Controllers
 
             var email = model.Email.Trim();
             var emailDbModel = this.emailSubscriptionRepository.Get(email);
-
+ 
             if (emailDbModel == null || emailDbModel.EmailSubscriptionId == 0)
             {
                 var emailSubscription = this.emailSubscriptionRepository.Create(new EmailSubscription()
                 {
                     Email = email,
-                    IsSubscribed = true
+                    IsSubscribed = true,
+                    IpAddress = ipAddress
                 });
 
                 var campaigns = this.emailCampaignRepository.GetAll(0, int.MaxValue, out _);
