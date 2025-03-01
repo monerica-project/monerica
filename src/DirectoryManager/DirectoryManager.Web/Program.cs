@@ -111,6 +111,7 @@ if (!app.Environment.IsDevelopment())
     app.UseRewriter(rewriteOptions);
 }
 
+app.UseSession();
 app.UseStatusCodePagesWithRedirects("/errors/{0}");
 app.UseRouting();
 app.UseAuthentication();

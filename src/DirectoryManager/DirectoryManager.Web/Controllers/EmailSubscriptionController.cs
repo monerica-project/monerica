@@ -1,4 +1,6 @@
-﻿using DirectoryManager.Data.Models.Emails;
+﻿using System.Drawing;
+using System.Drawing.Imaging;
+using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Services.Interfaces;
 using DirectoryManager.Web.Helpers;
@@ -39,32 +41,44 @@ namespace DirectoryManager.Web.Controllers
             this.cacheService = cacheService;
         }
 
-        [Route("unsubscribe")]
-        [AcceptVerbs("GET", "POST")]
-        public IActionResult Unsubscribe([FromQuery] string? email, [FromForm] string? formEmail)
+        [Route("EmailSubscription/CaptchaImage")]
+        [HttpGet]
+        public IActionResult CaptchaImage()
         {
-            var finalEmail = !string.IsNullOrWhiteSpace(email) ? email : formEmail;
+            string captchaText = this.GenerateCaptchaText();
+            this.HttpContext.Session.SetString("CaptchaCode", captchaText);
 
-            if (string.IsNullOrWhiteSpace(finalEmail))
+            using (var bitmap = new Bitmap(120, 30))
             {
-                return this.View(nameof(this.Unsubscribe), null);
+                using (var graphics = Graphics.FromImage(bitmap))
+                {
+                    graphics.Clear(Color.White);
+                    using (var font = new Font("Arial", 20))
+                    {
+                        using (var brush = new SolidBrush(Color.Black))
+                        {
+                            graphics.DrawString(captchaText, font, brush, new PointF(10, 0));
+                        }
+                    }
+                }
+                using (var ms = new MemoryStream())
+                {
+                    bitmap.Save(ms, ImageFormat.Png);
+                    return this.File(ms.ToArray(), "image/png");
+                }
             }
-
-            formEmail = formEmail?.Trim();
-
-            var subscription = this.emailSubscriptionRepository.Get(finalEmail);
-            if (subscription == null)
-            {
-                this.ModelState.AddModelError(string.Empty, "Email not found in our subscription list.");
-                return this.View(nameof(this.Unsubscribe), null);
-            }
-
-            subscription.IsSubscribed = false;
-            this.emailSubscriptionRepository.Update(subscription);
-
-            return this.View(nameof(this.Unsubscribe), finalEmail);
         }
 
+        // Helper method to generate a random CAPTCHA string
+        private string GenerateCaptchaText(int length = 5)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var random = new Random();
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
+        }
+
+        // Existing GET action for Subscribe
         [Route("newsletter")]
         [Route("subscribe")]
         [HttpGet]
@@ -74,11 +88,22 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
+        // Modified POST action to validate CAPTCHA
         [Route("newsletter")]
         [Route("subscribe")]
         [HttpPost]
         public async Task<IActionResult> Subscribe(EmailSubscribeModel model)
         {
+            // Validate CAPTCHA
+            var sessionCaptcha = this.HttpContext.Session.GetString("CaptchaCode");
+            if (string.IsNullOrWhiteSpace(model.Captcha) ||
+                !string.Equals(model.Captcha.Trim(), sessionCaptcha, StringComparison.OrdinalIgnoreCase))
+            {
+                this.ModelState.AddModelError("Captcha", "Incorrect CAPTCHA. Please try again.");
+                this.ViewBag.NewsletterSummaryHtml = this.cacheService.GetSnippet(Data.Enums.SiteConfigSetting.NewsletterSummaryHtml);
+                return this.View(model);
+            }
+
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
 
             if (!this.ModelState.IsValid ||
@@ -90,7 +115,7 @@ namespace DirectoryManager.Web.Controllers
 
             var email = model.Email.Trim();
             var emailDbModel = this.emailSubscriptionRepository.Get(email);
- 
+
             if (emailDbModel == null || emailDbModel.EmailSubscriptionId == 0)
             {
                 var emailSubscription = this.emailSubscriptionRepository.Create(new EmailSubscription()
@@ -107,8 +132,8 @@ namespace DirectoryManager.Web.Controllers
                     foreach (var campaign in campaigns)
                     {
                         this.emailCampaignSubscriptionRepository.SubscribeToCampaign(
-                                campaign.EmailCampaignId,
-                                emailSubscription.EmailSubscriptionId);
+                            campaign.EmailCampaignId,
+                            emailSubscription.EmailSubscriptionId);
                     }
 
                     var emailCampaign = this.emailCampaignRepository.GetDefault();
