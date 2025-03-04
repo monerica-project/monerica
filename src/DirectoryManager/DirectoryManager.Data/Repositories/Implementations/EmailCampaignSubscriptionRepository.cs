@@ -26,6 +26,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             return this.context.EmailCampaignSubscriptions
                         .Include(e => e.EmailSubscription)
+                        .Where(e => e.EmailSubscription.IsSubscribed == true)
                         .Where(e => e.EmailCampaignId == campaignId && e.IsActive)
                         .ToList();
         }

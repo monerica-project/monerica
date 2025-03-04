@@ -176,5 +176,36 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View("ConfirmSubscribed");
         }
+
+        [Route("unsubscribe")]
+        [AcceptVerbs("GET", "POST")]
+        public IActionResult Unsubscribe([FromQuery] string? email, [FromForm] string? formEmail)
+        {
+            // Determine the email value from query string or form input
+            var finalEmail = !string.IsNullOrWhiteSpace(email) ? email : formEmail;
+
+            if (string.IsNullOrWhiteSpace(finalEmail))
+            {
+                // If no email provided, render the form for user input
+                return this.View(nameof(this.Unsubscribe), null);
+            }
+
+            formEmail = formEmail?.Trim();
+
+            var subscription = this.emailSubscriptionRepository.Get(finalEmail);
+            if (subscription == null)
+            {
+                // Add an error if email is not found and return the view with the form
+                this.ModelState.AddModelError(string.Empty, "Email not found in our subscription list.");
+                return this.View(nameof(this.Unsubscribe), null);
+            }
+
+            // Mark as unsubscribed
+            subscription.IsSubscribed = false;
+            this.emailSubscriptionRepository.Update(subscription);
+
+            // Pass the email to the view for confirmation message
+            return this.View(nameof(this.Unsubscribe), finalEmail);
+        }
     }
 }
