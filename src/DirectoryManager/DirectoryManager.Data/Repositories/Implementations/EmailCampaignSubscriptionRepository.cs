@@ -22,7 +22,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         .FirstOrDefault(e => e.EmailCampaignSubscriptionId == subscriptionId);
         }
 
-        public IEnumerable<EmailCampaignSubscription> GetByCampaign(int campaignId)
+        public IEnumerable<EmailCampaignSubscription> GetSubscribersByCampaign(int campaignId)
         {
             return this.context.EmailCampaignSubscriptions
                         .Include(e => e.EmailSubscription)

@@ -61,7 +61,7 @@ namespace DirectoryManager.NewsletterSender.Services.Implementations
                     continue;
                 }
 
-                var subscribers = this.emailCampaignSubscriptionRepository.GetByCampaign(campaign.EmailCampaignId);
+                var subscribers = this.emailCampaignSubscriptionRepository.GetSubscribersByCampaign(campaign.EmailCampaignId);
 
                 foreach (var subscription in subscribers)
                 {

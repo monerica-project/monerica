@@ -26,7 +26,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("{campaignId}")]
         public IActionResult Index(int campaignId)
         {
-            var subscriptions = this.emailCampaignSubscriptionRepository.GetByCampaign(campaignId);
+            var subscriptions = this.emailCampaignSubscriptionRepository.GetSubscribersByCampaign(campaignId);
             this.ViewBag.CampaignName = this.emailCampaignRepository.Get(campaignId)?.Name;
             this.ViewBag.CampaignId = campaignId;
             return this.View(subscriptions);
