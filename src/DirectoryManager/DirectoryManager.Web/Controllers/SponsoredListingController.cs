@@ -187,7 +187,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (!this.IsOldEnough(directoryEntry))
             {
-                return this.BadRequest(new { Error = $"Listing must be listed for at least {IntegerConstants.MinimumDaysListedBeforeAdvertising} days before advertisting." });
+                return this.BadRequest(new { Error = $"Unverfied listing must be listed for at least {IntegerConstants.UnverifiedMinimumDaysListedBeforeAdvertising} days before advertisting." });
             }
 
             int? subCategoryId = null;
@@ -1070,8 +1070,13 @@ namespace DirectoryManager.Web.Controllers
                 return false; // Or throw an exception if CreateDate is required
             }
 
+            if (directoryEntry.DirectoryStatus == DirectoryStatus.Verified)
+            {
+                return true;
+            }
+
             // Check if the entry is at least 30 days old
-            return (DateTime.UtcNow - directoryEntry.CreateDate).TotalDays >= IntegerConstants.MinimumDaysListedBeforeAdvertising;
+            return (DateTime.UtcNow - directoryEntry.CreateDate).TotalDays >= IntegerConstants.UnverifiedMinimumDaysListedBeforeAdvertising;
         }
     }
 }
