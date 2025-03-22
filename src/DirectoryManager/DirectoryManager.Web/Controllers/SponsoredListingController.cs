@@ -934,7 +934,9 @@ namespace DirectoryManager.Web.Controllers
             return FormattingHelper.SubcategoryFormatting(category.Name, subcategory.Name);
         }
 
-        private PaymentRequest GetInvoiceRequest(SponsoredListingOffer sponsoredListingOffer, SponsoredListingInvoice invoice)
+        private PaymentRequest GetInvoiceRequest(
+            SponsoredListingOffer sponsoredListingOffer,
+            SponsoredListingInvoice invoice)
         {
             return new PaymentRequest
             {

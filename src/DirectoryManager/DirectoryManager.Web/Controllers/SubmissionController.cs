@@ -266,15 +266,15 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            if (model.SubCategoryId == null ||
-                model.SubCategoryId == 0)
-            {
-                throw new Exception("Submission does not have a subcategory");
-            }
-
             if (submission.SubmissionStatus == SubmissionStatus.Pending &&
                 model.SubmissionStatus == SubmissionStatus.Approved)
             {
+                if (model.SubCategoryId == null ||
+                    model.SubCategoryId == 0)
+                {
+                    return this.BadRequest(new { Error = $"Submission does not have a subcategory" });
+                }
+
                 if (model.DirectoryEntryId == null)
                 {
                     // it's now approved
