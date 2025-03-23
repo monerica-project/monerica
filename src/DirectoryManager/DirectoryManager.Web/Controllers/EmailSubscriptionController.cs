@@ -7,6 +7,7 @@ using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models.Emails;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using SkiaSharp;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -48,34 +49,55 @@ namespace DirectoryManager.Web.Controllers
             string captchaText = this.GenerateCaptchaText();
             this.HttpContext.Session.SetString("CaptchaCode", captchaText);
 
-            using (var bitmap = new Bitmap(120, 30))
-            {
-                using (var graphics = Graphics.FromImage(bitmap))
-                {
-                    graphics.Clear(Color.White);
-                    using (var font = new Font("Arial", 20))
-                    {
-                        using (var brush = new SolidBrush(Color.Black))
-                        {
-                            graphics.DrawString(captchaText, font, brush, new PointF(10, 0));
-                        }
-                    }
-                }
-                using (var ms = new MemoryStream())
-                {
-                    bitmap.Save(ms, ImageFormat.Png);
-                    return this.File(ms.ToArray(), "image/png");
-                }
-            }
-        }
+            int width = 120;
+            int height = 40;
 
-        // Helper method to generate a random CAPTCHA string
-        private string GenerateCaptchaText(int length = 5)
-        {
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            var random = new Random();
-            return new string(Enumerable.Repeat(chars, length)
-                .Select(s => s[random.Next(s.Length)]).ToArray());
+            using var bitmap = new SKBitmap(width, height);
+            using var canvas = new SKCanvas(bitmap);
+            canvas.Clear(SKColors.White);
+
+            using var typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold);
+            float fontSize = 20;
+
+            using var paint = new SKPaint
+            {
+                Color = SKColors.Black,
+                IsAntialias = true,
+            };
+
+            using var font = new SKFont
+            {
+                Typeface = typeface,
+                Size = fontSize
+            };
+
+            // Measure text width using glyphs
+            var glyphs = font.GetGlyphs(captchaText);
+            var widths = font.GetGlyphWidths(glyphs);
+            float textWidth = widths.Sum();
+
+            // Measure height using font metrics
+            var metrics = font.Metrics;
+            float textHeight = metrics.Descent - metrics.Ascent;
+
+            // Calculate position
+            float x = (width - textWidth) / 2; // center horizontally
+            float y = ((height + textHeight) / 2) - metrics.Descent; // center vertically
+
+            // Draw the text
+            canvas.DrawText(
+                   text: captchaText,
+                   x: x,
+                   y: y,
+                   textAlign: SKTextAlign.Left,
+                   font: font,
+                   paint: paint);
+
+            // Encode to PNG
+            using var image = SKImage.FromBitmap(bitmap);
+            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
+
+            return this.File(data.ToArray(), "image/png");
         }
 
         // Existing GET action for Subscribe
@@ -206,6 +228,16 @@ namespace DirectoryManager.Web.Controllers
 
             // Pass the email to the view for confirmation message
             return this.View(nameof(this.Unsubscribe), finalEmail);
+        }
+
+
+        // Helper method to generate a random CAPTCHA string
+        private string GenerateCaptchaText(int length = 5)
+        {
+            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+            var random = new Random();
+            return new string(Enumerable.Repeat(chars, length)
+                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
     }
 }
