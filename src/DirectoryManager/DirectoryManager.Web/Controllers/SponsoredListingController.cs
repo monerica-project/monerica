@@ -257,7 +257,7 @@ namespace DirectoryManager.Web.Controllers
             if (!CanPurchaseListing(
                     totalActiveListings, totalActiveReservations, selectedOffer.SponsorshipType) && !isActiveSponsor)
             {
-                return this.BadRequest(new { Error = StringConstants.CheckoutInProcess });
+                return this.BadRequest(new { Error = string.Format(StringConstants.CheckoutInProcess, IntegerConstants.ReservationMinutes) });
             }
 
             var reservationExpirationDate = DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes);
@@ -293,7 +293,7 @@ namespace DirectoryManager.Web.Controllers
 
                 if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, sponsorshipType))
                 {
-                    return this.BadRequest(new { Error = StringConstants.CheckoutInProcess });
+                    return this.BadRequest(new { Error = string.Format(StringConstants.CheckoutInProcess, IntegerConstants.ReservationMinutes) });
                 }
 
                 var reservationExpirationDate = DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes);
@@ -310,7 +310,7 @@ namespace DirectoryManager.Web.Controllers
 
                 if (existingReservation == null)
                 {
-                    return this.BadRequest(new { Error = StringConstants.ErrorWithCheckoutProcess });
+                    return this.BadRequest(new { Error = string.Format(StringConstants.CheckoutInProcess, IntegerConstants.ReservationMinutes) });
                 }
             }
 
@@ -355,7 +355,7 @@ namespace DirectoryManager.Web.Controllers
 
                 if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, offer.SponsorshipType) && !isActiveSponsor)
                 {
-                    return this.BadRequest(new { Error = StringConstants.CheckoutInProcess });
+                    return this.BadRequest(new { Error = string.Format(StringConstants.CheckoutInProcess, IntegerConstants.ReservationMinutes) });
                 }
             }
             else
@@ -437,7 +437,7 @@ namespace DirectoryManager.Web.Controllers
                 if (!CanPurchaseListing(
                     totalActiveListings, totalActiveReservations, sponsoredListingOffer.SponsorshipType) && !isActiveSponsor)
                 {
-                    return this.BadRequest(new { Error = StringConstants.CheckoutInProcess });
+                    return this.BadRequest(new { Error = string.Format(StringConstants.CheckoutInProcess, IntegerConstants.ReservationMinutes) });
                 }
             }
             else

@@ -6,7 +6,7 @@
         public const string SponsoredListingsCacheKey = "sponsored-listings-cache-key";
         public const string DefaultName = "Default Name";
         public const string InvalidOfferSelection = "Invalid offer selection.";
-        public const string CheckoutInProcess = "A checkout for a sponsored advertisement is in progress, check back later.";
+        public const string CheckoutInProcess = "A checkout for a sponsored advertisement is in progress, check back in {0} minutes.";
         public const string ErrorWithCheckoutProcess = "Error with checkout process.";
         public const string DirectoryEntryNotFound = "Directory entry not found.";
         public const string InvoiceNotFound = "Invoice not found.";
