@@ -9,18 +9,22 @@
 
 @await Html.PartialAsync("_AdminMenu")
 
+<p>@Model.Name</p>
+
 <form method="post">
     <div class="form-group">
-        <label for="CampaignStartDate">Sponsorship Type</label>
+        <label for="CampaignStartDate">Sponsorship Type:</label>
         <span>@Model.SponsorshipType</span>
     </div>
     <div class="form-group">
         <label for="CampaignStartDate">Start Date and Time</label>
-        <input type="datetime-local" class="form-control" id="CampaignStartDate" name="CampaignStartDate" value="@Model.CampaignStartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat2)" required />
+        <input type="datetime-local" class="form-control" id="CampaignStartDate" name="CampaignStartDate"
+               value="@Model.CampaignStartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3)" required />
     </div>
     <div class="form-group">
         <label for="CampaignEndDate">End Date and Time</label>
-        <input type="datetime-local" class="form-control" id="CampaignEndDate" name="CampaignEndDate" value="@Model.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat2)" required />
+        <input type="datetime-local" class="form-control" id="CampaignEndDate" name="CampaignEndDate"
+               value="@Model.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3)" required />
     </div>
     <button type="submit" class="btn btn-primary">Update</button>
 </form>

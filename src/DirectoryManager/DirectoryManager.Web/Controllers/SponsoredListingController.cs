@@ -642,12 +642,15 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(listing.DirectoryEntryId);
+
             var model = new EditListingViewModel
             {
                 Id = listing.SponsoredListingId,
                 CampaignStartDate = listing.CampaignStartDate,
                 CampaignEndDate = listing.CampaignEndDate,
-                SponsorshipType = listing.SponsorshipType
+                SponsorshipType = listing.SponsorshipType,
+                Name = directoryEntry.Name
             };
 
             return this.View(model);
