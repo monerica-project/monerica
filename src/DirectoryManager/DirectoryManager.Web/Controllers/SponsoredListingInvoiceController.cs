@@ -140,9 +140,9 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Report(DateTime? startDate, DateTime? endDate)
         {
-            var defaultDays = 180;
+            var defaultYears = 1;
             var now = DateTime.UtcNow;
-            var modelStartDate = startDate?.Date ?? now.AddDays(-defaultDays).Date;
+            var modelStartDate = startDate?.Date ?? now.AddYears(-defaultYears).Date;
             var modelEndDate = endDate?.Date ?? now.Date;
             var startOfDayUtc = new DateTime(modelStartDate.Year, modelStartDate.Month, modelStartDate.Day, 0, 0, 0, DateTimeKind.Utc);
             var endOfDayUtc = new DateTime(modelEndDate.Year, modelEndDate.Month, modelEndDate.Day, 23, 59, 59, DateTimeKind.Utc);
