@@ -7,7 +7,7 @@ namespace DirectoryManager.Web.Models
     {
         public int Id { get; set; }
 
-        public string Name { get; set; }
+        public string Name { get; set; } = string.Empty;
 
         [Required]
         public DateTime CampaignStartDate { get; set; }

@@ -13,11 +13,11 @@ namespace DirectoryManager.Web.Models
         public string Link { get; set; } = string.Empty;
 
         [Required]
-        [MaxLength(255)]
+        [MaxLength(65)]
         [Display(Name = "Name", Prompt = "Company or project name")]
         public string Name { get; set; } = string.Empty;
 
-        [MaxLength(500)]
+        [MaxLength(175)]
         [Display(Name = "Description", Prompt = "Describe your listing")]
         public string? Description { get; set; }
 
@@ -33,26 +33,26 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Contact", Prompt = "@yourname on Twitter/ GitHub, etc.")]
         public string? Contact { get; set; }
 
-        [MaxLength(255)]
+        [MaxLength(75)]
         [Display(Name = "Location", Prompt = "City, Region, Country (example: New York, NY, USA)")]
         public string? Location { get; set; }
 
-        [MaxLength(255)]
+        [MaxLength(75)]
         [Display(Name = "Processor", Prompt = "Payment processing company/ plugin")]
         public string? Processor { get; set; }
 
-        [MaxLength(1000)]
+        [MaxLength(255)]
         [Display(Name = "Note", Prompt = "Notes about listing you want displayed")]
         public string? Note { get; set; }
 
-        [MaxLength(1000)]
+        [MaxLength(500)]
         [Display(Name = "Note To Admin", Prompt = "Notes to admin reviewing submission")]
         public string? NoteToAdmin { get; set; }
 
         [Display(Name = "SubCategoryId", Prompt = "Select subcategory")]
         public int? SubCategoryId { get; set; }
 
-        [MaxLength(255)]
+        [MaxLength(100)]
         [Display(Name = "Suggested Category", Prompt = "New Category > New Subcategory")]
         public string? SuggestedSubCategory { get; set; }
 
