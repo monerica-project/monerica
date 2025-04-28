@@ -81,6 +81,16 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError("Link", "The link is not a valid URL.");
             }
 
+            if (!string.IsNullOrWhiteSpace(model.Link2) && !UrlHelper.IsValidUrl(model.Link2))
+            {
+                this.ModelState.AddModelError("Link2", "The link 2 is not a valid URL.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Link3) && !UrlHelper.IsValidUrl(model.Link3))
+            {
+                this.ModelState.AddModelError("Link3", "The link 3 is not a valid URL.");
+            }
+
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
 
             if (ScriptValidation.ContainsScriptTag(model) ||
