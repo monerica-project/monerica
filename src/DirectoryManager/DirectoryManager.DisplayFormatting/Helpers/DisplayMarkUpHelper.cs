@@ -242,25 +242,46 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         // Helper method for appending additional links (Link2 and Link3)
         private static void AppendAdditionalLinks(StringBuilder sb, DirectoryEntryViewModel model)
         {
-            AppendLinkWithSeparator(sb, model.Link2, model.Link2A, model.Link2Name, model.DirectoryStatus == Data.Enums.DirectoryStatus.Scam);
-            AppendLinkWithSeparator(sb, model.Link3, model.Link3A, model.Link3Name, model.DirectoryStatus == Data.Enums.DirectoryStatus.Scam);
+            // compute once whether this is a scam item
+            var isScam = model.DirectoryStatus == Data.Enums.DirectoryStatus.Scam;
+
+            // pass the model along so we can check sponsorship
+            AppendLinkWithSeparator(sb, model, model.Link2, model.Link2A, model.Link2Name, isScam);
+            AppendLinkWithSeparator(sb, model, model.Link3, model.Link3A, model.Link3Name, isScam);
         }
 
         // Helper method to append links with a separator (" | ")
-        private static void AppendLinkWithSeparator(StringBuilder sb, string? link, string? affiliateLink, string linkName, bool isScam)
+        private static void AppendLinkWithSeparator(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            string? link,
+            string? affiliateLink,
+            string linkName,
+            bool isScam)
         {
-            if (!string.IsNullOrWhiteSpace(link))
+            if (string.IsNullOrWhiteSpace(link))
+                return;
+
+            sb.Append(" | ");
+
+            // if sponsored and we have a LinkA, use the non-A link; otherwise fall back to A or link
+            var finalUrl = (model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(affiliateLink)
+                ? link
+                : affiliateLink ?? link;
+
+            if (isScam)
             {
-                sb.Append(" | ");
-                var actualLink = affiliateLink ?? link;
-                if (isScam)
-                {
-                    sb.AppendFormat("<del><a rel=\"nofollow\" href=\"{0}\" target=\"_blank\">{1}</a></del>", actualLink, linkName);
-                }
-                else
-                {
-                    sb.AppendFormat("<a href=\"{0}\" target=\"_blank\">{1}</a>", actualLink, linkName);
-                }
+                sb.AppendFormat(
+                    "<del><a rel=\"nofollow\" href=\"{0}\" target=\"_blank\">{1}</a></del>",
+                    finalUrl,
+                    linkName);
+            }
+            else
+            {
+                sb.AppendFormat(
+                    "<a href=\"{0}\" target=\"_blank\">{1}</a>",
+                    finalUrl,
+                    linkName);
             }
         }
 
