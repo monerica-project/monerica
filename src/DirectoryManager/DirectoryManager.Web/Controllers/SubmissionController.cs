@@ -195,7 +195,7 @@ namespace DirectoryManager.Web.Controllers
                 }
                 else
                 {
-                    audit.SubCategoryName = "No SubCategory Assigned";
+                    audit.SubCategoryName = "No Subcategory Assigned";
                 }
             }
 
