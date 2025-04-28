@@ -51,71 +51,72 @@ namespace DirectoryManager.NewsletterSender.Services.Implementations
                 // Respect campaign start date
                 if (campaign.StartDate.HasValue && campaign.StartDate.Value > DateTime.UtcNow)
                 {
-                    Console.WriteLine($"Skipping campaign '{campaign.Name}' as it hasn't started yet.");
                     continue;
                 }
 
                 if (!campaign.IsEnabled)
                 {
-                    Console.WriteLine($"Skipping campaign '{campaign.Name}' as isn't enabled.");
                     continue;
                 }
 
-                var subscribers = this.emailCampaignSubscriptionRepository.GetSubscribersByCampaign(campaign.EmailCampaignId);
+                // Pre-cache all messages for this campaign, with footers appended
+                var messages = this.emailCampaignMessageRepository
+                                  .GetMessagesByCampaign(campaign.EmailCampaignId)
+                                  .OrderBy(m => m.SequenceOrder)
+                                  .ToList();
 
+                var messageCache = new Dictionary<int, (string PlainText, string Html)>(messages.Count);
+                foreach (var msg in messages)
+                {
+                    var id = msg.EmailMessageId;
+                    messageCache[id] = (
+                        PlainText: this.AppendFooter(msg.EmailMessage.EmailBodyText, unsubscribeText),
+                        Html: this.AppendFooter(msg.EmailMessage.EmailBodyHtml, unsubscribeHtml)
+                    );
+                }
+
+                var subscribers = this.emailCampaignSubscriptionRepository.GetSubscribersByCampaign(campaign.EmailCampaignId);
                 foreach (var subscription in subscribers)
                 {
                     var subscribedDate = subscription.SubscribedDate;
 
-                    // Get all sent messages for this subscriber
-                    var sentMessageIds = this.sentEmailRecordRepository
-                        .GetBySubscriptionId(subscription.EmailSubscriptionId)
-                        .Select(record => record.EmailMessageId)
-                        .ToList();
+                    // Which messages have already gone out?
+                    var sentIds = this.sentEmailRecordRepository
+                                  .GetBySubscriptionId(subscription.EmailSubscriptionId)
+                                  .Select(r => r.EmailMessageId)
+                                  .ToHashSet();
 
-                    // Get the next eligible message (based on SubscribedDate and CreatedDate)
-                    var nextMessage = this.emailCampaignMessageRepository
-                        .GetMessagesByCampaign(campaign.EmailCampaignId)
-                        .Where(m =>
-                            !sentMessageIds.Contains(m.EmailMessageId) && // Not sent already
-                            (campaign.SendMessagesPriorToSubscription || m.CreateDate >= subscribedDate)) // Logic for new behavior
-                        .OrderBy(m => m.SequenceOrder)
+                    // Pick next eligible message
+                    var next = messages
+                        .Where(m => !sentIds.Contains(m.EmailMessageId)
+                                    && (campaign.SendMessagesPriorToSubscription || m.CreateDate >= subscribedDate))
                         .FirstOrDefault();
-
-                    if (nextMessage == null)
+                    if (next == null)
                     {
-                        Console.WriteLine($"No eligible messages for subscriber {subscription.EmailSubscription.Email} in campaign '{campaign.Name}'.");
                         continue;
                     }
 
-                    // Ensure interval days have passed since last sent email
-                    var lastSentMessage = this.sentEmailRecordRepository
-                        .GetBySubscriptionId(subscription.EmailSubscriptionId)
-                        .OrderByDescending(record => record.SentDate)
-                        .FirstOrDefault();
-
-                    if (lastSentMessage != null &&
-                        (DateTime.UtcNow - lastSentMessage.SentDate).TotalDays < campaign.IntervalDays)
+                    // Enforce interval
+                    var last = this.sentEmailRecordRepository
+                               .GetBySubscriptionId(subscription.EmailSubscriptionId)
+                               .OrderByDescending(r => r.SentDate)
+                               .FirstOrDefault();
+                    if (last != null &&
+                        (DateTime.UtcNow - last.SentDate).TotalDays < campaign.IntervalDays)
                     {
-                        Console.WriteLine($"Skipping subscriber {subscription.EmailSubscription.Email} as interval days have not elapsed.");
                         continue;
                     }
 
-                    // Prepare email content
-                    var subject = nextMessage.EmailMessage.EmailSubject;
-                    var plainTextContent = this.AppendFooter(nextMessage.EmailMessage.EmailBodyText, unsubscribeText);
-                    var htmlContent = this.AppendFooter(nextMessage.EmailMessage.EmailBodyHtml, unsubscribeHtml);
+                    // Reuse the pre-built body
+                    var (plainTextContent, htmlContent) = messageCache[next.EmailMessageId];
+                    var subject = next.EmailMessage.EmailSubject;
 
-                    // Send the email
                     await this.SendEmailAsync(subject, plainTextContent, htmlContent, subscription.EmailSubscription.Email);
-                    await Task.Delay(this.delayMilliseconds); // Add delay to respect SendGrid's rate limits
+                    await Task.Delay(this.delayMilliseconds);
 
-                    // Log message delivery
                     this.sentEmailRecordRepository.LogMessageDelivery(
                         subscription.EmailSubscriptionId,
-                        nextMessage.EmailMessageId);
-
-                    Console.WriteLine($"Email sent to {subscription.EmailSubscription.Email} for campaign '{campaign.Name}'.");
+                        next.EmailMessageId);
                 }
             }
         }

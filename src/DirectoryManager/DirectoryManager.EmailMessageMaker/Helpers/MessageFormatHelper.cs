@@ -59,6 +59,24 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             a:hover {
                 text-decoration: underline;
             }
+
+            /* Miscellaneous */
+            .hidden {
+                display: none;
+            }
+            
+            :checked + .hidden {
+                display: block;
+            }
+
+            ul.blank_list_item li {
+                list-style-type: none;
+            }
+            
+            label.expansion_item {
+                cursor: pointer;
+                padding-right: 5px;
+            }
         ";
 
         public static string GenerateHtmlEmail(
@@ -114,7 +132,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
                         .OrderBy(g => g.Key))
                     {
                         result.AppendLine($"<h3>{subCategoryGroup.Key}</h3>");
-                        result.AppendLine("<ul>");
+                        result.AppendLine("<ul class=\"blank_list_item\">");
                         foreach (var entry in subCategoryGroup.OrderBy(e => e.Name))
                         {
                             var displayModel = ViewModelConverter.ConvertToViewModels(
