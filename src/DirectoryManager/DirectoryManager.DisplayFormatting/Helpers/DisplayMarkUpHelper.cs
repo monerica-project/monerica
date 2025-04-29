@@ -45,30 +45,30 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 sb.Append("&#9989; ");
                 if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.Link, false); // Use LinkA if sponsored
+                    AppendLink(sb, model, model.Link, false);
                 }
                 else if (!string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.LinkA, false); // Use LinkA as fallback
+                    AppendLink(sb, model, model.LinkA, false);
                 }
                 else
                 {
-                    AppendLink(sb, model, model.Link, false); // Default to Link
+                    AppendLink(sb, model, model.Link, false);
                 }
             }
             else if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Admitted)
             {
                 if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.Link, true); // Use LinkA if sponsored
+                    AppendLink(sb, model, model.Link, true);
                 }
                 else if (!string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.LinkA, false); // Use LinkA as fallback
+                    AppendLink(sb, model, model.LinkA, false);
                 }
                 else
                 {
-                    AppendLink(sb, model, model.Link, false); // Default to Link
+                    AppendLink(sb, model, model.Link, false);
                 }
             }
             else if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Questionable)
@@ -77,44 +77,40 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
                 if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.Link, true); // Use LinkA if sponsored
+                    AppendLink(sb, model, model.Link, true);
                 }
                 else if (!string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.LinkA, false); // Use LinkA as fallback
+                    AppendLink(sb, model, model.LinkA, false);
                 }
                 else
                 {
-                    AppendLink(sb, model, model.Link, false); // Default to Link
+                    AppendLink(sb, model, model.Link, false);
                 }
             }
             else if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Scam)
             {
                 sb.Append("&#10060; <del>");
-                AppendLink(sb, model, model.Link, false, true); // Scam case
+                AppendLink(sb, model, model.Link, false, true);
                 sb.Append("</del>");
             }
 
-            // Handle additional links (Link2 and Link3)
             if (model.LinkType != LinkType.ListingPage)
             {
                 AppendAdditionalLinks(sb, model);
             }
 
-            // Add description if available
             if (!string.IsNullOrWhiteSpace(model.Description))
             {
                 sb.Append(" - ");
                 sb.Append(model.Description); // Assuming it's safe HTML
             }
 
-            // Add note if available
             if (!string.IsNullOrWhiteSpace(model.Note))
             {
                 sb.AppendFormat(" <i>(Note: {0})</i> ", model.Note); // Assuming it's safe HTML
             }
 
-            // Close the paragraph
             sb.Append("</p>");
 
             // Hidden checkbox that controls the expandable content
@@ -157,7 +153,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             sb.Append("</div>");
 
-            // Closing </li> tag
             sb.Append("</li>");
 
             return sb.ToString();
@@ -222,7 +217,13 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             return sb.ToString();
         }
 
-        // Helper method for appending the main link
+        /// <summary>
+        /// Helper method for appending the main link 
+        /// </summary>
+        /// <param name="sb"></param>
+        /// <param name="model"></param>
+        /// <param name="affiliateLink"></param>
+        /// <param name="isScam"></param>
         private static void AppendLink(StringBuilder sb, DirectoryEntryViewModel model, string? affiliateLink, bool isScam = false)
         {
             string link = model.LinkType == LinkType.ListingPage ? model.ItemPath : affiliateLink ?? model.Link;
@@ -239,7 +240,11 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             }
         }
 
-        // Helper method for appending additional links (Link2 and Link3)
+        /// <summary>
+        /// Helper method for appending additional links (Link2 and Link3)
+        /// </summary>
+        /// <param name="sb"></param>
+        /// <param name="model"></param>
         private static void AppendAdditionalLinks(StringBuilder sb, DirectoryEntryViewModel model)
         {
             // compute once whether this is a scam item
@@ -250,7 +255,15 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             AppendLinkWithSeparator(sb, model, model.Link3, model.Link3A, model.Link3Name, isScam);
         }
 
-        // Helper method to append links with a separator (" | ")
+        /// <summary>
+        /// Helper method to append links with a separator (" | ")
+        /// </summary>
+        /// <param name="sb"></param>
+        /// <param name="model"></param>
+        /// <param name="link"></param>
+        /// <param name="affiliateLink"></param>
+        /// <param name="linkName"></param>
+        /// <param name="isScam"></param>
         private static void AppendLinkWithSeparator(
             StringBuilder sb,
             DirectoryEntryViewModel model,
@@ -285,7 +298,14 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             }
         }
 
-        // Helper method to append the link based on the logic
+        /// <summary>
+        /// Helper method to append the link based on the logic
+        /// </summary>
+        /// <param name="sb"></param>
+        /// <param name="model"></param>
+        /// <param name="link"></param>
+        /// <param name="isSponsored"></param>
+        /// <param name="isScam"></param>
         private static void AppendLink(StringBuilder sb, DirectoryEntryViewModel model, string link, bool isSponsored = false, bool isScam = false)
         {
             string finalLink = model.LinkType == LinkType.ListingPage ? model.ItemPath : link;
