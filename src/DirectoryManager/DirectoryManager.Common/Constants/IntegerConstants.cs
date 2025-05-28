@@ -2,8 +2,11 @@
 {
     public class IntegerConstants
     {
-        public const int MinimumSponsoredActiveSubcategories = 3;
         public const int MaxMainSponsoredListings = 5;
-        public const int MaxSubCategorySponsoredListings = 1;
+        public const int MinimumSponsoredActiveSubcategories = 2;
+        public const int MaxSubcategorySponsoredListings = 1;
+
+        public const int MaxCategorySponsoredListings = 1;
+        public const int MinimumSponsoredActiveCategories = 1;
     }
 }

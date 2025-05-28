@@ -11,6 +11,10 @@
 {
     ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing: " + Context.Request.Query["subCategoryId"];
 }
+else if (ViewBag.SponsorshipType == SponsorshipType.CategorySponsor)
+{
+    ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing: " + Context.Request.Query["categoryId"];
+}
 else
 {
     ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing";
@@ -40,7 +44,6 @@ else
 </form>
 
 <br />
-
 
 @if (ViewBag.CanAdvertise != null && ViewBag.CanAdvertise == false)
 {

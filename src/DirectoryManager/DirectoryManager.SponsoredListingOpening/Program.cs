@@ -121,7 +121,7 @@ foreach (var notification in pendingNotifications)
     // Generate the notification link using the template and replace placeholders
     var notificationLink = notificationLinkTemplate
         .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder, notification.SponsorshipType.ToString())
-        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SubCategoryIdPlaceholder, notification.SubCategoryId?.ToString() ?? string.Empty);
+        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SubCategoryIdPlaceholder, notification.TypeId?.ToString() ?? string.Empty);
 
     // Prepare the email content by replacing placeholders
     var plainTextContent = emailMessage.EmailBodyText
@@ -162,19 +162,19 @@ static async Task<bool> CanPurchaseSubcategoryListing(
     ISponsoredListingRepository sponsoredListingRepository,
     DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification notification)
 {
-    if (notification.SubCategoryId == null)
+    if (notification.TypeId == null)
     {
         return false;
     }
 
     var totalActiveEntriesInCategory = await directoryEntryRepository
-                                         .GetActiveEntriesByCategoryAsync(notification.SubCategoryId.Value);
+                                         .GetActiveEntriesByCategoryAsync(notification.TypeId.Value);
 
     var totalActiveListings = await sponsoredListingRepository
-                                .GetActiveSponsorsCountAsync(notification.SponsorshipType, notification.SubCategoryId.Value);
+                                .GetActiveSponsorsCountAsync(notification.SponsorshipType, notification.TypeId.Value);
 
     var canBuySubcategorySponsor =
-            totalActiveListings < IntegerConstants.MaxSubCategorySponsoredListings &&
+            totalActiveListings < IntegerConstants.MaxSubcategorySponsoredListings &&
             totalActiveEntriesInCategory.Count() >= IntegerConstants.MinimumSponsoredActiveSubcategories;
     return canBuySubcategorySponsor;
 }

@@ -32,6 +32,7 @@
         public const string ErrorMessage = "ErrorMessage";
         public const string SuccessMessage = "SuccessMessage";
         public const string SubcategoryName = "SubcategoryName";
+        public const string CategoryName = "CategoryName";
         public const string EnglishUS = "en-US";
     }
 }

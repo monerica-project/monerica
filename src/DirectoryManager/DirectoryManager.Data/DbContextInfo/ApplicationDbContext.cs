@@ -170,7 +170,7 @@ namespace DirectoryManager.Data.DbContextInfo
                    .IsUnique();
 
             builder.Entity<SponsoredListingOpeningNotification>()
-                   .HasIndex(e => new { e.Email, e.SponsorshipType, e.SubCategoryId, e.SubscribedDate })
+                   .HasIndex(e => new { e.Email, e.SponsorshipType, e.TypeId, e.SubscribedDate })
                    .IsUnique()
                    .HasDatabaseName("IX_SponsoredListingOpeningNotification_Unique");
         }

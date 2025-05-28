@@ -151,7 +151,10 @@
     @{
         var sponsoredListings = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
         var subCategorySponsors = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor);
+        var categorySponsors = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
     }
+
+    
     @foreach (var category in activeCategories)
     {
         <h2 id="@category.CategoryKey">@category.Name</h2>
@@ -163,6 +166,95 @@
         {
             <p><i>Note: @Html.Raw(category.Note)</i></p>
         }
+     
+    // find the sponsor for this category (if any)
+    var catSponsor = categorySponsors
+                        .FirstOrDefault(s =>
+                            s.DirectoryEntry?.SubCategory?.CategoryId == category.CategoryId);
+
+    var categorySponsorModel = new DirectoryManager.Web.Models.CategorySponsorModel()
+                {
+                    CategoryId = category.CategoryId,
+                    TotalActiveCategoryListings = -1,
+                    DirectoryEntry = (catSponsor != null && catSponsor.DirectoryEntry != null) ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel()
+                    {
+                        CreateDate = catSponsor.DirectoryEntry.CreateDate,
+                        UpdateDate = catSponsor.DirectoryEntry.UpdateDate,
+                        DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+                        Link = catSponsor.DirectoryEntry.Link,
+                        Link2 = catSponsor.DirectoryEntry.Link2,
+                        Link3 = catSponsor.DirectoryEntry.Link3,
+                        Name = catSponsor.DirectoryEntry.Name,
+                        Contact = catSponsor.DirectoryEntry.Contact,
+                        Description = catSponsor.DirectoryEntry.Description,
+                        DirectoryEntryId = catSponsor.DirectoryEntry.DirectoryEntryId,
+                        DirectoryStatus = catSponsor.DirectoryEntry.DirectoryStatus,
+                        Location = catSponsor.DirectoryEntry.Location,
+                        Note = catSponsor.DirectoryEntry.Note,
+                        Processor = catSponsor.DirectoryEntry.Processor,
+                        SubCategoryId = catSponsor.DirectoryEntry.SubCategoryId,
+                        IsSponsored = true,
+                        DisplayAsSponsoredItem = false,
+                        Link2Name = link2Name,
+                        Link3Name = link3Name
+                    } : null
+                };
+       @*  @await Html.PartialAsync("_SponsoredListingCategoryPartial", categorySponsorModel) *@
+
+    if (catSponsor?.DirectoryEntry != null)
+    {
+        // mark it sponsored & keep it for the regular list
+        var sponsoredVm = new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
+        {
+            CreateDate            = catSponsor.DirectoryEntry.CreateDate,
+            UpdateDate            = catSponsor.DirectoryEntry.UpdateDate,
+            DateOption            = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+            IsSponsored           = true,
+            DisplayAsSponsoredItem= false,
+            Link2Name             = cacheHelper.GetSnippet(SiteConfigSetting.Link2Name),
+            Link3Name             = cacheHelper.GetSnippet(SiteConfigSetting.Link3Name),
+            Link                  = catSponsor.DirectoryEntry.Link,
+            Link2                 = catSponsor.DirectoryEntry.Link2,
+            Link3                 = catSponsor.DirectoryEntry.Link3,
+            Name                  = catSponsor.DirectoryEntry.Name,
+            Contact               = catSponsor.DirectoryEntry.Contact,
+            Description           = catSponsor.DirectoryEntry.Description,
+            DirectoryEntryId      = catSponsor.DirectoryEntry.DirectoryEntryId,
+            DirectoryStatus       = catSponsor.DirectoryEntry.DirectoryStatus,
+            Location              = catSponsor.DirectoryEntry.Location,
+            Note                  = catSponsor.DirectoryEntry.Note,
+            Processor             = catSponsor.DirectoryEntry.Processor,
+            SubCategoryId         = catSponsor.DirectoryEntry.SubCategoryId
+        };
+        // fetch normal entries
+        var normalEntries = await directoryEntryRepository
+                                  .GetActiveEntriesByCategoryAsync(category.CategoryId);
+        var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter
+                                .ConvertToViewModels(
+                                    normalEntries.ToList(),
+                                    DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+                                    DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Normal,
+                                    sponsoredVm.Link2Name,
+                                    sponsoredVm.Link3Name
+                                );
+        // insert sponsored item at the top
+        viewModelList.Insert(0, sponsoredVm);
+    }
+    else
+    {
+        // no category sponsor: just build your regular list
+        var normalEntries = await directoryEntryRepository
+                                  .GetActiveEntriesByCategoryAsync(category.CategoryId);
+        var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter
+                                .ConvertToViewModels(
+                                    normalEntries.ToList(),
+                                    DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+                                    DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Normal,
+                                    cacheHelper.GetSnippet(SiteConfigSetting.Link2Name),
+                                    cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)
+                                );
+    }
+
         @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId))
         {
             <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>
@@ -182,7 +274,7 @@
                                         link2Name,
                                         link3Name);
             var subCategorySponsor = subCategorySponsors.FirstOrDefault(x => x.SubCategoryId == subCategory.SubCategoryId);
-            var subCategorySponsorModel = new DirectoryManager.Web.Models.SubCategorySponsorModel()
+            var subCategorySponsorModel = new DirectoryManager.Web.Models.SubcategorySponsorModel()
             {
                         SubCategoryId = subCategory.SubCategoryId,
                         TotalActiveSubCategoryListings = activeEntries.Count(),

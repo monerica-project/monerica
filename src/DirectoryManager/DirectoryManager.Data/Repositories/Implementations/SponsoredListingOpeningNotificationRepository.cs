@@ -20,7 +20,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.context.SponsoredListingOpeningNotifications
                 .AnyAsync(n => n.Email == email &&
                                n.SponsorshipType == sponsorshipType &&
-                               n.SubCategoryId == subCategoryId &&
+                               n.TypeId == subCategoryId &&
                                !n.IsReminderSent);
         }
 

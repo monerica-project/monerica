@@ -85,7 +85,7 @@
 
             if (subCategorySponsor != null && subCategorySponsor.DirectoryEntry != null)
             {
-                var subCategorySponsorModel = new SubCategorySponsorModel
+                var subCategorySponsorModel = new SubcategorySponsorModel
                             {
                                 SubCategoryId = subCategory.SubCategoryId,
                                 TotalActiveSubCategoryListings = filteredEntries.Count(e => e.SubCategoryId == subCategory.SubCategoryId),
@@ -110,7 +110,7 @@
             }
             else if (filteredEntries.Count(e => e.SubCategoryId == subCategory.SubCategoryId) >= DirectoryManager.Common.Constants.IntegerConstants.MinimumSponsoredActiveSubcategories)
             {
-                var advertiseModel = new SubCategorySponsorModel
+                var advertiseModel = new SubcategorySponsorModel
                             {
                                 SubCategoryId = subCategory.SubCategoryId,
                                 TotalActiveSubCategoryListings = filteredEntries.Count(e => e.SubCategoryId == subCategory.SubCategoryId)

@@ -10,7 +10,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<IEnumerable<SponsoredListing>> GetAllAsync();
         Task<IEnumerable<SponsoredListing>> GetActiveSponsorsByTypeAsync(SponsorshipType sponsorshipType);
         Task<IEnumerable<SponsoredListing>> GetAllActiveSponsorsAsync();
-        Task<int> GetActiveSponsorsCountAsync(SponsorshipType sponsorshipType, int? subCategoryId);
         Task<DateTime?> GetNextExpirationDateAsync();
         Task<IEnumerable<SponsoredListing>> GetExpiringSponsorsWithinTimeAsync(TimeSpan timeSpan);
         Task<int> GetTotalCountAsync();
@@ -23,5 +22,15 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<bool> IsSponsoredListingActive(int directoryEntryId, SponsorshipType sponsorshipType);
         Task<Dictionary<int, DateTime>> GetLastChangeDatesBySubCategoryAsync();
         Task<DateTime?> GetLastChangeDateForMainSponsorAsync();
+        Task<List<SponsoredListing>> GetSponsoredListingsForCategoryAsync(int categoryId);
+
+        /// <summary>
+        /// Count active sponsors of the given type.
+        /// For MainSponsor: ignore typeId.
+        /// For SubcategorySponsor: typeId is the SubCategoryId.
+        /// For CategorySponsor:   typeId is the CategoryId.
+        /// </summary>
+        /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
+        Task<int> GetActiveSponsorsCountAsync(SponsorshipType sponsorshipType, int? typeId);
     }
 }

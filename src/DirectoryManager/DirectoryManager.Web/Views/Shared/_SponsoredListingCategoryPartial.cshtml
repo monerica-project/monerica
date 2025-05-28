@@ -1,0 +1,18 @@
+﻿@model DirectoryManager.Web.Models.CategorySponsorModel
+@using DirectoryManager.Utilities.Helpers
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Enums
+
+<div class="category-sponsor-block">
+
+    @if (Model.DirectoryEntry != null)
+    {
+        @* Render the sponsored entry at the top *@
+        @await Html.PartialAsync("_DirectoryEntryPartial", Model.DirectoryEntry)
+    }
+    else 
+    {
+        <a class="app-link" rel="nofollow" href="~/sponsoredlisting/selectlisting?categoryId=@Model.CategoryId&sponsorshipType=@SponsorshipType.CategorySponsor">Advertise here</a>
+    }
+ 
+</div>

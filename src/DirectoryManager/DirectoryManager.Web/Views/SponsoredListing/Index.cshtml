@@ -15,109 +15,105 @@
 <hr />
 
 <h2>Listing Details</h2>
-
-<p>There are two types of advertising, <b>@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</b> and <b>@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</b>.</p>
-<p>See current offers and pricing: <a href="~/sponsoredlisting/offers">here</a>.</p>
-
-<p>
-    <b> Steps for listing:</b>
-</p>
-
-<ol>
-    <li>Select your listing <i>(Note: if you are not currently listed in the directory, you must added.  <a href="~/submit"> Submit here</a> ONLY if you are not listed.).</i></li>
-    <li>Choose your listing's duration.</li>
-    <li>Pay for your sponsored listing.</li>
-    <li>Your listing goes live automatically.</li>
-</ol>
-
-<hr />
-
-<h3>@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</h3>
-
-<p>
-    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.MainSponsoredListingDetails))
-</p>
-
-@if (Model.CanCreateMainListing)
-{
-    <br />
-    <p>
-        <a class="btn" href="~/sponsoredlisting/selectlisting">Select Listing</a>        
-    </p>
-    <p><i>@(DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings - Model.CurrentListingCount) spot@((DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings - Model.CurrentListingCount) == 1 ? "" : "s") remaining</i></p>
-}
-else
-{
-    if (string.IsNullOrWhiteSpace(Model.Message))
-    {
-        @await Html.PartialAsync("_AdSpaceFull", new ListingInventoryModel()
-       {
-           CanCreateSponsoredListing = Model.CanCreateMainListing,
-           NextListingExpiration = Model.NextListingExpiration
-       });
-
-        <p>However, you can extend the duration of an existing listing: <a href="~/sponsoredlisting/activelistings">here</a>.</p>
-    }
-    else
-    {
-        <p><i>@Model.Message</i></p>
-
-        <p>You can extend the duration of an existing listing: <a href="~/sponsoredlisting/activelistings">here</a>.</p>
-    }
-
-    <p>
-    <a asp-controller="SponsoredListingNotification"
-       asp-action="Subscribe"
-       asp-route-sponsorshipType="MainSponsor">
-        Notify me of openings for: @EnumHelper.GetDescription(SponsorshipType.MainSponsor)
-    </a>
-    </p>
-}   
-
+...
 <hr />
 
 <h3>@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</h3>
-
 <p>
     @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SubcategorySponsoredListingDetails))
 </p>
 
-@if (Model.UnavailableSubCatetgories != null && Model.UnavailableSubCatetgories.Any())
+@if (Model.UnavailableSubCatetgories?.Any() == true)
 {
     <p>Unavailable subcategory advertising:</p>
-
     <ul>
         @foreach (var item in Model.UnavailableSubCatetgories)
         {
             <li>
-                @item.Value - 
+                @item.Value -
                 <a asp-controller="SponsoredListingNotification"
                    asp-action="Subscribe"
                    asp-route-sponsorshipType="SubcategorySponsor"
-                   asp-route-subcategoryId="@item.Key">Notify me of openings</a>
+                   asp-route-typeId="@item.Key">
+                    Notify me of openings
+                </a>
             </li>
         }
     </ul>
-
-    <p>You can extend the duration of an existing listing: <a href="~/sponsoredlisting/activelistings">here</a>.</p>
-
+    <p>You can extend an existing listing: <a href="~/sponsoredlisting/activelistings">here</a>.</p>
     <hr />
 }
 
-@if (Model.AvailableSubCatetgories != null && Model.AvailableSubCatetgories.Any())
+@if (Model.AvailableSubCatetgories?.Any() == true)
 {
     <p>Available subcategory advertising:</p>
-
     <ul>
-    @foreach (var item in Model.AvailableSubCatetgories)
-    {
-        <li><a href="~/sponsoredlisting/selectlisting?subCategoryId=@item.Key&sponsorshipType=@SponsorshipType.SubcategorySponsor">@item.Value</a></li>
-    }
+        @foreach (var item in Model.AvailableSubCatetgories)
+        {
+            <li>
+                <a asp-controller="SponsoredListing"
+                   asp-action="SelectListing"
+                   asp-route-sponsorshipType="SubcategorySponsor"
+                   asp-route-subCategoryId="@item.Key">
+                    @item.Value
+                </a>
+            </li>
+        }
     </ul>
-
-    <p>You can extend the duration of an existing listing: <a href="~/sponsoredlisting/activelistings">here</a>.</p>
 }
 else
 {
     <i>No more @EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor) advertising space available.</i>
+}
+
+<hr />
+
+<!-- ─── Category sponsor section ─── -->
+
+<h3>@EnumHelper.GetDescription(SponsorshipType.CategorySponsor)</h3>
+<p>
+    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.CategorySponsoredListingDetails))
+</p>
+
+@if (Model.UnavailableCategories?.Any() == true)
+{
+    <p>Unavailable category advertising:</p>
+    <ul>
+        @foreach (var item in Model.UnavailableCategories)
+        {
+            <li>
+                @item.Value -
+                <a asp-controller="SponsoredListingNotification"
+                   asp-action="Subscribe"
+                   asp-route-sponsorshipType="CategorySponsor"
+                   asp-route-typeId="@item.Key">
+                    Notify me of openings
+                </a>
+            </li>
+        }
+    </ul>
+    <p>You can extend an existing listing: <a href="~/sponsoredlisting/activelistings">here</a>.</p>
+    <hr />
+}
+
+@if (Model.AvailableCategories?.Any() == true)
+{
+    <p>Available category advertising:</p>
+    <ul>
+        @foreach (var item in Model.AvailableCategories)
+        {
+            <li>
+                <a asp-controller="SponsoredListing"
+                   asp-action="SelectListing"
+                   asp-route-sponsorshipType="CategorySponsor"
+                   asp-route-categoryId="@item.Key">
+                    @item.Value
+                </a>
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <i>No more @EnumHelper.GetDescription(SponsorshipType.CategorySponsor) advertising space available.</i>
 }

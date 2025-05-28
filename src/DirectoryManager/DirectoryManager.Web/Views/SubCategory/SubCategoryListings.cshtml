@@ -48,7 +48,7 @@
     var sponsoredListings = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
     var subCategorySponsor = subCategorySponsors.FirstOrDefault();
     var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(Model.SubCategoryId);
-    var subCategorySponsorModel = new DirectoryManager.Web.Models.SubCategorySponsorModel()
+    var subCategorySponsorModel = new DirectoryManager.Web.Models.SubcategorySponsorModel()
             {
                 SubCategoryId = Model.SubCategoryId,
                 TotalActiveSubCategoryListings = activeEntries.Count(),

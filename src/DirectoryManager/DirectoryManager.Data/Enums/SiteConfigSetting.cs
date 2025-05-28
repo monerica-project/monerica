@@ -38,6 +38,7 @@
         SendGridSenderEmail = 33,
         SendGridSenderName = 34,
         NewsletterSummaryHtml = 35,
-        SiteLogoUrl = 36
+        SiteLogoUrl = 36,
+        CategorySponsoredListingDetails = 37
     }
 }

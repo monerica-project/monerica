@@ -2,8 +2,7 @@
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
-using DirectoryManager.Utilities.Helpers;
-using DirectoryManager.Web.Helpers;
+using DirectoryManager.Web.Constants;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,24 +24,37 @@ namespace DirectoryManager.Web.Controllers
             this.subcategoryRepository = subcategoryRepository;
         }
 
-        [Route("sponsoredlistingnotification/subscribe")]
         [HttpGet]
-        public async Task<IActionResult> SubscribeAsync(SponsorshipType sponsorshipType, int? subcategoryId)
+        [Route("sponsoredlistingnotification/subscribe")]
+        public async Task<IActionResult> SubscribeAsync(
+            SponsorshipType sponsorshipType,
+            int? typeId)
         {
             var model = new SponsoredListingOpeningNotification
             {
                 SponsorshipType = sponsorshipType,
-                SubCategoryId = subcategoryId
+                TypeId = typeId
             };
 
-            if (subcategoryId != null)
+            if (typeId.HasValue)
             {
-                var subcategory = await this.subcategoryRepository.GetByIdAsync(subcategoryId.Value);
-
-                if (subcategory != null)
+                if (sponsorshipType == SponsorshipType.SubcategorySponsor)
                 {
-                    var category = await this.categoryRepository.GetByIdAsync(subcategory.CategoryId);
-                    this.TempData[Constants.StringConstants.SubcategoryName] = FormattingHelper.SubcategoryFormatting(category?.Name, subcategory.Name);
+                    var subcat = await this.subcategoryRepository
+                                          .GetByIdAsync(typeId.Value)
+                                          .ConfigureAwait(false);
+                    var cat = await this.categoryRepository
+                                        .GetByIdAsync(subcat.CategoryId)
+                                        .ConfigureAwait(false);
+                    this.TempData[StringConstants.SubcategoryName] =
+                        FormattingHelper.SubcategoryFormatting(cat?.Name, subcat.Name);
+                }
+                else if (sponsorshipType == SponsorshipType.CategorySponsor)
+                {
+                    var cat = await this.categoryRepository
+                                        .GetByIdAsync(typeId.Value)
+                                        .ConfigureAwait(false);
+                    this.TempData[StringConstants.CategoryName] = cat.Name;
                 }
             }
 
@@ -54,71 +66,84 @@ namespace DirectoryManager.Web.Controllers
         [Route("sponsoredlistingnotification/subscribe")]
         public async Task<IActionResult> Subscribe(SponsoredListingOpeningNotification model)
         {
-            model.Email = InputHelper.SetEmail(model.Email);
-
-            if (string.IsNullOrEmpty(model.Email))
+            this.ModelState.Clear(); // ensure clean state
+            model.Email = model.Email.Trim();
+            if (string.IsNullOrWhiteSpace(model.Email))
             {
-                if (string.IsNullOrEmpty(model.Email))
-                {
-                    this.TempData[Constants.StringConstants.ErrorMessage] = "Valid email address is required.";
-                    return this.RedirectToAction(nameof(this.Subscribe), new { sponsorshipType = model.SponsorshipType, subCategoryId = model.SubCategoryId });
-                }
+                this.TempData[StringConstants.ErrorMessage] = "Valid email is required.";
+                return this.RedirectToAction(
+                    nameof(this.SubscribeAsync),
+                    new { model.SponsorshipType, typeId = model.TypeId });
             }
 
-            // Check if the user is already subscribed
-            var alreadySubscribed = await this.notificationRepository.ExistsAsync(
-                model.Email,
-                model.SponsorshipType,
-                model.SubCategoryId);
-
-            if (alreadySubscribed)
+            var exists = await this.notificationRepository
+                                  .ExistsAsync(model.Email, model.SponsorshipType, model.TypeId)
+                                  .ConfigureAwait(false);
+            if (exists)
             {
-                this.TempData[Constants.StringConstants.ErrorMessage] = "You have already subscribed for this notification.";
+                this.TempData[StringConstants.ErrorMessage] = "Already subscribed.";
                 return this.View(model);
             }
 
-            // Add the subscription
             model.SubscribedDate = DateTime.UtcNow;
             model.IsReminderSent = false;
+            await this.notificationRepository
+                     .CreateAsync(model)
+                     .ConfigureAwait(false);
 
-            await this.notificationRepository.CreateAsync(model);
-
-            this.TempData[Constants.StringConstants.SuccessMessage] = "You have successfully subscribed to the notification.";
-
-            // Redirect back to the same subscription page with the parameters
-            return this.RedirectToAction(nameof(this.Subscribe), new { sponsorshipType = model.SponsorshipType, subCategoryId = model.SubCategoryId });
+            this.TempData[StringConstants.SuccessMessage] = "Subscription successful.";
+            return this.RedirectToAction(
+                nameof(this.SubscribeAsync),
+                new { model.SponsorshipType, typeId = model.TypeId });
         }
 
-        // Existing constructor and other methods...
-        [Authorize]
-        [HttpGet]
-        [Route("sponsoredlistingnotification/list")]
+        [Authorize, HttpGet, Route("sponsoredlistingnotification/list")]
         public async Task<IActionResult> List()
         {
-            var notifications = await this.notificationRepository.GetAllAsync();
-            return this.View(notifications);
+            var list = await this.notificationRepository
+                                 .GetAllAsync()
+                                 .ConfigureAwait(false);
+            return this.View(list);
         }
 
-        [Authorize]
-        [HttpGet]
-        [Route("sponsoredlistingnotification/edit/{id}")]
+        [Authorize, HttpGet, Route("sponsoredlistingnotification/edit/{id}")]
         public async Task<IActionResult> Edit(int id)
         {
-            var notification = await this.notificationRepository.GetByIdAsync(id);
-
+            var notification = await this.notificationRepository
+                                         .GetByIdAsync(id)
+                                         .ConfigureAwait(false);
             if (notification == null)
             {
-                this.TempData[Constants.StringConstants.ErrorMessage] = "Notification not found.";
+                this.TempData[StringConstants.ErrorMessage] = "Not found.";
                 return this.RedirectToAction(nameof(this.List));
+            }
+
+            // Populate the friendly name for the view
+            if (notification.SponsorshipType == SponsorshipType.SubcategorySponsor
+                && notification.TypeId.HasValue)
+            {
+                var subcat = await this.subcategoryRepository
+                                         .GetByIdAsync(notification.TypeId.Value)
+                                         .ConfigureAwait(false);
+                var cat = await this.categoryRepository
+                                      .GetByIdAsync(subcat.CategoryId)
+                                      .ConfigureAwait(false);
+                this.TempData[StringConstants.SubcategoryName] =
+                    FormattingHelper.SubcategoryFormatting(cat?.Name, subcat.Name);
+            }
+            else if (notification.SponsorshipType == SponsorshipType.CategorySponsor
+                     && notification.TypeId.HasValue)
+            {
+                var cat = await this.categoryRepository
+                                      .GetByIdAsync(notification.TypeId.Value)
+                                      .ConfigureAwait(false);
+                this.TempData[StringConstants.CategoryName] = cat.Name;
             }
 
             return this.View(notification);
         }
 
-        [Authorize]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Route("sponsoredlistingnotification/edit/{id}")]
+        [Authorize, HttpPost, ValidateAntiForgeryToken, Route("sponsoredlistingnotification/edit/{id}")]
         public async Task<IActionResult> Edit(SponsoredListingOpeningNotification model)
         {
             if (!this.ModelState.IsValid)
@@ -126,49 +151,37 @@ namespace DirectoryManager.Web.Controllers
                 return this.View(model);
             }
 
-            var existingNotification = await this.notificationRepository.GetByIdAsync(model.SponsoredListingOpeningNotificationId);
-            if (existingNotification == null)
+            var existing = await this.notificationRepository
+                                     .GetByIdAsync(model.SponsoredListingOpeningNotificationId)
+                                     .ConfigureAwait(false);
+            if (existing == null)
             {
-                this.TempData[Constants.StringConstants.ErrorMessage] = "Notification not found.";
+                this.TempData[StringConstants.ErrorMessage] = "Not found.";
                 return this.RedirectToAction(nameof(this.List));
             }
 
-            // Update notification
-            existingNotification.Email = model.Email;
-            existingNotification.SponsorshipType = model.SponsorshipType;
-            existingNotification.SubCategoryId = model.SubCategoryId;
-            existingNotification.IsReminderSent = model.IsReminderSent;
+            existing.Email = model.Email.Trim();
+            existing.SponsorshipType = model.SponsorshipType;
+            existing.TypeId = model.TypeId;
+            existing.IsReminderSent = model.IsReminderSent;
 
-            var updated = await this.notificationRepository.UpdateAsync(existingNotification);
-            if (updated)
-            {
-                this.TempData[Constants.StringConstants.SuccessMessage] = "Notification updated successfully.";
-            }
-            else
-            {
-                this.TempData[Constants.StringConstants.ErrorMessage] = "Failed to update notification.";
-            }
+            var ok = await this.notificationRepository
+                               .UpdateAsync(existing)
+                               .ConfigureAwait(false);
+            this.TempData[ok ? StringConstants.SuccessMessage : StringConstants.ErrorMessage] =
+                ok ? "Updated." : "Update failed.";
 
             return this.RedirectToAction(nameof(this.List));
         }
 
-        [Authorize]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Route("sponsoredlistingnotification/delete/{id}")]
+        [Authorize, HttpPost, ValidateAntiForgeryToken, Route("sponsoredlistingnotification/delete/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
-            var deleted = await this.notificationRepository.DeleteAsync(id);
-
-            if (deleted)
-            {
-                this.TempData[Constants.StringConstants.SuccessMessage] = "Notification deleted successfully.";
-            }
-            else
-            {
-                this.TempData[Constants.StringConstants.ErrorMessage] = "Failed to delete notification. It may not exist.";
-            }
-
+            var ok = await this.notificationRepository
+                               .DeleteAsync(id)
+                               .ConfigureAwait(false);
+            this.TempData[ok ? StringConstants.SuccessMessage : StringConstants.ErrorMessage] =
+                ok ? "Deleted." : "Delete failed.";
             return this.RedirectToAction(nameof(this.List));
         }
     }

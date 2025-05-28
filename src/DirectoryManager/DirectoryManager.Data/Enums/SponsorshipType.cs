@@ -8,6 +8,8 @@ namespace DirectoryManager.Data.Enums
         [Description("Main Sponsor")]
         MainSponsor = 1,
         [Description("Subcategory Sponsor")]
-        SubcategorySponsor = 2
+        SubcategorySponsor = 2,
+        [Description("Category Sponsor")]
+        CategorySponsor = 3,
     }
 }

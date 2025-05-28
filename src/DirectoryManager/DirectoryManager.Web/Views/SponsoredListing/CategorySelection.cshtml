@@ -1,0 +1,33 @@
+﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models
+@using DirectoryManager.Web.Constants
+@model IEnumerable<DirectoryEntry>
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing by Category";
+    ViewData[StringConstants.IsIndexable] = false;
+    var categoryId = (int)ViewBag.CategoryId;
+    Guid? reservationGuid = (Guid?)ViewBag.ReservationGuid;
+}
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<hr />
+
+@foreach (var entry in Model)
+{
+    <div>
+        <a target="_blank" href="@entry.Link">@entry.Name</a> –
+        <a rel="nofollow"
+           href="@Url.Action(
+               "SelectDuration",
+               "SponsoredListing",
+               new {
+                   directoryEntryId = entry.DirectoryEntryId,
+                   sponsorshipType  = SponsorshipType.CategorySponsor,
+                   categoryId       = categoryId,
+                   rsvId            = reservationGuid
+               })">
+            Select
+        </a>
+    </div>
+}
