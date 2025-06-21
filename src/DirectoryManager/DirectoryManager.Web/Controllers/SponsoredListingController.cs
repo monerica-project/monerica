@@ -351,7 +351,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = StringConstants.InvalidListing });
             }
 
-            int? typeId = GetTypeId(selectedOffer, directoryEntry);
+            int? typeId = GetSponsorshipTypeId(selectedOffer, directoryEntry);
 
             var reservationGroup = ReservationGroupHelper.BuildReservationGroupName(
                                         selectedOffer.SponsorshipType,
@@ -637,14 +637,15 @@ namespace DirectoryManager.Web.Controllers
 
             if (rsvId == null)
             {
+                int? typeId = GetSponsorshipTypeId(sponsoredListingOffer, directoryEntry);
                 var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId, sponsoredListingOffer.SponsorshipType);
                 var totalActiveListings = await this.sponsoredListingRepository
                                                     .GetActiveSponsorsCountAsync(
                                                         sponsoredListingOffer.SponsorshipType,
-                                                        directoryEntry.SubCategoryId);
+                                                        typeId);
                 var reservationGroup = ReservationGroupHelper.BuildReservationGroupName(
                                                                     sponsoredListingOffer.SponsorshipType,
-                                                                    directoryEntry.SubCategoryId);
+                                                                    typeId);
                 var totalActiveReservations = await this.sponsoredListingReservationRepository
                                                         .GetActiveReservationsCountAsync(reservationGroup);
 
@@ -672,7 +673,9 @@ namespace DirectoryManager.Web.Controllers
             }
 
             this.ViewBag.ReservationGuid = rsvId;
-            var existingListing = await this.sponsoredListingRepository.GetActiveSponsorAsync(directoryEntryId, sponsoredListingOffer.SponsorshipType);
+            var existingListing = await this.sponsoredListingRepository.GetActiveSponsorAsync(
+                directoryEntryId,
+                sponsoredListingOffer.SponsorshipType);
             var startDate = DateTime.UtcNow;
 
             if (existingListing != null)
@@ -697,12 +700,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = "Failed to create invoice ID." });
             }
 
-            invoice.ReservationGuid = (rsvId == null) ? Guid.Empty : rsvId.Value;
-            invoice.ProcessorInvoiceId = invoiceFromProcessor.Id;
-            invoice.PaymentProcessor = PaymentProcessor.NOWPayments;
-            invoice.InvoiceRequest = JsonConvert.SerializeObject(invoiceRequest);
-            invoice.InvoiceResponse = JsonConvert.SerializeObject(invoiceFromProcessor);
-            invoice.Email = InputHelper.SetEmail(email);
+            SetInvoiceProperties(rsvId, email, invoice, invoiceRequest, invoiceFromProcessor);
 
             await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
 
@@ -1104,6 +1102,21 @@ namespace DirectoryManager.Web.Controllers
             };
         }
 
+        private static void SetInvoiceProperties(
+            Guid? rsvId,
+            string? email,
+            SponsoredListingInvoice invoice,
+            PaymentRequest invoiceRequest,
+            InvoiceResponse invoiceFromProcessor)
+        {
+            invoice.ReservationGuid = (rsvId == null) ? Guid.Empty : rsvId.Value;
+            invoice.ProcessorInvoiceId = invoiceFromProcessor.Id;
+            invoice.PaymentProcessor = PaymentProcessor.NOWPayments;
+            invoice.InvoiceRequest = JsonConvert.SerializeObject(invoiceRequest);
+            invoice.InvoiceResponse = JsonConvert.SerializeObject(invoiceFromProcessor);
+            invoice.Email = InputHelper.SetEmail(email);
+        }
+
         private static PaymentStatus ConvertToInternalStatus(
             NowPayments.API.Enums.PaymentStatus externalStatus)
         {
@@ -1123,7 +1136,7 @@ namespace DirectoryManager.Web.Controllers
             };
         }
 
-        private static int? GetTypeId(SponsoredListingOffer selectedOffer, DirectoryEntry directoryEntry)
+        private static int? GetSponsorshipTypeId(SponsoredListingOffer selectedOffer, DirectoryEntry directoryEntry)
         {
             switch (selectedOffer.SponsorshipType)
             {

@@ -52,8 +52,8 @@
             @{
                 var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
                     featuredEntries.ToList(),
-                DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
-                DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Featured,
+                    DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+                    DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Featured,
                     link2Name,
                     link3Name);
             }
@@ -77,8 +77,8 @@
             @{
                 var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
                     newestEntries.ToList(),
-                DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.DisplayCreateDate,
-                DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Featured,
+                    DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.DisplayCreateDate,
+                    DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Featured,
                     link2Name,
                     link3Name);
             }
@@ -154,7 +154,6 @@
         var categorySponsors = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
     }
 
-    
     @foreach (var category in activeCategories)
     {
         <h2 id="@category.CategoryKey">@category.Name</h2>
@@ -269,8 +268,8 @@
             var activeEntries = await directoryEntryRepository.GetActiveEntriesBySubcategoryAsync(subCategory.SubCategoryId);
             var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
                                         activeEntries.ToList(),
-            DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
-            DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Normal,
+                                        DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+                                        DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Normal,
                                         link2Name,
                                         link3Name);
             var subCategorySponsor = subCategorySponsors.FirstOrDefault(x => x.SubCategoryId == subCategory.SubCategoryId);
@@ -309,11 +308,12 @@
 <ul class="blank_list_item">
 @foreach (var viewModel in viewModelList)
 {
-if (sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntryId) != null)
-{
-    viewModel.IsSponsored = true;
-    viewModel.DisplayAsSponsoredItem = true;
-}
+    if ((sponsoredListings.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntryId) != null) ||
+        (categorySponsors.FirstOrDefault(x => x.DirectoryEntryId == viewModel.DirectoryEntryId) != null))
+    {
+        viewModel.IsSponsored = true;
+        viewModel.DisplayAsSponsoredItem = true;
+    }
 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
 }
 </ul>

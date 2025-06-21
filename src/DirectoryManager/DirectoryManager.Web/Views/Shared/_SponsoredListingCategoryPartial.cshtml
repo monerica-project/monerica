@@ -2,19 +2,65 @@
 @using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 
-<div class="category-sponsor-block">
+@{
+    var directoryEntries = new List<DirectoryManager.Data.Models.DirectoryEntry>();
+    var link2Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
+    var link3Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+    var directoryEntry = Model?.DirectoryEntry;
+}
 
-    @if (Model.DirectoryEntry != null)
+@if (Model != null && directoryEntry != null)
+{
+    directoryEntries.Add(new DirectoryEntry()
     {
-        @* Render the sponsored entry at the top *@
-        @await Html.PartialAsync("_DirectoryEntryPartial", Model.DirectoryEntry)
-    }
-    else 
-    {
-        <p class="sub-category-sponsored-listing">
-            <a class="app-link" rel="nofollow" href="~/sponsoredlisting/selectlisting?categoryId=@Model.CategoryId&sponsorshipType=@SponsorshipType.CategorySponsor">Advertise here</a>
-        </p>
-    }
- 
-</div>
+        Name = directoryEntry.Name,
+        DirectoryEntryKey = directoryEntry.DirectoryEntryKey,
+        Contact = directoryEntry.Contact,
+        CreateDate = directoryEntry.CreateDate,
+        Description = directoryEntry.Description,
+        DirectoryBadge = directoryEntry.DirectoryBadge,
+        DirectoryEntryId = directoryEntry.DirectoryEntryId,
+        DirectoryStatus = directoryEntry.DirectoryStatus,
+        Link = directoryEntry.Link,
+        Link2 = directoryEntry.Link2,
+        Link2A = directoryEntry.Link2A,
+        Link3 = directoryEntry.Link3,
+        Link3A = directoryEntry.Link3A,
+        LinkA = directoryEntry.LinkA,
+        Location = directoryEntry.Location,
+        Note = directoryEntry.Note,
+        Processor = directoryEntry.Processor,
+        SubCategory = directoryEntry.SubCategory,
+        SubCategoryId = (directoryEntry.SubCategoryId == null) ? 0 : directoryEntry.SubCategoryId.Value,
+        UpdateDate = directoryEntry.UpdateDate
+    });
+    <div class="sponsored-section" style="margin-bottom:5px;">
+        <p><b>Sponsored</b></p>
+        <ul class="blank_list_item">
+            @{
+                var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
+                directoryEntries,
+                DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+                DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.CategorySponsor,
+                link2Name,
+                link3Name);
+            }
+            @foreach (var viewModel in viewModelList)
+            {
+                viewModel.IsSubCategorySponsor = true;
+                @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
+            }
+        </ul>
+    </div>
+}
+else if (Model != null && Model.TotalActiveCategoryListings >= DirectoryManager.Common.Constants.IntegerConstants.MinRequiredCategories)
+{
+    <p class="sub-category-sponsored-listing">
+        <a class="app-link" rel="nofollow" href="~/sponsoredlisting/selectlisting?categoryId=@Model.CategoryId&sponsorshipType=@SponsorshipType.CategorySponsor">Advertise here</a>
+    </p>
+}
