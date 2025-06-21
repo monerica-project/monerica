@@ -154,7 +154,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var entries = await this.directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
+            var entries = await this.directoryEntryRepository.GetActiveEntriesBySubcategoryAsync(subCategory.SubCategoryId);
 
             // Populate ViewBag with the necessary values for breadcrumb and other data
             this.ViewBag.CategoryKey = category.CategoryKey;

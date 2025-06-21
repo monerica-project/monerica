@@ -48,6 +48,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<IEnumerable<DirectoryEntry>> GetAllowableAdvertisers()
         {
             return await this.context.DirectoryEntries
+                .Include(e => e.SubCategory!)
                 .Where(de => de.DirectoryStatus == DirectoryStatus.Admitted ||
                              de.DirectoryStatus == DirectoryStatus.Verified)
                 .ToListAsync();
@@ -217,7 +218,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return lastModifiedDates.ToDictionary(x => x.SubCategoryId, x => x.LastModified);
         }
 
-        public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int subCategoryId)
+        public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesBySubcategoryAsync(int subCategoryId)
         {
             // Use the GetActiveEntriesQuery() to ensure only active entries are retrieved.
             return await this.GetActiveEntriesQuery()
@@ -225,7 +226,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .OrderBy(entry => entry.Name)
                 .ToListAsync();
         }
- 
+
+        public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int categoryId)
+        {
+            // Use the GetActiveEntriesQuery() to ensure only active entries are retrieved.
+            return await this.GetActiveEntriesQuery()
+                .Where(entry => entry.SubCategory.CategoryId == categoryId)
+                .OrderBy(entry => entry.Name)
+                .ToListAsync();
+        }
 
         public async Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync()
         {

@@ -24,6 +24,10 @@ namespace DirectoryManager.Data.Models.SponsoredListings
 
         public decimal Price { get; set; }
 
+        public virtual Category? Category { get; set; }
+
+        public int? CategoryId { get; set; }
+
         public virtual Subcategory? Subcategory { get; set; }
 
         public int? SubcategoryId { get; set; }

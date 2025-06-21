@@ -89,15 +89,21 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
                 case SponsorshipType.SubcategorySponsor:
                     if (!typeId.HasValue)
+                    {
                         throw new ArgumentException(
                             "SubcategorySponsor requires a subcategory ID.", nameof(typeId));
+                    }
+
                     query = query.Where(x => x.SubCategoryId == typeId.Value);
                     break;
 
                 case SponsorshipType.CategorySponsor:
                     if (!typeId.HasValue)
+                    {
                         throw new ArgumentException(
                             "CategorySponsor requires a category ID.", nameof(typeId));
+                    }
+
                     query = query.Where(x =>
                         x.DirectoryEntry!.SubCategory!.CategoryId == typeId.Value);
                     break;
@@ -109,7 +115,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return await query.CountAsync();
         }
-
 
         public async Task<int> GetTotalCountAsync()
         {

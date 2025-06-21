@@ -108,7 +108,7 @@
 
                 @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", subCategorySponsorModel)
             }
-            else if (filteredEntries.Count(e => e.SubCategoryId == subCategory.SubCategoryId) >= DirectoryManager.Common.Constants.IntegerConstants.MinimumSponsoredActiveSubcategories)
+            else if (filteredEntries.Count(e => e.SubCategoryId == subCategory.SubCategoryId) >= DirectoryManager.Common.Constants.IntegerConstants.MinRequiredSubcategories)
             {
                 var advertiseModel = new SubcategorySponsorModel
                             {

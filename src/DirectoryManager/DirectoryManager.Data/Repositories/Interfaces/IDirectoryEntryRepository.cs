@@ -22,7 +22,8 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int numberOfDays);
         Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(int pageSize, int pageNumber);
         Task<IEnumerable<DirectoryEntry>> GetNewestAdditions(int count);
-        Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int subCategoryId);
+        Task<IEnumerable<DirectoryEntry>> GetActiveEntriesBySubcategoryAsync(int subCategoryId);
+        Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int categoryId);
         Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync();
         Task<int> TotalActive();
         Task<Dictionary<int, DateTime>> GetLastModifiedDatesBySubCategoryAsync();

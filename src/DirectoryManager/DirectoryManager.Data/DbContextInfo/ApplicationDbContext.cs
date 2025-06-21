@@ -121,7 +121,7 @@ namespace DirectoryManager.Data.DbContextInfo
                    .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<SponsoredListingOffer>()
-                   .HasIndex(e => new { e.SubcategoryId, e.SponsorshipType, e.Days })
+                   .HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId, e.SubcategoryId })
                    .IsUnique();
 
             builder.Entity<SponsoredListingOffer>()

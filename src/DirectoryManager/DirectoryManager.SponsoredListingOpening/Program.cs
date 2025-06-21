@@ -168,13 +168,13 @@ static async Task<bool> CanPurchaseSubcategoryListing(
     }
 
     var totalActiveEntriesInCategory = await directoryEntryRepository
-                                         .GetActiveEntriesByCategoryAsync(notification.TypeId.Value);
+                                         .GetActiveEntriesBySubcategoryAsync(notification.TypeId.Value);
 
     var totalActiveListings = await sponsoredListingRepository
                                 .GetActiveSponsorsCountAsync(notification.SponsorshipType, notification.TypeId.Value);
 
     var canBuySubcategorySponsor =
             totalActiveListings < IntegerConstants.MaxSubcategorySponsoredListings &&
-            totalActiveEntriesInCategory.Count() >= IntegerConstants.MinimumSponsoredActiveSubcategories;
+            totalActiveEntriesInCategory.Count() >= IntegerConstants.MinRequiredSubcategories;
     return canBuySubcategorySponsor;
 }

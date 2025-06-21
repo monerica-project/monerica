@@ -99,7 +99,6 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            // Sub-category case
             if (invoice.SponsorshipType == SponsorshipType.SubcategorySponsor
                 && invoice.SubCategoryId.HasValue)
             {
@@ -111,8 +110,6 @@ namespace DirectoryManager.Web.Controllers
                                   .FirstOrDefault(sc => sc.SubCategoryId == invoice.SubCategoryId.Value);
                 this.ViewBag.SubCategory = subcategory;
             }
-
-            // Category case
             else if (invoice.SponsorshipType == SponsorshipType.CategorySponsor
                      && invoice.CategoryId.HasValue)
             {

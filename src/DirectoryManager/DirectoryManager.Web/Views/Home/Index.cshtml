@@ -166,7 +166,7 @@
         {
             <p><i>Note: @Html.Raw(category.Note)</i></p>
         }
-     
+         
     // find the sponsor for this category (if any)
     var catSponsor = categorySponsors
                         .FirstOrDefault(s =>
@@ -199,7 +199,7 @@
                         Link3Name = link3Name
                     } : null
                 };
-       @*  @await Html.PartialAsync("_SponsoredListingCategoryPartial", categorySponsorModel) *@
+    @await Html.PartialAsync("_SponsoredListingCategoryPartial", categorySponsorModel)
 
     if (catSponsor?.DirectoryEntry != null)
     {
@@ -228,7 +228,7 @@
         };
         // fetch normal entries
         var normalEntries = await directoryEntryRepository
-                                  .GetActiveEntriesByCategoryAsync(category.CategoryId);
+                                  .GetActiveEntriesBySubcategoryAsync(category.CategoryId);
         var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter
                                 .ConvertToViewModels(
                                     normalEntries.ToList(),
@@ -244,7 +244,7 @@
     {
         // no category sponsor: just build your regular list
         var normalEntries = await directoryEntryRepository
-                                  .GetActiveEntriesByCategoryAsync(category.CategoryId);
+                                  .GetActiveEntriesBySubcategoryAsync(category.CategoryId);
         var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter
                                 .ConvertToViewModels(
                                     normalEntries.ToList(),
@@ -266,7 +266,7 @@
             {
                 <i>Note: @Html.Raw(subCategory.Note)</i>
             }
-            var activeEntries = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(subCategory.SubCategoryId);
+            var activeEntries = await directoryEntryRepository.GetActiveEntriesBySubcategoryAsync(subCategory.SubCategoryId);
             var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
                                         activeEntries.ToList(),
             DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,

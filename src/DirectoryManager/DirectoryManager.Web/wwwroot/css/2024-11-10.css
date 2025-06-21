@@ -24,7 +24,7 @@ h1.home, h4.home {
         text-align: center;
 }
 
-h3 {
+h2, h3 {
     margin-bottom: 0;
     padding-bottom: 0;
 }

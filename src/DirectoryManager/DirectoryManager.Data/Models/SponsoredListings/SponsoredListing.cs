@@ -23,6 +23,8 @@ namespace DirectoryManager.Data.Models.SponsoredListings
 
         public SponsorshipType SponsorshipType { get; set; } = SponsorshipType.Unknown;
 
+        public int? CategoryId { get; set; }
+
         public int? SubCategoryId { get; set; }
 
         public virtual DirectoryEntry? DirectoryEntry { get; set; }

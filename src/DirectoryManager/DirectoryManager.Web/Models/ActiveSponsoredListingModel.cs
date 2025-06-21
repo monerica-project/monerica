@@ -11,5 +11,6 @@ namespace DirectoryManager.Web.Models
         required public string ListingUrl { get; set; }
         public SponsorshipType SponsorshipType { get; set; }
         public string SubcategoryName { get; set; } = string.Empty;
+        public string CategoryName { get; set; } = string.Empty;
     }
 }

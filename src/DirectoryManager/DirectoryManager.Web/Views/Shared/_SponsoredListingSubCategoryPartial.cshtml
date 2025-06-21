@@ -57,7 +57,7 @@
         </ul>
     </div>
 }
-else if (Model != null && Model.TotalActiveSubCategoryListings >= DirectoryManager.Common.Constants.IntegerConstants.MinimumSponsoredActiveSubcategories)
+else if (Model != null && Model.TotalActiveSubCategoryListings >= DirectoryManager.Common.Constants.IntegerConstants.MinRequiredSubcategories)
 {<p class="sub-category-sponsored-listing">
         <a class="app-link" rel="nofollow" href="~/sponsoredlisting/selectlisting?subCategoryId=@Model.SubCategoryId&sponsorshipType=@SponsorshipType.SubcategorySponsor">Advertise here</a>
 </p>

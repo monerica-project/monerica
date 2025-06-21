@@ -42,6 +42,30 @@
     </tbody>
 </table>
 
+
+<hr />
+
+<h3>@EnumHelper.GetDescription(SponsorshipType.CategorySponsor)</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th>Days</th>
+            <th>Price (@DirectoryManager.Data.Enums.Currency.USD.ToString())</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var offer in Model.CategorySponsorshipOffers)
+        {
+            <tr>
+                <td>@offer.CategorySubcategory</td>
+                <td style="text-align:center;">@offer.Days</td>
+                <td style="text-align:right;">@offer.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat)</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
 <hr />
 
 <h3>@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</h3>
