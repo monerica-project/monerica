@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.DbContextInfo;
+﻿using DirectoryManager.Data.Constants;
+using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -26,11 +27,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task CreateAsync(SponsoredListingOpeningNotification notification)
         {
-            await this.context.SponsoredListingOpeningNotifications.AddAsync(notification);
-            await this.context.SaveChangesAsync();
+            try
+            {
+                await this.context.SponsoredListingOpeningNotifications.AddAsync(notification);
+                await this.context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
+            }
         }
 
-        public async Task<IEnumerable<SponsoredListingOpeningNotification>> GetPendingNotificationsAsync()
+        public async Task<IEnumerable<SponsoredListingOpeningNotification>> GetSubscribers()
         {
             return await this.context.SponsoredListingOpeningNotifications
                 .Where(n => !n.IsReminderSent)

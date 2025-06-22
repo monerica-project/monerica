@@ -82,6 +82,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
         public static string GenerateHtmlEmail(
             IEnumerable<DirectoryEntry> newEntries,
             IEnumerable<SponsoredListing> mainSponsors,
+            IEnumerable<SponsoredListing> categorySponsors,
             IEnumerable<SponsoredListing> subCategorySponsors,
             string siteName = "",
             string footerHtml = "",
@@ -173,7 +174,10 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             // Main Sponsors Section
             AppendMainSponsors(mainSponsors, result);
 
-            // SubCategory Sponsors Section
+            // Category Sponsors Section
+            AppendCategorySponsors(categorySponsors, result);
+
+            // Subcategory Sponsors Section
             AppendSubCategorySponsors(subCategorySponsors, result);
 
             // Footer
@@ -269,6 +273,29 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             return result.ToString().TrimEnd();
         }
 
+        public static string GenerateCategorySponsorText(IEnumerable<SponsoredListing> categorySponsors)
+        {
+            var result = new StringBuilder();
+
+            if (categorySponsors.Any())
+            {
+                result.AppendLine();
+                result.AppendLine("Category Sponsors");
+                result.AppendLine();
+            }
+
+            foreach (var sponsor in categorySponsors)
+            {
+                if (sponsor.DirectoryEntry != null)
+                {
+                    result.AppendLine($"{sponsor.DirectoryEntry?.SubCategory?.Category.Name}");
+                    result.AppendLine($"+ {sponsor.DirectoryEntry?.Name} - {sponsor.DirectoryEntry?.Link} - {sponsor.DirectoryEntry?.Description}");
+                }
+            }
+
+            return result.ToString().TrimEnd();
+        }
+
         public static string GenerateSubcategorySponsorText(IEnumerable<SponsoredListing> subCategorySponsors)
         {
             var result = new StringBuilder();
@@ -292,14 +319,22 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             return result.ToString().TrimEnd();
         }
 
-        public static string GenerateTextEmail(List<DirectoryEntry> entries, List<SponsoredListing> mainSponsors, List<SponsoredListing> subCategorySponsors, string emailSettingUnsubscribeFooterText)
+        public static string GenerateTextEmail(
+            List<DirectoryEntry> entries,
+            List<SponsoredListing> mainSponsors,
+            List<SponsoredListing> categorySponsors,
+            List<SponsoredListing> subCategorySponsors,
+            string emailSettingUnsubscribeFooterText)
         {
             var sb = new StringBuilder();
 
             sb.AppendLine(GenerateDirectoryEntryText(entries));
 
             sb.AppendLine("-----------------------------------");
+
             sb.AppendLine(GenerateMainSponsorText(mainSponsors));
+
+            sb.AppendLine(GenerateCategorySponsorText(categorySponsors));
 
             sb.AppendLine(GenerateSubcategorySponsorText(subCategorySponsors));
 
@@ -328,6 +363,41 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
                 }
 
                 result.AppendLine("</ul>");
+            }
+        }
+
+        private static void AppendCategorySponsors(IEnumerable<SponsoredListing> categorySponsors, StringBuilder result)
+        {
+            if (categorySponsors.Any())
+            {
+                result.AppendLine("<hr />");
+                result.AppendLine("<h1>Category Sponsors</h1>");
+
+                // Group sponsors by Category > Subcategory
+                var groupedSponsors = categorySponsors
+                    .Where(s => s.DirectoryEntry?.SubCategory?.Category != null)
+                    .GroupBy(s => new
+                    {
+                        Category = s.DirectoryEntry?.SubCategory?.Category.Name,
+                        SubCategory = s.DirectoryEntry?.SubCategory?.Name
+                    })
+                    .OrderBy(g => g.Key.Category)
+                    .ThenBy(g => g.Key.SubCategory);
+
+                foreach (var group in groupedSponsors)
+                {
+                    // Display the Category > Subcategory heading
+                    result.AppendLine($"<h2>{group.Key.Category}</h2>");
+                    result.AppendLine("<ul>");
+
+                    // Display the sponsors under this Subcategory
+                    foreach (var sponsor in group)
+                    {
+                        AppendEntry(result, sponsor);
+                    }
+
+                    result.AppendLine("</ul>");
+                }
             }
         }
 

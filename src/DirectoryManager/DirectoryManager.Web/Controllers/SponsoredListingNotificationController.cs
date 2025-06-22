@@ -73,7 +73,7 @@ namespace DirectoryManager.Web.Controllers
                 this.TempData[StringConstants.ErrorMessage] = "Valid email is required.";
                 return this.RedirectToAction(
                     nameof(this.SubscribeAsync),
-                    new { model.SponsorshipType, typeId = model.TypeId });
+                    new { sponsorshipType = model.SponsorshipType, typeId = model.TypeId });
             }
 
             var exists = await this.notificationRepository
@@ -92,9 +92,8 @@ namespace DirectoryManager.Web.Controllers
                      .ConfigureAwait(false);
 
             this.TempData[StringConstants.SuccessMessage] = "Subscription successful.";
-            return this.RedirectToAction(
-                nameof(this.SubscribeAsync),
-                new { model.SponsorshipType, typeId = model.TypeId });
+
+            return this.View(model);
         }
 
         [Authorize, HttpGet, Route("sponsoredlistingnotification/list")]

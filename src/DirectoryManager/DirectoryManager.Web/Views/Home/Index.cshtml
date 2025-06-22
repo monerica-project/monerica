@@ -171,10 +171,12 @@
                         .FirstOrDefault(s =>
                             s.DirectoryEntry?.SubCategory?.CategoryId == category.CategoryId);
 
+        var catSponsorCount = activeCategories.Count();
+
     var categorySponsorModel = new DirectoryManager.Web.Models.CategorySponsorModel()
                 {
                     CategoryId = category.CategoryId,
-                    TotalActiveCategoryListings = -1,
+                    TotalActiveCategoryListings = catSponsorCount,
                     DirectoryEntry = (catSponsor != null && catSponsor.DirectoryEntry != null) ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel()
                     {
                         CreateDate = catSponsor.DirectoryEntry.CreateDate,

@@ -93,7 +93,7 @@ else
 }
 
 // Fetch pending notifications
-var pendingNotifications = await notificationRepo.GetPendingNotificationsAsync();
+var pendingNotifications = await notificationRepo.GetSubscribers();
 
 Console.WriteLine($"Found {pendingNotifications.Count()} pending notifications.");
 
@@ -118,10 +118,22 @@ foreach (var notification in pendingNotifications)
         }
     }
 
+    if (notification.SponsorshipType == SponsorshipType.CategorySponsor)
+    {
+        bool canBuyCategorySponsor = await CanPurchaseCategoryListing(directoryEntryRepository, sponsoredListingRepository, notification);
+
+        if (!canBuyCategorySponsor)
+        {
+            Console.WriteLine($"No opening for {SponsorshipType.CategorySponsor}. Skipping notification for Email: {notification.Email}");
+            continue;
+        }
+    }
+
     // Generate the notification link using the template and replace placeholders
     var notificationLink = notificationLinkTemplate
         .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder, notification.SponsorshipType.ToString())
-        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SubCategoryIdPlaceholder, notification.TypeId?.ToString() ?? string.Empty);
+        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SubCategoryIdPlaceholder, notification.TypeId?.ToString() ?? string.Empty)
+        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.CategoryIdPlaceholder, notification.TypeId?.ToString() ?? string.Empty);
 
     // Prepare the email content by replacing placeholders
     var plainTextContent = emailMessage.EmailBodyText
@@ -157,6 +169,29 @@ static bool CanPurchaseMainSponsorListing(int totalActiveListings, int totalActi
     return (totalActiveListings + totalActiveReservations) < IntegerConstants.MaxMainSponsoredListings;
 }
 
+static async Task<bool> CanPurchaseCategoryListing(
+    IDirectoryEntryRepository directoryEntryRepository,
+    ISponsoredListingRepository sponsoredListingRepository,
+    DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification notification)
+{
+    if (notification.TypeId == null)
+    {
+        return false;
+    }
+
+    var totalActiveEntriesInCategory = await directoryEntryRepository
+                                         .GetActiveEntriesByCategoryAsync(notification.TypeId.Value);
+
+    var totalActiveListings = await sponsoredListingRepository
+                                .GetActiveSponsorsCountAsync(notification.SponsorshipType, notification.TypeId.Value);
+
+    var canBuyCategorySponsor =
+            totalActiveListings < IntegerConstants.MaxCategorySponsoredListings &&
+            totalActiveEntriesInCategory.Count() >= IntegerConstants.MinRequiredCategories;
+
+    return canBuyCategorySponsor;
+}
+
 static async Task<bool> CanPurchaseSubcategoryListing(
     IDirectoryEntryRepository directoryEntryRepository,
     ISponsoredListingRepository sponsoredListingRepository,
@@ -176,5 +211,6 @@ static async Task<bool> CanPurchaseSubcategoryListing(
     var canBuySubcategorySponsor =
             totalActiveListings < IntegerConstants.MaxSubcategorySponsoredListings &&
             totalActiveEntriesInCategory.Count() >= IntegerConstants.MinRequiredSubcategories;
+
     return canBuySubcategorySponsor;
 }

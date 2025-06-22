@@ -21,7 +21,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// Retrieves all notifications that are pending reminders.
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
-        Task<IEnumerable<SponsoredListingOpeningNotification>> GetPendingNotificationsAsync();
+        Task<IEnumerable<SponsoredListingOpeningNotification>> GetSubscribers();
 
         /// <summary>
         /// Marks a notification as having its reminder sent.

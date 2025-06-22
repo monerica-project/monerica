@@ -71,6 +71,7 @@ namespace DirectoryManager.Web.Controllers
 
             // Get the last modification date for any sponsored listing
             var lastSponsoredListingChange = await this.sponsoredListingRepository.GetLastChangeDateForMainSponsorAsync();
+
             mostRecentUpdateDate = lastSponsoredListingChange.HasValue && lastSponsoredListingChange > mostRecentUpdateDate
                 ? lastSponsoredListingChange.Value
                 : mostRecentUpdateDate;

@@ -25,12 +25,9 @@ else
 <hr />
 <a href="~/sponsoredlisting">&lt; back</a>
 <hr />
-<p>
-<i>Note: removed and scam listings cannot be sponsored listings</i>
-</p>
+
 <form method="get">
     <input name="sponsorshipType" type="hidden" value="@ViewBag.SponsorshipType" />
-    <label for="combinedFilter">Select: </label>
     <select id="combinedFilter" name="subCategoryId">
         <option value="">--Category > Subcategory--</option>
         @foreach (var subCategory in (IEnumerable<Subcategory>)ViewBag.SubCategories)
@@ -61,3 +58,7 @@ else
         </div>
     }
 }
+<br />
+<p>
+<i>Note: removed and scam listings cannot be sponsored listings.</i>
+</p>
