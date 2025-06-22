@@ -22,7 +22,16 @@
         {
             <tr>
                 <td>@submission.Name</td>
-                <td>@submission.SubmissionStatus</td>
+                <td>
+                    @if (submission.SubmissionStatus != DirectoryManager.Data.Enums.SubmissionStatus.Pending)
+                    {
+                        <i>@submission.SubmissionStatus</i>
+                    }
+                    else
+                    {
+                        <b>@submission.SubmissionStatus</b>
+                    }
+                    </td>
                 <td>@submission.CreateDate</td>
                 <td>
                     @if (submission?.UpdateDate != null)

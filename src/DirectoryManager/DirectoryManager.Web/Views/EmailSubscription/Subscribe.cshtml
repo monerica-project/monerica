@@ -13,7 +13,17 @@
 
 <form asp-controller="EmailSubscription" asp-action="Subscribe" method="post" class="form-inline">
 
-    <input name="Email" type="email" id="inlineFormInput" placeholder="yourname@email.com">
+    <p>Email:</p>
+    <input name="Email" type="email" id="inlineFormInput" placeholder="yourname@email.com" />
+ 
+    <br />
+    <br />
+    <img src="@Url.Action("CaptchaImage", "EmailSubscription")?t=@DateTime.Now.Ticks" alt="CAPTCHA" />
 
+    <div>
+        <input name="Captcha" type="text" placeholder="Enter CAPTCHA" />
+    </div>
+
+    <br />
     <button type="submit" class="btn btn-success">Subscribe</button>
 </form>

@@ -1,6 +1,8 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.DisplayFormatting.Helpers;
+using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Utilities.Validation;
 using DirectoryManager.Web.Helpers;
@@ -77,6 +79,16 @@ namespace DirectoryManager.Web.Controllers
             if (!UrlHelper.IsValidUrl(model.Link))
             {
                 this.ModelState.AddModelError("Link", "The link is not a valid URL.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Link2) && !UrlHelper.IsValidUrl(model.Link2))
+            {
+                this.ModelState.AddModelError("Link2", "The link 2 is not a valid URL.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Link3) && !UrlHelper.IsValidUrl(model.Link3))
+            {
+                this.ModelState.AddModelError("Link3", "The link 3 is not a valid URL.");
             }
 
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
@@ -183,7 +195,7 @@ namespace DirectoryManager.Web.Controllers
                 }
                 else
                 {
-                    audit.SubCategoryName = "No SubCategory Assigned";
+                    audit.SubCategoryName = "No Subcategory Assigned";
                 }
             }
 
@@ -264,15 +276,15 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            if (model.SubCategoryId == null ||
-                model.SubCategoryId == 0)
-            {
-                throw new Exception("Submission does not have a subcategory");
-            }
-
             if (submission.SubmissionStatus == SubmissionStatus.Pending &&
                 model.SubmissionStatus == SubmissionStatus.Approved)
             {
+                if (model.SubCategoryId == null ||
+                    model.SubCategoryId == 0)
+                {
+                    return this.BadRequest(new { Error = $"Submission does not have a subcategory" });
+                }
+
                 if (model.DirectoryEntryId == null)
                 {
                     // it's now approved
@@ -371,8 +383,9 @@ namespace DirectoryManager.Web.Controllers
             };
         }
 
-        private async Task<int?> GetExistingListingFromLinkAsync(string link)
+        private async Task<int?> GetExistingEntryAsync(SubmissionRequest request)
         {
+            var link = request.Link;
             var existingLink = await this.directoryEntryRepository.GetByLinkAsync(link);
 
             if (existingLink != null)
@@ -386,6 +399,13 @@ namespace DirectoryManager.Web.Controllers
             if (existingLinkVariation1 != null)
             {
                 return existingLinkVariation1.DirectoryEntryId;
+            }
+
+            var existingName = await this.directoryEntryRepository.GetByNameAsync(request.Name);
+
+            if (existingName != null)
+            {
+                return existingName.DirectoryEntryId;
             }
 
             return null;
@@ -422,7 +442,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 DirectoryEntryViewModel = new DirectoryEntryViewModel
                 {
-                    DateOption = Enums.DateDisplayOption.NotDisplayed,
+                    DateOption = DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
                     IsSponsored = false,
                     Link2Name = link2Name,
                     Link3Name = link3Name,
@@ -455,6 +475,15 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction("Success", "Submission");
             }
 
+            if ((model.SubCategoryId == null || model.SubCategoryId == 0) &&
+                string.IsNullOrWhiteSpace(model.SuggestedSubCategory))
+            {
+                this.ModelState.AddModelError(string.Empty, "You must select a subcategory or supply a suggested one.");
+                await this.LoadSubCategories();
+
+                return this.View("SubmitEdit", model);
+            }
+
             var existingLinkSubmission = await this.submissionRepository.GetByLinkAndStatusAsync(model.Link);
 
             if (existingLinkSubmission != null)
@@ -465,16 +494,16 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("SubmitEdit", model);
             }
 
-            var submissionModel = this.GetSubmissionRequest(model);
+            var submissionModel = this.FormatSubmissionRequest(model);
             var submissionId = model.SubmissionId;
 
             if (submissionId == null)
             {
-                var existingDirectoryEntryId = await this.GetExistingListingFromLinkAsync(model.Link);
+                var existingDirectoryEntryId = await this.GetExistingEntryAsync(model);
 
                 if (existingDirectoryEntryId != null)
                 {
-                    var existingDirectoryEntry = await this.directoryEntryRepository.GetByIdAsync(existingDirectoryEntryId.Value);
+                    await this.AssignExistingProperties(submissionModel, existingDirectoryEntryId.Value);
                 }
 
                 submissionModel.DirectoryEntryId = existingDirectoryEntryId;
@@ -500,6 +529,17 @@ namespace DirectoryManager.Web.Controllers
                 {
                     id = submissionId
                 });
+        }
+
+        private async Task AssignExistingProperties(Submission submissionModel, int existingDirectoryEntryId)
+        {
+            var existingDirectoryEntry = await this.directoryEntryRepository.GetByIdAsync(existingDirectoryEntryId);
+
+            if (existingDirectoryEntry != null)
+            {
+                // they are submitting a listing that is an override, not an edit, copy the status from the existing listing
+                submissionModel.DirectoryStatus = existingDirectoryEntry?.DirectoryStatus;
+            }
         }
 
         private async Task CreateDirectoryEntry(Submission model)
@@ -563,7 +603,7 @@ namespace DirectoryManager.Web.Controllers
             await this.directoryEntryRepository.UpdateAsync(existing);
         }
 
-        private Submission GetSubmissionRequest(SubmissionRequest model)
+        private Submission FormatSubmissionRequest(SubmissionRequest model)
         {
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
 

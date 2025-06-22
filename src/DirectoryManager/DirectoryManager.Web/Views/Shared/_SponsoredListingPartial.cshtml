@@ -28,10 +28,10 @@
 
         <ul class="blank_list_item">
             @{
-                var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+                    var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
                     directoryEntries,
-                    DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
-                    DirectoryManager.Web.Enums.ItemDisplayType.SubcategorySponsor,
+                    DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+                    DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.SubcategorySponsor,
                     link2Name,
                     link3Name);
             }

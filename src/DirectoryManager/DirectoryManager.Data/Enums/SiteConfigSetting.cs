@@ -12,8 +12,8 @@
         DirectoryLegendHtml = 7,
         HomePageTitle = 8,
         DonationHtml = 9,
-        NowPaymentsMessage = 10,
-        SubmissionGuidelines = 11,
+        NowPaymentsMessageHtml = 10,
+        SubmissionGuidelinesHtml = 11,
         AzureStorageConnectionString = 12,
         CdnPrefixWithProtocol = 13,
         BlobPrefix = 14,
@@ -37,6 +37,9 @@
         SendGridApiKey = 32,
         SendGridSenderEmail = 33,
         SendGridSenderName = 34,
-        NewsletterSummaryHtml = 35
+        NewsletterSummaryHtml = 35,
+        SiteLogoUrl = 36,
+        CategorySponsoredListingDetails = 37,
+        SponsoredListingSteps = 38
     }
 }

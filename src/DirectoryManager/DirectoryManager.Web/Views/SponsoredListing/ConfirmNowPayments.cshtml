@@ -45,12 +45,7 @@
             </p>
         }
 
-        <p>
-            <i>
-                @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.NowPaymentsMessage))
-            </i>
-        </p>
-
+        @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.NowPaymentsMessageHtml))
 
         <form method="post" action="~/sponsoredlisting/confirmnowpayments">
             <hr />

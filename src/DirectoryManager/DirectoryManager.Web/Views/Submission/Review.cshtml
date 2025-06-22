@@ -80,12 +80,12 @@
     
     <div class="form-group">
         <label asp-for="Description">Description</label>
-        <textarea class="input-width input-width" cols="100" asp-for="Description"></textarea>
+        <textarea rows="5" class="input-width input-width" cols="100" asp-for="Description"></textarea>
     </div>
 
     <div class="form-group">
         <label asp-for="Note">Note</label>
-        <textarea class="input-width"  cols="100" asp-for="Note"></textarea>
+        <textarea rows="5" class="input-width" cols="100" asp-for="Note"></textarea>
     </div>
 
     <div class="form-group">
@@ -111,7 +111,7 @@
     <h3>For Reviewer</h3>
     <div class="form-group">
         <label asp-for="NoteToAdmin">Note To Admin</label>
-        <textarea asp-for="NoteToAdmin" class="form-control input-width"></textarea>
+        <textarea rows="10" asp-for="NoteToAdmin" class="form-control input-width"></textarea>
         <span asp-validation-for="NoteToAdmin" class="text-danger"></span>
     </div>
 

@@ -44,12 +44,14 @@ namespace DirectoryManager.Web.Controllers
 
             var mainSponsors = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
             var subCategorySponsors = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor);
+            var categorySponsors = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
 
             this.ViewBag.FilteredEntries = filteredEntries;
             this.ViewBag.FilteredSubcategories = filteredSubcategoriesWithEntries;
             this.ViewBag.FilteredCategories = filteredCategoriesWithEntries;
             this.ViewBag.MainSponsors = mainSponsors;
             this.ViewBag.SubCategorySponsors = subCategorySponsors;
+            this.ViewBag.CategorySponsors = categorySponsors;
             this.ViewBag.Link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
             this.ViewBag.Link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
             this.ViewBag.Status = status;

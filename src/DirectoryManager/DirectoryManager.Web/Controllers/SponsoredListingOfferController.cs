@@ -1,5 +1,4 @@
-﻿using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Models.SponsoredListings;
+﻿using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -12,46 +11,69 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly ISponsoredListingOfferRepository sponsoredListingOfferRepository;
         private readonly ISubcategoryRepository subCategoryRepository;
+        private readonly ICategoryRepository categoryRepository;
 
         public SponsoredListingOfferController(
             ISponsoredListingOfferRepository sponsoredListingOfferRepository,
-            ISubcategoryRepository subCategoryRepository)
+            ISubcategoryRepository subCategoryRepository,
+            ICategoryRepository categoryRepository)
         {
             this.sponsoredListingOfferRepository = sponsoredListingOfferRepository;
             this.subCategoryRepository = subCategoryRepository;
+            this.categoryRepository = categoryRepository;
         }
 
         [Route("sponsoredlistingoffer/index")]
         [HttpGet]
         public async Task<IActionResult> Index()
         {
-            return this.View(await this.sponsoredListingOfferRepository.GetAllAsync());
+            var offers = await this.sponsoredListingOfferRepository
+                                  .GetAllAsync()
+                                  .ConfigureAwait(false);
+            return this.View(offers);
         }
 
         [Route("sponsoredlistingoffer/details")]
         [HttpGet]
         public async Task<IActionResult> Details(int id)
         {
-            var sponsoredListingOffer = await this.sponsoredListingOfferRepository.GetByIdAsync(id);
-            if (sponsoredListingOffer == null)
+            var offer = await this.sponsoredListingOfferRepository
+                                   .GetByIdAsync(id)
+                                   .ConfigureAwait(false);
+            if (offer == null)
             {
                 return this.NotFound();
             }
 
-            return this.View(sponsoredListingOffer);
+            return this.View(offer);
         }
 
+        // GET: /sponsoredlistingoffer/create
         [Route("sponsoredlistingoffer/create")]
         [HttpGet]
         public async Task<IActionResult> CreateAsync()
         {
-            var subCategories = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync();
-            this.ViewBag.SubCategories = subCategories?.OrderBy(sc => sc.Category.Name).ThenBy(sc => sc.Name).ToList()
-                                    ?? new List<Subcategory>();
-            this.ViewBag.SponsorshipTypeSelectList = new SelectList(Enum.GetValues(typeof(Data.Enums.SponsorshipType)));
+            var subCategories = await this.subCategoryRepository
+                                      .GetAllActiveSubCategoriesAsync()
+                                      .ConfigureAwait(false);
+            var categories = await this.categoryRepository
+                                         .GetAllAsync()
+                                         .ConfigureAwait(false);
+
+            this.ViewBag.SubCategories = subCategories
+                                         .OrderBy(sc => sc.Category.Name)
+                                         .ThenBy(sc => sc.Name)
+                                         .ToList();
+            this.ViewBag.Categories = categories
+                                        .OrderBy(c => c.Name)
+                                        .ToList();
+
+            this.ViewBag.SponsorshipTypeSelectList = new SelectList(
+                Enum.GetValues(typeof(Data.Enums.SponsorshipType)));
 
             return this.View();
         }
+
 
         [Route("sponsoredlistingoffer/create")]
         [HttpPost]
@@ -61,7 +83,9 @@ namespace DirectoryManager.Web.Controllers
             if (this.ModelState.IsValid)
             {
                 sponsoredListingOffer.PriceCurrency = Data.Enums.Currency.USD;
-                await this.sponsoredListingOfferRepository.CreateAsync(sponsoredListingOffer);
+                await this.sponsoredListingOfferRepository
+                         .CreateAsync(sponsoredListingOffer)
+                         .ConfigureAwait(false);
                 return this.RedirectToAction(nameof(this.Index));
             }
 
@@ -72,18 +96,34 @@ namespace DirectoryManager.Web.Controllers
         [Route("sponsoredlistingoffer/edit")]
         public async Task<IActionResult> Edit(int id)
         {
-            var sponsoredListingOffer = await this.sponsoredListingOfferRepository.GetByIdAsync(id);
-            if (sponsoredListingOffer == null)
+            var offer = await this.sponsoredListingOfferRepository
+                                   .GetByIdAsync(id)
+                                   .ConfigureAwait(false);
+            if (offer == null)
             {
                 return this.NotFound();
             }
 
-            var subCategories = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync();
+            var subCategories = await this.subCategoryRepository
+                                      .GetAllActiveSubCategoriesAsync()
+                                      .ConfigureAwait(false);
+            var categories = await this.categoryRepository
+                                         .GetAllAsync()
+                                         .ConfigureAwait(false);
 
-            this.ViewBag.SubCategories = subCategories?.OrderBy(sc => sc.Category.Name).ThenBy(sc => sc.Name).ToList()
-                        ?? new List<Subcategory>();
+            this.ViewBag.SubCategories = subCategories
+                                         .OrderBy(sc => sc.Category.Name)
+                                         .ThenBy(sc => sc.Name)
+                                         .ToList();
+            this.ViewBag.Categories = categories
+                                        .OrderBy(c => c.Name)
+                                        .ToList();
 
-            return this.View(sponsoredListingOffer);
+            this.ViewBag.SponsorshipTypeSelectList = new SelectList(
+            Enum.GetValues(typeof(Data.Enums.SponsorshipType)),
+            offer.SponsorshipType);
+
+            return this.View(offer);
         }
 
         [Route("sponsoredlistingoffer/edit")]
@@ -93,7 +133,9 @@ namespace DirectoryManager.Web.Controllers
         {
             if (this.ModelState.IsValid)
             {
-                await this.sponsoredListingOfferRepository.UpdateAsync(sponsoredListingOffer);
+                await this.sponsoredListingOfferRepository
+                         .UpdateAsync(sponsoredListingOffer)
+                         .ConfigureAwait(false);
                 return this.RedirectToAction(nameof(this.Index));
             }
 
@@ -107,12 +149,16 @@ namespace DirectoryManager.Web.Controllers
         {
             try
             {
-                await this.sponsoredListingOfferRepository.DeleteOfferAsync(id);
-                this.TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage] = "The sponsored listing offer has been successfully deleted.";
+                await this.sponsoredListingOfferRepository
+                         .DeleteOfferAsync(id)
+                         .ConfigureAwait(false);
+                this.TempData[Constants.StringConstants.SuccessMessage] =
+                    "The sponsored listing offer has been successfully deleted.";
             }
             catch (Exception ex)
             {
-                this.TempData[DirectoryManager.Web.Constants.StringConstants.ErrorMessage] = $"Failed to delete the offer: {ex.Message}";
+                this.TempData[Constants.StringConstants.ErrorMessage] =
+                    $"Failed to delete the offer: {ex.Message}";
             }
 
             return this.RedirectToAction(nameof(this.Index));

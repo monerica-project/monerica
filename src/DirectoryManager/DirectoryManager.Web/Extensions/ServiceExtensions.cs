@@ -23,8 +23,11 @@ namespace DirectoryManager.Web.Extensions
 {
     public static class ServiceExtensions
     {
-        public static IServiceCollection AddApplicationServices(this IServiceCollection services, IConfiguration config)
+        public static IServiceCollection AddApplicationServices(
+            this IServiceCollection services,
+            IConfiguration config)
         {
+            services.AddSession();
             services.AddResponseCaching();
             services.AddControllersWithViews();
             services.AddRazorPages();

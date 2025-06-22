@@ -15,10 +15,18 @@
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
-<a href="~/sponsoredlisting/selectlisting?sponsorshipType=@ViewBag.SponsorshipType&subCategoryId=@ViewBag.SubCategoryId">&lt; back</a>
+
+<a href="~/sponsoredlisting/selectlisting?sponsorshipType=@ViewBag.SponsorshipType&subCategoryId=@ViewBag.SubCategoryId&categoryId=@ViewBag.CategoryId">&lt; back</a>
 <hr />
 
-<p>Category: @this.ViewBag.Subcategory</p>
+@if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.SubcategorySponsor)
+{
+    <p>Subcategory: @this.ViewBag.Subcategory</p>
+}
+else if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.CategorySponsor)
+{
+    <p>Category: @this.ViewBag.Category</p>
+}
 
 <p><i>@Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.PaymentCurrencyMessage))</i></p>
 
@@ -38,5 +46,12 @@
             </div>
         }
     </div>
-    <button type="submit" class="btn btn-primary">Select</button>
+    @if (offersList.Count > 0)
+    {
+        <button type="submit" class="btn btn-primary">Select</button>
+    }
+    else
+    {
+        <p><i>No options</i></p>
+    }
 </form>

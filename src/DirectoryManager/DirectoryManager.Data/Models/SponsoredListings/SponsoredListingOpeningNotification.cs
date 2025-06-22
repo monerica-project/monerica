@@ -16,7 +16,7 @@ namespace DirectoryManager.Data.Models.SponsoredListings
 
         public SponsorshipType SponsorshipType { get; set; } = SponsorshipType.Unknown;
 
-        public int? SubCategoryId { get; set; }
+        public int? TypeId { get; set; }
 
         public bool IsReminderSent { get; set; }
 

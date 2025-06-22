@@ -1,4 +1,4 @@
-﻿namespace DirectoryManager.Web.Helpers
+﻿namespace DirectoryManager.DisplayFormatting.Helpers
 {
     public class FormattingHelper
     {

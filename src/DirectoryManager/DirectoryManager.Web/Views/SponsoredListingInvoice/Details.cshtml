@@ -1,4 +1,5 @@
 ﻿@model DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice
+@using DirectoryManager.DisplayFormatting.Models
 @using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Constants;
 @using DirectoryManager.Web.Models
@@ -85,7 +86,7 @@
     <hr />
     <h3>Listing</h3>
 <ul class="blank_list_item">
-    @await Html.PartialAsync("_DirectoryEntryPartial", (DirectoryEntryViewModel)ViewBag.SelectedDirectoryEntry)
+        @await Html.PartialAsync("_DirectoryEntryPartial", (DirectoryEntryViewModel)ViewBag.SelectedDirectoryEntry)
 </ul>
     <hr />
 </div>

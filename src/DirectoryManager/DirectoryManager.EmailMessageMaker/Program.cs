@@ -63,13 +63,36 @@ public class Program
                                              .ThenBy(s => s.DirectoryEntry?.Name)
                                              .ToList();
 
+        var categorySponsors = allSponsors.Where(s => s.SponsorshipType == SponsorshipType.CategorySponsor)
+                                     .OrderBy(s => s.DirectoryEntry?.SubCategory?.Category?.Name)
+                                     .ThenBy(s => s.DirectoryEntry?.SubCategory?.Name)
+                                     .ThenBy(s => s.DirectoryEntry?.Name)
+                                     .ToList();
+
         // Fetch footer content
         var emailSettingUnsubscribeFooterHtml = contentSnippetRepository.GetValue(SiteConfigSetting.EmailSettingUnsubscribeFooterHtml);
         var emailSettingUnsubscribeFooterText = contentSnippetRepository.GetValue(SiteConfigSetting.EmailSettingUnsubscribeFooterText);
+        var link2Name = contentSnippetRepository.GetValue(SiteConfigSetting.Link2Name);
+        var link3Name = contentSnippetRepository.GetValue(SiteConfigSetting.Link3Name);
+        var siteName = contentSnippetRepository.GetValue(SiteConfigSetting.SiteName);
 
         // Generate the final email HTML
-        var emailHtml = MessageFormatHelper.GenerateHtmlEmail(weeklyResults.Entries, mainSponsors, subCategorySponsors, emailSettingUnsubscribeFooterHtml);
-        var emailText = MessageFormatHelper.GenerateTextEmail(weeklyResults.Entries, mainSponsors, subCategorySponsors, emailSettingUnsubscribeFooterText);
+        var emailHtml = MessageFormatHelper.GenerateHtmlEmail(
+            weeklyResults.Entries,
+            mainSponsors,
+            categorySponsors,
+            subCategorySponsors,
+            siteName,
+            emailSettingUnsubscribeFooterHtml,
+            link2Name,
+            link3Name);
+
+        var emailText = MessageFormatHelper.GenerateTextEmail(
+            weeklyResults.Entries,
+            mainSponsors,
+            categorySponsors,
+            subCategorySponsors,
+            emailSettingUnsubscribeFooterText);
 
         // Output HTML for debugging or further processing
         Console.WriteLine("Generated HTML Email Content:");

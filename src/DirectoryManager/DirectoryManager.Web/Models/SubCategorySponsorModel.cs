@@ -1,6 +1,8 @@
-﻿namespace DirectoryManager.Web.Models
+﻿using DirectoryManager.DisplayFormatting.Models;
+
+namespace DirectoryManager.Web.Models
 {
-    public class SubCategorySponsorModel
+    public class SubcategorySponsorModel
     {
         public int SubCategoryId { get; set; }
 

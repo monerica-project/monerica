@@ -28,7 +28,7 @@
     <p>You are subscribing for notifications about: <strong>@EnumHelper.GetDescription(Model.SponsorshipType)</strong></p>
 }
 
-@if (Model.SubCategoryId.HasValue)
+@if (Model.TypeId.HasValue)
 {
     <p>@TempData[DirectoryManager.Web.Constants.StringConstants.SubcategoryName]</p>
 }
@@ -37,7 +37,7 @@
 {
 <form asp-action="Subscribe" method="post">
     <input type="hidden" asp-for="SponsorshipType" />
-    <input type="hidden" asp-for="SubCategoryId" />
+    <input type="hidden" asp-for="TypeId" />
 
     <div class="form-group">
         <label asp-for="Email">Email Address:</label>

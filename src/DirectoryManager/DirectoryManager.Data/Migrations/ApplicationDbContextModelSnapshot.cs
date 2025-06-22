@@ -17,7 +17,7 @@ namespace DirectoryManager.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.0")
+                .HasAnnotation("ProductVersion", "9.0.5")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -577,6 +577,10 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
                     b.Property<bool>("IsSubscribed")
                         .HasColumnType("bit");
 
@@ -738,6 +742,9 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<DateTime>("CampaignStartDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime2");
 
@@ -786,6 +793,9 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<DateTime>("CampaignStartDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime2");
@@ -880,6 +890,9 @@ namespace DirectoryManager.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SponsoredListingOfferId"));
 
+                    b.Property<int?>("CategoryId")
+                        .HasColumnType("int");
+
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime2");
 
@@ -920,13 +933,17 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasKey("SponsoredListingOfferId");
 
+                    b.HasIndex("CategoryId");
+
+                    b.HasIndex("SubcategoryId");
+
                     b.HasIndex("SponsorshipType", "Days")
                         .IsUnique()
                         .HasFilter("SubcategoryId IS NULL");
 
-                    b.HasIndex("SubcategoryId", "SponsorshipType", "Days")
+                    b.HasIndex("SponsorshipType", "Days", "CategoryId", "SubcategoryId")
                         .IsUnique()
-                        .HasFilter("[SubcategoryId] IS NOT NULL");
+                        .HasFilter("[CategoryId] IS NOT NULL AND [SubcategoryId] IS NOT NULL");
 
                     b.ToTable("SponsoredListingOffers");
                 });
@@ -953,21 +970,21 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int>("SponsorshipType")
                         .HasColumnType("int");
 
-                    b.Property<int?>("SubCategoryId")
-                        .HasColumnType("int");
-
                     b.Property<DateTime>("SubscribedDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<int?>("TypeId")
+                        .HasColumnType("int");
 
                     b.Property<DateTime?>("UpdateDate")
                         .HasColumnType("datetime2");
 
                     b.HasKey("SponsoredListingOpeningNotificationId");
 
-                    b.HasIndex("Email", "SponsorshipType", "SubCategoryId", "SubscribedDate")
+                    b.HasIndex("Email", "SponsorshipType", "TypeId", "SubscribedDate")
                         .IsUnique()
                         .HasDatabaseName("IX_SponsoredListingOpeningNotification_Unique")
-                        .HasFilter("[SubCategoryId] IS NOT NULL");
+                        .HasFilter("[TypeId] IS NOT NULL");
 
                     b.ToTable("SponsoredListingOpeningNotifications");
                 });
@@ -1454,9 +1471,15 @@ namespace DirectoryManager.Data.Migrations
 
             modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOffer", b =>
                 {
+                    b.HasOne("DirectoryManager.Data.Models.Category", "Category")
+                        .WithMany()
+                        .HasForeignKey("CategoryId");
+
                     b.HasOne("DirectoryManager.Data.Models.Subcategory", "Subcategory")
                         .WithMany()
                         .HasForeignKey("SubcategoryId");
+
+                    b.Navigation("Category");
 
                     b.Navigation("Subcategory");
                 });

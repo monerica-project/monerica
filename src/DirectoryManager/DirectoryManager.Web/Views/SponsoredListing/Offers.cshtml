@@ -15,8 +15,8 @@
 
 <h2>Offers</h2>
 
-<p>These are the rates for advertising. The default prices are used unless there is a specific price for a subcategory, in which case that is the rate.</p>
-<p><a href="~/sponsoredlisting">Buy Advertising</a></p>
+<p>These are the rates for advertising. The default prices are used unless there is a specific price for a category or subcategory, in which case that is the rate.</p>
+<p><a class="btn btn-primary" href="~/sponsoredlisting">Buy Advertising</a></p>
 
 <hr />
 
@@ -32,6 +32,30 @@
     </thead>
     <tbody>
         @foreach (var offer in Model.MainSponsorshipOffers)
+        {
+            <tr>
+                <td>@offer.CategorySubcategory</td>
+                <td style="text-align:center;">@offer.Days</td>
+                <td style="text-align:right;">@offer.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat)</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+<hr />
+
+<h3>@EnumHelper.GetDescription(SponsorshipType.CategorySponsor)</h3>
+<table>
+    <thead>
+        <tr>
+            <th>Category</th>
+            <th>Days</th>
+            <th>Price (@DirectoryManager.Data.Enums.Currency.USD.ToString())</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var offer in Model.CategorySponsorshipOffers)
         {
             <tr>
                 <td>@offer.CategorySubcategory</td>

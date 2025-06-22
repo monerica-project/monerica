@@ -1,8 +1,11 @@
 ﻿@model DirectoryManager.Web.Models.ActiveSponsoredListingViewModel
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.Utilities.Helpers;
-
-<h1>Active Sponsored Listings</h1>
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Active Sponsored Listings";
+}
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
 @await Html.PartialAsync("_BackToHome")
@@ -36,8 +39,45 @@
     </tbody>
 </table>
 
+<!-- Category Sponsor Listings Table -->
+<h2>Category Sponsors</h2>
+
+@if (Model.CategorySponsorItems.Count > 0)
+{
+<table class="table">
+    <thead>
+        <tr>
+            <th>Listing Name</th>
+            <th>Category</th>
+            <th>Expires At</th>
+            <th></th> <!-- For the select link -->
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var listing in Model.CategorySponsorItems)
+        {
+            <tr>
+                <td><a target="_blank" href="@listing.ListingUrl">@listing.ListingName</a></td>
+                <td>@listing.CategoryName</td>
+                <td>@listing.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
+                <td>
+                    <a href="@Url.Action("selectduration", new { directoryEntryId = listing.DirectoryListingId, sponsorshipType = listing.SponsorshipType })">Extend</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+}
+else
+{
+    <p><i>None</i></p>
+}
+
 <!-- Subcategory Sponsor Listings Table -->
 <h2>Subcategory Sponsors</h2>
+
+@if (Model.SubCategorySponsorItems.Count > 0)
+{
 <table class="table">
     <thead>
         <tr>
@@ -61,3 +101,8 @@
         }
     </tbody>
 </table>
+}
+else
+{
+    <p><i>None</i></p>
+}

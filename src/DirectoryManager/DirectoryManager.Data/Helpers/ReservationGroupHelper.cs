@@ -4,16 +4,16 @@ namespace DirectoryManager.Web.Helpers
 {
     public class ReservationGroupHelper
     {
-        public static string CreateReservationGroup(SponsorshipType sponsorshipType, int? subCategoryId = null)
+        public static string BuildReservationGroupName(SponsorshipType sponsorshipType, int? typeId = null)
         {
-            subCategoryId ??= 0;
+            typeId ??= 0;
 
             if (sponsorshipType == SponsorshipType.MainSponsor)
             {
-                subCategoryId = 0;
+                typeId = 0;
             }
 
-            return string.Format("{0}-{1}", sponsorshipType.ToString(), subCategoryId);
+            return string.Format("{0}-{1}", sponsorshipType.ToString(), typeId);
         }
     }
 }

@@ -121,7 +121,7 @@ namespace DirectoryManager.Data.DbContextInfo
                    .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<SponsoredListingOffer>()
-                   .HasIndex(e => new { e.SubcategoryId, e.SponsorshipType, e.Days })
+                   .HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId, e.SubcategoryId })
                    .IsUnique();
 
             builder.Entity<SponsoredListingOffer>()
@@ -170,7 +170,7 @@ namespace DirectoryManager.Data.DbContextInfo
                    .IsUnique();
 
             builder.Entity<SponsoredListingOpeningNotification>()
-                   .HasIndex(e => new { e.Email, e.SponsorshipType, e.SubCategoryId, e.SubscribedDate })
+                   .HasIndex(e => new { e.Email, e.SponsorshipType, e.TypeId, e.SubscribedDate })
                    .IsUnique()
                    .HasDatabaseName("IX_SponsoredListingOpeningNotification_Unique");
         }

@@ -12,16 +12,18 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="HtmlAgilityPack" Version="1.11.71" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="9.0.0" />
-    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="9.0.0" />
-    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.0" />
-    <PackageReference Include="ScottPlot" Version="5.0.47" />
-    <PackageReference Include="Serilog" Version="4.2.0" />
+    <PackageReference Include="CsvHelper" Version="33.1.0" />
+    <PackageReference Include="HtmlAgilityPack" Version="1.12.1" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.0.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.UI" Version="9.0.6" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="9.0.6" />
+    <PackageReference Include="Microsoft.Extensions.Caching.Memory" Version="9.0.6" />
+    <PackageReference Include="ScottPlot" Version="5.0.55" />
+    <PackageReference Include="Serilog" Version="4.3.0" />
     <PackageReference Include="Serilog.AspNetCore" Version="9.0.0" />
     <PackageReference Include="Serilog.Settings.Configuration" Version="9.0.0" />
-    <PackageReference Include="Serilog.Sinks.MSSqlServer" Version="8.1.0" />
+    <PackageReference Include="Serilog.Sinks.MSSqlServer" Version="8.2.0" />
+    <PackageReference Include="SkiaSharp" Version="3.119.0" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
@@ -31,6 +33,7 @@
   <ItemGroup>
     <ProjectReference Include="..\DirectoryManager.Common\DirectoryManager.Common.csproj" />
     <ProjectReference Include="..\DirectoryManager.Data\DirectoryManager.Data.csproj" />
+    <ProjectReference Include="..\DirectoryManager.DisplayFormatting\DirectoryManager.DisplayFormatting.csproj" />
     <ProjectReference Include="..\DirectoryManager.FileStorage\DirectoryManager.FileStorage.csproj" />
     <ProjectReference Include="..\DirectoryManager.Services\DirectoryManager.Services.csproj" />
     <ProjectReference Include="..\DirectoryManager.Utilities\DirectoryManager.Utilities.csproj" />
@@ -50,7 +53,9 @@
 	    <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 	  </None>
 	</ItemGroup>
-
+	<PropertyGroup>
+		<EnableMSDeployAppOffline>true</EnableMSDeployAppOffline>
+	</PropertyGroup>
 	<PropertyGroup>
 		<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
 	</PropertyGroup>

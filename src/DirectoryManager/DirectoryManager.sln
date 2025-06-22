@@ -59,6 +59,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectoryManager.Newsletter
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectoryManager.EmailMessageMaker", "DirectoryManager.EmailMessageMaker\DirectoryManager.EmailMessageMaker.csproj", "{61691755-D736-4F8E-B046-8C17AFEB7545}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DirectoryManager.DisplayFormatting", "DirectoryManager.DisplayFormatting\DirectoryManager.DisplayFormatting.csproj", "{F3054BD7-7E60-4AD8-921E-27FCE3632AD4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -129,6 +131,10 @@ Global
 		{61691755-D736-4F8E-B046-8C17AFEB7545}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{61691755-D736-4F8E-B046-8C17AFEB7545}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{61691755-D736-4F8E-B046-8C17AFEB7545}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F3054BD7-7E60-4AD8-921E-27FCE3632AD4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F3054BD7-7E60-4AD8-921E-27FCE3632AD4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F3054BD7-7E60-4AD8-921E-27FCE3632AD4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F3054BD7-7E60-4AD8-921E-27FCE3632AD4}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

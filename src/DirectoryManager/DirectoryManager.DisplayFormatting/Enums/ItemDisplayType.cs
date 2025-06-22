@@ -1,4 +1,4 @@
-﻿namespace DirectoryManager.Web.Enums
+﻿namespace DirectoryManager.DisplayFormatting.Enums
 {
     public enum ItemDisplayType
     {
@@ -8,6 +8,7 @@
         SubcategorySponsor = 3,
         Featured = 4,
         NewestAddition = 5,
-        NewestRevion = 6
+        NewestRevion = 6,
+        CategorySponsor = 7
     }
 }

@@ -14,5 +14,8 @@ namespace DirectoryManager.Data.Models.Emails
         public string Email { get; set; } = string.Empty;
 
         public bool IsSubscribed { get; set; }
+
+        [MaxLength(255)]
+        public string? IpAddress { get; set; }
     }
 }

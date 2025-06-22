@@ -35,6 +35,7 @@ public class RssController : Controller
     public async Task<IActionResult> FeedXml()
     {
         var siteName = this.cacheService.GetSnippet(SiteConfigSetting.SiteName);
+        var siteLogoUrl = this.cacheService.GetSnippet(SiteConfigSetting.SiteLogoUrl);
         var feedLink = this.Url.Action("FeedXml", "Rss", null, this.Request.Scheme);
 
         if (string.IsNullOrEmpty(feedLink))
@@ -57,7 +58,8 @@ public class RssController : Controller
             combinedEntries,
             $"{siteName} - Newest and Sponsored Listings",
             feedLink,
-            "The latest additions and sponsors in our directory.");
+            "The latest additions and sponsors in our directory.",
+            siteLogoUrl);
 
         return this.Content(rssFeed.ToString(), "application/xml");
     }
@@ -73,13 +75,13 @@ public class RssController : Controller
 
             // Fetch the most recent invoice associated with this listing
             var invoice = await invoiceRepo.GetByIdAsync(sponsoredListing.SponsoredListingInvoiceId);
-            var invoiceCampaiognDate = (invoice == null) ? DateTime.MinValue : invoice.CampaignStartDate;
+            var invoiceCampaignDate = (invoice == null) ? DateTime.MinValue : invoice.CampaignStartDate;
 
             var latestDate = new[]
             {
-                sponsoredListing.CampaignStartDate,
+                invoice.CreateDate,
                 sponsoredListing.UpdateDate ?? DateTime.MinValue,
-                invoiceCampaiognDate
+                invoiceCampaignDate
             }.Max();
 
             // Wrap the DirectoryEntry with correct pubDate
@@ -99,7 +101,7 @@ public class RssController : Controller
                     Processor = sponsoredListing.DirectoryEntry.Processor,
                     Note = sponsoredListing.DirectoryEntry.Note,
                     Contact = sponsoredListing.DirectoryEntry.Contact,
-                    CreateDate = latestDate
+                    CreateDate = invoice.CreateDate
                 },
                 IsSponsored = true
             };

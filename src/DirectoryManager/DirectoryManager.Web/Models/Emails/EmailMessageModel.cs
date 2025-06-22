@@ -17,5 +17,7 @@ namespace DirectoryManager.Web.Models.Emails
         public string EmailBodyText { get; set; } = string.Empty;
 
         public string EmailBodyHtml { get; set; } = string.Empty;
+
+        public DateTime CreateDate { get; set; }
     }
 }

@@ -11,23 +11,39 @@ namespace DirectoryManager.Web.Services.Implementations
             IEnumerable<DirectoryEntryWrapper> directoryEntries,
             string feedTitle,
             string feedLink,
-            string feedDescription)
+            string feedDescription,
+            string? logoUrl = null)
         {
+            var channelElements = new List<XElement>
+            {
+                new XElement("title", feedTitle),
+                new XElement("link", feedLink),
+                new XElement("description", feedDescription)
+            };
+
+            // Conditionally add the <image> element if a logo URL is provided
+            if (!string.IsNullOrWhiteSpace(logoUrl))
+            {
+                channelElements.Add(
+                    new XElement(
+                        "image",
+                        new XAttribute("url", logoUrl)));
+            }
+
+            // Add directory entries
+            channelElements.AddRange(
+                directoryEntries.Select(entryWrapper =>
+                    new XElement(
+                        "item",
+                        new XElement("title", this.GetFormattedTitle(entryWrapper)),
+                        new XElement("link", entryWrapper.GetLink()),
+                        new XElement("description", this.FormatDescription(entryWrapper.DirectoryEntry)),
+                        new XElement("pubDate", entryWrapper.DirectoryEntry.CreateDate.ToString("R")))));
+
             var rss = new XElement(
                 "rss",
                 new XAttribute("version", "2.0"),
-                new XElement(
-                    "channel",
-                    new XElement("title", feedTitle),
-                    new XElement("link", feedLink),
-                    new XElement("description", feedDescription),
-                    directoryEntries.Select(entryWrapper =>
-                        new XElement(
-                            "item",
-                            new XElement("title", this.GetFormattedTitle(entryWrapper)),
-                            new XElement("link", entryWrapper.GetLink()),
-                            new XElement("description", this.FormatDescription(entryWrapper.DirectoryEntry)),
-                            new XElement("pubDate", entryWrapper.DirectoryEntry.CreateDate.ToString("R"))))));
+                new XElement("channel", channelElements));
 
             return new XDocument(rss);
         }

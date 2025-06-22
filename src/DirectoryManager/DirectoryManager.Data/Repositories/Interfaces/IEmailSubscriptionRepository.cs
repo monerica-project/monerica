@@ -17,6 +17,8 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         IList<EmailSubscription> GetAll();
 
+        IList<EmailSubscription> GetPagedDescending(int page, int pageSize, out int totalItems);
+
         int Total(bool subscribed = true);
 
         bool Delete(int emailSubscriptionId);

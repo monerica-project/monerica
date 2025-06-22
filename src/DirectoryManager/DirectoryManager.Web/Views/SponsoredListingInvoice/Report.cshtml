@@ -30,11 +30,11 @@
 <br />
 
 <p>
-    Range: @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat) - @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+    Time Range Range: @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat) - @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
 </p>
 
-<p>Total Paid Amount: @Model.TotalPaidAmount @Model.PaidInCurrency</p>
-<p>Total Amount Requested: @Model.TotalAmount.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS)) @Model.Currency</p>
+<p>Total Paid Amount In Currency Type: @Model.TotalPaidAmount @Model.PaidInCurrency</p>
+<p>Total Amount Requested In Time Range: @Model.TotalAmount.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS)) @Model.Currency</p>
 
 <img style="width:100%"
      src="@Url.Action("monthlyincomebarchart", "sponsoredlistinginvoice", new { startDate = Model.StartDate, endDate = Model.EndDate })"

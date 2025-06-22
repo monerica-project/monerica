@@ -11,11 +11,11 @@
 <hr />
 @await Html.PartialAsync("_BackToHome")
 <hr />
-@Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SubmissionGuidelines))
+@Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SubmissionGuidelinesHtml))
 
 <hr />
 <p>
-    <a href="~/submission/findexisting">Click here to edit an existing listing</a> 
+    If you are trying to update an <b>existing link already in the directory</b>,  <a href="~/submission/findexisting">click here</a>!
 </p>
 <hr />
 <br />

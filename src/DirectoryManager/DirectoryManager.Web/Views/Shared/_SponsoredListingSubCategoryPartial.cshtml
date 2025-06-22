@@ -4,7 +4,7 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
-@model DirectoryManager.Web.Models.SubCategorySponsorModel
+@model DirectoryManager.Web.Models.SubcategorySponsorModel
 
 @{
     var directoryEntries = new List<DirectoryManager.Data.Models.DirectoryEntry>();
@@ -42,10 +42,10 @@
         <p><b>Sponsored</b></p>
         <ul class="blank_list_item">
             @{
-                var viewModelList = DirectoryManager.Web.Helpers.ViewModelConverter.ConvertToViewModels(
+                var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
                 directoryEntries,
-                DirectoryManager.Web.Enums.DateDisplayOption.NotDisplayed,
-                DirectoryManager.Web.Enums.ItemDisplayType.MainSponsor,
+                DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+                DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.MainSponsor,
                 link2Name,
                 link3Name);
             }
@@ -57,7 +57,7 @@
         </ul>
     </div>
 }
-else if (Model != null && Model.TotalActiveSubCategoryListings >= DirectoryManager.Common.Constants.IntegerConstants.MinimumSponsoredActiveSubcategories)
+else if (Model != null && Model.TotalActiveSubCategoryListings >= DirectoryManager.Common.Constants.IntegerConstants.MinRequiredSubcategories)
 {<p class="sub-category-sponsored-listing">
         <a class="app-link" rel="nofollow" href="~/sponsoredlisting/selectlisting?subCategoryId=@Model.SubCategoryId&sponsorshipType=@SponsorshipType.SubcategorySponsor">Advertise here</a>
 </p>
