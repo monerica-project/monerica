@@ -10,8 +10,12 @@
 @await Html.PartialAsync("_BackToHome")
 <hr />
 
-<p>Thank you for your payment. Your order ID is: @Model.OrderId</p>
+<p>&#9989; Thank you for your payment. Your order ID is: @Model.OrderId</p>
 
-<p>Your listing is currently live and will remain displayed until: @Model.ListingEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</p>
+<br />
+
+<p>Your listing is currently live and will remain displayed until: <b>@Model.ListingEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</b></p>
+
+<br />
 
 @Html.Raw(cacheHelper.GetSnippet(DirectoryManager.Data.Enums.SiteConfigSetting.InvoiceSuccessMessageHtml))
