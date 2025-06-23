@@ -10,8 +10,9 @@
 
 @await Html.PartialAsync("_AdminMenu")
 
-<table class="table">
-    <thead>
+<div class="table-wrapper">
+    <table class="table">
+        <thead>
         <tr>
             <th>Payment Processor</th>
             <th>Use Processor</th>
@@ -31,6 +32,7 @@
         }
     </tbody>
 </table>
+</div>            
 
 <div>
     <a asp-action="Create">Create new</a>

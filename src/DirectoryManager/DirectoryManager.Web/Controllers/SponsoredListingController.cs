@@ -98,7 +98,7 @@ namespace DirectoryManager.Web.Controllers
                     }
                     else
                     {
-                        model.Message = StringConstants.CheckoutInProcess;
+                        model.Message = string.Format(StringConstants.CheckoutInProcess, IntegerConstants.ReservationMinutes);
                         model.CanCreateMainListing = false;
                     }
                 }

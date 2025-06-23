@@ -56,7 +56,7 @@ else
     {
         @await Html.PartialAsync("_AdSpaceFull", new ListingInventoryModel()
         {
-            CanCreateSponsoredListing = Model.CanCreateMainListing,
+           CanCreateSponsoredListing = Model.CanCreateMainListing,
            NextListingExpiration = Model.NextListingExpiration
        })
 ;

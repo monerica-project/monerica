@@ -55,6 +55,22 @@ p {
     margin-bottom: 5px;
 }
 
+.table-wrapper {
+    display: block; /* ensure it can scroll */
+    width: 100%; /* full container width */
+    overflow-x: auto; /* horizontal scrolling */
+    -webkit-overflow-scrolling: touch; /* smooth on iOS */
+}
+
+    .table-wrapper table {
+        /* Let the table size itself to its content */
+        width: auto !important;
+        min-width: 100%; /* never shrink smaller than wrapper */
+        border-collapse: collapse;
+        white-space: nowrap; /* keep cells from breaking */
+    }
+
+
 .table td {
     padding: 5px;
 }

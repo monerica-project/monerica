@@ -56,7 +56,8 @@
 
 @if (Model.CampaignMessages?.Any() == true)
 {
-    <table class="table">
+<div class="table-wrapper">
+<table class="table">
         <thead>
             <tr>
                 <th>Sequence Order</th>
@@ -88,6 +89,7 @@
             }
         </tbody>
     </table>
+    </div>
 }
 else
 {
