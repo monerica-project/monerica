@@ -14,5 +14,7 @@ namespace DirectoryManager.Web.Models
         required public string CategoryRelativePath { get; set; }
         required public string CategoryName { get; set; }
         required public IEnumerable<DirectoryEntry> DirectoryEntries { get; set; }
+        required public string SubcategoryName { get; set; }
+        required public string SubCategoryKey { get; set; }
     }
 }

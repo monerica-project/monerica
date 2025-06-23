@@ -21,9 +21,22 @@
 
 <hr />
 
-<p>
-    <a class="no-app-link" href="@Model.CategoryRelativePath">&lt; @Model.CategoryName</a>
-</p>
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="~/">@cacheHelper.GetSnippet(SiteConfigSetting.SiteName)</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="~/sitemap">Sitemap</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="@Model.CategoryRelativePath">@Model.CategoryName</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="@Model.CategoryRelativePath/@Model.SubCategoryKey">@Model.SubcategoryName</a>
+        </li>
+    </ol>
+</nav>
 
 @if (!string.IsNullOrWhiteSpace(Model.PageDetails))
 {
@@ -99,3 +112,7 @@
         @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
     }
 </ul>
+
+<hr />
+
+@await Html.PartialAsync("_SponsoredListingPartial")

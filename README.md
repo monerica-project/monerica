@@ -54,10 +54,21 @@ Then run:
 
 ### Application Structure
 
-The application is split into 3 projects:
+The solution has a web application and background services that access a data layer.
+
+#### Web
 - DirectoryManager.Web - This is the main web application that contains the controllers and views.
-- DirectoryManager.Data - This is the data access layer that contains the database context and migrations.
-- DirectoryManager.Console - This is used to perform local tasks such as checking which links are broken.
+
+#### Background Processes
+
+- DirectoryManager.Console - This is used to perform local tasks and imports.
+- DirectoryManager.EmailMessageMaker - creates email messages.
+- DirectoryManager.NewsletterSender - sends email messages.
+- DirectoryManager.SiteChecker - checks if existing listings are online.
+- DirectoryManager.SponsoredListingOpening - checks if listings are open to notify subscribers.
+- DirectoryManager.SponsoredListingReminder - sends email to remind of expiring listing.
+
+#### Data
 
 ### Features
 

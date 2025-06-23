@@ -1,4 +1,9 @@
 ﻿/* General Styles */
+
+html {
+    overflow-y: scroll; /* browser always shows the vertical track */
+}
+
 body {
     background-color: #000000eb;
     color: #FFFFFF;
@@ -465,4 +470,8 @@ p.text-inline {
 
 span.bold {
     font-weight: bold;
+}
+
+ol.breadcrumb {
+    padding-left: 0;
 }

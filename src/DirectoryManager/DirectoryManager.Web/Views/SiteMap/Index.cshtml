@@ -10,7 +10,16 @@
 <h1>Sitemap</h1>
 <hr />
 
-<a class="no-app-link" href="~/">@cacheHelper.GetSnippet(SiteConfigSetting.SiteName) Home</a>
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="~/">@cacheHelper.GetSnippet(SiteConfigSetting.SiteName)</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="~/sitemap">Sitemap</a></li>
+      
+    </ol>
+</nav>
  
 @if (Model.SectionPages.Count > 0)
 {
@@ -22,27 +31,14 @@
                         @foreach (var item in Model.SectionPages)
                         {
                             <li>
-                                <a class="no-app-link" title="@item.AnchorText" href="@item.CanonicalUrl">@item.AnchorText</a>
-
-                                @if (item.HasChildren)
-                                {
-                                    <ul>
-                                        @foreach (var child in item.ChildPages)
-                                        {
-                                            <li>
-                                                <a class="no-app-link" title="@item.AnchorText - @child.AnchorText" href="@child.CanonicalUrl">@child.AnchorText</a>
-                                            </li>
-                                        }
-                                    </ul>
-                                }
+                                <a class="no-app-link" title="@item.AnchorText" href="@item.CanonicalUrl">@item.AnchorText</a>                            
                             </li>
                         }
 
                     </ul>
                 </div>
             </div>
-
-            </div>
+        </div>
      </section>
 }
 

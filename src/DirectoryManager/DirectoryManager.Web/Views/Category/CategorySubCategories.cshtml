@@ -2,6 +2,7 @@
 @using DirectoryManager.Web.Constants
 @model DirectoryManager.Web.Models.CategoryViewModel
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 
 @{
     ViewData[StringConstants.TitleHeader] = string.Format("{0}: {1}", cacheHelper.GetSnippet(SiteConfigSetting.SiteName), Model.PageTitle);
@@ -12,7 +13,18 @@
 
 <hr />
 
-<a href="~/sitemap">&lt; Sitemap</a>
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="~/">@cacheHelper.GetSnippet(SiteConfigSetting.SiteName)</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="~/sitemap">Sitemap</a></li>
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="~/@Model.CategoryKey">@Model.CategoryName</a>
+        </li>
+    </ol>
+</nav>
 
 
 @if (!string.IsNullOrWhiteSpace(Model.Description))
@@ -24,15 +36,67 @@
 {
     <p><i>Note: @Html.Raw(Model.Note)</i></p>
 }
- 
-<ul>
-    @foreach (var item in Model.SubCategoryItems)
-    {
-    <li>
-        <a class="no-app-link" href="@item.SubCategoryRelativePath">@item.Name</a>
-    </li>
+
+@{
+    var link2Name = cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
+    var link3Name = cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+    var categorySponsors = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
+
+    // find the sponsor for this category (if any)
+    var catSponsor = categorySponsors
+                        .FirstOrDefault(s =>
+                            s.DirectoryEntry?.SubCategory?.CategoryId == Model.CategoryId);
+
+    var catSponsorCount = categorySponsors.Count();
+
+    var categorySponsorModel = new DirectoryManager.Web.Models.CategorySponsorModel()
+                {
+                    CategoryId = Model.CategoryId,
+                    TotalActiveCategoryListings = catSponsorCount,
+                    DirectoryEntry = (catSponsor != null && catSponsor.DirectoryEntry != null) ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel()
+                    {
+                        CreateDate = catSponsor.DirectoryEntry.CreateDate,
+                        UpdateDate = catSponsor.DirectoryEntry.UpdateDate,
+                        DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+                        Link = catSponsor.DirectoryEntry.Link,
+                        Link2 = catSponsor.DirectoryEntry.Link2,
+                        Link3 = catSponsor.DirectoryEntry.Link3,
+                        Name = catSponsor.DirectoryEntry.Name,
+                        Contact = catSponsor.DirectoryEntry.Contact,
+                        Description = catSponsor.DirectoryEntry.Description,
+                        DirectoryEntryId = catSponsor.DirectoryEntry.DirectoryEntryId,
+                        DirectoryStatus = catSponsor.DirectoryEntry.DirectoryStatus,
+                        Location = catSponsor.DirectoryEntry.Location,
+                        Note = catSponsor.DirectoryEntry.Note,
+                        Processor = catSponsor.DirectoryEntry.Processor,
+                        SubCategoryId = catSponsor.DirectoryEntry.SubCategoryId,
+                        IsSponsored = true,
+                        DisplayAsSponsoredItem = false,
+                        Link2Name = link2Name,
+                        Link3Name = link3Name
+                    } : null
+                };
 }
-</ul>
+ @await Html.PartialAsync("_SponsoredListingCategoryPartial", categorySponsorModel)
+
+     <section>
+        <div class="container">
+            <div class="row">
+                <div class="col-md-12">
+                    <ul>
+
+                    @foreach (var item in Model.SubCategoryItems)
+                    {
+                        <li>
+                            <a class="no-app-link" href="@item.SubCategoryRelativePath">@item.Name</a>
+                        </li>
+                    }
+                     
+                    </ul>
+                </div>
+            </div>
+        </div>
+     </section>
 
 <hr />
 

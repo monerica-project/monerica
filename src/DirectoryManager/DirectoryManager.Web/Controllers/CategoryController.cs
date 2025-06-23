@@ -81,6 +81,9 @@ namespace DirectoryManager.Web.Controllers
                 MetaDescription = category.MetaDescription,
                 Note = category.Note,
                 SubCategoryItems = subCategoryItems,
+                CategoryId = category.CategoryId,
+                CategoryKey = category.CategoryKey,
+                CategoryName = category.Name
             };
 
             return this.View("CategorySubCategories", model);

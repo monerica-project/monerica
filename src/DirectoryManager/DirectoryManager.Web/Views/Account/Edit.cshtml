@@ -46,7 +46,7 @@
 
     @foreach (var subCategory in await subCategoryRepository.GetByCategoryAsync(category.CategoryId))
     {
-        <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>  <a href="~/subcategory/edit/?id=@subCategory.SubCategoryId">Edit</a>
+    <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3> <a href="~/subcategory/edit/?id=@subCategory.SubCategoryId">Edit</a>
         <i>@subCategory.Note</i>
 
         <ul>
@@ -55,11 +55,11 @@
                 <li>
                     @if (string.IsNullOrWhiteSpace(directoryEntry.Description))
                     {
-                        <a target="_blank" href="@directoryEntry.Link">@directoryEntry.Name</a>  <a href="~/directoryentry/edit/@directoryEntry.DirectoryEntryId">Edit</a>
+                         <a href="~/directoryentry/edit/@directoryEntry.DirectoryEntryId">Edit</a> <text>-</text> <a target="_blank" href="@directoryEntry.Link">@directoryEntry.Name</a> 
                     }
                     else
                     {
-                        <a target="_blank" href="@directoryEntry.Link">@directoryEntry.Name</a> <span>- @directoryEntry.Description</span>  <a href="~/directoryentry/edit/@directoryEntry.DirectoryEntryId">Edit</a>
+                        <a href="~/directoryentry/edit/@directoryEntry.DirectoryEntryId">Edit</a> <text>-</text> <a target="_blank" href="@directoryEntry.Link">@directoryEntry.Name</a> <span>- @directoryEntry.Description</span>  
                     }
                 </li>
             }

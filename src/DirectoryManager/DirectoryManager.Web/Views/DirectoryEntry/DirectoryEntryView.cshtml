@@ -1,6 +1,7 @@
-﻿@using DirectoryManager.Web.Constants
+﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants
 @model DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
-
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @{
     ViewData["Title"] = Model.Name;
     var categoryKey = ViewBag.CategoryKey as string;
@@ -21,12 +22,16 @@
 
     <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
-            <li class="breadcrumb-item"><a class="no-app-link" href="~/sitemap">Sitemap</a></li>
         <li class="breadcrumb-item">
-                <a class="no-app-link" href="~/@categoryKey">@categoryName</a>
+            <a class="no-app-link" href="~/">@cacheHelper.GetSnippet(SiteConfigSetting.SiteName)</a>
         </li>
         <li class="breadcrumb-item">
-                <a class="no-app-link" href="~/@categoryKey/@subCategoryKey">@subCategoryName</a>
+            <a class="no-app-link" href="~/sitemap">Sitemap</a></li>
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="~/@categoryKey">@categoryName</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="~/@categoryKey/@subCategoryKey">@subCategoryName</a>
         </li>
     </ol>
 </nav>
@@ -57,10 +62,12 @@
             }
           @Model.DirectoryStatus
         </p>
-        @if (!string.IsNullOrEmpty(Model.Description))
+
+        @if (!string.IsNullOrEmpty(Model.Contact))
         {
-            <p><strong>Description:</strong> @Model.Description</p>
+            <p><strong>Contact:</strong> <span class="multi-line-text">@Model.Contact</span></p>
         }
+     
         @if (!string.IsNullOrEmpty(Model.Location))
         {
             <p><strong>Location:</strong> @Model.Location</p>
@@ -69,18 +76,25 @@
         {
             <p><strong>Processor:</strong> @Model.Processor</p>
         }
-        @if (!string.IsNullOrEmpty(Model.Note))
-        {
-            <p><strong>Note:</strong> @Html.Raw(Model.Note)</p>
-        }
-        @if (!string.IsNullOrEmpty(Model.Contact))
-        {
-            <p><strong>Contact:</strong> <span class="multi-line-text">@Model.Contact</span></p>
-        }
+
         <p><strong>Added On:</strong> @Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</p>
         @if (Model.UpdateDate.HasValue)
         {
             <p><strong>Last Updated:</strong> @Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</p>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.Description))
+        {
+            <br />
+            <h3>Description</h3>
+            <p>@Model.Description</p>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.Note))
+        {
+            <br />
+            <h4>Note</h4>
+            <p><i>@Html.Raw(Model.Note)</i></p>
         }
     </div>
 </div>
