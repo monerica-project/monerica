@@ -7,6 +7,8 @@ using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Text;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -145,37 +147,69 @@ namespace DirectoryManager.Web.Controllers
             return this.View(invoice);
         }
 
-        [Route("sponsoredlistinginvoice/report")]
+        [Route("report")]
         [HttpGet]
-        public async Task<IActionResult> Report(DateTime? startDate, DateTime? endDate)
+        public async Task<IActionResult> Report(
+            DateTime? startDate,
+            DateTime? endDate,
+            SponsorshipType? sponsorshipType)
         {
+            // 1) Normalize your dates
             const int defaultYears = 1;
             var now = DateTime.UtcNow;
-            var modelStartDate = startDate?.Date ?? now.AddYears(-defaultYears).Date;
-            var modelEndDate = endDate?.Date ?? now.Date;
-            var startOfDayUtc = new DateTime(
-                modelStartDate.Year,
-                modelStartDate.Month,
-                modelStartDate.Day,
-                0, 0, 0,
-                DateTimeKind.Utc);
-            var endOfDayUtc = new DateTime(
-                modelEndDate.Year,
-                modelEndDate.Month,
-                modelEndDate.Day,
-                23, 59, 59,
-                DateTimeKind.Utc);
+            var fromDate = startDate?.Date ?? now.AddYears(-defaultYears).Date;
+            var toDate = endDate?.Date ?? now.Date;
 
             var model = new InvoiceQueryViewModel
             {
-                StartDate = startOfDayUtc,
-                EndDate = endOfDayUtc
+                StartDate = new DateTime(fromDate.Year, fromDate.Month, fromDate.Day, 0, 0, 0, DateTimeKind.Utc),
+                EndDate = new DateTime(toDate.Year, toDate.Month, toDate.Day, 23, 59, 59, DateTimeKind.Utc),
+                SponsorshipType = sponsorshipType
             };
 
-            var result = await this.invoiceRepository
-                               .GetTotalsPaidAsync(model.StartDate, model.EndDate)
-                               .ConfigureAwait(false);
+            // 2) Build your “All + each enum” dropdown
+            model.SponsorshipTypeOptions = Enum.GetValues(typeof(SponsorshipType))
+                .Cast<SponsorshipType>()
+                .Where(st => st != SponsorshipType.Unknown)
+                .Select(st => new SelectListItem
+                {
+                    Value = st.ToString(),
+                    Text = st.ToString(),
+                    Selected = sponsorshipType.HasValue && sponsorshipType.Value == st
+                })
+                .Prepend(new SelectListItem
+                {
+                    Value = "",
+                    Text = "All",
+                    Selected = !sponsorshipType.HasValue
+                })
+                .ToList();
 
+            // 3) Fetch & filter the raw invoices
+            var allInvoices = await this.invoiceRepository.GetAllAsync().ConfigureAwait(false);
+            var filtered = allInvoices
+                .Where(inv => inv.CreateDate >= model.StartDate
+                           && inv.CreateDate <= model.EndDate
+                           && inv.PaymentStatus == PaymentStatus.Paid);
+
+            if (sponsorshipType.HasValue)
+            {
+                filtered = filtered
+                    .Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
+
+            // 4) Build a little “result” that mirrors your old repository DTO
+            var result = new
+            {
+                TotalReceivedAmount = filtered.Sum(inv => inv.PaidAmount),   // what actually paid
+                TotalAmount = filtered.Sum(inv => inv.Amount),       // requested USD
+                Currency = filtered.Select(inv => inv.Currency)
+                                              .FirstOrDefault(),            // USDcode
+                PaidInCurrency = filtered.Select(inv => inv.PaidInCurrency)
+                                              .FirstOrDefault()             // XMR or other
+            };
+
+            // 5) Exactly the assignments you had before:
             model.TotalPaidAmount = result.TotalReceivedAmount;
             model.Currency = result.Currency;
             model.TotalAmount = result.TotalAmount;
@@ -185,17 +219,41 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("sponsoredlistinginvoice/monthlyincomebarchart")]
-        public async Task<IActionResult> MonthlyIncomeBarChartAsync(DateTime startDate, DateTime endDate)
+        public async Task<IActionResult> MonthlyIncomeBarChartAsync(
+            DateTime startDate,
+            DateTime endDate,
+            SponsorshipType? sponsorshipType)
         {
-            var plottingChart = new InvoicePlotting();
-            var invoices = await this.invoiceRepository
-                                        .GetAllAsync()
-                                        .ConfigureAwait(false);
+            var invoices = await this.invoiceRepository.GetAllAsync();
 
-            var filteredInvoices = invoices
-                .Where(invoice => invoice.CreateDate >= startDate && invoice.CreateDate <= endDate);
+            var filtered = invoices
+                .Where(inv => inv.CreateDate >= startDate
+                           && inv.CreateDate <= endDate)
+                .Where(inv => inv.PaymentStatus == PaymentStatus.Paid);
 
-            var imageBytes = plottingChart.CreateMonthlyIncomeBarChart(filteredInvoices);
+            if (sponsorshipType.HasValue)
+            {
+                filtered = filtered
+                    .Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
+
+            if (!filtered.Any())
+            {
+                // Simple SVG fallback — any <img> tag will render this inline
+                const string svg = @"
+<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
+  <rect width='100%' height='100%' fill='white'/>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
+        font-family='sans-serif' font-size='20' fill='black'>
+    No results
+  </text>
+</svg>";
+                byte[] bytes = Encoding.UTF8.GetBytes(svg);
+                return this.File(bytes, "image/svg+xml");
+            }
+
+            var imageBytes = new InvoicePlotting()
+                                 .CreateMonthlyIncomeBarChart(filtered);
 
             return this.File(imageBytes, StringConstants.PngImage);
         }

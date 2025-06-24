@@ -59,10 +59,7 @@ else
            CanCreateSponsoredListing = Model.CanCreateMainListing,
            NextListingExpiration = Model.NextListingExpiration
        })
-;
-
-        <p>However, you can extend the duration of an existing listing: <a href="~/sponsoredlisting/activelistings">here</a>.</p>
-    }
+;    }
     else
     {
         <p><i>@Model.Message</i></p>
@@ -76,6 +73,8 @@ else
         </a>
     </p>
 }
+
+<p><a href="~/sponsoredlisting/activelistings">Extend an active listing</a></p>
 
 
 
@@ -107,7 +106,7 @@ else
             </li>
         }
     </ul>
-    <p><a href="~/sponsoredlisting/activelistings">Extend an existing listing</a></p>
+    <p><a href="~/sponsoredlisting/activelistings">Extend an active listing</a></p>
 }
 
 @if (Model.AvailableCategories?.Any() == true)
@@ -158,7 +157,7 @@ else
             </li>
         }
     </ul>
-    <p><a href="~/sponsoredlisting/activelistings">Extend an existing listing</a></p>
+    <p><a href="~/sponsoredlisting/activelistings">Extend an active listing</a></p>
 }
 
 @if (Model.AvailableSubCatetgories?.Any() == true)

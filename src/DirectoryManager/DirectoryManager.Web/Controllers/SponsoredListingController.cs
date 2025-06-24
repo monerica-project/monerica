@@ -168,58 +168,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
-        //[HttpGet]
-        //[AllowAnonymous]
-        //[Route("sponsoredlisting/selectlisting")]
-        //public async Task<IActionResult> SelectListing(
-        //    SponsorshipType sponsorshipType = SponsorshipType.MainSponsor,
-        //    int? subCategoryId = null,
-        //    int? categoryId = null)
-        //{
-        //    // Determine which “typeId” to use (subcategory vs. category)
-        //    int? typeId = sponsorshipType == SponsorshipType.CategorySponsor
-        //                  ? categoryId
-        //                  : subCategoryId;
-
-        //    // Count active sponsors of this type
-        //    var totalActive = await this.sponsoredListingRepository
-        //                               .GetActiveSponsorsCountAsync(sponsorshipType, typeId)
-        //                               .ConfigureAwait(false);
-
-        //    // Enforce business rules for SubcategorySponsor
-        //    if (sponsorshipType == SponsorshipType.SubcategorySponsor && subCategoryId.HasValue)
-        //    {
-        //        var entriesInSub = await this.directoryEntryRepository
-        //                                   .GetActiveEntriesByCategoryAsync(subCategoryId.Value)
-        //                                   .ConfigureAwait(false);
-        //        this.ViewBag.CanAdvertise =
-        //            totalActive < Common.Constants.IntegerConstants.MaxSubcategorySponsoredListings &&
-        //            entriesInSub.Count() >= Common.Constants.IntegerConstants.MinimumSponsoredActiveSubcategories;
-        //    }
-
-        //    // Enforce business rules for CategorySponsor
-        //    else if (sponsorshipType == SponsorshipType.CategorySponsor && categoryId.HasValue)
-        //    {
-        //        var entriesInCat = await this.directoryEntryRepository
-        //                                   .GetActiveEntriesByCategoryAsync(categoryId.Value)
-        //                                   .ConfigureAwait(false);
-        //        this.ViewBag.CanAdvertise =
-        //            totalActive < Common.Constants.IntegerConstants.MaxCategorySponsoredListings &&
-        //            entriesInCat.Count() >= Common.Constants.IntegerConstants.MinimumSponsoredActiveCategories;
-        //    }
-
-        //    // Pass parameters to the view
-        //    this.ViewBag.SponsorshipType = sponsorshipType;
-        //    this.ViewBag.SubCategoryId = subCategoryId;
-        //    this.ViewBag.CategoryId = categoryId;
-
-        //    // Fetch the filtered list of entries
-        //    var entries = await this.FilterEntries(sponsorshipType, typeId)
-        //                           .ConfigureAwait(false);
-
-        //    return this.View("SelectListing", entries);
-        //}
-
         [HttpGet]
         [AllowAnonymous]
         [Route("sponsoredlisting/selectlisting")]
