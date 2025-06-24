@@ -30,6 +30,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task CreateAsync(DirectoryEntriesAudit entry)
         {
+            if (entry.UpdateDate == null)
+            {
+                entry.UpdateDate = DateTime.UtcNow;
+            }
+
             await this.context.DirectoryEntriesAudit.AddAsync(entry);
             await this.context.SaveChangesAsync();
         }
