@@ -9,14 +9,8 @@
 
 @await Html.PartialAsync("_AdminMenu")
 
-<div>
-    <a href="@Url.Action("Index")">Back to list</a> |
-    <a href="@Url.Action("subcategorybreakdown")">Subcategory Breakdown</a> |
-    <a href="@Url.Action("advertiserbreakdown")">Advertiser Breakdown</a>
-</div>
-
+@await Html.PartialAsync("_ReportMenu")
 <hr />
-
 
 <form method="get" action="@Url.Action("Breakdown")">
     <div class="form-row">
@@ -39,7 +33,7 @@
         </div>
     </div>
 
-    <button type="submit" class="btn btn-primary">Get Breakdown</button>
+    <button type="submit" class="btn btn-primary">Run Report</button>
 </form>
 
 <hr />
@@ -50,14 +44,22 @@
  
 <h2>Main Sponsor by Subcategory</h2>
 <table class="table">
-    <thead><tr><th>Category</th><th>Count</th><th>Percentage</th></tr></thead>
+    <thead>
+        <tr>
+            <th>Category &gt; Subcategory</th>
+            <th>Revenue</th>
+            <th>Invoices</th>
+            <th>% of Revenue</th>
+        </tr>
+    </thead>
     <tbody>
-        @foreach (var row in Model.MainSponsorBreakdown)
+        @foreach (var r in Model.MainSponsorBreakdown)
         {
             <tr>
-                <td>@row.Name</td>
-                <td>@row.Count</td>
-                <td>@row.Percentage %</td>
+                <td>@r.Name</td>
+                <td>@r.Revenue.ToString("C")</td>
+                <td>@r.Count</td>
+                <td>@r.Percentage %</td>
             </tr>
         }
     </tbody>
@@ -65,14 +67,22 @@
 
 <h2>Category Sponsor by Subcategory</h2>
 <table class="table">
-    <thead><tr><th>Subcategory</th><th>Count</th><th>Percentage</th></tr></thead>
+    <thead>
+        <tr>
+            <th>Category &gt; Subcategory</th>
+            <th>Revenue</th>
+            <th>Invoices</th>
+            <th>% of Revenue</th>
+        </tr>
+    </thead>
     <tbody>
-        @foreach (var row in Model.CategoryBreakdown)
+        @foreach (var r in Model.CategoryBreakdown)
         {
             <tr>
-                <td>@row.Name</td>
-                <td>@row.Count</td>
-                <td>@row.Percentage %</td>
+                <td>@r.Name</td>
+                <td>@r.Revenue.ToString("C")</td>
+                <td>@r.Count</td>
+                <td>@r.Percentage %</td>
             </tr>
         }
     </tbody>
@@ -81,14 +91,22 @@
 
 <h2>Subcategory Sponsor by Subcategory</h2>
 <table class="table">
-    <thead><tr><th>Subcategory</th><th>Count</th><th>Percentage</th></tr></thead>
+    <thead>
+        <tr>
+            <th>Category &gt; Subcategory</th>
+            <th>Revenue</th>
+            <th>Invoices</th>
+            <th>% of Revenue</th>
+        </tr>
+    </thead>
     <tbody>
-        @foreach (var row in Model.SubcategoryBreakdown)
+        @foreach (var r in Model.SubcategoryBreakdown)
         {
             <tr>
-                <td>@row.Name</td>
-                <td>@row.Count</td>
-                <td>@row.Percentage %</td>
+                <td>@r.Name</td>
+                <td>@r.Revenue.ToString("C")</td>
+                <td>@r.Count</td>
+                <td>@r.Percentage %</td>
             </tr>
         }
     </tbody>

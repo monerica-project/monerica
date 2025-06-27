@@ -10,11 +10,7 @@
 
 @await Html.PartialAsync("_AdminMenu")
 
-<div>
-    <a href="@Url.Action("Index")">Back to list</a> | 
-    <a href="@Url.Action("subcategorybreakdown")">Subcategory Breakdown</a> |
-    <a href="@Url.Action("advertiserbreakdown")">Advertiser Breakdown</a>
-</div>
+@await Html.PartialAsync("_ReportMenu")
 
 <hr />
 

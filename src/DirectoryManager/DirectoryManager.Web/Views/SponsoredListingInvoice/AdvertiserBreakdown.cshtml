@@ -9,11 +9,7 @@
 
 @await Html.PartialAsync("_AdminMenu")
 
-<div>
-    <a href="@Url.Action("Index")">Back to list</a> |
-    <a href="@Url.Action("subcategorybreakdown")">Subcategory Breakdown</a> |
-    <a href="@Url.Action("advertiserbreakdown")">Advertiser Breakdown</a>
-</div>
+@await Html.PartialAsync("_ReportMenu")
 
 <hr />
 
@@ -48,6 +44,7 @@
         <tr>
             <th>Advertiser</th>
             <th>Revenue</th>
+            <td>Count</td>
             <th>Percentage</th>
         </tr>
     </thead>
@@ -57,6 +54,7 @@
             <tr>
                 <td>@row.DirectoryEntryName</td>
                 <td>@row.Revenue.ToString("C")</td>
+                <td>@row.Count</td>
                 <td>@row.Percentage %</td>
             </tr>
         }

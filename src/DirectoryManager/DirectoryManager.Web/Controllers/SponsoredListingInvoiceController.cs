@@ -258,6 +258,8 @@ namespace DirectoryManager.Web.Controllers
 
             return this.File(imageBytes, StringConstants.PngImage);
         }
+
+
         [Route("sponsoredlistinginvoice/subcategorybreakdown")]
         [HttpGet]
         public async Task<IActionResult> SubcategoryBreakdown(DateTime? startDate, DateTime? endDate)
@@ -278,63 +280,90 @@ namespace DirectoryManager.Web.Controllers
                 .ToList();
 
             // 2) load lookup maps
-            var catsList = await this.categoryRepository
-                                 .GetAllAsync()
-                                 .ConfigureAwait(false);
+            var catsList = await this.categoryRepository.GetAllAsync().ConfigureAwait(false);
             var cats = catsList.ToDictionary(c => c.CategoryId, c => c.Name);
 
-            var subsList = await this.subCategoryRepository
-                                  .GetAllActiveSubCategoriesAsync()
-                                  .ConfigureAwait(false);
-
-            // build "Category > Subcategory" map
+            var subsList = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync().ConfigureAwait(false);
             var subsFull = subsList.ToDictionary(
                 s => s.SubCategoryId,
                 s => $"{cats[s.CategoryId]} > {s.Name}");
 
-            // 3) main‐sponsor breakdown by SubCategoryId
+            // 3) MAIN-SPONSOR breakdown by SubCategoryId, revenue + count
             var mainSet = allPaid.Where(i => i.SponsorshipType == SponsorshipType.MainSponsor && i.SubCategoryId.HasValue);
-            var mainTotal = mainSet.Count();
+            var mainTotalRevenue = mainSet.Sum(i => i.Amount);
+
             var mainGroups = mainSet
                 .GroupBy(i => i.SubCategoryId!.Value)
-                .Select(g => new BreakdownRow
+                .Select(g =>
                 {
-                    Name = subsFull.TryGetValue(g.Key, out var mn) ? mn : $"(Unknown {g.Key})",
-                    Count = g.Count(),
-                    Percentage = mainTotal > 0 ? Math.Round(g.Count() * 100m / mainTotal, 2) : 0
+                    var rev = g.Sum(inv => inv.Amount);
+                    var cnt = g.Count();
+                    var name = subsFull.TryGetValue(g.Key, out var n) ? n : $"(Unknown {g.Key})";
+                    var pct = mainTotalRevenue > 0
+                                ? Math.Round(rev * 100m / mainTotalRevenue, 2)
+                                : 0m;
+                    return new BreakdownRow
+                    {
+                        Name = name,
+                        Revenue = rev,
+                        Count = cnt,
+                        Percentage = pct
+                    };
                 })
-                .OrderByDescending(r => r.Count)
+                .OrderByDescending(r => r.Revenue)
                 .ToList();
 
-            // 4) subcategory‐sponsor breakdown by SubCategoryId
+            // 4) SUBCATEGORY-SPONSOR breakdown by SubCategoryId
             var subSet = allPaid.Where(i => i.SponsorshipType == SponsorshipType.SubcategorySponsor && i.SubCategoryId.HasValue);
-            var subTotal = subSet.Count();
+            var subTotalRevenue = subSet.Sum(i => i.Amount);
+
             var subGroups = subSet
                 .GroupBy(i => i.SubCategoryId!.Value)
-                .Select(g => new BreakdownRow
+                .Select(g =>
                 {
-                    Name = subsFull.TryGetValue(g.Key, out var sn) ? sn : $"(Unknown {g.Key})",
-                    Count = g.Count(),
-                    Percentage = subTotal > 0 ? Math.Round(g.Count() * 100m / subTotal, 2) : 0
+                    var rev = g.Sum(inv => inv.Amount);
+                    var cnt = g.Count();
+                    var name = subsFull.TryGetValue(g.Key, out var n) ? n : $"(Unknown {g.Key})";
+                    var pct = subTotalRevenue > 0
+                               ? Math.Round(rev * 100m / subTotalRevenue, 2)
+                               : 0m;
+                    return new BreakdownRow
+                    {
+                        Name = name,
+                        Revenue = rev,
+                        Count = cnt,
+                        Percentage = pct
+                    };
                 })
-                .OrderByDescending(r => r.Count)
+                .OrderByDescending(r => r.Revenue)
                 .ToList();
 
-            // 5) category‐sponsor breakdown by CategoryId
-            var catSet = allPaid.Where(i => i.SponsorshipType == SponsorshipType.CategorySponsor && i.CategoryId.HasValue);
-            var catTotal = catSet.Count();
+            // 5) CATEGORY-SPONSOR breakdown by SubCategoryId
+            var catSet = allPaid.Where(i => i.SponsorshipType == SponsorshipType.CategorySponsor && i.SubCategoryId.HasValue);
+            var catTotalRevenue = catSet.Sum(i => i.Amount);
+
             var catGroups = catSet
-                .GroupBy(i => i.CategoryId!.Value)
-                .Select(g => new BreakdownRow
+                .GroupBy(i => i.SubCategoryId!.Value)
+                .Select(g =>
                 {
-                    Name = cats.TryGetValue(g.Key, out var cn) ? cn : $"(Unknown {g.Key})",
-                    Count = g.Count(),
-                    Percentage = catTotal > 0 ? Math.Round(g.Count() * 100m / catTotal, 2) : 0
+                    var rev = g.Sum(inv => inv.Amount);
+                    var cnt = g.Count();
+                    var name = subsFull.TryGetValue(g.Key, out var n) ? n : $"(Unknown {g.Key})";
+                    var pct = catTotalRevenue > 0
+                               ? Math.Round(rev * 100m / catTotalRevenue, 2)
+                               : 0m;
+                    return new BreakdownRow
+                    {
+                        Name = name,
+                        Revenue = rev,
+                        Count = cnt,
+                        Percentage = pct
+                    };
                 })
-                .OrderByDescending(r => r.Count)
+                .OrderByDescending(r => r.Revenue)
                 .ToList();
 
-            // 6) wrap in view-model
+            // 6) wrap in view‐model
             var vm = new BreakdownReportViewModel
             {
                 StartDate = startUtc,
@@ -346,8 +375,6 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(vm);
         }
-
-        // SponsoredListingInvoiceController.cs
 
         [Route("sponsoredlistinginvoice/advertiserbreakdown")]
         [HttpGet]
@@ -375,7 +402,7 @@ namespace DirectoryManager.Web.Controllers
                 allPaid = allPaid.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
             }
 
-            // new grouping by revenue
+            // 2) group by advertiser
             var paidList = allPaid.ToList();
             var totalRevenue = paidList.Sum(inv => inv.Amount);
 
@@ -386,26 +413,28 @@ namespace DirectoryManager.Web.Controllers
             {
                 var entry = await this.directoryEntryRepository.GetByIdAsync(g.Key);
                 var revenue = g.Sum(inv => inv.Amount);
+                var count = g.Count();
 
                 rows.Add(new AdvertiserBreakdownRow
                 {
                     DirectoryEntryId = g.Key,
                     DirectoryEntryName = entry?.Name ?? $"(#{g.Key})",
                     Revenue = revenue,
+                    Count = count,    // ← new
                     Percentage = totalRevenue > 0
                                           ? Math.Round(revenue * 100m / totalRevenue, 2)
                                           : 0
                 });
             }
 
-            // 3) build sponsorship‐type dropdown
+            // 3) build sponsorship‐type dropdown (unchanged)...
             var options = Enum.GetValues(typeof(SponsorshipType))
                 .Cast<SponsorshipType>()
                 .Where(st => st != SponsorshipType.Unknown)
                 .Select(st => new SelectListItem
                 {
                     Value = st.ToString(),
-                    Text = Enum.GetName(typeof(SponsorshipType), st),
+                    Text = st.ToString(),
                     Selected = sponsorshipType.HasValue && sponsorshipType.Value == st
                 })
                 .Prepend(new SelectListItem
@@ -427,6 +456,5 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(vm);
         }
-
     }
 }
