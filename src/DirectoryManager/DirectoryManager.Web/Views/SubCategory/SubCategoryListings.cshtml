@@ -45,8 +45,8 @@
         <li class="breadcrumb-item">
             <a class="no-app-link" href="@Model.CategoryRelativePath">@Model.CategoryName</a>
         </li>
-        <li class="breadcrumb-item">
-            <a class="no-app-link" href="@Model.CategoryRelativePath/@Model.SubCategoryKey">@Model.SubcategoryName</a>
+        <li class="breadcrumb-item" aria-current="page">
+            @Model.SubcategoryName
         </li>
     </ol>
 </nav>
