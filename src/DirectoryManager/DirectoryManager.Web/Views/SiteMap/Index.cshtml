@@ -1,11 +1,23 @@
 ﻿@model DirectoryManager.Web.Models.HtmlSiteMapModel
 @using DirectoryManager.Data.Enums;
 @using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Web.Models
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 
 @{
     ViewData[StringConstants.TitleHeader] = string.Format("{0}: Sitemap", cacheHelper.GetSnippet(SiteConfigSetting.SiteName));
+    var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
+
+    // Build your breadcrumb list dynamically based on page context
+    var breadcrumbs = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
+        new BreadcrumbItem { Position = 2, Name = "Sitemap", Url = UrlHelper.MakeFullUrl(domain,"/sitemap") }
+    };
 }
+
+@BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
 
 <h1>Sitemap</h1>
 <hr />

@@ -3,6 +3,8 @@
 @using DirectoryManager.Web.Constants;
 @using DirectoryManager.Data.Enums;
 @using DirectoryManager.Web.Enums
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Web.Models
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
@@ -15,8 +17,19 @@
     var subCategoryKey = ViewBag.SubCategoryKey as string;
     var categoryName = ViewBag.CategoryName as string;
     var subCategoryName = ViewBag.SubCategoryName as string;
+    var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
+
+    // Build your breadcrumb list dynamically based on page context
+    var breadcrumbs = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
+        new BreadcrumbItem { Position = 2, Name = "Sitemap", Url = UrlHelper.MakeFullUrl(domain,"/sitemap") },
+        new BreadcrumbItem { Position = 3, Name = @categoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}") },
+        new BreadcrumbItem { Position = 4, Name = @subCategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}")  }
+    };
 }
 
+@BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
 <h1>@Model.PageHeader</h1>
 
 <hr />

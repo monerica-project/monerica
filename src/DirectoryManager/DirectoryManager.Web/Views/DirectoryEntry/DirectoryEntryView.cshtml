@@ -1,5 +1,7 @@
 ﻿@using DirectoryManager.Data.Enums
 @using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Web.Models
 @model DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @{
@@ -13,7 +15,19 @@
     var finalLink = !string.IsNullOrEmpty(Model.LinkA) ? Model.LinkA : Model.Link;
     var finalLink2 = !string.IsNullOrEmpty(Model.Link2A) ? Model.Link2A : Model.Link2;
     var finalLink3 = !string.IsNullOrEmpty(Model.Link3A) ? Model.Link3A : Model.Link3;
+    var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
+
+    // Build your breadcrumb list dynamically based on page context
+    var breadcrumbs = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
+        new BreadcrumbItem { Position = 2, Name = "Sitemap", Url = UrlHelper.MakeFullUrl(domain,"/sitemap") },
+        new BreadcrumbItem { Position = 3, Name = @categoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}") },
+        new BreadcrumbItem { Position = 4, Name = @subCategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}")  }
+    };
 }
+
+@BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
 
 <h1>@Model.Name</h1>
 <hr />
@@ -34,7 +48,7 @@
             <a class="no-app-link" href="~/@categoryKey/@subCategoryKey">@subCategoryName</a>
         </li>
     </ol>
-</nav>
+    </nav>
 
     <div class="entry-details">
         <p><strong>Name:</strong> @Model.Name</p>

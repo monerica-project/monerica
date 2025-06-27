@@ -46,5 +46,17 @@ namespace DirectoryManager.Web.Helpers
 
             return normalizedUrl;
         }
+
+        public static string MakeFullUrl(string domain, string relativePath)
+        {
+            // ensure the domain has no trailing slash before building
+            var baseUri = new Uri(domain.TrimEnd('/'), UriKind.Absolute);
+
+            // combine domain + path
+            var fullUri = new Uri(baseUri, relativePath);
+
+            // AbsoluteUri gives you the normalized URL, then TrimEnd removes any trailing slash
+            return fullUri.AbsoluteUri.TrimEnd('/');
+        }
     }
 }
