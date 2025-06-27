@@ -4,6 +4,7 @@ using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Web.Charting;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Models.Reports;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -257,5 +258,175 @@ namespace DirectoryManager.Web.Controllers
 
             return this.File(imageBytes, StringConstants.PngImage);
         }
+        [Route("sponsoredlistinginvoice/subcategorybreakdown")]
+        [HttpGet]
+        public async Task<IActionResult> SubcategoryBreakdown(DateTime? startDate, DateTime? endDate)
+        {
+            const int defaultYears = 1;
+            var now = DateTime.UtcNow;
+            var from = startDate?.Date ?? now.AddYears(-defaultYears).Date;
+            var to = endDate?.Date ?? now.Date;
+
+            var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
+            var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
+
+            // 1) fetch & filter paid invoices in range
+            var allPaid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
+                .Where(inv => inv.CreateDate >= startUtc
+                           && inv.CreateDate <= endUtc
+                           && inv.PaymentStatus == PaymentStatus.Paid)
+                .ToList();
+
+            // 2) load lookup maps
+            var catsList = await this.categoryRepository
+                                 .GetAllAsync()
+                                 .ConfigureAwait(false);
+            var cats = catsList.ToDictionary(c => c.CategoryId, c => c.Name);
+
+            var subsList = await this.subCategoryRepository
+                                  .GetAllActiveSubCategoriesAsync()
+                                  .ConfigureAwait(false);
+
+            // build "Category > Subcategory" map
+            var subsFull = subsList.ToDictionary(
+                s => s.SubCategoryId,
+                s => $"{cats[s.CategoryId]} > {s.Name}");
+
+            // 3) main‐sponsor breakdown by SubCategoryId
+            var mainSet = allPaid.Where(i => i.SponsorshipType == SponsorshipType.MainSponsor && i.SubCategoryId.HasValue);
+            var mainTotal = mainSet.Count();
+            var mainGroups = mainSet
+                .GroupBy(i => i.SubCategoryId!.Value)
+                .Select(g => new BreakdownRow
+                {
+                    Name = subsFull.TryGetValue(g.Key, out var mn) ? mn : $"(Unknown {g.Key})",
+                    Count = g.Count(),
+                    Percentage = mainTotal > 0 ? Math.Round(g.Count() * 100m / mainTotal, 2) : 0
+                })
+                .OrderByDescending(r => r.Count)
+                .ToList();
+
+            // 4) subcategory‐sponsor breakdown by SubCategoryId
+            var subSet = allPaid.Where(i => i.SponsorshipType == SponsorshipType.SubcategorySponsor && i.SubCategoryId.HasValue);
+            var subTotal = subSet.Count();
+            var subGroups = subSet
+                .GroupBy(i => i.SubCategoryId!.Value)
+                .Select(g => new BreakdownRow
+                {
+                    Name = subsFull.TryGetValue(g.Key, out var sn) ? sn : $"(Unknown {g.Key})",
+                    Count = g.Count(),
+                    Percentage = subTotal > 0 ? Math.Round(g.Count() * 100m / subTotal, 2) : 0
+                })
+                .OrderByDescending(r => r.Count)
+                .ToList();
+
+            // 5) category‐sponsor breakdown by CategoryId
+            var catSet = allPaid.Where(i => i.SponsorshipType == SponsorshipType.CategorySponsor && i.CategoryId.HasValue);
+            var catTotal = catSet.Count();
+            var catGroups = catSet
+                .GroupBy(i => i.CategoryId!.Value)
+                .Select(g => new BreakdownRow
+                {
+                    Name = cats.TryGetValue(g.Key, out var cn) ? cn : $"(Unknown {g.Key})",
+                    Count = g.Count(),
+                    Percentage = catTotal > 0 ? Math.Round(g.Count() * 100m / catTotal, 2) : 0
+                })
+                .OrderByDescending(r => r.Count)
+                .ToList();
+
+            // 6) wrap in view-model
+            var vm = new BreakdownReportViewModel
+            {
+                StartDate = startUtc,
+                EndDate = endUtc,
+                MainSponsorBreakdown = mainGroups,
+                SubcategoryBreakdown = subGroups,
+                CategoryBreakdown = catGroups
+            };
+
+            return this.View(vm);
+        }
+
+        // SponsoredListingInvoiceController.cs
+
+        [Route("sponsoredlistinginvoice/advertiserbreakdown")]
+        [HttpGet]
+        public async Task<IActionResult> AdvertiserBreakdown(
+            DateTime? startDate,
+            DateTime? endDate,
+            SponsorshipType? sponsorshipType)
+        {
+            const int defaultYears = 1;
+            var now = DateTime.UtcNow;
+            var from = startDate?.Date ?? now.AddYears(-defaultYears).Date;
+            var to = endDate?.Date ?? now.Date;
+
+            var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
+            var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
+
+            // 1) fetch & filter paid invoices in range
+            var allPaid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
+                .Where(inv => inv.CreateDate >= startUtc
+                           && inv.CreateDate <= endUtc
+                           && inv.PaymentStatus == PaymentStatus.Paid);
+
+            if (sponsorshipType.HasValue)
+            {
+                allPaid = allPaid.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
+
+            // new grouping by revenue
+            var paidList = allPaid.ToList();
+            var totalRevenue = paidList.Sum(inv => inv.Amount);
+
+            var rows = new List<AdvertiserBreakdownRow>();
+            foreach (var g in paidList
+                              .GroupBy(inv => inv.DirectoryEntryId)
+                              .OrderByDescending(g => g.Sum(inv => inv.Amount)))
+            {
+                var entry = await this.directoryEntryRepository.GetByIdAsync(g.Key);
+                var revenue = g.Sum(inv => inv.Amount);
+
+                rows.Add(new AdvertiserBreakdownRow
+                {
+                    DirectoryEntryId = g.Key,
+                    DirectoryEntryName = entry?.Name ?? $"(#{g.Key})",
+                    Revenue = revenue,
+                    Percentage = totalRevenue > 0
+                                          ? Math.Round(revenue * 100m / totalRevenue, 2)
+                                          : 0
+                });
+            }
+
+            // 3) build sponsorship‐type dropdown
+            var options = Enum.GetValues(typeof(SponsorshipType))
+                .Cast<SponsorshipType>()
+                .Where(st => st != SponsorshipType.Unknown)
+                .Select(st => new SelectListItem
+                {
+                    Value = st.ToString(),
+                    Text = Enum.GetName(typeof(SponsorshipType), st),
+                    Selected = sponsorshipType.HasValue && sponsorshipType.Value == st
+                })
+                .Prepend(new SelectListItem
+                {
+                    Value = "",
+                    Text = "All",
+                    Selected = !sponsorshipType.HasValue
+                })
+                .ToList();
+
+            var vm = new AdvertiserBreakdownViewModel
+            {
+                StartDate = startUtc,
+                EndDate = endUtc,
+                SponsorshipType = sponsorshipType,
+                SponsorshipTypeOptions = options,
+                Rows = rows
+            };
+
+            return this.View(vm);
+        }
+
     }
 }
