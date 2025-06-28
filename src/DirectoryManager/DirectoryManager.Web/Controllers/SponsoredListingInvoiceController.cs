@@ -260,13 +260,15 @@ namespace DirectoryManager.Web.Controllers
         }
 
         /// <summary>
-        /// Renders a pie chart of total revenue by subcategory within the date range.
+        /// Renders a pie chart of total revenue by subcategory within the date range,
+        /// optionally scoped to one SponsorshipType.
         /// </summary>
         [AllowAnonymous]
         [HttpGet("sponsoredlistinginvoice/subcategory-revenue-pie")]
         public async Task<IActionResult> SubcategoryRevenuePieChart(
             DateTime? startDate,
-            DateTime? endDate)
+            DateTime? endDate,
+            SponsorshipType? sponsorshipType)
         {
             // 1) normalize dates (default to last 12 months)
             const int defaultYears = 1;
@@ -278,10 +280,18 @@ namespace DirectoryManager.Web.Controllers
 
             // 2) fetch & filter paid invoices in range
             var allPaid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
-                          .Where(inv => inv.CreateDate >= startUtc
-                                     && inv.CreateDate <= endUtc
-                                     && inv.PaymentStatus == PaymentStatus.Paid)
-                          .ToList();
+                .Where(inv => inv.CreateDate >= startUtc
+                           && inv.CreateDate <= endUtc
+                           && inv.PaymentStatus == PaymentStatus.Paid)
+                .ToList();
+
+            // 2a) if user supplied a sponsorshipType, filter by it
+            if (sponsorshipType.HasValue)
+            {
+                allPaid = allPaid
+                    .Where(inv => inv.SponsorshipType == sponsorshipType.Value)
+                    .ToList();
+            }
 
             // 3) load lookup maps
             var catsList = await this.categoryRepository.GetAllAsync().ConfigureAwait(false);
@@ -290,10 +300,10 @@ namespace DirectoryManager.Web.Controllers
             var subsList = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync().ConfigureAwait(false);
             var subs = subsList.ToDictionary(s => s.SubCategoryId, s => s.Name);
 
-            // mapping subcategory→categoryId (if you need it in your charting logic)
+            // 3a) mapping subcategory → categoryId
             var subToCat = subsList.ToDictionary(s => s.SubCategoryId, s => s.CategoryId);
 
-            // 4) delegate to our ScottPlot helper
+            // 4) delegate to ScottPlot helper
             var chartBytes = new InvoicePlotting()
                 .CreateSubcategoryRevenuePieChart(
                     allPaid,

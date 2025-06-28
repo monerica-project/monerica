@@ -125,7 +125,7 @@ namespace DirectoryManager.Web.Charting
 
             // add the donut
             var pie = plt.Add.Pie(slices);
-            pie.DonutFraction = 0.4;
+            pie.DonutFraction = 0;
             pie.SliceLabelDistance = 1.2;
 
             // title + legend
