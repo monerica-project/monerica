@@ -124,6 +124,21 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId, e.SubcategoryId })
                    .IsUnique();
 
+            builder.Entity<SponsoredListingOffer>(eb =>
+            {
+                // 1️⃣ Enforce uniqueness when SubcategoryId IS NULL
+                eb.HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId })
+                  .IsUnique()
+                  .HasFilter("[SubcategoryId] IS NULL")
+                  .HasDatabaseName("UX_Offer_Type_Days_Cat_NoSubcat");
+
+                // 2️⃣ Enforce uniqueness when SubcategoryId IS NOT NULL
+                eb.HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId, e.SubcategoryId })
+                  .IsUnique()
+                  .HasFilter("[SubcategoryId] IS NOT NULL")
+                  .HasDatabaseName("UX_Offer_Type_Days_Cat_Subcat");
+            });
+
             builder.Entity<SponsoredListingOffer>()
                    .HasIndex(e => new { e.SponsorshipType, e.Days })
                    .IsUnique()

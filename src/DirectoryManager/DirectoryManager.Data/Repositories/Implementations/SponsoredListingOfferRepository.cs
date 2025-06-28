@@ -67,8 +67,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task CreateAsync(SponsoredListingOffer offer)
         {
-            await this.context.SponsoredListingOffers.AddAsync(offer);
-            await this.context.SaveChangesAsync();
+            try
+            {
+                await this.context.SponsoredListingOffers.AddAsync(offer);
+                await this.context.SaveChangesAsync();
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
+            }
         }
 
         public async Task UpdateAsync(SponsoredListingOffer offer)
