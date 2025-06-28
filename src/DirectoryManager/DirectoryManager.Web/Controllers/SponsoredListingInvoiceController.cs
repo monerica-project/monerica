@@ -259,6 +259,51 @@ namespace DirectoryManager.Web.Controllers
             return this.File(imageBytes, StringConstants.PngImage);
         }
 
+        /// <summary>
+        /// Renders a pie chart of total revenue by subcategory within the date range.
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet("sponsoredlistinginvoice/subcategory-revenue-pie")]
+        public async Task<IActionResult> SubcategoryRevenuePieChart(
+            DateTime? startDate,
+            DateTime? endDate)
+        {
+            // 1) normalize dates (default to last 12 months)
+            const int defaultYears = 1;
+            var now = DateTime.UtcNow;
+            var from = (startDate ?? now.AddYears(-defaultYears)).Date;
+            var to = (endDate ?? now).Date;
+            var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
+            var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
+
+            // 2) fetch & filter paid invoices in range
+            var allPaid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
+                          .Where(inv => inv.CreateDate >= startUtc
+                                     && inv.CreateDate <= endUtc
+                                     && inv.PaymentStatus == PaymentStatus.Paid)
+                          .ToList();
+
+            // 3) load lookup maps
+            var catsList = await this.categoryRepository.GetAllAsync().ConfigureAwait(false);
+            var cats = catsList.ToDictionary(c => c.CategoryId, c => c.Name);
+
+            var subsList = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync().ConfigureAwait(false);
+            var subs = subsList.ToDictionary(s => s.SubCategoryId, s => s.Name);
+
+            // mapping subcategory→categoryId (if you need it in your charting logic)
+            var subToCat = subsList.ToDictionary(s => s.SubCategoryId, s => s.CategoryId);
+
+            // 4) delegate to our ScottPlot helper
+            var chartBytes = new InvoicePlotting()
+                .CreateSubcategoryRevenuePieChart(
+                    allPaid,
+                    cats,
+                    subs,
+                    subToCat);
+
+            // 5) return as PNG
+            return this.File(chartBytes, "image/png");
+        }
 
         [Route("sponsoredlistinginvoice/subcategorybreakdown")]
         [HttpGet]

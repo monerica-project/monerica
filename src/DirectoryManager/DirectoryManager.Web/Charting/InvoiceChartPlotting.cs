@@ -1,5 +1,9 @@
-﻿using DirectoryManager.Data.Models.SponsoredListings;
+﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models.SponsoredListings;
 using ScottPlot;
+using ScottPlot.Plottables;
+using SkiaSharp;
+using System.Linq;
 
 namespace DirectoryManager.Web.Charting
 {
@@ -53,6 +57,83 @@ namespace DirectoryManager.Web.Charting
 
             // Return the plot as a byte array to display in the view
             return myPlot.GetImageBytes(1200, 800, ImageFormat.Png);
+        }
+
+        public byte[] CreateSubcategoryRevenuePieChart(
+            IEnumerable<SponsoredListingInvoice> invoices,
+            IDictionary<int, string> categoryNames,
+            IDictionary<int, string> subcategoryNames,
+            IDictionary<int, int> subcategoryToCategory)
+        {
+            // 1) Build breakdown by SubCategoryId
+            var breakdown = invoices
+                .Where(i => i.PaymentStatus == PaymentStatus.Paid
+                         && i.Currency == Currency.USD
+                         && i.SubCategoryId.HasValue)
+                .GroupBy(i => i.SubCategoryId!.Value)
+                .Select(g =>
+                {
+                    int subId = g.Key;
+                    subcategoryToCategory.TryGetValue(subId, out var catId);
+                    categoryNames.TryGetValue(catId, out var catLabel);
+                    subcategoryNames.TryGetValue(subId, out var subLabel);
+
+                    string label = $"{catLabel ?? $"(Unknown Cat {catId})"} > {subLabel ?? $"(Unknown Sub {subId})"}";
+                    double value = g.Sum(i => (double)i.Amount);
+                    return (subId, label, value);
+                })
+                .Where(x => x.value > 0)
+                .OrderByDescending(x => x.value)
+                .ToArray();
+
+            if (breakdown.Length == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            // total revenue for percentage calculation
+            double totalRevenue = breakdown.Sum(x => x.value);
+
+            // 2) Expanded 20-color D3 Category20 palette in hex
+            var hexPalette = new[]
+            {
+                "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+                "#393b79", "#637939", "#8c6d31", "#843c39", "#7b4173", "#3182bd", "#31a354", "#756bb1", "#636363", "#e6550d"
+            };
+            var palette = hexPalette.Select(ScottPlot.Color.FromHex).ToArray();
+
+            // 3) Build PieSlice collection showing percent labels
+            var slices = breakdown
+                .Select((item, idx) =>
+                {
+                    double pct = totalRevenue > 0
+                        ? Math.Round(item.value * 100 / totalRevenue, 1)
+                        : 0;
+                    var sliceColor = palette[idx % palette.Length];
+                    return new PieSlice(item.value, sliceColor, $"{pct}%")
+                    {
+                        LegendText = item.label
+                    };
+                })
+                .ToArray();
+
+            // 4) Create and decorate the plot
+            var plt = new Plot();
+
+            // hide axes & grid
+            plt.HideAxesAndGrid();
+
+            // add the donut
+            var pie = plt.Add.Pie(slices);
+            pie.DonutFraction = 0.4;
+            pie.SliceLabelDistance = 1.2;
+
+            // title + legend
+            plt.Title("Revenue by Subcategory");
+            plt.ShowLegend(ScottPlot.Alignment.LowerRight);
+
+            // 5) Render to PNG
+            return plt.GetImageBytes(800, 600, ImageFormat.Png);
         }
     }
 }

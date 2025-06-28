@@ -66,3 +66,11 @@
 <img style="width:100%"
      src="@Url.Action("monthlyincomebarchart", "sponsoredlistinginvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType })"
      alt="chart" />
+
+<img style="width:100%"
+     src="@Url.Action(
+             "subcategoryrevenuepiechart",
+             "sponsoredlistinginvoice",
+             new { startDate = Model.StartDate, endDate = Model.EndDate }
+          )"
+     alt="Subcategory Revenue Pie Chart" />
