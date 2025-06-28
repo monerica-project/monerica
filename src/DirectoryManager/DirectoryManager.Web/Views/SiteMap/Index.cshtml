@@ -13,13 +13,13 @@
     var breadcrumbs = new List<BreadcrumbItem>
     {
         new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
-        new BreadcrumbItem { Position = 2, Name = "Sitemap", Url = UrlHelper.MakeFullUrl(domain,"/sitemap") }
+        new BreadcrumbItem { Position = 2, Name = StringConstants.AllCategories, Url = UrlHelper.MakeFullUrl(domain,"/sitemap") }
     };
 }
 
 @BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
 
-<h1>Sitemap</h1>
+<h1>Sitemap : @StringConstants.AllCategories</h1>
 <hr />
 
 <nav aria-label="breadcrumb">
@@ -27,7 +27,7 @@
         <li class="breadcrumb-item">
             <a class="no-app-link" href="~/">Home</a>
         </li>
-        <li class="breadcrumb-item" aria-current="page">Sitemap</li>
+        <li class="breadcrumb-item" aria-current="page">@StringConstants.AllCategories</li>
     </ol>
 </nav>
  

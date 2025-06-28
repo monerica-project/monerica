@@ -15,7 +15,7 @@
     var breadcrumbs = new List<BreadcrumbItem>
     {
         new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
-        new BreadcrumbItem { Position = 2, Name = "Sitemap", Url = UrlHelper.MakeFullUrl(domain,"/sitemap") },
+        new BreadcrumbItem { Position = 2, Name = StringConstants.AllCategories, Url = UrlHelper.MakeFullUrl(domain,"/sitemap") },
         new BreadcrumbItem { Position = 3, Name = Model.CategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@Model.CategoryKey}") }
     };
 }
@@ -32,7 +32,7 @@
             <a class="no-app-link" href="~/">Home</a>
         </li>
         <li class="breadcrumb-item">
-            <a class="no-app-link" href="~/sitemap">Sitemap</a></li>
+            <a class="no-app-link" href="~/sitemap">@StringConstants.AllCategories</a>
         <li class="breadcrumb-item" aria-current="page">
             @Model.CategoryName
         </li>

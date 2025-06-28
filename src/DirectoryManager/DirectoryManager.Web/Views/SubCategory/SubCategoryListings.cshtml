@@ -23,7 +23,7 @@
     var breadcrumbs = new List<BreadcrumbItem>
     {
         new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
-        new BreadcrumbItem { Position = 2, Name = "Sitemap", Url = UrlHelper.MakeFullUrl(domain,"/sitemap") },
+        new BreadcrumbItem { Position = 2, Name = StringConstants.AllCategories, Url = UrlHelper.MakeFullUrl(domain,"/sitemap") },
         new BreadcrumbItem { Position = 3, Name = @categoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}") },
         new BreadcrumbItem { Position = 4, Name = @subCategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}")  }
     };
@@ -40,7 +40,7 @@
             <a class="no-app-link" href="~/">Home</a>
         </li>
         <li class="breadcrumb-item">
-            <a class="no-app-link" href="~/sitemap">Sitemap</a>
+            <a class="no-app-link" href="~/sitemap">@StringConstants.AllCategories</a>
         </li>
         <li class="breadcrumb-item">
             <a class="no-app-link" href="@Model.CategoryRelativePath">@Model.CategoryName</a>

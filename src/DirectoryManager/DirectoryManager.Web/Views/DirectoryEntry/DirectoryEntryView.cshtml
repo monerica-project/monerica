@@ -21,7 +21,7 @@
     var breadcrumbs = new List<BreadcrumbItem>
     {
         new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
-        new BreadcrumbItem { Position = 2, Name = "Sitemap", Url = UrlHelper.MakeFullUrl(domain,"/sitemap") },
+        new BreadcrumbItem { Position = 2, Name = StringConstants.AllCategories, Url = UrlHelper.MakeFullUrl(domain,"/sitemap") },
         new BreadcrumbItem { Position = 3, Name = @categoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}") },
         new BreadcrumbItem { Position = 4, Name = @subCategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}")  },
         new BreadcrumbItem { Position = 5, Name = Model.Name, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}/{@Model.DirectoryEntryKey}")  }
@@ -38,10 +38,10 @@
     <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item">
-                <a class="no-app-link" href="~/">Home</a>
+            <a class="no-app-link" href="~/">Home</a>
         </li>
         <li class="breadcrumb-item">
-            <a class="no-app-link" href="~/sitemap">Sitemap</a></li>
+            <a class="no-app-link" href="~/sitemap">@StringConstants.AllCategories</a>
         <li class="breadcrumb-item">
             <a class="no-app-link" href="~/@categoryKey">@categoryName</a>
         </li>
@@ -68,6 +68,9 @@
         {
             <p><strong>@Model.Link3Name:</strong> <a class="multi-line-text" href="@finalLink3" target="_blank">@Model.Link3</a></p>
         }
+
+        <br />
+        <h3>Details</h3>
         <p>
             <strong>Status:</strong>
             @if (Model.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Verified)
