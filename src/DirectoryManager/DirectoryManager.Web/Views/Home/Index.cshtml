@@ -302,7 +302,7 @@
                             Link3Name = link3Name
                         } : null
             };
-            @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", subCategorySponsorModel)
+            @await Html.PartialAsync("_SponsoredListingSubcategoryPartial", subCategorySponsorModel)
             if (subCategorySponsor != null)
             {
                viewModelList.RemoveAll(x => x.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
