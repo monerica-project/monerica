@@ -104,11 +104,6 @@
             };
 
     @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", subCategorySponsorModel)
-
-    if (subCategorySponsor != null)
-    {
-        viewModelList.RemoveAll(x => x.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
-    }
 }
 <ul class="blank_list_item">
     @foreach (var viewModel in viewModelList)
