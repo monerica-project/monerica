@@ -40,21 +40,24 @@ var offlines = new List<string>();
 
 // Run the checks in parallel using Task.WhenAll for all entries
 var tasks = allEntries
-    .Where(entry => entry.DirectoryStatus != DirectoryStatus.Unknown &&
-                    entry.DirectoryStatus != DirectoryStatus.Removed &&
-                    (!entry.Link.Contains(".onion") || !entry.Link.Contains(".i2p")))
+    .Where(entry =>
+        // only include entries whose status is neither Unknown nor Removed
+        entry.DirectoryStatus != DirectoryStatus.Unknown &&
+        entry.DirectoryStatus != DirectoryStatus.Removed &&
+
+        // and whose link does NOT contain an .onion or .i2p address
+        !entry.Link.Contains(".onion", StringComparison.OrdinalIgnoreCase) &&
+        !entry.Link.Contains(".i2p", StringComparison.OrdinalIgnoreCase))
     .Select(async entry =>
     {
         // Create a new scope for each task to isolate DbContext instances
         using var scope = serviceProvider.CreateScope();
         var scopedSubmissionRepo = scope.ServiceProvider.GetRequiredService<ISubmissionRepository>();
 
-        var isOnline = await webPageChecker.IsWebPageOnlineAsync(new Uri(entry.Link));
-
-        if (!isOnline)
-        {
-            isOnline = webPageChecker.IsWebPageOnlinePing(new Uri(entry.Link));
-        }
+        // check online status
+        var uri = new Uri(entry.Link);
+        var isOnline = await webPageChecker.IsWebPageOnlineAsync(uri)
+                       || webPageChecker.IsWebPageOnlinePing(uri);
 
         Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : SiteOfflineMessage)}");
 

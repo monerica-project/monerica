@@ -11,55 +11,9 @@
 
 <a asp-action="Create">Create New</a>
 <hr />
-<div class="table-wrapper">
-<table class="table">
-    <thead>
-        <tr>
-            <th>Type</th>
-            <th>Subcategory</th>
-            <th>Days</th>
-            <th>Price</th>
-            <th>Price/ Day</th>
-            <th>Is Enabled</th>
-            <th></th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var item in Model)
-        {
-            <tr>
-                <td>@item.SponsorshipType</td>
-                <td>
-                    @if (string.IsNullOrEmpty(item.Subcategory?.Name))
-                    {
-                        @StringConstants.Default
-                    }
-                    else
-                    {
-                        @string.Format("{0} > {1}", item.Subcategory.Category?.Name, @item.Subcategory?.Name)
-                    }
-                </td>
-                <td>@item.Days</td>
-                <td title="@item.Description">@item.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat) (@item.PriceCurrency.ToString())</td>
-                <td title="@item.Description">
-                    @{
-                        if (item.Days > 0)
-                        {
-                            var pricePerDay = item.Price / item.Days;
-                            <text>@pricePerDay.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat2)</text>
-                        }
-                        else
-                        {
-                            <text>N/A</text>
-                        }
-                    }
-                </td>
-                <td>@item.IsEnabled</td>
-                <td>
-                    <a asp-action="Edit" asp-route-id="@item.SponsoredListingOfferId">Edit</a>                    
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
-</div>
+
+@await Html.PartialAsync("_SponsorshipOptions",  Model.Where(x => x.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.MainSponsor)) 
+
+@await Html.PartialAsync("_SponsorshipOptions", Model.Where(x => x.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.CategorySponsor))
+
+@await Html.PartialAsync("_SponsorshipOptions", Model.Where(x => x.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.SubcategorySponsor)) 

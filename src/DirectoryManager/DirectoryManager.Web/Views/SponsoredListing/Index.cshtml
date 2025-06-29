@@ -14,11 +14,14 @@
 @await Html.PartialAsync("_BackToHome")
 <hr />
 
-<h2>Sponsorship Types</h2>
+<p>Get more visibility on your listing with a sponsored listing.</p>
+<br />
+
+<h3>Sponsorship Types</h3>
 <ul>
-    <li>@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</li>
-    <li>@EnumHelper.GetDescription(SponsorshipType.CategorySponsor)</li>
-    <li>@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</li>
+    <li><a href="#main-sponsor-section">@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</a></li>
+    <li><a href="#category-sponsor-section">@EnumHelper.GetDescription(SponsorshipType.CategorySponsor)</a></li>
+    <li><a href="#subcategory-sponsor-section">@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</a></li>
 </ul>
 
 <p><b>Current sponsored listing <a href="~/sponsoredlisting/offers">offers and prices</a>.</b></p>
@@ -32,7 +35,7 @@
 
 <hr />
 
-<h3>@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</h3>
+<h3 id="main-sponsor-section">@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</h3>
 
 <p><br /><b>Details:</b></p>
 
@@ -82,7 +85,7 @@ else
 
 <!-- ─── Category sponsor section ─── -->
 
-<h3>@EnumHelper.GetDescription(SponsorshipType.CategorySponsor)</h3>
+<h3 id="category-sponsor-section">@EnumHelper.GetDescription(SponsorshipType.CategorySponsor)</h3>
 
 <p><br /><b>Details:</b></p>
 <p>
@@ -134,7 +137,7 @@ else
 
 <hr />
 
-<h3>@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</h3>
+<h3 id="subcategory-sponsor-section">@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</h3>
 <p><br /><b>Details:</b></p>
 <p>
     @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SubcategorySponsoredListingDetails))

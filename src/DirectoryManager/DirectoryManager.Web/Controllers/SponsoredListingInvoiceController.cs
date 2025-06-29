@@ -111,7 +111,7 @@ namespace DirectoryManager.Web.Controllers
                                   .OrderBy(sc => sc.Category.Name)
                                   .ThenBy(sc => sc.Name)
                                   .FirstOrDefault(sc => sc.SubCategoryId == invoice.SubCategoryId.Value);
-                this.ViewBag.SubCategory = subcategory;
+                this.ViewBag.Subcategory = subcategory;
             }
             else if (invoice.SponsorshipType == SponsorshipType.CategorySponsor
                      && invoice.CategoryId.HasValue)

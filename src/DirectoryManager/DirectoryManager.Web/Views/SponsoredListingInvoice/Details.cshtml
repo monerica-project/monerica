@@ -1,4 +1,5 @@
 ﻿@model DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice
+@using DirectoryManager.DisplayFormatting.Helpers
 @using DirectoryManager.DisplayFormatting.Models
 @using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Constants;
@@ -29,10 +30,16 @@
         <dt>Sponsorship Type</dt>
         <dd>@Model.SponsorshipType</dd>
 
-        @if (ViewBag.SubCategory != null)
+        @if (Model.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.SubcategorySponsor && ViewBag.Subcategory != null)
         {
             <dt>Subcategory</dt>
-            <dd>@ViewBag.SubCategory.Category.Name > @ViewBag.SubCategory.Name</dd>
+            <dd>@FormattingHelper.SubcategoryFormatting(ViewBag.Subcategory.Category.Name, @ViewBag.SubCategory.Name)</dd>
+        }
+
+        @if (Model.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.CategorySponsor && ViewBag.Category != null)
+        {
+            <dt>Category</dt>
+            <dd>@ViewBag.Category.Name</dd>
         }
 
         <dt>Amount</dt>

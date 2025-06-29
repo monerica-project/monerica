@@ -18,15 +18,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<SponsoredListingOffer>> GetAllAsync()
         {
-            return await this.context
-                             .SponsoredListingOffers
-                             .Include(slo => slo.Subcategory!)
-                             .ThenInclude(sub => sub.Category)
-                             .OrderBy(slo => slo.SponsorshipType)
-                             .ThenBy(slo => slo.SubcategoryId.HasValue)
-                             .ThenBy(slo => slo.Subcategory != null ? slo.Subcategory.Name : string.Empty)
-                             .ThenBy(slo => slo.Days)
-                             .ToListAsync();
+            return await this.context.SponsoredListingOffers
+                .Include(slo => slo.Subcategory!)
+                    .ThenInclude(sub => sub.Category)
+                .OrderBy(slo => slo.SponsorshipType.ToString())
+                .ThenBy(slo => slo.Subcategory != null)
+                .ThenBy(slo => slo.Subcategory != null
+                     ? slo.Subcategory.Category.Name + " " + slo.Subcategory.Name
+                     : string.Empty)
+                .ThenBy(slo => slo.Days)
+                .ToListAsync();
         }
 
         public async Task<IEnumerable<SponsoredListingOffer>> GetAllByTypeAsync(SponsorshipType sponsorshipType)
