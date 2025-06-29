@@ -733,7 +733,11 @@ namespace DirectoryManager.Web.Controllers
 
             var processorPaymentStatus = EnumHelper.ParseStringToEnum<NowPayments.API.Enums.PaymentStatus>(ipnMessage.PaymentStatus);
             var translatedValue = ConvertToInternalStatus(processorPaymentStatus);
-            invoice.PaymentStatus = translatedValue;
+
+            if (invoice.PaymentStatus != PaymentStatus.Paid)
+            {
+                invoice.PaymentStatus = translatedValue;
+            }
 
             if (ipnMessage.PayCurrency == null)
             {
