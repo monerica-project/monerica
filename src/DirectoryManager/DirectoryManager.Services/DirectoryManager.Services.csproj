@@ -37,4 +37,8 @@
     <PackageReference Include="SendGrid" Version="9.29.3" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\DirectoryManager.Data\DirectoryManager.Data.csproj" />
+  </ItemGroup>
+
 </Project>

@@ -1,75 +1,190 @@
-﻿using System.Globalization;
-using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.TransferModels;
 using ScottPlot;
+using ScottPlot.Plottables;
+using System.Globalization;
 
 namespace DirectoryManager.Web.Charting
 {
     public class DirectoryEntryPlotting
     {
-        public byte[] CreateWeeklyPlot(List<DirectoryEntry> entries)
+
+        //// your existing weekly cumulative plot (unchanged)
+        //public byte[] CreateWeeklyPlot(List<DirectoryEntry> entries)
+        //{
+        //    if (!entries.Any())
+        //        throw new ArgumentException("Entries list is empty.");
+
+        //    entries = entries.Where(x => IncludedStatus(x)).ToList();
+
+        //    var weeklyData = entries
+        //        .GroupBy(entry => CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
+        //                        entry.CreateDate,
+        //                        CalendarWeekRule.FirstFourDayWeek,
+        //                        DayOfWeek.Monday))
+        //        .Select(g => new
+        //        {
+        //            WeekStart = g.Min(e => e.CreateDate),
+        //            Total = g.Count()
+        //        })
+        //        .OrderBy(x => x.WeekStart)
+        //        .ToList();
+
+        //    double cumulative = 0;
+        //    var dates = new List<DateTime>();
+        //    var values = new List<double>();
+        //    foreach (var w in weeklyData)
+        //    {
+        //        cumulative += w.Total;
+        //        dates.Add(w.WeekStart);
+        //        values.Add(cumulative);
+        //    }
+
+        //    var plt = new Plot();
+        //    var scatter = plt.Add.Scatter(
+        //        xs: dates.Select(d => d.ToOADate()).ToArray(),
+        //        ys: values.ToArray());
+        //    scatter.MarkerSize = 10;
+        //    scatter.MarkerShape = MarkerShape.FilledSquare;
+        //    scatter.LineStyle = LineStyle.None;
+
+        //    plt.Axes.DateTimeTicksBottom();
+        //    plt.Title("Weekly Cumulative Totals");
+        //    plt.XLabel("Week Starting");
+        //    plt.YLabel("Total Accumulated Entries");
+
+        //    return plt.GetImageBytes(1200, 800, ImageFormat.Png);
+        //}
+
+        /// <summary>
+        /// Single‐bar‐per‐month showing how many entries were active at month‐end.
+        /// </summary>
+        /// <returns></returns>
+        public byte[] CreateMonthlyActivePlot(List<DirectoryEntriesAudit> audits)
         {
-            // Ensure entries list is not empty
-            if (!entries.Any())
-            {
-                throw new ArgumentException("Entries list is empty.");
-            }
+            // 1) get the Year/Month → ActiveCount series
+            var monthly = GetMonthlyActiveCounts(audits);
 
-            entries = entries.Where(x => IncludedStatus(x)).ToList();
+            int n = monthly.Count;
+            double[] positions = Enumerable.Range(0, n).Select(i => (double)i).ToArray();
+            double[] heights = monthly.Select(x => (double)x.ActiveCount).ToArray();
+            string[] labels = monthly
+                .Select(x => new DateTime(x.Year, x.Month, 1)
+                    .ToString("MMM yyyy", CultureInfo.InvariantCulture))
+                .ToArray();
 
-            // Group data by week and calculate cumulative total for each week
-            var weeklyData = entries
-                .GroupBy(entry => CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
-                                entry.CreateDate,
-                                CalendarWeekRule.FirstFourDayWeek,
-                                DayOfWeek.Monday))
-                .Select(group => new
+            // 2) build the plot
+            var plt = new Plot();
+
+            plt.Add.HorizontalLine(0, color: Colors.Transparent);
+
+            // create one Bar per month at its x‐position, height = active count
+            var bars = positions
+                .Zip(heights, (pos, val) => new Bar()
                 {
-                    WeekStartDate = group.Min(entry => entry.CreateDate), // Take the earliest date in the week as the X-axis point
-                    WeeklyTotal = group.Count() // Count of entries for the week
+                    Position = pos,
+                    Value = val,
+                    FillColor = plt.Add.Palette.GetColor(0)
                 })
-                .OrderBy(d => d.WeekStartDate)
                 .ToList();
 
-            // Calculate cumulative totals
-            double cumulativeTotal = 0;
-            var plotDates = new List<DateTime>();
-            var plotValues = new List<double>();
+            var bp = plt.Add.Bars(bars);
+            bp.LegendText = "Active entries";
 
-            foreach (var week in weeklyData)
+            plt.Axes.AutoScale();
+
+            var limits = plt.Axes.GetLimits();
+            plt.Axes.SetLimits(
+                left: limits.Left,
+                right: limits.Right,
+                bottom: 0,
+                top: limits.Top);
+
+            // 3) configure the bottom axis
+            var bot = plt.Axes.Bottom;
+
+            // a) make room for the tick labels + the title
+            bot.MinimumSize = 100;
+
+            // b) rotate & align the tick labels
+            bot.TickLabelStyle.Rotation = 90;
+            bot.TickLabelStyle.Alignment = Alignment.LowerCenter;
+            bot.TickLabelStyle.OffsetY = 30;    // push them down under the zero line
+
+            // c) apply our lower-case tick texts
+            bot.SetTicks(positions, labels);
+
+            // d) set the axis‐title lower-case and push it down
+            bot.Label.Text = "Month";
+            bot.Label.FontSize = 14;
+            bot.Label.OffsetY = 10;    // drop the “month” label further down
+
+            // 4) titles & legend
+            plt.Title("Active Directory Entries by Month");
+            plt.YLabel("Active Entries");
+            var legendPanel = plt.ShowLegend(Edge.Bottom);
+            legendPanel.Alignment = Alignment.UpperRight;
+
+            // 5) re-apply automatic layout so all panels draw in the right order
+            plt.Layout.Default();
+
+            // 7) export 1200×600 PNG
+            return plt.GetImageBytes(width: 1200, height: 600, format: ImageFormat.Png);
+        }
+
+        // your helper to build the monthly report remains the same...
+        public static List<(int Year, int Month, int ActiveCount)> GetMonthlyActiveCounts(
+            List<DirectoryEntriesAudit> audits)
+        {
+            if (audits == null || audits.Count == 0)
             {
-                cumulativeTotal += week.WeeklyTotal;
-                plotDates.Add(week.WeekStartDate);
-                plotValues.Add(cumulativeTotal); // Add cumulative total up to this week
+                throw new ArgumentException("no audit data");
             }
 
-            // Create the plot
-            var myPlot = new Plot();
+            // build a history per entry, using UpdateDate if present
+            var byEntry = audits
+                .Select(a => new
+                {
+                    a.DirectoryEntryId,
+                    EffectiveDate = a.UpdateDate ?? a.CreateDate,
+                    a.DirectoryStatus
+                })
+                .GroupBy(x => x.DirectoryEntryId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderBy(x => x.EffectiveDate).ToList());
 
-            // Add a scatter plot with discrete points for cumulative totals
-            var scatter = myPlot.Add.Scatter(plotDates.Select(d => d.ToOADate()).ToArray(), plotValues.ToArray());
-            scatter.MarkerSize = 10;
-            scatter.MarkerShape = MarkerShape.FilledSquare;
-            scatter.LineStyle = LineStyle.None; // No connecting lines
+            // compute full month span
+            DateTime minDate = byEntry.Values.SelectMany(v => v).Min(x => x.EffectiveDate);
+            DateTime start = new DateTime(minDate.Year, minDate.Month, 1);
+            DateTime end = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+            int months = ((end.Year - start.Year) * 12) + end.Month - start.Month + 1;
 
-            // Configure X-axis to display dates
-            myPlot.Axes.DateTimeTicksBottom();
+            var report = new List<(int Year, int Month, int ActiveCount)>();
+            for (int i = 0; i < months; i++)
+            {
+                DateTime monthStart = start.AddMonths(i);
+                DateTime cutoff = monthStart.AddMonths(1).AddTicks(-1);
 
-            // Label the plot
-            myPlot.Title("Weekly Cumulative Totals");
-            myPlot.XLabel("Week Starting");
-            myPlot.YLabel("Total Accumulated Entries");
+                int activeThisMonth = byEntry.Count(kvp =>
+                {
+                    var record = kvp.Value
+                        .Where(x => x.EffectiveDate <= cutoff)
+                        .LastOrDefault();
+                    return record != null && IsActiveStatus((int)record.DirectoryStatus);
+                });
 
-            // Return the plot as a byte array to display in the view
-            return myPlot.GetImageBytes(1200, 800, ImageFormat.Png);
+                report.Add((monthStart.Year, monthStart.Month, activeThisMonth));
+            }
+
+            return report;
         }
 
-        private static bool IncludedStatus(DirectoryEntry x)
-        {
-            return
-                            x.DirectoryStatus == Data.Enums.DirectoryStatus.Admitted ||
-                            x.DirectoryStatus == Data.Enums.DirectoryStatus.Verified ||
-                            x.DirectoryStatus == Data.Enums.DirectoryStatus.Questionable ||
-                            x.DirectoryStatus == Data.Enums.DirectoryStatus.Scam;
-        }
+        // adjust to match your “active” statuses
+        private static bool IsActiveStatus(int s) =>
+            s is (int)Data.Enums.DirectoryStatus.Admitted or
+            (int)Data.Enums.DirectoryStatus.Verified or
+            (int)Data.Enums.DirectoryStatus.Scam or
+            (int)Data.Enums.DirectoryStatus.Questionable;
     }
 }
