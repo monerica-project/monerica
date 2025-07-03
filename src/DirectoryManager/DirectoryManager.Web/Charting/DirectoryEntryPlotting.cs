@@ -13,9 +13,8 @@ namespace DirectoryManager.Web.Charting
         /// <returns></returns>
         public byte[] CreateMonthlyActivePlot(List<DirectoryEntriesAudit> audits)
         {
-            // 1) get the Year/Month → ActiveCount series
+            // build the month‐end counts
             var monthly = GetMonthlyActiveCounts(audits);
-
             int n = monthly.Count;
             double[] positions = Enumerable.Range(0, n).Select(i => (double)i).ToArray();
             double[] heights = monthly.Select(x => (double)x.ActiveCount).ToArray();
@@ -24,64 +23,56 @@ namespace DirectoryManager.Web.Charting
                     .ToString("MMM yyyy", CultureInfo.InvariantCulture))
                 .ToArray();
 
-            // 2) build the plot
             var plt = new Plot();
-
             plt.Add.HorizontalLine(0, color: Colors.Transparent);
 
-            // create one Bar per month at its x‐position, height = active count
-            var bars = positions
-                .Zip(heights, (pos, val) => new Bar()
+            // build Bar objects with red/green fill
+            var bars = new List<Bar>();
+            for (int i = 0; i < n; i++)
+            {
+                bool grew = i == 0 || heights[i] >= heights[i - 1];
+                bars.Add(new Bar()
                 {
-                    Position = pos,
-                    Value = val,
-                    FillColor = plt.Add.Palette.GetColor(0)
-                })
-                .ToList();
+                    Position = positions[i],
+                    Value = heights[i],
+                    FillColor = grew ? Colors.Green
+                                     : Colors.Red,
+                    LineStyle = new () { Color = Colors.Transparent } // no border
+                });
+            }
 
-            var bp = plt.Add.Bars(bars);
-            bp.LegendText = "Active entries";
+            // add them all at once
+            var barPlot = plt.Add.Bars(bars);
+           //barPlot.LegendText = "Active entries";
 
+            // force y≥0
             plt.Axes.AutoScale();
+            var L = plt.Axes.GetLimits();
+            plt.Axes.SetLimits(L.Left, L.Right, 0, L.Top);
 
-            var limits = plt.Axes.GetLimits();
-            plt.Axes.SetLimits(
-                left: limits.Left,
-                right: limits.Right,
-                bottom: 0,
-                top: limits.Top);
-
-            // 3) configure the bottom axis
+            // bottom axis ticks & labels
             var bot = plt.Axes.Bottom;
-
-            // a) make room for the tick labels + the title
             bot.MinimumSize = 100;
-
-            // b) rotate & align the tick labels
             bot.TickLabelStyle.Rotation = 90;
             bot.TickLabelStyle.Alignment = Alignment.LowerCenter;
-            bot.TickLabelStyle.OffsetY = 30;    // push them down under the zero line
-
-            // c) apply our lower-case tick texts
+            bot.TickLabelStyle.OffsetY = 30;
             bot.SetTicks(positions, labels);
-
-            // d) set the axis‐title lower-case and push it down
             bot.Label.Text = "Month";
             bot.Label.FontSize = 14;
-            bot.Label.OffsetY = 10;    // drop the “month” label further down
+            bot.Label.OffsetY = 100;
 
-            // 4) titles & legend
+            // title & legend
             plt.Title("Active Directory Entries by Month");
             plt.YLabel("Active Entries");
-            var legendPanel = plt.ShowLegend(Edge.Bottom);
-            legendPanel.Alignment = Alignment.UpperRight;
+            var legend = plt.ShowLegend(Edge.Bottom);
+            legend.Alignment = Alignment.UpperRight;
 
-            // 5) re-apply automatic layout so all panels draw in the right order
+            // layout & export
             plt.Layout.Default();
-
-            // 7) export 1200×600 PNG
             return plt.GetImageBytes(width: 1200, height: 600, format: ImageFormat.Png);
         }
+
+
 
         // your helper to build the monthly report remains the same...
         public static List<(int Year, int Month, int ActiveCount)> GetMonthlyActiveCounts(
