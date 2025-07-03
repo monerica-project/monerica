@@ -662,20 +662,23 @@ p.intro {
     }
 
 
-/* Reserve exactly one line of height for the Tor/links row */
+/* lock the Tor/extra-links row to one line and hide overflow */
 .sponsor-links {
-    /* match your .sponsor-desc line‐height */
+    /* match your card’s line-height exactly */
     line-height: 1.4;
-    /* fix the height to one line */
-    height: 1.4em;
-    /* ensure child links still show */
-    overflow: visible;
+    height: 1.4em !important; /* fix height so child never pushes it bigger */
+    overflow: hidden !important; /* clip any overflow instead of reflowing */
+    white-space: nowrap; /* keep “Tor” on a single line */
+    margin-bottom: 0.5em; /* preserve your spacing to the description */
 }
 
-    /* If the container is otherwise empty, insert an invisible character 
-   so it still obeys that height before the real link loads */
-    .sponsor-links::before {
-        content: "\00a0"; /* non-breaking space */
-        display: block;
-        visibility: hidden;
+    /* remove any transition/delay on links showing up */
+    .sponsor-links a {
+        transition: none !important;
+        display: inline-block;
     }
+
+/* prevent the description ever moving up by zeroing its top margin */
+.sponsor-desc {
+    margin-top: 0 !important;
+}
