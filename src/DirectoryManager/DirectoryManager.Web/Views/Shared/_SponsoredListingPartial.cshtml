@@ -3,6 +3,7 @@
 @using DirectoryManager.DisplayFormatting.Helpers
 @using DirectoryManager.DisplayFormatting.Enums
 @using DirectoryManager.Web.Helpers
+@using Microsoft.AspNetCore.Html
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
@@ -36,16 +37,8 @@
         const int descLimit = 150;
 
         // 5) Helper to get status icon
-    // Map DirectoryStatus → HTML entity string
-    Func<DirectoryStatus, string> statusIcon = status => status switch
-    {
-        DirectoryStatus.Verified     => "&#9989;",  // ✅
-        DirectoryStatus.Admitted     => "", //nothing
-        DirectoryStatus.Questionable => "&#10067;", // ❓
-        DirectoryStatus.Scam         => "&#10060;", // ❌
-        _                            => ""
-    };
-
+        // Map DirectoryStatus → HTML entity string
+        Func<DirectoryStatus, IHtmlContent> statusIcon = status => status.ToHtmlIcon();
     }
 
 @if (vms.Any())

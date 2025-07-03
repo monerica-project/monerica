@@ -73,15 +73,10 @@
         <h3>Details</h3>
         <p>
             <strong>Status:</strong>
-            @if (Model.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Verified)
-            {
-                <text>&#9989;</text>
-            }
-            else if (Model.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Scam)
-            {
-                <text>&#10060;</text>
-            }
-          @Model.DirectoryStatus
+
+            @Model.DirectoryStatus.ToHtmlIcon()
+          
+            @Model.DirectoryStatus
         </p>
 
         @if (!string.IsNullOrEmpty(Model.Contact))
