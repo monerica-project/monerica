@@ -130,10 +130,33 @@ foreach (var notification in pendingNotifications)
     }
 
     // Generate the notification link using the template and replace placeholders
-    var notificationLink = notificationLinkTemplate
-        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder, notification.SponsorshipType.ToString())
-        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SubCategoryIdPlaceholder, notification.TypeId?.ToString() ?? string.Empty)
-        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.CategoryIdPlaceholder, notification.TypeId?.ToString() ?? string.Empty);
+    var notificationLink = string.Empty;
+
+    if (notification.SponsorshipType == SponsorshipType.MainSponsor)
+    {
+        notificationLink = notificationLinkTemplate
+            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder, notification.SponsorshipType.ToString())
+            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SubCategoryIdPlaceholder, string.Empty)
+            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.CategoryIdPlaceholder, string.Empty);
+    }
+    else if (notification.SponsorshipType == SponsorshipType.SubcategorySponsor)
+    {
+        notificationLink = notificationLinkTemplate
+            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder, notification.SponsorshipType.ToString())
+            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SubCategoryIdPlaceholder, notification.TypeId?.ToString() ?? string.Empty)
+            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.CategoryIdPlaceholder, string.Empty);
+    }
+    else if (notification.SponsorshipType == SponsorshipType.CategorySponsor)
+    {
+        notificationLink = notificationLinkTemplate
+            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder, notification.SponsorshipType.ToString())
+            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SubCategoryIdPlaceholder, string.Empty)
+            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.CategoryIdPlaceholder, notification.TypeId?.ToString() ?? string.Empty);
+    }
+    else
+    {
+        throw new Exception("unknown type of notificastion:" + notification.SponsorshipType);
+    }
 
     // Prepare the email content by replacing placeholders
     var plainTextContent = emailMessage.EmailBodyText

@@ -3,6 +3,8 @@
 @using DirectoryManager.Web.Constants;
 @using DirectoryManager.Data.Enums;
 @using DirectoryManager.Web.Enums
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Web.Models
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
@@ -15,15 +17,39 @@
     var subCategoryKey = ViewBag.SubCategoryKey as string;
     var categoryName = ViewBag.CategoryName as string;
     var subCategoryName = ViewBag.SubCategoryName as string;
+    var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
+
+    // Build your breadcrumb list dynamically based on page context
+    var breadcrumbs = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
+        new BreadcrumbItem { Position = 2, Name = StringConstants.AllCategories, Url = UrlHelper.MakeFullUrl(domain,"/sitemap") },
+        new BreadcrumbItem { Position = 3, Name = @categoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}") },
+        new BreadcrumbItem { Position = 4, Name = @subCategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}")  }
+    };
 }
 
+@BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
 <h1>@Model.PageHeader</h1>
 
 <hr />
 
-<p>
-    <a class="no-app-link" href="@Model.CategoryRelativePath">&lt; @Model.CategoryName</a>
-</p>
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="~/">Home</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="~/sitemap">@StringConstants.AllCategories</a>
+        </li>
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="@Model.CategoryRelativePath">@Model.CategoryName</a>
+        </li>
+        <li class="breadcrumb-item" aria-current="page">
+            @Model.SubcategoryName
+        </li>
+    </ol>
+</nav>
 
 @if (!string.IsNullOrWhiteSpace(Model.PageDetails))
 {
@@ -78,11 +104,6 @@
             };
 
     @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", subCategorySponsorModel)
-
-    if (subCategorySponsor != null)
-    {
-        viewModelList.RemoveAll(x => x.DirectoryEntryId == subCategorySponsor.DirectoryEntryId);
-    }
 }
 <ul class="blank_list_item">
     @foreach (var viewModel in viewModelList)
@@ -99,3 +120,7 @@
         @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
     }
 </ul>
+
+<hr />
+
+@await Html.PartialAsync("_SponsoredListingPartial")

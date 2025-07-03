@@ -17,7 +17,7 @@ namespace DirectoryManager.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.5")
+                .HasAnnotation("ProductVersion", "9.0.6")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -364,6 +364,9 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasIndex("Link")
                         .IsUnique();
+
+                    b.HasIndex("SubCategoryId")
+                        .HasDatabaseName("IX_DirectoryEntries_SubCategoryId");
 
                     b.HasIndex("SubCategoryId", "DirectoryEntryKey")
                         .IsUnique();
@@ -941,9 +944,15 @@ namespace DirectoryManager.Data.Migrations
                         .IsUnique()
                         .HasFilter("SubcategoryId IS NULL");
 
+                    b.HasIndex("SponsorshipType", "Days", "CategoryId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_Offer_Type_Days_Cat_NoSubcat")
+                        .HasFilter("[SubcategoryId] IS NULL");
+
                     b.HasIndex("SponsorshipType", "Days", "CategoryId", "SubcategoryId")
                         .IsUnique()
-                        .HasFilter("[CategoryId] IS NOT NULL AND [SubcategoryId] IS NOT NULL");
+                        .HasDatabaseName("UX_Offer_Type_Days_Cat_Subcat")
+                        .HasFilter("[SubcategoryId] IS NOT NULL");
 
                     b.ToTable("SponsoredListingOffers");
                 });

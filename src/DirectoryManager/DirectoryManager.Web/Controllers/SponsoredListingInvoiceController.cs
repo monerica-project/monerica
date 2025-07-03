@@ -4,9 +4,12 @@ using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Web.Charting;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Models.Reports;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using System.Text;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -108,7 +111,7 @@ namespace DirectoryManager.Web.Controllers
                                   .OrderBy(sc => sc.Category.Name)
                                   .ThenBy(sc => sc.Name)
                                   .FirstOrDefault(sc => sc.SubCategoryId == invoice.SubCategoryId.Value);
-                this.ViewBag.SubCategory = subcategory;
+                this.ViewBag.Subcategory = subcategory;
             }
             else if (invoice.SponsorshipType == SponsorshipType.CategorySponsor
                      && invoice.CategoryId.HasValue)
@@ -145,37 +148,69 @@ namespace DirectoryManager.Web.Controllers
             return this.View(invoice);
         }
 
-        [Route("sponsoredlistinginvoice/report")]
+        [Route("report")]
         [HttpGet]
-        public async Task<IActionResult> Report(DateTime? startDate, DateTime? endDate)
+        public async Task<IActionResult> Report(
+            DateTime? startDate,
+            DateTime? endDate,
+            SponsorshipType? sponsorshipType)
         {
+            // 1) Normalize your dates
             const int defaultYears = 1;
             var now = DateTime.UtcNow;
-            var modelStartDate = startDate?.Date ?? now.AddYears(-defaultYears).Date;
-            var modelEndDate = endDate?.Date ?? now.Date;
-            var startOfDayUtc = new DateTime(
-                modelStartDate.Year,
-                modelStartDate.Month,
-                modelStartDate.Day,
-                0, 0, 0,
-                DateTimeKind.Utc);
-            var endOfDayUtc = new DateTime(
-                modelEndDate.Year,
-                modelEndDate.Month,
-                modelEndDate.Day,
-                23, 59, 59,
-                DateTimeKind.Utc);
+            var fromDate = startDate?.Date ?? now.AddYears(-defaultYears).Date;
+            var toDate = endDate?.Date ?? now.Date;
 
             var model = new InvoiceQueryViewModel
             {
-                StartDate = startOfDayUtc,
-                EndDate = endOfDayUtc
+                StartDate = new DateTime(fromDate.Year, fromDate.Month, fromDate.Day, 0, 0, 0, DateTimeKind.Utc),
+                EndDate = new DateTime(toDate.Year, toDate.Month, toDate.Day, 23, 59, 59, DateTimeKind.Utc),
+                SponsorshipType = sponsorshipType
             };
 
-            var result = await this.invoiceRepository
-                               .GetTotalsPaidAsync(model.StartDate, model.EndDate)
-                               .ConfigureAwait(false);
+            // 2) Build your “All + each enum” dropdown
+            model.SponsorshipTypeOptions = Enum.GetValues(typeof(SponsorshipType))
+                .Cast<SponsorshipType>()
+                .Where(st => st != SponsorshipType.Unknown)
+                .Select(st => new SelectListItem
+                {
+                    Value = st.ToString(),
+                    Text = st.ToString(),
+                    Selected = sponsorshipType.HasValue && sponsorshipType.Value == st
+                })
+                .Prepend(new SelectListItem
+                {
+                    Value = "",
+                    Text = "All",
+                    Selected = !sponsorshipType.HasValue
+                })
+                .ToList();
 
+            // 3) Fetch & filter the raw invoices
+            var allInvoices = await this.invoiceRepository.GetAllAsync().ConfigureAwait(false);
+            var filtered = allInvoices
+                .Where(inv => inv.CreateDate >= model.StartDate
+                           && inv.CreateDate <= model.EndDate
+                           && inv.PaymentStatus == PaymentStatus.Paid);
+
+            if (sponsorshipType.HasValue)
+            {
+                filtered = filtered
+                    .Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
+
+            // 4) Build a little “result” that mirrors your old repository DTO
+            var result = new
+            {
+                TotalReceivedAmount = filtered.Sum(inv => inv.PaidAmount),   // what actually paid
+                TotalAmount = filtered.Sum(inv => inv.Amount),       // requested USD
+                Currency = filtered.Select(inv => inv.Currency)
+                                              .FirstOrDefault(),            // USDcode
+                PaidInCurrency = filtered.Select(inv => inv.PaidInCurrency)
+                                              .FirstOrDefault()             // XMR or other
+            };
+
+            // 5) Exactly the assignments you had before:
             model.TotalPaidAmount = result.TotalReceivedAmount;
             model.Currency = result.Currency;
             model.TotalAmount = result.TotalAmount;
@@ -185,19 +220,296 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("sponsoredlistinginvoice/monthlyincomebarchart")]
-        public async Task<IActionResult> MonthlyIncomeBarChartAsync(DateTime startDate, DateTime endDate)
+        public async Task<IActionResult> MonthlyIncomeBarChartAsync(
+            DateTime startDate,
+            DateTime endDate,
+            SponsorshipType? sponsorshipType)
         {
-            var plottingChart = new InvoicePlotting();
-            var invoices = await this.invoiceRepository
-                                        .GetAllAsync()
-                                        .ConfigureAwait(false);
+            var invoices = await this.invoiceRepository.GetAllAsync();
 
-            var filteredInvoices = invoices
-                .Where(invoice => invoice.CreateDate >= startDate && invoice.CreateDate <= endDate);
+            var filtered = invoices
+                .Where(inv => inv.CreateDate >= startDate
+                           && inv.CreateDate <= endDate)
+                .Where(inv => inv.PaymentStatus == PaymentStatus.Paid);
 
-            var imageBytes = plottingChart.CreateMonthlyIncomeBarChart(filteredInvoices);
+            if (sponsorshipType.HasValue)
+            {
+                filtered = filtered
+                    .Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
+
+            if (!filtered.Any())
+            {
+                // Simple SVG fallback — any <img> tag will render this inline
+                const string svg = @"
+<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
+  <rect width='100%' height='100%' fill='white'/>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
+        font-family='sans-serif' font-size='20' fill='black'>
+    No results
+  </text>
+</svg>";
+                byte[] bytes = Encoding.UTF8.GetBytes(svg);
+                return this.File(bytes, "image/svg+xml");
+            }
+
+            var imageBytes = new InvoicePlotting()
+                                 .CreateMonthlyIncomeBarChart(filtered);
 
             return this.File(imageBytes, StringConstants.PngImage);
+        }
+
+        /// <summary>
+        /// Renders a pie chart of total revenue by subcategory within the date range,
+        /// optionally scoped to one SponsorshipType.
+        /// </summary>
+        [AllowAnonymous]
+        [HttpGet("sponsoredlistinginvoice/subcategory-revenue-pie")]
+        public async Task<IActionResult> SubcategoryRevenuePieChart(
+            DateTime? startDate,
+            DateTime? endDate,
+            SponsorshipType? sponsorshipType)
+        {
+            // 1) normalize dates (default to last 12 months)
+            const int defaultYears = 1;
+            var now = DateTime.UtcNow;
+            var from = (startDate ?? now.AddYears(-defaultYears)).Date;
+            var to = (endDate ?? now).Date;
+            var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
+            var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
+
+            // 2) fetch & filter paid invoices in range
+            var allPaid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
+                .Where(inv => inv.CreateDate >= startUtc
+                           && inv.CreateDate <= endUtc
+                           && inv.PaymentStatus == PaymentStatus.Paid)
+                .ToList();
+
+            // 2a) if user supplied a sponsorshipType, filter by it
+            if (sponsorshipType.HasValue)
+            {
+                allPaid = allPaid
+                    .Where(inv => inv.SponsorshipType == sponsorshipType.Value)
+                    .ToList();
+            }
+
+            // 3) load lookup maps
+            var catsList = await this.categoryRepository.GetAllAsync().ConfigureAwait(false);
+            var cats = catsList.ToDictionary(c => c.CategoryId, c => c.Name);
+
+            var subsList = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync().ConfigureAwait(false);
+            var subs = subsList.ToDictionary(s => s.SubCategoryId, s => s.Name);
+
+            // 3a) mapping subcategory → categoryId
+            var subToCat = subsList.ToDictionary(s => s.SubCategoryId, s => s.CategoryId);
+
+            // 4) delegate to ScottPlot helper
+            var chartBytes = new InvoicePlotting()
+                .CreateSubcategoryRevenuePieChart(
+                    allPaid,
+                    cats,
+                    subs,
+                    subToCat);
+
+            // 5) return as PNG
+            return this.File(chartBytes, "image/png");
+        }
+
+        [Route("sponsoredlistinginvoice/subcategorybreakdown")]
+        [HttpGet]
+        public async Task<IActionResult> SubcategoryBreakdown(DateTime? startDate, DateTime? endDate)
+        {
+            const int defaultYears = 1;
+            var now = DateTime.UtcNow;
+            var from = startDate?.Date ?? now.AddYears(-defaultYears).Date;
+            var to = endDate?.Date ?? now.Date;
+
+            var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
+            var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
+
+            // 1) fetch & filter paid invoices in range
+            var allPaid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
+                .Where(inv => inv.CreateDate >= startUtc
+                           && inv.CreateDate <= endUtc
+                           && inv.PaymentStatus == PaymentStatus.Paid)
+                .ToList();
+
+            // 2) load lookup maps
+            var catsList = await this.categoryRepository.GetAllAsync().ConfigureAwait(false);
+            var cats = catsList.ToDictionary(c => c.CategoryId, c => c.Name);
+
+            var subsList = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync().ConfigureAwait(false);
+            var subsFull = subsList.ToDictionary(
+                s => s.SubCategoryId,
+                s => $"{cats[s.CategoryId]} > {s.Name}");
+
+            // 3) MAIN-SPONSOR breakdown by SubCategoryId, revenue + count
+            var mainSet = allPaid.Where(i => i.SponsorshipType == SponsorshipType.MainSponsor && i.SubCategoryId.HasValue);
+            var mainTotalRevenue = mainSet.Sum(i => i.Amount);
+
+            var mainGroups = mainSet
+                .GroupBy(i => i.SubCategoryId!.Value)
+                .Select(g =>
+                {
+                    var rev = g.Sum(inv => inv.Amount);
+                    var cnt = g.Count();
+                    var name = subsFull.TryGetValue(g.Key, out var n) ? n : $"(Unknown {g.Key})";
+                    var pct = mainTotalRevenue > 0
+                                ? Math.Round(rev * 100m / mainTotalRevenue, 2)
+                                : 0m;
+                    return new BreakdownRow
+                    {
+                        Name = name,
+                        Revenue = rev,
+                        Count = cnt,
+                        Percentage = pct
+                    };
+                })
+                .OrderByDescending(r => r.Revenue)
+                .ToList();
+
+            // 4) SUBCATEGORY-SPONSOR breakdown by SubCategoryId
+            var subSet = allPaid.Where(i => i.SponsorshipType == SponsorshipType.SubcategorySponsor && i.SubCategoryId.HasValue);
+            var subTotalRevenue = subSet.Sum(i => i.Amount);
+
+            var subGroups = subSet
+                .GroupBy(i => i.SubCategoryId!.Value)
+                .Select(g =>
+                {
+                    var rev = g.Sum(inv => inv.Amount);
+                    var cnt = g.Count();
+                    var name = subsFull.TryGetValue(g.Key, out var n) ? n : $"(Unknown {g.Key})";
+                    var pct = subTotalRevenue > 0
+                               ? Math.Round(rev * 100m / subTotalRevenue, 2)
+                               : 0m;
+                    return new BreakdownRow
+                    {
+                        Name = name,
+                        Revenue = rev,
+                        Count = cnt,
+                        Percentage = pct
+                    };
+                })
+                .OrderByDescending(r => r.Revenue)
+                .ToList();
+
+            // 5) CATEGORY-SPONSOR breakdown by SubCategoryId
+            var catSet = allPaid.Where(i => i.SponsorshipType == SponsorshipType.CategorySponsor && i.SubCategoryId.HasValue);
+            var catTotalRevenue = catSet.Sum(i => i.Amount);
+
+            var catGroups = catSet
+                .GroupBy(i => i.SubCategoryId!.Value)
+                .Select(g =>
+                {
+                    var rev = g.Sum(inv => inv.Amount);
+                    var cnt = g.Count();
+                    var name = subsFull.TryGetValue(g.Key, out var n) ? n : $"(Unknown {g.Key})";
+                    var pct = catTotalRevenue > 0
+                               ? Math.Round(rev * 100m / catTotalRevenue, 2)
+                               : 0m;
+                    return new BreakdownRow
+                    {
+                        Name = name,
+                        Revenue = rev,
+                        Count = cnt,
+                        Percentage = pct
+                    };
+                })
+                .OrderByDescending(r => r.Revenue)
+                .ToList();
+
+            // 6) wrap in view‐model
+            var vm = new BreakdownReportViewModel
+            {
+                StartDate = startUtc,
+                EndDate = endUtc,
+                MainSponsorBreakdown = mainGroups,
+                SubcategoryBreakdown = subGroups,
+                CategoryBreakdown = catGroups
+            };
+
+            return this.View(vm);
+        }
+
+        [Route("sponsoredlistinginvoice/advertiserbreakdown")]
+        [HttpGet]
+        public async Task<IActionResult> AdvertiserBreakdown(
+            DateTime? startDate,
+            DateTime? endDate,
+            SponsorshipType? sponsorshipType)
+        {
+            const int defaultYears = 1;
+            var now = DateTime.UtcNow;
+            var from = startDate?.Date ?? now.AddYears(-defaultYears).Date;
+            var to = endDate?.Date ?? now.Date;
+
+            var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
+            var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
+
+            // 1) fetch & filter paid invoices in range
+            var allPaid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
+                .Where(inv => inv.CreateDate >= startUtc
+                           && inv.CreateDate <= endUtc
+                           && inv.PaymentStatus == PaymentStatus.Paid);
+
+            if (sponsorshipType.HasValue)
+            {
+                allPaid = allPaid.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
+
+            // 2) group by advertiser
+            var paidList = allPaid.ToList();
+            var totalRevenue = paidList.Sum(inv => inv.Amount);
+
+            var rows = new List<AdvertiserBreakdownRow>();
+            foreach (var g in paidList
+                              .GroupBy(inv => inv.DirectoryEntryId)
+                              .OrderByDescending(g => g.Sum(inv => inv.Amount)))
+            {
+                var entry = await this.directoryEntryRepository.GetByIdAsync(g.Key);
+                var revenue = g.Sum(inv => inv.Amount);
+                var count = g.Count();
+
+                rows.Add(new AdvertiserBreakdownRow
+                {
+                    DirectoryEntryId = g.Key,
+                    DirectoryEntryName = entry?.Name ?? $"(#{g.Key})",
+                    Revenue = revenue,
+                    Count = count,    // ← new
+                    Percentage = totalRevenue > 0
+                                          ? Math.Round(revenue * 100m / totalRevenue, 2)
+                                          : 0
+                });
+            }
+
+            // 3) build sponsorship‐type dropdown (unchanged)...
+            var options = Enum.GetValues(typeof(SponsorshipType))
+                .Cast<SponsorshipType>()
+                .Where(st => st != SponsorshipType.Unknown)
+                .Select(st => new SelectListItem
+                {
+                    Value = st.ToString(),
+                    Text = st.ToString(),
+                    Selected = sponsorshipType.HasValue && sponsorshipType.Value == st
+                })
+                .Prepend(new SelectListItem
+                {
+                    Value = "",
+                    Text = "All",
+                    Selected = !sponsorshipType.HasValue
+                })
+                .ToList();
+
+            var vm = new AdvertiserBreakdownViewModel
+            {
+                StartDate = startUtc,
+                EndDate = endUtc,
+                SponsorshipType = sponsorshipType,
+                SponsorshipTypeOptions = options,
+                Rows = rows
+            };
+
+            return this.View(vm);
         }
     }
 }

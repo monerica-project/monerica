@@ -1,0 +1,62 @@
+﻿@model DirectoryManager.Web.Models.Reports.AdvertiserBreakdownViewModel
+@using DirectoryManager.Web.Constants
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Advertiser Breakdown";
+}
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+@await Html.PartialAsync("_ReportMenu")
+
+<hr />
+
+<form method="get" asp-action="AdvertiserBreakdown">
+    <div class="form-row">
+        <div class="form-group col-md-4">
+            <label asp-for="SponsorshipType">Sponsorship Type</label>
+            <select asp-for="SponsorshipType"
+                    asp-items="Model.SponsorshipTypeOptions"
+                    class="form-control"></select>
+        </div>
+        <div class="form-group col-md-4">
+            <label asp-for="StartDate">Start Date</label>
+            <input asp-for="StartDate" type="date" class="form-control" required />
+        </div>
+        <div class="form-group col-md-4">
+            <label asp-for="EndDate">End Date</label>
+            <input asp-for="EndDate" type="date" class="form-control" required />
+        </div>
+    </div>
+    <button type="submit" class="btn btn-primary">Run Report</button>
+</form>
+
+<hr />
+
+<p>
+    Time Range: @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat) - @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+</p>
+
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Advertiser</th>
+            <th>Revenue</th>
+            <td>Invoices</td>
+            <th>Percentage</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var row in Model.Rows)
+        {
+            <tr>
+                <td>@row.DirectoryEntryName</td>
+                <td>@row.Revenue.ToString("C")</td>
+                <td>@row.Count</td>
+                <td>@row.Percentage %</td>
+            </tr>
+        }
+    </tbody>
+</table>

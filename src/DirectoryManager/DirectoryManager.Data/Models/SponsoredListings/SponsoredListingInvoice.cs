@@ -35,8 +35,14 @@ namespace DirectoryManager.Data.Models.SponsoredListings
 
         public Currency PaidInCurrency { get; set; } = Currency.Unknown;
 
+        /// <summary>
+        /// The requested amount.
+        /// </summary>
         public decimal Amount { get; set; }
 
+        /// <summary>
+        /// The current of the amount requested.
+        /// </summary>
         public Currency Currency { get; set; } = Currency.Unknown;
 
         public PaymentProcessor PaymentProcessor { get; set; }

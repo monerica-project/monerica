@@ -66,6 +66,11 @@ namespace DirectoryManager.Web.Controllers
         [Route("sponsoredlistingnotification/subscribe")]
         public async Task<IActionResult> Subscribe(SponsoredListingOpeningNotification model)
         {
+            if (string.IsNullOrWhiteSpace(model.Email))
+            {
+                return this.BadRequest("Email is required.");
+            }
+
             this.ModelState.Clear(); // ensure clean state
             model.Email = model.Email.Trim();
             if (string.IsNullOrWhiteSpace(model.Email))

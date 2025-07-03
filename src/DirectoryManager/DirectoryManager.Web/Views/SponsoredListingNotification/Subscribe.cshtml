@@ -16,13 +16,6 @@
     <p class="alert alert-danger">@TempData[DirectoryManager.Web.Constants.StringConstants.ErrorMessage]</p>
 }
 
-@if (TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage] != null)
-{
-    <p>
-        &#9989; @TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage]
-    </p>
-}
-
 @if (!string.IsNullOrWhiteSpace(Model.SponsorshipType.ToString()))
 {
     <p>You are subscribing for notifications about: <strong>@EnumHelper.GetDescription(Model.SponsorshipType)</strong></p>
@@ -47,4 +40,12 @@
 
     <button type="submit" class="btn btn-primary">Subscribe</button>
 </form>
+}
+
+
+@if (TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage] != null)
+{
+    <p>
+        &#9989; @TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage]
+    </p>
 }

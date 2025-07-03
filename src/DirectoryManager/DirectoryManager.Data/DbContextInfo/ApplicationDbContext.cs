@@ -3,6 +3,7 @@ using DirectoryManager.Data.Models.BaseModels;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.SponsoredListings;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace DirectoryManager.Data.DbContextInfo
 {
@@ -66,6 +67,10 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasIndex(e => new { e.SubCategoryId, e.DirectoryEntryKey })
                    .IsUnique();
 
+            builder.Entity<DirectoryEntry>()
+                    .HasIndex(e => e.SubCategoryId)
+                    .HasDatabaseName("IX_DirectoryEntries_SubCategoryId");
+
             builder.Entity<Category>()
                    .HasIndex(e => e.CategoryKey)
                    .IsUnique();
@@ -123,6 +128,21 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<SponsoredListingOffer>()
                    .HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId, e.SubcategoryId })
                    .IsUnique();
+
+            builder.Entity<SponsoredListingOffer>(eb =>
+            {
+                // 1️⃣ Enforce uniqueness when SubcategoryId IS NULL
+                eb.HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId })
+                  .IsUnique()
+                  .HasFilter("[SubcategoryId] IS NULL")
+                  .HasDatabaseName("UX_Offer_Type_Days_Cat_NoSubcat");
+
+                // 2️⃣ Enforce uniqueness when SubcategoryId IS NOT NULL
+                eb.HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId, e.SubcategoryId })
+                  .IsUnique()
+                  .HasFilter("[SubcategoryId] IS NOT NULL")
+                  .HasDatabaseName("UX_Offer_Type_Days_Cat_Subcat");
+            });
 
             builder.Entity<SponsoredListingOffer>()
                    .HasIndex(e => new { e.SponsorshipType, e.Days })

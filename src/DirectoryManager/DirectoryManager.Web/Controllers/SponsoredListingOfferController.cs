@@ -24,12 +24,14 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [Route("sponsoredlistingoffer/index")]
+        [Route("sponsoredlistingoffers")]
         [HttpGet]
         public async Task<IActionResult> Index()
         {
             var offers = await this.sponsoredListingOfferRepository
                                   .GetAllAsync()
                                   .ConfigureAwait(false);
+
             return this.View(offers);
         }
 

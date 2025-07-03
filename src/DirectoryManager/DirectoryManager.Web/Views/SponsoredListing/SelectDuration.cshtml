@@ -21,11 +21,11 @@
 
 @if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.SubcategorySponsor)
 {
-    <p>Subcategory: @this.ViewBag.Subcategory</p>
+    <p><b>Subcategory:</b> @this.ViewBag.Subcategory</p>
 }
 else if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.CategorySponsor)
 {
-    <p>Category: @this.ViewBag.Category</p>
+    <p><b>Category:</b> @this.ViewBag.Category</p>
 }
 
 <p><i>@Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.PaymentCurrencyMessage))</i></p>

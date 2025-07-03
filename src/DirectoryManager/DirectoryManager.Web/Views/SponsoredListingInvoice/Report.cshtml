@@ -10,32 +10,67 @@
 
 @await Html.PartialAsync("_AdminMenu")
 
-<div>
-    <a href="@Url.Action("Index")">Back to list</a>
-</div>
+@await Html.PartialAsync("_ReportMenu")
+
 <hr />
 
 <form method="get" action="@Url.Action("Report")">
-    <div class="form-group">
-        <label for="StartDate">Start Date</label>
-        <input type="date" class="form-control" id="StartDate" name="startDate" value="@Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)" required>
+  <div class="form-row">
+    <!-- Sponsorship Type dropdown -->
+    <div class="form-group col-md-4">
+      <label asp-for="SponsorshipType">Sponsorship Type</label>
+      <select asp-for="SponsorshipType"
+              asp-items="Model.SponsorshipTypeOptions"
+              class="form-control">
+      </select>
     </div>
-    <div class="form-group">
-        <label for="EndDate">End Date</label>
-        <input type="date" class="form-control" id="EndDate" name="endDate" value="@Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)" required>
+
+    <!-- Start Date -->
+    <div class="form-group col-md-4">
+      <label for="StartDate">Start Date</label>
+      <input type="date"
+             class="form-control"
+             asp-for="StartDate"
+             required />
     </div>
-    <button type="submit" class="btn btn-primary">Get Totals</button>
+
+    <!-- End Date -->
+    <div class="form-group col-md-4">
+      <label for="EndDate">End Date</label>
+      <input type="date"
+             class="form-control"
+             asp-for="EndDate"
+             required />
+    </div>
+  </div>
+
+  <button type="submit" class="btn btn-primary">Get Totals</button>
 </form>
 
 <br />
 
 <p>
-    Time Range Range: @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat) - @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+    Time Range: @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat) - @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
 </p>
-
-<p>Total Paid Amount In Currency Type: @Model.TotalPaidAmount @Model.PaidInCurrency</p>
-<p>Total Amount Requested In Time Range: @Model.TotalAmount.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS)) @Model.Currency</p>
+<br />
+<p>
+  Total Amount <strong>Paid</strong>: 
+  @Model.TotalPaidAmount @Model.PaidInCurrency
+</p>
+<p>
+  Total Amount Requested In Time Range: 
+  @Model.TotalAmount.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS)) 
+  @Model.Currency
+</p>
+ 
+<img style="width:100%"
+     src="@Url.Action("monthlyincomebarchart", "sponsoredlistinginvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType })"
+     alt="chart" />
 
 <img style="width:100%"
-     src="@Url.Action("monthlyincomebarchart", "sponsoredlistinginvoice", new { startDate = Model.StartDate, endDate = Model.EndDate })"
-     alt="chart" />
+     src="@Url.Action(
+             "subcategoryrevenuepiechart",
+             "sponsoredlistinginvoice",
+                  new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType }
+          )"
+     alt="Subcategory Revenue Pie Chart" />

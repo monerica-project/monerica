@@ -250,9 +250,11 @@ namespace DirectoryManager.Web.Controllers
         {
             DirectoryEntryPlotting plottingChart = new DirectoryEntryPlotting();
 
-            var entries = await this.directoryEntryRepository.GetAllAsync();
+            // var entries = await this.directoryEntryRepository.GetAllAsync();
 
-            var imageBytes = plottingChart.CreateWeeklyPlot(entries.ToList());
+            //var imageBytes = plottingChart.CreateWeeklyPlot(entries.ToList());
+            var entries = await this.auditRepository.GetAllAsync();
+            var imageBytes = plottingChart.CreateMonthlyActivePlot(entries.ToList());
             return this.File(imageBytes, StringConstants.PngImage);
         }
 

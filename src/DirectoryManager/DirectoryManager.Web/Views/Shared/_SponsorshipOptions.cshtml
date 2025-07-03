@@ -1,0 +1,64 @@
+﻿@model IEnumerable<DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOffer>
+@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.Web.Constants;
+
+@{
+    var first = Model.FirstOrDefault();
+}
+
+@if (first != null)
+{
+    <h3>@DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(first.SponsorshipType)</h3>
+<div class="table-wrapper">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Subcategory</th>
+                <th>Days</th>
+                <th>Price</th>
+                <th>Price/ Day</th>
+                <th>Is Enabled</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model)
+            {
+                <tr>
+                    <td>
+                        @if (string.IsNullOrEmpty(item.Subcategory?.Name))
+                        {
+                            @StringConstants.Default
+                        }
+                        else
+                        {
+                            @FormattingHelper.SubcategoryFormatting(item.Subcategory.Category?.Name, @item.Subcategory?.Name)
+                        }
+                    </td>
+                    <td>@item.Days</td>
+                    <td title="@item.Description">@item.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat) (@item.PriceCurrency.ToString())</td>
+                    <td title="@item.Description">
+                        @{
+                            if (item.Days > 0)
+                            {
+                                var pricePerDay = item.Price / item.Days;
+                                <text>@pricePerDay.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat2)</text>
+                            }
+                            else
+                            {
+                                <text>N/A</text>
+                            }
+                        }
+                    </td>
+                    <td>@item.IsEnabled</td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@item.SponsoredListingOfferId">Edit</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<hr />
+}

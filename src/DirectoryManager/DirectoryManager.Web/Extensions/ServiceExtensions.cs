@@ -47,6 +47,7 @@ namespace DirectoryManager.Web.Extensions
             services.AddTransient<ICacheService, CacheService>();
             services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
             services.AddScoped<IRssFeedService, RssFeedService>();
+            services.AddScoped<IDirectoryEntriesAuditService, DirectoryEntriesAuditService>();
             services.AddScoped<IEmailService, EmailService>(provider =>
               {
                   using var scope = provider.CreateScope();

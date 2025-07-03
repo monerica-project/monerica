@@ -1,16 +1,35 @@
 ﻿@model DirectoryManager.Web.Models.HtmlSiteMapModel
 @using DirectoryManager.Data.Enums;
 @using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Web.Models
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 
 @{
     ViewData[StringConstants.TitleHeader] = string.Format("{0}: Sitemap", cacheHelper.GetSnippet(SiteConfigSetting.SiteName));
+    var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
+
+    // Build your breadcrumb list dynamically based on page context
+    var breadcrumbs = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
+        new BreadcrumbItem { Position = 2, Name = StringConstants.AllCategories, Url = UrlHelper.MakeFullUrl(domain,"/sitemap") }
+    };
 }
 
-<h1>Sitemap</h1>
+@BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
+
+<h1>Sitemap : @StringConstants.AllCategories</h1>
 <hr />
 
-<a class="no-app-link" href="~/">@cacheHelper.GetSnippet(SiteConfigSetting.SiteName) Home</a>
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="~/">Home</a>
+        </li>
+        <li class="breadcrumb-item" aria-current="page">@StringConstants.AllCategories</li>
+    </ol>
+</nav>
  
 @if (Model.SectionPages.Count > 0)
 {
@@ -22,27 +41,14 @@
                         @foreach (var item in Model.SectionPages)
                         {
                             <li>
-                                <a class="no-app-link" title="@item.AnchorText" href="@item.CanonicalUrl">@item.AnchorText</a>
-
-                                @if (item.HasChildren)
-                                {
-                                    <ul>
-                                        @foreach (var child in item.ChildPages)
-                                        {
-                                            <li>
-                                                <a class="no-app-link" title="@item.AnchorText - @child.AnchorText" href="@child.CanonicalUrl">@child.AnchorText</a>
-                                            </li>
-                                        }
-                                    </ul>
-                                }
+                                <a class="no-app-link" title="@item.AnchorText" href="@item.CanonicalUrl">@item.AnchorText</a>                            
                             </li>
                         }
 
                     </ul>
                 </div>
             </div>
-
-            </div>
+        </div>
      </section>
 }
 

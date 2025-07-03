@@ -208,10 +208,29 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return result != null;
         }
 
-        public async Task<Dictionary<int, DateTime>> GetLastChangeDatesBySubCategoryAsync()
+        public async Task<Dictionary<int, DateTime>> GetLastChangeDatesByCategoryAsync()
         {
             var lastModifiedDates = await this.context.SponsoredListings
-                .Where(x => x.SubCategoryId.HasValue) // Ensure SubCategoryId is not null
+                .Where(x => x.CategoryId.HasValue && x.SponsorshipType == SponsorshipType.CategorySponsor) // Ensure SubCategoryId is not null
+                .GroupBy(x => x.CategoryId) // Group by nullable SubCategoryId
+                .Select(g => new
+                {
+                    CategoryId = g.Key ?? 0, // Use the null-coalescing operator as a fallback
+                    LastModified = g.Max(x => x.UpdateDate.HasValue && x.UpdateDate > x.CreateDate
+                                                ? x.UpdateDate.Value
+                                                : x.CreateDate)
+                })
+                .Where(x => x.CategoryId != 0) // Filter out any entries with the fallback value
+                .ToListAsync();
+
+            // If there are no items or no items with subcategories, the dictionary will be empty
+            return lastModifiedDates.ToDictionary(x => x.CategoryId, x => x.LastModified);
+        }
+
+        public async Task<Dictionary<int, DateTime>> GetLastChangeDatesBySubcategoryAsync()
+        {
+            var lastModifiedDates = await this.context.SponsoredListings
+                .Where(x => x.SubCategoryId.HasValue && x.SponsorshipType == SponsorshipType.SubcategorySponsor) // Ensure SubCategoryId is not null
                 .GroupBy(x => x.SubCategoryId) // Group by nullable SubCategoryId
                 .Select(g => new
                 {

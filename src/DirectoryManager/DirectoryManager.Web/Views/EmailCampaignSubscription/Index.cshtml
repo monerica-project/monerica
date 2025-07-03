@@ -8,7 +8,8 @@
 
 @await Html.PartialAsync("_AdminMenu")
  
-<table class="table table-striped">
+<div class="table-wrapper">
+    <table class="table">
     <thead>
         <tr>
             <th>Email</th>
@@ -38,6 +39,7 @@
         }
     </tbody>
 </table>
+</div>
 
 <a asp-action="Subscribe" asp-route-campaignId="@ViewBag.CampaignId">Add New Subscription</a>
 <a asp-controller="EmailCampaignManagement" asp-action="Index" >Back to Campaigns</a>

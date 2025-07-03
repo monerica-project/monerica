@@ -173,7 +173,9 @@ namespace DirectoryManager.Web.Controllers
                 SubCategoryId = subCategory.SubCategoryId,
                 DirectoryEntries = entries,
                 CategoryRelativePath = string.Format("/{0}", category.CategoryKey),
-                CategoryName = category.Name
+                CategoryName = category.Name,
+                SubcategoryName = subCategory.Name,
+                SubCategoryKey = subCategory.SubCategoryKey,
             };
 
             this.SetCannonicalUrl();

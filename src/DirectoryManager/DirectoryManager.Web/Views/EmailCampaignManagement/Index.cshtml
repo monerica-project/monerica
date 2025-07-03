@@ -11,7 +11,8 @@
 
 <a href="~/account/EmailCampaignManagement/create">Create</a>
 
-<table class="table table-striped">
+<div class="table-wrapper">
+<table class="table">
     <thead>
         <tr>
             <th>Campaign Name</th>
@@ -38,6 +39,7 @@
         }
     </tbody>
 </table>
+</div>
 
 <div class="pagination">
     @if (Model.PageIndex > 1)

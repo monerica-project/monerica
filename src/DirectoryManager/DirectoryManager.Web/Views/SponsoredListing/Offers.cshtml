@@ -15,14 +15,16 @@
 
 <h2>Offers</h2>
 
-<p>These are the rates for advertising. The default prices are used unless there is a specific price for a category or subcategory, in which case that is the rate.</p>
+<p>These are the rates for advertising. The default prices are used unless there is a subcategory override.</p>
 <p><a class="btn btn-primary" href="~/sponsoredlisting">Buy Advertising</a></p>
 
 <hr />
 
-<h3>@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</h3>
+<div>
+    <h3 style="text-align:center;">@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</h3>
 
-<table>
+<div class="table-wrapper">
+    <table class="table">
     <thead>
         <tr>
             <th>Category > Subcategory</th>
@@ -34,42 +36,45 @@
         @foreach (var offer in Model.MainSponsorshipOffers)
         {
             <tr>
-                <td>@offer.CategorySubcategory</td>
+                        <td style="text-align:center;">@offer.CategorySubcategory</td>
                 <td style="text-align:center;">@offer.Days</td>
-                <td style="text-align:right;">@offer.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat)</td>
+                <td style="text-align:center;">@offer.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat)</td>
             </tr>
         }
     </tbody>
 </table>
-
+</div>
 
 <hr />
 
-<h3>@EnumHelper.GetDescription(SponsorshipType.CategorySponsor)</h3>
-<table>
+<h3 style="text-align:center;">@EnumHelper.GetDescription(SponsorshipType.CategorySponsor)</h3>
+<div class="table-wrapper">
+    <table class="table">
     <thead>
         <tr>
-            <th>Category</th>
+            <th>Category > Subcategory</th>
             <th>Days</th>
             <th>Price (@DirectoryManager.Data.Enums.Currency.USD.ToString())</th>
         </tr>
     </thead>
-    <tbody>
+            <tbody>
         @foreach (var offer in Model.CategorySponsorshipOffers)
         {
             <tr>
-                <td>@offer.CategorySubcategory</td>
+                        <td style="text-align:center;">@offer.CategorySubcategory</td>
                 <td style="text-align:center;">@offer.Days</td>
-                <td style="text-align:right;">@offer.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat)</td>
+                <td style="text-align:center;">@offer.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat)</td>
             </tr>
         }
     </tbody>
 </table>
+</div>
 
 <hr />
 
-<h3>@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</h3>
-<table>
+        <h3 style="text-align:center;">@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</h3>
+    <div class="table-wrapper">
+        <table class="table">
     <thead>
         <tr>
             <th>Category > Subcategory</th>
@@ -81,10 +86,12 @@
         @foreach (var offer in Model.SubCategorySponsorshipOffers)
         {
             <tr>
-                <td>@offer.CategorySubcategory</td>
+                            <td style="text-align:center;">@offer.CategorySubcategory</td>
                 <td style="text-align:center;">@offer.Days</td>
-                <td style="text-align:right;">@offer.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat)</td>
+                <td style="text-align:center;">@offer.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat)</td>
             </tr>
         }
     </tbody>
 </table>
+</div>
+</div>

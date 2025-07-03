@@ -1,0 +1,113 @@
+﻿@model DirectoryManager.Web.Models.Reports.BreakdownReportViewModel
+@using DirectoryManager.Web.Constants
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Sponsorship Breakdown Report";
+}
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+@await Html.PartialAsync("_ReportMenu")
+<hr />
+
+<form method="get" action="@Url.Action("Breakdown")">
+    <div class="form-row">
+        <!-- Start Date -->
+        <div class="form-group col-md-6">
+            <label asp-for="StartDate">Start Date</label>
+            <input asp-for="StartDate"
+                   class="form-control"
+                   type="date"
+                   required />
+        </div>
+
+        <!-- End Date -->
+        <div class="form-group col-md-6">
+            <label asp-for="EndDate">End Date</label>
+            <input asp-for="EndDate"
+                   class="form-control"
+                   type="date"
+                   required />
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Run Report</button>
+</form>
+
+<hr />
+
+<p>
+    Time Range: @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat) - @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+</p>
+ 
+<h2>Main Sponsor by Subcategory</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Category &gt; Subcategory</th>
+            <th>Revenue</th>
+            <th>Invoices</th>
+            <th>% of Revenue</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var r in Model.MainSponsorBreakdown)
+        {
+            <tr>
+                <td>@r.Name</td>
+                <td>@r.Revenue.ToString("C")</td>
+                <td>@r.Count</td>
+                <td>@r.Percentage %</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<h2>Category Sponsor by Subcategory</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Category &gt; Subcategory</th>
+            <th>Revenue</th>
+            <th>Invoices</th>
+            <th>% of Revenue</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var r in Model.CategoryBreakdown)
+        {
+            <tr>
+                <td>@r.Name</td>
+                <td>@r.Revenue.ToString("C")</td>
+                <td>@r.Count</td>
+                <td>@r.Percentage %</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+
+<h2>Subcategory Sponsor by Subcategory</h2>
+<table class="table">
+    <thead>
+        <tr>
+            <th>Category &gt; Subcategory</th>
+            <th>Revenue</th>
+            <th>Invoices</th>
+            <th>% of Revenue</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var r in Model.SubcategoryBreakdown)
+        {
+            <tr>
+                <td>@r.Name</td>
+                <td>@r.Revenue.ToString("C")</td>
+                <td>@r.Count</td>
+                <td>@r.Percentage %</td>
+            </tr>
+        }
+    </tbody>
+</table>

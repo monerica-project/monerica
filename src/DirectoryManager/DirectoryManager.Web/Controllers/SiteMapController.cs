@@ -98,7 +98,8 @@ namespace DirectoryManager.Web.Controllers
             // Get last modified dates for subcategories and items within subcategories
             var allSubcategoriesLastModified = await this.subCategoryRepository.GetAllSubCategoriesLastChangeDatesAsync();
             var allSubCategoriesItemsLastModified = await this.directoryEntryRepository.GetLastModifiedDatesBySubCategoryAsync();
-            var allSubCategoryAds = await this.sponsoredListingRepository.GetLastChangeDatesBySubCategoryAsync();
+            var allSubcategoryAds = await this.sponsoredListingRepository.GetLastChangeDatesBySubcategoryAsync();
+            var allCategoryAds = await this.sponsoredListingRepository.GetLastChangeDatesByCategoryAsync();
 
             // Iterate through categories and subcategories to build the sitemap
             foreach (var category in categories)
@@ -110,7 +111,8 @@ namespace DirectoryManager.Web.Controllers
                     allCategoriesLastModified,
                     allSubcategoriesLastModified,
                     allSubCategoriesItemsLastModified,
-                    allSubCategoryAds,
+                    allSubcategoryAds,
+                    allCategoryAds,
                     category);
             }
 
@@ -188,6 +190,7 @@ namespace DirectoryManager.Web.Controllers
             Dictionary<int, DateTime> allSubcategoriesLastModified,
             Dictionary<int, DateTime> allSubCategoriesItemsLastModified,
             Dictionary<int, DateTime> allSubCategoryAds,
+            Dictionary<int, DateTime> allCategoryAds,
             Data.Models.Category category)
         {
             var lastChangeToCategory = allCategoriesLastModified[category.CategoryId];
@@ -215,6 +218,21 @@ namespace DirectoryManager.Web.Controllers
                     : DateTime.MinValue
                 }.Max())
                 .Max();
+
+            var categories = await this.categoryRepository.GetActiveCategoriesAsync();
+            DateTime? mostRecentCategoryDate = categories
+            .Select(category => new[]
+            {
+                allCategoriesLastModified.ContainsKey(category.CategoryId)
+                    ? allCategoriesLastModified[category.CategoryId]
+                    : DateTime.MinValue,
+                allCategoryAds.ContainsKey(category.CategoryId)
+                    ? allCategoryAds[category.CategoryId]
+                    : DateTime.MinValue,
+                allCategoryAds.ContainsKey(category.CategoryId)
+                    ? allCategoryAds[category.CategoryId]
+                    : DateTime.MinValue
+            }.Max()).Max();
 
             // Compare the most recent subcategory change date with the category change date
             var lastChangeForCategoryOrSubcategory = mostRecentSubcategoryDate.HasValue && mostRecentSubcategoryDate > lastChangeToCategory

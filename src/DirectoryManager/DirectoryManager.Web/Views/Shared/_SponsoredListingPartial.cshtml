@@ -1,65 +1,121 @@
-﻿@using DirectoryManager.Web.Constants;
-@using DirectoryManager.Data.Enums;
+﻿@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.DisplayFormatting.Enums
+@using DirectoryManager.Web.Helpers
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 
-<cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.SponsoredListingsCacheKey">
-@{
-    var sponsoredListings = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
-    var directoryEntries = new List<DirectoryManager.Data.Models.DirectoryEntry>();
-    var link2Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
-    var link3Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+<cache-content cache-key="@StringConstants.SponsoredListingsCacheKey">
+    @{
+        // 1) Fetch active MainSponsor listings
+        var sponsoredListings = await sponsoredListingRepository
+        .GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
 
-    foreach (var listing in sponsoredListings)
-    {
-        var entry = await directoryEntryRepository.GetByIdAsync(listing.DirectoryEntryId);
-
-        if (entry != null)
+        // 2) Load their directory entries
+        var entries = new List<DirectoryManager.Data.Models.DirectoryEntry>();
+        foreach (var s in sponsoredListings)
         {
-            directoryEntries.Add(entry);
+            var e = await directoryEntryRepository.GetByIdAsync(s.DirectoryEntryId);
+            if (e != null) entries.Add(e);
         }
-    }
-}
-    @if (sponsoredListings != null && sponsoredListings.Count() > 0)
-    {
-        <div class="sponsored-section">
-        <p><b>Sponsored</b></p>
 
-        <ul class="blank_list_item">
-            @{
-                    var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
-                    directoryEntries,
-                    DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
-                    DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.SubcategorySponsor,
-                    link2Name,
-                    link3Name);
-            }
-            @foreach (var viewModel in viewModelList)
+        // 3) Convert to view-models
+        var link2Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
+        var link3Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+        var vms = ViewModelConverter.ConvertToViewModels(
+        entries,
+        DateDisplayOption.NotDisplayed,
+        ItemDisplayType.SubcategorySponsor,
+        link2Name,
+        link3Name
+        );
+
+        // 4) Truncation limit (tweak as you like)
+        const int descLimit = 150;
+
+        // 5) Helper to get status icon
+    // Map DirectoryStatus → HTML entity string
+    Func<DirectoryStatus, string> statusIcon = status => status switch
+    {
+        DirectoryStatus.Verified     => "&#9989;",  // ✅
+        DirectoryStatus.Admitted     => "", //nothing
+        DirectoryStatus.Questionable => "&#10067;", // ❓
+        DirectoryStatus.Scam         => "&#10060;", // ❌
+        _                            => ""
+    };
+
+    }
+
+@if (vms.Any())
+{
+    <section class="sponsors">
+      <h2 class="section-title">Main Sponsors</h2>
+      <div class="sponsors-grid">
+        @foreach(var vm in vms)
+        {
+            // combine desc + note into full HTML
+            var htmlBlob = (vm.Description ?? "") .Trim();
+            if (!string.IsNullOrWhiteSpace(vm.Note))
             {
-                    viewModel.IsSponsored = true;
-                    viewModel.DisplayAsSponsoredItem = false;
-                    @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
+                htmlBlob += " <i>(Note: " + vm.Note.Trim() + ")</i>";
             }
-        </ul>
-        </div>
+
+            <div class="sponsor-card">
+              <!-- Status + Title -->
+              <div class="sponsor-header">
+                <span class="status">@Html.Raw(statusIcon(vm.DirectoryStatus))</span>
+                    <a href="@(vm.Link)"
+                       target="_blank" 
+                       class="title"><b>@vm.Name</b></a>
+              </div>
+
+              <!-- Tor / Link2 / Link3 -->
+              <div class="sponsor-links">
+                @if (!string.IsNullOrEmpty(vm.Link2))
+                {
+                  <a href="@vm.Link2" target="_blank">@vm.Link2Name</a>
+                }
+                @if (!string.IsNullOrEmpty(vm.Link3))
+                {
+                  <text> | </text>
+                  <a href="@vm.Link3" target="_blank">@vm.Link3Name</a>
+                }
+              </div>
+
+              <!-- Truncated HTML-safe description -->
+              <p class="sponsor-desc">
+                @Html.TruncateHtml(htmlBlob, descLimit)
+              </p>
+            </div>
+        }
+      </div>
+    </section>
+
+        <div style="clear:both"></div>
 
         <p class="create-sponsored-listing">
-           @if (DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings > sponsoredListings.Count())
+            @if (DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings > sponsoredListings.Count())
             {
-                <a class="app-link" href="~/sponsoredlisting/selectlisting?sponsorshipType=@SponsorshipType.MainSponsor">Advertise here</a>
-                <span>(@(DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings - sponsoredListings.Count()) available)</span>
+                <a class="app-link" href="~/sponsoredlisting/selectlisting?sponsorshipType=@SponsorshipType.MainSponsor">
+                    Advertise here
+                </a>
+                <span>
+                    (@(DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings - sponsoredListings.Count()) available)
+                </span>
             }
             else
             {
-                <a class="app-link" href="~/sponsoredlisting">About sponsored listings</a>  <span>(@(DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings - sponsoredListings.Count()) available)</span>
+                <a class="app-link" href="~/sponsoredlisting">About sponsored listings</a>
+                <span>
+                    (@(DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings - sponsoredListings.Count()) available)
+                </span>
             }
         </p>
-    }
+}
     else
     {
-        <p>
-            <a class="app-link" href="~/sponsoredlisting">Advertise here</a>
-        </p>
+        <p><a class="app-link" href="~/sponsoredlisting">Advertise here</a></p>
     }
 </cache-content>
