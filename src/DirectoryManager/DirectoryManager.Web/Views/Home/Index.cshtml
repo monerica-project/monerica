@@ -16,7 +16,15 @@
 }
 
 <cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.EntriesCacheKey">
-    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageDisplayHtml))
+    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageDisplayHtml))     
+
+    @await Html.PartialAsync("_SponsoredListingPartial")
+    <hr />
+    <p class="intro">
+
+        The goal of Monerica is to reflect the freedom ideals of the United States of America in the age of cryptocurrency by using Monero. There are no borders to Monerica. One has the ability to transact freely and privately without the need for a bank account, without the permission of any third party, and without the prying eyes of those who wish to control the thoughts and behaviors of others through surveillance and overreaching regulations.
+
+    </p>
 
     <hr />
 
@@ -25,17 +33,16 @@
             <p class="centered-text"><b>Last Update:</b> @directoryEntryRepository.GetLastRevisionDate().ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</p>
         </div>
         <div class="top-container-right-column">
-                @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.TopMenuActionsHtml))
-            </div>
+            @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.TopMenuActionsHtml))
         </div>
+    </div>
 
     <hr />
 
-    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.DirectoryLegendHtml)) 
+    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.DirectoryLegendHtml))
 
-    <hr />
-    
-    @await Html.PartialAsync("_SponsoredListingPartial")
+ 
+
 
     @{
         var featuredEntries = await directoryEntrySelectionRepository.GetEntriesForSelection(DirectoryManager.Data.Enums.EntrySelectionType.Featured);
@@ -131,14 +138,14 @@
         {
             <li>
                 <label for="@string.Format("{0}_checkbox", category.CategoryKey)">+</label>
-                <a href="#@category.CategoryKey">@category.Name</a>
+                <a href="@category.CategoryKey">@category.Name</a>
                 <input type="checkbox" id="@string.Format("{0}_checkbox", category.CategoryKey)" />
                 <div class="hidden">
                     <ul>
                         @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId))
                         {
                             <li>
-                                <a href="#@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</a>
+                                <a href="@category.CategoryKey/@subCategory.SubCategoryKey">@subCategory.Name</a>
                             </li>
                         }
                     </ul>

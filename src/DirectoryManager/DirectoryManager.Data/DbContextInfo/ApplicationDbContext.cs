@@ -3,6 +3,7 @@ using DirectoryManager.Data.Models.BaseModels;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.SponsoredListings;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection.Emit;
 
 namespace DirectoryManager.Data.DbContextInfo
 {
@@ -65,6 +66,10 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<DirectoryEntry>()
                    .HasIndex(e => new { e.SubCategoryId, e.DirectoryEntryKey })
                    .IsUnique();
+
+            builder.Entity<DirectoryEntry>()
+                    .HasIndex(e => e.SubCategoryId)
+                    .HasDatabaseName("IX_DirectoryEntries_SubCategoryId");
 
             builder.Entity<Category>()
                    .HasIndex(e => e.CategoryKey)

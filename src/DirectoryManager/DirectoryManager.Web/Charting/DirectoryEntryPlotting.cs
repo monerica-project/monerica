@@ -1,60 +1,11 @@
 ﻿using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Models.TransferModels;
 using ScottPlot;
-using ScottPlot.Plottables;
 using System.Globalization;
 
 namespace DirectoryManager.Web.Charting
 {
     public class DirectoryEntryPlotting
     {
-
-        //// your existing weekly cumulative plot (unchanged)
-        //public byte[] CreateWeeklyPlot(List<DirectoryEntry> entries)
-        //{
-        //    if (!entries.Any())
-        //        throw new ArgumentException("Entries list is empty.");
-
-        //    entries = entries.Where(x => IncludedStatus(x)).ToList();
-
-        //    var weeklyData = entries
-        //        .GroupBy(entry => CultureInfo.CurrentCulture.Calendar.GetWeekOfYear(
-        //                        entry.CreateDate,
-        //                        CalendarWeekRule.FirstFourDayWeek,
-        //                        DayOfWeek.Monday))
-        //        .Select(g => new
-        //        {
-        //            WeekStart = g.Min(e => e.CreateDate),
-        //            Total = g.Count()
-        //        })
-        //        .OrderBy(x => x.WeekStart)
-        //        .ToList();
-
-        //    double cumulative = 0;
-        //    var dates = new List<DateTime>();
-        //    var values = new List<double>();
-        //    foreach (var w in weeklyData)
-        //    {
-        //        cumulative += w.Total;
-        //        dates.Add(w.WeekStart);
-        //        values.Add(cumulative);
-        //    }
-
-        //    var plt = new Plot();
-        //    var scatter = plt.Add.Scatter(
-        //        xs: dates.Select(d => d.ToOADate()).ToArray(),
-        //        ys: values.ToArray());
-        //    scatter.MarkerSize = 10;
-        //    scatter.MarkerShape = MarkerShape.FilledSquare;
-        //    scatter.LineStyle = LineStyle.None;
-
-        //    plt.Axes.DateTimeTicksBottom();
-        //    plt.Title("Weekly Cumulative Totals");
-        //    plt.XLabel("Week Starting");
-        //    plt.YLabel("Total Accumulated Entries");
-
-        //    return plt.GetImageBytes(1200, 800, ImageFormat.Png);
-        //}
 
         /// <summary>
         /// Single‐bar‐per‐month showing how many entries were active at month‐end.
