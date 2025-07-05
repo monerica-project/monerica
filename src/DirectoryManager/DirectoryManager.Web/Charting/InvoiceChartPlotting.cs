@@ -56,6 +56,72 @@ namespace DirectoryManager.Web.Charting
             return myPlot.GetImageBytes(1200, 800, ImageFormat.Png);
         }
 
+        public byte[] CreateMonthlyAvgDailyRevenueChart(IEnumerable<SponsoredListingInvoice> invoices)
+        {
+            var paid = invoices
+                .Where(i => i.Currency == Currency.USD && i.PaymentStatus == PaymentStatus.Paid)
+                .ToList();
+            if (!paid.Any())
+            {
+                return Array.Empty<byte>();
+            }
+
+            // Determine range of months
+            var minStart = paid.Min(i => i.CampaignStartDate.Date);
+            var maxEnd = paid.Max(i => i.CampaignEndDate.Date);
+
+            // Build list of month start dates
+            var months = new List<DateTime>();
+            for (var m = new DateTime(minStart.Year, minStart.Month, 1);
+                 m <= new DateTime(maxEnd.Year, maxEnd.Month, 1);
+                 m = m.AddMonths(1))
+            {
+                months.Add(m);
+            }
+
+            // Compute average daily revenue per calendar day in each month
+            var data = months.Select(m =>
+            {
+                int daysInMonth = DateTime.DaysInMonth(m.Year, m.Month);
+                double total = 0;
+                foreach (var inv in paid)
+                {
+                    var start = inv.CampaignStartDate.Date;
+                    var end = inv.CampaignEndDate.Date;
+                    double span = (end - start).TotalDays + 1;
+                    var monthStart = m;
+                    var monthEnd = m.AddMonths(1).AddDays(-1);
+                    var overlapStart = start > monthStart ? start : monthStart;
+                    var overlapEnd = end < monthEnd ? end : monthEnd;
+                    if (overlapEnd >= overlapStart)
+                    {
+                        double overlapDays = (overlapEnd - overlapStart).TotalDays + 1;
+                        total += ((double)inv.Amount / span) * overlapDays;
+                    }
+                }
+                return new { Month = m, AvgDaily = total / daysInMonth };
+            })
+            .ToList();
+
+            // Build bars
+            var bars = data.Select((d, idx) => new Bar
+            {
+                Position = idx,
+                Value = d.AvgDaily,
+                Label = d.Month.ToString("MMM yyyy")
+            }).ToList();
+
+            var plt = new Plot();
+            plt.Add.Bars(bars);
+            plt.Axes.Bottom.TickLabelStyle.Rotation = 90;
+            plt.Title("Average Daily Revenue");
+            plt.XLabel("Month");
+            plt.YLabel("USD per day");
+
+            return plt.GetImageBytes(width: 1200, height: 600, format: ImageFormat.Png);
+        }
+
+
         public byte[] CreateSubcategoryRevenuePieChart(
             IEnumerable<SponsoredListingInvoice> invoices,
             IDictionary<int, string> categoryNames,

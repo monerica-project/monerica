@@ -259,6 +259,37 @@ namespace DirectoryManager.Web.Controllers
             return this.File(imageBytes, StringConstants.PngImage);
         }
 
+        [HttpGet("sponsoredlistinginvoice/monthlyavgdailyrevenuechart")]
+        public async Task<IActionResult> MonthlyAvgDailyRevenueChartAsync(
+    DateTime startDate,
+    DateTime endDate,
+    SponsorshipType? sponsorshipType)
+        {
+            var invoices = await this.invoiceRepository.GetAllAsync();
+            var filtered = invoices
+                .Where(inv => inv.CreateDate >= startDate
+                           && inv.CreateDate <= endDate
+                           && inv.PaymentStatus == PaymentStatus.Paid);
+
+            if (sponsorshipType.HasValue)
+            {
+                filtered = filtered.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
+
+            if (!filtered.Any())
+            {
+                const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
+  <rect width='100%' height='100%' fill='white'/>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='20' fill='black'>No results</text>
+</svg>";
+                return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
+            }
+
+            var imageBytes = new InvoicePlotting()
+                                 .CreateMonthlyAvgDailyRevenueChart(filtered);
+            return this.File(imageBytes, StringConstants.PngImage);
+        }
+
         /// <summary>
         /// Renders a pie chart of total revenue by subcategory within the date range,
         /// optionally scoped to one SponsorshipType.
