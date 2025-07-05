@@ -38,10 +38,11 @@
 <br />
 
 <div style="display: flex; align-items: center; gap: 25px;">
-    <a href="~/submit?submissionid=@Model.SubmissionId" >Continue editing</a>
-
+   
     <form asp-action="Confirm" method="post" style="margin: 0;">
         @Html.HiddenFor(x => x.SubmissionId)
         <button type="submit" class="btn btn-primary">Submit</button>
     </form>
 </div>
+<br />
+<a href="~/submit?submissionid=@Model.SubmissionId">Edit submission</a>
