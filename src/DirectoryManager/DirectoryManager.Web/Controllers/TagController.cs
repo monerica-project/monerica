@@ -54,7 +54,7 @@ namespace DirectoryManager.Web.Controllers
             var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
 
             var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
-                  entries.ToList(),
+                  entries.Where(x => x.DirectoryStatus != DirectoryStatus.Removed).ToList(),
                   DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
                   DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Normal,
                   link2Name,

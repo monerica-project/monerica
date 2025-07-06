@@ -89,6 +89,12 @@
 </div>
 
 <div class="form-group">
+    <label asp-for="Tags">Tags (comma-separated)</label>
+    <input asp-for="Tags" class="form-control  input-width" />
+    <span asp-validation-for="Tags" class="text-danger"></span>
+</div>
+
+<div class="form-group">
     <label asp-for="SuggestedSubCategory">Suggested Category (if choice not provided)</label>
     <input autocomplete="off" asp-for="SuggestedSubCategory" class="form-control input-width" />
     <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>

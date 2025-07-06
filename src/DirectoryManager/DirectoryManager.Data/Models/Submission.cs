@@ -60,5 +60,8 @@ namespace DirectoryManager.Data.Models
         public virtual DirectoryEntry? DirectoryEntry { get; set; }
 
         public DirectoryStatus? DirectoryStatus { get; set; }
+
+        [MaxLength(255)]
+        public string? Tags { get; set; }
     }
 }

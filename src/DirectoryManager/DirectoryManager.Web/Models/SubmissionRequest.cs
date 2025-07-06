@@ -60,5 +60,9 @@ namespace DirectoryManager.Web.Models
 
         [Display(Name = "Suggested Status", Prompt = "Status")]
         public DirectoryStatus? DirectoryStatus { get; set; }
+
+        [MaxLength(255)]
+        [Display(Name = "Tags", Prompt = "comma-separated, e.g. vpn, privacy")]
+        public string? Tags { get; set; }
     }
 }

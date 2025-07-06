@@ -17,6 +17,7 @@ else
     <ul class="blank_list_item">
     @foreach (var entry in Model.Entries)
     {
+            entry.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
             @await Html.PartialAsync("_DirectoryEntryPartial", entry)
     }
     </ul>
