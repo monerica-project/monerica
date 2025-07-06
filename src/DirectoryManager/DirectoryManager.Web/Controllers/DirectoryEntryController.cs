@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Charting;
@@ -22,6 +23,8 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubcategoryRepository subCategoryRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly IDirectoryEntriesAuditRepository auditRepository;
+        private readonly ITagRepository tagRepo;
+        private readonly IDirectoryEntryTagRepository entryTagRepo;
         private readonly ICacheService cacheService;
         private readonly IMemoryCache cache;
 
@@ -33,6 +36,8 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntriesAuditRepository auditRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
+            ITagRepository tagRepo,
+            IDirectoryEntryTagRepository entryTagRepo,
             ICacheService cacheService,
             IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService, cache)
@@ -42,6 +47,8 @@ namespace DirectoryManager.Web.Controllers
             this.subCategoryRepository = subCategoryRepository;
             this.categoryRepository = categoryRepository;
             this.auditRepository = auditRepository;
+            this.tagRepo = tagRepo;
+            this.entryTagRepo = entryTagRepo;
             this.cache = cache;
             this.cacheService = cacheService;
         }
@@ -116,6 +123,24 @@ namespace DirectoryManager.Web.Controllers
 
             await this.directoryEntryRepository.CreateAsync(model);
 
+            // now process tags
+            if (!string.IsNullOrWhiteSpace(model.Tags))
+            {
+                var tagNames = model.Tags
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(t => t.Trim())
+                    .Where(t => t.Length > 0)
+                    .Distinct(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var name in tagNames)
+                {
+                    var normalizedName = FormattingHelper.NormalizeTagName(name);
+                    var tag = await this.tagRepo.GetByNameAsync(normalizedName)
+                           ?? await this.tagRepo.CreateAsync(normalizedName);
+                    await this.entryTagRepo.AssignTagAsync(model.DirectoryEntryId, tag.TagId);
+                }
+            }
+
             this.ClearCachedItems();
 
             return this.RedirectToAction(nameof(this.Index));
@@ -138,6 +163,13 @@ namespace DirectoryManager.Web.Controllers
                 .ToList();
 
             this.ViewBag.SubCategories = subCategories;  // Pass the actual Subcategory objects
+
+            var tags = await this.entryTagRepo.GetTagsForEntryAsync(id);
+            entry.Tags = string.Join(", ", tags
+                                         .OrderBy(t => t.Name)
+                                         .Select(t => t.Name));
+
+
             return this.View(entry);  // Pass the entry model for editing
         }
 
@@ -170,6 +202,33 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Processor = entry.Processor?.Trim();
 
             await this.directoryEntryRepository.UpdateAsync(existingEntry);
+
+            // Re-sync tags: remove all, then add back from comma list
+            var newTagNames = (entry.Tags ?? "")
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(t => t.Trim())
+                .Where(t => t.Length > 0)
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            // 1) remove any tags not in the new list
+            var currentTags = await this.entryTagRepo.GetTagsForEntryAsync(id);
+            foreach (var tag in currentTags)
+            {
+                if (!newTagNames.Contains(tag.Name, StringComparer.OrdinalIgnoreCase))
+                {
+                    await this.entryTagRepo.RemoveTagAsync(id, tag.TagId);
+                }
+            }
+
+            // 2) add any new tags
+            foreach (var name in newTagNames)
+            {
+                var normalizedName = FormattingHelper.NormalizeTagName(name);
+                var tag = await this.tagRepo.GetByNameAsync(normalizedName)
+                       ?? await this.tagRepo.CreateAsync(normalizedName);
+                await this.entryTagRepo.AssignTagAsync(id, tag.TagId);
+            }
 
             this.ClearCachedItems();
 
@@ -249,10 +308,6 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> WeeklyPlotImageAsync()
         {
             DirectoryEntryPlotting plottingChart = new DirectoryEntryPlotting();
-
-            // var entries = await this.directoryEntryRepository.GetAllAsync();
-
-            //var imageBytes = plottingChart.CreateWeeklyPlot(entries.ToList());
             var entries = await this.auditRepository.GetAllAsync();
             var imageBytes = plottingChart.CreateMonthlyActivePlot(entries.ToList());
             return this.File(imageBytes, StringConstants.PngImage);
@@ -288,6 +343,12 @@ namespace DirectoryManager.Web.Controllers
             var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
 
+            var tagEntities = await this.entryTagRepo.GetTagsForEntryAsync(existingEntry.DirectoryEntryId);
+            var tagNames = tagEntities
+                .Select(t => t.Name)
+                .OrderBy(n => n)
+                .ToList();
+
             var model = new DirectoryEntryViewModel
             {
                 DirectoryEntryId = existingEntry.DirectoryEntryId,
@@ -312,6 +373,7 @@ namespace DirectoryManager.Web.Controllers
                 CreateDate = existingEntry.CreateDate,
                 Link2Name = link2Name,
                 Link3Name = link3Name,
+                Tags = tagNames
             };
 
             this.ViewBag.CategoryName = category.Name;

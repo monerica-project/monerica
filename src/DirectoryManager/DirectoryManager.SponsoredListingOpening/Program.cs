@@ -28,7 +28,7 @@ var notificationLinkTemplate = config.GetValue<string>("NotificationLinkTemplate
 var serviceProvider = new ServiceCollection()
     .AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(config.GetConnectionString(DirectoryManager.Data.Constants.StringConstants.DefaultConnection)))
-    .AddRepositories() // Add repositories using the extension method
+    .AddDbRepositories() // Add repositories using the extension method
     .AddSingleton<IEmailService, EmailService>(provider =>
     {
         using var scope = provider.CreateScope();

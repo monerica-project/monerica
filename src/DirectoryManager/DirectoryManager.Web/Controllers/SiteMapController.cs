@@ -22,6 +22,8 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository;
         private readonly ISponsoredListingRepository sponsoredListingRepository;
         private readonly IDirectoryEntrySelectionRepository directoryEntrySelectionRepository;
+        private readonly ITagRepository tagRepository;
+        private readonly IDirectoryEntryTagRepository entryTagRepository;
 
         public SiteMapController(
             ICacheService cacheService,
@@ -32,7 +34,9 @@ namespace DirectoryManager.Web.Controllers
             IContentSnippetRepository contentSnippetRepository,
             ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository,
             ISponsoredListingRepository sponsoredListingRepository,
-            IDirectoryEntrySelectionRepository directoryEntrySelectionRepository)
+            IDirectoryEntrySelectionRepository directoryEntrySelectionRepository,
+            ITagRepository tagRepository, 
+            IDirectoryEntryTagRepository entryTagRepository)
         {
             this.cacheService = cacheService;
             this.memoryCache = memoryCache;
@@ -43,6 +47,8 @@ namespace DirectoryManager.Web.Controllers
             this.sponsoredListingInvoiceRepository = sponsoredListingInvoiceRepository;
             this.sponsoredListingRepository = sponsoredListingRepository;
             this.directoryEntrySelectionRepository = directoryEntrySelectionRepository;
+            this.tagRepository = tagRepository;
+            this.entryTagRepository = entryTagRepository;
         }
 
         [Route("sitemap_index.xml")]
@@ -77,6 +83,31 @@ namespace DirectoryManager.Web.Controllers
                 : mostRecentUpdateDate;
 
             var siteMapHelper = new SiteMapHelper();
+
+
+            var domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
+            var activeTags = await this.tagRepository
+                                      .ListActiveTagsWithLastModifiedAsync()
+                                      .ConfigureAwait(false);
+
+            foreach (var tagInfo in activeTags)
+            {
+                // slugify once:
+                var slug = tagInfo.Name
+                                  .Replace(" ", "-")
+                                  .ToLowerInvariant();
+
+                siteMapHelper.SiteMapItems.Add(new SiteMapItem
+                {
+                    Url = $"{domain}/tagged/{slug}",
+                    Priority = 0.5,
+                    ChangeFrequency = ChangeFrequency.Weekly,
+                    LastMod = tagInfo.LastModified > mostRecentUpdateDate
+                                         ? tagInfo.LastModified
+                                         : mostRecentUpdateDate
+                });
+            }
+
 
             // Add the root sitemap item
             siteMapHelper.SiteMapItems.Add(new SiteMapItem

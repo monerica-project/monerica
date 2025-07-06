@@ -1,6 +1,6 @@
 ﻿// See https://aka.ms/new-console-template for more information
-using System.Text;
 using DirectoryManager.Console.Models;
+using DirectoryManager.Console.Services;
 using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Repositories.Implementations;
@@ -8,7 +8,12 @@ using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Identity.Client;
 using Newtonsoft.Json;
+using OpenAI;
+using OpenAI.Chat;
+using System;
+using System.Text;
 
 var config = new ConfigurationBuilder()
     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory) // Set the base path to your project's directory
@@ -25,7 +30,12 @@ var serviceProvider = new ServiceCollection()
     .AddTransient<IDirectoryEntriesAuditRepository, DirectoryEntriesAuditRepository>()
     .AddTransient<ICategoryRepository, CategoryRepository>()
     .AddTransient<IExcludeUserAgentRepository, ExcludeUserAgentRepository>()
+    .AddTransient<ITagRepository, TagRepository>()
+    .AddTransient<IDirectoryEntryTagRepository, DirectoryEntryTagRepository>()
+    .AddScoped<IAITagService, AITagService>()
+
     .BuildServiceProvider();
+ 
 
 Console.WriteLine("Type 1 for user agent loaded");
 var choice = Console.ReadLine();
@@ -64,4 +74,38 @@ if (choice == "1")
             });
         }
     }
+}
+else if (choice == "2")
+{
+    var apiKey = "";
+
+    var openAi = new OpenAIClient(apiKey);
+    var directoryEntryRepo = serviceProvider.GetRequiredService<IDirectoryEntryRepository>();
+    var tagRepo = serviceProvider.GetRequiredService<ITagRepository>();
+    var entryTagRepo = serviceProvider.GetRequiredService<IDirectoryEntryTagRepository>();
+
+    var chat = openAi.GetChatClient("gpt-4.1");
+    var messages = new List<ChatMessage>
+        {
+            new SystemChatMessage("You are a helpful assistant."),
+            new UserChatMessage("Give me 3 comma-separated tags for: Monero privacy-focused wallet")
+        };
+
+    var aiTagService = new AITagService(
+        openAi,
+        directoryEntryRepo,
+        tagRepo,
+        entryTagRepo);
+
+    await aiTagService.GenerateTagsForAllEntriesAsync();
+
+    var response = await chat.CompleteChatAsync(messages)
+                             .ConfigureAwait(false);
+
+    var tags = response.Value.Content[0].Text;
+ 
+}
+else
+{
+    Console.WriteLine("Invalid choice. Exiting.");
 }

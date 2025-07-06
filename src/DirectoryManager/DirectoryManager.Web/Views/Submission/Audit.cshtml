@@ -3,6 +3,7 @@
 @using DirectoryManager.DisplayFormatting.Models
 @using DirectoryManager.Web.Constants;
 @using DirectoryManager.Web.Enums
+@using DirectoryManager.Web.Helpers
 @using DirectoryManager.Web.Models
 @{
     var firstOrDefault = Model.FirstOrDefault();
@@ -70,18 +71,7 @@ else
         {
             <tr>
                 <td>
-                    @if (audit.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Verified)
-                    {
-                        <text>&#9989;</text>
-                    }
-                    else if (audit.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Scam)
-                    {
-                        <text>&#10060;</text>
-                    }
-                    else
-                    {
-                        @audit.DirectoryStatus
-                    }
+                        @audit.DirectoryStatus.ToHtmlIcon()
                 </td>
                 <td>@audit.Name</td>
                 <td>@audit.Link</td>

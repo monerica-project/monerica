@@ -29,7 +29,7 @@ public class Program
         var serviceProvider = new ServiceCollection()
             .AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(config.GetConnectionString(DirectoryManager.Data.Constants.StringConstants.DefaultConnection)))
-            .AddRepositories()
+            .AddDbRepositories()
             .AddSingleton<IConfiguration>(config)
             .BuildServiceProvider();
 

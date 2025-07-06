@@ -25,6 +25,9 @@ namespace DirectoryManager.Web.Controllers
         private readonly IBlockedIPRepository blockedIPRepository;
         private readonly IMemoryCache cache;
         private readonly ICacheService cacheHelper;
+        private readonly ITagRepository tagRepo;
+        private readonly IDirectoryEntryTagRepository entryTagRepo;
+
 
         public SubmissionController(
             UserManager<ApplicationUser> userManager,
@@ -36,7 +39,9 @@ namespace DirectoryManager.Web.Controllers
             IUserAgentCacheService userAgentCacheService,
             IBlockedIPRepository blockedIPRepository,
             IMemoryCache cache,
-            ICacheService cacheHelper)
+            ICacheService cacheHelper,
+            ITagRepository tagRepo,
+            IDirectoryEntryTagRepository entryTagRepo)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -47,6 +52,8 @@ namespace DirectoryManager.Web.Controllers
             this.blockedIPRepository = blockedIPRepository;
             this.cache = cache;
             this.cacheHelper = cacheHelper;
+            this.tagRepo = tagRepo;
+            this.entryTagRepo = entryTagRepo;
         }
 
         [AllowAnonymous]
@@ -269,41 +276,80 @@ namespace DirectoryManager.Web.Controllers
                 throw new Exception($"Invalid directory status: {model.DirectoryStatus}");
             }
 
+            // 1) load the submission
             var submission = await this.submissionRepository.GetByIdAsync(id);
-
             if (submission == null)
             {
                 return this.NotFound();
             }
 
-            if (submission.SubmissionStatus == SubmissionStatus.Pending &&
-                model.SubmissionStatus == SubmissionStatus.Approved)
+            // 2) if we’re moving from Pending → Approved, create/update the DirectoryEntry
+            if (submission.SubmissionStatus == SubmissionStatus.Pending
+             && model.SubmissionStatus == SubmissionStatus.Approved)
             {
-                if (model.SubCategoryId == null ||
-                    model.SubCategoryId == 0)
+                if (model.SubCategoryId == null || model.SubCategoryId == 0)
                 {
-                    return this.BadRequest(new { Error = $"Submission does not have a subcategory" });
+                    return this.BadRequest(new { Error = "Submission does not have a subcategory" });
                 }
+
+                int entryId;
 
                 if (model.DirectoryEntryId == null)
                 {
-                    // it's now approved
+                    // create new entry
                     await this.CreateDirectoryEntry(model);
+                    var created = await this.directoryEntryRepository.GetByLinkAsync(model.Link.Trim());
+                    entryId = created?.DirectoryEntryId
+                              ?? throw new Exception("Failed to locate newly created entry");
                 }
                 else
                 {
+                    // update existing
                     await this.UpdateDirectoryEntry(model);
+                    entryId = model.DirectoryEntryId.Value;
+                }
+
+                // 3) parse & assign tags if any were supplied
+                if (!string.IsNullOrWhiteSpace(model.Tags))
+                {
+                    // remove old tags
+                    var oldTags = await this.entryTagRepo.GetTagsForEntryAsync(entryId);
+                    foreach (var t in oldTags)
+                    {
+                        await this.entryTagRepo.RemoveTagAsync(entryId, t.TagId);
+                    }
+
+                    // split, normalize, up to 7 distinct tags
+                    var names = model.Tags
+                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                        .Select(t => t.Trim())
+                        .Where(t => t.Length > 0)
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Take(7);
+
+                    foreach (var name in names)
+                    {
+                        // get or create the Tag row
+                        var tag = await this.tagRepo.GetByNameAsync(name)
+                               ?? await this.tagRepo.CreateAsync(name);
+
+                        // link it
+                        await this.entryTagRepo.AssignTagAsync(entryId, tag.TagId);
+                    }
                 }
 
                 this.ClearCachedItems();
             }
 
+            // 4) store the admin’s final status & tags on the submission record
             submission.SubmissionStatus = model.SubmissionStatus;
+            submission.Tags = model.Tags?.Trim();
 
             await this.submissionRepository.UpdateAsync(submission);
 
             return this.RedirectToAction(nameof(this.Index));
         }
+
 
         [Authorize]
         [HttpGet("submission/delete/{id}")]
@@ -624,7 +670,8 @@ namespace DirectoryManager.Web.Controllers
                 IpAddress = ipAddress,
                 DirectoryEntryId = (model.DirectoryEntryId == 0) ? null : model.DirectoryEntryId,
                 DirectoryStatus = (model.DirectoryStatus == null) ? DirectoryStatus.Unknown : model.DirectoryStatus,
-                NoteToAdmin = model.NoteToAdmin
+                NoteToAdmin = model.NoteToAdmin,
+                Tags = model.Tags?.Trim()
             };
             return submission;
         }

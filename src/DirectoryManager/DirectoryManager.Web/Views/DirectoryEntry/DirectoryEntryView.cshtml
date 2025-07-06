@@ -73,15 +73,10 @@
         <h3>Details</h3>
         <p>
             <strong>Status:</strong>
-            @if (Model.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Verified)
-            {
-                <text>&#9989;</text>
-            }
-            else if (Model.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Scam)
-            {
-                <text>&#10060;</text>
-            }
-          @Model.DirectoryStatus
+
+            @Model.DirectoryStatus.ToHtmlIcon()
+          
+            @Model.DirectoryStatus
         </p>
 
         @if (!string.IsNullOrEmpty(Model.Contact))
@@ -116,6 +111,23 @@
             <br />
             <h4>Note</h4>
             <p><i>@Html.Raw(Model.Note)</i></p>
+        }
+
+        @if (Model.Tags?.Any() ?? false)
+        {
+            <br />
+            <div class="entry-tags">
+                <strong>Tags:</strong>
+                @for (int i = 0; i < Model.Tags.Count; i++)
+                {
+                    var tag = Model.Tags[i];
+                    // slugify by replacing spaces with hyphens
+                    var slug = tag.Replace(" ", "-").ToLowerInvariant();
+                    <a href="~/tagged/@slug">@tag</a>@if (i < Model.Tags.Count - 1){
+                    <text>, </text>
+                }
+                }
+            </div>
         }
     </div>
 </div>

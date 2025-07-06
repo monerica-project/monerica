@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Monerica Directory – All Categories</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      font-family: Helvetica, sans-serif;
+      background: #111;
+      color: #EEE;
+    }
+    /* Desktop sidebar */
+    .sidebar {
+      width: 220px;
+      background: #1E1E1E;
+      padding: 1rem 0;
+      height: 100vh;
+      position: fixed;
+      overflow-y: auto;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+    }
+    .sidebar ul { list-style: none; margin: 0; padding: 0; }
+    .sidebar li { margin: 0; }
+    .sidebar a {
+      display: block;
+      padding: 0.5rem 1rem;
+      color: #EEE;
+      text-decoration: none;
+    }
+    .sidebar a:hover { background: #333; }
+    .sidebar .active > a {
+      background: #00AAFF;
+      color: #000;
+      font-weight: bold;
+    }
+    /* Mobile nav (accordion) */
+    .mobile-nav { display: none; background: #1E1E1E; color: #EEE; }
+    .mobile-nav summary {
+      padding: 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+      list-style: none;
+      background: #333;
+    }
+    .mobile-nav ul { list-style: none; margin: 0; padding: 0 1rem; }
+    .mobile-nav li a {
+      padding: 0.5rem 0;
+      display: block;
+      color: #EEE;
+      text-decoration: none;
+    }
+    .mobile-nav li a:hover { background: #333; }
+    /* Main content */
+    .main {
+      margin-left: 220px;
+      padding: 1.5rem;
+      flex: 1;
+    }
+    h1 {
+      margin: 0 0 1rem;
+      color: #EEE;
+      font-size: 1.6rem;
+    }
+    ul.cat-list { list-style: none; padding: 0; }
+    ul.cat-list li {
+      margin: 0.75rem 0;
+    }
+    ul.cat-list li a {
+      color: #00AAFF;
+      text-decoration: none;
+      font-size: 1.1rem;
+    }
+    ul.cat-list li a:hover { text-decoration: underline; }
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      body { display: block; }
+      .sidebar { display: none; }
+      .mobile-nav { display: block; }
+      .main {
+        margin-left: 0;
+        padding: 1rem;
+      }
+      h1 { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Mobile navigation accordion -->
+  <details class="mobile-nav">
+    <summary>Menu</summary>
+    <ul>
+      <li class="cat active"><a href="all-categories.html">All Categories</a></li>
+      <li class="cat"><a href="businesses.html">Businesses</a></li>
+      <li class="cat"><a href="communities.html">Communities</a></li>
+      <li class="cat"><a href="education.html">Education</a></li>
+      <li class="cat"><a href="exchanges.html">Exchanges</a></li>
+      <li class="cat"><a href="finance.html">Finance</a></li>
+      <li class="cat"><a href="freelancers.html">Freelancers</a></li>
+      <li class="cat"><a href="jobs.html">Jobs</a></li>
+      <li class="cat"><a href="media.html">Media</a></li>
+      <li class="cat"><a href="merchant-services.html">Merchant Services</a></li>
+      <li class="cat"><a href="mining.html">Mining</a></li>
+      <li class="cat"><a href="non-profits.html">Non-Profits</a></li>
+      <li class="cat"><a href="official-sites.html">Official Sites</a></li>
+      <li class="cat"><a href="onions.html">Onions</a></li>
+      <li class="cat"><a href="other-directories.html">Other Directories</a></li>
+      <li class="cat"><a href="utilities.html">Utilities</a></li>
+      <li class="cat"><a href="vpn-companies.html">VPN Companies</a></li>
+      <li class="cat"><a href="wallets.html">Wallets</a></li>
+      <li class="cat"><a href="web-hosting.html">Web Hosting</a></li>
+    </ul>
+  </details>
+
+  <!-- Desktop sidebar -->
+  <nav class="sidebar">
+    <ul>
+      <li class="cat active"><a href="all-categories.html">All Categories</a></li>
+      <li class="cat"><a href="businesses.html">Businesses</a></li>
+      <li class="cat"><a href="communities.html">Communities</a></li>
+      <li class="cat"><a href="education.html">Education</a></li>
+      <li class="cat"><a href="exchanges.html">Exchanges</a></li>
+      <li class="cat"><a href="finance.html">Finance</a></li>
+      <li class="cat"><a href="freelancers.html">Freelancers</a></li>
+      <li class="cat"><a href="jobs.html">Jobs</a></li>
+      <li class="cat"><a href="media.html">Media</a></li>
+      <li class="cat"><a href="merchant-services.html">Merchant Services</a></li>
+      <li class="cat"><a href="mining.html">Mining</a></li>
+      <li class="cat"><a href="non-profits.html">Non-Profits</a></li>
+      <li class="cat"><a href="official-sites.html">Official Sites</a></li>
+      <li class="cat"><a href="onions.html">Onions</a></li>
+      <li class="cat"><a href="other-directories.html">Other Directories</a></li>
+      <li class="cat"><a href="utilities.html">Utilities</a></li>
+      <li class="cat"><a href="vpn-companies.html">VPN Companies</a></li>
+      <li class="cat"><a href="wallets.html">Wallets</a></li>
+      <li class="cat"><a href="web-hosting.html">Web Hosting</a></li>
+    </ul>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main">
+    <h1>All Categories</h1>
+    <ul class="cat-list">
+      <li><a href="businesses.html">Businesses</a></li>
+      <li><a href="communities.html">Communities</a></li>
+      <li><a href="education.html">Education</a></li>
+      <li><a href="exchanges.html">Exchanges</a></li>
+      <li><a href="finance.html">Finance</a></li>
+      <li><a href="freelancers.html">Freelancers</a></li>
+      <li><a href="jobs.html">Jobs</a></li>
+      <li><a href="media.html">Media</a></li>
+      <li><a href="merchant-services.html">Merchant Services</a></li>
+      <li><a href="mining.html">Mining</a></li>
+      <li><a href="non-profits.html">Non-Profits</a></li>
+      <li><a href="official-sites.html">Official Sites</a></li>
+      <li><a href="onions.html">Onions</a></li>
+      <li><a href="other-directories.html">Other Directories</a></li>
+      <li><a href="utilities.html">Utilities</a></li>
+      <li><a href="vpn-companies.html">VPN Companies</a></li>
+      <li><a href="wallets.html">Wallets</a></li>
+      <li><a href="web-hosting.html">Web Hosting</a></li>
+    </ul>
+  </main>
+
+</body>
+</html>
