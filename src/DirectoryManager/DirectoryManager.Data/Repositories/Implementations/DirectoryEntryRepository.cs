@@ -335,6 +335,87 @@ namespace DirectoryManager.Data.Repositories.Implementations
             };
         }
 
+        public async Task<PagedResult<DirectoryEntry>> SearchAsync(
+            string term,
+            int page,
+            int pageSize)
+        {
+            if (string.IsNullOrWhiteSpace(term))
+            {
+                return new PagedResult<DirectoryEntry>();
+            }
+
+            term = term.Trim().ToLowerInvariant();
+            string pattern = $"%{term}%";
+
+            // 1) server-side filter on any matching field, only non-removed
+            var filtered = this.BaseQuery()
+                .Where(e =>
+                    e.DirectoryStatus != DirectoryStatus.Removed &&
+                    (
+                      EF.Functions.Like(e.Name.ToLower(), pattern) ||
+                      EF.Functions.Like((e.Description ?? "").ToLower(), pattern) ||
+                      EF.Functions.Like(e.SubCategory!.Name.ToLower(), pattern) ||
+                      EF.Functions.Like(e.SubCategory.Category!.Name.ToLower(), pattern) ||
+                      e.EntryTags.Any(et => EF.Functions.Like(et.Tag.Name.ToLower(), pattern)) ||
+                      EF.Functions.Like((e.Note ?? "").ToLower(), pattern) ||
+                      EF.Functions.Like((e.Processor ?? "").ToLower(), pattern) ||
+                      EF.Functions.Like((e.Location ?? "").ToLower(), pattern) ||
+                      EF.Functions.Like((e.Contact ?? "").ToLower(), pattern)
+                    ));
+
+            // 2) load into memory for scoring
+            var candidates = await filtered.ToListAsync();
+
+            int CountOcc(string? f)
+            {
+                if (string.IsNullOrEmpty(f)) return 0;
+                var txt = f.ToLowerInvariant();
+                int count = 0, idx = 0;
+                while ((idx = txt.IndexOf(term, idx, StringComparison.Ordinal)) != -1)
+                {
+                    count++;
+                    idx += term.Length;
+                }
+                return count;
+            }
+
+            // 3) compute scores
+            var scored = candidates
+                .Select(e => new
+                {
+                    Entry = e,
+                    Score =
+                        CountOcc(e.Name) +
+                        CountOcc(e.Description) +
+                        CountOcc(e.SubCategory?.Name) +
+                        CountOcc(e.SubCategory?.Category?.Name) +
+                        e.EntryTags.Sum(et => CountOcc(et.Tag.Name)) +
+                        CountOcc(e.Note) +
+                        CountOcc(e.Processor) +
+                        CountOcc(e.Location) +
+                        CountOcc(e.Contact)
+                })
+                .Where(x => x.Score > 0)
+                .OrderByDescending(x => x.Score)
+                .ToList();
+
+            // 4) apply paging
+            int total = scored.Count;
+            var pageEntries = scored
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => x.Entry)
+                .ToList();
+
+            return new PagedResult<DirectoryEntry>
+            {
+                TotalCount = total,
+                Items = pageEntries
+            };
+        }
+
+
         /// <summary>
         /// Base query including SubCategory→Category and EntryTags→Tag.
         /// </summary>

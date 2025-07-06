@@ -1,8 +1,10 @@
-﻿using System.Globalization;
-using System.Text;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.DisplayFormatting.Enums;
 using DirectoryManager.DisplayFormatting.Models;
+using System.Globalization;
+using System.Net;
+using System.Text;
 
 namespace DirectoryManager.DisplayFormatting.Helpers
 {
@@ -217,6 +219,117 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             return sb.ToString();
         }
 
+        public static string GenerateSearchResultHtml(DirectoryEntryViewModel model, string canonicalDomain)
+        {
+            // ensure no trailing slash
+            string domain = canonicalDomain?.TrimEnd('/') ?? string.Empty;
+
+            var sb = new StringBuilder();
+            sb.Append("<li class=\"search-result-item\">");
+
+            // 1) Name → profile link, and “Website” link inline
+            var name = WebUtility.HtmlEncode(model.Name);
+            // model.ItemPath should be something like "/category/subcategory/entrykey"
+            var profRelative = model.ItemPath.StartsWith("/") ? model.ItemPath : "/" + model.ItemPath;
+            var profUrl = $"{domain}{profRelative}";
+            sb.Append("<p>");
+            sb.Append(GetDirectoryStausIcon(model.DirectoryStatus)); // your helper for ✅❌ etc.
+            sb.AppendFormat(
+                "<strong><a class=\"no-app-link\" href=\"{1}\">{0}</a></strong> — ",
+                name, profUrl);
+
+            if (!string.IsNullOrWhiteSpace(model.Link))
+            {
+                var direct = WebUtility.HtmlEncode(model.Link);
+                sb.AppendFormat(
+                    "<a href=\"{0}\" target=\"_blank\">Website</a>",
+                    direct);
+            }
+            sb.Append("</p>");
+
+            // 2) Link2 / Link3 (e.g. Tor | I2P)
+            if (!string.IsNullOrWhiteSpace(model.Link2) || !string.IsNullOrWhiteSpace(model.Link3))
+            {
+                sb.Append("<p>");
+                if (!string.IsNullOrWhiteSpace(model.Link2))
+                {
+                    var l2 = WebUtility.HtmlEncode(model.Link2);
+                    var t2 = WebUtility.HtmlEncode(model.Link2Name);
+                    sb.AppendFormat("<a href=\"{0}\" target=\"_blank\">{1}</a>", l2, t2);
+                }
+                if (!string.IsNullOrWhiteSpace(model.Link3))
+                {
+                    var l3 = WebUtility.HtmlEncode(model.Link3);
+                    var t3 = WebUtility.HtmlEncode(model.Link3Name);
+                    sb.AppendFormat(" | <a href=\"{0}\" target=\"_blank\">{1}</a>", l3, t3);
+                }
+                sb.Append("</p>");
+            }
+
+            // 3) Category › Subcategory (as separate links)
+            if (model.SubCategory != null)
+            {
+                string catKey = WebUtility.HtmlEncode(model.SubCategory.Category.CategoryKey);
+                string subKey = WebUtility.HtmlEncode(model.SubCategory.SubCategoryKey);
+                string catName = WebUtility.HtmlEncode(model.SubCategory.Category.Name);
+                string subName = WebUtility.HtmlEncode(model.SubCategory.Name);
+
+                var catUrl = $"{domain}/{catKey}";
+                var subUrl = $"{domain}/{catKey}/{subKey}";
+
+                sb.AppendFormat(
+                    "<p><a class=\"no-app-link\" href=\"{0}\">{1}</a> &rsaquo; <a class=\"no-app-link\" href=\"{2}\">{3}</a></p>",
+                    catUrl, catName,
+                    subUrl, subName);
+            }
+
+            // 4) Description & Note
+            if (!string.IsNullOrWhiteSpace(model.Description))
+            {
+                var desc = WebUtility.HtmlEncode(model.Description);
+                sb.AppendFormat("<p>{0}", desc);
+
+                if (!string.IsNullOrWhiteSpace(model.Note))
+                {
+                    sb.Append(" <i>Note: ");
+                    sb.Append(model.Note);  // rendered raw HTML
+                    sb.Append("</i>");
+                }
+
+                sb.Append("</p>");
+            }
+
+            sb.Append("</li>");
+            return sb.ToString();
+        }
+
+
+        private static string GetDirectoryStausIcon(DirectoryStatus directoryStatus)
+        {
+            if (directoryStatus == Data.Enums.DirectoryStatus.Verified)
+            {
+                return "&#9989; ";
+
+            }
+            else if (directoryStatus == Data.Enums.DirectoryStatus.Admitted)
+            {
+                return string.Empty;
+            }
+            else if (directoryStatus == Data.Enums.DirectoryStatus.Questionable)
+            {
+                return "&#10067; ";
+
+            }
+            else if (directoryStatus == Data.Enums.DirectoryStatus.Scam)
+            {
+                return "&#10060;";
+            }
+            else
+            {
+                return string.Empty;
+            }
+        }
+
         /// <summary>
         /// Helper method for appending the main link 
         /// </summary>
@@ -297,6 +410,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                     linkName);
             }
         }
+
 
         /// <summary>
         /// Helper method to append the link based on the logic

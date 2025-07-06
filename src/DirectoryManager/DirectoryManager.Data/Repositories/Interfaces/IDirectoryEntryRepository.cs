@@ -30,5 +30,9 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<WeeklyDirectoryEntries> GetEntriesCreatedForPreviousWeekWithWeekKeyAsync();
         Task<MonthlyDirectoryEntries> GetEntriesCreatedForPreviousMonthWithMonthKeyAsync();
         Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByStatusAsync(DirectoryStatus status);
+        Task<PagedResult<DirectoryEntry>> SearchAsync(
+            string term,
+            int page,
+            int pageSize);
     }
 }

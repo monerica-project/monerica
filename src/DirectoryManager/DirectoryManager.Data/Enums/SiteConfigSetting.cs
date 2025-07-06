@@ -40,6 +40,7 @@
         NewsletterSummaryHtml = 35,
         SiteLogoUrl = 36,
         CategorySponsoredListingDetails = 37,
-        SponsoredListingSteps = 38
+        SponsoredListingSteps = 38,
+        SearchHtml = 39
     }
 }

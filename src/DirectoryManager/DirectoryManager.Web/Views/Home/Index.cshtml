@@ -37,12 +37,11 @@
         </div>
     </div>
 
+    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SearchHtml))
+
     <hr />
 
     @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.DirectoryLegendHtml))
-
- 
-
 
     @{
         var featuredEntries = await directoryEntrySelectionRepository.GetEntriesForSelection(DirectoryManager.Data.Enums.EntrySelectionType.Featured);
