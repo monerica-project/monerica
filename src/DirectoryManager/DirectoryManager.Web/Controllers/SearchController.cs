@@ -1,5 +1,6 @@
 ﻿// Web/Controllers/SearchController.cs
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.Web.Models;
@@ -12,13 +13,16 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly IDirectoryEntryRepository entryRepo;
         private readonly ICacheService cacheService;
+        public readonly ISearchLogRepository searchLogRepository;
 
         public SearchController(
             IDirectoryEntryRepository entryRepo,
-            ICacheService cacheService)
+            ICacheService cacheService,
+            ISearchLogRepository searchLogRepository)
         {
             this.entryRepo = entryRepo;
             this.cacheService = cacheService;
+            this.searchLogRepository = searchLogRepository;
         }
 
         [HttpGet("search")]
@@ -37,6 +41,12 @@ namespace DirectoryManager.Web.Controllers
                 DisplayFormatting.Enums.ItemDisplayType.SearchResult,
                 link2Name,
                 link3Name);
+
+            await this.searchLogRepository.CreateAsync(new SearchLog
+            {
+                Term = q,
+                IpAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString()
+            });
 
             // 3) build pager + query
             var vm = new SearchViewModel
