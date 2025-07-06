@@ -33,6 +33,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 Note = entry.Note,
                 Processor = entry.Processor,
                 SubCategoryId = entry.SubCategoryId,
+                SubCategory = entry.SubCategory,
                 CreateDate = entry.CreateDate,
                 UpdateDate = entry.UpdateDate,
                 LinkA = entry.LinkA,

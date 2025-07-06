@@ -1,0 +1,56 @@
+﻿@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.Web.Models
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheService
+@model SearchViewModel
+@{
+    ViewData["Title"] = $"Search results for \"{Model.Query}\"";
+}
+
+<h1>@ViewData["Title"]</h1>
+
+<hr />
+
+<div style="text-align:center">
+<form method="get" class="form-inline mb-3">
+    <input name="q" value="@Model.Query" class="form-control mr-2" placeholder="Search…" />
+    <button type="submit" class="btn btn-primary">Search</button>
+</form>
+</div>
+
+
+
+@if (!Model.Entries.Any())
+{
+    <p>No results found.</p>
+}
+else
+{
+      var canonicalDomain = cacheService.GetSnippet(DirectoryManager.Data.Enums.SiteConfigSetting.CanonicalDomain);
+
+    <p>Showing @Model.Entries.Count of @Model.TotalCount results</p>
+ 
+    <ul class="search-results">
+    @foreach (var e in Model.Entries)
+    {
+        @Html.Raw(DisplayMarkUpHelper.GenerateSearchResultHtml(e, canonicalDomain))
+    }
+    </ul>
+
+    <nav aria-label="Search pagination">
+      <ul class="pagination">
+      @{
+        int totalPages = (int)Math.Ceiling(Model.TotalCount / (double)Model.PageSize);
+        for (int p = 1; p <= totalPages; p++)
+        {
+            <li class="page-item @(p==Model.Page? "active":"")">
+              <a class="page-link" href="?q=@Model.Query&page=@p">@p</a>
+            </li>;
+        }
+      }
+      </ul>
+    </nav>
+}
+
+<hr />
+
+@await Html.PartialAsync("_SponsoredListingPartial")
