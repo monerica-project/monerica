@@ -1,0 +1,26 @@
+﻿@model DirectoryManager.Web.Models.TaggedEntriesViewModel
+@{
+    ViewData["Title"] = $"Tagged: {Model.Tag.Name}";
+}
+
+<h1>Tagged “@Model.Tag.Name”</h1>
+
+<hr />
+
+@if (!Model.Entries.Any())
+{
+    <p>No listings found under this tag.</p>
+}
+else
+{
+
+    <ul class="blank_list_item">
+    @foreach (var entry in Model.Entries)
+    {
+            @await Html.PartialAsync("_DirectoryEntryPartial", entry)
+    }
+    </ul>
+}
+
+<hr />
+@await Html.PartialAsync("_SponsoredListingPartial")

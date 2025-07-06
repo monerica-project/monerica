@@ -78,5 +78,7 @@ namespace DirectoryManager.DisplayFormatting.Models
         public ItemDisplayType ItemDisplayType { get; set; } = ItemDisplayType.Normal;
 
         public string ItemPath { get; set; } = string.Empty;
+
+        public List<string> Tags { get; set; }
     }
 }

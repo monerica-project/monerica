@@ -39,6 +39,8 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<Subcategory> SubCategories { get; set; }
         public DbSet<Submission> Submissions { get; set; }
         public DbSet<TrafficLog> TrafficLogs { get; set; }
+        public DbSet<Tag> Tags { get; set; }
+        public DbSet<DirectoryEntryTag> DirectoryEntryTags { get; set; }
 
         public override int SaveChanges()
         {
@@ -70,6 +72,25 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<DirectoryEntry>()
                     .HasIndex(e => e.SubCategoryId)
                     .HasDatabaseName("IX_DirectoryEntries_SubCategoryId");
+
+            builder.Entity<DirectoryEntryTag>()
+                .HasKey(et => new { et.DirectoryEntryId, et.TagId });
+
+            // relationships
+            builder.Entity<DirectoryEntryTag>()
+                .HasOne(et => et.DirectoryEntry)
+                .WithMany(de => de.EntryTags)
+                .HasForeignKey(et => et.DirectoryEntryId);
+
+            builder.Entity<DirectoryEntryTag>()
+                .HasOne(et => et.Tag)
+                .WithMany(t => t.EntryTags)
+                .HasForeignKey(et => et.TagId);
+
+            // Tag.Name must be unique
+            builder.Entity<Tag>()
+                .HasIndex(t => t.Name)
+                .IsUnique();
 
             builder.Entity<Category>()
                    .HasIndex(e => e.CategoryKey)

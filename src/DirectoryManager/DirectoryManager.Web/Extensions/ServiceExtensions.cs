@@ -40,7 +40,7 @@ namespace DirectoryManager.Web.Extensions
                   options.UseSqlServer(config.GetConnectionString(StringConstants.DefaultConnection)));
 
             // Register all repositories from DatabaseExtensions
-            services.AddRepositories();
+            services.AddDbRepositories();
 
             // Services
             services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();

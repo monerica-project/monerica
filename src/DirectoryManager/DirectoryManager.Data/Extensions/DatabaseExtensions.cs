@@ -12,7 +12,7 @@ namespace DirectoryManager.Data.Extensions
         /// </summary>
         /// <param name="services">IServiceCollection.</param>
         /// <returns>IServiceCollection as extension.</returns>
-        public static IServiceCollection AddRepositories(this IServiceCollection services)
+        public static IServiceCollection AddDbRepositories(this IServiceCollection services)
         {
             // Register ApplicationDbContext as IApplicationDbContext
             services.AddScoped<IApplicationDbContext>(provider => provider.GetRequiredService<ApplicationDbContext>());
@@ -44,6 +44,8 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
             services.AddScoped<IProcessorConfigRepository, ProcessorConfigRepository>();
             services.AddScoped<IBlockedIPRepository, BlockedIPRepository>();
+            services.AddScoped<ITagRepository, TagRepository>();
+            services.AddScoped<IDirectoryEntryTagRepository, DirectoryEntryTagRepository>();
 
             return services;
         }

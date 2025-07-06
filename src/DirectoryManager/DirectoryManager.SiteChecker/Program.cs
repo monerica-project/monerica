@@ -26,7 +26,7 @@ var userAgentHeader = config[UserAgentHeader] ?? throw new InvalidOperationExcep
 var serviceProvider = new ServiceCollection()
     .AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(config.GetConnectionString(StringConstants.DefaultConnection)))
-    .AddRepositories() // Register all repositories through the centralized method
+    .AddDbRepositories() // Register all repositories through the centralized method
     .AddSingleton(new WebPageChecker(userAgentHeader)) // WebPageChecker
     .BuildServiceProvider();
 
