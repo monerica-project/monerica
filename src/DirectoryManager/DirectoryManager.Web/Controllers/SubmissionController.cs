@@ -134,23 +134,32 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
+        // SubmissionController.cs
         [AllowAnonymous]
         [HttpGet("submission/submitedit/{id}")]
         public async Task<IActionResult> SubmitEdit(int id)
         {
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(id);
-
-            await this.SetSelectSubCategoryViewBag();
-
             if (directoryEntry == null)
             {
                 return this.NotFound();
             }
 
-            var model = GetSubmissionRequestModel(directoryEntry);
+            // load existing tags for this entry
+            var entryTags = await this.entryTagRepo.GetTagsForEntryAsync(id);
+            var tagCsv = string.Join(", ",
+                entryTags
+                  .OrderBy(et => et.Name, StringComparer.OrdinalIgnoreCase)
+                  .Select(et => et.Name));
 
-            return this.View(model);
+            // map into your submission request VM
+            var model = GetSubmissionRequestModel(directoryEntry);
+            model.Tags = tagCsv;
+
+            await this.SetSelectSubCategoryViewBag();
+            return this.View("SubmitEdit", model);
         }
+
 
         [AllowAnonymous]
         [HttpGet("submission/findexisting")]
@@ -234,32 +243,48 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Review(int id)
         {
             var submission = await this.submissionRepository.GetByIdAsync(id);
-
-            if (submission != null &&
-                submission.DirectoryEntryId != null)
-            {
-                if (submission.SubCategory == null && submission.SubCategoryId != null)
-                {
-                    submission.SubCategory = await this.subCategoryRepository.GetByIdAsync(submission.SubCategoryId.Value);
-                }
-
-                var existing = await this.directoryEntryRepository.GetByIdAsync(submission.DirectoryEntryId.Value);
-                if (existing != null)
-                {
-                    this.ViewBag.Differences = ModelComparisonHelpers.CompareEntries(existing, submission);
-                }
-            }
-
-            await this.SetSelectSubCategoryViewBag();
-
             if (submission == null)
             {
                 return this.NotFound();
             }
 
-            // Convert the submission to a ViewModel if necessary, or use the model directly
+            // If this is an edit of an existing entry, load its category/subcategory and tags
+            if (submission.DirectoryEntryId.HasValue)
+            {
+                // Ensure SubCategory nav prop is populated
+                if (submission.SubCategory == null && submission.SubCategoryId.HasValue)
+                {
+                    submission.SubCategory = await this.subCategoryRepository
+                        .GetByIdAsync(submission.SubCategoryId.Value);
+                }
+
+                // Load current entry from DB
+                var existing = await this.directoryEntryRepository
+                    .GetByIdAsync(submission.DirectoryEntryId.Value);
+
+                if (existing != null)
+                {
+                    // 1) load its current tags
+                    var existingTags = await this.entryTagRepo
+                        .GetTagsForEntryAsync(existing.DirectoryEntryId);
+
+                    // 2) set submission.Tags so the UI shows them
+                    existing.Tags = string.Join(", ",
+                        existingTags
+                            .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+                            .Select(t => t.Name));
+
+                    // 3) compute the diff
+                    this.ViewBag.Differences = ModelComparisonHelpers
+                        .CompareEntries(existing, submission);
+                }
+            }
+
+            await this.SetSelectSubCategoryViewBag();
+
             return this.View(submission);
         }
+
 
         [Authorize]
         [HttpPost("submission/{id}")]
@@ -426,6 +451,7 @@ namespace DirectoryManager.Web.Controllers
                 Note = submission.Note,
                 Processor = submission.Processor,
                 SuggestedSubCategory = submission.SuggestedSubCategory,
+                Tags = submission.Tags
             };
         }
 
@@ -505,11 +531,12 @@ namespace DirectoryManager.Web.Controllers
                     Location = submission.Location,
                     Note = submission.Note,
                     Processor = submission.Processor,
-                    SubCategoryId = submission.SubCategoryId
+                    SubCategoryId = submission.SubCategoryId,
+                    Tags = submission?.Tags?.Split(",").ToList()
                 },
                 SubmissionId = submission.SubmissionId,
                 NoteToAdmin = submission.NoteToAdmin,
-                SubcategoryName = $"{submission?.SubCategory?.Category?.Name} > {submission?.SubCategory?.Name}"
+                SubcategoryName = $"{submission?.SubCategory?.Category?.Name} > {submission?.SubCategory?.Name}",
             };
         }
 
@@ -780,6 +807,11 @@ namespace DirectoryManager.Web.Controllers
             }
 
             if (existingEntry.DirectoryStatus != model.DirectoryStatus)
+            {
+                return true;
+            }
+
+            if (existingEntry.Tags != model.Tags)
             {
                 return true;
             }

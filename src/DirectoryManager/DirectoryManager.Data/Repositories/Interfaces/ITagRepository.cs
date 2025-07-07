@@ -17,5 +17,13 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// along with the most recent Create/Update date among those entries.
         /// </summary>
         Task<IReadOnlyList<TagWithLastModified>> ListActiveTagsWithLastModifiedAsync();
+
+ 
+        /// <summary>
+        /// Finds a Tag by a URL‐style slug (e.g. "web-hosting" or "nonprofit").
+        /// </summary>
+        Task<Tag?> GetBySlugAsync(string slug);
+ 
+
     }
 }

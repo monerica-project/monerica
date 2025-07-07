@@ -232,19 +232,26 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             // model.ItemPath should be something like "/category/subcategory/entrykey"
             var profRelative = model.ItemPath.StartsWith("/") ? model.ItemPath : "/" + model.ItemPath;
             var profUrl = $"{domain}{profRelative}";
+            
             sb.Append("<p>");
             sb.Append(GetDirectoryStausIcon(model.DirectoryStatus)); // your helper for ✅❌ etc.
             sb.AppendFormat(
                 "<strong><a class=\"no-app-link\" href=\"{1}\">{0}</a></strong> — ",
                 name, profUrl);
 
-            if (!string.IsNullOrWhiteSpace(model.Link))
+            // pick affiliate if available
+            var websiteUrl = !string.IsNullOrWhiteSpace(model.LinkA)
+                ? model.LinkA.Trim()
+                : model.Link.Trim();
+
+            if (!string.IsNullOrWhiteSpace(websiteUrl))
             {
-                var direct = WebUtility.HtmlEncode(model.Link);
+                var direct = WebUtility.HtmlEncode(websiteUrl);
                 sb.AppendFormat(
                     "<a href=\"{0}\" target=\"_blank\">Website</a>",
                     direct);
             }
+
             sb.Append("</p>");
 
             // 2) Link2 / Link3 (e.g. Tor | I2P)

@@ -46,6 +46,7 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IBlockedIPRepository, BlockedIPRepository>();
             services.AddScoped<ITagRepository, TagRepository>();
             services.AddScoped<IDirectoryEntryTagRepository, DirectoryEntryTagRepository>();
+            services.AddScoped<ISearchLogRepository, SearchLogRepository>();
 
             return services;
         }
