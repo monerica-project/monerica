@@ -1,5 +1,4 @@
-﻿// Web/Controllers/SearchController.cs
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -26,7 +25,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("search")]
-        public async Task<IActionResult> Index(string q, int page = 1, int pageSize = 15)
+        public async Task<IActionResult> Index(string q, int page = 1, int pageSize = 10)
         {
             // 1) run the repository search
             var result = await this.entryRepo.SearchAsync(q ?? "", page, pageSize);

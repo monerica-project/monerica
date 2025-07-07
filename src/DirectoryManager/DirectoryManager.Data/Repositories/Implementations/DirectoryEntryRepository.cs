@@ -353,21 +353,22 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Where(e =>
                     e.DirectoryStatus != DirectoryStatus.Removed &&
                     (
-                      EF.Functions.Like(e.Name.ToLower(), pattern) ||
-                      EF.Functions.Like((e.Description ?? "").ToLower(), pattern) ||
-                      EF.Functions.Like(e.SubCategory!.Name.ToLower(), pattern) ||
-                      EF.Functions.Like(e.SubCategory.Category!.Name.ToLower(), pattern) ||
-                      e.EntryTags.Any(et => EF.Functions.Like(et.Tag.Name.ToLower(), pattern)) ||
-                      EF.Functions.Like((e.Note ?? "").ToLower(), pattern) ||
-                      EF.Functions.Like((e.Processor ?? "").ToLower(), pattern) ||
-                      EF.Functions.Like((e.Location ?? "").ToLower(), pattern) ||
-                      EF.Functions.Like((e.Contact ?? "").ToLower(), pattern)
+                        EF.Functions.Like(e.Name.ToLower(), pattern) ||
+                        EF.Functions.Like((e.Description ?? "").ToLower(), pattern) ||
+                        EF.Functions.Like(e.SubCategory!.Name.ToLower(), pattern) ||
+                        EF.Functions.Like(e.SubCategory.Category!.Name.ToLower(), pattern) ||
+                        e.EntryTags.Any(et => EF.Functions.Like(et.Tag.Name.ToLower(), pattern)) ||
+                        EF.Functions.Like((e.Note ?? "").ToLower(), pattern) ||
+                        EF.Functions.Like((e.Processor ?? "").ToLower(), pattern) ||
+                        EF.Functions.Like((e.Location ?? "").ToLower(), pattern) ||
+                        EF.Functions.Like((e.Contact ?? "").ToLower(), pattern) ||
+                        EF.Functions.Like((e.Link ?? "").ToLower(), pattern)
                     ));
 
             // 2) load into memory for scoring
             var candidates = await filtered.ToListAsync();
 
-            int CountOcc(string? f)
+            static int CountOcc(string? f, string term)
             {
                 if (string.IsNullOrEmpty(f)) return 0;
                 var txt = f.ToLowerInvariant();
@@ -380,27 +381,41 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return count;
             }
 
-            // 3) compute scores
+            // 3) compute scores and status weight
             var scored = candidates
-                .Select(e => new
+                .Select(e =>
                 {
-                    Entry = e,
-                    Score =
-                        CountOcc(e.Name) +
-                        CountOcc(e.Description) +
-                        CountOcc(e.SubCategory?.Name) +
-                        CountOcc(e.SubCategory?.Category?.Name) +
-                        e.EntryTags.Sum(et => CountOcc(et.Tag.Name)) +
-                        CountOcc(e.Note) +
-                        CountOcc(e.Processor) +
-                        CountOcc(e.Location) +
-                        CountOcc(e.Contact)
+                    var score =
+                        CountOcc(e.Name, term) +
+                        CountOcc(e.Description, term) +
+                        CountOcc(e.SubCategory?.Name, term) +
+                        CountOcc(e.SubCategory?.Category?.Name, term) +
+                        e.EntryTags.Sum(et => CountOcc(et.Tag.Name, term)) +
+                        CountOcc(e.Note, term) +
+                        CountOcc(e.Processor, term) +
+                        CountOcc(e.Location, term) +
+                        CountOcc(e.Contact, term) +
+                        CountOcc(e.Link, term);
+
+                    // weight: Verified=4, Admitted=3, Questionable=2, Scam=1
+                    int statusWeight = e.DirectoryStatus switch
+                    {
+                        DirectoryStatus.Verified => 4,
+                        DirectoryStatus.Admitted => 3,
+                        DirectoryStatus.Questionable => 2,
+                        DirectoryStatus.Scam => 1,
+                        _ => 0
+                    };
+
+                    return new { Entry = e, Score = score, Weight = statusWeight };
                 })
                 .Where(x => x.Score > 0)
-                .OrderByDescending(x => x.Score)
+                // 4) order by status weight first, then by score
+                .OrderByDescending(x => x.Weight)
+                .ThenByDescending(x => x.Score)
                 .ToList();
 
-            // 4) apply paging
+            // 5) page
             int total = scored.Count;
             var pageEntries = scored
                 .Skip((page - 1) * pageSize)
@@ -414,6 +429,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 Items = pageEntries
             };
         }
+
 
 
         /// <summary>
