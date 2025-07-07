@@ -41,6 +41,7 @@
         SiteLogoUrl = 36,
         CategorySponsoredListingDetails = 37,
         SponsoredListingSteps = 38,
-        SearchHtml = 39
+        SearchHtml = 39,
+        TextIntro = 40
     }
 }
