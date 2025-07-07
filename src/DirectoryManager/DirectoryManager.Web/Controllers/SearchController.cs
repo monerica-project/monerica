@@ -3,6 +3,7 @@ using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -12,21 +13,29 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly IDirectoryEntryRepository entryRepo;
         private readonly ICacheService cacheService;
-        public readonly ISearchLogRepository searchLogRepository;
+        private readonly ISearchLogRepository searchLogRepository;
+        private readonly ISponsoredListingRepository sponsoredListingRepository;
 
         public SearchController(
             IDirectoryEntryRepository entryRepo,
             ICacheService cacheService,
-            ISearchLogRepository searchLogRepository)
+            ISearchLogRepository searchLogRepository,
+            ISponsoredListingRepository sponsoredListingRepository)
         {
             this.entryRepo = entryRepo;
             this.cacheService = cacheService;
             this.searchLogRepository = searchLogRepository;
+            this.sponsoredListingRepository = sponsoredListingRepository;
         }
 
         [HttpGet("search")]
         public async Task<IActionResult> Index(string q, int page = 1, int pageSize = 10)
         {
+            if (string.IsNullOrWhiteSpace(q))
+            {
+                return this.BadRequest("No search performed.");
+            }
+
             // 1) run the repository search
             var result = await this.entryRepo.SearchAsync(q ?? "", page, pageSize);
 
@@ -46,6 +55,13 @@ namespace DirectoryManager.Web.Controllers
                 Term = q,
                 IpAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString()
             });
+
+            var allSponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
+
+            foreach (var item in vmList)
+            {
+                item.IsSponsored = allSponsors.FirstOrDefault(x => x.DirectoryEntryId == item.DirectoryEntryId) != null;
+            }
 
             // 3) build pager + query
             var vm = new SearchViewModel

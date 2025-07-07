@@ -9,10 +9,12 @@
 <h1>@ViewData["Title"]</h1>
 
 <hr />
+@await Html.PartialAsync("_BackToHome")
+<hr />
 
 <div style="text-align:center">
 <form method="get" class="form-inline mb-3">
-    <input name="q" value="@Model.Query" class="form-control mr-2" placeholder="Search…" />
+    <input style="padding:5px;" name="q" value="@Model.Query" class="form-control mr-2" placeholder="Search…" />
     <button type="submit" class="btn btn-primary">Search</button>
 </form>
 </div>

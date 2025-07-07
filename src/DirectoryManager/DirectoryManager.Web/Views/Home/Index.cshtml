@@ -29,15 +29,24 @@
     <hr />
 
     <div class="top-container">
-        <div class="top-container-left-column">
-            <p class="centered-text"><b>Last Update:</b> @directoryEntryRepository.GetLastRevisionDate().ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</p>
+        <!-- Update Section -->
+        <div class="top-section update-section">
+            <p class="centered-text">
+                <strong>Last Update:</strong>
+                @directoryEntryRepository.GetLastRevisionDate().ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+            </p>
         </div>
-        <div class="top-container-right-column">
+
+        <!-- Search Section -->
+        <div class="top-section search-section">
+            @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SearchHtml))
+        </div>
+
+        <!-- Links Section -->
+        <div class="top-section links-section">
             @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.TopMenuActionsHtml))
         </div>
     </div>
-
-    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SearchHtml))
 
     <hr />
 

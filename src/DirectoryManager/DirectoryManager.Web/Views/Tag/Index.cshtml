@@ -6,6 +6,8 @@
 <h1>Tagged “@Model.Tag.Name”</h1>
 
 <hr />
+@await Html.PartialAsync("_BackToHome")
+<hr />
 
 @if (!Model.Entries.Any())
 {

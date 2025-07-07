@@ -224,8 +224,12 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             // ensure no trailing slash
             string domain = canonicalDomain?.TrimEnd('/') ?? string.Empty;
 
+            var liClasses = model.IsSponsored
+                  ? "search-result-item sponsored"
+                  : "search-result-item";
+
             var sb = new StringBuilder();
-            sb.Append("<li class=\"search-result-item\">");
+            sb.Append($"<li class=\"{liClasses}\">");
 
             // 1) Name → profile link, and “Website” link inline
             var name = WebUtility.HtmlEncode(model.Name);
