@@ -431,6 +431,42 @@ namespace DirectoryManager.Data.Repositories.Implementations
         }
 
 
+        /// <inheritdoc/>
+        public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesBySubcategoryAsync(int subCategoryId)
+        {
+            try
+            {
+                return await this.ActiveQuery()
+                    .Where(e => e.SubCategoryId == subCategoryId)
+                    .OrderBy(e => e.Name)
+                    .ToListAsync()
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex.InnerException);
+            }
+        }
+
+        /// <inheritdoc/>
+        public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int categoryId)
+        {
+            return await this.ActiveQuery()
+                .Where(e => e.SubCategory!.CategoryId == categoryId)
+                .OrderBy(e => e.Name)
+                .ToListAsync()
+                .ConfigureAwait(false);
+        }
+
+        /// <inheritdoc/>
+        public async Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync()
+        {
+            return await this.BaseQuery()
+                .OrderBy(e => e.Name)
+                .ToListAsync()
+                .ConfigureAwait(false);
+        }
+
 
         /// <summary>
         /// Base query including SubCategory→Category and EntryTags→Tag.
@@ -500,35 +536,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 CreatedByUserId = entry.CreatedByUserId,
                 UpdatedByUserId = entry.UpdatedByUserId
             }).ConfigureAwait(false);
-        }
-
-        /// <inheritdoc/>
-        public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesBySubcategoryAsync(int subCategoryId)
-        {
-            return await this.ActiveQuery()
-                .Where(e => e.SubCategoryId == subCategoryId)
-                .OrderBy(e => e.Name)
-                .ToListAsync()
-                .ConfigureAwait(false);
-        }
-
-        /// <inheritdoc/>
-        public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int categoryId)
-        {
-            return await this.ActiveQuery()
-                .Where(e => e.SubCategory!.CategoryId == categoryId)
-                .OrderBy(e => e.Name)
-                .ToListAsync()
-                .ConfigureAwait(false);
-        }
-
-        /// <inheritdoc/>
-        public async Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync()
-        {
-            return await this.BaseQuery()
-                .OrderBy(e => e.Name)
-                .ToListAsync()
-                .ConfigureAwait(false);
         }
     }
 }

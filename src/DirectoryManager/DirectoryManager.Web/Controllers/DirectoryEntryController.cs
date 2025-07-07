@@ -318,7 +318,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> DirectoryEntryView(string categoryKey, string subCategoryKey, string directoryEntryKey)
         {
             var canoicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[Constants.StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canoicalDomain, $"{categoryKey}/{subCategoryKey}/{directoryEntryKey}");
+            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canoicalDomain, $"{categoryKey}/{subCategoryKey}/{directoryEntryKey}");
             var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
 
             if (category == null)
@@ -339,6 +339,8 @@ namespace DirectoryManager.Web.Controllers
             {
                 return this.NotFound();
             }
+
+            this.ViewData[StringConstants.MetaDescription] = existingEntry.Description;
 
             var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
