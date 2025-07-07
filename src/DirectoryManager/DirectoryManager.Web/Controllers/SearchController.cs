@@ -60,8 +60,14 @@ namespace DirectoryManager.Web.Controllers
 
             foreach (var item in vmList)
             {
-                item.IsSponsored = allSponsors.FirstOrDefault(x => x.DirectoryEntryId == item.DirectoryEntryId) != null;
+                item.IsSponsored = allSponsors.Any(x => x.DirectoryEntryId == item.DirectoryEntryId);
             }
+
+            // 🍾 Bubble all the sponsored entries to the top, preserving their relative order
+            vmList = vmList
+                .Where(e => e.IsSponsored)
+                .Concat(vmList.Where(e => !e.IsSponsored))
+                .ToList();
 
             // 3) build pager + query
             var vm = new SearchViewModel

@@ -14,12 +14,10 @@
 
 <div style="text-align:center">
 <form method="get" class="form-inline mb-3">
-    <input style="padding:5px;" name="q" value="@Model.Query" class="form-control mr-2" placeholder="Search…" />
-    <button type="submit" class="btn btn-primary">Search</button>
+    <input name="q" value="@Model.Query" class="form-control mr-2" placeholder="Search…" />
+    <button style="padding:5px;" type="submit" class="btn btn-primary">Search</button>
 </form>
 </div>
-
-
 
 @if (!Model.Entries.Any())
 {
@@ -29,7 +27,7 @@ else
 {
       var canonicalDomain = cacheService.GetSnippet(DirectoryManager.Data.Enums.SiteConfigSetting.CanonicalDomain);
 
-    <p>Showing @Model.Entries.Count of @Model.TotalCount results</p>
+    <p><i>Showing @Model.Entries.Count of @Model.TotalCount results.</i></p>
  
     <ul class="search-results">
     @foreach (var e in Model.Entries)

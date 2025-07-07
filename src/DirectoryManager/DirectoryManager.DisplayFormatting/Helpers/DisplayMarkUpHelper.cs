@@ -244,7 +244,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 name, profUrl);
 
             // pick affiliate if available
-            var websiteUrl = !string.IsNullOrWhiteSpace(model.LinkA)
+            var websiteUrl = !string.IsNullOrWhiteSpace(model.LinkA) && !model.IsSponsored
                 ? model.LinkA.Trim()
                 : model.Link.Trim();
 
