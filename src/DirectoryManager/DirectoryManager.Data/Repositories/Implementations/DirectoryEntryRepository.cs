@@ -345,60 +345,109 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return new PagedResult<DirectoryEntry>();
             }
 
+            // normalize
             term = term.Trim().ToLowerInvariant();
-            string pattern = $"%{term}%";
 
-            // 1) server-side filter on any matching field, only non-removed
+            // build plural + singular patterns
+            var primaryPattern = $"%{term}%";
+            string? rootTerm = null;
+            string? rootPattern = null;
+            if (term.EndsWith("s") && term.Length > 1)
+            {
+                rootTerm = term.Substring(0, term.Length - 1);
+                rootPattern = $"%{rootTerm}%";
+            }
+
+            // 1) server‐side filter (only non‐removed)
             var filtered = this.BaseQuery()
                 .Where(e =>
                     e.DirectoryStatus != DirectoryStatus.Removed &&
                     (
-                        EF.Functions.Like(e.Name.ToLower(), pattern) ||
-                        EF.Functions.Like((e.Description ?? "").ToLower(), pattern) ||
-                        EF.Functions.Like(e.SubCategory!.Name.ToLower(), pattern) ||
-                        EF.Functions.Like(e.SubCategory.Category!.Name.ToLower(), pattern) ||
-                        e.EntryTags.Any(et => EF.Functions.Like(et.Tag.Name.ToLower(), pattern)) ||
-                        EF.Functions.Like((e.Note ?? "").ToLower(), pattern) ||
-                        EF.Functions.Like((e.Processor ?? "").ToLower(), pattern) ||
-                        EF.Functions.Like((e.Location ?? "").ToLower(), pattern) ||
-                        EF.Functions.Like((e.Contact ?? "").ToLower(), pattern) ||
-                        EF.Functions.Like((e.Link ?? "").ToLower(), pattern)
+                        // Name
+                        EF.Functions.Like(e.Name.ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like(e.Name.ToLower(), rootPattern)) ||
+
+                        // Description
+                        EF.Functions.Like((e.Description ?? "").ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like((e.Description ?? "").ToLower(), rootPattern)) ||
+
+                        // Subcategory / Category
+                        EF.Functions.Like(e.SubCategory!.Name.ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like(e.SubCategory.Name.ToLower(), rootPattern)) ||
+                        EF.Functions.Like(e.SubCategory.Category!.Name.ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like(e.SubCategory.Category.Name.ToLower(), rootPattern)) ||
+
+                        // Tags
+                        e.EntryTags.Any(et =>
+                            EF.Functions.Like(et.Tag.Name.ToLower(), primaryPattern) ||
+                            (rootPattern != null && EF.Functions.Like(et.Tag.Name.ToLower(), rootPattern))) ||
+
+                        // Note, Processor, Location, Contact, Link
+                        EF.Functions.Like((e.Note ?? "").ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like((e.Note ?? "").ToLower(), rootPattern)) ||
+
+                        EF.Functions.Like((e.Processor ?? "").ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like((e.Processor ?? "").ToLower(), rootPattern)) ||
+
+                        EF.Functions.Like((e.Location ?? "").ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like((e.Location ?? "").ToLower(), rootPattern)) ||
+
+                        EF.Functions.Like((e.Contact ?? "").ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like((e.Contact ?? "").ToLower(), rootPattern)) ||
+
+                        EF.Functions.Like((e.Link ?? "").ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like((e.Link ?? "").ToLower(), rootPattern))
                     ));
 
-            // 2) load into memory for scoring
+            // 2) bring into memory for fine‐grained scoring
             var candidates = await filtered.ToListAsync();
 
-            static int CountOcc(string? f, string term)
+            static int CountOcc(string? field, string t)
             {
-                if (string.IsNullOrEmpty(f)) return 0;
-                var txt = f.ToLowerInvariant();
+                if (string.IsNullOrEmpty(field))
+                {
+                    return 0;
+                }
+
+                var txt = field.ToLowerInvariant();
                 int count = 0, idx = 0;
-                while ((idx = txt.IndexOf(term, idx, StringComparison.Ordinal)) != -1)
+                while ((idx = txt.IndexOf(t, idx, StringComparison.Ordinal)) != -1)
                 {
                     count++;
-                    idx += term.Length;
+                    idx += t.Length;
                 }
                 return count;
             }
 
-            // 3) compute scores and status weight
+            // 3) compute a combined score + status weight
             var scored = candidates
                 .Select(e =>
                 {
-                    var score =
-                        CountOcc(e.Name, term) +
-                        CountOcc(e.Description, term) +
-                        CountOcc(e.SubCategory?.Name, term) +
-                        CountOcc(e.SubCategory?.Category?.Name, term) +
-                        e.EntryTags.Sum(et => CountOcc(et.Tag.Name, term)) +
-                        CountOcc(e.Note, term) +
-                        CountOcc(e.Processor, term) +
-                        CountOcc(e.Location, term) +
-                        CountOcc(e.Contact, term) +
-                        CountOcc(e.Link, term);
+                    // term hits
+                    var hits = CountOcc(e.Name, term)
+                             + (rootTerm != null ? CountOcc(e.Name, rootTerm) : 0)
+                             + CountOcc(e.Description, term)
+                             + (rootTerm != null ? CountOcc(e.Description, rootTerm) : 0)
+                             + CountOcc(e.SubCategory?.Name, term)
+                             + (rootTerm != null ? CountOcc(e.SubCategory?.Name, rootTerm) : 0)
+                             + CountOcc(e.SubCategory?.Category?.Name, term)
+                             + (rootTerm != null ? CountOcc(e.SubCategory?.Category?.Name, rootTerm) : 0)
+                             + e.EntryTags.Sum(et =>
+                                   CountOcc(et.Tag.Name, term)
+                                 + (rootTerm != null ? CountOcc(et.Tag.Name, rootTerm) : 0))
+                             + CountOcc(e.Note, term)
+                             + (rootTerm != null ? CountOcc(e.Note, rootTerm) : 0)
+                             + CountOcc(e.Processor, term)
+                             + (rootTerm != null ? CountOcc(e.Processor, rootTerm) : 0)
+                             + CountOcc(e.Location, term)
+                             + (rootTerm != null ? CountOcc(e.Location, rootTerm) : 0)
+                             + CountOcc(e.Contact, term)
+                             + (rootTerm != null ? CountOcc(e.Contact, rootTerm) : 0)
+                             + CountOcc(e.Link, term)
+                             + (rootTerm != null ? CountOcc(e.Link, rootTerm) : 0);
 
-                    // weight: Verified=4, Admitted=3, Questionable=2, Scam=1
-                    int statusWeight = e.DirectoryStatus switch
+                    // status weight
+                    int weight = e.DirectoryStatus switch
                     {
                         DirectoryStatus.Verified => 4,
                         DirectoryStatus.Admitted => 3,
@@ -407,17 +456,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         _ => 0
                     };
 
-                    return new { Entry = e, Score = score, Weight = statusWeight };
+                    return new { Entry = e, Score = hits, Weight = weight };
                 })
-                .Where(x => x.Score > 0)
-                // 4) order by status weight first, then by score
+                .Where(x => x.Score > 0)        // only keep matches
                 .OrderByDescending(x => x.Weight)
                 .ThenByDescending(x => x.Score)
                 .ToList();
 
-            // 5) page
+            // 4) paging
             int total = scored.Count;
-            var pageEntries = scored
+            var items = scored
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(x => x.Entry)
@@ -426,7 +474,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return new PagedResult<DirectoryEntry>
             {
                 TotalCount = total,
-                Items = pageEntries
+                Items = items
             };
         }
 
