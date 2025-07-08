@@ -1,12 +1,16 @@
 ﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.TransferModels;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
     public interface ISearchLogRepository
     {
-        /// <summary>
-        /// Inserts a new search record.
-        /// </summary>
         Task CreateAsync(SearchLog log);
+
+        /// <summary>
+        /// Gets a report of all distinct search terms between <paramref name="start"/> (inclusive)
+        /// and <paramref name="end"/> (exclusive), with counts, first/last, and percentage of total.
+        /// </summary>
+        Task<IReadOnlyList<SearchReportItem>> GetReportAsync(DateTime start, DateTime end);
     }
 }
