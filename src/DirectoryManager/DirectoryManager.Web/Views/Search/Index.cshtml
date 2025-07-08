@@ -1,6 +1,8 @@
 ﻿@using DirectoryManager.DisplayFormatting.Helpers
 @using DirectoryManager.Web.Models
+@using DirectoryManager.Web.Services.Interfaces
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheService
+@inject IUrlResolutionService urlService
 @model SearchViewModel
 @{
     ViewData["Title"] = $"Search results for \"{Model.Query}\"";
@@ -24,15 +26,13 @@
     <p>No results found.</p>
 }
 else
-{
-      var canonicalDomain = cacheService.GetSnippet(DirectoryManager.Data.Enums.SiteConfigSetting.CanonicalDomain);
-
+{ 
     <p><i>Showing @Model.Entries.Count of @Model.TotalCount results.</i></p>
  
     <ul class="search-results">
     @foreach (var e in Model.Entries)
     {
-        @Html.Raw(DisplayMarkUpHelper.GenerateSearchResultHtml(e, canonicalDomain))
+        @Html.Raw(DisplayMarkUpHelper.GenerateSearchResultHtml(e, urlService.BaseUrl))
     }
     </ul>
 

@@ -43,6 +43,8 @@ namespace DirectoryManager.Web.Extensions
             services.AddDbRepositories();
 
             // Services
+            services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>()
+                    .AddScoped<IUrlResolutionService, UrlResolutionService>();
             services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
             services.AddTransient<ICacheService, CacheService>();
             services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();

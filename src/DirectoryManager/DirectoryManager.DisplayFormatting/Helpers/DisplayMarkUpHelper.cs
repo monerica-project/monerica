@@ -177,10 +177,10 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             return sb.ToString();
         }
 
-        public static string GenerateSearchResultHtml(DirectoryEntryViewModel model, string canonicalDomain)
+        public static string GenerateSearchResultHtml(DirectoryEntryViewModel model, string rootUrl)
         {
             // ensure no trailing slash
-            string domain = canonicalDomain?.TrimEnd('/') ?? string.Empty;
+            string domain = rootUrl?.TrimEnd('/') ?? string.Empty;
 
             var liClasses = model.IsSponsored
                   ? "search-result-item sponsored"

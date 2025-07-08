@@ -15,7 +15,6 @@
     ViewData[StringConstants.MetaContent] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageMetaTags));
 }
 
-<cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.EntriesCacheKey">
     @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageDisplayHtml))     
 
     @await Html.PartialAsync("_SponsoredListingPartial")
@@ -37,7 +36,7 @@
 
         <!-- Search Section -->
         <div class="top-section search-section">
-            @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SearchHtml))
+            @await Html.PartialAsync("_SearchForm")
         </div>
 
         <!-- Links Section -->
@@ -45,6 +44,8 @@
             @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.TopMenuActionsHtml))
         </div>
     </div>
+
+    <cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.EntriesCacheKey">
 
     <hr />
 
