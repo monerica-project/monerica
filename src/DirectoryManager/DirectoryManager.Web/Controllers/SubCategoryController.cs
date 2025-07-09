@@ -137,50 +137,57 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("{categorykey}/{subcategorykey}")]
-        public async Task<IActionResult> SubCategoryListings(string categoryKey, string subCategoryKey)
+        [HttpGet("{categoryKey}/{subCategoryKey}")]
+        public async Task<IActionResult> SubCategoryListings(
+            string categoryKey,
+            string subCategoryKey,
+            int page = 1)
         {
-            var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
+            const int PageSize = 25;
 
+            var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
             if (category == null)
             {
                 return this.NotFound();
             }
 
-            var subCategory = await this.subcategoryRepository.GetByCategoryIdAndKeyAsync(category.CategoryId, subCategoryKey);
-
+            var subCategory = await this.subcategoryRepository
+                .GetByCategoryIdAndKeyAsync(category.CategoryId, subCategoryKey);
             if (subCategory == null)
             {
                 return this.NotFound();
             }
 
-            var entries = await this.directoryEntryRepository.GetActiveEntriesBySubcategoryAsync(subCategory.SubCategoryId);
+            // fetch paged entries instead of all
+            var paged = await this.directoryEntryRepository
+                .GetActiveEntriesBySubcategoryPagedAsync(
+                    subCategory.SubCategoryId, page, PageSize);
 
-            // Populate ViewBag with the necessary values for breadcrumb and other data
             this.ViewBag.CategoryKey = category.CategoryKey;
             this.ViewBag.SubCategoryKey = subCategory.SubCategoryKey;
             this.ViewBag.CategoryName = category.Name;
             this.ViewBag.SubCategoryName = subCategory.Name;
 
-            var model = new CategorySubCategoriesViewModel
+            var vm = new CategorySubCategoriesViewModel
             {
                 PageHeader = FormattingHelper.SubcategoryFormatting(category.Name, subCategory.Name),
                 PageTitle = FormattingHelper.SubcategoryFormatting(category.Name, subCategory.Name),
                 MetaDescription = subCategory.MetaDescription,
                 PageDetails = subCategory.PageDetails,
-                Description = subCategory.Description,
                 Note = subCategory.Note,
                 SubCategoryId = subCategory.SubCategoryId,
-                DirectoryEntries = entries,
-                CategoryRelativePath = string.Format("/{0}", category.CategoryKey),
+                CategoryRelativePath = $"/{category.CategoryKey}",
                 CategoryName = category.Name,
                 SubcategoryName = subCategory.Name,
                 SubCategoryKey = subCategory.SubCategoryKey,
+                Category = category,
+                PagedEntries = paged,
+                CurrentPage = page,
+                PageSize = PageSize
             };
 
             this.SetCannonicalUrl();
-
-            return this.View("SubCategoryListings", model);
+            return this.View("SubCategoryListings", vm);
         }
 
         [Route("subcategory/delete")]

@@ -49,9 +49,11 @@
     <div id="main-content">
         @RenderBody() 
     </div>
- 
-    <footer>
+
+    <footer  class="site-footer">  
+      <nav class="footer-nav">
         @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.FooterHtml))
+              </nav>
     </footer>
 </body>
 </html>

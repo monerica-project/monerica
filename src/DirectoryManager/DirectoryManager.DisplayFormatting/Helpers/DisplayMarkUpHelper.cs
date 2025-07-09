@@ -272,7 +272,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             return sb.ToString();
         }
 
-
         private static string GetDirectoryStausIcon(DirectoryStatus directoryStatus)
         {
             if (directoryStatus == Data.Enums.DirectoryStatus.Verified)

@@ -34,5 +34,12 @@ namespace DirectoryManager.Data.Repositories.Interfaces
             string term,
             int page,
             int pageSize);
+
+        Task<PagedResult<DirectoryEntry>> ListEntriesByCategoryAsync(int categoryId, int page, int pageSize);
+
+        Task<PagedResult<DirectoryEntry>> GetActiveEntriesBySubcategoryPagedAsync(
+            int subCategoryId,
+            int page,
+            int pageSize);
     }
 }

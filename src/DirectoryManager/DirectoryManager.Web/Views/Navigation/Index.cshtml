@@ -2,7 +2,6 @@
 @using DirectoryManager.DisplayFormatting.Enums
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Data.Enums
-@using DirectoryManager.Web.Models
 @model DirectoryManager.Data.Models.Category
 
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepository
@@ -11,8 +10,6 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntrySelectionRepository directoryEntrySelectionRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
-@inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepo
-@inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository subCatRepo
 
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
@@ -20,30 +17,93 @@
     ViewData[StringConstants.TitleHeader] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageTitle));
     ViewData[StringConstants.MetaContent] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageMetaTags));
 }
+
+<style>
+    
+</style>
+
 @{
-    // build nav VM
-    var cats = await categoryRepo.GetActiveCategoriesAsync();
-    var lookup = new Dictionary<int, List<Subcategory>>();
-    foreach (var c in cats)
-        lookup[c.CategoryId] = (await subCatRepo.GetActiveSubCategoriesAsync(c.CategoryId)).ToList();
-
-    var navModel = new NavigationViewModel
+    // 1) grab your data once
+    var activeCategories = await categoryRepository.GetActiveCategoriesAsync();
+    // build a lookup to avoid awaiting inside the loop
+    var subsByCategory = new Dictionary<int, List<Subcategory>>();
+    foreach (var cat in activeCategories)
     {
-        Categories = cats,
-        SubsByCategory = lookup,
-        CurrentCategoryKey =  null,
-        CurrentSubCategoryKey = null
-    };
+        subsByCategory[cat.CategoryId] = (await subCategoryRepository
+            .GetActiveSubCategoriesAsync(cat.CategoryId))
+            .ToList();
+    }
 }
+<!-- MOBILE NAV (uses nested <details> which works out of the box) -->
+<details class="mobile-nav">
+    <summary>Menu</summary>
+    <ul>
+        @foreach (var cat in activeCategories)
+        {
+            <li>
+                <details>
+                    <summary>
+                        <a class="no-app-link" href="@Url.Content($"~/{cat.CategoryKey}")">
+                            @cat.Name
+                        </a>
+                    </summary>
+                    <ul>
+                        @foreach (var sub in subsByCategory[cat.CategoryId])
+                        {
+                            <li>
+                                <a class="no-app-link"
+                                   href="@Url.Content($"~/{cat.CategoryKey}/{sub.SubCategoryKey}")">
+                                    @sub.Name
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </details>
+            </li>
+        }
+    </ul>
+</details>
 
-@await Html.PartialAsync("_SidebarNav", navModel)
+<!-- DESKTOP SIDEBAR -->
+<nav class="sidebar">
+    <ul>
+        @foreach (var cat in activeCategories)
+        {
+            var checkboxId = $"{cat.CategoryKey}_expander";
+            <li class="category-item">
+                <label for="@checkboxId" class="expander">+</label>
+                <a class="no-app-link" href="@Url.Content($"~/{cat.CategoryKey}")">
+                    @cat.Name
+                </a>
+                <input type="checkbox"
+                       id="@checkboxId"
+                       class="hidden-toggle" />
+                <div class="hidden">
+                    <ul>
+                        @foreach (var sub in subsByCategory[cat.CategoryId])
+                        {
+                            <li>
+                                <a class="no-app-link"
+                                   href="@Url.Content($"~/{cat.CategoryKey}/{sub.SubCategoryKey}")">
+                                    @sub.Name
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </li>
+        }
+    </ul>
+</nav>
+
+
 
 <main class="main">
     <div class="content-wrapper">
-        <!-- Hero and sponsored listing partial (stays full‐width under the fixed sidebar) -->
-        @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageDisplayHtml))
-        @await Html.PartialAsync("_SponsoredListingPartial")
-        <hr />
+    <!-- Hero and sponsored listing partial (stays full‐width under the fixed sidebar) -->
+    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageDisplayHtml))
+    @await Html.PartialAsync("_SponsoredListingPartial")
+    <hr />
 
         <!-- everything from here down is centered under the hero -->
         <p class="intro">
@@ -88,7 +148,7 @@
             <ul class="blank_list_item">
                 @{
                     var vmList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter
-                    .ConvertToViewModels(
+                        .ConvertToViewModels(
                     featuredEntries.ToList(),
                     DateDisplayOption.NotDisplayed,
                     ItemDisplayType.Featured,
@@ -118,7 +178,7 @@
             <ul class="blank_list_item">
                 @{
                     var vmList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter
-                    .ConvertToViewModels(
+                        .ConvertToViewModels(
                     newest.ToList(),
                     DateDisplayOption.DisplayCreateDate,
                     ItemDisplayType.Featured,
@@ -147,7 +207,7 @@
             <ul class="blank_list_item">
                 @{
                     var vmList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter
-                    .ConvertToViewModels(
+                        .ConvertToViewModels(
                     revisions.ToList(),
                     DateDisplayOption.DisplayUpdateDate,
                     ItemDisplayType.NewestRevions,
@@ -161,6 +221,6 @@
             </ul>
             <hr />
         }
-
+ 
     </div>
 </main>

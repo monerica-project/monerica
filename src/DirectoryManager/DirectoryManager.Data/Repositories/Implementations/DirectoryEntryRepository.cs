@@ -515,6 +515,55 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
+        public async Task<PagedResult<DirectoryEntry>> ListEntriesByCategoryAsync(int categoryId, int page, int pageSize)
+        {
+            // base query: only non-removed, matching category
+            var query = this.context.DirectoryEntries
+                .Include(e => e.SubCategory)
+                    .ThenInclude(sc => sc.Category)
+                .Where(e =>
+                    e.DirectoryStatus != DirectoryStatus.Removed &&
+                    e.SubCategory.CategoryId == categoryId)
+
+                // order by subcategory name then entry name
+                .OrderBy(e => e.SubCategory!.Name)
+                .ThenBy(e => e.Name);
+
+            var total = await query.CountAsync();
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<DirectoryEntry>
+            {
+                TotalCount = total,
+                Items = items
+            };
+        }
+
+        public async Task<PagedResult<DirectoryEntry>> GetActiveEntriesBySubcategoryPagedAsync(
+            int subCategoryId,
+            int page,
+            int pageSize)
+        {
+            var query = this.context.DirectoryEntries
+                .Where(e => e.SubCategoryId == subCategoryId
+                            && e.DirectoryStatus != DirectoryStatus.Removed)
+                .OrderBy(e => e.Name);
+
+            var total = await query.CountAsync();
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<DirectoryEntry>
+            {
+                TotalCount = total,
+                Items = items
+            };
+        }
 
         /// <summary>
         /// Base query including SubCategory→Category and EntryTags→Tag.
