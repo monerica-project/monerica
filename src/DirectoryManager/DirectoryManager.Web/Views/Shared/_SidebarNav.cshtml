@@ -3,13 +3,15 @@
 @model NavigationViewModel
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContext
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheService
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService urlResolver
+
 
 @{
     string currentCat = Model.CurrentCategoryKey ?? "";
     string currentSub = Model.CurrentSubCategoryKey ?? "";
 }
 
-<!-- MOBILE ACCORDION -->
+
 <details class="mobile-nav">
     <summary>Menu</summary>
     <ul>
@@ -19,7 +21,7 @@
                 <details open="@(cat.CategoryKey == currentCat)">
                     <summary>
                         <a class="no-app-link @(cat.CategoryKey == currentCat ? "active" : "")"
-                           href="@Url.Content($"~/{cat.CategoryKey}")">
+                           href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
                             @cat.Name
                         </a>
                     </summary>
@@ -28,7 +30,7 @@
                         {
                             <li>
                                 <a class="no-app-link @(cat.CategoryKey == currentCat && sub.SubCategoryKey == currentSub ? "active" : "")"
-                                   href="@Url.Content($"~/{cat.CategoryKey}/{sub.SubCategoryKey}")">
+                                   href="@urlResolver.ResolveToRoot($"{cat.CategoryKey}/{sub.SubCategoryKey}")">
                                     @sub.Name
                                 </a>
                             </li>
@@ -40,25 +42,25 @@
     </ul>
 </details>
 
-<!-- DESKTOP SIDEBAR -->
 <nav class="sidebar">
-   
-    <div class="logo-container">
-        <a href="~/">
-           @{ var siteLogoUrl = this.cacheService.GetSnippet(SiteConfigSetting.SiteLogoUrl); }
-            <img src="@siteLogoUrl" alt="Monerica Logo" />
+    <div class="logo-container text-center mb-4">
+        <a class="no-app-link" href="@urlResolver.ResolveToRoot("/")">
+            <img src="@cacheService.GetSnippet(SiteConfigSetting.SiteLogoUrl)"
+                 alt="Monerica Logo"
+                 style="height:auto;" />
         </a>
     </div>
-    <ul>
 
+    <ul>
         @foreach (var cat in Model.Categories)
         {
             var isCurrentCat = cat.CategoryKey == currentCat;
             var expanderId = $"{cat.CategoryKey}_expander";
+
             <li class="category-item">
                 <label for="@expanderId" class="expander">+</label>
                 <a class="no-app-link @(isCurrentCat ? "active" : "")"
-                   href="@Url.Content($"~/{cat.CategoryKey}")">
+                   href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
                     @cat.Name
                 </a>
                 <input type="checkbox"
@@ -71,7 +73,7 @@
                         {
                             <li>
                                 <a class="no-app-link @(isCurrentCat && sub.SubCategoryKey == currentSub ? "active" : "")"
-                                   href="@Url.Content($"~/{cat.CategoryKey}/{sub.SubCategoryKey}")">
+                                   href="@urlResolver.ResolveToRoot($"{cat.CategoryKey}/{sub.SubCategoryKey}")">
                                     @sub.Name
                                 </a>
                             </li>

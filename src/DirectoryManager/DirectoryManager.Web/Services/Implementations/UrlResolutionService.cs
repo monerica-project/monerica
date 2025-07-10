@@ -10,6 +10,7 @@ namespace DirectoryManager.Web.Services.Implementations
         private readonly ICacheService cache;
         private readonly string torSuffix;
         private readonly string appDomain;
+        private readonly string canonicalDomain;
 
         public UrlResolutionService(
             IHttpContextAccessor httpContextAccessor,
@@ -24,6 +25,8 @@ namespace DirectoryManager.Web.Services.Implementations
                           .GetSnippet(SiteConfigSetting.AppDomain)
                           ?.TrimEnd('/')
                         ?? string.Empty;
+
+            this.canonicalDomain = this.cache.GetSnippet(SiteConfigSetting.CanonicalDomain);
         }
 
         public bool IsTor
@@ -44,7 +47,7 @@ namespace DirectoryManager.Web.Services.Implementations
                     return string.Empty;
                 }
 
-                var cd = this.cache.GetSnippet(SiteConfigSetting.CanonicalDomain) ?? string.Empty;
+                var cd = this.canonicalDomain ?? string.Empty;
                 return cd.TrimEnd('/');
             }
         }
@@ -81,13 +84,44 @@ namespace DirectoryManager.Web.Services.Implementations
             var host = this.http.HttpContext?.Request.Host.Host ?? string.Empty;
 
             // If on Tor, keep it relative
-            if (host.EndsWith(this.torSuffix, StringComparison.OrdinalIgnoreCase))
+            if (this.IsTor || this.IsLocal)
             {
                 return path;
             }
 
             // Otherwise send to the app subdomain
             return $"{this.appDomain}{path}";
+        }
+
+        public string ResolveToRoot(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return string.Empty;
+            }
+
+            // If they passed an absolute URL, just return it
+            if (Uri.TryCreate(path, UriKind.Absolute, out _))
+            {
+                return path;
+            }
+
+            // Normalize to leading slash
+            if (!path.StartsWith("/"))
+            {
+                path = "/" + path;
+            }
+
+            var host = this.http.HttpContext?.Request.Host.Host ?? string.Empty;
+
+            // If on Tor, keep it relative
+            if (this.IsTor || this.IsLocal)
+            {
+                return path;
+            }
+
+            // Otherwise send to the app subdomain
+            return $"{this.canonicalDomain}{path}";
         }
     }
 }
