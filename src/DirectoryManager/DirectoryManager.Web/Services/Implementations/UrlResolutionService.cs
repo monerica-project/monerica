@@ -100,28 +100,26 @@ namespace DirectoryManager.Web.Services.Implementations
                 return string.Empty;
             }
 
-            // If they passed an absolute URL, just return it
+            // If it's already an absolute URL, just return it
             if (Uri.TryCreate(path, UriKind.Absolute, out _))
             {
                 return path;
             }
 
-            // Normalize to leading slash
-            if (!path.StartsWith("/"))
-            {
-                path = "/" + path;
-            }
+            // Normalize incoming path: strip all leading/trailing slashes, then add exactly one leading slash
+            path = "/" + path.Trim('/');
 
             var host = this.http.HttpContext?.Request.Host.Host ?? string.Empty;
 
-            // If on Tor, keep it relative
+            // On Tor or local, stay relative
             if (this.IsTor || this.IsLocal)
             {
                 return path;
             }
 
-            // Otherwise send to the app subdomain
-            return $"{this.canonicalDomain}{path}";
+            // Otherwise combine with canonicalDomain, trimming any trailing slash there
+            var cd = this.canonicalDomain?.TrimEnd('/') ?? string.Empty;
+            return cd + path;
         }
     }
 }
