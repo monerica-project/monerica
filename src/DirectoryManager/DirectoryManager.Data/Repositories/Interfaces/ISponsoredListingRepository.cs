@@ -33,5 +33,8 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// </summary>
         /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
         Task<int> GetActiveSponsorsCountAsync(SponsorshipType sponsorshipType, int? typeId);
+
+        Task<IEnumerable<SponsoredListing>> GetActiveSubCategorySponsorsAsync(int categoryId);
+
     }
 }

@@ -17,6 +17,7 @@ namespace DirectoryManager.Web.Models
         public PagedResult<DirectoryEntryViewModel> PagedEntries { get; set; }
         public int CurrentPage { get; set; }
         public int PageSize { get; set; }
+        public HashSet<int> SponsoredDirectoryEntryIds { get; set; }
     }
 
 }

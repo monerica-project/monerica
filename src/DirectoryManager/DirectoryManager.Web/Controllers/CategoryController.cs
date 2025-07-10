@@ -19,6 +19,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ICategoryRepository categoryRepository;
         private readonly ISubcategoryRepository subCategoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly ISponsoredListingRepository sponsoredListingRepository;
         private readonly ICacheService cacheService;
         private readonly IMemoryCache cache;
 
@@ -29,6 +30,7 @@ namespace DirectoryManager.Web.Controllers
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IDirectoryEntryRepository directoryEntryRepository,
+            ISponsoredListingRepository sponsoredListingRepository,
             ICacheService cacheService,
             IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService, cache)
@@ -37,6 +39,7 @@ namespace DirectoryManager.Web.Controllers
             this.categoryRepository = categoryRepository;
             this.subCategoryRepository = subCategoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
+            this.sponsoredListingRepository = sponsoredListingRepository;
             this.cacheService = cacheService;
             this.cache = cache;
         }
@@ -87,6 +90,12 @@ namespace DirectoryManager.Web.Controllers
                     link2Name,
                     link3Name);
 
+            var subCatSponsors = await this.sponsoredListingRepository.GetActiveSubCategorySponsorsAsync(category.CategoryId);
+            var sponsoredDirectoryEntryIds = subCatSponsors
+                .Select(s => s.DirectoryEntry.DirectoryEntryId)
+                .Distinct()
+                .ToHashSet();
+
             // 5) build CategoryEntriesViewModel
             var vm = new CategoryEntriesViewModel
             {
@@ -96,7 +105,7 @@ namespace DirectoryManager.Web.Controllers
                 Description = category.Description,
                 Note = category.Note,
                 MetaDescription = category.MetaDescription,
-
+                SponsoredDirectoryEntryIds = sponsoredDirectoryEntryIds,
                 PagedEntries = new PagedResult<DirectoryEntryViewModel>
                 {
                     TotalCount = paged.TotalCount,

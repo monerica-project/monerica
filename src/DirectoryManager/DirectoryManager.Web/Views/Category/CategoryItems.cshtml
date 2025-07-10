@@ -123,9 +123,18 @@
             {
                 entryVm.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
 
+                // mark *all* entries in a sponsored sub‐category as sponsored
+                if (Model.SponsoredDirectoryEntryIds.Contains(entryVm.DirectoryEntryId))
+                {
+                    entryVm.IsSponsored = true;
+                    entryVm.IsSubCategorySponsor = true;
+                    entryVm.DisplayAsSponsoredItem = true;
+                }
+
                 @await Html.PartialAsync("_DirectoryEntryPartial", entryVm)
             }
         </ul>
+
     }
 
     @{
