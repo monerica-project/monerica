@@ -287,5 +287,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ThenByDescending(x => x.CampaignStartDate)
                 .ToListAsync();
         }
+
+        public async Task<IEnumerable<SponsoredListing>> GetActiveSubCategorySponsorsAsync(int categoryId)
+        {
+            // pull all SubCategorySponsor entries, then filter by category
+            var all = await this.GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor);
+            return all
+              .Where(s => s.DirectoryEntry?.SubCategory?.CategoryId == categoryId);
+        }
+
     }
 }

@@ -1,13 +1,36 @@
 ﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Repositories.Interfaces
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Helpers
 @using DirectoryManager.Web.Models
-@model DirectoryManager.Web.Models.CategoryViewModel
+@model DirectoryManager.Web.Models.CategoryEntriesViewModel
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
+@inject ICategoryRepository categoryRepo
+@inject ISubcategoryRepository subCatRepo
 
 @{
-    ViewData[StringConstants.TitleHeader] = string.Format("{0}: {1}", cacheHelper.GetSnippet(SiteConfigSetting.SiteName), Model.PageTitle);
+    Layout = "_LayoutWithNav";
+}
+
+@{
+    // build nav VM
+    var cats = await categoryRepo.GetActiveCategoriesAsync();
+    var lookup = new Dictionary<int, List<Subcategory>>();
+    foreach(var c in cats)
+        lookup[c.CategoryId] = (await subCatRepo.GetActiveSubCategoriesAsync(c.CategoryId)).ToList();
+
+    var navModel = new NavigationViewModel {
+        Categories = cats,
+        SubsByCategory = lookup,
+        CurrentCategoryKey = Model.CategoryKey,
+        CurrentSubCategoryKey = null
+    };
+}
+ 
+@{
+    ViewData[StringConstants.TitleHeader] = string.Format("{0}: {1}", cacheHelper.GetSnippet(SiteConfigSetting.SiteName), Model.CategoryName);
     ViewData[StringConstants.MetaDescription] = Model.MetaDescription;
     var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
 
@@ -15,14 +38,15 @@
     var breadcrumbs = new List<BreadcrumbItem>
     {
         new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
-        new BreadcrumbItem { Position = 2, Name = StringConstants.AllCategories, Url = UrlHelper.MakeFullUrl(domain,"/sitemap") },
-        new BreadcrumbItem { Position = 3, Name = Model.CategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@Model.CategoryKey}") }
+        new BreadcrumbItem { Position = 2, Name = Model.CategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@Model.CategoryKey}") }
     };
 }
 
 @BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
 
-<h1>@Model.PageHeader</h1>
+ @section PageContent {
+
+<h1>@Model.CategoryName</h1>
 
 <hr />
 
@@ -93,25 +117,36 @@
 }
  @await Html.PartialAsync("_SponsoredListingCategoryPartial", categorySponsorModel)
 
-     <section>
-        <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <ul>
+    <ul class="blank_list_item">
+        @foreach (var entryVm in Model.PagedEntries.Items)
+        {
+            @await Html.PartialAsync("_DirectoryEntryPartial", entryVm)
+        }
+    </ul>
 
-                    @foreach (var item in Model.SubCategoryItems)
-                    {
-                        <li>
-                            <a class="no-app-link" href="@item.SubCategoryRelativePath">@item.Name</a>
-                        </li>
-                    }
-                     
-                    </ul>
-                </div>
-            </div>
-        </div>
-     </section>
+    <nav aria-label="Pagination">
+        <ul class="pagination">
+            @{
+                int totalPages = (int)Math.Ceiling(Model.PagedEntries.TotalCount / (double)Model.PageSize);
+                for (int p = 1; p <= totalPages; p++)
+                {
+                    var active = p == Model.CurrentPage ? "active" : "";
+                }
+                foreach (var p in Enumerable.Range(1, totalPages))
+                {
+                    <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
+                        <a class="page-link"
+                           href="@Url.Action("Category", new { categoryKey = Model.CategoryKey, page = p })">
+                            @p
+                        </a>
+                    </li>
+                }
+            }
+        </ul>
+        </nav>
 
 <hr />
 
 @await Html.PartialAsync("_SponsoredListingPartial")
+
+}

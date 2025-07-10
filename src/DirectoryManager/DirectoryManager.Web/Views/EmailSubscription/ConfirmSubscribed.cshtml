@@ -3,7 +3,15 @@
     ViewData[StringConstants.TitleHeader] = "Subscribed!";
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
 <h1>&#9989; Thank you for joining!</h1>
 
 <hr />
 @await Html.PartialAsync("_BackToHome")
+
+}

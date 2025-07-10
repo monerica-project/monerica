@@ -345,64 +345,127 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return new PagedResult<DirectoryEntry>();
             }
 
+            // normalize
             term = term.Trim().ToLowerInvariant();
-            string pattern = $"%{term}%";
 
-            // 1) server-side filter on any matching field, only non-removed
+            // build plural + singular patterns
+            var primaryPattern = $"%{term}%";
+            string? rootTerm = null;
+            string? rootPattern = null;
+            if (term.EndsWith("s") && term.Length > 1)
+            {
+                rootTerm = term.Substring(0, term.Length - 1);
+                rootPattern = $"%{rootTerm}%";
+            }
+
+            // 1) server‐side filter (only non‐removed)
             var filtered = this.BaseQuery()
                 .Where(e =>
                     e.DirectoryStatus != DirectoryStatus.Removed &&
                     (
-                      EF.Functions.Like(e.Name.ToLower(), pattern) ||
-                      EF.Functions.Like((e.Description ?? "").ToLower(), pattern) ||
-                      EF.Functions.Like(e.SubCategory!.Name.ToLower(), pattern) ||
-                      EF.Functions.Like(e.SubCategory.Category!.Name.ToLower(), pattern) ||
-                      e.EntryTags.Any(et => EF.Functions.Like(et.Tag.Name.ToLower(), pattern)) ||
-                      EF.Functions.Like((e.Note ?? "").ToLower(), pattern) ||
-                      EF.Functions.Like((e.Processor ?? "").ToLower(), pattern) ||
-                      EF.Functions.Like((e.Location ?? "").ToLower(), pattern) ||
-                      EF.Functions.Like((e.Contact ?? "").ToLower(), pattern)
+                        // Name
+                        EF.Functions.Like(e.Name.ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like(e.Name.ToLower(), rootPattern)) ||
+
+                        // Description
+                        EF.Functions.Like((e.Description ?? "").ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like((e.Description ?? "").ToLower(), rootPattern)) ||
+
+                        // Subcategory / Category
+                        EF.Functions.Like(e.SubCategory!.Name.ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like(e.SubCategory.Name.ToLower(), rootPattern)) ||
+                        EF.Functions.Like(e.SubCategory.Category!.Name.ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like(e.SubCategory.Category.Name.ToLower(), rootPattern)) ||
+
+                        // Tags
+                        e.EntryTags.Any(et =>
+                            EF.Functions.Like(et.Tag.Name.ToLower(), primaryPattern) ||
+                            (rootPattern != null && EF.Functions.Like(et.Tag.Name.ToLower(), rootPattern))) ||
+
+                        // Note, Processor, Location, Contact, Link
+                        EF.Functions.Like((e.Note ?? "").ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like((e.Note ?? "").ToLower(), rootPattern)) ||
+
+                        EF.Functions.Like((e.Processor ?? "").ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like((e.Processor ?? "").ToLower(), rootPattern)) ||
+
+                        EF.Functions.Like((e.Location ?? "").ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like((e.Location ?? "").ToLower(), rootPattern)) ||
+
+                        EF.Functions.Like((e.Contact ?? "").ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like((e.Contact ?? "").ToLower(), rootPattern)) ||
+
+                        EF.Functions.Like((e.Link ?? "").ToLower(), primaryPattern) ||
+                        (rootPattern != null && EF.Functions.Like((e.Link ?? "").ToLower(), rootPattern))
                     ));
 
-            // 2) load into memory for scoring
+            // 2) bring into memory for fine‐grained scoring
             var candidates = await filtered.ToListAsync();
 
-            int CountOcc(string? f)
+            static int CountOcc(string? field, string t)
             {
-                if (string.IsNullOrEmpty(f)) return 0;
-                var txt = f.ToLowerInvariant();
+                if (string.IsNullOrEmpty(field))
+                {
+                    return 0;
+                }
+
+                var txt = field.ToLowerInvariant();
                 int count = 0, idx = 0;
-                while ((idx = txt.IndexOf(term, idx, StringComparison.Ordinal)) != -1)
+                while ((idx = txt.IndexOf(t, idx, StringComparison.Ordinal)) != -1)
                 {
                     count++;
-                    idx += term.Length;
+                    idx += t.Length;
                 }
                 return count;
             }
 
-            // 3) compute scores
+            // 3) compute a combined score + status weight
             var scored = candidates
-                .Select(e => new
+                .Select(e =>
                 {
-                    Entry = e,
-                    Score =
-                        CountOcc(e.Name) +
-                        CountOcc(e.Description) +
-                        CountOcc(e.SubCategory?.Name) +
-                        CountOcc(e.SubCategory?.Category?.Name) +
-                        e.EntryTags.Sum(et => CountOcc(et.Tag.Name)) +
-                        CountOcc(e.Note) +
-                        CountOcc(e.Processor) +
-                        CountOcc(e.Location) +
-                        CountOcc(e.Contact)
+                    // term hits
+                    var hits = CountOcc(e.Name, term)
+                             + (rootTerm != null ? CountOcc(e.Name, rootTerm) : 0)
+                             + CountOcc(e.Description, term)
+                             + (rootTerm != null ? CountOcc(e.Description, rootTerm) : 0)
+                             + CountOcc(e.SubCategory?.Name, term)
+                             + (rootTerm != null ? CountOcc(e.SubCategory?.Name, rootTerm) : 0)
+                             + CountOcc(e.SubCategory?.Category?.Name, term)
+                             + (rootTerm != null ? CountOcc(e.SubCategory?.Category?.Name, rootTerm) : 0)
+                             + e.EntryTags.Sum(et =>
+                                   CountOcc(et.Tag.Name, term)
+                                 + (rootTerm != null ? CountOcc(et.Tag.Name, rootTerm) : 0))
+                             + CountOcc(e.Note, term)
+                             + (rootTerm != null ? CountOcc(e.Note, rootTerm) : 0)
+                             + CountOcc(e.Processor, term)
+                             + (rootTerm != null ? CountOcc(e.Processor, rootTerm) : 0)
+                             + CountOcc(e.Location, term)
+                             + (rootTerm != null ? CountOcc(e.Location, rootTerm) : 0)
+                             + CountOcc(e.Contact, term)
+                             + (rootTerm != null ? CountOcc(e.Contact, rootTerm) : 0)
+                             + CountOcc(e.Link, term)
+                             + (rootTerm != null ? CountOcc(e.Link, rootTerm) : 0);
+
+                    // status weight
+                    int weight = e.DirectoryStatus switch
+                    {
+                        DirectoryStatus.Verified => 4,
+                        DirectoryStatus.Admitted => 3,
+                        DirectoryStatus.Questionable => 2,
+                        DirectoryStatus.Scam => 1,
+                        _ => 0
+                    };
+
+                    return new { Entry = e, Score = hits, Weight = weight };
                 })
-                .Where(x => x.Score > 0)
-                .OrderByDescending(x => x.Score)
+                .Where(x => x.Score > 0)        // only keep matches
+                .OrderByDescending(x => x.Weight)
+                .ThenByDescending(x => x.Score)
                 .ToList();
 
-            // 4) apply paging
+            // 4) paging
             int total = scored.Count;
-            var pageEntries = scored
+            var items = scored
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .Select(x => x.Entry)
@@ -411,10 +474,96 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return new PagedResult<DirectoryEntry>
             {
                 TotalCount = total,
-                Items = pageEntries
+                Items = items
             };
         }
 
+
+        /// <inheritdoc/>
+        public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesBySubcategoryAsync(int subCategoryId)
+        {
+            try
+            {
+                return await this.ActiveQuery()
+                    .Where(e => e.SubCategoryId == subCategoryId)
+                    .OrderBy(e => e.Name)
+                    .ToListAsync()
+                    .ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(ex.Message, ex.InnerException);
+            }
+        }
+
+        /// <inheritdoc/>
+        public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int categoryId)
+        {
+            return await this.ActiveQuery()
+                .Where(e => e.SubCategory!.CategoryId == categoryId)
+                .OrderBy(e => e.Name)
+                .ToListAsync()
+                .ConfigureAwait(false);
+        }
+
+        /// <inheritdoc/>
+        public async Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync()
+        {
+            return await this.BaseQuery()
+                .OrderBy(e => e.Name)
+                .ToListAsync()
+                .ConfigureAwait(false);
+        }
+
+        public async Task<PagedResult<DirectoryEntry>> ListEntriesByCategoryAsync(int categoryId, int page, int pageSize)
+        {
+            // base query: only non-removed, matching category
+            var query = this.context.DirectoryEntries
+                .Include(e => e.SubCategory)
+                    .ThenInclude(sc => sc.Category)
+                .Where(e =>
+                    e.DirectoryStatus != DirectoryStatus.Removed &&
+                    e.SubCategory.CategoryId == categoryId)
+
+                // order by subcategory name then entry name
+                .OrderBy(e => e.SubCategory!.Name)
+                .ThenBy(e => e.Name);
+
+            var total = await query.CountAsync();
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<DirectoryEntry>
+            {
+                TotalCount = total,
+                Items = items
+            };
+        }
+
+        public async Task<PagedResult<DirectoryEntry>> GetActiveEntriesBySubcategoryPagedAsync(
+            int subCategoryId,
+            int page,
+            int pageSize)
+        {
+            var query = this.context.DirectoryEntries
+                .Where(e => e.SubCategoryId == subCategoryId
+                            && e.DirectoryStatus != DirectoryStatus.Removed)
+                .OrderBy(e => e.Name);
+
+            var total = await query.CountAsync();
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<DirectoryEntry>
+            {
+                TotalCount = total,
+                Items = items
+            };
+        }
 
         /// <summary>
         /// Base query including SubCategory→Category and EntryTags→Tag.
@@ -484,35 +633,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 CreatedByUserId = entry.CreatedByUserId,
                 UpdatedByUserId = entry.UpdatedByUserId
             }).ConfigureAwait(false);
-        }
-
-        /// <inheritdoc/>
-        public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesBySubcategoryAsync(int subCategoryId)
-        {
-            return await this.ActiveQuery()
-                .Where(e => e.SubCategoryId == subCategoryId)
-                .OrderBy(e => e.Name)
-                .ToListAsync()
-                .ConfigureAwait(false);
-        }
-
-        /// <inheritdoc/>
-        public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int categoryId)
-        {
-            return await this.ActiveQuery()
-                .Where(e => e.SubCategory!.CategoryId == categoryId)
-                .OrderBy(e => e.Name)
-                .ToListAsync()
-                .ConfigureAwait(false);
-        }
-
-        /// <inheritdoc/>
-        public async Task<IEnumerable<DirectoryEntry>> GetAllEntitiesAndPropertiesAsync()
-        {
-            return await this.BaseQuery()
-                .OrderBy(e => e.Name)
-                .ToListAsync()
-                .ConfigureAwait(false);
         }
     }
 }

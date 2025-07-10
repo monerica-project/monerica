@@ -5,6 +5,11 @@
     ViewData[StringConstants.TitleHeader] = "Email Campaigns";
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
@@ -57,3 +62,4 @@
         <a asp-action="Index" asp-route-page="@(Model.PageIndex + 1)">Next</a>
     }
 </div>
+}

@@ -3,6 +3,12 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Delete From List";
 }
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
@@ -15,3 +21,4 @@
     <button type="submit">Yes, Remove</button>
     <a href="@Url.Action("Index")">Cancel</a>
 </form>
+}

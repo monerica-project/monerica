@@ -4,8 +4,15 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Directory Entries - Report";
 }
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
  
 <img style="width:100%" src="@Url.Action("WeeklyPlotImage", "DirectoryEntry")" alt="Weekly Cumulative Totals Plot" />
+}

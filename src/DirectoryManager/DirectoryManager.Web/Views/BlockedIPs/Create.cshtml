@@ -3,7 +3,10 @@
 
 @{
     ViewData[StringConstants.TitleHeader] = "Add Blocked IP";
+    Layout = "_CenteredLayout";
 }
+
+@section PageContent {
 
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
@@ -17,4 +20,5 @@
         @Html.ValidationMessageFor(model => model.IpAddress)
     </div>
     <button type="submit" class="btn btn-primary">Add IP</button>
+}
 }

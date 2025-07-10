@@ -9,6 +9,11 @@
     ViewData[StringConstants.TitleHeader] = "Confirm Selection";
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
@@ -53,7 +58,7 @@
             <div class="form-group">
                 <i>Receive a reminder before your listing expires so you can renew in time.</i>
                 <label>Email (optional)</label>
-                <input style="width:34%;" name="email" type="email" placeholder="yourname@email.com" />
+                <input style="width:18%;" name="email" type="email" placeholder="yourname@email.com" />
             </div>
            
             <input name="rsvId" type="hidden" value="@ViewBag.ReservationGuid" />
@@ -72,3 +77,4 @@
     }
 
 </div>
+}

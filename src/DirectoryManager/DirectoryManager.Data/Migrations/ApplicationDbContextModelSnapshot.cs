@@ -711,6 +711,29 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("LogEntries");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.SearchLog", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("IpAddress")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Term")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("SearchLogs");
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.ProcessorConfig", b =>
                 {
                     b.Property<int>("ProcessorConfigId")

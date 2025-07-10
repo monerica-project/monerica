@@ -5,6 +5,13 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Subscription Details";
 }
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
@@ -15,3 +22,5 @@
 <p><strong>Status:</strong> @(Model.IsActive ? "Active" : "Inactive")</p>
 
 <a asp-action="Index" asp-route-campaignId="@Model.EmailCampaignId">Back to List</a>
+
+}

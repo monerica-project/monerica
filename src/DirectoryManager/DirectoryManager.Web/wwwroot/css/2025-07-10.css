@@ -105,11 +105,14 @@ table tbody tr:nth-child(even) {
 .sponsored-section {
     background-color: #1E1E1E;
     border: 3px solid #FF6600;
-     
     font-size: 18px;
     border-radius: 10px;
     box-shadow: 0 2px 4px rgb(195 195 195 / 50%);
 }
+
+    .sponsored-section a {
+        font-weight: bold;
+    }
 
     .sponsored-section p {
         margin: 0;
@@ -130,6 +133,7 @@ table tbody tr:nth-child(even) {
         font-size: 14px;
         font-style: italic;
         color: #727272;
+        margin-left: 2px;
     }
 
 li.sponsored {
@@ -236,8 +240,9 @@ ul.newest_items li ul li p.small-font {
 }
 
     .breadcrumb-item + .breadcrumb-item::before {
-        content: ">";
-        padding: 2px 4px;
+        content: "\00BB";
+        padding-left: 5px;
+        padding-right: 0;
     }
 
     .breadcrumb-item.active {
@@ -277,7 +282,19 @@ div#main-content {
     padding-top: 5px;
     margin-left: 10px;
     margin-right: 10px;
+    /*margin: 0 auto;
+    max-width: 62rem;*/
 }
+
+#main-content .main {
+    /* undo the auto-centering and max-width
+    margin: 0 !important;
+    max-width: none !important;
+    width: auto !important;
+    padding-top: 0; */
+}
+
+
 
 pre.payment-response {
     font-family: Consolas, Menlo, Monaco, monospace;
@@ -609,19 +626,26 @@ section.sponsors {
     max-height: 80px;
 }
 
-div.centered { text-align: center;}
+div.centered {
+    text-align: center;
+}
 
-h1, h2 { margin: 0; padding: 0;}
+h1, h2 {
+    margin: 0;
+    padding: 0;
+}
+
 h1 {
     font-size: 2.5rem
 }
+
 p.intro {
     font-size: 0.9rem;
     text-align: justify;
     line-height: 1.5;
     color: #CCC;
-  
 }
+
 .sponsor-card p {
     font-size: 0.88rem;
     margin-bottom: 0.5rem;
@@ -654,12 +678,15 @@ p.intro {
 }
 
 
-.sponsor-card ul { padding-left: 25px;padding-right: 5px;}
-
-
-    .sponsor-card ul li {
-        list-style-type: none;
+    .sponsor-card ul {
+        padding-left: 25px;
+        padding-right: 5px;
     }
+
+
+        .sponsor-card ul li {
+            list-style-type: none;
+        }
 
 
 /* lock the Tor/extra-links row to one line and hide overflow */
@@ -729,3 +756,323 @@ ul.search-results {
         color: white;
         border-color: #007bff;
     }
+<<<<<<<< HEAD:src/DirectoryManager/DirectoryManager.Web/wwwroot/css/2025-07-10.css
+
+.top-container {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 0.5rem; /* small horizontal & vertical gap */
+    margin: 0 0 0.5rem; /* only bottom margin */
+}
+
+.top-section {
+    flex: 1 1 0;
+    margin: 0; /* kill default margins */
+    padding: 0.25rem 0.5rem; /* very light padding */
+    text-align: center;
+}
+
+@media (max-width: 576px) {
+    .top-container {
+        flex-direction: column;
+        gap: 0.25rem; /* even smaller gap on mobile */
+    }
+
+    .top-section {
+        padding: 0.15rem 0; /* collapse padding top/bottom */
+        font-size: 0.9rem; /* optional: scale text down slightly */
+    }
+}
+
+
+ul.search-results li.sponsored {
+    margin-left: 0;
+    border-left: 2px solid #FF6600;
+    font-size: 16px;
+}
+
+/* ========================================================================
+       Monerica Sidebar & Layout
+       ======================================================================== */
+
+/* 1) RESET & GLOBALS
+       ------------------------------------------------------------------------ */
+*,
+*::before,
+*::after {
+    box-sizing: border-box;
+}
+
+html {
+    scroll-behavior: smooth;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    font-family: Helvetica, sans-serif;
+    background: #111;
+    color: #EEE;
+    overflow-x: hidden;
+    max-width: 100% !important;
+}
+
+
+
+/* 2) MOBILE vs DESKTOP NAV
+       ------------------------------------------------------------------------ */
+/* Mobile accordion (< 768px): show .mobile-nav, hide .sidebar */
+@media (max-width: 768px) {
+    .sidebar {
+        display: none;
+    }
+
+    .mobile-nav {
+        display: block;
+    }
+
+    .main {
+        margin-left: 0;
+        padding: 1rem;
+    }
+}
+/* Desktop (>= 769px): show .sidebar, hide .mobile-nav */
+@media (min-width: 769px) {
+    .sidebar {
+        display: block;
+    }
+
+    .mobile-nav {
+        display: none;
+    }
+
+    .main {
+        margin-left: 220px;
+        padding: 1.5rem;
+    }
+}
+
+
+
+
+
+/* 3) SIDEBAR STYLING
+       ------------------------------------------------------------------------ */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 220px;
+    background: #1E1E1E;
+    /* padding: 1rem 0;*/
+    overflow-y: auto;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+}
+
+    .sidebar ul {
+        margin: 0;
+        padding: 0;
+        list-style: none;
+    }
+
+    .sidebar a {
+        display: block;
+        padding: 0.5rem 1rem;
+        color: #EEE;
+        text-decoration: none;
+    }
+
+        .sidebar a:hover {
+            background: #333;
+        }
+
+    .sidebar .active > a {
+        background: #00AAFF;
+        color: #000;
+        font-weight: bold;
+    }
+
+    /* Category rows: horizontal flex, with expander + checkbox toggle */
+    .sidebar ul li.category-item {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+    }
+
+    .sidebar .expander {
+        width: 1.2em;
+        text-align: center;
+        cursor: pointer;
+        margin-right: 0.5rem;
+        user-select: none;
+    }
+/* hide the actual checkbox input */
+.hidden-toggle {
+    display: none;
+}
+/* submenu wrapper */
+.sidebar .hidden {
+    display: none;
+    width: 100%; /* force wrap beneath the label+link row */
+    margin: 0;
+    padding: 0;
+}
+/* when toggled, show and indent */
+.hidden-toggle:checked + .hidden {
+    display: block;
+    margin-left: 1.7em;
+}
+
+.sidebar ul li.category-item > a {
+    flex: 1;
+}
+
+/* 4) MOBILE ACCORDION NAV
+       ------------------------------------------------------------------------ */
+.mobile-nav {
+    background: #1E1E1E;
+    color: #EEE;
+}
+
+    .mobile-nav summary {
+        padding: 1rem;
+        font-size: 1rem;
+        cursor: pointer;
+        background: #333;
+        list-style: none;
+    }
+
+    .mobile-nav ul {
+        margin: 0;
+        padding: 0 1rem;
+        list-style: none;
+    }
+
+    .mobile-nav li a {
+        display: block;
+        padding: 0.5rem 0;
+        color: #EEE;
+        text-decoration: none;
+    }
+
+        .mobile-nav li a:hover {
+            background: #333;
+        }
+
+/* 5) MAIN CONTENT WRAPPER
+       ------------------------------------------------------------------------ */
+.main {
+    /* for desktop the media query sets margin-left */
+    padding: 1rem;
+}
+
+.content-wrapper {
+    max-width: 1125px;
+    margin: 0 auto;
+    padding: 0 1rem;
+}
+
+/* 6) FOOTER
+       ------------------------------------------------------------------------ */
+.site-footer {
+    margin-top: 2rem;
+    border-top: 1px solid #444;
+    padding-top: 1rem;
+    text-align: center;
+}
+
+.footer-nav {
+    margin: 0;
+    padding: 0;
+    list-style: none;
+}
+
+    .footer-nav a {
+        color: #0af;
+        text-decoration: none;
+        margin: 0 .5rem;
+    }
+
+        .footer-nav a:hover {
+            text-decoration: underline;
+        }
+
+li.category-item ul {
+    font-size: 14px;
+}
+
+/* Desktop sidebar: highlight the active category link */
+.sidebar ul li.category-item > a.active {
+    background-color: #00AAFF;
+    color: #111; /* dark text on bright bg */
+    font-weight: bold;
+}
+
+/* Desktop sidebar: highlight active sub-link */
+.sidebar ul li.category-item .hidden ul li a.active {
+    color: #00AAFF;
+    font-weight: bold;
+}
+
+/* Mobile accordion: when a <details> is open, style its summary link */
+.mobile-nav details[open] > summary > a {
+    background-color: #00AAFF;
+    color: #111;
+    font-weight: bold;
+}
+
+/* Also ensure that if you manually add “active” to the <a>, it styles the same */
+.mobile-nav a.active {
+    background-color: #00AAFF;
+    color: #111;
+    font-weight: bold;
+}
+
+/* simple styling for sub-category headings */
+.subcat-heading {
+    margin-top: 1.5rem;
+    margin-bottom: 0.5rem;
+    font-size: 1.2rem;
+    border-bottom: 1px solid #444;
+    padding-bottom: 0.25rem;
+}
+
+.search-top-align {
+    float: right;
+}
+
+
+
+/* Sidebar logo at top */
+.sidebar .logo-container {
+    text-align: center;
+    border-bottom: 1px solid #333; /* optional separator */
+}
+
+    .sidebar .logo-container img {
+        max-width: 80px; /* adjust width as needed */
+        height: auto;
+        display: inline-block;
+    }
+
+
+.blank_list_item li {
+    margin-bottom: 5px;
+}
+
+
+.content-wrapper {
+    max-width: 1125px;
+    margin: 0 auto;
+}
+
+/* for CenteredLayout only */
+.main-content-centered {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: 1rem;
+}
+========
+>>>>>>>> e49ed4aab45dcddab4605ee95b2f474646eb856a:src/DirectoryManager/DirectoryManager.Web/wwwroot/css/2025-07-06.css

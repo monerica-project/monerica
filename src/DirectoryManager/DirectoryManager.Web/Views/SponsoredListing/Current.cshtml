@@ -2,6 +2,11 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Current Sponsored Listings";
 }
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
@@ -9,3 +14,4 @@
 <hr />
 
 @await Html.PartialAsync("_SponsoredListingPartial")
+}

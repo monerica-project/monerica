@@ -5,6 +5,12 @@
     ViewData[StringConstants.TitleHeader] = "Create Category";
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
@@ -17,3 +23,4 @@
         <button type="submit" class="btn btn-primary">Create</button>
     </div>
 </form>
+}

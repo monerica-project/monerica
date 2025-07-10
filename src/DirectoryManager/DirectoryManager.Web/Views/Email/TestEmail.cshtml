@@ -4,7 +4,11 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Send Test Email";
 }
+@{
+    Layout = "_CenteredLayout";
+}
 
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
@@ -42,3 +46,4 @@
     </div>
     <button type="submit" class="btn btn-primary">Send Test Email</button>
 </form>
+}

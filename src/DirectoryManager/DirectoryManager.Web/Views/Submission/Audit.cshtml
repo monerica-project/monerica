@@ -16,6 +16,11 @@
     ViewData[StringConstants.TitleHeader] = string.Format("{0} - Audit: {1}", firstOrDefault.Name, @firstOrDefault.DirectoryEntryId);
 
 }
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
@@ -92,3 +97,4 @@ else
 <hr />
 
 @await Html.PartialAsync("_SponsoredListingPartial")
+}

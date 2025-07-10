@@ -8,8 +8,13 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Sponsored Listings";
 }
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
 <hr />
 @await Html.PartialAsync("_BackToHome")
 <hr />
@@ -183,4 +188,6 @@ else
 else
 {
     <i>No more @EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor) advertising space available.</i>
+}
+
 }

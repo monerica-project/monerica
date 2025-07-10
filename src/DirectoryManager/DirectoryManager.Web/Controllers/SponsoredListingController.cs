@@ -271,7 +271,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.DirectoryEntryId = directoryEntryId;
             this.ViewBag.SponsorshipType = sponsorshipType;
 
-            var model = await this.GetListingDurations(sponsorshipType, typeId)
+            var model = await this.GetListingDurations(sponsorshipType, directoryEntry?.SubCategoryId)
                                   .ConfigureAwait(false);
             return this.View(model);
         }

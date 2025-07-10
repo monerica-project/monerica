@@ -1,9 +1,13 @@
 ﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Repositories.Interfaces
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Helpers
 @using DirectoryManager.Web.Models
 @model DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@inject ICategoryRepository categoryRepo
+@inject ISubcategoryRepository subCatRepo
 @{
     ViewData["Title"] = Model.Name;
     var categoryKey = ViewBag.CategoryKey as string;
@@ -21,14 +25,37 @@
     var breadcrumbs = new List<BreadcrumbItem>
     {
         new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
-        new BreadcrumbItem { Position = 2, Name = StringConstants.AllCategories, Url = UrlHelper.MakeFullUrl(domain,"/sitemap") },
-        new BreadcrumbItem { Position = 3, Name = @categoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}") },
-        new BreadcrumbItem { Position = 4, Name = @subCategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}")  },
-        new BreadcrumbItem { Position = 5, Name = Model.Name, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}/{@Model.DirectoryEntryKey}")  }
+        new BreadcrumbItem { Position = 2, Name = @categoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}") },
+        new BreadcrumbItem { Position = 3, Name = @subCategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}")  },
+        new BreadcrumbItem { Position = 4, Name = Model.Name, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}/{@Model.DirectoryEntryKey}")  }
     };
 }
 
+@{
+    // build nav VM
+    var cats = await categoryRepo.GetActiveCategoriesAsync();
+    var lookup = new Dictionary<int, List<Subcategory>>();
+    foreach (var c in cats)
+        lookup[c.CategoryId] = (await subCatRepo.GetActiveSubCategoriesAsync(c.CategoryId)).ToList();
+
+    var navModel = new NavigationViewModel
+    {
+        Categories = cats,
+        SubsByCategory = lookup,
+        CurrentCategoryKey = Model?.SubCategory?.Category.CategoryKey,
+        CurrentSubCategoryKey = Model?.SubCategory?.SubCategoryKey
+    };
+
+    Layout = "_LayoutWithNav";
+}
+ 
 @BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
+
+ @section PageContent {
+
+    <div class="top-section search-section search-top-align" >
+        @await Html.PartialAsync("_SearchForm")
+    </div>
 
 <h1>@Model.Name</h1>
 <hr />
@@ -40,8 +67,6 @@
         <li class="breadcrumb-item">
             <a class="no-app-link" href="~/">Home</a>
         </li>
-        <li class="breadcrumb-item">
-            <a class="no-app-link" href="~/sitemap">@StringConstants.AllCategories</a>
         <li class="breadcrumb-item">
             <a class="no-app-link" href="~/@categoryKey">@categoryName</a>
         </li>
@@ -58,7 +83,7 @@
         <p><strong>Name:</strong> @Model.Name</p>
         @if (!string.IsNullOrEmpty(finalLink))
         {
-            <p><strong>Link:</strong> <a class="multi-line-text" href="@finalLink" target="_blank">@Model.Link</a></p>
+            <p><strong>Link:</strong> <b><a class="multi-line-text" href="@finalLink" target="_blank">@Model.Link</a></b></p>
         }
         @if (!string.IsNullOrEmpty(finalLink2))
         {
@@ -132,5 +157,9 @@
     </div>
 </div>
 
+
+
 <hr />
 @await Html.PartialAsync("_SponsoredListingPartial")
+
+}

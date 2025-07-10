@@ -22,7 +22,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 return categoryName;
             }
 
-            return $"{categoryName} > {subcategoryName}";
+            return $"{categoryName} » {subcategoryName}";
         }
 
         public static string NormalizeTagName(string raw)

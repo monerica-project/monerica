@@ -10,6 +10,11 @@
     Guid? reservationGuid = (Guid?)ViewBag.ReservationGuid;
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 <hr />
 
@@ -30,4 +35,5 @@
             Select
         </a>
     </div>
+}
 }

@@ -99,5 +99,23 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
+
+        public async Task<Tag?> GetBySlugAsync(string slug)
+        {
+            slug = slug.Trim().ToLowerInvariant();
+
+            return await this.context.Tags
+                .AsNoTracking()
+                .FirstOrDefaultAsync(t =>
+                    // exact name match
+                    t.Name.ToLower() == slug
+                    // allow "web-hosting" → t.Name = "web hosting"
+                    || t.Name.Replace(" ", "-").ToLower() == slug
+                    // allow "web hosting" → slug = "web-hosting"
+                    || t.Name.Replace("-", " ").ToLower() == slug
+                    // drop both hyphens and spaces for "nonprofit" vs "non-profit"
+                    || t.Name.Replace(" ", "").Replace("-", "").ToLower() == slug);
+        }
+
     }
 }

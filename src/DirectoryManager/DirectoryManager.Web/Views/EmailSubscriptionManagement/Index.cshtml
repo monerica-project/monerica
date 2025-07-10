@@ -5,6 +5,12 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Emails";
 }
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
@@ -55,4 +61,5 @@
 else
 {
     <i>No emails found.</i>
+}
 }

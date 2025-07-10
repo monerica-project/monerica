@@ -2,7 +2,12 @@
 @using DirectoryManager.Web.Constants;
 @{
     ViewData[StringConstants.TitleHeader] = "Admin home";
+    Layout = "_CenteredLayout";
 }
+
+@section PageContent {
+
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
  
 <hr />
@@ -56,8 +61,17 @@
                 <a href="~/account/edit">Edit from page</a>
             </li>
             <li>
-                <a href="~/directoryentry/report">Report</a>
-            </li>
+                Reports
+                <ul>
+                    <li>
+                        <a href="~/directoryentry/report">Active entries report</a>
+                    </li>
+                    <li>
+                        <a href="~/searchlog/report">Search logs</a>
+                    </li>
+</ul>
+                </li>
+          
         </ul>
     </li>
 </ul>
@@ -137,3 +151,4 @@
 <hr />
 
 <a href="~/account/logout">logout</a> | @await Html.PartialAsync("_BackToHome")
+}

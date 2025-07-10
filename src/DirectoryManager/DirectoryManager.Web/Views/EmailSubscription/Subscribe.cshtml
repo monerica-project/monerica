@@ -2,6 +2,12 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Join Email Newsletter";
 }
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
@@ -27,3 +33,4 @@
     <br />
     <button type="submit" class="btn btn-success">Subscribe</button>
 </form>
+}

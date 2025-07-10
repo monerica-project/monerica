@@ -11,6 +11,13 @@
     bool isPaidOnly = ViewBag.IsPaidOnly ?? false;
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+
+@section PageContent {
+
 <h1>@(isPaidOnly ? "Paid Invoices" : "All Invoices")</h1>
 
 @await Html.PartialAsync("_AdminMenu")
@@ -109,3 +116,4 @@
     </table>
     </div>
 </div>
+}

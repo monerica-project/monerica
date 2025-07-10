@@ -5,6 +5,11 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Get Notified For Next Sponsored Listing Opening";
 }
+@{
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
@@ -34,7 +39,7 @@
 
     <div class="form-group">
         <label asp-for="Email">Email Address:</label>
-        <input asp-for="Email" class="form-control" style="width:34%;" />
+        <input asp-for="Email" class="form-control" style="width:18%;" />
         <span asp-validation-for="Email" class="text-danger"></span>
     </div>
 
@@ -48,4 +53,5 @@
     <p>
         &#9989; @TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage]
     </p>
+}
 }

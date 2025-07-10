@@ -6,14 +6,21 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 
 @{
+    Layout = "_CenteredLayout";
+}
+
+
+@section PageContent {
+
+
+@{
     ViewData[StringConstants.TitleHeader] = string.Format("{0}: Sitemap", cacheHelper.GetSnippet(SiteConfigSetting.SiteName));
     var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
 
     // Build your breadcrumb list dynamically based on page context
     var breadcrumbs = new List<BreadcrumbItem>
     {
-        new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
-        new BreadcrumbItem { Position = 2, Name = StringConstants.AllCategories, Url = UrlHelper.MakeFullUrl(domain,"/sitemap") }
+        new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") }
     };
 }
 
@@ -27,7 +34,9 @@
         <li class="breadcrumb-item">
             <a class="no-app-link" href="~/">Home</a>
         </li>
-        <li class="breadcrumb-item" aria-current="page">@StringConstants.AllCategories</li>
+        <li class="breadcrumb-item" aria-current="page">
+            <span>@StringConstants.AllCategories</span>
+        </li>
     </ol>
 </nav>
  
@@ -55,3 +64,4 @@
 <hr />
 
 @await Html.PartialAsync("_SponsoredListingPartial")
+}

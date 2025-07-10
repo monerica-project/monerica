@@ -6,6 +6,12 @@
     ViewData[StringConstants.TitleHeader] = "Create Submission";
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
@@ -15,7 +21,7 @@
 
 <hr />
 <p>
-    If you are trying to update an <b>existing link already in the directory</b>,  <a href="~/submission/findexisting">click here</a>!
+    <b> <a href="~/submission/findexisting">Existing link already in the directory</a></b> 
 </p>
 <hr />
 <br />
@@ -26,3 +32,4 @@
 
     <button type="submit" class="btn btn-primary">Preview</button>
 </form>
+}

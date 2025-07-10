@@ -12,6 +12,11 @@
     ViewData[StringConstants.IsIndexable] = false;
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
@@ -55,3 +60,4 @@ else if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.
         <p><i>No options</i></p>
     }
 </form>
+}

@@ -3,11 +3,14 @@
     ViewData[StringConstants.TitleHeader] = "Upload Bounce File";
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+
 <h1>@ViewData[StringConstants.TitleHeader] </h1>
 
-
 @await Html.PartialAsync("_AdminMenu")
-
 
 @if (TempData[StringConstants.SuccessMessage] != null)
 {
@@ -32,4 +35,5 @@
             }
         </ul>
     </div>
+}
 }

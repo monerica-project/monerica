@@ -5,6 +5,11 @@
     ViewData[StringConstants.TitleHeader] = "Sponsored Listings";
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
@@ -76,3 +81,4 @@
         &raquo;
     </a>
 </div>
+}

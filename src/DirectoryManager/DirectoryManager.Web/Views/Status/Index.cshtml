@@ -25,6 +25,12 @@
     var link3Name = ViewBag.Link3Name as string;
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
 <h1>Listings with Status: @ViewBag.Status</h1>
 
 @await Html.PartialAsync("_BackToHome")
@@ -248,4 +254,5 @@
 else
 {
     <p>No entries found with the status: @ViewBag.Status</p>
+}
 }

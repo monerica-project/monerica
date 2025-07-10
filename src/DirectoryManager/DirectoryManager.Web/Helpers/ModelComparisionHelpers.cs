@@ -28,8 +28,8 @@ namespace DirectoryManager.Web.Helpers
             {
                 differences.Add(
                     $"<p><strong>{label}:</strong><br>" +
-                    $"<em>Entry:</em> {FormatValue(entryValue)}<br>" +
-                    $"<em>Submission:</em> {FormatValue(submissionValue)}</p>");
+                    $"<em>Entry:</em><br> {FormatValue(entryValue)}<br>" +
+                    $"<em>Submission:</em><br> {FormatValue(submissionValue)}</p>");
             }
 
             // Format null or non-string values safely.
@@ -84,7 +84,11 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("Subcategory", entrySubCategory, submissionSubCategory);
             }
 
-            // Compare DirectoryStatus safely.
+            if (entry.Tags != submission.Tags)
+            {
+                AddDifference("Tags", entry.Tags, submission.Tags);
+            }
+
             if (entry.DirectoryStatus != submission.DirectoryStatus)
             {
                 AddDifference("Directory Status", entry.DirectoryStatus, submission.DirectoryStatus);

@@ -3,8 +3,15 @@
     ViewData["Title"] = $"Tagged: {Model.Tag.Name}";
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+
 <h1>Tagged “@Model.Tag.Name”</h1>
 
+<hr />
+@await Html.PartialAsync("_BackToHome")
 <hr />
 
 @if (!Model.Entries.Any())
@@ -25,3 +32,4 @@ else
 
 <hr />
 @await Html.PartialAsync("_SponsoredListingPartial")
+}

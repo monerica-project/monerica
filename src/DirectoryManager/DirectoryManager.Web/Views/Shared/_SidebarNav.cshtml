@@ -1,0 +1,86 @@
+﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Models
+@model NavigationViewModel
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContext
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheService
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService urlResolver
+
+
+@{
+    string currentCat = Model.CurrentCategoryKey ?? "";
+    string currentSub = Model.CurrentSubCategoryKey ?? "";
+}
+
+
+<details class="mobile-nav">
+    <summary>Menu</summary>
+    <ul>
+        @foreach (var cat in Model.Categories)
+        {
+            <li>
+                <details open="@(cat.CategoryKey == currentCat)">
+                    <summary>
+                        <a class="no-app-link @(cat.CategoryKey == currentCat ? "active" : "")"
+                           href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
+                            @cat.Name
+                        </a>
+                    </summary>
+                    <ul>
+                        @foreach (var sub in Model.SubsByCategory[cat.CategoryId])
+                        {
+                            <li>
+                                <a class="no-app-link @(cat.CategoryKey == currentCat && sub.SubCategoryKey == currentSub ? "active" : "")"
+                                   href="@urlResolver.ResolveToRoot($"{cat.CategoryKey}/{sub.SubCategoryKey}")">
+                                    @sub.Name
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </details>
+            </li>
+        }
+    </ul>
+</details>
+
+<nav class="sidebar">
+    <div class="logo-container text-center mb-4">
+        <a class="no-app-link" href="@urlResolver.ResolveToRoot("/")">
+            <img src="@cacheService.GetSnippet(SiteConfigSetting.SiteLogoUrl)"
+                 alt="Monerica Logo"
+                 style="height:auto;" />
+        </a>
+    </div>
+
+    <ul>
+        @foreach (var cat in Model.Categories)
+        {
+            var isCurrentCat = cat.CategoryKey == currentCat;
+            var expanderId = $"{cat.CategoryKey}_expander";
+
+            <li class="category-item">
+                <label for="@expanderId" class="expander">+</label>
+                <a class="no-app-link @(isCurrentCat ? "active" : "")"
+                   href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
+                    @cat.Name
+                </a>
+                <input type="checkbox"
+                       id="@expanderId"
+                       class="hidden-toggle"
+                       @(isCurrentCat ? "checked" : "") />
+                <div class="hidden">
+                    <ul>
+                        @foreach (var sub in Model.SubsByCategory[cat.CategoryId])
+                        {
+                            <li>
+                                <a class="no-app-link @(isCurrentCat && sub.SubCategoryKey == currentSub ? "active" : "")"
+                                   href="@urlResolver.ResolveToRoot($"{cat.CategoryKey}/{sub.SubCategoryKey}")">
+                                    @sub.Name
+                                </a>
+                            </li>
+                        }
+                    </ul>
+                </div>
+            </li>
+        }
+    </ul>
+</nav>

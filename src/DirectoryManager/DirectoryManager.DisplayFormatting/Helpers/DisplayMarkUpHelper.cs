@@ -1,10 +1,10 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using System.Globalization;
+using System.Net;
+using System.Text;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.DisplayFormatting.Enums;
 using DirectoryManager.DisplayFormatting.Models;
-using System.Globalization;
-using System.Net;
-using System.Text;
 
 namespace DirectoryManager.DisplayFormatting.Helpers
 {
@@ -27,9 +27,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             sb.Append(">");
 
-            // Main content in a paragraph with the expandable label
             sb.Append("<p>");
-            sb.AppendFormat(@"<label for=""{0}"" class=""expansion_item"">+</label>", checkboxId);
 
             // Handle date display options
             if (model.DateOption == DateDisplayOption.DisplayCreateDate)
@@ -115,46 +113,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             sb.Append("</p>");
 
-            // Hidden checkbox that controls the expandable content
-            sb.AppendFormat("<input type=\"checkbox\" id=\"{0}\" class=\"hidden\" />", checkboxId);
-
-            // Hidden div that will expand (additional content placeholder "TODO")
-            sb.Append("<div class=\"hidden\">");
-            sb.Append("<ul>");
-
-            if (model.CreateDate == DateTime.MinValue)
-            {
-                sb.Append("<li>Added: N/A</li>");
-            }
-            else
-            {
-                sb.AppendFormat("<li>Added: {0}</li>", model.CreateDate.ToString(Common.Constants.StringConstants.DateFormat));
-            }
-
-            if (model.UpdateDate != null)
-            {
-                sb.AppendFormat("<li>Updated: {0}</li>", model.UpdateDate?.ToString(Common.Constants.StringConstants.DateFormat));
-            }
-
-            if (!string.IsNullOrWhiteSpace(model.Location))
-            {
-                sb.AppendFormat("<li>Location: {0}</li>", model.Location);
-            }
-
-            if (!string.IsNullOrWhiteSpace(model.Processor))
-            {
-                sb.AppendFormat("<li>Processor: {0}</li>", model.Processor);
-            }
-
-            if (!string.IsNullOrWhiteSpace(model.Contact))
-            {
-                sb.AppendFormat("<li class=\"multi-line-text\"> Contact: {0}</li>", model.Contact);
-            }
-
-            sb.Append("</ul>");
-
-            sb.Append("</div>");
-
             sb.Append("</li>");
 
             return sb.ToString();
@@ -219,32 +177,43 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             return sb.ToString();
         }
 
-        public static string GenerateSearchResultHtml(DirectoryEntryViewModel model, string canonicalDomain)
+        public static string GenerateSearchResultHtml(DirectoryEntryViewModel model, string rootUrl)
         {
             // ensure no trailing slash
-            string domain = canonicalDomain?.TrimEnd('/') ?? string.Empty;
+            string domain = rootUrl?.TrimEnd('/') ?? string.Empty;
+
+            var liClasses = model.IsSponsored
+                  ? "search-result-item sponsored"
+                  : "search-result-item";
 
             var sb = new StringBuilder();
-            sb.Append("<li class=\"search-result-item\">");
+            sb.Append($"<li class=\"{liClasses}\">");
 
             // 1) Name → profile link, and “Website” link inline
             var name = WebUtility.HtmlEncode(model.Name);
             // model.ItemPath should be something like "/category/subcategory/entrykey"
             var profRelative = model.ItemPath.StartsWith("/") ? model.ItemPath : "/" + model.ItemPath;
             var profUrl = $"{domain}{profRelative}";
+
             sb.Append("<p>");
             sb.Append(GetDirectoryStausIcon(model.DirectoryStatus)); // your helper for ✅❌ etc.
             sb.AppendFormat(
                 "<strong><a class=\"no-app-link\" href=\"{1}\">{0}</a></strong> — ",
                 name, profUrl);
 
-            if (!string.IsNullOrWhiteSpace(model.Link))
+            // pick affiliate if available
+            var websiteUrl = !string.IsNullOrWhiteSpace(model.LinkA) && !model.IsSponsored
+                ? model.LinkA.Trim()
+                : model.Link.Trim();
+
+            if (!string.IsNullOrWhiteSpace(websiteUrl))
             {
-                var direct = WebUtility.HtmlEncode(model.Link);
+                var direct = WebUtility.HtmlEncode(websiteUrl);
                 sb.AppendFormat(
                     "<a href=\"{0}\" target=\"_blank\">Website</a>",
                     direct);
             }
+
             sb.Append("</p>");
 
             // 2) Link2 / Link3 (e.g. Tor | I2P)
@@ -302,7 +271,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             sb.Append("</li>");
             return sb.ToString();
         }
-
 
         private static string GetDirectoryStausIcon(DirectoryStatus directoryStatus)
         {

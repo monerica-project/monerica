@@ -42,6 +42,8 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<Tag> Tags { get; set; }
         public DbSet<DirectoryEntryTag> DirectoryEntryTags { get; set; }
 
+        public DbSet<SearchLog> SearchLogs { get; set; }
+
         public override int SaveChanges()
         {
             this.SetDates();

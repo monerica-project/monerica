@@ -1,8 +1,12 @@
 ﻿ @{
     ViewBag.Title = "Upload";
-    Layout = "~/Views/Shared/_Layout.cshtml";
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewBag.Title</h1>
         
 @await Html.PartialAsync("_AdminMenu")
@@ -36,3 +40,4 @@
 }
     </div>
 </section>
+}

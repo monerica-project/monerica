@@ -8,7 +8,7 @@
         SubcategorySponsor = 3,
         Featured = 4,
         NewestAddition = 5,
-        NewestRevion = 6,
+        NewestRevions = 6,
         CategorySponsor = 7,
         SearchResult = 8
     }

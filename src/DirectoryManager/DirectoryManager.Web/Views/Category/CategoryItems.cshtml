@@ -1,0 +1,165 @@
+﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Repositories.Interfaces
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Web.Models
+@model DirectoryManager.Web.Models.CategoryEntriesViewModel
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
+@inject ICategoryRepository categoryRepo
+@inject ISubcategoryRepository subCatRepo
+
+@{
+    // build nav VM
+    var cats = await categoryRepo.GetActiveCategoriesAsync();
+    var lookup = new Dictionary<int, List<Subcategory>>();
+    foreach (var c in cats)
+        lookup[c.CategoryId] = (await subCatRepo.GetActiveSubCategoriesAsync(c.CategoryId)).ToList();
+
+    var navModel = new NavigationViewModel
+    {
+        Categories = cats,
+        SubsByCategory = lookup,
+        CurrentCategoryKey = Model.CategoryKey,
+        CurrentSubCategoryKey = null
+    };
+}
+
+@{
+  Layout = "_LayoutWithNav";
+  ViewData["NavModel"] = navModel;
+  ViewData[StringConstants.TitleHeader] = "Category: " + Model.CategoryName;
+  ViewData[StringConstants.MetaDescription] = Model.MetaDescription;
+}
+ 
+@{
+    var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
+
+    // Build your breadcrumb list dynamically based on page context
+    var breadcrumbs = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
+        new BreadcrumbItem { Position = 2, Name = Model.CategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@Model.CategoryKey}") }
+    };
+}
+
+@BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
+ 
+ @section PageContent {
+
+    <div class="top-section search-section search-top-align">
+        @await Html.PartialAsync("_SearchForm")
+    </div>
+
+<h1>@Model.CategoryName</h1>
+
+<hr />
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="~/">Home</a>
+        </li>
+        <li class="breadcrumb-item" aria-current="page">
+            @Model.CategoryName
+        </li>
+    </ol>
+</nav>
+
+@if (!string.IsNullOrWhiteSpace(Model.Description))
+{
+    <p><span>@Html.Raw(Model.Description)</span></p>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.Note))
+{
+    <p><i>Note: @Html.Raw(Model.Note)</i></p>
+}
+
+@{
+    var link2Name = cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
+    var link3Name = cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+    var categorySponsors = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
+
+    // find the sponsor for this category (if any)
+    var catSponsor = categorySponsors
+                        .FirstOrDefault(s =>
+                            s.DirectoryEntry?.SubCategory?.CategoryId == Model.CategoryId);
+
+    var catSponsorCount = categorySponsors.Count();
+
+    var categorySponsorModel = new DirectoryManager.Web.Models.CategorySponsorModel()
+                {
+                    CategoryId = Model.CategoryId,
+                    TotalActiveCategoryListings = catSponsorCount,
+                    DirectoryEntry = (catSponsor != null && catSponsor.DirectoryEntry != null) ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel()
+                    {
+                        CreateDate = catSponsor.DirectoryEntry.CreateDate,
+                        UpdateDate = catSponsor.DirectoryEntry.UpdateDate,
+                        DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+                        Link = catSponsor.DirectoryEntry.Link,
+                        Link2 = catSponsor.DirectoryEntry.Link2,
+                        Link3 = catSponsor.DirectoryEntry.Link3,
+                        Name = catSponsor.DirectoryEntry.Name,
+                        Contact = catSponsor.DirectoryEntry.Contact,
+                        Description = catSponsor.DirectoryEntry.Description,
+                        DirectoryEntryId = catSponsor.DirectoryEntry.DirectoryEntryId,
+                        DirectoryStatus = catSponsor.DirectoryEntry.DirectoryStatus,
+                        Location = catSponsor.DirectoryEntry.Location,
+                        Note = catSponsor.DirectoryEntry.Note,
+                        Processor = catSponsor.DirectoryEntry.Processor,
+                        SubCategoryId = catSponsor.DirectoryEntry.SubCategoryId,
+                        IsSponsored = true,
+                        DisplayAsSponsoredItem = false,
+                        Link2Name = link2Name,
+                        Link3Name = link3Name
+                    } : null
+                };
+}
+ @await Html.PartialAsync("_SponsoredListingCategoryPartial", categorySponsorModel)
+ 
+    @foreach (var group in Model.PagedEntries.Items.GroupBy(e => e.SubCategory.Name))
+    {
+        <h2 class="subcat-heading">@group.Key</h2>
+        <ul class="blank_list_item">
+            @foreach (var entryVm in group)
+            {
+                entryVm.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
+
+                // mark *all* entries in a sponsored sub‐category as sponsored
+                if (Model.SponsoredDirectoryEntryIds.Contains(entryVm.DirectoryEntryId))
+                {
+                    entryVm.IsSponsored = true;
+                    entryVm.IsSubCategorySponsor = true;
+                    entryVm.DisplayAsSponsoredItem = true;
+                }
+
+                @await Html.PartialAsync("_DirectoryEntryPartial", entryVm)
+            }
+        </ul>
+    }
+
+    @{
+        int totalPages = (int)Math.Ceiling(Model.PagedEntries.TotalCount / (double)Model.PageSize);
+    }
+    <nav aria-label="Pagination">
+        <ul class="pagination">
+            @for (int p = 1; p <= totalPages; p++)
+            {
+                var linkClass = p == 1 ? "no-app-link" : "app-link";
+                <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
+                    <a class="page-link @linkClass"
+                       href="@Url.Action("Category", new { categoryKey = Model.CategoryKey, page = p })">
+                        @p
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav>
+
+<hr />
+
+@await Html.PartialAsync("_SponsoredListingPartial")
+
+}
