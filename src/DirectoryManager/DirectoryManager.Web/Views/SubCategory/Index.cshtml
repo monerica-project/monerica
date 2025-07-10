@@ -5,6 +5,11 @@
     ViewData[StringConstants.TitleHeader] = "Sub Categories";
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
@@ -32,3 +37,4 @@
 <br />
 
 <a href="@Url.Action("Create")">Create New: Subcategory</a>
+}

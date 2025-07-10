@@ -14,20 +14,26 @@
     // build nav VM
     var cats = await categoryRepo.GetActiveCategoriesAsync();
     var lookup = new Dictionary<int, List<Subcategory>>();
-    foreach(var c in cats)
+    foreach (var c in cats)
         lookup[c.CategoryId] = (await subCatRepo.GetActiveSubCategoriesAsync(c.CategoryId)).ToList();
 
-    var navModel = new NavigationViewModel {
+    var navModel = new NavigationViewModel
+    {
         Categories = cats,
         SubsByCategory = lookup,
         CurrentCategoryKey = Model.CategoryKey,
         CurrentSubCategoryKey = null
     };
 }
+
+@{
+  Layout = "_LayoutWithNav";
+  ViewData["NavModel"] = navModel;
+  ViewData[StringConstants.TitleHeader] = "Category: " + Model.CategoryName;
+  ViewData[StringConstants.MetaDescription] = Model.MetaDescription;
+}
  
 @{
-    ViewData[StringConstants.TitleHeader] = string.Format("{0}: {1}", cacheHelper.GetSnippet(SiteConfigSetting.SiteName), Model.CategoryName);
-    ViewData[StringConstants.MetaDescription] = Model.MetaDescription;
     var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
 
     // Build your breadcrumb list dynamically based on page context
@@ -40,8 +46,7 @@
 
 @BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
  
-@await Html.PartialAsync("_SidebarNav", navModel)
-<main class="main">
+ @section PageContent {
 
     <div class="top-section search-section search-top-align">
         @await Html.PartialAsync("_SearchForm")
@@ -113,7 +118,6 @@
                 };
 }
  @await Html.PartialAsync("_SponsoredListingCategoryPartial", categorySponsorModel)
-
  
     @foreach (var group in Model.PagedEntries.Items.GroupBy(e => e.SubCategory.Name))
     {
@@ -134,7 +138,6 @@
                 @await Html.PartialAsync("_DirectoryEntryPartial", entryVm)
             }
         </ul>
-
     }
 
     @{
@@ -155,11 +158,8 @@
         </ul>
     </nav>
 
-
-
-
 <hr />
 
 @await Html.PartialAsync("_SponsoredListingPartial")
 
-</main>
+}

@@ -11,6 +11,10 @@
 @inject ISubcategoryRepository subCatRepo
 
 @{
+    Layout = "_LayoutWithNav";
+}
+
+@{
     // build nav VM
     var cats = await categoryRepo.GetActiveCategoriesAsync();
     var lookup = new Dictionary<int, List<Subcategory>>();
@@ -40,8 +44,7 @@
 
 @BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
 
-@await Html.PartialAsync("_SidebarNav", navModel)
-<main class="main">
+ @section PageContent {
 
 <h1>@Model.CategoryName</h1>
 
@@ -146,4 +149,4 @@
 
 @await Html.PartialAsync("_SponsoredListingPartial")
 
-</main>
+}

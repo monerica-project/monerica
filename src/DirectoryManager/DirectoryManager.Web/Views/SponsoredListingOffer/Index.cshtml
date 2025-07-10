@@ -3,7 +3,12 @@
 
 @{
     ViewData[StringConstants.TitleHeader] = "Sponsored Listing Offers";
+    Layout = "_CenteredLayout";
 }
+
+
+@section PageContent {
+
 
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
@@ -17,3 +22,5 @@
 @await Html.PartialAsync("_SponsorshipOptions", Model.Where(x => x.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.CategorySponsor))
 
 @await Html.PartialAsync("_SponsorshipOptions", Model.Where(x => x.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.SubcategorySponsor)) 
+
+}

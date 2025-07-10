@@ -6,6 +6,13 @@
     ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing";
     ViewData[StringConstants.IsIndexable] = false;
 }
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
@@ -16,4 +23,6 @@
         <a target="_blank" href="@entry.Link">@entry.Name</a> <text> - </text>
         <a rel="nofollow" href="@Url.Action("selectduration", new { id = entry.DirectoryEntryId, rsvId = ViewBag.ReservationGuid })">Select</a>
     </div>
+}
+
 }

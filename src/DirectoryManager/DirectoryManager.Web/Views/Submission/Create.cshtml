@@ -6,6 +6,12 @@
     ViewData[StringConstants.TitleHeader] = "Create Submission";
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
@@ -26,3 +32,4 @@
 
     <button type="submit" class="btn btn-primary">Preview</button>
 </form>
+}

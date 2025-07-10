@@ -6,6 +6,14 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 
 @{
+    Layout = "_CenteredLayout";
+}
+
+
+@section PageContent {
+
+
+@{
     ViewData[StringConstants.TitleHeader] = string.Format("{0}: Sitemap", cacheHelper.GetSnippet(SiteConfigSetting.SiteName));
     var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
 
@@ -56,3 +64,4 @@
 <hr />
 
 @await Html.PartialAsync("_SponsoredListingPartial")
+}

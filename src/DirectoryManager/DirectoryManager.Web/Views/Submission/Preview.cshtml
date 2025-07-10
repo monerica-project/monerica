@@ -3,6 +3,12 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Preview";
 }
+
+@{
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 <hr />
 <div class="submission-guidelines">
@@ -62,3 +68,5 @@
 </div>
 <br />
 <a href="~/submit?submissionid=@Model.SubmissionId">Edit submission</a>
+
+}

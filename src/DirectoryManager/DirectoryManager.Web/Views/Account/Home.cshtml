@@ -2,7 +2,12 @@
 @using DirectoryManager.Web.Constants;
 @{
     ViewData[StringConstants.TitleHeader] = "Admin home";
+    Layout = "_CenteredLayout";
 }
+
+@section PageContent {
+
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
  
 <hr />
@@ -146,3 +151,4 @@
 <hr />
 
 <a href="~/account/logout">logout</a> | @await Html.PartialAsync("_BackToHome")
+}

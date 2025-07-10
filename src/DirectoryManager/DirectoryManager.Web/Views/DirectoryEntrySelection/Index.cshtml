@@ -3,6 +3,11 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Directory Entry Selections";
 }
+@{
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
@@ -34,3 +39,4 @@
 </div>
 
 <a asp-action="AddToList">Add to List</a>
+}

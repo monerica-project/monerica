@@ -45,15 +45,16 @@
 <body>
     @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.TopBannerHtml))
 
+    @RenderSection("ChromeBeforeMain", required: false)
 
-    <div id="main-content">
-        @RenderBody() 
-    </div>
+    @RenderBody()
 
-    <footer  class="site-footer">  
+    @RenderSection("ChromeAfterMain", required: false)
+
+    <footer class="site-footer">  
       <nav class="footer-nav">
         @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.FooterHtml))
-              </nav>
+      </nav>
     </footer>
 </body>
 </html>

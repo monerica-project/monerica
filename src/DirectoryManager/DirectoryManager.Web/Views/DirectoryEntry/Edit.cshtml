@@ -17,10 +17,15 @@
 
     ViewBag.SubCategories = orderedSubCategories; // Populate ViewBag with ordered subcategories
 }
+@{
+    Layout = "_CenteredLayout";
+}
 
 @{
     ViewData[StringConstants.TitleHeader] = "Edit Directory Entry";
 }
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
@@ -40,3 +45,4 @@
 
     <button type="submit">Update</button>
 </form>
+}

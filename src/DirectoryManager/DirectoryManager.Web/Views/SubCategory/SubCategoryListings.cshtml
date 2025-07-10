@@ -44,13 +44,12 @@
         CurrentCategoryKey      = Model.Category.CategoryKey,
         CurrentSubCategoryKey   = Model.SubCategoryKey
     };
+
+     Layout = "_LayoutWithNav";
+  ViewData["NavModel"] = navModel;
 }
 
-@await Html.PartialAsync("_SidebarNav", navModel)
-
-<!-- rest of your subcategory page markup -->
- 
-<main class="main">
+  @section PageContent {
 
 @BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
 
@@ -179,4 +178,4 @@
 
 @await Html.PartialAsync("_SponsoredListingPartial")
 
-        </main>
+ }

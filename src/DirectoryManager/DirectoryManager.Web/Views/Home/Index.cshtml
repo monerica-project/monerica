@@ -36,10 +36,16 @@
     };
 }
 
-@await Html.PartialAsync("_SidebarNav", navModel)
+@{
+    Layout = "_LayoutWithNav";
+    ViewData["NavModel"] = navModel;
+   
+}
 
-<main class="main">
+ @section PageContent {
+
     <div class="content-wrapper">
+ 
         <!-- Hero and sponsored listing partial (stays full‐width under the fixed sidebar) -->
         @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageDisplayHtml))
         @await Html.PartialAsync("_SponsoredListingPartial")
@@ -163,4 +169,4 @@
         }
 
     </div>
-</main>
+ }

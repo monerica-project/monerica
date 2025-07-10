@@ -8,6 +8,12 @@
     ViewData["Title"] = $"Search results for \"{Model.Query}\"";
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
 <h1>@ViewData["Title"]</h1>
 
 <hr />
@@ -54,3 +60,5 @@ else
 <hr />
 
 @await Html.PartialAsync("_SponsoredListingPartial")
+
+    }

@@ -5,6 +5,11 @@
     ViewData[StringConstants.TitleHeader] = "Manage Notifications";
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
@@ -40,3 +45,4 @@
     </tbody>
 </table>
 </div>
+}

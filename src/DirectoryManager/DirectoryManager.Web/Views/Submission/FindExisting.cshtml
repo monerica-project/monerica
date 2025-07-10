@@ -5,6 +5,12 @@
     ViewData[StringConstants.TitleHeader] = "Current Listings";
     ViewData[StringConstants.IsIndexable] = false;
 }
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 <hr />
 @await Html.PartialAsync("_BackToHome")<text> | </text><a href="~/submit">create new listing</a>
@@ -32,4 +38,6 @@
         <a rel="nofollow" href="@Url.Action("SubmitEdit", new { id = entry.DirectoryEntryId })">Edit</a> |
         <a rel="nofollow" href="@Url.Action("Audit", new { id = entry.DirectoryEntryId })">Audit</a>
     </div>
+}
+
 }

@@ -5,6 +5,12 @@
     ViewData[StringConstants.TitleHeader] = "Success";
 }
 
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 <hr />
 
@@ -13,3 +19,5 @@
 <hr />
   
 @Html.Raw(cacheHelper.GetSnippet(DirectoryManager.Data.Enums.SiteConfigSetting.SuccessPageHtml))
+
+}

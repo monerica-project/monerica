@@ -4,6 +4,12 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Subscriptions for Campaign: " + @ViewBag.CampaignName;
 }
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
@@ -43,3 +49,4 @@
 
 <a asp-action="Subscribe" asp-route-campaignId="@ViewBag.CampaignId">Add New Subscription</a>
 <a asp-controller="EmailCampaignManagement" asp-action="Index" >Back to Campaigns</a>
+}

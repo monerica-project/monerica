@@ -4,6 +4,12 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Traffic Report";
 }
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
@@ -35,3 +41,4 @@
 <div>
     <strong>Total Log Requests:</strong> @Model.TotalLogCount
 </div>
+}

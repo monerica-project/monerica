@@ -1,8 +1,14 @@
 ﻿@model DirectoryManager.Web.Models.SiteFileListModel
     @{
         ViewBag.Title = "Site File Management";
-        Layout = "~/Views/Shared/_Layout.cshtml";
+ 
     }
+
+    @{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 
 <h1>@ViewBag.Title</h1>
 
@@ -120,3 +126,4 @@
                 </div>
             </div>
 </section>
+}

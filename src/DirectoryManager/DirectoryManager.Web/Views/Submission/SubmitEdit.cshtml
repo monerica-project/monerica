@@ -4,10 +4,16 @@
 @using DirectoryManager.Web.Constants;
 
 @{
+    Layout = "_CenteredLayout";
+}
+
+@{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
     ViewData[StringConstants.TitleHeader] = "Edit Listing";
     ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
 }
+
+@section PageContent {
 
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 <hr />
@@ -33,3 +39,6 @@
 {
     <a style="float:right;" href="~/submission/audit/@Model.DirectoryEntryId">History for @Model.Name</a>
 }
+
+}
+

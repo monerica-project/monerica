@@ -5,6 +5,11 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Get Notified For Next Sponsored Listing Opening";
 }
+@{
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
@@ -48,4 +53,5 @@
     <p>
         &#9989; @TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage]
     </p>
+}
 }

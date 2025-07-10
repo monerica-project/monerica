@@ -6,6 +6,12 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Newest Additions";
 }
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 <hr />
@@ -42,3 +48,5 @@
 </div>
 
 <p>Total: @ViewBag.TotalEntries</p>
+
+}

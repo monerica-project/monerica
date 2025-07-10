@@ -1060,3 +1060,16 @@ li.category-item ul {
 .blank_list_item li {
     margin-bottom: 5px;
 }
+
+
+.content-wrapper {
+    max-width: 1125px;
+    margin: 0 auto;
+}
+
+/* for CenteredLayout only */
+.main-content-centered {
+    max-width: 62rem;
+    margin: 0 auto;
+    padding: 1rem;
+}

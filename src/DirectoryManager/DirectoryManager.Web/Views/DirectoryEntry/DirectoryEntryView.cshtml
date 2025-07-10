@@ -45,13 +45,13 @@
         CurrentCategoryKey = Model?.SubCategory?.Category.CategoryKey,
         CurrentSubCategoryKey = Model?.SubCategory?.SubCategoryKey
     };
+
+    Layout = "_LayoutWithNav";
 }
-
-@await Html.PartialAsync("_SidebarNav", navModel)
-
-
+ 
 @BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
-<main class="main">
+
+ @section PageContent {
 
     <div class="top-section search-section search-top-align" >
         @await Html.PartialAsync("_SearchForm")
@@ -162,4 +162,4 @@
 <hr />
 @await Html.PartialAsync("_SponsoredListingPartial")
 
-</main>
+}
