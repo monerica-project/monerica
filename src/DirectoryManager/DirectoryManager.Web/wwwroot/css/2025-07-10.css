@@ -756,6 +756,7 @@ ul.search-results {
         color: white;
         border-color: #007bff;
     }
+<<<<<<<< HEAD:src/DirectoryManager/DirectoryManager.Web/wwwroot/css/2025-07-10.css
 
 .top-container {
     display: flex;
@@ -1073,3 +1074,5 @@ li.category-item ul {
     margin: 0 auto;
     padding: 1rem;
 }
+========
+>>>>>>>> e49ed4aab45dcddab4605ee95b2f474646eb856a:src/DirectoryManager/DirectoryManager.Web/wwwroot/css/2025-07-06.css
