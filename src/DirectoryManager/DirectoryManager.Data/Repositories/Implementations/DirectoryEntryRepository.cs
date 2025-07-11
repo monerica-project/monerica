@@ -35,7 +35,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
-        /// <inheritdoc />
         public async Task<DirectoryEntry?> GetBySubCategoryAndKeyAsync(
             int subCategoryId,
             string directoryEntryKey)
@@ -47,7 +46,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
-        /// <inheritdoc />
         public async Task<DirectoryEntry?> GetByLinkAsync(string link)
         {
             return await this.BaseQuery()
@@ -55,7 +53,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
-        /// <inheritdoc />
         public async Task<DirectoryEntry?> GetByNameAsync(string name)
         {
             return await this.BaseQuery()
@@ -63,7 +60,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
-        /// <inheritdoc />
         public async Task<IEnumerable<DirectoryEntry>> GetAllowableAdvertisers()
         {
             return await this.BaseQuery()
@@ -75,7 +71,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
-        /// <inheritdoc />
         public async Task<IEnumerable<DirectoryEntry>> GetAllAsync()
         {
             return await this.BaseQuery()
@@ -84,7 +79,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
-        /// <inheritdoc />
         public async Task CreateAsync(DirectoryEntry entry)
         {
             if (entry is null)
@@ -107,7 +101,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
-        /// <inheritdoc />
         public async Task UpdateAsync(DirectoryEntry entry)
         {
             if (entry is null)
@@ -153,7 +146,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
-        /// <inheritdoc />
         public async Task DeleteAsync(int directoryEntryId)
         {
             var toRemove = await this.context.DirectoryEntries
@@ -168,7 +160,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
-        /// <inheritdoc />
         public async Task<IEnumerable<DirectoryEntry>> GetAllBySubCategoryIdAsync(int subCategoryId)
         {
             return await this.ActiveQuery()
@@ -178,7 +169,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
-        /// <inheritdoc />
         public DateTime GetLastRevisionDate()
         {
             var latestCreate = this.context.DirectoryEntries
@@ -191,7 +181,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 : latestUpdate;
         }
 
-        /// <inheritdoc />
         public async Task<IEnumerable<DirectoryEntry>> GetNewestRevisions(int count)
         {
             return await this.ActiveQuery()
@@ -202,7 +191,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
-        /// <inheritdoc />
         public async Task<IEnumerable<DirectoryEntry>> GetNewestAdditions(int count)
         {
             return await this.ActiveQuery()
@@ -212,7 +200,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
-        /// <inheritdoc />
         public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(
             int pageSize,
             int pageNumber)
@@ -227,7 +214,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return this.GroupByDate(page);
         }
 
-        /// <inheritdoc />
         public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(
             int numberOfDays)
         {
@@ -250,7 +236,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return this.GroupByDate(filtered);
         }
 
-        /// <inheritdoc />
         public async Task<IEnumerable<DirectoryEntry>> GetAllActiveEntries()
         {
             return await this.ActiveQuery()
@@ -259,14 +244,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
-        /// <inheritdoc />
         public async Task<int> TotalActive()
         {
             return await this.ActiveQuery().CountAsync()
                 .ConfigureAwait(false);
         }
 
-        /// <inheritdoc />
         public async Task<Dictionary<int, DateTime>> GetLastModifiedDatesBySubCategoryAsync()
         {
             var list = await this.context.DirectoryEntries
@@ -282,7 +265,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return list.ToDictionary(x => x.SubCategoryId, x => x.LastModified);
         }
 
-        /// <inheritdoc />
         public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByStatusAsync(
             DirectoryStatus status)
         {
@@ -293,7 +275,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
-        /// <inheritdoc />
         public async Task<MonthlyDirectoryEntries> GetEntriesCreatedForPreviousMonthWithMonthKeyAsync()
         {
             var now = DateTime.UtcNow;
@@ -313,7 +294,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             };
         }
 
-        /// <inheritdoc />
         public async Task<WeeklyDirectoryEntries> GetEntriesCreatedForPreviousWeekWithWeekKeyAsync()
         {
             var now = DateTime.UtcNow;
