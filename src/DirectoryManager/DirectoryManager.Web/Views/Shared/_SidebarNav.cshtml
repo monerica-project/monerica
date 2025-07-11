@@ -5,12 +5,10 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheService
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService urlResolver
 
-
 @{
     string currentCat = Model.CurrentCategoryKey ?? "";
     string currentSub = Model.CurrentSubCategoryKey ?? "";
 }
-
 
 <details class="mobile-nav">
     <summary>Menu</summary>

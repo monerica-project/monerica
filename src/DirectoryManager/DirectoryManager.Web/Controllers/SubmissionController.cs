@@ -5,6 +5,7 @@ using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Utilities.Validation;
+using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
@@ -678,7 +679,7 @@ namespace DirectoryManager.Web.Controllers
 
         private Submission FormatSubmissionRequest(SubmissionRequest model)
         {
-            var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString();
+            var ipAddress = this.HttpContext.GetRemoteIpIfEnabled();
 
             var submission = new Submission
             {
