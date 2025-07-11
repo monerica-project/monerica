@@ -28,10 +28,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.auditRepo = auditRepo ?? throw new ArgumentNullException(nameof(auditRepo));
         }
 
-        /// <inheritdoc />
         public async Task<DirectoryEntry?> GetByIdAsync(int directoryEntryId)
         {
-            return await this.BaseQuery()
+               return await this.BaseQuery()
                 .FirstOrDefaultAsync(de => de.DirectoryEntryId == directoryEntryId)
                 .ConfigureAwait(false);
         }
@@ -563,6 +562,25 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 TotalCount = total,
                 Items = items
             };
+        }
+
+        public async Task<IReadOnlyList<DirectoryEntryUrl>> GetAllIdsAndUrlsAsync()
+        {
+            // AsNoTracking → no change-tracking overhead
+            // filter out Removed/Unknown if you only want “active”
+            var inactive = new[] { DirectoryStatus.Removed, DirectoryStatus.Unknown };
+
+            return await this.context.DirectoryEntries
+                .AsNoTracking()
+                .Where(e => !inactive.Contains(e.DirectoryStatus))
+                .OrderBy(e => e.DirectoryEntryId)
+                .Select(e => new DirectoryEntryUrl
+                {
+                    DirectoryEntryId = e.DirectoryEntryId,
+                    Link = e.Link
+                })
+                .ToListAsync()
+                .ConfigureAwait(false);
         }
 
         /// <summary>

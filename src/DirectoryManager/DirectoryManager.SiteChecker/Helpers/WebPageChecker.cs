@@ -1,57 +1,83 @@
-﻿namespace DirectoryManager.SiteChecker.Helpers
+﻿using System.Net;
+using System.Net.NetworkInformation;
+
+namespace DirectoryManager.SiteChecker.Helpers
 {
     public class WebPageChecker
     {
-        private readonly string userAgentHeader;
+        private readonly HttpClient http;
 
-        public WebPageChecker(string userAgentHeader)
+        public WebPageChecker(string userAgent, TimeSpan? timeout = null)
         {
-            this.userAgentHeader = userAgentHeader;
+            this.http = new HttpClient
+            {
+                Timeout = timeout ?? TimeSpan.FromSeconds(60)
+            };
+            this.http.DefaultRequestHeaders.UserAgent.ParseAdd(userAgent);
         }
 
-        public async Task<bool> IsWebPageOnlineAsync(Uri uri)
+        public async Task<bool> IsOnlineAsync(Uri uri)
         {
-            using var client = new HttpClient();
-            client.DefaultRequestHeaders.UserAgent.ParseAdd(this.userAgentHeader);
-
+            // 1) Try HEAD -> if it gives success (2xx) or redirect (3xx), we know it's online.
             try
             {
-                var response = await client.GetAsync(uri);
+                using var headReq = new HttpRequestMessage(HttpMethod.Head, uri);
+                using var headResp = await this.http
+                    .SendAsync(headReq, HttpCompletionOption.ResponseHeadersRead)
+                    .ConfigureAwait(false);
 
-                if (response.IsSuccessStatusCode || (int)response.StatusCode > 400)
+                if ((int)headResp.StatusCode is >= 200 and < 400)
                 {
                     return true;
                 }
-                else if (response.StatusCode == System.Net.HttpStatusCode.Moved ||
-                         response.RequestMessage?.RequestUri != uri)
+
+                // otherwise (including 404, 4xx, 5xx) fall through to GET
+            }
+            catch (HttpRequestException hre) when (hre.StatusCode == HttpStatusCode.MethodNotAllowed)
+            {
+                // HEAD not allowed → fall back to GET
+            }
+            catch
+            {
+                // HEAD failed → fall back to GET
+            }
+
+            // 2) Try GET -> if 404, offline; any other status (2xx, 3xx, 4xx≠404, 5xx) = online
+            try
+            {
+                using var getReq = new HttpRequestMessage(HttpMethod.Get, uri);
+                using var getResp = await this.http
+                    .SendAsync(getReq, HttpCompletionOption.ResponseHeadersRead)
+                    .ConfigureAwait(false);
+
+                if (getResp.StatusCode == HttpStatusCode.NotFound)
                 {
                     return false;
                 }
 
-                return false;
-            }
-            catch (HttpRequestException)
-            {
-                return false;
-            }
-            catch (TaskCanceledException)
-            {
-                return false;
-            }
-        }
-
-        public bool IsWebPageOnlinePing(Uri uri)
-        {
-            try
-            {
-                var ping = new System.Net.NetworkInformation.Ping();
-                var result = ping.Send(uri.Host);
-                return result.Status == System.Net.NetworkInformation.IPStatus.Success;
+                return true;
             }
             catch
             {
-                return false;
+                // GET failed → fall back to ping
             }
+
+            // 3) Fallback to ICMP ping
+            try
+            {
+                using var ping = new Ping();
+                var result = await ping
+                    .SendPingAsync(uri.Host, 1000)
+                    .ConfigureAwait(false);
+                return result.Status == IPStatus.Success;
+            }
+            catch
+            {
+                // ping failed
+            }
+
+            // Everything failed → treat as offline
+            return false;
         }
     }
 }

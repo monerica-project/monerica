@@ -1,5 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
-using DirectoryManager.Data.Constants;
+﻿using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Extensions; // Import for AddRepositories
@@ -9,6 +8,8 @@ using DirectoryManager.SiteChecker.Helpers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+
+Console.WriteLine("Starting SiteChecker");
 
 const string UserAgentHeader = "UserAgent:Header";
 const string SiteOfflineMessage = "site offline";
@@ -35,38 +36,15 @@ var entriesRepo = serviceProvider.GetRequiredService<IDirectoryEntryRepository>(
 var webPageChecker = serviceProvider.GetRequiredService<WebPageChecker>();
 
 // Get all entries
-var allEntries = await entriesRepo.GetAllAsync();
+var allEntries = await entriesRepo.GetAllIdsAndUrlsAsync();
 var offlines = new List<string>();
 
-// Run the checks in parallel using Task.WhenAll for all entries
+// Kick off one Task per entry
 var tasks = allEntries
-    .Where(entry =>
-        // only include entries whose status is neither Unknown nor Removed
-        entry.DirectoryStatus != DirectoryStatus.Unknown &&
-        entry.DirectoryStatus != DirectoryStatus.Removed &&
-
-        // and whose link does NOT contain an .onion or .i2p address
-        !entry.Link.Contains(".onion", StringComparison.OrdinalIgnoreCase) &&
-        !entry.Link.Contains(".i2p", StringComparison.OrdinalIgnoreCase))
-    .Select(async entry =>
-    {
-        // Create a new scope for each task to isolate DbContext instances
-        using var scope = serviceProvider.CreateScope();
-        var scopedSubmissionRepo = scope.ServiceProvider.GetRequiredService<ISubmissionRepository>();
-
-        // check online status
-        var uri = new Uri(entry.Link);
-        var isOnline = await webPageChecker.IsWebPageOnlineAsync(uri)
-                       || webPageChecker.IsWebPageOnlinePing(uri);
-
-        Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : SiteOfflineMessage)}");
-
-        if (!isOnline)
-        {
-            offlines.Add($"{entry.Link} - ID: {entry.DirectoryEntryId}");
-            await CreateOfflineSubmissionIfNotExists(entry, scopedSubmissionRepo);
-        }
-    });
+  .Where(e =>
+    !e.Link.Contains(".onion", StringComparison.OrdinalIgnoreCase) &&
+    !e.Link.Contains(".i2p", StringComparison.OrdinalIgnoreCase))
+  .Select(entry => CheckAndSubmitAsync((entry.DirectoryEntryId, entry.Link), serviceProvider));
 
 // Wait for all the tasks to complete
 await Task.WhenAll(tasks);
@@ -126,4 +104,38 @@ async Task CreateOfflineSubmissionIfNotExists(
 
     await submissionRepository.CreateAsync(submission);
     Console.WriteLine($"Created submission for entry ID {entry.DirectoryEntryId} marked as '{SiteOfflineMessage}'.");
+}
+
+async Task CheckAndSubmitAsync(
+    (int DirectoryEntryId, string Link) entry,
+    IServiceProvider rootProvider)
+{
+    using var scope = rootProvider.CreateScope();
+
+    // each scope gets its own DbContext
+    var scopedEntriesRepo = scope.ServiceProvider.GetRequiredService<IDirectoryEntryRepository>();
+    var scopedSubmissionRepo = scope.ServiceProvider.GetRequiredService<ISubmissionRepository>();
+    var checker = scope.ServiceProvider.GetRequiredService<WebPageChecker>();
+
+    var uri = new Uri(entry.Link);
+    bool isOnline;
+    try
+    {
+        isOnline = await checker.IsOnlineAsync(uri);
+    }
+    catch
+    {
+        isOnline = false;
+    }
+
+    Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : SiteOfflineMessage)}");
+
+    if (!isOnline)
+    {
+        // load the entry *from this scope’s* repo
+        var dirEntry = await scopedEntriesRepo.GetByIdAsync(entry.DirectoryEntryId);
+        await CreateOfflineSubmissionIfNotExists(
+        dirEntry,
+        scopedSubmissionRepo);
+    }
 }
