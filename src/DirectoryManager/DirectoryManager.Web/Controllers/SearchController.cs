@@ -52,7 +52,7 @@ namespace DirectoryManager.Web.Controllers
 
             await this.searchLogRepository.CreateAsync(new SearchLog
             {
-                Term = q,
+                Term = q.Trim(),
                 IpAddress = this.HttpContext.GetRemoteIpIfEnabled()
             });
 
