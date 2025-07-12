@@ -1,5 +1,6 @@
 ﻿@using DirectoryManager.Data.Models
 @using DirectoryManager.DisplayFormatting.Enums
+@using DirectoryManager.DisplayFormatting.Helpers
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.Web.Models
@@ -42,7 +43,57 @@
    
 }
 
+
+@{
+     
+    // ----- Category sponsors -----
+    var catSponsors = await sponsoredListingRepository
+        .GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
+
+    // Join with categories
+   
+    var sponsorsByCategory = catSponsors
+        .Where(s => s.DirectoryEntry?.SubCategory?.CategoryId != null)
+        .GroupBy(s => s.DirectoryEntry.SubCategory.CategoryId)
+        .ToDictionary(g => g.Key, g => g.Select(s => s.DirectoryEntry!).ToList());
+
+    // ----- Subcategory sponsors -----
+    var subSponsors = await sponsoredListingRepository
+        .GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor); // ← make sure you have this
+
+    var subs = await subCategoryRepository.GetAllAsync();
+    var sponsorsBySubcategory = subSponsors
+        .Where(s => s.DirectoryEntry?.SubCategoryId != null)
+        .GroupBy(s => s.DirectoryEntry.SubCategoryId)
+        .ToDictionary(g => g.Key, g => g.Select(s => s.DirectoryEntry!).ToList());
+}
+
+
  @section PageContent {
+
+     <style>
+        /* container for the two sponsor sections */
+        .sponsor-sections {
+            display: flex;
+            gap: 2rem;
+            flex-wrap: wrap;
+            margin-bottom: 2rem;
+        }
+
+            /* each section takes up half the width (minus gap) */
+            .sponsor-sections section {
+                flex: 1 1 calc(50% - 1rem);
+                box-sizing: border-box;
+            }
+
+            /* keep cards in a grid inside each section */
+            .sponsor-sections .sponsors-grid {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 1rem;
+            }
+
+</style>
 
     <div class="content-wrapper">
  
@@ -168,5 +219,70 @@
             <hr />
         }
 
-    </div>
- }
+ 
+
+        <div class="sponsor-sections">
+            <!-- Category Sponsors -->
+            <section>
+                <h2 class="section-title">Category Sponsors</h2>
+                @foreach (var cat in cats)
+                {
+                    if (sponsorsByCategory.TryGetValue(cat.CategoryId, out var entries))
+                    {
+                        <span class="category-name">@cat.Name</span>
+                        <ul class="blank_list_item">
+                            @foreach (var e in entries)
+                            {
+                                var vm = ViewModelConverter
+                                .ConvertToViewModels(
+                                new List<DirectoryEntry> { e },
+                                DateDisplayOption.NotDisplayed,
+                                ItemDisplayType.CategorySponsor,
+                                link2Name, link3Name)
+                                .First();
+                                vm.IsSponsored = true;
+                                @await Html.PartialAsync("_DirectoryEntryPartial", vm)
+                            }
+                        </ul>
+                    }
+                }
+            </section>
+
+            <!-- Subcategory Sponsors -->
+            <section>
+                <h2 class="section-title">Subcategory Sponsors</h2>
+                @foreach (var sub in subs)
+                {
+                    if (sponsorsBySubcategory.TryGetValue(sub.SubCategoryId, out var entries))
+                    {
+                        <span class="subcategory-name">
+                            @Html.Raw(FormattingHelper.SubcategoryFormatting(sub.Category.Name, sub.Name))
+                        </span>
+                        <ul class="blank_list_item">
+                            @foreach (var e in entries)
+                            {
+                                var vm = ViewModelConverter
+                                .ConvertToViewModels(
+                                new List<DirectoryEntry> { e },
+                                DateDisplayOption.NotDisplayed,
+                                ItemDisplayType.SubcategorySponsor,
+                                link2Name, link3Name)
+                                .First();
+                                vm.IsSponsored = true;
+                                @await Html.PartialAsync("_DirectoryEntryPartial", vm)
+                            }
+                        </ul>
+                    }
+                }
+            </section>
+        </div>
+
+
+    }
+
+<hr />
+ 
+ 
+
+
+</div>
