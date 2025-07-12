@@ -5,7 +5,9 @@ namespace DirectoryManager.Web.Models
 {
     public class TaggedEntriesViewModel
     {
-        public Tag Tag { get; set; } = null!;
-        public IReadOnlyList<DirectoryEntryViewModel> Entries { get; set; } = new List<DirectoryEntryViewModel>();
+        public Tag Tag { get; set; } = default!;
+        public PagedResult<DirectoryEntryViewModel> PagedEntries { get; set; } = default!;
+        public int CurrentPage { get; set; }
+        public int PageSize { get; set; }
     }
 }
