@@ -100,6 +100,11 @@ namespace DirectoryManager.Web.Services.Implementations
                 return string.Empty;
             }
 
+            if (path == "~/")
+            {
+                path = "/";
+            }
+
             // If it's already an absolute URL, just return it
             if (Uri.TryCreate(path, UriKind.Absolute, out _))
             {

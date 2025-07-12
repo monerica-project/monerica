@@ -66,10 +66,10 @@
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item">
-            <a class="no-app-link" href="~/">Home</a>
+            <a class="no-app-link" href="@UrlResolver.ResolveToRoot("~/")">Home</a>
         </li>
         <li class="breadcrumb-item">
-            <a class="no-app-link" href="@Model.CategoryRelativePath">@Model.CategoryName</a>
+                <a class="no-app-link" href="@UrlResolver.ResolveToRoot(Model.CategoryRelativePath)">@Model.CategoryName</a>
         </li>
         <li class="breadcrumb-item" aria-current="page">
             @Model.SubcategoryName
