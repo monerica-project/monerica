@@ -12,6 +12,8 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @inject ICategoryRepository categoryRepo
 @inject ISubcategoryRepository subCatRepo
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+
 
 @{
     ViewData[StringConstants.TitleHeader] = string.Format("{0}: {1}", cacheHelper.GetSnippet(SiteConfigSetting.SiteName), Model.PageTitle);
@@ -145,32 +147,38 @@
     }
 </ul>
 
-@{
-    int totalPages = (int)Math.Ceiling(
-        Model.PagedEntries.TotalCount / (double)Model.PageSize);
-}
 
-<nav aria-label="Pagination">
-  <ul class="pagination">
-    @for (int p = 1; p <= totalPages; p++)
-    {
-        // if it's the **first** page link, use no-app-link; otherwise app-link
-        var linkClass = p == 1 ? "no-app-link" : "app-link";
-    <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
-      <a class="page-link @linkClass"
-         href="@Url.Action(
-           "SubCategoryListings",
-           new {
-             categoryKey    = Model.Category.CategoryKey,
-             subCategoryKey = Model.SubCategoryKey,
-             page           = p
-           })">
-        @p
-      </a>
-    </li>
+    @{
+        var categoryKey = Model.Category.CategoryKey;
+        var subCategoryKey = Model.SubCategoryKey;
+        int totalPages = (int)Math.Ceiling(Model.PagedEntries.TotalCount / (double)Model.PageSize);
+        int currentPage = Model.CurrentPage;
     }
-  </ul>
-</nav>
+
+    <nav aria-label="Pagination">
+        <ul class="pagination">
+            @for (int p = 1; p <= totalPages; p++)
+            {
+                // build the path fragment
+                string rawPath = $"/{categoryKey}/{subCategoryKey}"
+                + (p > 1 ? $"?page={p}" : "");
+
+                // first page on canonical root, rest via app domain
+                string href = p == 1
+                ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
+                : UrlResolver.Resolve(rawPath);
+
+                string linkClass = p == 1 ? "no-app-link" : "app-link";
+                string activeClass = p == currentPage ? "active" : "";
+
+                <li class="page-item @activeClass">
+                    <a class="page-link @linkClass" href="@href">
+                        @p
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav>
 
 
 

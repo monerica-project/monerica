@@ -23,6 +23,10 @@ var logger = new LoggerConfiguration()
 builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(logger);
 
+builder.Services.Configure<AppSettings>(
+    builder.Configuration
+           .GetSection("Logging:TrafficLogging"));
+
 // Configure application services
 builder.Services.AddApplicationServices(builder.Configuration);
 

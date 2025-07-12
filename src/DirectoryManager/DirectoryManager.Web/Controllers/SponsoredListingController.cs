@@ -1,5 +1,4 @@
-﻿using System.Text;
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -7,6 +6,7 @@ using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
@@ -16,6 +16,7 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using NowPayments.API.Interfaces;
 using NowPayments.API.Models;
+using System.Text;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -1213,6 +1214,11 @@ namespace DirectoryManager.Web.Controllers
             DateTime startDate,
             string ipAddress)
         {
+            if (!this.HttpContext.ShouldLogIp())
+            {
+                ipAddress = string.Empty;
+            }
+
             return await this.sponsoredListingInvoiceRepository.CreateAsync(
                 new SponsoredListingInvoice
                 {

@@ -2,6 +2,8 @@
 @using DirectoryManager.DisplayFormatting.Helpers
 @using DirectoryManager.Web.Constants;
 @using DirectoryManager.Web.Helpers
+@using DirectoryManager.Web.Services.Interfaces
+@inject IUrlResolutionService UrlResolver
 @model IEnumerable<DirectoryManager.Data.Models.GroupedDirectoryEntry>
 @{
     ViewData[StringConstants.TitleHeader] = "Newest Additions";
@@ -26,26 +28,38 @@
 }
 
 @Html.Raw(htmlOutput)
- 
-<div>
-    @for (int i = 1; i <= ViewBag.TotalPages; i++)
-    {
-        if (i == 1 && i != ViewBag.PageNumber)
-        {
-            <a class="no-app-link text-margin" href="@Url.Action("Newest", "Home", new { pageNumber = i })">@i </a>
-            continue;
-        }
 
-        if (i == ViewBag.PageNumber)
-        {
-            <text>@i </text>
-        }
-        else
-        {
-            <a class="app-link text-margin" href="@Url.Action("Newest", "Home", new { pageNumber = i })">@i </a>
-        }
+
+
+    @{
+        int totalPages = ViewBag.TotalPages;
+        int currentPage = ViewBag.PageNumber;
     }
-</div>
+
+    <nav aria-label="Pagination">
+        <ul class="pagination">
+            @for (int i = 1; i <= totalPages; i++)
+            {
+                // build the raw path: page 1 is “/newest”, pages 2+ add ?pageNumber=…
+                string rawPath = "/newest" + (i > 1 ? $"?pageNumber={i}" : "");
+
+                // page 1 always on canonical root; pages 2+ on “app” domain
+                string href = i == 1
+                ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
+                : UrlResolver.Resolve(rawPath);
+
+                // choose link class
+                string linkClass = i == 1 ? "no-app-link" : "app-link";
+
+                <li class="page-item @(i == currentPage ? "active" : "")">
+                    <a class="page-link @linkClass" href="@href">
+                        @i
+                    </a>
+                </li>
+            }
+        </ul>
+    </nav>
+
 
 <p>Total: @ViewBag.TotalEntries</p>
 

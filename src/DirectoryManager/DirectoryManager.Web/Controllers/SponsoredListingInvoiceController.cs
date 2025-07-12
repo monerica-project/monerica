@@ -261,9 +261,9 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpGet("sponsoredlistinginvoice/monthlyavgdailyrevenuechart")]
         public async Task<IActionResult> MonthlyAvgDailyRevenueChartAsync(
-    DateTime startDate,
-    DateTime endDate,
-    SponsorshipType? sponsorshipType)
+                DateTime startDate,
+                DateTime endDate,
+                SponsorshipType? sponsorshipType)
         {
             var invoices = await this.invoiceRepository.GetAllAsync();
             var filtered = invoices

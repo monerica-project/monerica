@@ -299,12 +299,8 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         }
 
         /// <summary>
-        /// Helper method for appending the main link 
+        /// Helper method for appending the main link.
         /// </summary>
-        /// <param name="sb"></param>
-        /// <param name="model"></param>
-        /// <param name="affiliateLink"></param>
-        /// <param name="isScam"></param>
         private static void AppendLink(StringBuilder sb, DirectoryEntryViewModel model, string? affiliateLink, bool isScam = false)
         {
             string link = model.LinkType == LinkType.ListingPage ? model.ItemPath : affiliateLink ?? model.Link;
@@ -317,7 +313,14 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             }
             else
             {
-                sb.AppendFormat("<a href=\"{0}\" {1}>{2}</a>", link, target, name);
+                if (model.LinkType == LinkType.ListingPage)
+                {
+                    sb.AppendFormat("<a title=\"Profile: {2}\" href=\"{0}\" {1}>{2}</a>", link, target, name);
+                }
+                else
+                {
+                    sb.AppendFormat("<a title=\"{2}\" href=\"{0}\" {1}>{2}</a>", link, target, name);
+                }
             }
         }
 

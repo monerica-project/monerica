@@ -41,5 +41,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
             int subCategoryId,
             int page,
             int pageSize);
+
+        Task<IReadOnlyList<DirectoryEntryUrl>> GetAllIdsAndUrlsAsync();
     }
 }

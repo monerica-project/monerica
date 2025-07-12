@@ -1,35 +1,57 @@
 ﻿@model DirectoryManager.Web.Models.TaggedEntriesViewModel
-@{
-    ViewData["Title"] = $"Tagged: {Model.Tag.Name}";
-}
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 
 @{
     Layout = "_CenteredLayout";
+    ViewData["Title"] = $"Tagged: {Model.Tag.Name}";
+
+    int totalPages = (int)Math.Ceiling(
+        Model.PagedEntries.TotalCount / (double)Model.PageSize);
 }
+
 @section PageContent {
+    <h1>Tagged “@Model.Tag.Name”</h1>
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
 
-<h1>Tagged “@Model.Tag.Name”</h1>
-
-<hr />
-@await Html.PartialAsync("_BackToHome")
-<hr />
-
-@if (!Model.Entries.Any())
-{
-    <p>No listings found under this tag.</p>
-}
-else
-{
-
-    <ul class="blank_list_item">
-    @foreach (var entry in Model.Entries)
+    @if (!Model.PagedEntries.Items.Any())
     {
-            entry.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
-            @await Html.PartialAsync("_DirectoryEntryPartial", entry)
+        <p>No listings found under this tag.</p>
     }
-    </ul>
-}
+    else
+    {
+        <ul class="blank_list_item">
+            @foreach (var entry in Model.PagedEntries.Items)
+            {
+                entry.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
+                @await Html.PartialAsync("_DirectoryEntryPartial", entry)
+            }
+        </ul>
 
-<hr />
-@await Html.PartialAsync("_SponsoredListingPartial")
+        <nav aria-label="Pagination">
+            <ul class="pagination">
+                @for (int p = 1; p <= totalPages; p++)
+                {
+                    // build raw path
+                    string rawPath = $"/tagged/{Model.Tag.Name}"
+                    + (p > 1 ? $"?page={p}" : "");
+                    // page 1 on canonical root, pages 2+ on app domain
+                    string href = p == 1
+                    ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
+                    : UrlResolver.Resolve(rawPath);
+
+                    string linkClass = p == 1 ? "no-app-link" : "app-link";
+                    string activeClass = p == Model.CurrentPage ? "active" : "";
+
+                    <li class="page-item @activeClass">
+                        <a class="page-link @linkClass" href="@href">@p</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+
+    <hr />
+    @await Html.PartialAsync("_SponsoredListingPartial")
 }

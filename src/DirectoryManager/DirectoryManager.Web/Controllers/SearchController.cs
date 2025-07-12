@@ -2,6 +2,7 @@
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
+using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
@@ -38,7 +39,6 @@ namespace DirectoryManager.Web.Controllers
 
             // 1) run the repository search
             var result = await this.entryRepo.SearchAsync(q ?? "", page, pageSize);
-
             var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
 
@@ -52,8 +52,8 @@ namespace DirectoryManager.Web.Controllers
 
             await this.searchLogRepository.CreateAsync(new SearchLog
             {
-                Term = q,
-                IpAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString()
+                Term = q.Trim(),
+                IpAddress = this.HttpContext.GetRemoteIpIfEnabled()
             });
 
             var allSponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();

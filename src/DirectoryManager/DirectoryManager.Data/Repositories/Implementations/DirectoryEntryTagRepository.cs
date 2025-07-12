@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -64,5 +65,36 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .AsNoTracking()
                 .ToListAsync();
         }
+
+        public async Task<PagedResult<DirectoryEntry>> ListEntriesForTagPagedAsync(
+            string tagName,
+            int page,
+            int pageSize)
+        {
+            // 1) Start from DirectoryEntries so we can Include navigations
+            var query = this.context.DirectoryEntries
+                .Include(e => e.SubCategory)
+                    .ThenInclude(sc => sc.Category)
+                .Include(e => e.EntryTags)
+                    .ThenInclude(et => et.Tag)
+                .Where(e =>
+                    e.DirectoryStatus != DirectoryStatus.Removed &&
+                    e.EntryTags.Any(et => et.Tag.Name == tagName))
+                .OrderBy(e => e.Name);
+
+            // 2) Count then page
+            var total = await query.CountAsync();
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return new PagedResult<DirectoryEntry>
+            {
+                TotalCount = total,
+                Items = items
+            };
+        }
+
     }
 }

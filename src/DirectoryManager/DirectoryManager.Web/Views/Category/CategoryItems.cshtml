@@ -9,6 +9,7 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject ICategoryRepository categoryRepo
 @inject ISubcategoryRepository subCatRepo
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 
 @{
     // build nav VM
@@ -140,23 +141,38 @@
         </ul>
     }
 
+
     @{
+        var categoryKey = Model.CategoryKey;
         int totalPages = (int)Math.Ceiling(Model.PagedEntries.TotalCount / (double)Model.PageSize);
+        int currentPage = Model.CurrentPage;
     }
+
     <nav aria-label="Pagination">
         <ul class="pagination">
             @for (int p = 1; p <= totalPages; p++)
             {
-                var linkClass = p == 1 ? "no-app-link" : "app-link";
-                <li class="page-item @(p == Model.CurrentPage ? "active" : "")">
-                    <a class="page-link @linkClass"
-                       href="@Url.Action("Category", new { categoryKey = Model.CategoryKey, page = p })">
+                // Build the raw path: first page is "/{categoryKey}", subsequent pages add "?page={p}"
+                string rawPath = $"/{categoryKey}" + (p > 1 ? $"?page={p}" : "");
+
+                // Page 1 → canonical root; pages 2+ → app domain
+                string href = p == 1
+                ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
+                : UrlResolver.Resolve(rawPath);
+
+                // Style classes
+                string linkClass = p == 1 ? "no-app-link" : "app-link";
+                string activeClass = p == currentPage ? "active" : "";
+
+                <li class="page-item @activeClass">
+                    <a class="page-link @linkClass" href="@href">
                         @p
                     </a>
                 </li>
             }
         </ul>
     </nav>
+
 
 <hr />
 
