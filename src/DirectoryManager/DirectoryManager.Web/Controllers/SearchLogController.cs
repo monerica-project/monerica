@@ -19,11 +19,16 @@ namespace DirectoryManager.Web.Controllers
             [FromQuery, DataType(DataType.Date)] DateTime? start,
             [FromQuery, DataType(DataType.Date)] DateTime? end)
         {
-            var to = end ?? DateTime.UtcNow;
-            var from = start ?? to.AddDays(-30);
+            DateTime to = end.HasValue
+                ? end.Value.Date.AddDays(1).AddTicks(-1) 
+                : DateTime.UtcNow;
 
+            DateTime from = start.HasValue
+                ? start.Value.Date
+                : to.Date.AddDays(-30);
+
+            // 3) Fetch and render
             var rows = await this.searchLogRepo.GetReportAsync(from, to);
-
             var vm = new SearchLogReportViewModel
             {
                 StartDate = from,
@@ -31,7 +36,6 @@ namespace DirectoryManager.Web.Controllers
                 TotalTerms = rows.Sum(r => r.Count),
                 ReportItems = rows
             };
-
             return this.View(vm);
         }
     }
