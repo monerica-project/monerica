@@ -22,27 +22,17 @@
     ViewData[StringConstants.MetaContent] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageMetaTags));
 }
 @{
-    // build nav VM
-    var cats = await categoryRepo.GetActiveCategoriesAsync();
-    var lookup = new Dictionary<int, List<Subcategory>>();
-    foreach (var c in cats)
-        lookup[c.CategoryId] = (await subCatRepo.GetActiveSubCategoriesAsync(c.CategoryId)).ToList();
-
-    var navModel = new NavigationViewModel
-    {
-        Categories = cats,
-        SubsByCategory = lookup,
-        CurrentCategoryKey =  null,
-        CurrentSubCategoryKey = null
-    };
+    ViewData["CurrentCategoryKey"]    = null;
+    ViewData["CurrentSubCategoryKey"] = null;
 }
 
 @{
     Layout = "_LayoutWithNav";
-    ViewData["NavModel"] = navModel;
-   
 }
 
+@{
+    var cats = await categoryRepo.GetActiveCategoriesAsync();
+}
 
 @{
      
@@ -50,23 +40,38 @@
     var catSponsors = await sponsoredListingRepository
         .GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
 
-    // Join with categories
-   
-    var sponsorsByCategory = catSponsors
-        .Where(s => s.DirectoryEntry?.SubCategory?.CategoryId != null)
-        .GroupBy(s => s.DirectoryEntry.SubCategory.CategoryId)
-        .ToDictionary(g => g.Key, g => g.Select(s => s.DirectoryEntry!).ToList());
-
     // ----- Subcategory sponsors -----
     var subSponsors = await sponsoredListingRepository
         .GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor); // ← make sure you have this
-
-    var subs = await subCategoryRepository.GetAllAsync();
+ 
     var sponsorsBySubcategory = subSponsors
         .Where(s => s.DirectoryEntry?.SubCategoryId != null)
         .GroupBy(s => s.DirectoryEntry.SubCategoryId)
         .ToDictionary(g => g.Key, g => g.Select(s => s.DirectoryEntry!).ToList());
 }
+
+
+@{
+    // load all subcategories (with Category navigation)
+    var subs = await subCategoryRepository.GetAllAsync();
+
+    // build a quick lookup from SubCategoryId → Subcategory (so we can get CategoryId cheaply)
+    var subById = subs.ToDictionary(sc => sc.SubcategoryId, sc => sc);
+
+    // now group your category‐level sponsors by CategoryId
+    var sponsorsByCategory = catSponsors
+        // only keep ones whose DirectoryEntry & SubCategoryId we know about
+        .Where(s => s.DirectoryEntry != null
+                    && subById.ContainsKey(s.DirectoryEntry.SubCategoryId))
+        // group by the sub’s CategoryId
+        .GroupBy(s => subById[s.DirectoryEntry.SubCategoryId].CategoryId)
+        // materialize into a Dictionary<CategoryId, List<DirectoryEntry>>
+        .ToDictionary(
+            g => g.Key,
+            g => g.Select(s => s.DirectoryEntry!).ToList()
+        );
+}
+
 
  @section PageContent {
 
@@ -229,10 +234,10 @@
                 <h2 class="section-title">Subcategory Sponsors</h2>
                 @foreach (var sub in subs)
                 {
-                    if (sponsorsBySubcategory.TryGetValue(sub.SubCategoryId, out var entries))
+                    if (sponsorsBySubcategory.TryGetValue(sub.SubcategoryId, out var entries))
                     {
                         <span class="subcategory-name">
-                            @Html.Raw(FormattingHelper.SubcategoryFormatting(sub.Category.Name, sub.Name))
+                            @Html.Raw(FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name))
                         </span>
                         <ul class="blank_list_item">
                             @foreach (var e in entries)

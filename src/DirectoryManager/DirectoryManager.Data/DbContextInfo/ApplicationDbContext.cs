@@ -36,7 +36,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<SponsoredListingInvoice> SponsoredListingInvoices { get; set; }
         public DbSet<SponsoredListingOffer> SponsoredListingOffers { get; set; }
         public DbSet<SponsoredListingReservation> SponsoredListingReservations { get; set; }
-        public DbSet<Subcategory> SubCategories { get; set; }
+        public DbSet<Subcategory> Subcategories { get; set; }
         public DbSet<Submission> Submissions { get; set; }
         public DbSet<TrafficLog> TrafficLogs { get; set; }
         public DbSet<Tag> Tags { get; set; }
@@ -62,6 +62,10 @@ namespace DirectoryManager.Data.DbContextInfo
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            builder.Entity<DirectoryEntry>()
+                   .HasIndex(e => new { e.DirectoryEntryId, e.DirectoryStatus })
+                   .IsUnique();
 
             builder.Entity<DirectoryEntry>()
                    .HasIndex(e => e.Link)

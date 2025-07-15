@@ -31,7 +31,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var currentDate = DateTime.UtcNow;
 
             return await this.context.SponsoredListings
+                .AsNoTracking()
                                      .Include(x => x.DirectoryEntry) // Include DirectoryEntry navigation property
+                                     .ThenInclude(x => x.SubCategory!)
+                                     .ThenInclude(x => x.Category!)
                                      .Where(x => x.SponsorshipType == sponsorshipType &&
                                                  x.CampaignStartDate <= currentDate &&
                                                  x.CampaignEndDate >= currentDate) // Filter active listings

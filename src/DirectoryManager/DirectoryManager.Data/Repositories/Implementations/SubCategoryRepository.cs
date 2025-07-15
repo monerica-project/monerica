@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -15,19 +16,44 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context;
         }
 
-        public async Task<IEnumerable<Subcategory>> GetAllAsync()
+        public async Task<IReadOnlyList<SubcategoryDto>> GetAllAsync()
         {
-            return await this.context.SubCategories
-                .Include(e => e.Category)
-                .OrderBy(e => e.Category.Name)
-                .ThenBy(e => e.Name)
-                .ToListAsync();
+            return await this.context.Subcategories
+              .AsNoTracking()
+              .OrderBy(s => s.Category.Name)
+              .ThenBy(s => s.Name)
+              .Select(s => new SubcategoryDto
+              {
+                  SubcategoryId = s.SubCategoryId,
+                  Name = s.Name,
+                  Key = s.SubCategoryKey,
+                  CategoryId = s.CategoryId,
+                  CategoryName = s.Category!.Name
+              })
+              .ToListAsync();
         }
-
         public async Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync()
         {
-            return await this.GetFilteredActiveSubCategoriesAsync();
+            // build a filtered entries set once
+            var activeEntries = this.context.DirectoryEntries
+                .Where(de =>
+                    de.DirectoryStatus != DirectoryStatus.Removed &&
+                    de.DirectoryStatus != DirectoryStatus.Unknown);
+
+            // join subcategories → entries, distinct, include Category
+            var q = this.context.Subcategories
+                .Join(activeEntries,
+                      sc => sc.SubCategoryId,
+                      de => de.SubCategoryId,
+                      (sc, de) => sc)
+                .Distinct()
+                .Include(sc => sc.Category)
+                .AsNoTracking()
+                .OrderBy(sc => sc.Name);
+
+            return await q.ToListAsync().ConfigureAwait(false);
         }
+
 
         public async Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync(int minimumInSubcategory)
         {
@@ -36,36 +62,36 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<Subcategory?> GetByIdAsync(int subCategoryId)
         {
-            return await this.context.SubCategories
+            return await this.context.Subcategories
                 .Include(sc => sc.Category)
                 .FirstOrDefaultAsync(sc => sc.SubCategoryId == subCategoryId);
         }
 
         public async Task CreateAsync(Subcategory subCategory)
         {
-            await this.context.SubCategories.AddAsync(subCategory);
+            await this.context.Subcategories.AddAsync(subCategory);
             await this.context.SaveChangesAsync();
         }
 
         public async Task UpdateAsync(Subcategory subCategory)
         {
-            this.context.SubCategories.Update(subCategory);
+            this.context.Subcategories.Update(subCategory);
             await this.context.SaveChangesAsync();
         }
 
         public async Task DeleteAsync(int subCategoryId)
         {
-            var subCategoryToDelete = await this.context.SubCategories.FindAsync(subCategoryId);
+            var subCategoryToDelete = await this.context.Subcategories.FindAsync(subCategoryId);
             if (subCategoryToDelete != null)
             {
-                this.context.SubCategories.Remove(subCategoryToDelete);
+                this.context.Subcategories.Remove(subCategoryToDelete);
                 await this.context.SaveChangesAsync();
             }
         }
 
         public async Task<Subcategory?> GetByCategoryIdAndKeyAsync(int categoryId, string subCategoryKey)
         {
-            return await this.context.SubCategories
+            return await this.context.Subcategories
                 .Where(subCategory =>
                     subCategory.CategoryId == categoryId &&
                     subCategory.SubCategoryKey == subCategoryKey &&
@@ -76,25 +102,30 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<Subcategory>> GetByCategoryAsync(int categoryId)
         {
-            return await this.context.SubCategories
+            return await this.context.Subcategories
                 .Where(sc => sc.CategoryId == categoryId)
                 .OrderBy(sc => sc.Name)
                 .ToListAsync();
         }
 
-        public async Task<IEnumerable<Subcategory>> GetActiveSubCategoriesAsync(int categoryId)
+        public async Task<IEnumerable<Subcategory>> GetActiveSubcategoriesAsync(int categoryId)
         {
-            return await this.context.SubCategories
-                .Where(subCategory =>
-                    subCategory.CategoryId == categoryId &&
-                    this.ActiveDirectoryEntries().Any(entry => entry.SubCategoryId == subCategory.SubCategoryId))
-                .OrderBy(sc => sc.Name)
-                .ToListAsync();
+            return await (
+                from sc in this.context.Subcategories.AsNoTracking()
+                join e in this.context.DirectoryEntries.AsNoTracking()
+                    on sc.SubCategoryId equals e.SubCategoryId
+                where sc.CategoryId == categoryId
+                   && e.DirectoryStatus != DirectoryStatus.Removed
+                   && e.DirectoryStatus != DirectoryStatus.Unknown
+                select sc)
+            .Distinct()
+            .OrderBy(sc => sc.Name)
+            .ToListAsync();
         }
 
         public async Task<Dictionary<int, DateTime>> GetAllSubCategoriesLastChangeDatesAsync()
         {
-            var subCategories = await this.context.SubCategories
+            var subCategories = await this.context.Subcategories
                 .Select(sc => new
                 {
                     sc.SubCategoryId,
@@ -109,7 +140,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         private async Task<IEnumerable<Subcategory>> GetFilteredActiveSubCategoriesAsync(int? minimumInSubcategory = null)
         {
-            var query = this.context.SubCategories
+            var query = this.context.Subcategories
                 .Include(sc => sc.Category)
                 .Where(subCategory =>
                     this.ActiveDirectoryEntries().Any(entry => entry.SubCategoryId == subCategory.SubCategoryId));
@@ -128,5 +159,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context.DirectoryEntries
                 .Where(entry => entry.DirectoryStatus != DirectoryStatus.Unknown &&
                                 entry.DirectoryStatus != DirectoryStatus.Removed);
+
     }
 }

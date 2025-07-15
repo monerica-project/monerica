@@ -186,7 +186,7 @@ namespace DirectoryManager.Web.Controllers
                     CanonicalUrl = string.Format("{0}/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), category.CategoryKey),
                 };
 
-                var subCategories = await this.subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId);
+                var subCategories = await this.subCategoryRepository.GetActiveSubcategoriesAsync(category.CategoryId);
 
                 foreach (var subCategory in subCategories)
                 {
@@ -230,7 +230,7 @@ namespace DirectoryManager.Web.Controllers
                 : lastChangeToCategory;
 
             // Get active subcategories for the current category
-            var subCategories = await this.subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId);
+            var subCategories = await this.subCategoryRepository.GetActiveSubcategoriesAsync(category.CategoryId);
 
             // Determine the most recent subcategory change date
             DateTime? mostRecentSubcategoryDate = subCategories

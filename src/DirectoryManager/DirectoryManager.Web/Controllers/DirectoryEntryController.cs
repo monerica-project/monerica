@@ -11,6 +11,7 @@ using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
@@ -66,7 +67,7 @@ namespace DirectoryManager.Web.Controllers
                              .ToList();
 
             this.ViewBag.SubCategories = (await this.subCategoryRepository.GetAllAsync())
-                                    .OrderBy(sc => sc.Category.Name)
+                                    .OrderBy(sc => sc.CategoryName)
                                     .ThenBy(sc => sc.Name)
                                     .ToList();
 
@@ -158,7 +159,7 @@ namespace DirectoryManager.Web.Controllers
 
             // Get all subcategories without projection into an anonymous type
             var subCategories = (await this.subCategoryRepository.GetAllAsync())
-                .OrderBy(sc => sc.Category.Name)
+                .OrderBy(sc => sc.CategoryName)
                 .ThenBy(sc => sc.Name)
                 .ToList();
 
@@ -169,6 +170,8 @@ namespace DirectoryManager.Web.Controllers
                                          .OrderBy(t => t.Name)
                                          .Select(t => t.Name));
 
+
+            await this.PopulateCountryDropDownList();
 
             return this.View(entry);  // Pass the entry model for editing
         }
@@ -200,6 +203,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Contact = entry.Contact?.Trim();
             existingEntry.Location = entry.Location?.Trim();
             existingEntry.Processor = entry.Processor?.Trim();
+            existingEntry.CountryCode = entry.CountryCode;
 
             await this.directoryEntryRepository.UpdateAsync(existingEntry);
 
@@ -270,6 +274,7 @@ namespace DirectoryManager.Web.Controllers
                 Note = directoryEntry.Note,
                 Processor = directoryEntry.Processor,
                 SubCategoryId = directoryEntry.SubCategoryId,
+                CountryCode = directoryEntry.CountryCode,
             };
 
             // Set category and subcategory names for each audit entry
@@ -389,18 +394,36 @@ namespace DirectoryManager.Web.Controllers
         private async Task SetSubcategories()
         {
             var subCategories = (await this.subCategoryRepository.GetAllAsync())
-                .OrderBy(sc => sc.Category.Name)
+                .OrderBy(sc => sc.CategoryName)
                 .ThenBy(sc => sc.Name)
                 .Select(sc => new
                 {
-                    sc.SubCategoryId,
-                    DisplayName = $"{sc.Category.Name} > {sc.Name}"
+                    sc.SubcategoryId,
+                    DisplayName = $"{sc.CategoryName} > {sc.Name}"
                 })
                 .ToList();
 
-            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
+            subCategories.Insert(0, new { SubcategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
 
             this.ViewBag.SubCategories = subCategories;
+        }
+
+        private async Task PopulateCountryDropDownList(object selectedId = null)
+        {
+            // Get the dictionary of countries from the helper.
+            var countries = CountryHelper.GetCountries();
+
+            // Build a list of SelectListItem from the dictionary.
+            var list = countries.Select(c => new SelectListItem
+            {
+                Value = c.Key,
+                Text = c.Value
+            }).ToList();
+
+            // Insert default option at the top.
+            list.Insert(0, new SelectListItem { Value = "", Text = StringConstants.SelectText });
+            this.ViewBag.CountryCode = new SelectList(list, "Value", "Text", selectedId);
+            await Task.CompletedTask; // For async signature compliance.
         }
     }
 }

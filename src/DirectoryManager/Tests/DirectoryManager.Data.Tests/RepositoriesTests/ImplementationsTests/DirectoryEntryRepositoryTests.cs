@@ -25,7 +25,7 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
                 var directoryEntry = new DirectoryEntry { DirectoryEntryId = 1, Name = "TestEntry", DirectoryEntryKey = "test-entry", SubCategory = subCategory };
 
                 context.Categories.Add(category);
-                context.SubCategories.Add(subCategory);
+                context.Subcategories.Add(subCategory);
                 context.DirectoryEntries.Add(directoryEntry);
                 await context.SaveChangesAsync();
 

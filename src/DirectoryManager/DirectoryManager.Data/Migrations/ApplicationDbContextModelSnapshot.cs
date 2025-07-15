@@ -17,7 +17,7 @@ namespace DirectoryManager.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.6")
+                .HasAnnotation("ProductVersion", "9.0.7")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -285,6 +285,10 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(75)
                         .HasColumnType("nvarchar(75)");
 
+                    b.Property<string>("CountryCode")
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime2");
 
@@ -367,6 +371,9 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasIndex("SubCategoryId")
                         .HasDatabaseName("IX_DirectoryEntries_SubCategoryId");
+
+                    b.HasIndex("DirectoryEntryId", "DirectoryStatus")
+                        .IsUnique();
 
                     b.HasIndex("SubCategoryId", "DirectoryEntryKey")
                         .IsUnique();
@@ -1136,7 +1143,7 @@ namespace DirectoryManager.Data.Migrations
                     b.HasIndex("SubCategoryKey", "CategoryId")
                         .IsUnique();
 
-                    b.ToTable("SubCategories");
+                    b.ToTable("Subcategories");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.Submission", b =>

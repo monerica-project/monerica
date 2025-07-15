@@ -1,19 +1,49 @@
 ﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models
 @using DirectoryManager.Web.Models
-@model NavigationViewModel
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContext
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheService
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService urlResolver
+@using Microsoft.Extensions.Caching.Memory
+@inject IMemoryCache MemoryCache
+@inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepo
+@inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository subCatRepo
 
 @{
-    string currentCat = Model.CurrentCategoryKey ?? "";
-    string currentSub = Model.CurrentSubCategoryKey ?? "";
+    string currentCat = (string?)ViewData["CurrentCategoryKey"] ?? "";
+    string currentSub = (string?)ViewData["CurrentSubCategoryKey"] ?? "";
 }
+
+
+@{
+    // pull from cache or rebuild once per hour
+    var navModel = await MemoryCache.GetOrCreateAsync("NavModel", async entry =>
+    {
+        entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+
+        var cats = await categoryRepo.GetActiveCategoriesAsync();
+        var subs = await subCatRepo.GetAllActiveSubCategoriesAsync();
+        var lookup = subs.GroupBy(sc => sc.CategoryId).ToDictionary(g => g.Key, g => g.ToList());
+ 
+        return new NavigationViewModel
+        {
+            Categories = cats,
+            SubsByCategory = lookup,
+            // you’ll set these on each page below:
+            CurrentCategoryKey = currentCat,
+            CurrentSubCategoryKey = currentSub
+        };
+    });
+
+    // now push it into ViewData so your layout/nav partial can pick it up
+    ViewData["NavModel"] = navModel;
+}
+
 
 <details class="mobile-nav">
     <summary>Menu</summary>
     <ul>
-        @foreach (var cat in Model.Categories)
+        @foreach (var cat in navModel.Categories)
         {
             <li>
                 <details open="@(cat.CategoryKey == currentCat)">
@@ -24,7 +54,7 @@
                         </a>
                     </summary>
                     <ul>
-                        @foreach (var sub in Model.SubsByCategory[cat.CategoryId])
+                        @foreach (var sub in navModel.SubsByCategory[cat.CategoryId])
                         {
                             <li>
                                 <a class="no-app-link @(cat.CategoryKey == currentCat && sub.SubCategoryKey == currentSub ? "active" : "")"
@@ -50,7 +80,7 @@
     </div>
 
     <ul>
-        @foreach (var cat in Model.Categories)
+        @foreach (var cat in navModel.Categories)
         {
             var isCurrentCat = cat.CategoryKey == currentCat;
             var expanderId = $"{cat.CategoryKey}_expander";
@@ -67,7 +97,7 @@
                        @(isCurrentCat ? "checked" : "") />
                 <div class="hidden">
                     <ul>
-                        @foreach (var sub in Model.SubsByCategory[cat.CategoryId])
+                        @foreach (var sub in navModel.SubsByCategory[cat.CategoryId])
                         {
                             <li>
                                 <a class="no-app-link @(isCurrentCat && sub.SubCategoryKey == currentSub ? "active" : "")"

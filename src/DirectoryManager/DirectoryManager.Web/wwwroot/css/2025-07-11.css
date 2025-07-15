@@ -624,6 +624,7 @@ section.sponsors {
     display: block;
     margin: 1.5rem auto 0.5rem;
     max-height: 80px;
+    margin-top: 0;
 }
 
 div.centered {

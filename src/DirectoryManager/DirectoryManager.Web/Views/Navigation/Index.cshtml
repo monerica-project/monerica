@@ -30,7 +30,7 @@
     foreach (var cat in activeCategories)
     {
         subsByCategory[cat.CategoryId] = (await subCategoryRepository
-            .GetActiveSubCategoriesAsync(cat.CategoryId))
+            .GetActiveSubcategoriesAsync(cat.CategoryId))
             .ToList();
     }
 }

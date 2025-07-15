@@ -1,5 +1,6 @@
 ﻿@using DirectoryManager.Data.Models
 @model IEnumerable<DirectoryEntry>
+@using DirectoryManager.Data.Models.TransferModels
 @using DirectoryManager.Web.Constants;
 @{
     ViewData[StringConstants.TitleHeader] = "Directory Entries";
@@ -20,9 +21,9 @@
     <label for="combinedFilter">Category > Subcategory: </label>
     <select id="combinedFilter" name="subCategoryId">
         <option value="">--Select a Category > SubCategory--</option>
-        @foreach (var subCategory in (IEnumerable<Subcategory>)ViewBag.SubCategories)
+        @foreach (var subCategory in (IEnumerable<SubcategoryDto>)ViewBag.SubCategories)
         {
-            <option value="@subCategory.SubCategoryId">@subCategory.Category.Name > @subCategory.Name</option>
+            <option value="@subCategory.SubcategoryId">@subCategory.CategoryName > @subCategory.Name</option>
         }
     </select>
 

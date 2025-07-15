@@ -30,7 +30,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<SponsoredListingOffer> SponsoredListingOffers { get; set; }
         public DbSet<SponsoredListingReservation> SponsoredListingReservations { get; set; }
         public DbSet<Submission> Submissions { get; set; }
-        public DbSet<Subcategory> SubCategories { get; set; }
+        public DbSet<Subcategory> Subcategories { get; set; }
         public DbSet<TrafficLog> TrafficLogs { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<DirectoryEntryTag> DirectoryEntryTags { get; set; }

@@ -35,7 +35,7 @@ namespace DirectoryManager.Web.Controllers
             var filteredSubcategories = await this.subcategoryRepository.GetAllAsync();
 
             var filteredSubcategoriesWithEntries = filteredSubcategories
-                .Where(sc => filteredEntries.Any(entry => entry.SubCategoryId == sc.SubCategoryId))
+                .Where(sc => filteredEntries.Any(entry => entry.SubCategoryId == sc.SubcategoryId))
                 .ToList();
 
             var filteredCategoriesWithEntries = activeCategories

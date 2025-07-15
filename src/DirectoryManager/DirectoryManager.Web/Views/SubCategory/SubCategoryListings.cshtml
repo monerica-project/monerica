@@ -33,22 +33,14 @@
     };
 }
 
+
 @{
-    // build nav VM
-    var cats = await categoryRepo.GetActiveCategoriesAsync();
-    var lookup = new Dictionary<int, List<Subcategory>>();
-    foreach(var c in cats)
-        lookup[c.CategoryId] = (await subCatRepo.GetActiveSubCategoriesAsync(c.CategoryId)).ToList();
+    ViewData["CurrentCategoryKey"] = Model.Category.CategoryKey;
+    ViewData["CurrentSubCategoryKey"] = Model.SubCategoryKey;
+}
 
-    var navModel = new NavigationViewModel {
-        Categories = cats,
-        SubsByCategory = lookup,
-        CurrentCategoryKey      = Model.Category.CategoryKey,
-        CurrentSubCategoryKey   = Model.SubCategoryKey
-    };
-
+@{
      Layout = "_LayoutWithNav";
-  ViewData["NavModel"] = navModel;
 }
 
   @section PageContent {

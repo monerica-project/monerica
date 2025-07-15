@@ -49,7 +49,7 @@
         foreach (var c in cats)
         {
             subsByCat[c.CategoryId] =
-                (await subCatRepo.GetActiveSubCategoriesAsync(c.CategoryId))
+                (await subCatRepo.GetActiveSubcategoriesAsync(c.CategoryId))
                 .ToList();
         }
     }

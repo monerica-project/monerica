@@ -35,5 +35,6 @@
         public const string CategoryName = "CategoryName";
         public const string EnglishUS = "en-US";
         public const string AllCategories = "All Categories";
+        public const string SelectText = "- Select -";
     }
 }

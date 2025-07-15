@@ -51,6 +51,12 @@ namespace DirectoryManager.Data.Models
 
         public DirectoryBadge DirectoryBadge { get; set; } = DirectoryBadge.Unknown;
 
+        /// <summary>
+        /// The two-letter ISO country code.
+        /// </summary>
+        [MaxLength(2)]
+        public string? CountryCode { get; set; }
+
         [MaxLength(500)]
         public string? Description { get; set; }
 

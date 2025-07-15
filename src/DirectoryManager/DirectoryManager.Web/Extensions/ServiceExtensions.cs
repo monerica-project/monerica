@@ -37,7 +37,15 @@ namespace DirectoryManager.Web.Extensions
 
             // Register ApplicationDbContext with DbContextOptions
             services.AddDbContext<ApplicationDbContext>(options =>
-                  options.UseSqlServer(config.GetConnectionString(StringConstants.DefaultConnection)));
+                options.UseSqlServer(
+                  config.GetConnectionString(StringConstants.DefaultConnection),
+                    sqlOptions => {
+                        // retry up to 5 times with up to 10s between retries
+                        sqlOptions.EnableRetryOnFailure(
+                          maxRetryCount: 5,
+                          maxRetryDelay: TimeSpan.FromSeconds(120),
+                          errorNumbersToAdd: null);
+                    }));
 
             // Register all repositories from DatabaseExtensions
             services.AddDbRepositories();

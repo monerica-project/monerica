@@ -193,11 +193,29 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<DirectoryEntry>> GetNewestAdditions(int count)
         {
-            return await this.ActiveQuery()
+            // Phase 1: just fetch the IDs of the newest 'count' entries
+            var ids = await this.context.DirectoryEntries
+                .AsNoTracking()
                 .OrderByDescending(e => e.CreateDate)
                 .Take(count)
+                .Select(e => e.DirectoryEntryId)
                 .ToListAsync()
                 .ConfigureAwait(false);
+
+            if (!ids.Any())
+                return Array.Empty<DirectoryEntry>();
+
+            // Phase 2: eager‐load the full entities (and their SubCategory/Category/Tags)
+            var entries = await this.BaseQuery()
+                .AsNoTracking()
+                .Where(e => ids.Contains(e.DirectoryEntryId))
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            // Finally, re‐order them by CreateDate descending
+            return entries
+                .OrderByDescending(e => e.CreateDate)
+                .ToList();
         }
 
         public async Task<IEnumerable<GroupedDirectoryEntry>> GetNewestAdditionsGrouped(

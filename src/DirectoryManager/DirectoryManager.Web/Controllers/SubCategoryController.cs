@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.Utilities.Helpers;
@@ -46,7 +47,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Index(int? categoryId = null)
         {
-            IEnumerable<Subcategory> subCategories;
+            IEnumerable<SubcategoryDto> subCategories;
 
             if (categoryId.HasValue)
             {

@@ -149,7 +149,7 @@
                 <input type="checkbox" id="@string.Format("{0}_checkbox", category.CategoryKey)" />
                 <div class="hidden">
                     <ul>
-                        @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId))
+                        @foreach (var subCategory in await subCategoryRepository.GetActiveSubcategoriesAsync(category.CategoryId))
                         {
                             <li>
                                 <a href="@category.CategoryKey/@subCategory.SubCategoryKey">@subCategory.Name</a>
@@ -270,7 +270,7 @@
                                 );
     }
 
-        @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId))
+        @foreach (var subCategory in await subCategoryRepository.GetActiveSubcategoriesAsync(category.CategoryId))
         {
             <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>
             if (!string.IsNullOrEmpty(subCategory.Description))

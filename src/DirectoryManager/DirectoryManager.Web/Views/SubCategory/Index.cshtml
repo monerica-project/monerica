@@ -1,5 +1,6 @@
 ﻿@using DirectoryManager.Data.Models
-@model IEnumerable<Subcategory>
+@model IEnumerable<SubcategoryDto>
+@using DirectoryManager.Data.Models.TransferModels
 @using DirectoryManager.Web.Constants;
 @{
     ViewData[StringConstants.TitleHeader] = "Sub Categories";
@@ -31,8 +32,8 @@
 <br />
 @foreach (var subCategory in Model)
 {
-    <div>@subCategory.Name - Parent Category: @subCategory.Category.Name</div>
-    <a href="@Url.Action("Edit", new { id = subCategory.SubCategoryId })">Edit</a>
+    <div>@subCategory.Name - Parent Category: @subCategory.CategoryName</div>
+    <a href="@Url.Action("Edit", new { id = subCategory.SubcategoryId })">Edit</a>
 }
 <br />
 

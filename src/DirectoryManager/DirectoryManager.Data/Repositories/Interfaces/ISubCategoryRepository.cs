@@ -1,10 +1,11 @@
 ﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.TransferModels;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
     public interface ISubcategoryRepository
     {
-        Task<IEnumerable<Subcategory>> GetAllAsync();
+        Task<IReadOnlyList<SubcategoryDto>> GetAllAsync();
         Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync();
         Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync(int minimumInSubCategory);
         Task<Subcategory?> GetByIdAsync(int subCategoryId);
@@ -13,7 +14,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task UpdateAsync(Subcategory subCategory);
         Task DeleteAsync(int subCategoryId);
         Task<IEnumerable<Subcategory>> GetByCategoryAsync(int categoryId);
-        Task<IEnumerable<Subcategory>> GetActiveSubCategoriesAsync(int categoryId);
+        Task<IEnumerable<Subcategory>> GetActiveSubcategoriesAsync(int categoryId);
         Task<Dictionary<int, DateTime>> GetAllSubCategoriesLastChangeDatesAsync();
     }
 }

@@ -177,7 +177,7 @@ namespace DirectoryManager.Web.Controllers
                              .ToList();
 
             this.ViewBag.SubCategories = (await this.subCategoryRepository.GetAllAsync())
-                                    .OrderBy(sc => sc.Category.Name)
+                                    .OrderBy(sc => sc.CategoryName)
                                     .ThenBy(sc => sc.Name)
                                     .ToList();
 
@@ -487,16 +487,16 @@ namespace DirectoryManager.Web.Controllers
         private async Task SetSelectSubCategoryViewBag()
         {
             var subCategories = (await this.subCategoryRepository.GetAllAsync())
-              .OrderBy(sc => sc.Category.Name)
+              .OrderBy(sc => sc.CategoryName)
               .ThenBy(sc => sc.Name)
               .Select(sc => new
               {
-                  sc.SubCategoryId,
-                  DisplayName = $"{sc.Category.Name} > {sc.Name}"
+                  sc.SubcategoryId,
+                  DisplayName = $"{sc.CategoryName} > {sc.Name}"
               })
               .ToList();
 
-            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
+            subCategories.Insert(0, new { SubcategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
 
             this.ViewBag.SubCategories = subCategories;
         }
@@ -707,16 +707,16 @@ namespace DirectoryManager.Web.Controllers
         private async Task LoadSubCategories()
         {
             var subCategories = (await this.subCategoryRepository.GetAllAsync())
-                .OrderBy(sc => sc.Category.Name)
+                .OrderBy(sc => sc.CategoryName)
                 .ThenBy(sc => sc.Name)
                 .Select(sc => new
                 {
-                    sc.SubCategoryId,
-                    DisplayName = $"{sc.Category.Name} > {sc.Name}"
+                    sc.SubcategoryId,
+                    DisplayName = $"{sc.CategoryName} > {sc.Name}"
                 })
                 .ToList();
 
-            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
+            subCategories.Insert(0, new { SubcategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
 
             this.ViewBag.SubCategories = subCategories;
         }
