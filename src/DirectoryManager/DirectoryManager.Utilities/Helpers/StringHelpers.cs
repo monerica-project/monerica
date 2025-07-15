@@ -43,5 +43,18 @@ namespace DirectoryManager.Utilities.Helpers
             // Step 7: Convert to lowercase.
             return urlSafe.ToLowerInvariant();
         }
+
+        /// <summary>
+        /// Truncates the input to maxLength characters, appending “…” if it was longer.
+        /// </summary>
+        public static string Truncate(string? input, int maxLength)
+        {
+            if (string.IsNullOrEmpty(input) || input.Length <= maxLength)
+            {
+                return input ?? string.Empty;
+            }
+
+            return input.Substring(0, maxLength) + "…";
+        }
     }
 }

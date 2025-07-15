@@ -1,4 +1,5 @@
-﻿@model DirectoryManager.Web.Models.SearchLogReportViewModel
+﻿@using DirectoryManager.Utilities.Helpers
+@model DirectoryManager.Web.Models.SearchLogReportViewModel
 
 @{
     ViewData["Title"] = "Search Report";
@@ -54,7 +55,7 @@
                 @foreach (var item in Model.ReportItems)
                 {
                     <tr>
-                        <td>@DirectoryManager.DisplayFormatting.Helpers.StringHelpers.Truncate(item.Term, 50)</td>
+                        <td>@StringHelpers.Truncate(item.Term, 50)</td>
                         <td class="text-right">@item.Count</td>
                         <td class="text-right">@item.Percentage.ToString("0.00")%</td>
                         <td>

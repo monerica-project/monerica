@@ -68,32 +68,8 @@
         .ToDictionary(g => g.Key, g => g.Select(s => s.DirectoryEntry!).ToList());
 }
 
-
  @section PageContent {
 
-     <style>
-        /* container for the two sponsor sections */
-        .sponsor-sections {
-            display: flex;
-            gap: 2rem;
-            flex-wrap: wrap;
-            margin-bottom: 2rem;
-        }
-
-            /* each section takes up half the width (minus gap) */
-            .sponsor-sections section {
-                flex: 1 1 calc(50% - 1rem);
-                box-sizing: border-box;
-            }
-
-            /* keep cards in a grid inside each section */
-            .sponsor-sections .sponsors-grid {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 1rem;
-            }
-
-</style>
 
     <div class="content-wrapper">
  

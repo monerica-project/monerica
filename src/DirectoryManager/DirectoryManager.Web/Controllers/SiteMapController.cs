@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Migrations;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Utilities;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Helpers;
@@ -35,7 +36,7 @@ namespace DirectoryManager.Web.Controllers
             ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository,
             ISponsoredListingRepository sponsoredListingRepository,
             IDirectoryEntrySelectionRepository directoryEntrySelectionRepository,
-            ITagRepository tagRepository, 
+            ITagRepository tagRepository,
             IDirectoryEntryTagRepository entryTagRepository)
         {
             this.cacheService = cacheService;
@@ -93,9 +94,7 @@ namespace DirectoryManager.Web.Controllers
             foreach (var tagInfo in activeTags)
             {
                 // slugify once:
-                var slug = tagInfo.Name
-                                  .Replace(" ", "-")
-                                  .ToLowerInvariant();
+                var slug = tagInfo.Name.UrlKey();
 
                 siteMapHelper.SiteMapItems.Add(new SiteMapItem
                 {
@@ -107,7 +106,6 @@ namespace DirectoryManager.Web.Controllers
                                          : mostRecentUpdateDate
                 });
             }
-
 
             // Add the root sitemap item
             siteMapHelper.SiteMapItems.Add(new SiteMapItem

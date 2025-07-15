@@ -90,7 +90,7 @@
 
 <div class="form-group">
     <label asp-for="Tags">Tags (comma-separated)</label>
-    <input asp-for="Tags" class="form-control  input-width" />
+    <input maxlength="100" asp-for="Tags" class="form-control  input-width" />
     <span asp-validation-for="Tags" class="text-danger"></span>
 </div>
 
