@@ -17,5 +17,7 @@ namespace NowPayments.API.Interfaces
         Task<PaymentStatusResponse> GetPaymentStatusAsync(string paymentId);
 
         bool IsIpnRequestValid(string requestBody, string paymentSignature, out string errorMsg);
+
+        Task<CurrencyEstimateResponse> GetEstimatedConversionAsync(decimal amount, string fromCurrency, string toCurrency);
     }
 }

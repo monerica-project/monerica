@@ -10,6 +10,7 @@
         NewestAddition = 5,
         NewestRevions = 6,
         CategorySponsor = 7,
-        SearchResult = 8
+        SearchResult = 8,
+        Email = 9
     }
 }

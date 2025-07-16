@@ -2,11 +2,24 @@
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Utilities.Helpers
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
+@inject NowPayments.API.Interfaces.INowPaymentsService nowPaymentsService
+@using DirectoryManager.Web.Helpers
+@using Microsoft.Extensions.Caching.Memory
+@inject IMemoryCache memoryCache
+
 
 @{
     ViewData[StringConstants.TitleHeader] = "Sponsored Listing Offers";
     Layout = "_CenteredLayout";
 }
+
+@{
+    var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(httpContextAccessor, memoryCache, nowPaymentsService);
+    bool showConverted = conversionResult.showConverted;
+    decimal conversionRate = conversionResult.conversionRate;
+}
+
 
 @section PageContent {
 
@@ -23,25 +36,28 @@
 
 <hr />
 
+<p>Rates as of: @DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</p>
 <div>
     <h3 style="text-align:center;">@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</h3>
-
+        <br />
 <div class="table-wrapper">
     <table class="table">
     <thead>
         <tr>
             <th>@DirectoryManager.DisplayFormatting.Helpers.FormattingHelper.SubcategoryFormatting("Category", "Subcategory")</th>
             <th>Days</th>
-            <th>Price (@DirectoryManager.Data.Enums.Currency.USD.ToString())</th>
+            <th>Price @DirectoryManager.Data.Enums.Currency.USD.ToString()</th>
+            <th>Price  @DirectoryManager.Data.Enums.Currency.XMR.ToString()</th>
         </tr>
     </thead>
     <tbody>
         @foreach (var offer in Model.MainSponsorshipOffers)
         {
             <tr>
-                        <td style="text-align:center;">@offer.CategorySubcategory</td>
+                <td style="text-align:center;">@offer.CategorySubcategory</td>
                 <td style="text-align:center;">@offer.Days</td>
                 <td style="text-align:center;">@offer.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat)</td>
+                <td style="text-align:center;">@DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(offer.Price, conversionRate, conversionResult.selectedCurrency, false)</td>
             </tr>
         }
     </tbody>
@@ -51,13 +67,15 @@
 <hr />
 
 <h3 style="text-align:center;">@EnumHelper.GetDescription(SponsorshipType.CategorySponsor)</h3>
+<br />
 <div class="table-wrapper">
     <table class="table">
     <thead>
         <tr>
-                        <th>@DirectoryManager.DisplayFormatting.Helpers.FormattingHelper.SubcategoryFormatting("Category", "Subcategory")</th>
+            <th>@DirectoryManager.DisplayFormatting.Helpers.FormattingHelper.SubcategoryFormatting("Category", "Subcategory")</th>
             <th>Days</th>
-            <th>Price (@DirectoryManager.Data.Enums.Currency.USD.ToString())</th>
+                        <th>Price @DirectoryManager.Data.Enums.Currency.USD.ToString()</th>
+                        <th>Price  @DirectoryManager.Data.Enums.Currency.XMR.ToString()</th>
         </tr>
     </thead>
             <tbody>
@@ -67,6 +85,8 @@
                         <td style="text-align:center;">@offer.CategorySubcategory</td>
                 <td style="text-align:center;">@offer.Days</td>
                 <td style="text-align:center;">@offer.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat)</td>
+                            <td style="text-align:center;">@DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(offer.Price, conversionRate, conversionResult.selectedCurrency, false)</td>
+
             </tr>
         }
     </tbody>
@@ -76,13 +96,15 @@
 <hr />
 
         <h3 style="text-align:center;">@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</h3>
+        <br />
     <div class="table-wrapper">
         <table class="table">
     <thead>
         <tr>
                         <th>@DirectoryManager.DisplayFormatting.Helpers.FormattingHelper.SubcategoryFormatting("Category", "Subcategory")</th>
             <th>Days</th>
-            <th>Price (@DirectoryManager.Data.Enums.Currency.USD.ToString())</th>
+                        <th>Price @DirectoryManager.Data.Enums.Currency.USD.ToString()</th>
+                        <th>Price  @DirectoryManager.Data.Enums.Currency.XMR.ToString()</th>
         </tr>
     </thead>
     <tbody>
@@ -92,6 +114,8 @@
                             <td style="text-align:center;">@offer.CategorySubcategory</td>
                 <td style="text-align:center;">@offer.Days</td>
                 <td style="text-align:center;">@offer.Price.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat)</td>
+                            <td style="text-align:center;">@DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(offer.Price, conversionRate, conversionResult.selectedCurrency, false)</td>
+
             </tr>
         }
     </tbody>

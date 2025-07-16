@@ -36,5 +36,7 @@
         public const string EnglishUS = "en-US";
         public const string AllCategories = "All Categories";
         public const string SelectText = "- Select -";
+        public const string CacheKeyPrefixConversion = "conversion_rate_";
+        public const string CookieNameCurrency = "currency";
     }
 }

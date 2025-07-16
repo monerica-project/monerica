@@ -4,6 +4,12 @@
 @using DirectoryManager.Data.Enums
 @model IEnumerable<SponsoredListingOfferModel>
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
+@using DirectoryManager.Utilities.Helpers
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
+@inject NowPayments.API.Interfaces.INowPaymentsService nowPaymentsService
+@using DirectoryManager.Web.Helpers
+@using Microsoft.Extensions.Caching.Memory
+@inject IMemoryCache memoryCache
 
 @{
     ViewData[StringConstants.TitleHeader] = "Select Listing Duration";
@@ -11,6 +17,13 @@
     int defaultChoiceIndex = 0;
     ViewData[StringConstants.IsIndexable] = false;
 }
+
+@{
+    var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(httpContextAccessor, memoryCache, nowPaymentsService);
+    bool showConverted = conversionResult.showConverted;
+    decimal conversionRate = conversionResult.conversionRate;
+}
+
 
 @{
     Layout = "_CenteredLayout";
@@ -34,6 +47,7 @@ else if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.
 }
 
 <p><i>@Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.PaymentCurrencyMessage))</i></p>
+<br />
 
 <form method="post" action="~/sponsoredlisting/selectduration">
     <input name="directoryEntryId" type="hidden" value="@ViewBag.DirectoryEntryId" />
@@ -45,8 +59,9 @@ else if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.
             <div class="form-check">
                 <label class="form-check-label" style="display: flex; align-items: center;">
                     <input class="form-check-input" type="radio" name="SelectedOfferId" value="@offer.SponsoredListingOfferId" @(i == defaultChoiceIndex ? "checked" : string.Empty)>
-                    @offer.Description - @offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
-                        new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure)) @Currency.USD.ToString()
+                    @offer.Days-Days - @offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
+                        new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure)) @Currency.USD.ToString() 
+                <span>&nbsp;&#8212;&nbsp;@DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(offer.USDPrice, conversionRate, conversionResult.selectedCurrency, true)</span>
                 </label>
             </div>
         }

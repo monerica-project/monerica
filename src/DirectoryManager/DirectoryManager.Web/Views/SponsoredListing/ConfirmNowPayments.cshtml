@@ -4,6 +4,12 @@
 @using DirectoryManager.Data.Enums
 @model DirectoryManager.Web.Models.ConfirmSelectionViewModel;
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
+@using DirectoryManager.Utilities.Helpers
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
+@inject NowPayments.API.Interfaces.INowPaymentsService nowPaymentsService
+@using DirectoryManager.Web.Helpers
+@using Microsoft.Extensions.Caching.Memory
+@inject IMemoryCache memoryCache
 
 @{
     ViewData[StringConstants.TitleHeader] = "Confirm Selection";
@@ -12,6 +18,14 @@
 @{
     Layout = "_CenteredLayout";
 }
+
+ 
+@{
+    var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(httpContextAccessor, memoryCache, nowPaymentsService);
+    bool showConverted = conversionResult.showConverted;
+    decimal conversionRate = conversionResult.conversionRate;
+}
+
 
 @section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
@@ -35,14 +49,45 @@
         <hr />
 
         <h2>Your Order</h2>
-        <p>
-            <b>Sponsorship Type:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.Offer.SponsorshipType) <br />
-            <b>Description:</b> @Model.Offer.Description<br />
-            <b>Price:</b> @Model.Offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
-        new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure)) @DirectoryManager.Data.Enums.Currency.USD.ToString()<br />
-            <b>Days:</b> @Model.Offer.Days
-        </p>
+        <br />
+        <table>
+            <tr>
+                <td>
+                    <b>Sponsorship Type:</b>
+                </td>
+                <td>
+                     @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.Offer.SponsorshipType)
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <b>Description:</b>
+                </td>
+                <td>
+                    @Model.Offer.Description
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <b>Days:</b>
+                </td>
+                <td>
+                  @Model.Offer.Days
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <b>Price:</b>
+                </td>
+                <td>
+                     @Model.Offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
+        new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure)) @DirectoryManager.Data.Enums.Currency.USD.ToString()
 
+        <i>(Approximately: @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(Model.Offer.USDPrice, conversionRate, conversionResult.selectedCurrency, true))</i>
+                </td>
+            </tr>
+        </table>
+       
         if (Model.IsExtension)
         {
             <p>

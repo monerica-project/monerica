@@ -101,7 +101,10 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 AppendAdditionalLinks(sb, model);
             }
 
-            sb.Append(BuildFlagImgTag(model.CountryCode));
+            if (model.ItemDisplayType != ItemDisplayType.Email)
+            {
+                sb.Append(BuildFlagImgTag(model.CountryCode, rootUrl));
+            }
 
             if (!string.IsNullOrWhiteSpace(model.Description))
             {
@@ -217,7 +220,10 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                     direct);
             }
 
-            sb.Append(BuildFlagImgTag(model.CountryCode));
+            if (model.ItemDisplayType != ItemDisplayType.Email)
+            {
+                sb.Append(BuildFlagImgTag(model.CountryCode, rootUrl));
+            }
 
             sb.Append("</p>");
 
@@ -344,7 +350,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             AppendLinkWithSeparator(sb, model, model.Link3, model.Link3A, model.Link3Name, isScam);
         }
 
-        private static string BuildFlagImgTag(string? countryCode)
+        private static string BuildFlagImgTag(string? countryCode, string? rootUrl = null)
         {
             var sb = new StringBuilder();
 
@@ -355,7 +361,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 // use lowercase for the filename
                 var file = code.ToLowerInvariant();
                 // resolves “~/…” to “/your-app-root/…” (or just “/” if you’re at IIS root)
-                var src = $"/images/flags/{file}.png";
+                var src = string.Concat(rootUrl, $"/images/flags/{file}.png");
 
                 sb.Append("<img")
                   .Append(" class=\"country-flag\"")
