@@ -107,6 +107,25 @@
         {
             <p><strong>Location:</strong> @Model.Location</p>
         }
+        @if (!string.IsNullOrEmpty(Model.CountryCode))
+        {
+
+    var iso = Model.CountryCode?.Trim() ?? "";
+    var label = iso;                          // preserve original casing for alt/title
+    var file = iso.ToLowerInvariant();        // force lowercase for filename
+    var src  = $"/images/flags/{file}.png";   // always root‑relative
+
+
+@if (!string.IsNullOrEmpty(iso))
+{
+    <img 
+        class="country-flag"
+        src="@src" 
+        alt="@label"
+        title="Flag of:@label" />
+}
+
+        }
         @if (!string.IsNullOrEmpty(Model.Processor))
         {
             <p><strong>Processor:</strong> @Model.Processor</p>

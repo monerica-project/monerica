@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using System;
+using System.Globalization;
 using System.Net;
 using System.Text;
 using DirectoryManager.Data.Enums;
@@ -10,7 +11,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 {
     public class DisplayMarkUpHelper
     {
-        public static string GenerateDirectoryEntryHtml(DirectoryEntryViewModel model)
+        public static string GenerateDirectoryEntryHtml(DirectoryEntryViewModel model, string? rootUrl = null)
         {
             var sb = new StringBuilder();
 
@@ -45,30 +46,30 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 sb.Append("&#9989; ");
                 if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.Link, false);
+                    AppendLink(sb, model, model.Link, false, rootUrl);
                 }
                 else if (!string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.LinkA, false);
+                    AppendLink(sb, model, model.LinkA, false, rootUrl);
                 }
                 else
                 {
-                    AppendLink(sb, model, model.Link, false);
+                    AppendLink(sb, model, model.Link, false, rootUrl);
                 }
             }
             else if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Admitted)
             {
                 if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.Link, true);
+                    AppendLink(sb, model, model.Link, true, rootUrl);
                 }
                 else if (!string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.LinkA, false);
+                    AppendLink(sb, model, model.LinkA, false, rootUrl);
                 }
                 else
                 {
-                    AppendLink(sb, model, model.Link, false);
+                    AppendLink(sb, model, model.Link, false, rootUrl);
                 }
             }
             else if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Questionable)
@@ -77,15 +78,15 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
                 if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.Link, true);
+                    AppendLink(sb, model, model.Link, true, rootUrl);
                 }
                 else if (!string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.LinkA, false);
+                    AppendLink(sb, model, model.LinkA, false, rootUrl);
                 }
                 else
                 {
-                    AppendLink(sb, model, model.Link, false);
+                    AppendLink(sb, model, model.Link, false, rootUrl);
                 }
             }
             else if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Scam)
@@ -99,6 +100,8 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             {
                 AppendAdditionalLinks(sb, model);
             }
+
+            sb.Append(BuildFlagImgTag(model.CountryCode));
 
             if (!string.IsNullOrWhiteSpace(model.Description))
             {
@@ -214,6 +217,8 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                     direct);
             }
 
+            sb.Append(BuildFlagImgTag(model.CountryCode));
+
             sb.Append("</p>");
 
             // 2) Link2 / Link3 (e.g. Tor | I2P)
@@ -301,9 +306,9 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         /// <summary>
         /// Helper method for appending the main link.
         /// </summary>
-        private static void AppendLink(StringBuilder sb, DirectoryEntryViewModel model, string? affiliateLink, bool isScam = false)
+        private static void AppendLink(StringBuilder sb, DirectoryEntryViewModel model, string? affiliateLink, bool isScam = false, string? rootUrl = null)
         {
-            string link = model.LinkType == LinkType.ListingPage ? model.ItemPath : affiliateLink ?? model.Link;
+            string link = model.LinkType == LinkType.ListingPage ? string.Format("{0}{1}", rootUrl ?? string.Empty, model.ItemPath) : affiliateLink ?? model.Link;
             string target = model.LinkType == LinkType.Direct ? "target=\"_blank\"" : string.Empty;
             string name = model.Name;
 
@@ -338,6 +343,31 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             AppendLinkWithSeparator(sb, model, model.Link2, model.Link2A, model.Link2Name, isScam);
             AppendLinkWithSeparator(sb, model, model.Link3, model.Link3A, model.Link3Name, isScam);
         }
+
+        private static string BuildFlagImgTag(string? countryCode)
+        {
+            var sb = new StringBuilder();
+
+            if (!string.IsNullOrWhiteSpace(countryCode))
+            {
+                // preserve the original for alt/title
+                var code = countryCode.Trim();
+                // use lowercase for the filename
+                var file = code.ToLowerInvariant();
+                // resolves “~/…” to “/your-app-root/…” (or just “/” if you’re at IIS root)
+                var src = $"/images/flags/{file}.png";
+
+                sb.Append("<img")
+                  .Append(" class=\"country-flag\"")
+                  .Append(" src=\"").Append(src).Append("\"")
+                  .Append(" alt=\"").Append(code).Append("\"")
+                  .Append(" title=\"Flag of: ").Append(code).Append("\"")
+                  .Append(" />");
+            }
+
+            return sb.ToString();
+        }
+
 
         /// <summary>
         /// Helper method to append links with a separator (" | ")

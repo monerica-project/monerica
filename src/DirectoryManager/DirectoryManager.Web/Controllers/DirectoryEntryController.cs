@@ -380,7 +380,8 @@ namespace DirectoryManager.Web.Controllers
                 CreateDate = existingEntry.CreateDate,
                 Link2Name = link2Name,
                 Link3Name = link3Name,
-                Tags = tagNames
+                Tags = tagNames,
+                CountryCode = existingEntry.CountryCode
             };
 
             this.ViewBag.CategoryName = category.Name;

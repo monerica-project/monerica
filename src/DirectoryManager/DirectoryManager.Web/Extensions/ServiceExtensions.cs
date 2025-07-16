@@ -39,11 +39,11 @@ namespace DirectoryManager.Web.Extensions
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
                   config.GetConnectionString(StringConstants.DefaultConnection),
-                    sqlOptions => {
+                  sqlOptions => {
                         // retry up to 5 times with up to 10s between retries
                         sqlOptions.EnableRetryOnFailure(
                           maxRetryCount: 5,
-                          maxRetryDelay: TimeSpan.FromSeconds(120),
+                          maxRetryDelay: TimeSpan.FromSeconds(30),
                           errorNumbersToAdd: null);
                     }));
 
