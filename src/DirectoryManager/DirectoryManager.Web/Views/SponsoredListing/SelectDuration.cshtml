@@ -24,7 +24,6 @@
     decimal conversionRate = conversionResult.conversionRate;
 }
 
-
 @{
     Layout = "_CenteredLayout";
 }
@@ -46,7 +45,6 @@ else if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.
     <p><b>Category:</b> @this.ViewBag.Category</p>
 }
 
-<p><i>@Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.PaymentCurrencyMessage))</i></p>
 <br />
 
 <form method="post" action="~/sponsoredlisting/selectduration">
@@ -75,4 +73,5 @@ else if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.
         <p><i>No options</i></p>
     }
 </form>
+ 
 }
