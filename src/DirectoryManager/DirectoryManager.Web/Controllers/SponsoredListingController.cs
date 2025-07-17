@@ -1199,7 +1199,7 @@ namespace DirectoryManager.Web.Controllers
         {
             return new PaymentRequest
             {
-                IsFeePaidByUser = true,
+                IsFeePaidByUser = false,
                 PriceAmount = sponsoredListingOffer.Price,
                 PriceCurrency = this.paymentService.PriceCurrency,
                 PayCurrency = this.paymentService.PayCurrency,
