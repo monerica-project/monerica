@@ -120,8 +120,8 @@
                 if (Model.SponsoredDirectoryEntryIds.Contains(entryVm.DirectoryEntryId))
                 {
                     entryVm.IsSponsored = true;
-                    entryVm.IsSubCategorySponsor = true;
                     entryVm.DisplayAsSponsoredItem = true;
+                    entryVm.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.Direct;
                 }
 
                 @await Html.PartialAsync("_DirectoryEntryPartial", entryVm)

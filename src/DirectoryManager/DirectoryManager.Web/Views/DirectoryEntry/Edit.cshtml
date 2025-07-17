@@ -6,18 +6,7 @@
 @using DirectoryManager.Web.Constants;
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
-@{
-    var orderedSubCategories = ((IEnumerable<SubcategoryDto>)ViewBag.SubCategories)
-                                    .OrderBy(sc => sc.CategoryName)
-                                    .ThenBy(sc => sc.Name)
-                                    .Select(sc => new
-                                    {
-                                        SubCategoryId = sc.SubcategoryId,
-                                        DisplayName = $"{sc.CategoryName} > {sc.Name}"
-                                    });
 
-    ViewBag.SubCategories = orderedSubCategories; // Populate ViewBag with ordered subcategories
-}
 @{
     Layout = "_CenteredLayout";
 }

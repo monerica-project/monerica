@@ -78,7 +78,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            await this.SetSubcategories();
+            await this.LoadSubCategories();
 
             return this.View();
         }
@@ -91,7 +91,7 @@ namespace DirectoryManager.Web.Controllers
                 model.DirectoryStatus == DirectoryStatus.Unknown ||
                 model.SubCategoryId == 0)
             {
-                await this.SetSubcategories();
+                await this.LoadSubCategories();
 
                 return this.View("create", model);
             }
@@ -101,7 +101,7 @@ namespace DirectoryManager.Web.Controllers
             var existingEntry = await this.directoryEntryRepository.GetByLinkAsync(link);
             if (existingEntry != null)
             {
-                await this.SetSubcategories();
+                await this.LoadSubCategories();
 
                 this.ModelState.AddModelError("Link", "The provided link is already used by another entry.");
                 return this.View("create", model); // Return view with model error
@@ -157,19 +157,12 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            // Get all subcategories without projection into an anonymous type
-            var subCategories = (await this.subCategoryRepository.GetAllAsync())
-                .OrderBy(sc => sc.CategoryName)
-                .ThenBy(sc => sc.Name)
-                .ToList();
-
-            this.ViewBag.SubCategories = subCategories;  // Pass the actual Subcategory objects
+            await this.LoadSubCategories();
 
             var tags = await this.entryTagRepo.GetTagsForEntryAsync(id);
             entry.Tags = string.Join(", ", tags
                                          .OrderBy(t => t.Name)
                                          .Select(t => t.Name));
-
 
             await this.PopulateCountryDropDownList();
 
@@ -391,24 +384,7 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View("DirectoryEntryView", model);
         }
-
-        private async Task SetSubcategories()
-        {
-            var subCategories = (await this.subCategoryRepository.GetAllAsync())
-                .OrderBy(sc => sc.CategoryName)
-                .ThenBy(sc => sc.Name)
-                .Select(sc => new
-                {
-                    sc.SubcategoryId,
-                    DisplayName = $"{sc.CategoryName} > {sc.Name}"
-                })
-                .ToList();
-
-            subCategories.Insert(0, new { SubcategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
-
-            this.ViewBag.SubCategories = subCategories;
-        }
-
+ 
         private async Task PopulateCountryDropDownList(object selectedId = null)
         {
             // Get the dictionary of countries from the helper.
@@ -425,6 +401,23 @@ namespace DirectoryManager.Web.Controllers
             list.Insert(0, new SelectListItem { Value = "", Text = StringConstants.SelectText });
             this.ViewBag.CountryCode = new SelectList(list, "Value", "Text", selectedId);
             await Task.CompletedTask; // For async signature compliance.
+        }
+
+        private async Task LoadSubCategories()
+        {
+            var subCategories = (await this.subCategoryRepository.GetAllAsync())
+                .OrderBy(sc => sc.CategoryName)
+                .ThenBy(sc => sc.Name)
+                .Select(sc => new
+                {
+                    sc.SubcategoryId,
+                    DisplayName = $"{sc.CategoryName} > {sc.Name}"
+                })
+                .ToList();
+
+            subCategories.Insert(0, new { SubcategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
+
+            this.ViewBag.SubCategories = subCategories;
         }
     }
 }
