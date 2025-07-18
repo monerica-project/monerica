@@ -12,6 +12,8 @@
     <h1>All Tags</h1>
 
     <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
 
     <div class="tag-list">
         @foreach (var tc in Model.PagedTags.Items)
@@ -49,31 +51,7 @@
             }
         </ul>
     </nav>
-
-
-    <style>
-        .tag-list {
-            display: flex;
-            flex-wrap: wrap;
-            gap: .5rem;
-        }
-
-        .tag-item {
-            background: #f0f0f0;
-            padding: .3rem .6rem;
-            border-radius: .25rem;
-            text-decoration: none;
-            color: #333;
-        }
-
-            .tag-item:hover {
-                background: #e0e0e0;
-            }
  
-    </style>
     <hr />
     @await Html.PartialAsync("_SponsoredListingPartial")
 }
-
-
- 

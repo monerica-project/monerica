@@ -35,120 +35,136 @@
 
 
 @{
-    ViewData["CurrentCategoryKey"] = Model?.SubCategory?.Category.CategoryKey;
-    ViewData["CurrentSubCategoryKey"] = Model?.SubCategory?.SubCategoryKey;
-}
-
-@{
     Layout = "_LayoutWithNav";
 }
- 
-@BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
 
- @section PageContent {
 
-    <div class="top-section search-section search-top-align" >
+@section PageContent {
+    <div class="top-section search-section search-top-align">
         @await Html.PartialAsync("_SearchForm")
     </div>
 
-<h1>@Model.Name</h1>
-<hr />
+    <div class="directory-entry-details container py-4">
+        <h1 class="mb-3">@Model.Name</h1>
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a class="no-app-link" href="@UrlResolver.ResolveToRoot("~/")">Home</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a class="no-app-link" href="~/@categoryKey">@categoryName</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a class="no-app-link" href="~/@categoryKey/@subCategoryKey">@subCategoryName</a>
+                </li>
+                <li class="breadcrumb-item" aria-current="page">
+                    @Model.Name
+                </li>
+            </ol>
+        </nav>
 
-<div class="directory-entry-details">
+        <div class="card mb-4">
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <th scope="row">Name</th>
+                            <td>@Model.Name</td>
+                        </tr>
+                        @if (!string.IsNullOrEmpty(finalLink))
+                        {
+                            <tr>
+                                <th scope="row">Website</th>
+                                <td><b><a class="multi-line-text" href="@finalLink" target="_blank">@Model.Link</a></b></td>
+                            </tr>
+                        }
+                        @if (!string.IsNullOrEmpty(finalLink2))
+                        {
+                            <tr>
+                                <th scope="row">@Model.Link2Name</th>
+                                <td><a class="multi-line-text" href="@finalLink2" target="_blank">@Model.Link2</a></td>
+                            </tr>
+                         
+                        }
+                        @if (!string.IsNullOrEmpty(finalLink3))
+                        {
+                            <tr>
+                                <th scope="row">@Model.Link3Name</th>
+                                <td><a class="multi-line-text" href="@finalLink2" target="_blank">@Model.Link3</a></td>
+                            </tr>
+                        }
+                        <tr>
+                            <th scope="row">Status</th>
+                            <td>@Model.DirectoryStatus.ToHtmlIcon() @Model.DirectoryStatus</td>
+                        </tr>
+                        @if (!string.IsNullOrEmpty(Model.Contact))
+                        {
+                            <tr>
+                                <th scope="row">Contact</th>
+                                <td><span class="multi-line-text">@Model.Contact</span></td>
+                            </tr>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Location) || !string.IsNullOrWhiteSpace(Model.CountryCode))
+                        {
+                            <tr>
+                                <th scope="row">Location</th>
+                                <td>
+                                    @Model.Location
+                                    @if (!string.IsNullOrEmpty(Model.CountryCode))
+                                    {
+                                        var iso = Model.CountryCode.Trim().ToLowerInvariant();
+                                        var src = $"/images/flags/{iso}.png";
+                                        <img class="country-flag ms-2" src="@src" alt="Flag of @Model.CountryCode" title="@Model.CountryCode" />
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Processor))
+                        {
+                            <tr>
+                                <th scope="row">Processor</th>
+                                <td>@Model.Processor</td>
+                            </tr>
+                        }
+                        <tr>
+                            <th scope="row">Added On</th>
+                            <td>@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                        </tr>
+                        @if (Model.UpdateDate.HasValue)
+                        {
+                            <tr>
+                                <th scope="row">Last Updated</th>
+                                <td>@Model.UpdateDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-    <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-            <a class="no-app-link" href="@UrlResolver.ResolveToRoot("~/")">Home</a>
-        </li>
-        <li class="breadcrumb-item">
-            <a class="no-app-link" href="~/@categoryKey">@categoryName</a>
-        </li>
-        <li class="breadcrumb-item">
-            <a class="no-app-link" href="~/@categoryKey/@subCategoryKey">@subCategoryName</a>
-        </li>
-        <li class="breadcrumb-item" aria-current="page">
-            @Model.Name
-        </li>
-    </ol>
-    </nav>
-
-    <div class="entry-details">
-        <p><strong>Name:</strong> @Model.Name</p>
         @if (!string.IsNullOrEmpty(finalLink))
         {
-            <p><strong>Link:</strong> <b><a class="multi-line-text" href="@finalLink" target="_blank">@Model.Link</a></b></p>
-        }
-        @if (!string.IsNullOrEmpty(finalLink2))
-        {
-            <p><strong>@Model.Link2Name:</strong> <a class="multi-line-text" href="@finalLink2" target="_blank">@Model.Link2</a></p>
-        }
-        @if (!string.IsNullOrEmpty(finalLink3))
-        {
-            <p><strong>@Model.Link3Name:</strong> <a class="multi-line-text" href="@finalLink3" target="_blank">@Model.Link3</a></p>
-        }
-
-        <br />
-        <h3>Details</h3>
-        <p>
-            <strong>Status:</strong>
-
-            @Model.DirectoryStatus.ToHtmlIcon()
-          
-            @Model.DirectoryStatus
-        </p>
-
-        @if (!string.IsNullOrEmpty(Model.Contact))
-        {
-            <p><strong>Contact:</strong> <span class="multi-line-text">@Model.Contact</span></p>
-        }
-     
-        @if (!string.IsNullOrEmpty(Model.Location))
-        {
-            <p><strong>Location:</strong> @Model.Location</p>
-        }
-        @if (!string.IsNullOrEmpty(Model.CountryCode))
-        {
-
-    var iso = Model.CountryCode?.Trim() ?? "";
-    var label = iso;                          // preserve original casing for alt/title
-    var file = iso.ToLowerInvariant();        // force lowercase for filename
-    var src  = $"/images/flags/{file}.png";   // always root‑relative
-
-
-@if (!string.IsNullOrEmpty(iso))
-{
-    <img 
-        class="country-flag"
-        src="@src" 
-        alt="@label"
-        title="Flag of:@label" />
-}
-
-        }
-        @if (!string.IsNullOrEmpty(Model.Processor))
-        {
-            <p><strong>Processor:</strong> @Model.Processor</p>
-        }
-
-        <p><strong>Added On:</strong> @Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</p>
-        @if (Model.UpdateDate.HasValue)
-        {
-            <p><strong>Last Updated:</strong> @Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</p>
+            <br />
+            <a href="@finalLink" class="btn btn-primary" target="_blank">Visit Website</a>
+            <br />
         }
 
         @if (!string.IsNullOrEmpty(Model.Description))
         {
             <br />
-            <h3>Description</h3>
-            <p>@Model.Description</p>
+            <div class="mb-4">
+                <h3>Description</h3>
+                <p>@Model.Description</p>
+            </div>
         }
 
         @if (!string.IsNullOrEmpty(Model.Note))
         {
             <br />
-            <h4>Note</h4>
-            <p><i>@Html.Raw(Model.Note)</i></p>
+            <div class="mb-4">
+                <h4>Note</h4>
+                <p><em>@Html.Raw(Model.Note)</em></p>
+            </div>
         }
 
         @if (Model.Tags?.Any() ?? false)
@@ -164,15 +180,11 @@
                     <a href="~/tagged/@slug">@tag</a>@if (i < Model.Tags.Count - 1){
                     <text>, </text>
                 }
-                }
-            </div>
-        }
+            }
+        </div>
+    }
+
+        <hr />
+        @await Html.PartialAsync("_SponsoredListingPartial")
     </div>
-</div>
-
-
-
-<hr />
-@await Html.PartialAsync("_SponsoredListingPartial")
-
 }

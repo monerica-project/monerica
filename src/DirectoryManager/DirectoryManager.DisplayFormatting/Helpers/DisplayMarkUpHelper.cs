@@ -101,6 +101,12 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 AppendAdditionalLinks(sb, model);
             }
 
+            if (model.ItemDisplayType == ItemDisplayType.Featured ||
+                model.LinkType == LinkType.ListingPage)
+            {
+                AppendExternalLinkIcon(sb, model);
+            }
+
             if (model.ItemDisplayType != ItemDisplayType.Email)
             {
                 sb.Append(BuildFlagImgTag(model.CountryCode, rootUrl));
@@ -123,6 +129,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             return sb.ToString();
         }
+
 
         public static string GenerateGroupedDirectoryEntryHtml(IEnumerable<GroupedDirectoryEntry> groupedEntries)
         {
@@ -307,6 +314,18 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             {
                 return string.Empty;
             }
+        }
+
+        private static void AppendExternalLinkIcon(StringBuilder sb, DirectoryEntryViewModel model)
+        {
+            var link = model.Link;
+
+            if (!string.IsNullOrWhiteSpace(model.LinkA))
+            {
+                link = model.LinkA;
+            }
+
+            sb.AppendFormat(@" <a target=""_blank"" class=""external-link"" href=""{0}""></a> ", link);
         }
 
         /// <summary>

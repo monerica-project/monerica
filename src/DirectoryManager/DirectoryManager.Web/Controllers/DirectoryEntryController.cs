@@ -78,7 +78,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            await this.LoadSubCategories();
+            await this.LoadLists();
 
             return this.View();
         }
@@ -91,7 +91,7 @@ namespace DirectoryManager.Web.Controllers
                 model.DirectoryStatus == DirectoryStatus.Unknown ||
                 model.SubCategoryId == 0)
             {
-                await this.LoadSubCategories();
+                await this.LoadLists();
 
                 return this.View("create", model);
             }
@@ -101,7 +101,7 @@ namespace DirectoryManager.Web.Controllers
             var existingEntry = await this.directoryEntryRepository.GetByLinkAsync(link);
             if (existingEntry != null)
             {
-                await this.LoadSubCategories();
+                await this.LoadLists();
 
                 this.ModelState.AddModelError("Link", "The provided link is already used by another entry.");
                 return this.View("create", model); // Return view with model error
@@ -384,7 +384,13 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View("DirectoryEntryView", model);
         }
- 
+
+        private async Task LoadLists()
+        {
+            await this.LoadSubCategories();
+            await this.PopulateCountryDropDownList();
+        }
+
         private async Task PopulateCountryDropDownList(object selectedId = null)
         {
             // Get the dictionary of countries from the helper.

@@ -164,7 +164,7 @@
                 }
                 @foreach (var vm in vmList)
                 {
-                    vm.LinkType = LinkType.Direct;
+                    vm.LinkType = LinkType.ListingPage;
                     @await Html.PartialAsync("_DirectoryEntryPartial", vm)
                 }
             </ul>
@@ -173,10 +173,10 @@
 
         @* Newest Revisions *@
         @{
-            var revisions = await directoryEntryRepository.GetNewestRevisions(6);
+            var revisions = await directoryEntryRepository.GetNewestRevisions(15);
             if (newest != null)
             {
-                revisions = revisions.Except(newest).Take(6).ToList();
+                revisions = revisions.Except(newest).Take(5).ToList();
             }
         }
         @if (revisions?.Any() == true)
@@ -193,14 +193,12 @@
                 }
                 @foreach (var vm in vmList)
                 {
-                    vm.LinkType = LinkType.Direct;
+                    vm.LinkType = LinkType.ListingPage;
                     @await Html.PartialAsync("_DirectoryEntryPartial", vm)
                 }
             </ul>
             <hr />
         }
-
- 
 
         <div class="sponsor-sections">
             <!-- Category Sponsors -->
@@ -258,12 +256,8 @@
             </section>
         </div>
 
+    
 
+    </div>
     }
 
-<hr />
- 
- 
-
-
-</div>
