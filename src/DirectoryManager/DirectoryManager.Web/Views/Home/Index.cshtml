@@ -53,7 +53,7 @@
 
 @{
     // load all subcategories (with Category navigation)
-    var subs = await subCategoryRepository.GetAllAsync();
+    var subs = await subCategoryRepository.GetAllDtoAsync();
 
     // build a quick lookup from SubCategoryId → Subcategory (so we can get CategoryId cheaply)
     var subById = subs.ToDictionary(sc => sc.SubcategoryId, sc => sc);

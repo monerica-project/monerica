@@ -9,6 +9,7 @@ using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -84,8 +85,6 @@ namespace DirectoryManager.Web.Controllers
                 : mostRecentUpdateDate;
 
             var siteMapHelper = new SiteMapHelper();
-
-
             var domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
             var activeTags = await this.tagRepository
                                       .ListActiveTagsWithLastModifiedAsync()
@@ -106,6 +105,14 @@ namespace DirectoryManager.Web.Controllers
                                          : mostRecentUpdateDate
                 });
             }
+
+            siteMapHelper.SiteMapItems.Add(new SiteMapItem
+            {
+                Url = string.Format("{0}/tagged", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                Priority = 0.3,
+                ChangeFrequency = ChangeFrequency.Monthly,
+                LastMod = mostRecentUpdateDate
+            });
 
             // Add the root sitemap item
             siteMapHelper.SiteMapItems.Add(new SiteMapItem

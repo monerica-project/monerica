@@ -16,7 +16,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context;
         }
 
-        public async Task<IReadOnlyList<SubcategoryDto>> GetAllAsync()
+        public async Task<IReadOnlyList<SubcategoryDto>> GetAllDtoAsync()
         {
             return await this.context.Subcategories
               .AsNoTracking()
@@ -32,6 +32,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
               })
               .ToListAsync();
         }
+
         public async Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync()
         {
             // build a filtered entries set once
@@ -160,5 +161,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Where(entry => entry.DirectoryStatus != DirectoryStatus.Unknown &&
                                 entry.DirectoryStatus != DirectoryStatus.Removed);
 
+        public async Task<IReadOnlyList<Subcategory>> GetAllAsync()
+        {
+            return await this.context.Subcategories
+                         .AsNoTracking()
+                         .OrderBy(s => s.Category.Name)
+                         .ThenBy(s => s.Name)
+                         .ToListAsync();
+        }
     }
 }

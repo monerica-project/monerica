@@ -23,7 +23,9 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// Finds a Tag by a URL‐style slug (e.g. "web-hosting" or "nonprofit").
         /// </summary>
         Task<Tag?> GetBySlugAsync(string slug);
- 
+
+        // in ITagRepository
+        Task<PagedResult<TagCount>> ListTagsWithCountsPagedAsync(int page, int pageSize);
 
     }
 }

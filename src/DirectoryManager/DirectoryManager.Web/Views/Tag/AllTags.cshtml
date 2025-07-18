@@ -1,0 +1,79 @@
+﻿@using DirectoryManager.Utilities
+@model DirectoryManager.Web.Models.TagListViewModel
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+ 
+
+@{
+    ViewData["Title"] = "All Tags";
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+
+    <h1>All Tags</h1>
+
+    <hr />
+
+    <div class="tag-list">
+        @foreach (var tc in Model.PagedTags.Items)
+        {
+            <a class="tag-item no-app-link"
+               href="@(UrlResolver.BaseUrl.TrimEnd('/') + $"/tagged/{tc.Slug.UrlKey()}")"
+               title="@tc.Name">
+                @tc.Name (@tc.Count)
+            </a>
+        }
+    </div>
+
+    <nav aria-label="Pagination" class="mt-4">
+        <ul class="pagination">
+            @{
+                int totalPages = (int)Math.Ceiling(Model.PagedTags.TotalCount / (double)Model.PageSize);
+                for (int p = 1; p <= totalPages; p++)
+                {
+                    bool isCurrent = p == Model.CurrentPage;
+                    // build raw path
+                    string rawPath = $"/tagged" + (p > 1 ? $"?page={p}" : "");
+                    // page 1 uses canonical base URL, pages 2+ use the resolver
+                    string href = p == 1
+                    ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
+                    : UrlResolver.Resolve(rawPath);
+                    // link styling: no-app-link on page 1, app-link thereafter
+                    string linkClass = p == 1 ? "no-app-link" : "app-link";
+                    // highlight current page
+                    string activeClass = isCurrent ? "active" : "";
+
+                    <li class="page-item @activeClass">
+                        <a class="page-link @linkClass" href="@href">@p</a>
+                    </li>
+                }
+            }
+        </ul>
+    </nav>
+
+
+    <style>
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .5rem;
+        }
+
+        .tag-item {
+            background: #f0f0f0;
+            padding: .3rem .6rem;
+            border-radius: .25rem;
+            text-decoration: none;
+            color: #333;
+        }
+
+            .tag-item:hover {
+                background: #e0e0e0;
+            }
+ 
+    </style>
+    <hr />
+    @await Html.PartialAsync("_SponsoredListingPartial")
+}
+
+
+ 

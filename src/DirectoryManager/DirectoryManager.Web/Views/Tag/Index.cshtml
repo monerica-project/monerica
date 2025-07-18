@@ -12,9 +12,10 @@
 @section PageContent {
     <h1>Tagged “@Model.Tag.Name”</h1>
     <hr />
-    @await Html.PartialAsync("_BackToHome")
+    @await Html.PartialAsync("_BackToHome") 
     <hr />
-
+    <a class="no-app-link" href="@(UrlResolver.ResolveToRoot("/tagged"))">All Tags</a>
+    <br />
     @if (!Model.PagedEntries.Items.Any())
     {
         <p>No listings found under this tag.</p>

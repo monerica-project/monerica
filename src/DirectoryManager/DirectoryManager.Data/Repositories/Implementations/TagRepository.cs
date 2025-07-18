@@ -116,6 +116,35 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     // drop both hyphens and spaces for "nonprofit" vs "non-profit"
                     || t.Name.Replace(" ", "").Replace("-", "").ToLower() == slug);
         }
+        // in TagRepository.cs
+        public async Task<PagedResult<TagCount>> ListTagsWithCountsPagedAsync(int page, int pageSize)
+        {
+            // only count non-removed entries
+            var query = this.context.DirectoryEntryTags
+                .Where(et => et.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed)
+                .GroupBy(et => new { et.TagId, et.Tag.Name })
+                .Select(g => new TagCount
+                {
+                    TagId = g.Key.TagId,
+                    Name = g.Key.Name,
+                    Slug = g.Key.Name,
+                    Count = g.Count()
+                })
+                .OrderBy(tc => tc.Name);
+
+            var total = await query.CountAsync().ConfigureAwait(false);
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            return new PagedResult<TagCount>
+            {
+                TotalCount = total,
+                Items = items
+            };
+        }
 
     }
 }

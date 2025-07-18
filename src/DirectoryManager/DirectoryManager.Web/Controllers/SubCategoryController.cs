@@ -51,12 +51,12 @@ namespace DirectoryManager.Web.Controllers
 
             if (categoryId.HasValue)
             {
-                subCategories = await this.subcategoryRepository.GetAllAsync();
+                subCategories = await this.subcategoryRepository.GetAllDtoAsync();
                 subCategories = subCategories.Where(sc => sc.CategoryId == categoryId.Value);
             }
             else
             {
-                subCategories = await this.subcategoryRepository.GetAllAsync();
+                subCategories = await this.subcategoryRepository.GetAllDtoAsync();
             }
 
             this.ViewBag.Categories = await this.categoryRepository.GetAllAsync(); // For dropdown list

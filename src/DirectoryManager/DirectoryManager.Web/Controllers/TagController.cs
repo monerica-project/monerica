@@ -6,6 +6,7 @@ using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
@@ -26,6 +27,24 @@ namespace DirectoryManager.Web.Controllers
             this.tagRepo = tagRepo ?? throw new ArgumentNullException(nameof(tagRepo));
             this.entryTagRepo = entryTagRepo ?? throw new ArgumentNullException(nameof(entryTagRepo));
             this.cacheService = cacheService;
+        }
+
+        [AllowAnonymous]
+        [HttpGet("")]
+        public async Task<IActionResult> All(int page = 1)
+        {
+            var pageSize = 100;
+            var paged = await this.tagRepo
+                .ListTagsWithCountsPagedAsync(page, pageSize)
+                .ConfigureAwait(false);
+
+            var vm = new TagListViewModel
+            {
+                PagedTags = paged,
+                CurrentPage = page,
+                PageSize = pageSize
+            };
+            return this.View("AllTags", vm);
         }
 
         [HttpGet("{tagSlug}")]

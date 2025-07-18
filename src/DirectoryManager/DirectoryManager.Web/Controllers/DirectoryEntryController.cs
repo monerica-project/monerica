@@ -66,7 +66,7 @@ namespace DirectoryManager.Web.Controllers
             entries = entries.OrderBy(e => e.Name)
                              .ToList();
 
-            this.ViewBag.SubCategories = (await this.subCategoryRepository.GetAllAsync())
+            this.ViewBag.SubCategories = (await this.subCategoryRepository.GetAllDtoAsync())
                                     .OrderBy(sc => sc.CategoryName)
                                     .ThenBy(sc => sc.Name)
                                     .ToList();
@@ -405,7 +405,7 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task LoadSubCategories()
         {
-            var subCategories = (await this.subCategoryRepository.GetAllAsync())
+            var subCategories = (await this.subCategoryRepository.GetAllDtoAsync())
                 .OrderBy(sc => sc.CategoryName)
                 .ThenBy(sc => sc.Name)
                 .Select(sc => new

@@ -5,7 +5,8 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 {
     public interface ISubcategoryRepository
     {
-        Task<IReadOnlyList<SubcategoryDto>> GetAllAsync();
+        Task<IReadOnlyList<SubcategoryDto>> GetAllDtoAsync();
+        Task<IReadOnlyList<Subcategory>> GetAllAsync();
         Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync();
         Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync(int minimumInSubCategory);
         Task<Subcategory?> GetByIdAsync(int subCategoryId);
