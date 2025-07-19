@@ -17,6 +17,9 @@
     var categoryName = ViewBag.CategoryName as string;
     var subCategoryName = ViewBag.SubCategoryName as string;
 
+    ViewData["CurrentCategoryKey"] = categoryKey;
+    ViewData["CurrentSubCategoryKey"] = subCategoryKey;
+
     // Determine which links to use based on the availability of "A" versions
     var finalLink = !string.IsNullOrEmpty(Model.LinkA) && !Model.IsSponsored ? Model.LinkA : Model.Link;
     var finalLink2 = !string.IsNullOrEmpty(Model.Link2A) && !Model.IsSponsored ? Model.Link2A : Model.Link2;

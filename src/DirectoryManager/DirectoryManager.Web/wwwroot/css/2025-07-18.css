@@ -34,6 +34,8 @@ h2, h3 {
     padding-bottom: 0;
 }
 
+h3, h4 { margin-bottom: 5px;}
+
 a {
     color: #008cff;
 }
