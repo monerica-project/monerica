@@ -79,14 +79,14 @@
                         <tr>
                             <th scope="row">Name</th>
                             <td>
-                                <div class="@sponsoredClass"><strong>@Model.Name</strong></div>
+                                <div class="@sponsoredClass">@Model.Name</div>
                             </td>
                         </tr>
                         @if (!string.IsNullOrEmpty(finalLink))
                         {
                             <tr>
                                 <th scope="row">Website</th>
-                                <td><b><a class="multi-line-text" href="@finalLink" target="_blank">@Model.Link</a></b></td>
+                                <td><a class="multi-line-text" href="@finalLink" target="_blank">@Model.Link</a></td>
                             </tr>
                         }
                         @if (!string.IsNullOrEmpty(finalLink2))
