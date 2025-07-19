@@ -15,9 +15,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         {
             var sb = new StringBuilder();
 
-            // Generate a unique ID for the checkbox (to avoid conflicts)
-            var checkboxId = $"entry_checkbox_{model.DirectoryEntryId}_{model.ItemDisplayType.ToString()}";
-
             // Opening <li> tag with optional sponsored class
             sb.Append("<li");
 
@@ -320,9 +317,14 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         {
             var link = model.Link;
 
-            if (!string.IsNullOrWhiteSpace(model.LinkA))
+            if (!string.IsNullOrWhiteSpace(model.LinkA) && model.IsSponsored == false)
             {
                 link = model.LinkA;
+            }
+
+            if (link.Contains("coincards"))
+            {
+
             }
 
             sb.AppendFormat(@" <a target=""_blank"" class=""external-link"" href=""{0}""></a> ", link);

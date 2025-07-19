@@ -53,6 +53,7 @@
             @foreach (var viewModel in viewModelList)
             {
                 viewModel.IsSubCategorySponsor = true;
+                viewModel.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
                 @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
             }
         </ul>

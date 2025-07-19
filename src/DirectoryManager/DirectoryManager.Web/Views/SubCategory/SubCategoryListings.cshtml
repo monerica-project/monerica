@@ -114,7 +114,7 @@
                     SubCategoryId = subCategorySponsor.DirectoryEntry.SubCategoryId,
                     CreateDate = subCategorySponsor.DirectoryEntry.CreateDate,
                     UpdateDate = subCategorySponsor.DirectoryEntry.UpdateDate,
-
+                    LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage,
                     IsSponsored = true,
                     Link2Name = link2Name,
                     Link3Name = link3Name
@@ -132,8 +132,15 @@
         {
             viewModel.IsSponsored = true;
             viewModel.DisplayAsSponsoredItem = true;
-            viewModel.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.Direct;
+            viewModel.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
         }
+
+            if (subCategorySponsorModel?.DirectoryEntry?.DirectoryEntryId == viewModel.DirectoryEntryId)
+            {
+                viewModel.IsSponsored = true;
+                viewModel.DisplayAsSponsoredItem = false;
+                viewModel.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
+            }
 
         @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
     }

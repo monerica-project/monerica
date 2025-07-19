@@ -1,5 +1,7 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.SponsoredListings;
+using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.DisplayFormatting.Models;
@@ -27,6 +29,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ITagRepository tagRepo;
         private readonly IDirectoryEntryTagRepository entryTagRepo;
         private readonly ICacheService cacheService;
+        private readonly ISponsoredListingRepository sponsoredListingRepository;
         private readonly IMemoryCache cache;
 
         public DirectoryEntryController(
@@ -40,6 +43,7 @@ namespace DirectoryManager.Web.Controllers
             ITagRepository tagRepo,
             IDirectoryEntryTagRepository entryTagRepo,
             ICacheService cacheService,
+            ISponsoredListingRepository sponsoredListingRepository,
             IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
@@ -51,6 +55,7 @@ namespace DirectoryManager.Web.Controllers
             this.tagRepo = tagRepo;
             this.entryTagRepo = entryTagRepo;
             this.cache = cache;
+            this.sponsoredListingRepository = sponsoredListingRepository;
             this.cacheService = cacheService;
         }
 
@@ -349,6 +354,22 @@ namespace DirectoryManager.Web.Controllers
                 .OrderBy(n => n)
                 .ToList();
 
+            const string sponsorCacheKey = "AllActiveSponsors";
+            if (!this.cache.TryGetValue(sponsorCacheKey, out List<SponsoredListing> allSponsors))
+            {
+                allSponsors = (List<SponsoredListing>?)await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
+                this.cache.Set(
+                    sponsorCacheKey,
+                    allSponsors,
+                    new MemoryCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
+                    });
+            }
+
+            // flag if this entry is a sponsor
+            bool isSponsor = allSponsors == null ? false : allSponsors.Any(s => s.DirectoryEntryId == existingEntry.DirectoryEntryId);
+
             var model = new DirectoryEntryViewModel
             {
                 DirectoryEntryId = existingEntry.DirectoryEntryId,
@@ -374,7 +395,8 @@ namespace DirectoryManager.Web.Controllers
                 Link2Name = link2Name,
                 Link3Name = link3Name,
                 Tags = tagNames,
-                CountryCode = existingEntry.CountryCode
+                CountryCode = existingEntry.CountryCode,
+                IsSponsored = isSponsor
             };
 
             this.ViewBag.CategoryName = category.Name;

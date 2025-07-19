@@ -18,9 +18,9 @@
     var subCategoryName = ViewBag.SubCategoryName as string;
 
     // Determine which links to use based on the availability of "A" versions
-    var finalLink = !string.IsNullOrEmpty(Model.LinkA) ? Model.LinkA : Model.Link;
-    var finalLink2 = !string.IsNullOrEmpty(Model.Link2A) ? Model.Link2A : Model.Link2;
-    var finalLink3 = !string.IsNullOrEmpty(Model.Link3A) ? Model.Link3A : Model.Link3;
+    var finalLink = !string.IsNullOrEmpty(Model.LinkA) && !Model.IsSponsored ? Model.LinkA : Model.Link;
+    var finalLink2 = !string.IsNullOrEmpty(Model.Link2A) && !Model.IsSponsored ? Model.Link2A : Model.Link2;
+    var finalLink3 = !string.IsNullOrEmpty(Model.Link3A) && !Model.IsSponsored ? Model.Link3A : Model.Link3;
     var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
 
     // Build your breadcrumb list dynamically based on page context
@@ -46,6 +46,7 @@
 
     <div class="directory-entry-details container py-4">
         <h1 class="mb-3">@Model.Name</h1>
+        <hr />
         <nav aria-label="breadcrumb">
             <ol class="breadcrumb">
                 <li class="breadcrumb-item">
@@ -63,13 +64,20 @@
             </ol>
         </nav>
 
-        <div class="card mb-4">
+   
+        @{
+            var sponsoredClass = Model.IsSponsored ? "sponsor-card" : "";
+        }
+
+        <div class="card mb-4 ">
             <div class="card-body">
                 <table class="table table-borderless mb-0">
                     <tbody>
                         <tr>
                             <th scope="row">Name</th>
-                            <td>@Model.Name</td>
+                            <td>
+                                <div class="@sponsoredClass"><strong>@Model.Name</strong></div>
+                            </td>
                         </tr>
                         @if (!string.IsNullOrEmpty(finalLink))
                         {

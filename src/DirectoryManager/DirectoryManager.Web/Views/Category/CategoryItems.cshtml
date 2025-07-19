@@ -99,10 +99,13 @@
                         Note = catSponsor.DirectoryEntry.Note,
                         Processor = catSponsor.DirectoryEntry.Processor,
                         SubCategoryId = catSponsor.DirectoryEntry.SubCategoryId,
+                        SubCategory = catSponsor.DirectoryEntry.SubCategory,
+                        DirectoryEntryKey = catSponsor.DirectoryEntry.DirectoryEntryKey,
                         IsSponsored = true,
                         DisplayAsSponsoredItem = false,
                         Link2Name = link2Name,
-                        Link3Name = link3Name
+                        Link3Name = link3Name,
+                        LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage
                     } : null
                 };
 }
@@ -121,7 +124,7 @@
                 {
                     entryVm.IsSponsored = true;
                     entryVm.DisplayAsSponsoredItem = true;
-                    entryVm.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.Direct;
+                    entryVm.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
                 }
 
                 @await Html.PartialAsync("_DirectoryEntryPartial", entryVm)
