@@ -20,7 +20,7 @@
         new BreadcrumbItem {
             Position = 1,
             Name     = "Home",
-            Url      = urlResolver.Resolve("/")          // <-- use Resolve
+            Url      = urlResolver.ResolveToApp("/")          // <-- use Resolve
         }
     };
 }
@@ -34,7 +34,7 @@
         <ol class="breadcrumb">
             <li class="breadcrumb-item">
                 <a class="no-app-link"
-                   href="@urlResolver.Resolve("/")">Home</a>
+                   href="@urlResolver.ResolveToApp("/")">Home</a>
             </li>
             <li class="breadcrumb-item" aria-current="page">
                 <span>@StringConstants.AllCategories</span>

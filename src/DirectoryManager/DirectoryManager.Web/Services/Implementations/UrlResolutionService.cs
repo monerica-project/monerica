@@ -62,7 +62,7 @@ namespace DirectoryManager.Web.Services.Implementations
             }
         }
 
-        public string Resolve(string path)
+        public string ResolveToApp(string path)
         {
             if (string.IsNullOrWhiteSpace(path))
             {
@@ -78,7 +78,7 @@ namespace DirectoryManager.Web.Services.Implementations
             // Normalize to leading slash
             if (!path.StartsWith("/"))
             {
-                path = "/" + path;
+                path = string.Concat("/", path);
             }
 
             var host = this.http.HttpContext?.Request.Host.Host ?? string.Empty;
@@ -112,7 +112,7 @@ namespace DirectoryManager.Web.Services.Implementations
             }
 
             // Normalize incoming path: strip all leading/trailing slashes, then add exactly one leading slash
-            path = "/" + path.Trim('/');
+            path = string.Concat("/", path.Trim('/'));
 
             var host = this.http.HttpContext?.Request.Host.Host ?? string.Empty;
 
@@ -124,7 +124,7 @@ namespace DirectoryManager.Web.Services.Implementations
 
             // Otherwise combine with canonicalDomain, trimming any trailing slash there
             var cd = this.canonicalDomain?.TrimEnd('/') ?? string.Empty;
-            return cd + path;
+            return string.Concat(cd, path);
         }
     }
 }

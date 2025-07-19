@@ -46,7 +46,7 @@
                 // page 1 always on canonical root; pages 2+ on “app” domain
                 string href = i == 1
                 ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
-                : UrlResolver.Resolve(rawPath);
+                : UrlResolver.ResolveToApp(rawPath);
 
                 // choose link class
                 string linkClass = i == 1 ? "no-app-link" : "app-link";

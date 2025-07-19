@@ -1,4 +1,5 @@
-﻿@model DirectoryManager.Web.Models.TaggedEntriesViewModel
+﻿@using DirectoryManager.Utilities
+@model DirectoryManager.Web.Models.TaggedEntriesViewModel
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 
 @{
@@ -35,12 +36,12 @@
                 @for (int p = 1; p <= totalPages; p++)
                 {
                     // build raw path
-                    string rawPath = $"/tagged/{Model.Tag.Name}"
+                    string rawPath = $"/tagged/{Model.Tag.Name.UrlKey()}"
                     + (p > 1 ? $"?page={p}" : "");
                     // page 1 on canonical root, pages 2+ on app domain
                     string href = p == 1
                     ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
-                    : UrlResolver.Resolve(rawPath);
+                    : UrlResolver.ResolveToApp(rawPath);
 
                     string linkClass = p == 1 ? "no-app-link" : "app-link";
                     string activeClass = p == Model.CurrentPage ? "active" : "";

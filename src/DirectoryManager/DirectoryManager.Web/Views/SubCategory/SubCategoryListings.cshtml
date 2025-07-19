@@ -165,7 +165,7 @@
                 // first page on canonical root, rest via app domain
                 string href = p == 1
                 ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
-                : UrlResolver.Resolve(rawPath);
+                : UrlResolver.ResolveToApp(rawPath);
 
                 string linkClass = p == 1 ? "no-app-link" : "app-link";
                 string activeClass = p == currentPage ? "active" : "";

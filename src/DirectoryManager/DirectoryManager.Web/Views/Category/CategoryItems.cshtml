@@ -149,7 +149,7 @@
                 // Page 1 → canonical root; pages 2+ → app domain
                 string href = p == 1
                 ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
-                : UrlResolver.Resolve(rawPath);
+                : UrlResolver.ResolveToApp(rawPath);
 
                 // Style classes
                 string linkClass = p == 1 ? "no-app-link" : "app-link";

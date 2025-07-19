@@ -15,7 +15,7 @@
         /// </summary>
         string BaseUrl { get; }
 
-        string Resolve(string relativeOrAbsolutePath);
+        string ResolveToApp(string relativeOrAbsolutePath);
 
         string ResolveToRoot(string relativeOrAbsolutePath);
     }

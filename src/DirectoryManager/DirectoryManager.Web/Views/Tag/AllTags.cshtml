@@ -38,7 +38,7 @@
                     // page 1 uses canonical base URL, pages 2+ use the resolver
                     string href = p == 1
                     ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
-                    : UrlResolver.Resolve(rawPath);
+                    : UrlResolver.ResolveToApp(rawPath);
                     // link styling: no-app-link on page 1, app-link thereafter
                     string linkClass = p == 1 ? "no-app-link" : "app-link";
                     // highlight current page
