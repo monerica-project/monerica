@@ -711,6 +711,7 @@ p.intro {
 /* prevent the description ever moving up by zeroing its top margin */
 .sponsor-desc {
     margin-top: 0 !important;
+    margin: 5px;
 }
 
 ul.search-results {
@@ -1185,3 +1186,4 @@ a.external-link {
         color: #FF6600;
         border-color: #FF6600;
     }
+ 
