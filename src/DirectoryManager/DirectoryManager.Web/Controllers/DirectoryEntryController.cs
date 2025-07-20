@@ -419,6 +419,8 @@ namespace DirectoryManager.Web.Controllers
             // Get the dictionary of countries from the helper.
             var countries = CountryHelper.GetCountries();
 
+            countries = countries.OrderBy(x => x.Value).ToDictionary<string, string>();
+
             // Build a list of SelectListItem from the dictionary.
             var list = countries.Select(c => new SelectListItem
             {

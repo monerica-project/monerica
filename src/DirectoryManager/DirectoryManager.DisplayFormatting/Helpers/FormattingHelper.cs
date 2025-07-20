@@ -48,6 +48,12 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 return clean.Substring(0, clean.Length - 2);
             }
 
+            // 2b) don’t singularize adjectives ending in “ous” (anonymous, dangerous, etc.)
+            if (clean.EndsWith("ous"))
+            {
+                return clean;
+            }
+
             // 3) fallback to Humanizer’s singularizer for everything else
             return clean.Singularize(false);
         }
