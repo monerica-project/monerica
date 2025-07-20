@@ -98,6 +98,10 @@ namespace DirectoryManager.Data.DbContextInfo
                 .HasIndex(t => t.Name)
                 .IsUnique();
 
+            builder.Entity<Tag>()
+                 .HasIndex(t => t.Key)
+                 .IsUnique();
+
             builder.Entity<Category>()
                    .HasIndex(e => e.CategoryKey)
                    .IsUnique();

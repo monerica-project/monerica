@@ -10,6 +10,9 @@ namespace DirectoryManager.Data.Models
         [Required, MaxLength(100)]
         public string Name { get; set; } = null!;
 
+        [Required, MaxLength(100)] 
+        public string Key { get; set; } = null!;
+
         // navigation 
         public ICollection<DirectoryEntryTag> EntryTags { get; set; }
             = new List<DirectoryEntryTag>();

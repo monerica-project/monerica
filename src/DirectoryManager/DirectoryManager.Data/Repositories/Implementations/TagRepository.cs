@@ -1,8 +1,10 @@
-﻿using DirectoryManager.Data.DbContextInfo;
+﻿using DirectoryManager.Data.Constants;
+using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Utilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Data.Repositories.Implementations
@@ -23,12 +25,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.Tags.FindAsync(tagId);
 
         /// <summary>
-        /// Find a tag by its name.
+        /// Find a tag by its key.
         /// </summary>
-        public async Task<Tag?> GetByNameAsync(string name) =>
+        public async Task<Tag?> GetByKeyAsync(string key) =>
             await this.context.Tags
                           .AsNoTracking()
-                          .FirstOrDefaultAsync(t => t.Name == name);
+                          .FirstOrDefaultAsync(t => t.Key == key);
 
         /// <summary>
         /// List all tags, alphabetically.
@@ -44,7 +46,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         /// </summary>
         public async Task<Tag> CreateAsync(string name)
         {
-            var tag = new Tag { Name = name };
+            var tag = new Tag { Name = name, Key = name.UrlKey() };
             await this.context.Tags.AddAsync(tag);
             await this.context.SaveChangesAsync();
             return tag;
@@ -99,35 +101,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
-
-        public async Task<Tag?> GetBySlugAsync(string slug)
-        {
-            slug = slug.Trim().ToLowerInvariant();
-
-            return await this.context.Tags
-                .AsNoTracking()
-                .FirstOrDefaultAsync(t =>
-                    // exact name match
-                    t.Name.ToLower() == slug
-                    // allow "web-hosting" → t.Name = "web hosting"
-                    || t.Name.Replace(" ", "-").ToLower() == slug
-                    // allow "web hosting" → slug = "web-hosting"
-                    || t.Name.Replace("-", " ").ToLower() == slug
-                    // drop both hyphens and spaces for "nonprofit" vs "non-profit"
-                    || t.Name.Replace(" ", "").Replace("-", "").ToLower() == slug);
-        }
         // in TagRepository.cs
         public async Task<PagedResult<TagCount>> ListTagsWithCountsPagedAsync(int page, int pageSize)
         {
             // only count non-removed entries
             var query = this.context.DirectoryEntryTags
                 .Where(et => et.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed)
-                .GroupBy(et => new { et.TagId, et.Tag.Name })
+                .GroupBy(et => new { et.TagId, et.Tag.Name, et.Tag.Key })
                 .Select(g => new TagCount
                 {
                     TagId = g.Key.TagId,
                     Name = g.Key.Name,
-                    Slug = g.Key.Name,
+                    Key = g.Key.Key,
                     Count = g.Count()
                 })
                 .OrderBy(tc => tc.Name);
@@ -145,6 +130,5 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 Items = items
             };
         }
-
     }
 }

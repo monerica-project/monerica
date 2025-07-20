@@ -36,7 +36,7 @@
                 @for (int p = 1; p <= totalPages; p++)
                 {
                     // build raw path
-                    string rawPath = $"/tagged/{Model.Tag.Name.UrlKey()}"
+                    string rawPath = $"/tagged/{Model.Tag.Key}"
                     + (p > 1 ? $"?page={p}" : "");
                     // page 1 on canonical root, pages 2+ on app domain
                     string href = p == 1

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Utilities;
 using OpenAI;
 using OpenAI.Chat;
 
@@ -94,7 +95,7 @@ Output ONLY the comma-separated tags.";
                 foreach (var tagName in suggestions)
                 {
                     // find or create the tag
-                    var tag = await this.tags.GetByNameAsync(tagName)
+                    var tag = await this.tags.GetByKeyAsync(tagName.UrlKey())
                               ?? await this.tags.CreateAsync(tagName);
 
                     // link it to this entry

@@ -34,6 +34,7 @@
  
   <ItemGroup>
     <ProjectReference Include="..\DirectoryManager.Common\DirectoryManager.Common.csproj" />
+    <ProjectReference Include="..\DirectoryManager.Utilities\DirectoryManager.Utilities.csproj" />
   </ItemGroup>
 
 	<!-- For DirectoryManager.Data.csproj -->

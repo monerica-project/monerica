@@ -3,6 +3,7 @@ using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.DisplayFormatting.Models;
+using DirectoryManager.Utilities;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Utilities.Validation;
 using DirectoryManager.Web.Extensions;
@@ -356,7 +357,7 @@ namespace DirectoryManager.Web.Controllers
                     foreach (var name in names)
                     {
                         // get or create the Tag row
-                        var tag = await this.tagRepo.GetByNameAsync(name)
+                        var tag = await this.tagRepo.GetByKeyAsync(name.UrlKey())
                                ?? await this.tagRepo.CreateAsync(name);
 
                         // link it

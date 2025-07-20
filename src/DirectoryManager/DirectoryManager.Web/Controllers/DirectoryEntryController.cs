@@ -5,6 +5,7 @@ using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.DisplayFormatting.Models;
+using DirectoryManager.Utilities;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Charting;
 using DirectoryManager.Web.Constants;
@@ -141,7 +142,7 @@ namespace DirectoryManager.Web.Controllers
                 foreach (var name in tagNames)
                 {
                     var normalizedName = FormattingHelper.NormalizeTagName(name);
-                    var tag = await this.tagRepo.GetByNameAsync(normalizedName)
+                    var tag = await this.tagRepo.GetByKeyAsync(normalizedName.UrlKey())
                            ?? await this.tagRepo.CreateAsync(normalizedName);
                     await this.entryTagRepo.AssignTagAsync(model.DirectoryEntryId, tag.TagId);
                 }
@@ -227,7 +228,7 @@ namespace DirectoryManager.Web.Controllers
             foreach (var name in newTagNames)
             {
                 var normalizedName = FormattingHelper.NormalizeTagName(name);
-                var tag = await this.tagRepo.GetByNameAsync(normalizedName)
+                var tag = await this.tagRepo.GetByKeyAsync(normalizedName.UrlKey())
                        ?? await this.tagRepo.CreateAsync(normalizedName);
                 await this.entryTagRepo.AssignTagAsync(id, tag.TagId);
             }

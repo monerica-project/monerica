@@ -4,6 +4,7 @@ using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Enums;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.DisplayFormatting.Models;
+using DirectoryManager.Utilities;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -33,6 +34,8 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("")]
         public async Task<IActionResult> All(int page = 1)
         {
+
+            var all = await this.tagRepo.ListAllAsync();
             var pageSize = 100;
             var paged = await this.tagRepo
                 .ListTagsWithCountsPagedAsync(page, pageSize)
@@ -55,7 +58,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var tag = await this.tagRepo.GetBySlugAsync(tagSlug);
+            var tag = await this.tagRepo.GetByKeyAsync(tagSlug);
             if (tag == null)
             {
                 return this.NotFound();

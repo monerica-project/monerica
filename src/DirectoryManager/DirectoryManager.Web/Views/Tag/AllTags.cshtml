@@ -19,7 +19,7 @@
         @foreach (var tc in Model.PagedTags.Items)
         {
             <a class="tag-item no-app-link"
-               href="@(UrlResolver.BaseUrl.TrimEnd('/') + $"/tagged/{tc.Slug.UrlKey()}")"
+               href="@(UrlResolver.BaseUrl.TrimEnd('/') + $"/tagged/{tc.Key}")"
                title="@tc.Name">
                 @tc.Name (@tc.Count)
             </a>
