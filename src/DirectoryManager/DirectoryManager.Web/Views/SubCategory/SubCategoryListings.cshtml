@@ -135,12 +135,12 @@
             viewModel.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
         }
 
-            if (subCategorySponsorModel?.DirectoryEntry?.DirectoryEntryId == viewModel.DirectoryEntryId)
-            {
-                viewModel.IsSponsored = true;
-                viewModel.DisplayAsSponsoredItem = false;
-                viewModel.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
-            }
+        if (viewModel.DirectoryEntryId == subCategorySponsorModel?.DirectoryEntry?.DirectoryEntryId)
+        {
+            viewModel.IsSponsored = true;
+            viewModel.DisplayAsSponsoredItem = true;
+            viewModel.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
+        } 
 
         @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
     }
