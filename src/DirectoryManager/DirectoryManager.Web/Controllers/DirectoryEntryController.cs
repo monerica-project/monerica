@@ -355,6 +355,12 @@ namespace DirectoryManager.Web.Controllers
                 .OrderBy(n => n)
                 .ToList();
 
+            var tagDictionary = tagEntities
+                .OrderBy(t => t.Name)
+                .ToDictionary(
+                    t => t.Key,
+                    t => t.Name);
+
             const string sponsorCacheKey = "AllActiveSponsors";
             if (!this.cache.TryGetValue(sponsorCacheKey, out List<SponsoredListing> allSponsors))
             {
@@ -396,6 +402,7 @@ namespace DirectoryManager.Web.Controllers
                 Link2Name = link2Name,
                 Link3Name = link3Name,
                 Tags = tagNames,
+                TagsAndKeys = tagDictionary,
                 CountryCode = existingEntry.CountryCode,
                 IsSponsored = isSponsor
             };

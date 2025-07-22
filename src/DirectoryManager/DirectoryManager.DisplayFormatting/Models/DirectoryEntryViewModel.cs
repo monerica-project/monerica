@@ -80,6 +80,7 @@ namespace DirectoryManager.DisplayFormatting.Models
         public string ItemPath { get; set; } = string.Empty;
 
         public List<string>? Tags { get; set; }
+        public Dictionary<string, string>? TagsAndKeys { get; set; }
 
         public string? CountryCode { get; set; }
     }

@@ -998,7 +998,7 @@ li.category-item ul {
 }
 
 .main-content-centered {
-    max-width: 62rem;
+    max-width:75rem;
     margin: 0 auto;
     padding: 1rem;
 }

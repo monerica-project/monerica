@@ -178,22 +178,25 @@
             </div>
         }
 
-        @if (Model.Tags?.Any() ?? false)
+        @if (Model.TagsAndKeys?.Any() ?? false)
         {
             <br />
             <div class="entry-tags">
                 <strong>Tags:</strong>
-                @for (int i = 0; i < Model.Tags.Count; i++)
-                {
-                    var tag = Model.Tags[i];
-                    // slugify by replacing spaces with hyphens
-                    var slug = tag.Replace(" ", "-").ToLowerInvariant();
-                    <a href="~/tagged/@slug">@tag</a>@if (i < Model.Tags.Count - 1){
-                    <text>, </text>
+                @{
+                    // materialize to list so we can test “last” easily
+                    var tags = Model.TagsAndKeys.ToList();
                 }
-            }
-        </div>
-    }
+                @for (int i = 0; i < tags.Count; i++)
+                {
+                    var key = tags[i].Key;    // slug / url‐key
+                    var name = tags[i].Value;  // display name
+                    var slug = key.Replace(" ", "-").ToLowerInvariant();
+
+                    <a class="no-app-link" href="~/tagged/@slug">@name</a>@(i < tags.Count - 1 ? ", " : "")
+                }
+            </div>
+        }
 
       
     </div>
