@@ -152,6 +152,5 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
             }
         }
-
     }
 }

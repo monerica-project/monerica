@@ -71,8 +71,7 @@ namespace DirectoryManager.NewsletterSender.Services.Implementations
                     var id = msg.EmailMessageId;
                     messageCache[id] = (
                         PlainText: this.AppendFooter(msg.EmailMessage.EmailBodyText, unsubscribeText),
-                        Html: this.AppendFooter(msg.EmailMessage.EmailBodyHtml, unsubscribeHtml)
-                    );
+                        Html: this.AppendFooter(msg.EmailMessage.EmailBodyHtml, unsubscribeHtml));
                 }
 
                 var subscribers = this.emailCampaignSubscriptionRepository.GetSubscribersByCampaign(campaign.EmailCampaignId);

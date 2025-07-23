@@ -1,8 +1,7 @@
-﻿using System.Drawing;
-using System.Drawing.Imaging;
-using DirectoryManager.Data.Models.Emails;
+﻿using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Services.Interfaces;
+using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models.Emails;
 using DirectoryManager.Web.Services.Interfaces;
@@ -144,7 +143,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     Email = email,
                     IsSubscribed = true,
-                    IpAddress = ipAddress
+                    IpAddress = this.HttpContext.GetRemoteIpIfEnabled()
                 });
 
                 var campaigns = this.emailCampaignRepository.GetAll(0, int.MaxValue, out _);
@@ -229,7 +228,6 @@ namespace DirectoryManager.Web.Controllers
             // Pass the email to the view for confirmation message
             return this.View(nameof(this.Unsubscribe), finalEmail);
         }
-
 
         // Helper method to generate a random CAPTCHA string
         private string GenerateCaptchaText(int length = 5)

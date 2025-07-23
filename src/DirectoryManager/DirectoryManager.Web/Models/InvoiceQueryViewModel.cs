@@ -41,12 +41,12 @@ namespace DirectoryManager.Web.Models
         public Currency PaidInCurrency { get; set; } = Currency.Unknown;
 
         /// <summary>
-        /// null = All; otherwise filter by this specific type
+        /// null = All; otherwise filter by this specific type.
         /// </summary>
         public SponsorshipType? SponsorshipType { get; set; }
 
         /// <summary>
-        /// Populated with “All” + each enum value (excluding Unknown)
+        /// Populated with “All” + each enum value (excluding Unknown).
         /// </summary>
         public List<SelectListItem> SponsorshipTypeOptions { get; set; }
     }

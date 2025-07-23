@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using System.Text;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Web.Charting;
@@ -9,7 +10,6 @@ using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using System.Text;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -202,12 +202,12 @@ namespace DirectoryManager.Web.Controllers
             // 4) Build a little “result” that mirrors your old repository DTO
             var result = new
             {
-                TotalReceivedAmount = filtered.Sum(inv => inv.PaidAmount),   // what actually paid
-                TotalAmount = filtered.Sum(inv => inv.Amount),       // requested USD
+                TotalReceivedAmount = filtered.Sum(inv => inv.PaidAmount),
+                TotalAmount = filtered.Sum(inv => inv.Amount),
                 Currency = filtered.Select(inv => inv.Currency)
-                                              .FirstOrDefault(),            // USDcode
+                                              .FirstOrDefault(),
                 PaidInCurrency = filtered.Select(inv => inv.PaidInCurrency)
-                                              .FirstOrDefault()             // XMR or other
+                                              .FirstOrDefault()
             };
 
             // 5) Exactly the assignments you had before:

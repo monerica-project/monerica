@@ -16,7 +16,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public IEnumerable<ExcludeUserAgent> GetAll()
         {
             return new List<ExcludeUserAgent>();
-            //            return this.context.ExcludeUserAgents.ToList();
+            // return this.context.ExcludeUserAgents.ToList();
         }
 
         public void Create(ExcludeUserAgent excludeUserAgent)

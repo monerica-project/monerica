@@ -9,6 +9,5 @@ namespace DirectoryManager.Web.Models.Emails
         public string Email { get; set; } = default!;
 
         public string Captcha { get; set; }
-
     }
 }

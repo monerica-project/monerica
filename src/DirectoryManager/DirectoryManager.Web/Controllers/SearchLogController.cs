@@ -20,7 +20,7 @@ namespace DirectoryManager.Web.Controllers
             [FromQuery, DataType(DataType.Date)] DateTime? end)
         {
             DateTime to = end.HasValue
-                ? end.Value.Date.AddDays(1).AddTicks(-1) 
+                ? end.Value.Date.AddDays(1).AddTicks(-1)
                 : DateTime.UtcNow;
 
             DateTime from = start.HasValue

@@ -203,7 +203,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
 
             if (!ids.Any())
+            {
                 return Array.Empty<DirectoryEntry>();
+            }
 
             // Phase 2: eager‐load the full entities (and their SubCategory/Category/Tags)
             var entries = await this.BaseQuery()
@@ -349,7 +351,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var primaryPattern = $"%{term}%";
             string? rootTerm = null;
             string? rootPattern = null;
-            if (term.EndsWith("s") && term.Length > 3)   // <-- only strip "s" when length > 3
+            if (term.EndsWith("s") && term.Length > 3) // <-- only strip "s" when length > 3
             {
                 rootTerm = term.Substring(0, term.Length - 1);
                 rootPattern = $"%{rootTerm}%";
@@ -360,6 +362,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Where(e =>
                     e.DirectoryStatus != DirectoryStatus.Removed &&
                     (
+
                         // Name
                         EF.Functions.Like(e.Name.ToLower(), primaryPattern) ||
                         (rootPattern != null && EF.Functions.Like(e.Name.ToLower(), rootPattern)) ||
@@ -393,15 +396,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         (rootPattern != null && EF.Functions.Like((e.Contact ?? "").ToLower(), rootPattern)) ||
 
                         EF.Functions.Like((e.Link ?? "").ToLower(), primaryPattern) ||
-                        (rootPattern != null && EF.Functions.Like((e.Link ?? "").ToLower(), rootPattern))
-                    ));
+                        (rootPattern != null && EF.Functions.Like((e.Link ?? "").ToLower(), rootPattern))));
 
             // 2) bring into memory for fine‐grained scoring
             var candidates = await filtered.ToListAsync();
 
             static int CountOcc(string? field, string t)
             {
-                if (string.IsNullOrEmpty(field)) return 0;
+                if (string.IsNullOrEmpty(field))
+                {
+                    return 0;
+                }
+
                 var txt = field.ToLowerInvariant();
                 int count = 0, idx = 0;
                 while ((idx = txt.IndexOf(t, idx, StringComparison.Ordinal)) != -1)
@@ -409,6 +415,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     count++;
                     idx += t.Length;
                 }
+
                 return count;
             }
 
@@ -432,7 +439,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                              + CountOcc(e.Processor, term)
                              + (rootTerm != null ? CountOcc(e.Processor, rootTerm) : 0)
                              + CountOcc(e.Location, term)
-                             + (rootTerm != null ? CountOcc(e.Location, rootPattern) : 0)
+                             + (rootTerm != null ? CountOcc(e.Location, rootTerm) : 0)
                              + CountOcc(e.Contact, term)
                              + (rootTerm != null ? CountOcc(e.Contact, rootTerm) : 0)
                              + CountOcc(e.Link, term)
@@ -510,10 +517,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
             // base query: only non-removed, matching category
             var query = this.context.DirectoryEntries
                 .Include(e => e.SubCategory)
-                    .ThenInclude(sc => sc.Category)
+                .ThenInclude(sc => sc.Category)
                 .Where(e =>
                     e.DirectoryStatus != DirectoryStatus.Removed &&
-                    e.SubCategory.CategoryId == categoryId)
+                    (e.SubCategory != null &&
+                    e.SubCategory.CategoryId == categoryId))
 
                 // order by subcategory name then entry name
                 .OrderBy(e => e.SubCategory!.Name)

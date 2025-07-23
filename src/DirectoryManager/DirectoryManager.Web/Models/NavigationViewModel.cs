@@ -10,5 +10,4 @@ namespace DirectoryManager.Web.Models
         public string? CurrentCategoryKey { get; set; }
         public string? CurrentSubCategoryKey { get; set; }
     }
-
 }

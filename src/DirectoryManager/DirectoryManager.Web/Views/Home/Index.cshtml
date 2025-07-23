@@ -50,7 +50,6 @@
         .ToDictionary(g => g.Key, g => g.Select(s => s.DirectoryEntry!).ToList());
 }
 
-
 @{
     // load all subcategories (with Category navigation)
     var subs = await subCategoryRepository.GetAllDtoAsync();

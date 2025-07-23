@@ -134,8 +134,6 @@ async Task CheckAndSubmitAsync(
     {
         // load the entry *from this scope’s* repo
         var dirEntry = await scopedEntriesRepo.GetByIdAsync(entry.DirectoryEntryId);
-        await CreateOfflineSubmissionIfNotExists(
-        dirEntry,
-        scopedSubmissionRepo);
+        await CreateOfflineSubmissionIfNotExists(dirEntry, scopedSubmissionRepo);
     }
 }

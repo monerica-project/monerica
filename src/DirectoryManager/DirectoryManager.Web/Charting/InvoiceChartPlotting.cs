@@ -99,6 +99,7 @@ namespace DirectoryManager.Web.Charting
                         total += ((double)inv.Amount / span) * overlapDays;
                     }
                 }
+
                 return new { Month = m, AvgDaily = total / daysInMonth };
             })
             .ToList();
@@ -120,7 +121,6 @@ namespace DirectoryManager.Web.Charting
 
             return plt.GetImageBytes(width: 1200, height: 600, format: ImageFormat.Png);
         }
-
 
         public byte[] CreateSubcategoryRevenuePieChart(
             IEnumerable<SponsoredListingInvoice> invoices,

@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using System.Text;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -16,7 +17,6 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using NowPayments.API.Interfaces;
 using NowPayments.API.Models;
-using System.Text;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -1365,6 +1365,7 @@ namespace DirectoryManager.Web.Controllers
                     .Where(e => e.SubCategoryId == typeId.Value)
                     .ToList();
             }
+
             // If filtering by category sponsor, restrict by the CategoryId of the SubCategory navigation
             else if (sponsorshipType == SponsorshipType.CategorySponsor && typeId.HasValue)
             {
@@ -1379,6 +1380,5 @@ namespace DirectoryManager.Web.Controllers
                 .OrderBy(e => e.Name)
                 .ToList();
         }
-
     }
 }

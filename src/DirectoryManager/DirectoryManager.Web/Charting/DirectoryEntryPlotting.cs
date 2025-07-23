@@ -1,16 +1,15 @@
-﻿using DirectoryManager.Data.Models;
+﻿using System.Globalization;
+using DirectoryManager.Data.Models;
 using ScottPlot;
-using System.Globalization;
 
 namespace DirectoryManager.Web.Charting
 {
     public class DirectoryEntryPlotting
     {
-
         /// <summary>
         /// Single‐bar‐per‐month showing how many entries were active at month‐end.
         /// </summary>
-        /// <returns></returns>
+        /// <returns>bytes.</returns>
         public byte[] CreateMonthlyActivePlot(List<DirectoryEntriesAudit> audits)
         {
             // build the month‐end counts
@@ -43,12 +42,13 @@ namespace DirectoryManager.Web.Charting
 
             // add them all at once
             var barPlot = plt.Add.Bars(bars);
+
            //barPlot.LegendText = "Active entries";
 
             // force y≥0
             plt.Axes.AutoScale();
-            var L = plt.Axes.GetLimits();
-            plt.Axes.SetLimits(L.Left, L.Right, 0, L.Top);
+            var limits = plt.Axes.GetLimits();
+            plt.Axes.SetLimits(limits.Left, limits.Right, 0, limits.Top);
 
             // bottom axis ticks & labels
             var bot = plt.Axes.Bottom;
@@ -71,8 +71,6 @@ namespace DirectoryManager.Web.Charting
             plt.Layout.Default();
             return plt.GetImageBytes(width: 1200, height: 600, format: ImageFormat.Png);
         }
-
-
 
         // your helper to build the monthly report remains the same...
         public static List<(int Year, int Month, int ActiveCount)> GetMonthlyActiveCounts(

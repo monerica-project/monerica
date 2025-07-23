@@ -2,11 +2,6 @@
 {
     public class EmailBounce
     {
-        public string Status { get; set; }
-        public string Reason { get; set; }
-        public string Email { get; set; }
-        public DateTime Created { get; set; }
-
         public EmailBounce(string status, string reason, string email, long createdTimestamp)
         {
             this.Status = status;
@@ -19,5 +14,10 @@
         public EmailBounce()
         {
         }
+
+        public string Status { get; set; }
+        public string Reason { get; set; }
+        public string Email { get; set; }
+        public DateTime Created { get; set; }
     }
 }

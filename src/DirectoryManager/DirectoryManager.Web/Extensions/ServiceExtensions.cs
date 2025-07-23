@@ -39,13 +39,14 @@ namespace DirectoryManager.Web.Extensions
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
                   config.GetConnectionString(StringConstants.DefaultConnection),
-                  sqlOptions => {
+                  sqlOptions =>
+                  {
                         // retry up to 5 times with up to 10s between retries
                         sqlOptions.EnableRetryOnFailure(
                           maxRetryCount: 5,
                           maxRetryDelay: TimeSpan.FromSeconds(30),
                           errorNumbersToAdd: null);
-                    }));
+                  }));
 
             // Register all repositories from DatabaseExtensions
             services.AddDbRepositories();
@@ -69,7 +70,6 @@ namespace DirectoryManager.Web.Extensions
                       SenderEmail = cacheService.GetSnippet(SiteConfigSetting.SendGridSenderEmail),
                       SenderName = cacheService.GetSnippet(SiteConfigSetting.SendGridSenderName)
                   };
-
 
                   var emailSettings = new EmailSettings
                   {

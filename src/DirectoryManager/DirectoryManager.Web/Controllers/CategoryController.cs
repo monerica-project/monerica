@@ -89,7 +89,8 @@ namespace DirectoryManager.Web.Controllers
                 paged.Items.ToList(),
                 DateDisplayOption.NotDisplayed,
                 ItemDisplayType.Normal,
-                link2Name, link3Name);
+                link2Name,
+                link3Name);
 
             // 5) pull _all_ sponsors and collect their entry‑IDs:
             var mainSponsors = await this.sponsoredListingRepository
@@ -144,8 +145,6 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View("CategoryItems", vm);
         }
-
-
 
         [Route("category/create")]
         [HttpPost]

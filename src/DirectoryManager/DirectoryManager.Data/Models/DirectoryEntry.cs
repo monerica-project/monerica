@@ -1,7 +1,7 @@
-﻿using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models.BaseModels;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models.BaseModels;
 
 namespace DirectoryManager.Data.Models
 {
@@ -77,7 +77,7 @@ namespace DirectoryManager.Data.Models
         public int SubCategoryId { get; set; }
 
         [NotMapped]
-        public string? Tags {get; set; }
+        public string? Tags { get; set; }
 
         public ICollection<DirectoryEntryTag> EntryTags { get; set; }
            = new List<DirectoryEntryTag>();

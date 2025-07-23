@@ -43,7 +43,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             // join subcategories → entries, distinct, include Category
             var q = this.context.Subcategories
-                .Join(activeEntries,
+                .Join(
+                      activeEntries,
                       sc => sc.SubCategoryId,
                       de => de.SubCategoryId,
                       (sc, de) => sc)
@@ -54,7 +55,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return await q.ToListAsync().ConfigureAwait(false);
         }
-
 
         public async Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync(int minimumInSubcategory)
         {
@@ -139,6 +139,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return subCategories.ToDictionary(sc => sc.SubCategoryId, sc => sc.LastModified);
         }
 
+        public async Task<IReadOnlyList<Subcategory>> GetAllAsync()
+        {
+            return await this.context.Subcategories
+                         .AsNoTracking()
+                         .OrderBy(s => s.Category.Name)
+                         .ThenBy(s => s.Name)
+                         .ToListAsync();
+        }
+
         private async Task<IEnumerable<Subcategory>> GetFilteredActiveSubCategoriesAsync(int? minimumInSubcategory = null)
         {
             var query = this.context.Subcategories
@@ -160,14 +169,5 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context.DirectoryEntries
                 .Where(entry => entry.DirectoryStatus != DirectoryStatus.Unknown &&
                                 entry.DirectoryStatus != DirectoryStatus.Removed);
-
-        public async Task<IReadOnlyList<Subcategory>> GetAllAsync()
-        {
-            return await this.context.Subcategories
-                         .AsNoTracking()
-                         .OrderBy(s => s.Category.Name)
-                         .ThenBy(s => s.Name)
-                         .ToListAsync();
-        }
     }
 }

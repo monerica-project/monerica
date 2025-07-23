@@ -76,7 +76,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
-
         [Route("sponsoredlistingoffer/create")]
         [HttpPost]
         [ValidateAntiForgeryToken]

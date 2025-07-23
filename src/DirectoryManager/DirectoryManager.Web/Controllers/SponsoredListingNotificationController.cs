@@ -101,7 +101,9 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
-        [Authorize, HttpGet, Route("sponsoredlistingnotification/list")]
+        [Authorize]
+        [HttpGet]
+        [Route("sponsoredlistingnotification/list")]
         public async Task<IActionResult> List()
         {
             var list = await this.notificationRepository
@@ -110,7 +112,9 @@ namespace DirectoryManager.Web.Controllers
             return this.View(list);
         }
 
-        [Authorize, HttpGet, Route("sponsoredlistingnotification/edit/{id}")]
+        [Authorize]
+        [HttpGet]
+        [Route("sponsoredlistingnotification/edit/{id}")]
         public async Task<IActionResult> Edit(int id)
         {
             var notification = await this.notificationRepository
@@ -147,7 +151,10 @@ namespace DirectoryManager.Web.Controllers
             return this.View(notification);
         }
 
-        [Authorize, HttpPost, ValidateAntiForgeryToken, Route("sponsoredlistingnotification/edit/{id}")]
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("sponsoredlistingnotification/edit/{id}")]
         public async Task<IActionResult> Edit(SponsoredListingOpeningNotification model)
         {
             if (!this.ModelState.IsValid)
@@ -178,7 +185,10 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.List));
         }
 
-        [Authorize, HttpPost, ValidateAntiForgeryToken, Route("sponsoredlistingnotification/delete/{id}")]
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("sponsoredlistingnotification/delete/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
             var ok = await this.notificationRepository

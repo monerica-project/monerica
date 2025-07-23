@@ -30,7 +30,6 @@ namespace DirectoryManager.Web.Controllers
         private readonly ITagRepository tagRepo;
         private readonly IDirectoryEntryTagRepository entryTagRepo;
 
-
         public SubmissionController(
             UserManager<ApplicationUser> userManager,
             ISubmissionRepository submissionRepository,
@@ -162,7 +161,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View("SubmitEdit", model);
         }
 
-
         [AllowAnonymous]
         [HttpGet("submission/findexisting")]
         public async Task<IActionResult> FindExisting(int? subCategoryId = null)
@@ -271,7 +269,8 @@ namespace DirectoryManager.Web.Controllers
                         .GetTagsForEntryAsync(existing.DirectoryEntryId);
 
                     // 2) set submission.Tags so the UI shows them
-                    existing.Tags = string.Join(", ",
+                    existing.Tags = string.Join(
+                        ", ",
                         existingTags
                             .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
                             .Select(t => t.Name));
@@ -286,7 +285,6 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(submission);
         }
-
 
         [Authorize]
         [HttpPost("submission/{id}")]
@@ -376,7 +374,6 @@ namespace DirectoryManager.Web.Controllers
 
             return this.RedirectToAction(nameof(this.Index));
         }
-
 
         [Authorize]
         [HttpGet("submission/delete/{id}")]

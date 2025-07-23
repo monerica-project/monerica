@@ -209,6 +209,7 @@ namespace NowPayments.API.Implementations
 
                 var content = await response.Content.ReadAsStringAsync();
                 var estimate = JsonConvert.DeserializeObject<CurrencyEstimateResponse>(content);
+
                 return estimate;
             }
             catch (Exception ex)
