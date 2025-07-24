@@ -51,7 +51,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 await this.directoryEntrySelectionRepository.AddToList(selection);
 
-                this.cache.Remove(StringConstants.EntriesCacheKey);
+                this.cache.Remove(StringConstants.CacheKeyEntries);
 
                 return this.RedirectToAction("Index");
             }
@@ -76,7 +76,7 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.EntryDeletedFromList = await this.entryRepository.GetByIdAsync(selection.DirectoryEntryId);
 
-            this.cache.Remove(StringConstants.EntriesCacheKey);
+            this.cache.Remove(StringConstants.CacheKeyEntries);
 
             return this.View(selection);
         }

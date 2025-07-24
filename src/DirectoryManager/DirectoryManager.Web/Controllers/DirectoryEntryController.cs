@@ -361,7 +361,7 @@ namespace DirectoryManager.Web.Controllers
                     t => t.Key,
                     t => t.Name);
 
-            const string sponsorCacheKey = "AllActiveSponsors";
+            const string sponsorCacheKey = StringConstants.CacheKeyAllActiveSponsors;
             if (!this.cache.TryGetValue(sponsorCacheKey, out List<SponsoredListing> allSponsors))
             {
                 allSponsors = (List<SponsoredListing>?)await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();

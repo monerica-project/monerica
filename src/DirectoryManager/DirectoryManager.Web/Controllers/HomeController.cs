@@ -61,8 +61,8 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("expire-cache")]
         public IActionResult ExpireCache()
         {
-            this.cache.Remove(StringConstants.EntriesCacheKey);
-            this.cache.Remove(StringConstants.SponsoredListingsCacheKey);
+            this.cache.Remove(StringConstants.CacheKeyEntries);
+            this.cache.Remove(StringConstants.CacheKeySponsoredListings);
 
             return this.View();
         }

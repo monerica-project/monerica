@@ -87,7 +87,14 @@ namespace DirectoryManager.Web.Controllers
             subCategory.MetaDescription = subCategory.MetaDescription?.Trim();
             subCategory.PageDetails = subCategory.PageDetails?.Trim();
 
-            await this.subcategoryRepository.CreateAsync(subCategory);
+            try
+            {
+                await this.subcategoryRepository.CreateAsync(subCategory);
+            }
+            catch
+            {
+                return this.BadRequest("Can't create subcategory");
+            }
 
             this.ClearCachedItems();
 

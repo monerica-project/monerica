@@ -8,7 +8,7 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 
-<cache-content cache-key="@StringConstants.SponsoredListingsCacheKey">
+<cache-content cache-key="@StringConstants.CacheKeySponsoredListings">
     @{
         // 1) Fetch active MainSponsor listings
         var sponsoredListings = await sponsoredListingRepository
