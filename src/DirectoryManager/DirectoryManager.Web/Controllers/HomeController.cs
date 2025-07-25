@@ -38,6 +38,12 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
+        [HttpGet("faq")]
+        public IActionResult FAQ()
+        {
+            return this.View();
+        }
+
         [HttpGet("donate")]
         public IActionResult Donate()
         {

@@ -43,8 +43,6 @@ namespace DirectoryManager.Web.Charting
             // add them all at once
             var barPlot = plt.Add.Bars(bars);
 
-           //barPlot.LegendText = "Active entries";
-
             // force y≥0
             plt.Axes.AutoScale();
             var limits = plt.Axes.GetLimits();

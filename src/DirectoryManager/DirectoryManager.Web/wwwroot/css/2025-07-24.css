@@ -628,6 +628,8 @@ p.intro {
     line-height: 1.4;
 }
 
+.sponsor-card a { font-size: 18px;}
+
 .sponsors {
     padding: 1rem;
 }
