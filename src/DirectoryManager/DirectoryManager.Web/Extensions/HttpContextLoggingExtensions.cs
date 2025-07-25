@@ -5,9 +5,6 @@ namespace DirectoryManager.Web.Extensions
 {
     public static class HttpContextLoggingExtensions
     {
-        /// <summary>
-        /// True if the appsetting "Logging:TrafficLogging:LogIpAddresses" is set.
-        /// </summary>
         public static bool ShouldLogIp(this HttpContext ctx)
         {
             var opts = ctx.RequestServices
@@ -16,9 +13,6 @@ namespace DirectoryManager.Web.Extensions
             return opts.LogIpAddresses;
         }
 
-        /// <summary>
-        /// Returns the remote IP if & only if IP-logging is turned on; otherwise null.
-        /// </summary>
         public static string? GetRemoteIpIfEnabled(this HttpContext ctx)
         {
             if (!ctx.ShouldLogIp())

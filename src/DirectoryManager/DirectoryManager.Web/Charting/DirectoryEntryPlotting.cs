@@ -6,6 +6,53 @@ namespace DirectoryManager.Web.Charting
 {
     public class DirectoryEntryPlotting
     {
+        public static List<(int Year, int Month, int ActiveCount)> GetMonthlyActiveCounts(
+            List<DirectoryEntriesAudit> audits)
+        {
+            if (audits == null || audits.Count == 0)
+            {
+                throw new ArgumentException("no audit data");
+            }
+
+            // build a history per entry, using UpdateDate if present
+            var byEntry = audits
+                .Select(a => new
+                {
+                    a.DirectoryEntryId,
+                    EffectiveDate = a.UpdateDate ?? a.CreateDate,
+                    a.DirectoryStatus
+                })
+                .GroupBy(x => x.DirectoryEntryId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderBy(x => x.EffectiveDate).ToList());
+
+            // compute full month span
+            DateTime minDate = byEntry.Values.SelectMany(v => v).Min(x => x.EffectiveDate);
+            DateTime start = new DateTime(minDate.Year, minDate.Month, 1);
+            DateTime end = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+            int months = ((end.Year - start.Year) * 12) + end.Month - start.Month + 1;
+
+            var report = new List<(int Year, int Month, int ActiveCount)>();
+            for (int i = 0; i < months; i++)
+            {
+                DateTime monthStart = start.AddMonths(i);
+                DateTime cutoff = monthStart.AddMonths(1).AddTicks(-1);
+
+                int activeThisMonth = byEntry.Count(kvp =>
+                {
+                    var record = kvp.Value
+                        .Where(x => x.EffectiveDate <= cutoff)
+                        .LastOrDefault();
+                    return record != null && IsActiveStatus((int)record.DirectoryStatus);
+                });
+
+                report.Add((monthStart.Year, monthStart.Month, activeThisMonth));
+            }
+
+            return report;
+        }
+
         /// <summary>
         /// Single‐bar‐per‐month showing how many entries were active at month‐end.
         /// </summary>
@@ -68,54 +115,6 @@ namespace DirectoryManager.Web.Charting
             // layout & export
             plt.Layout.Default();
             return plt.GetImageBytes(width: 1200, height: 600, format: ImageFormat.Png);
-        }
-
-        // your helper to build the monthly report remains the same...
-        public static List<(int Year, int Month, int ActiveCount)> GetMonthlyActiveCounts(
-            List<DirectoryEntriesAudit> audits)
-        {
-            if (audits == null || audits.Count == 0)
-            {
-                throw new ArgumentException("no audit data");
-            }
-
-            // build a history per entry, using UpdateDate if present
-            var byEntry = audits
-                .Select(a => new
-                {
-                    a.DirectoryEntryId,
-                    EffectiveDate = a.UpdateDate ?? a.CreateDate,
-                    a.DirectoryStatus
-                })
-                .GroupBy(x => x.DirectoryEntryId)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.OrderBy(x => x.EffectiveDate).ToList());
-
-            // compute full month span
-            DateTime minDate = byEntry.Values.SelectMany(v => v).Min(x => x.EffectiveDate);
-            DateTime start = new DateTime(minDate.Year, minDate.Month, 1);
-            DateTime end = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
-            int months = ((end.Year - start.Year) * 12) + end.Month - start.Month + 1;
-
-            var report = new List<(int Year, int Month, int ActiveCount)>();
-            for (int i = 0; i < months; i++)
-            {
-                DateTime monthStart = start.AddMonths(i);
-                DateTime cutoff = monthStart.AddMonths(1).AddTicks(-1);
-
-                int activeThisMonth = byEntry.Count(kvp =>
-                {
-                    var record = kvp.Value
-                        .Where(x => x.EffectiveDate <= cutoff)
-                        .LastOrDefault();
-                    return record != null && IsActiveStatus((int)record.DirectoryStatus);
-                });
-
-                report.Add((monthStart.Year, monthStart.Month, activeThisMonth));
-            }
-
-            return report;
         }
 
         // adjust to match your “active” statuses

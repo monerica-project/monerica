@@ -1,4 +1,6 @@
-﻿namespace DirectoryManager.Web.Models.Emails
+﻿using DirectoryManager.Data.Migrations;
+
+namespace DirectoryManager.Web.Models.Emails
 {
     public class EmailBounce
     {
@@ -10,9 +12,12 @@
             this.Created = DateTimeOffset.FromUnixTimeSeconds(createdTimestamp).UtcDateTime;
         }
 
-        // Parameterless constructor for serialization/deserialization frameworks like CsvHelper
         public EmailBounce()
         {
+            this.Status = string.Empty;
+            this.Reason = string.Empty;
+            this.Email = string.Empty;
+            this.Created = DateTime.MinValue;
         }
 
         public string Status { get; set; }

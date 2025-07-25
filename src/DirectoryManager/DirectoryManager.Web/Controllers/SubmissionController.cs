@@ -148,7 +148,8 @@ namespace DirectoryManager.Web.Controllers
 
             // load existing tags for this entry
             var entryTags = await this.entryTagRepo.GetTagsForEntryAsync(id);
-            var tagCsv = string.Join(", ",
+            var tagCsv = string.Join(
+                ", ",
                 entryTags
                   .OrderBy(et => et.Name, StringComparer.OrdinalIgnoreCase)
                   .Select(et => et.Name));
