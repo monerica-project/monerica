@@ -1016,6 +1016,8 @@ li.category-item ul {
     font-size: 18px;
 }
 
+.sponsor-sections a { font-weight: bold;}
+
     .sponsor-sections > section {
         width: 100%;
         margin-bottom: 2rem;
