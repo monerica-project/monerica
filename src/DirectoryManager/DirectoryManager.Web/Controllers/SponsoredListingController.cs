@@ -99,7 +99,7 @@ namespace DirectoryManager.Web.Controllers
                     }
                     else
                     {
-                        model.Message = string.Format(StringConstants.CheckoutInProcess, IntegerConstants.ReservationMinutes);
+                        model.Message = await this.BuildCheckoutInProcessMessageAsync(mainSponsorReservationGroup);
                         model.CanCreateMainListing = false;
                     }
                 }
@@ -320,7 +320,8 @@ namespace DirectoryManager.Web.Controllers
             if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, selectedOffer.SponsorshipType)
                 && !isActiveSponsor)
             {
-                return this.BadRequest(new { Error = string.Format(StringConstants.CheckoutInProcess, IntegerConstants.ReservationMinutes) });
+                var msg = await this.BuildCheckoutInProcessMessageAsync(reservationGroup);
+                return this.BadRequest(new { Error = msg });
             }
 
             var reservationExpirationDate = DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes);
@@ -347,6 +348,7 @@ namespace DirectoryManager.Web.Controllers
         {
             const SponsorshipType type = SponsorshipType.SubcategorySponsor;
             var typeId = subCategoryId;
+            var group = ReservationGroupHelper.BuildReservationGroupName(type, typeId);
 
             // handle reservation creation / validation just like before
             if (rsvId == null)
@@ -354,14 +356,14 @@ namespace DirectoryManager.Web.Controllers
                 var totalActive = await this.sponsoredListingRepository
                                             .GetActiveSponsorsCountAsync(type, typeId)
                                             .ConfigureAwait(false);
-                var group = ReservationGroupHelper.BuildReservationGroupName(type, typeId);
                 var totalResv = await this.sponsoredListingReservationRepository
                                            .GetActiveReservationsCountAsync(group)
                                            .ConfigureAwait(false);
 
                 if (!CanPurchaseListing(totalActive, totalResv, type))
                 {
-                    return this.BadRequest(new { Error = string.Format(StringConstants.CheckoutInProcess, IntegerConstants.ReservationMinutes) });
+                    var msg = await this.BuildCheckoutInProcessMessageAsync(group);
+                    return this.BadRequest(new { Error = msg });
                 }
 
                 var exp = DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes);
@@ -380,7 +382,8 @@ namespace DirectoryManager.Web.Controllers
                                      .ConfigureAwait(false);
             if (existing == null)
             {
-                return this.BadRequest(new { Error = string.Format(StringConstants.CheckoutInProcess, IntegerConstants.ReservationMinutes) });
+                var msg = await this.BuildCheckoutInProcessMessageAsync(group);
+                return this.BadRequest(new { Error = msg });
             }
 
             this.ViewBag.ReservationGuid = rsvId;
@@ -401,20 +404,21 @@ namespace DirectoryManager.Web.Controllers
         {
             const SponsorshipType type = SponsorshipType.CategorySponsor;
             var typeId = categoryId;
+            var group = ReservationGroupHelper.BuildReservationGroupName(type, typeId);
 
             if (rsvId == null)
             {
                 var totalActive = await this.sponsoredListingRepository
                                             .GetActiveSponsorsCountAsync(type, typeId)
                                             .ConfigureAwait(false);
-                var group = ReservationGroupHelper.BuildReservationGroupName(type, typeId);
                 var totalResv = await this.sponsoredListingReservationRepository
                                            .GetActiveReservationsCountAsync(group)
                                            .ConfigureAwait(false);
 
                 if (!CanPurchaseListing(totalActive, totalResv, type))
                 {
-                    return this.BadRequest(new { Error = string.Format(StringConstants.CheckoutInProcess, IntegerConstants.ReservationMinutes) });
+                    var msg = await this.BuildCheckoutInProcessMessageAsync(group);
+                    return this.BadRequest(new { Error = msg });
                 }
 
                 var exp = DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes);
@@ -432,7 +436,8 @@ namespace DirectoryManager.Web.Controllers
                                      .ConfigureAwait(false);
             if (existing == null)
             {
-                return this.BadRequest(new { Error = string.Format(StringConstants.CheckoutInProcess, IntegerConstants.ReservationMinutes) });
+                var msg = await this.BuildCheckoutInProcessMessageAsync(group);
+                return this.BadRequest(new { Error = msg });
             }
 
             this.ViewBag.ReservationGuid = rsvId;
@@ -491,7 +496,8 @@ namespace DirectoryManager.Web.Controllers
 
                 if (!CanPurchaseListing(totalActive, totalReservations, offer.SponsorshipType))
                 {
-                    return this.BadRequest(new { Error = string.Format(StringConstants.CheckoutInProcess, IntegerConstants.ReservationMinutes) });
+                    var msg = await this.BuildCheckoutInProcessMessageAsync(group);
+                    return this.BadRequest(new { Error = msg });
                 }
             }
             else
@@ -584,24 +590,28 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = StringConstants.DirectoryEntryNotFound });
             }
 
+            int? typeId = GetSponsorshipTypeId(sponsoredListingOffer, directoryEntry);
+
+            var group = ReservationGroupHelper.BuildReservationGroupName(
+                                                    sponsoredListingOffer.SponsorshipType,
+                                                    typeId);
+
             if (rsvId == null)
             {
-                int? typeId = GetSponsorshipTypeId(sponsoredListingOffer, directoryEntry);
                 var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId, sponsoredListingOffer.SponsorshipType);
                 var totalActiveListings = await this.sponsoredListingRepository
                                                     .GetActiveSponsorsCountAsync(
                                                         sponsoredListingOffer.SponsorshipType,
                                                         typeId);
-                var reservationGroup = ReservationGroupHelper.BuildReservationGroupName(
-                                                                    sponsoredListingOffer.SponsorshipType,
-                                                                    typeId);
+
                 var totalActiveReservations = await this.sponsoredListingReservationRepository
-                                                        .GetActiveReservationsCountAsync(reservationGroup);
+                                                        .GetActiveReservationsCountAsync(group);
 
                 if (!CanPurchaseListing(
                     totalActiveListings, totalActiveReservations, sponsoredListingOffer.SponsorshipType) && !isActiveSponsor)
                 {
-                    return this.BadRequest(new { Error = string.Format(StringConstants.CheckoutInProcess, IntegerConstants.ReservationMinutes) });
+                    var msg = await this.BuildCheckoutInProcessMessageAsync(group);
+                    return this.BadRequest(new { Error = msg });
                 }
             }
             else
@@ -1379,6 +1389,25 @@ namespace DirectoryManager.Web.Controllers
             return entries
                 .OrderBy(e => e.Name)
                 .ToList();
+        }
+
+        /// <summary>
+        /// Returns a user‑friendly “checkout in process” message,
+        /// showing the actual expiration time and minutes left.
+        /// </summary>
+        private async Task<string> BuildCheckoutInProcessMessageAsync(string reservationGroup)
+        {
+            var expiration = await this.sponsoredListingReservationRepository
+                                      .GetActiveReservationExpirationAsync(reservationGroup);
+            if (expiration.HasValue)
+            {
+                var expiryUtc = expiration.Value;
+                var minutesLeft = (int)Math.Ceiling((expiryUtc - DateTime.UtcNow).TotalMinutes);
+                return $"Another checkout is in process and will expire at {expiryUtc:yyyy-MM-dd HH:mm} UTC ({minutesLeft} minutes left).";
+            }
+
+            // fallback if somehow no reservation was found
+            return "Another checkout is currently in process.";
         }
     }
 }
