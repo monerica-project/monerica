@@ -1,5 +1,6 @@
 ﻿@using DirectoryManager.Data.Enums
 @using DirectoryManager.Data.Models
+@using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Models
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContext
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheService
@@ -17,7 +18,7 @@
 
 @{
     // pull from cache or rebuild once per hour
-    var navModel = await MemoryCache.GetOrCreateAsync("NavModel", async entry =>
+    var navModel = await MemoryCache.GetOrCreateAsync(StringConstants.NavMenu, async entry =>
     {
         entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
 

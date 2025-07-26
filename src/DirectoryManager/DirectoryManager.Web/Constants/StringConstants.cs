@@ -39,5 +39,6 @@
         public const string AllCategories = "All Categories";
         public const string SelectText = "- Select -";
         public const string CookieNameCurrency = "currency";
+        public const string NavMenu = "NavModel";
     }
 }
