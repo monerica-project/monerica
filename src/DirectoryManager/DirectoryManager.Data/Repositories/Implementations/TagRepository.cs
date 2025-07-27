@@ -78,6 +78,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 {
                     et.TagId,
                     TagName = et.Tag.Name,
+                    Slug = et.Tag.Key,
                     Created = et.DirectoryEntry.CreateDate,
                     Updated = et.DirectoryEntry.UpdateDate
                 })

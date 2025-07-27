@@ -1,4 +1,5 @@
 ﻿using System.Text;
+using System.Xml;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Models;
 
@@ -31,7 +32,7 @@ namespace DirectoryManager.Web.Helpers
             {
                 sb.AppendLine(@"<url>");
                 sb.AppendFormat(@"<loc>{0}</loc>", siteMapItem.Url);
-                sb.AppendFormat(@"<lastmod>{0}</lastmod>", siteMapItem.LastMod.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat));
+                sb.AppendFormat(@"<lastmod>{0}</lastmod>", siteMapItem.LastMod.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormatSiteMapXml));
                 sb.AppendFormat(@"<changefreq>{0}</changefreq>", siteMapItem.ChangeFrequency.ToString());
                 sb.AppendFormat(@"<priority>{0}</priority>", Math.Round(siteMapItem.Priority, 2));
                 sb.AppendLine();

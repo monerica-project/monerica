@@ -92,12 +92,9 @@ namespace DirectoryManager.Web.Controllers
 
             foreach (var tagInfo in activeTags)
             {
-                // slugify once:
-                var slug = tagInfo.Name.UrlKey();
-
                 siteMapHelper.SiteMapItems.Add(new SiteMapItem
                 {
-                    Url = $"{domain}/tagged/{slug}",
+                    Url = $"{domain}/tagged/{tagInfo.Slug}",
                     Priority = 0.5,
                     ChangeFrequency = ChangeFrequency.Weekly,
                     LastMod = tagInfo.LastModified > mostRecentUpdateDate
