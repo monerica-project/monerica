@@ -433,10 +433,18 @@ namespace DirectoryManager.Web.Controllers
 
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
             {
+                Url = string.Format("{0}/faq", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                Priority = 0.3,
+                ChangeFrequency = ChangeFrequency.Weekly,
+                LastMod = date
+            });
+
+            siteMapHelper.SiteMapItems.Add(new SiteMapItem
+            {
                 Url = string.Format("{0}/rss/feed.xml", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
                 Priority = 0.9,
                 ChangeFrequency = ChangeFrequency.Daily,
-                LastMod = DateTime.UtcNow
+                LastMod = date
             });
         }
 
