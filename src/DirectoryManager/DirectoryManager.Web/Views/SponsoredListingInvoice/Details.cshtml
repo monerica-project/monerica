@@ -7,10 +7,13 @@
 
 @{
     ViewData[StringConstants.TitleHeader] = "Invoice Details";
+    Layout = "_CenteredLayout";
 }
 
 @{
-    Layout = "_CenteredLayout";
+    var totalDaysRaw = (Model.CampaignEndDate.Date - Model.CampaignStartDate.Date).TotalDays;
+    var totalDays = totalDaysRaw <= 0 ? 1 : (int)totalDaysRaw;   // protect against div/zero or bad dates
+    var avgUsdPerDay = Math.Round(Model.Amount / totalDays, 2);     // 2 decimals
 }
 
 
@@ -65,6 +68,12 @@
 
         <dt>Payment Status</dt>
         <dd>@EnumHelper.GetDescription(Model.PaymentStatus)</dd>
+
+        <dt>Total Days</dt>
+        <dd>@totalDays</dd>
+
+        <dt>Avg USD / Day</dt>
+        <dd>@avgUsdPerDay.ToString("0.00")</dd>
 
         <dt>Create Date</dt>
         <dd>@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</dd>

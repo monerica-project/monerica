@@ -150,5 +150,27 @@ namespace DirectoryManager.Data.Repositories.Implementations
             // Return the more recent of the two dates
             return (DateTime)(latestCreateDate > latestUpdateDate ? latestCreateDate : latestUpdateDate);
         }
+
+        public async Task<(IEnumerable<SponsoredListingInvoice> Invoices, int TotalCount)>
+            GetInvoicesForDirectoryEntryAsync(int directoryEntryId, int page, int pageSize)
+        {
+            var baseQuery =
+                from inv in this.context.SponsoredListingInvoices.AsNoTracking()
+                join sl in this.context.SponsoredListings.AsNoTracking()
+                     on inv.SponsoredListingId equals sl.SponsoredListingId
+                where sl.DirectoryEntryId == directoryEntryId
+                orderby inv.CreateDate descending
+                select inv;
+
+            var total = await baseQuery.CountAsync();
+
+            var items = await baseQuery
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, total);
+        }
+
     }
 }

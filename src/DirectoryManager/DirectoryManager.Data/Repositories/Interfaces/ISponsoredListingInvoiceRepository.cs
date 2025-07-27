@@ -18,5 +18,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<InvoiceTotalsResult> GetTotalsPaidAsync(DateTime startDate, DateTime endDate);
         Task DeleteAsync(int sponsoredListingInvoiceId);
         DateTime? GetLastPaidInvoiceUpdateDate();
+        Task<(IEnumerable<SponsoredListingInvoice> Invoices, int TotalCount)>GetInvoicesForDirectoryEntryAsync(int directoryEntryId, int page, int pageSize);
     }
 }

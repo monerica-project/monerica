@@ -542,5 +542,48 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(vm);
         }
+
+        [Route("sponsoredlistinginvoice/advertiser")]
+        [HttpGet]
+        public async Task<IActionResult> Advertiser(int directoryEntryId, int page = 1, int pageSize = 25)
+        {
+            var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
+            if (entry == null)
+            {
+                return this.NotFound();
+            }
+
+            var (invoices, total) = await this.invoiceRepository
+                .GetInvoicesForDirectoryEntryAsync(directoryEntryId, page, pageSize);
+
+            var model = new DirectoryManager.Web.Models.Reports.AdvertiserInvoiceListViewModel
+            {
+                DirectoryEntryId = directoryEntryId,
+                DirectoryEntryName = entry.Name,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = total,
+                Rows = invoices.Select(i =>
+                {
+                    var days = Math.Max(1, (i.CampaignEndDate.Date - i.CampaignStartDate.Date).TotalDays);
+                    var avg = Math.Round((double)(i.Amount / (decimal)days), 2);
+
+                    return new DirectoryManager.Web.Models.Reports.AdvertiserInvoiceRow
+                    {
+                        SponsoredListingInvoiceId = i.SponsoredListingInvoiceId,
+                        Amount = i.Amount,
+                        Currency = i.Currency.ToString(),
+                        CampaignStartDate = i.CampaignStartDate,
+                        CampaignEndDate = i.CampaignEndDate,
+                        AvgUsdPerDay = avg,
+                        SponsorshipType = i.SponsorshipType.ToString(),
+                        PaymentStatus = i.PaymentStatus.ToString(),
+                        CreateDate = i.CreateDate
+                    };
+                }).ToList()
+            };
+
+            return this.View("AdvertiserInvoices", model);
+        }
     }
 }

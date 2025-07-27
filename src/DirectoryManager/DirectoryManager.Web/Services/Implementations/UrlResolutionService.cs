@@ -34,7 +34,7 @@ namespace DirectoryManager.Web.Services.Implementations
             get
             {
                 var host = this.http.HttpContext?.Request.Host.Host ?? string.Empty;
-                return host.EndsWith(StringConstants.TorDomain, StringComparison.OrdinalIgnoreCase);
+                return host.EndsWith(this.torSuffix, StringComparison.OrdinalIgnoreCase);
             }
         }
 

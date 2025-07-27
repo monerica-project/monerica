@@ -1,7 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Migrations;
 using DirectoryManager.Data.Repositories.Interfaces;
-using DirectoryManager.Utilities;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Helpers;
@@ -9,7 +7,6 @@ using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DirectoryManager.Web.Controllers
 {
