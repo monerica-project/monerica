@@ -1403,7 +1403,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 var expiryUtc = expiration.Value;
                 var minutesLeft = (int)Math.Ceiling((expiryUtc - DateTime.UtcNow).TotalMinutes);
-                return $"Another checkout is in process and will expire at {expiryUtc:yyyy-MM-dd HH:mm} UTC ({minutesLeft} minutes left).";
+                return $"Another checkout is in process and will expire at {expiryUtc:yyyy-MM-dd HH:mm} UTC (in {minutesLeft} minutes).";
             }
 
             // fallback if somehow no reservation was found
