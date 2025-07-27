@@ -84,13 +84,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 })
 
                 // group by TagId + Name
-                .GroupBy(x => new { x.TagId, x.TagName })
+                .GroupBy(x => new { x.TagId, x.TagName, x.Slug })
 
                 // project into our DTO, computing the MAX() of (Updated ?? Created)
                 .Select(g => new TagWithLastModified
                 {
                     TagId = g.Key.TagId,
                     Name = g.Key.TagName,
+                    Slug = g.Key.Slug,
                     LastModified = g.Max(x => x.Updated.HasValue ? x.Updated.Value : x.Created)
                 })
 
