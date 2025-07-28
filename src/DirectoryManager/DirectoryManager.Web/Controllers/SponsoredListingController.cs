@@ -122,9 +122,12 @@ namespace DirectoryManager.Web.Controllers
                 foreach (var sc in allActiveSubcategories)
                 {
                     var label = FormattingHelper.SubcategoryFormatting(sc.Category.Name, sc.Name);
-                    if (currentSubSponsors.Any(x => x.SubCategoryId == sc.SubCategoryId))
+                    var sponsor = currentSubSponsors.FirstOrDefault(x => x.SubCategoryId == sc.SubCategoryId);
+
+                    if (sponsor != null)
                     {
                         model.UnavailableSubCatetgories.Add(sc.SubCategoryId, label);
+                        model.UnavailableSubcategoryExpirations[sc.SubCategoryId] = sponsor.CampaignEndDate;
                     }
                     else
                     {
@@ -148,11 +151,15 @@ namespace DirectoryManager.Web.Controllers
                 foreach (var cat in allCategories)
                 {
                     var label = cat.Name;
-                    if (currentCatSponsors.Any(x =>
-                            x.DirectoryEntry?.SubCategory != null &&
-                            x.DirectoryEntry.SubCategory.CategoryId == cat.CategoryId))
+
+                    var sponsor = currentCatSponsors.FirstOrDefault(x =>
+                        x.DirectoryEntry?.SubCategory != null &&
+                        x.DirectoryEntry.SubCategory.CategoryId == cat.CategoryId);
+
+                    if (sponsor != null)
                     {
                         model.UnavailableCategories.Add(cat.CategoryId, label);
+                        model.UnavailableCategoryExpirations[cat.CategoryId] = sponsor.CampaignEndDate;
                     }
                     else
                     {

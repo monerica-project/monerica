@@ -477,43 +477,91 @@ namespace DirectoryManager.Web.Controllers
             var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
             var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
 
-            // 1) fetch & filter paid invoices in range
             var allPaid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
-                .Where(inv => inv.CreateDate >= startUtc
-                           && inv.CreateDate <= endUtc
-                           && inv.PaymentStatus == PaymentStatus.Paid);
+                .Where(inv => inv.PaymentStatus == PaymentStatus.Paid);
 
             if (sponsorshipType.HasValue)
             {
                 allPaid = allPaid.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
             }
 
-            // 2) group by advertiser
+            // We'll still show only invoices that intersect the report window at least partially
+            allPaid = allPaid.Where(inv => inv.CampaignEndDate >= startUtc && inv.CampaignStartDate <= endUtc);
+
             var paidList = allPaid.ToList();
-            var totalRevenue = paidList.Sum(inv => inv.Amount);
 
+            // --- group by advertiser and compute prorated revenue + active days ---
             var rows = new List<AdvertiserBreakdownRow>();
-            foreach (var g in paidList
-                              .GroupBy(inv => inv.DirectoryEntryId)
-                              .OrderByDescending(g => g.Sum(inv => inv.Amount)))
-            {
-                var entry = await this.directoryEntryRepository.GetByIdAsync(g.Key);
-                var revenue = g.Sum(inv => inv.Amount);
-                var count = g.Count();
 
+            // total revenue for percentage should also be the prorated revenue across ALL advertisers
+            decimal totalProratedRevenueAll = 0m;
+
+            var grouped = paidList.GroupBy(inv => inv.DirectoryEntryId);
+            foreach (var g in grouped)
+            {
+                decimal advertiserProratedRevenue = 0m;
+                double advertiserActiveDays = 0d;
+                int invoiceCount = 0;
+
+                foreach (var inv in g)
+                {
+                    var fullStart = inv.CampaignStartDate;
+                    var fullEnd = inv.CampaignEndDate;
+
+                    // overlap with the report window
+                    var overlapStart = fullStart > startUtc ? fullStart : startUtc;
+                    var overlapEnd = fullEnd < endUtc ? fullEnd : endUtc;
+
+                    if (overlapEnd <= overlapStart)
+                    {
+                        continue; // no overlap
+                    }
+
+                    var fullDays = (fullEnd.Date - fullStart.Date).TotalDays;
+                    if (fullDays <= 0) fullDays = 1; // avoid div by zero
+
+                    var overlapDays = (overlapEnd.Date - overlapStart.Date).TotalDays;
+                    if (overlapDays <= 0) overlapDays = 1;
+
+                    // prorate the amount into the overlapped portion
+                    var prorated = inv.Amount * (decimal)(overlapDays / fullDays);
+
+                    advertiserProratedRevenue += prorated;
+                    advertiserActiveDays += overlapDays;
+                    invoiceCount++;
+                }
+
+                if (advertiserActiveDays == 0)
+                {
+                    advertiserActiveDays = 1; // avoid division by zero
+                }
+
+                var avgPerActiveDay = Math.Round(advertiserProratedRevenue / (decimal)advertiserActiveDays, 2);
+
+                totalProratedRevenueAll += advertiserProratedRevenue;
+
+                var entry = await this.directoryEntryRepository.GetByIdAsync(g.Key);
                 rows.Add(new AdvertiserBreakdownRow
                 {
                     DirectoryEntryId = g.Key,
                     DirectoryEntryName = entry?.Name ?? $"(#{g.Key})",
-                    Revenue = revenue,
-                    Count = count,    // ← new
-                    Percentage = totalRevenue > 0
-                                          ? Math.Round(revenue * 100m / totalRevenue, 2)
-                                          : 0
+                    Revenue = advertiserProratedRevenue, // show prorated revenue
+                    Count = invoiceCount,
+                    AveragePerDay = avgPerActiveDay
                 });
             }
 
-            // 3) build sponsorship‐type dropdown (unchanged)...
+            // now that prorated totals are known, set percentage
+            foreach (var r in rows)
+            {
+                r.Percentage = totalProratedRevenueAll > 0
+                    ? Math.Round(r.Revenue * 100m / totalProratedRevenueAll, 2)
+                    : 0m;
+            }
+
+            // sort desc by revenue
+            rows = rows.OrderByDescending(r => r.Revenue).ToList();
+
             var options = Enum.GetValues(typeof(SponsorshipType))
                 .Cast<SponsorshipType>()
                 .Where(st => st != SponsorshipType.Unknown)
@@ -556,6 +604,11 @@ namespace DirectoryManager.Web.Controllers
             var (invoices, total) = await this.invoiceRepository
                 .GetInvoicesForDirectoryEntryAsync(directoryEntryId, page, pageSize);
 
+            var (allInvoices, _) = await this.invoiceRepository
+                .GetInvoicesForDirectoryEntryAsync(directoryEntryId, page: 1, pageSize: int.MaxValue);
+
+            var totalPaidAllTime = allInvoices.Sum(i => i.Amount);
+
             var model = new DirectoryManager.Web.Models.Reports.AdvertiserInvoiceListViewModel
             {
                 DirectoryEntryId = directoryEntryId,
@@ -563,6 +616,7 @@ namespace DirectoryManager.Web.Controllers
                 Page = page,
                 PageSize = pageSize,
                 TotalCount = total,
+                TotalPaidAllTime = totalPaidAllTime,
                 Rows = invoices.Select(i =>
                 {
                     var days = Math.Max(1, (i.CampaignEndDate.Date - i.CampaignStartDate.Date).TotalDays);
@@ -578,7 +632,7 @@ namespace DirectoryManager.Web.Controllers
                         AvgUsdPerDay = avg,
                         SponsorshipType = i.SponsorshipType.ToString(),
                         PaymentStatus = i.PaymentStatus.ToString(),
-                        CreateDate = i.CreateDate
+                        CreateDate = i.CreateDate,
                     };
                 }).ToList()
             };

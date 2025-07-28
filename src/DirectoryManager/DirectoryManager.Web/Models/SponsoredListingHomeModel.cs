@@ -10,5 +10,8 @@
         public string? Message { get; set; }
         public Dictionary<int, string> AvailableCategories { get; set; } = new Dictionary<int, string>();
         public Dictionary<int, string> UnavailableCategories { get; set; } = new Dictionary<int, string>();
+
+        public Dictionary<int, DateTime> UnavailableCategoryExpirations { get; set; } = new Dictionary<int, DateTime>();
+        public Dictionary<int, DateTime> UnavailableSubcategoryExpirations { get; set; } = new Dictionary<int, DateTime>();
     }
 }

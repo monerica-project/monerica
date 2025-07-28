@@ -45,29 +45,31 @@
     Time Range: @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat) - @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
 </p>
 
-<table class="table table-striped">
-    <thead>
-        <tr>
-            <th>Advertiser</th>
-            <th>Revenue</th>
-            <td>Invoices</td>
-            <th>Percentage</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var row in Model.Rows)
-        {
+    <table class="table table-striped">
+        <thead>
             <tr>
-                <td>
+                <th>Advertiser</th>
+                <th>Revenue</th>
+                <th>Invoices</th>
+                <th>Avg USD/Day</th> 
+                <th>Percentage</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in Model.Rows)
+            {
+                <tr>
+                    <td>
                         <a href="@Url.Action("Advertiser", "SponsoredListingInvoice", new { directoryEntryId = row.DirectoryEntryId })">
                             @row.DirectoryEntryName
                         </a>
-                </td>
-                <td>@row.Revenue.ToString("C")</td>
-                <td>@row.Count</td>
-                <td>@row.Percentage %</td>
-            </tr>
-        }
-    </tbody>
-</table>
+                    </td>
+                    <td>@row.Revenue.ToString("C")</td>
+                    <td>@row.Count</td>
+                    <td>@row.AveragePerDay.ToString("C")</td> 
+                    <td>@row.Percentage %</td>
+                </tr>
+            }
+        </tbody>
+    </table>
 }
