@@ -44,7 +44,7 @@
 <p>
     Time Range: @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat) - @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
 </p>
-
+    <div class="table-wrapper">
     <table class="table table-striped">
         <thead>
             <tr>
@@ -71,5 +71,6 @@
                 </tr>
             }
         </tbody>
-    </table>
+        </table>
+    </div>
 }

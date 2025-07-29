@@ -18,6 +18,7 @@
 
     <p><strong>Total paid all time:</strong> @Model.TotalPaidAllTime.ToString("C")</p>
 
+    <div class="table-wrapper">
 
     <table class="table table-striped">
         <thead>
@@ -49,6 +50,8 @@
             }
         </tbody>
     </table>
+
+    </div>
 
     @if (Model.TotalCount > Model.PageSize)
     {
