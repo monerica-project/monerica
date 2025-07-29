@@ -206,11 +206,22 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             var profUrl = $"{domain}{profRelative}";
 
             sb.Append("<p>");
-            sb.Append(GetDirectoryStausIcon(model.DirectoryStatus)); // your helper for ✅❌ etc.
+
+            sb.Append(GetDirectoryStausIcon(model.DirectoryStatus)); // ✅❌
+
             sb.AppendFormat(
-                "<strong><a class=\"no-app-link\" href=\"{1}\">{0}</a></strong> — ",
+                "<strong><a class=\"no-app-link\" href=\"{1}\">{0}</a></strong>",
                 name,
                 profUrl);
+
+            // Append flag immediately after name
+            if (model.ItemDisplayType != ItemDisplayType.Email)
+            {
+                sb.Append("&nbsp;");
+                sb.Append(BuildFlagImgTag(model.CountryCode, rootUrl));
+            }
+
+            sb.Append(" — ");
 
             // pick affiliate if available
             var websiteUrl = !string.IsNullOrWhiteSpace(model.LinkA) && !model.IsSponsored
@@ -223,11 +234,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 sb.AppendFormat(
                     "<a href=\"{0}\" target=\"_blank\">Website</a>",
                     direct);
-            }
-
-            if (model.ItemDisplayType != ItemDisplayType.Email)
-            {
-                sb.Append(BuildFlagImgTag(model.CountryCode, rootUrl));
             }
 
             sb.Append("</p>");
