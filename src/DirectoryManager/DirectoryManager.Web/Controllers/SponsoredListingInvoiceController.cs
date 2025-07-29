@@ -497,9 +497,26 @@ namespace DirectoryManager.Web.Controllers
             var grouped = paidList.GroupBy(inv => inv.DirectoryEntryId);
             foreach (var g in grouped)
             {
-                var advertiserTotal = g.Sum(inv => inv.Amount);
-                var invoiceCount = g.Count();
+                decimal advertiserTotal = 0m;
+                double totalActiveDays = 0d;
+                int invoiceCount = 0;
 
+                foreach (var inv in g)
+                {
+                    advertiserTotal += inv.Amount;
+
+                    var start = inv.CampaignStartDate.Date;
+                    var end = inv.CampaignEndDate.Date;
+                    var days = (end - start).TotalDays;
+                    if (days <= 0) days = 1; // Avoid divide-by-zero or bad data
+                    totalActiveDays += days;
+
+                    invoiceCount++;
+                }
+
+                if (totalActiveDays <= 0) totalActiveDays = 1;
+
+                var avgPerDay = Math.Round(advertiserTotal / (decimal)totalActiveDays, 2);
                 totalRevenue += advertiserTotal;
 
                 var entry = await this.directoryEntryRepository.GetByIdAsync(g.Key);
@@ -509,7 +526,7 @@ namespace DirectoryManager.Web.Controllers
                     DirectoryEntryName = entry?.Name ?? $"(#{g.Key})",
                     Revenue = advertiserTotal,
                     Count = invoiceCount,
-                    AveragePerDay = 0m // optional: remove or keep as 0 since no proration
+                    AveragePerDay = avgPerDay
                 });
             }
 
