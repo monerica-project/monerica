@@ -435,7 +435,8 @@ namespace DirectoryManager.Web.Controllers
                 Processor = directoryEntry.Processor,
                 SubCategoryId = directoryEntry.SubCategoryId,
                 DirectoryEntryId = directoryEntry.DirectoryEntryId,
-                DirectoryStatus = directoryEntry.DirectoryStatus
+                DirectoryStatus = directoryEntry.DirectoryStatus,
+                CountryCode = directoryEntry.CountryCode,
             };
         }
 
