@@ -477,89 +477,49 @@ namespace DirectoryManager.Web.Controllers
             var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
             var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
 
+            // Get all invoices
             var allPaid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
-                .Where(inv => inv.PaymentStatus == PaymentStatus.Paid);
+                .Where(inv =>
+                    inv.PaymentStatus == PaymentStatus.Paid &&
+                    inv.CreateDate >= startUtc &&
+                    inv.CreateDate <= endUtc);
 
             if (sponsorshipType.HasValue)
             {
                 allPaid = allPaid.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
             }
 
-            // We'll still show only invoices that intersect the report window at least partially
-            allPaid = allPaid.Where(inv => inv.CampaignEndDate >= startUtc && inv.CampaignStartDate <= endUtc);
-
             var paidList = allPaid.ToList();
 
-            // --- group by advertiser and compute prorated revenue + active days ---
             var rows = new List<AdvertiserBreakdownRow>();
-
-            // total revenue for percentage should also be the prorated revenue across ALL advertisers
-            decimal totalProratedRevenueAll = 0m;
+            decimal totalRevenue = 0m;
 
             var grouped = paidList.GroupBy(inv => inv.DirectoryEntryId);
             foreach (var g in grouped)
             {
-                decimal advertiserProratedRevenue = 0m;
-                double advertiserActiveDays = 0d;
-                int invoiceCount = 0;
+                var advertiserTotal = g.Sum(inv => inv.Amount);
+                var invoiceCount = g.Count();
 
-                foreach (var inv in g)
-                {
-                    var fullStart = inv.CampaignStartDate;
-                    var fullEnd = inv.CampaignEndDate;
-
-                    // overlap with the report window
-                    var overlapStart = fullStart > startUtc ? fullStart : startUtc;
-                    var overlapEnd = fullEnd < endUtc ? fullEnd : endUtc;
-
-                    if (overlapEnd <= overlapStart)
-                    {
-                        continue; // no overlap
-                    }
-
-                    var fullDays = (fullEnd.Date - fullStart.Date).TotalDays;
-                    if (fullDays <= 0) fullDays = 1; // avoid div by zero
-
-                    var overlapDays = (overlapEnd.Date - overlapStart.Date).TotalDays;
-                    if (overlapDays <= 0) overlapDays = 1;
-
-                    // prorate the amount into the overlapped portion
-                    var prorated = inv.Amount * (decimal)(overlapDays / fullDays);
-
-                    advertiserProratedRevenue += prorated;
-                    advertiserActiveDays += overlapDays;
-                    invoiceCount++;
-                }
-
-                if (advertiserActiveDays == 0)
-                {
-                    advertiserActiveDays = 1; // avoid division by zero
-                }
-
-                var avgPerActiveDay = Math.Round(advertiserProratedRevenue / (decimal)advertiserActiveDays, 2);
-
-                totalProratedRevenueAll += advertiserProratedRevenue;
+                totalRevenue += advertiserTotal;
 
                 var entry = await this.directoryEntryRepository.GetByIdAsync(g.Key);
                 rows.Add(new AdvertiserBreakdownRow
                 {
                     DirectoryEntryId = g.Key,
                     DirectoryEntryName = entry?.Name ?? $"(#{g.Key})",
-                    Revenue = advertiserProratedRevenue, // show prorated revenue
+                    Revenue = advertiserTotal,
                     Count = invoiceCount,
-                    AveragePerDay = avgPerActiveDay
+                    AveragePerDay = 0m // optional: remove or keep as 0 since no proration
                 });
             }
 
-            // now that prorated totals are known, set percentage
             foreach (var r in rows)
             {
-                r.Percentage = totalProratedRevenueAll > 0
-                    ? Math.Round(r.Revenue * 100m / totalProratedRevenueAll, 2)
+                r.Percentage = totalRevenue > 0
+                    ? Math.Round(r.Revenue * 100m / totalRevenue, 2)
                     : 0m;
             }
 
-            // sort desc by revenue
             rows = rows.OrderByDescending(r => r.Revenue).ToList();
 
             var options = Enum.GetValues(typeof(SponsorshipType))
@@ -590,6 +550,7 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(vm);
         }
+
 
         [Route("sponsoredlistinginvoice/advertiser")]
         [HttpGet]
