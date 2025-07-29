@@ -63,5 +63,8 @@ namespace DirectoryManager.Data.Models
 
         [MaxLength(255)]
         public string? Tags { get; set; }
+
+        [MaxLength(2)]
+        public string? CountryCode { get; set; }
     }
 }

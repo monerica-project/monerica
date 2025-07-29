@@ -6,6 +6,7 @@ using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Utilities;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Utilities.Validation;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
@@ -13,6 +14,7 @@ using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
@@ -75,7 +77,7 @@ namespace DirectoryManager.Web.Controllers
                 model = GetSubmissionCreateModel(submission);
             }
 
-            await this.LoadSubCategories();
+            await this.LoadDropDowns();
 
             return this.View(model);
         }
@@ -113,7 +115,7 @@ namespace DirectoryManager.Web.Controllers
             }
             else
             {
-                await this.LoadSubCategories();
+                await this.LoadDropDowns();
             }
 
             return this.View("SubmitEdit", model);
@@ -159,6 +161,8 @@ namespace DirectoryManager.Web.Controllers
             model.Tags = tagCsv;
 
             await this.SetSelectSubCategoryViewBag();
+            await this.LoadDropDowns();
+
             return this.View("SubmitEdit", model);
         }
 
@@ -282,6 +286,7 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
+            await this.LoadDropDowns();
             await this.SetSelectSubCategoryViewBag();
 
             return this.View(submission);
@@ -369,6 +374,7 @@ namespace DirectoryManager.Web.Controllers
 
             // 4) store the admin’s final status & tags on the submission record
             submission.SubmissionStatus = model.SubmissionStatus;
+            submission.CountryCode = model.CountryCode;
             submission.Tags = model.Tags?.Trim();
 
             await this.submissionRepository.UpdateAsync(submission);
@@ -604,6 +610,26 @@ namespace DirectoryManager.Web.Controllers
                 });
         }
 
+        private async Task PopulateCountryDropDownList(object selectedId = null)
+        {
+            // Get the dictionary of countries from the helper.
+            var countries = CountryHelper.GetCountries();
+
+            countries = countries.OrderBy(x => x.Value).ToDictionary<string, string>();
+
+            // Build a list of SelectListItem from the dictionary.
+            var list = countries.Select(c => new SelectListItem
+            {
+                Value = c.Key,
+                Text = c.Value
+            }).ToList();
+
+            // Insert default option at the top.
+            list.Insert(0, new SelectListItem { Value = "", Text = StringConstants.SelectText });
+            this.ViewBag.CountryCode = new SelectList(list, "Value", "Text", selectedId);
+            await Task.CompletedTask; // For async signature compliance.
+        }
+
         private async Task AssignExistingProperties(Submission submissionModel, int existingDirectoryEntryId)
         {
             var existingDirectoryEntry = await this.directoryEntryRepository.GetByIdAsync(existingDirectoryEntryId);
@@ -613,6 +639,12 @@ namespace DirectoryManager.Web.Controllers
                 // they are submitting a listing that is an override, not an edit, copy the status from the existing listing
                 submissionModel.DirectoryStatus = existingDirectoryEntry?.DirectoryStatus;
             }
+        }
+
+        private async Task LoadDropDowns()
+        {
+            await this.LoadSubCategories();
+            await this.PopulateCountryDropDownList();
         }
 
         private async Task CreateDirectoryEntry(Submission model)
@@ -698,7 +730,8 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryId = (model.DirectoryEntryId == 0) ? null : model.DirectoryEntryId,
                 DirectoryStatus = (model.DirectoryStatus == null) ? DirectoryStatus.Unknown : model.DirectoryStatus,
                 NoteToAdmin = model.NoteToAdmin,
-                Tags = model.Tags?.Trim()
+                Tags = model.Tags?.Trim(),
+                CountryCode = model.CountryCode
             };
             return submission;
         }
@@ -738,6 +771,7 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.Processor = submissionModel.Processor;
             existingSubmission.SubCategoryId = submissionModel.SubCategoryId;
             existingSubmission.SuggestedSubCategory = submissionModel.SuggestedSubCategory;
+            existingSubmission.CountryCode = submissionModel.CountryCode;
 
             await this.submissionRepository.UpdateAsync(existingSubmission);
         }

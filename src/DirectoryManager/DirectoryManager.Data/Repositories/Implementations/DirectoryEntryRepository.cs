@@ -195,6 +195,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             // Phase 1: just fetch the IDs of the newest 'count' entries
             var ids = await this.context.DirectoryEntries
+                .Where(x => x.DirectoryStatus != DirectoryStatus.Removed)
                 .AsNoTracking()
                 .OrderByDescending(e => e.CreateDate)
                 .Take(count)

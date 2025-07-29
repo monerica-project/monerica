@@ -37,6 +37,10 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Location", Prompt = "City, Region, Country (example: New York, NY, USA)")]
         public string? Location { get; set; }
 
+        [Display(Name = "Country")]
+        [MaxLength(2)]
+        public string? CountryCode { get; set; }
+
         [MaxLength(75)]
         [Display(Name = "Processor", Prompt = "Payment processing company/ plugin")]
         public string? Processor { get; set; }
