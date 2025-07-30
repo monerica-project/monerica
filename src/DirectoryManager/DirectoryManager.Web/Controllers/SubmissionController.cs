@@ -458,7 +458,8 @@ namespace DirectoryManager.Web.Controllers
                 Note = submission.Note,
                 Processor = submission.Processor,
                 SuggestedSubCategory = submission.SuggestedSubCategory,
-                Tags = submission.Tags
+                Tags = submission.Tags,
+                CountryCode = submission.CountryCode
             };
         }
 
@@ -539,7 +540,8 @@ namespace DirectoryManager.Web.Controllers
                     Note = submission.Note,
                     Processor = submission.Processor,
                     SubCategoryId = submission.SubCategoryId,
-                    Tags = submission?.Tags?.Split(",").ToList()
+                    Tags = submission?.Tags?.Split(",").ToList(),
+                    CountryCode = submission?.CountryCode
                 },
                 SubmissionId = submission.SubmissionId,
                 NoteToAdmin = submission.NoteToAdmin,
@@ -670,7 +672,8 @@ namespace DirectoryManager.Web.Controllers
                     Contact = model.Contact?.Trim(),
                     DirectoryStatus = DirectoryStatus.Admitted,
                     SubCategoryId = model.SubCategoryId.Value,
-                    CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty
+                    CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty,
+                    CountryCode = model.CountryCode
                 });
         }
 
@@ -697,6 +700,7 @@ namespace DirectoryManager.Web.Controllers
             existing.Processor = model.Processor?.Trim();
             existing.Note = model.Note?.Trim();
             existing.Contact = model.Contact?.Trim();
+            existing.CountryCode = model.CountryCode;
 
             if (model.DirectoryStatus != null)
             {
