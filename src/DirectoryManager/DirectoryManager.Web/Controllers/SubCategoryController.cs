@@ -146,12 +146,13 @@ namespace DirectoryManager.Web.Controllers
 
         [AllowAnonymous]
         [HttpGet("{categoryKey}/{subCategoryKey}")]
+        [HttpGet("{categoryKey}/{subCategoryKey}/page/{page}")]
         public async Task<IActionResult> SubCategoryListings(
             string categoryKey,
             string subCategoryKey,
             int page = 1)
         {
-            const int PageSize = 25;
+            const int PageSize = IntegerConstants.DefaultPageSize;
 
             var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
             if (category == null)

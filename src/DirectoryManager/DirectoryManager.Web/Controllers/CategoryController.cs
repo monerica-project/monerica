@@ -62,6 +62,7 @@ namespace DirectoryManager.Web.Controllers
 
         [AllowAnonymous]
         [HttpGet("{categoryKey}")]
+        [HttpGet("{categoryKey}/page/{page:int}")]
         public async Task<IActionResult> Category(string categoryKey, int page = 1)
         {
             const int PageSize = 25;

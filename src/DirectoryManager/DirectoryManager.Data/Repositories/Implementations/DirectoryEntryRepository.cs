@@ -583,6 +583,20 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
+        public async Task<int> CountByCategoryAsync(int categoryId)
+        {
+            return await this.context.DirectoryEntries
+                .Where(de => de.SubCategory.CategoryId == categoryId && de.DirectoryStatus != DirectoryStatus.Removed)
+                .CountAsync();
+        }
+
+        public async Task<int> CountBySubcategoryAsync(int subCategoryId)
+        {
+            return await this.context.DirectoryEntries
+                .Where(e => e.SubCategoryId == subCategoryId && e.DirectoryStatus != DirectoryStatus.Removed)
+                .CountAsync();
+        }
+
         /// <summary>
         /// Base query including SubCategory→Category and EntryTags→Tag.
         /// </summary>

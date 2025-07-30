@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
@@ -121,11 +122,14 @@ namespace DirectoryManager.Web.Controllers
             });
 
             // Add additional pages to the sitemap
-            await this.AddNewestPagesListAsync(mostRecentUpdateDate, siteMapHelper); // Passing mostRecentUpdateDate
-            await this.AddPagesAsync(mostRecentUpdateDate, siteMapHelper); // Passing mostRecentUpdateDate
+            await this.AddNewestPagesListAsync(mostRecentUpdateDate, siteMapHelper); 
+            await this.AddPagesAsync(mostRecentUpdateDate, siteMapHelper);
 
             // Get active categories and their last modified dates
             var categories = await this.categoryRepository.GetActiveCategoriesAsync();
+
+            await this.AddCategoryPaginationAsync(mostRecentUpdateDate, siteMapHelper, categories);
+
             var allCategoriesLastModified = await this.categoryRepository.GetAllCategoriesLastChangeDatesAsync();
 
             // Get last modified dates for subcategories and items within subcategories
@@ -288,7 +292,7 @@ namespace DirectoryManager.Web.Controllers
 
             foreach (var subCategory in subCategories)
             {
-                this.AddSubcategories(
+                await this.AddSubcategoriesAsync(
                     lastFeaturedDate,
                     mostRecentUpdateDate,
                     siteMapHelper,
@@ -301,7 +305,7 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
-        private void AddSubcategories(
+        private async Task AddSubcategoriesAsync(
             DateTime lastFeaturedDate,
             DateTime mostRecentUpdateDate,
             SiteMapHelper siteMapHelper,
@@ -349,6 +353,29 @@ namespace DirectoryManager.Web.Controllers
                 ChangeFrequency = ChangeFrequency.Weekly,
                 LastMod = lastModified // Use mostRecentUpdateDate
             });
+
+            // Add paginated subcategory pages to sitemap
+            int totalActiveEntries = await this.directoryEntryRepository.CountBySubcategoryAsync(subCategory.SubCategoryId);
+            int pageSize = IntegerConstants.DefaultPageSize;
+            int totalPages = (int)Math.Ceiling(totalActiveEntries / (double)pageSize);
+
+            for (int i = 2; i <= totalPages; i++)
+            {
+                var pagedUrl = string.Format(
+                    "{0}/{1}/{2}/page/{3}",
+                    WebRequestHelper.GetCurrentDomain(this.HttpContext),
+                    category.CategoryKey,
+                    subCategory.SubCategoryKey,
+                    i);
+
+                siteMapHelper.SiteMapItems.Add(new SiteMapItem
+                {
+                    Url = pagedUrl,
+                    Priority = 0.3,
+                    ChangeFrequency = ChangeFrequency.Weekly,
+                    LastMod = lastModified
+                });
+            }
         }
 
         private async Task AddNewestPagesListAsync(DateTime date, SiteMapHelper siteMapHelper)
@@ -372,6 +399,36 @@ namespace DirectoryManager.Web.Controllers
                     ChangeFrequency = ChangeFrequency.Daily,
                     LastMod = date
                 });
+            }
+        }
+
+        private async Task AddCategoryPaginationAsync(
+                DateTime date,
+                SiteMapHelper siteMapHelper,
+                IEnumerable<Data.Models.Category> categories)
+        {
+            var domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
+            int pageSize = IntegerConstants.DefaultPageSize;
+
+            foreach (var category in categories)
+            {
+                int total = await this.directoryEntryRepository.CountByCategoryAsync(category.CategoryId);
+                int totalPages = (int)Math.Ceiling((double)total / pageSize);
+
+                for (int i = 1; i <= totalPages; i++)
+                {
+                    string url = i == 1
+                        ? $"{domain}/{category.CategoryKey}"
+                        : $"{domain}/{category.CategoryKey}/page/{i}";
+
+                    siteMapHelper.SiteMapItems.Add(new SiteMapItem
+                    {
+                        Url = url,
+                        Priority = 0.4,
+                        ChangeFrequency = ChangeFrequency.Weekly,
+                        LastMod = date
+                    });
+                }
             }
         }
 

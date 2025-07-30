@@ -18,7 +18,7 @@
 
 @{
   Layout = "_LayoutWithNav";
-  ViewData[StringConstants.TitleHeader] = "Category: " + Model.CategoryName;
+  ViewData[StringConstants.TitleHeader] = "Category: " + Model.CategoryName + (Model.CurrentPage > 1 ? $" (Page {Model.CurrentPage})" : "");
   ViewData[StringConstants.MetaDescription] = Model.MetaDescription;
 }
  
@@ -144,7 +144,7 @@
             @for (int p = 1; p <= totalPages; p++)
             {
                 // Build the raw path: first page is "/{categoryKey}", subsequent pages add "?page={p}"
-                string rawPath = $"/{categoryKey}" + (p > 1 ? $"?page={p}" : "");
+                string rawPath = $"/{categoryKey}" + (p > 1 ? $"/page/{p}" : "");
 
                 // Page 1 → canonical root; pages 2+ → app domain
                 string href = p == 1
@@ -152,7 +152,7 @@
                 : UrlResolver.ResolveToApp(rawPath);
 
                 // Style classes
-                string linkClass = p == 1 ? "no-app-link" : "app-link";
+                string linkClass = p == 1 ? "no-app-link" : "no-app-link";
                 string activeClass = p == currentPage ? "active" : "";
 
                 <li class="page-item @activeClass">
