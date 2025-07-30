@@ -35,5 +35,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<int> GetActiveSponsorsCountAsync(SponsorshipType sponsorshipType, int? typeId);
 
         Task<IEnumerable<SponsoredListing>> GetActiveSubCategorySponsorsAsync(int categoryId);
+
+        Task<DateTime?> GetLastMainSponsorExpirationDateAsync();
     }
 }

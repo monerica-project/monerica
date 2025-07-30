@@ -26,6 +26,7 @@
                 <th>Invoice ID</th>
                 <th>Amount (USD)</th>
                 <th>Avg USD/Day</th>
+                <th>Type</th>
                 <th>Start</th>
                 <th>End</th>
                 <th>Details</th>
@@ -38,6 +39,7 @@
                     <td>@invoice.SponsoredListingInvoiceId</td>
                     <td>@invoice.Amount.ToString("C")</td>
                     <td>@invoice.AvgUsdPerDay.ToString("0.00")</td>
+                    <td>@invoice.SponsorshipType</td>
                     <td>@invoice.CampaignStartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                     <td>@invoice.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                     <td>

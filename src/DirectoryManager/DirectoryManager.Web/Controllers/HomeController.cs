@@ -51,7 +51,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("newest")]
-        public async Task<IActionResult> Newest(int pageNumber = 1, int pageSize = IntegerConstants.DefaultPageSize)
+        public async Task<IActionResult> Newest(int pageNumber = 1, int pageSize = 100)
         {
             var groupedNewestAdditions = await this.directoryEntryRepository.GetNewestAdditionsGrouped(pageSize, pageNumber);
 

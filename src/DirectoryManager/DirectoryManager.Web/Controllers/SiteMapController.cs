@@ -66,13 +66,14 @@ namespace DirectoryManager.Web.Controllers
             var nextAdExpiration = await this.sponsoredListingRepository.GetNextExpirationDateAsync();
             var sponsoredListings = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
             var isAdSpaceAvailable = sponsoredListings.Count() < Common.Constants.IntegerConstants.MaxMainSponsoredListings;
-            var mostRecentUpdateDate = this.GetLatestUpdateDate(lastDirectoryEntryDate, lastContentSnippetUpdate, lastPaidInvoiceUpdate, nextAdExpiration);
-
-            if (isAdSpaceAvailable)
-            {
-                // TODO: do this for sub category sponsors
-                mostRecentUpdateDate = DateTime.UtcNow;
-            }
+            var lastMainSponsorExpiration = await this.sponsoredListingRepository.GetLastMainSponsorExpirationDateAsync();
+            var mostRecentUpdateDate = this.GetLatestUpdateDate(
+                                                lastDirectoryEntryDate,
+                                                lastContentSnippetUpdate,
+                                                lastPaidInvoiceUpdate,
+                                                nextAdExpiration,
+                                                lastMainSponsorExpiration,
+                                                isAdSpaceAvailable);
 
             // Get the last modification date for any sponsored listing
             var lastSponsoredListingChange = await this.sponsoredListingRepository.GetLastChangeDateForMainSponsorAsync();
@@ -445,11 +446,17 @@ namespace DirectoryManager.Web.Controllers
             });
         }
 
-        private DateTime GetLatestUpdateDate(DateTime? lastDirectoryEntryDate, DateTime? lastContentSnippetUpdate, DateTime? lastPaidInvoiceUpdate, DateTime? nextAdExpiration)
+        private DateTime GetLatestUpdateDate(
+            DateTime? lastDirectoryEntryDate,
+            DateTime? lastContentSnippetUpdate,
+            DateTime? lastPaidInvoiceUpdate,
+            DateTime? nextAdExpiration,
+            DateTime? lastMainSponsorExpiration,
+            bool isAdSpaceAvailable)
         {
             DateTime? latestUpdateDate = null;
 
-            // Determine the most recent date among lastDirectoryEntryDate, lastContentSnippetUpdate, and lastPaidInvoiceUpdate
+            // Step 1: Find most recent general update
             if (lastDirectoryEntryDate.HasValue)
             {
                 latestUpdateDate = lastDirectoryEntryDate;
@@ -465,7 +472,7 @@ namespace DirectoryManager.Web.Controllers
                 latestUpdateDate = lastPaidInvoiceUpdate;
             }
 
-            // Check if nextAdExpiration is the same day as the latestUpdateDate or if it is the only available date
+            // Step 2: Include next expiration only if same day or no other updates
             if (nextAdExpiration.HasValue)
             {
                 if (!latestUpdateDate.HasValue || nextAdExpiration.Value.Date == latestUpdateDate.Value.Date)
@@ -474,7 +481,15 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            // Return the latest update date or DateTime.MinValue if none of the dates are provided
+            // Step 3: If ad space is available and there was a recent expiration, use that
+            if (isAdSpaceAvailable && lastMainSponsorExpiration.HasValue)
+            {
+                if (!latestUpdateDate.HasValue || lastMainSponsorExpiration > latestUpdateDate)
+                {
+                    latestUpdateDate = lastMainSponsorExpiration.Value.AddMinutes(1); // offset by 1 min for freshness
+                }
+            }
+
             return latestUpdateDate ?? DateTime.MinValue;
         }
     }

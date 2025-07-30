@@ -299,5 +299,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
               .Where(s => s.DirectoryEntry?.SubCategory?.CategoryId == categoryId);
         }
 
+        public async Task<DateTime?> GetLastMainSponsorExpirationDateAsync()
+        {
+            var now = DateTime.UtcNow;
+
+            return await this.context.SponsoredListings
+                .Where(x =>
+                    x.SponsorshipType == SponsorshipType.MainSponsor &&
+                    x.CampaignEndDate < now) // only already expired
+                .OrderByDescending(x => x.CampaignEndDate)
+                .Select(x => (DateTime?)x.CampaignEndDate)
+                .FirstOrDefaultAsync();
+        }
     }
 }
