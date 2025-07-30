@@ -51,7 +51,8 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("newest")]
-        public async Task<IActionResult> Newest(int pageNumber = 1, int pageSize = 100)
+        [HttpGet("newest/page/{pageNumber:int}")]
+        public async Task<IActionResult> Newest(int pageNumber = 1, int pageSize = IntegerConstants.MaxPageSize)
         {
             var groupedNewestAdditions = await this.directoryEntryRepository.GetNewestAdditionsGrouped(pageSize, pageNumber);
 
@@ -60,7 +61,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.TotalPages = (int)Math.Ceiling((double)totalEntries / pageSize);
             this.ViewBag.PageNumber = pageNumber;
 
-            return this.View(groupedNewestAdditions);
+            return this.View("Newest", groupedNewestAdditions);
         }
 
         [Authorize]

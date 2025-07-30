@@ -3,6 +3,7 @@ using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Data.Repositories.Implementations
 {
@@ -56,6 +57,19 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 var contentSnippet = this.Context.ContentSnippets.FirstOrDefault(x => x.SnippetType == snippetType);
 
                 return contentSnippet;
+            }
+            catch (Exception ex)
+            {
+                throw new Exception(StringConstants.DBErrorMessage, ex.InnerException);
+            }
+        }
+
+        public async Task<ContentSnippet?> GetAsync(SiteConfigSetting snippetType)
+        {
+            try
+            {
+                return await this.Context.ContentSnippets
+                    .FirstOrDefaultAsync(x => x.SnippetType == snippetType);
             }
             catch (Exception ex)
             {

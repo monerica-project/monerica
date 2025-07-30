@@ -1,10 +1,12 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
+using EllipticCurve.Utils;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
@@ -119,8 +121,8 @@ namespace DirectoryManager.Web.Controllers
             });
 
             // Add additional pages to the sitemap
-            this.AddNewestPagesList(mostRecentUpdateDate, siteMapHelper); // Passing mostRecentUpdateDate
-            this.AddPages(mostRecentUpdateDate, siteMapHelper); // Passing mostRecentUpdateDate
+            await this.AddNewestPagesListAsync(mostRecentUpdateDate, siteMapHelper); // Passing mostRecentUpdateDate
+            await this.AddPagesAsync(mostRecentUpdateDate, siteMapHelper); // Passing mostRecentUpdateDate
 
             // Get active categories and their last modified dates
             var categories = await this.categoryRepository.GetActiveCategoriesAsync();
@@ -349,21 +351,33 @@ namespace DirectoryManager.Web.Controllers
             });
         }
 
-        private void AddNewestPagesList(DateTime date, SiteMapHelper siteMapHelper)
+        private async Task AddNewestPagesListAsync(DateTime date, SiteMapHelper siteMapHelper)
         {
-            // TODO: every page needs to be indexed, without a query string
-            siteMapHelper.SiteMapItems.Add(new SiteMapItem
+            int totalEntries = await this.directoryEntryRepository.TotalActive();
+            int pageSize = IntegerConstants.MaxPageSize;
+            int totalPages = (int)Math.Ceiling((double)totalEntries / pageSize);
+
+            string domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
+
+            for (int i = 1; i <= totalPages; i++)
             {
-                Url = string.Format("{0}/newest", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                Priority = 0.4,
-                ChangeFrequency = ChangeFrequency.Daily,
-                LastMod = date
-            });
+                string url = i == 1
+                    ? $"{domain}/newest"
+                    : $"{domain}/newest/page/{i}";
+
+                siteMapHelper.SiteMapItems.Add(new SiteMapItem
+                {
+                    Url = url,
+                    Priority = 0.4,
+                    ChangeFrequency = ChangeFrequency.Daily,
+                    LastMod = date
+                });
+            }
         }
 
-        private void AddPages(DateTime date, SiteMapHelper siteMapHelper)
+        private async Task AddPagesAsync(DateTime date, SiteMapHelper siteMapHelper)
         {
-            var contactHtmlConfig = this.contentSnippetRepository.Get(SiteConfigSetting.ContactHtml);
+            var contactHtmlConfig = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.ContactHtml);
 
             if (contactHtmlConfig != null && !string.IsNullOrWhiteSpace(contactHtmlConfig.Content))
             {
@@ -380,7 +394,7 @@ namespace DirectoryManager.Web.Controllers
                 });
             }
 
-            var donationHtmlConfig = this.contentSnippetRepository.Get(SiteConfigSetting.DonationHtml);
+            var donationHtmlConfig = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.DonationHtml);
 
             if (donationHtmlConfig != null && !string.IsNullOrWhiteSpace(donationHtmlConfig.Content))
             {
