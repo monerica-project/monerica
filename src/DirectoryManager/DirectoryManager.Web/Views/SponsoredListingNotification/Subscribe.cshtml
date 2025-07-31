@@ -23,22 +23,24 @@
     <div class="alert alert-success">@Model.SuccessMessage</div>
 }
 
-<p>
-            Sponsorship Type:
-        <strong>@EnumHelper.GetDescription(Model.SponsorshipType)</strong>
-</p>
-
-@if (!string.IsNullOrEmpty(Model.CategoryOrSubcategoryName))
-{
-    <p>
-        Subscribing for:
-        <strong>@Model.CategoryOrSubcategoryName</strong>
-    </p>
-}
- 
 @if (string.IsNullOrEmpty(Model.SuccessMessage))
 {
-    <form asp-action="Subscribe" method="post">
+
+        <p>
+            Sponsorship Type:
+            <strong>@EnumHelper.GetDescription(Model.SponsorshipType)</strong>
+        </p>
+
+        @if (!string.IsNullOrEmpty(Model.CategoryOrSubcategoryName))
+        {
+            <p>
+                Subscribing for:
+                <strong>@Model.CategoryOrSubcategoryName</strong>
+            </p>
+        }
+
+    
+        <form asp-action="Subscribe" method="post">
         <input type="hidden" asp-for="SponsorshipType" />
         <input type="hidden" asp-for="TypeId" />
 
@@ -48,7 +50,7 @@
             <span asp-validation-for="Email" class="text-danger"></span>
         </div>
 
-        <button type="submit" class="btn btn-primary">Subscribe</button>
+        <button type="submit" class="btn  btn-primary">Subscribe</button>
     </form>
 }
 }
