@@ -132,7 +132,6 @@ namespace DirectoryManager.Web.Controllers
                     category);
             }
 
-
             var allActiveEntries = await this.directoryEntryRepository.GetAllEntitiesAndPropertiesAsync();
 
             foreach (var entry in allActiveEntries.Where(x => x.DirectoryStatus != DirectoryStatus.Removed))
@@ -157,42 +156,6 @@ namespace DirectoryManager.Web.Controllers
             var xml = siteMapHelper.GenerateXml();
 
             return this.Content(xml, "text/xml");
-        }
-
-        private async Task AddTags(DateTime mostRecentUpdateDate, SiteMapHelper siteMapHelper, string domain)
-        {
-            var tagPageSize = IntegerConstants.MaxPageSize;
-            var tagsWithInfo = await this.tagRepository.ListTagsWithSitemapInfoAsync();
-
-            foreach (var tag in tagsWithInfo)
-            {
-                int totalPages = (int)Math.Ceiling((double)tag.EntryCount / tagPageSize);
-
-                for (int i = 1; i <= totalPages; i++)
-                {
-                    string url = i == 1
-                        ? $"{domain}/tagged/{tag.Slug}"
-                        : $"{domain}/tagged/{tag.Slug}/page/{i}";
-
-                    siteMapHelper.SiteMapItems.Add(new SiteMapItem
-                    {
-                        Url = url,
-                        Priority = i == 1 ? 0.5 : 0.3,
-                        ChangeFrequency = ChangeFrequency.Weekly,
-                        LastMod = tag.LastModified > mostRecentUpdateDate
-                                    ? tag.LastModified
-                                    : mostRecentUpdateDate
-                    });
-                }
-            }
-
-            siteMapHelper.SiteMapItems.Add(new SiteMapItem
-            {
-                Url = string.Format("{0}/tagged", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                Priority = 0.3,
-                ChangeFrequency = ChangeFrequency.Monthly,
-                LastMod = mostRecentUpdateDate
-            });
         }
 
         [Route("sitemap")]
@@ -235,6 +198,42 @@ namespace DirectoryManager.Web.Controllers
             return this.View("Index", model);
         }
 
+        private async Task AddTags(DateTime mostRecentUpdateDate, SiteMapHelper siteMapHelper, string domain)
+        {
+            var tagPageSize = IntegerConstants.MaxPageSize;
+            var tagsWithInfo = await this.tagRepository.ListTagsWithSitemapInfoAsync();
+
+            foreach (var tag in tagsWithInfo)
+            {
+                int totalPages = (int)Math.Ceiling((double)tag.EntryCount / tagPageSize);
+
+                for (int i = 1; i <= totalPages; i++)
+                {
+                    string url = i == 1
+                        ? $"{domain}/tagged/{tag.Slug}"
+                        : $"{domain}/tagged/{tag.Slug}/page/{i}";
+
+                    siteMapHelper.SiteMapItems.Add(new SiteMapItem
+                    {
+                        Url = url,
+                        Priority = i == 1 ? 0.5 : 0.3,
+                        ChangeFrequency = ChangeFrequency.Weekly,
+                        LastMod = tag.LastModified > mostRecentUpdateDate
+                                    ? tag.LastModified
+                                    : mostRecentUpdateDate
+                    });
+                }
+            }
+
+            siteMapHelper.SiteMapItems.Add(new SiteMapItem
+            {
+                Url = string.Format("{0}/tagged", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                Priority = 0.3,
+                ChangeFrequency = ChangeFrequency.Monthly,
+                LastMod = mostRecentUpdateDate
+            });
+        }
+
         private async Task AddCategoryPages(
             DateTime lastFeaturedDate,
             DateTime mostRecentUpdateDate,
@@ -274,10 +273,10 @@ namespace DirectoryManager.Web.Controllers
 
             var lastChangeForCategoryOrSubcategory = new[]
             {
-        lastChangeToCategory,
-        mostRecentSubcategoryDate,
-        mostRecentCategoryAdDate,
-        mostRecentUpdateDate
+                lastChangeToCategory,
+                mostRecentSubcategoryDate,
+                mostRecentCategoryAdDate,
+                mostRecentUpdateDate
             }.Max();
 
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
@@ -334,11 +333,11 @@ namespace DirectoryManager.Web.Controllers
 
             DateTime lastModified = new[]
             {
-        lastFeaturedDate,
-        lastChangeToSubcategory,
-        lastChangeToSubcategoryItem,
-        lastChangeToSubcategoryAd,
-        mostRecentUpdateDate
+                lastFeaturedDate,
+                lastChangeToSubcategory,
+                lastChangeToSubcategoryItem,
+                lastChangeToSubcategoryAd,
+                mostRecentUpdateDate
             }.Max().AddHours(1); // slight offset to ensure update pickup
 
             // Add base subcategory page
@@ -352,7 +351,9 @@ namespace DirectoryManager.Web.Controllers
 
             // Add paginated subcategory pages
             if (!subcategoryEntryCounts.TryGetValue(subCategoryId, out var entryCount))
+            {
                 return;
+            }
 
             int pageSize = IntegerConstants.DefaultPageSize;
             int totalPages = (int)Math.Ceiling(entryCount / (double)pageSize);
@@ -368,7 +369,6 @@ namespace DirectoryManager.Web.Controllers
                 });
             }
         }
-
 
         private async Task AddNewestPagesListAsync(DateTime date, SiteMapHelper siteMapHelper)
         {
