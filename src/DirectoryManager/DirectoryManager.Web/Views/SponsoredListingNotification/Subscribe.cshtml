@@ -1,57 +1,54 @@
-﻿@model DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification
-
+﻿@model DirectoryManager.Web.Models.SubscribeViewModel
 @using DirectoryManager.Utilities.Helpers
-@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Constants
+
 @{
     ViewData[StringConstants.TitleHeader] = "Get Notified For Next Sponsored Listing Opening";
-}
-@{
     Layout = "_CenteredLayout";
 }
+
 @section PageContent {
 
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
-
 <hr />
 @await Html.PartialAsync("_BackToHome")
 <hr />
- 
-@if (TempData[DirectoryManager.Web.Constants.StringConstants.ErrorMessage] != null)
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
 {
-    <p class="alert alert-danger">@TempData[DirectoryManager.Web.Constants.StringConstants.ErrorMessage]</p>
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success">@Model.SuccessMessage</div>
 }
 
-@if (!string.IsNullOrWhiteSpace(Model.SponsorshipType.ToString()))
-{
-    <p>You are subscribing for notifications about: <strong>@EnumHelper.GetDescription(Model.SponsorshipType)</strong></p>
-}
+<p>
+            Sponsorship Type:
+        <strong>@EnumHelper.GetDescription(Model.SponsorshipType)</strong>
+</p>
 
-@if (Model.TypeId.HasValue)
-{
-    <p>@TempData[DirectoryManager.Web.Constants.StringConstants.SubcategoryName]</p>
-}
-
-@if (TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage] == null)
-{
-<form asp-action="Subscribe" method="post">
-    <input type="hidden" asp-for="SponsorshipType" />
-    <input type="hidden" asp-for="TypeId" />
-
-    <div class="form-group">
-        <label asp-for="Email">Email Address:</label>
-        <input asp-for="Email" class="form-control" style="width:18%;" />
-        <span asp-validation-for="Email" class="text-danger"></span>
-    </div>
-
-    <button type="submit" class="btn btn-primary">Subscribe</button>
-</form>
-}
-
-
-@if (TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage] != null)
+@if (!string.IsNullOrEmpty(Model.CategoryOrSubcategoryName))
 {
     <p>
-        &#9989; @TempData[DirectoryManager.Web.Constants.StringConstants.SuccessMessage]
+        Subscribing for:
+        <strong>@Model.CategoryOrSubcategoryName</strong>
     </p>
+}
+ 
+@if (string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <form asp-action="Subscribe" method="post">
+        <input type="hidden" asp-for="SponsorshipType" />
+        <input type="hidden" asp-for="TypeId" />
+
+        <div class="form-group">
+            <label asp-for="Email">Email Address:</label>
+            <input asp-for="Email" class="form-control" style="width:18%;" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Subscribe</button>
+    </form>
 }
 }
