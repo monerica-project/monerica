@@ -61,6 +61,11 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("Location", entry.Location, submission.Location);
             }
 
+            if (NotEqualTrimmed(entry.CountryCode, submission.CountryCode))
+            {
+                AddDifference("Country", entry.CountryCode, submission.CountryCode);
+            }
+
             if (NotEqualTrimmed(entry.Processor, submission.Processor))
             {
                 AddDifference("Processor", entry.Processor, submission.Processor);

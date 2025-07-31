@@ -276,6 +276,7 @@ namespace DirectoryManager.Web.Controllers
                 this.ViewBag.CategoryId = directoryEntry?.SubCategory?.Category?.CategoryId;
             }
 
+            this.ViewBag.DirectoryEntrName = directoryEntry.Name;
             this.ViewBag.DirectoryEntryId = directoryEntryId;
             this.ViewBag.SponsorshipType = sponsorshipType;
 

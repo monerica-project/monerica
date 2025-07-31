@@ -12,6 +12,7 @@
 @inject IMemoryCache memoryCache
 
 @{
+    Layout = "_CenteredLayout";
     ViewData[StringConstants.TitleHeader] = "Select Listing Duration";
     var offersList = Model.ToList();
     int defaultChoiceIndex = 0;
@@ -23,11 +24,7 @@
     bool showConverted = conversionResult.showConverted;
     decimal conversionRate = conversionResult.conversionRate;
 }
-
-@{
-    Layout = "_CenteredLayout";
-}
-
+ 
 @section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
@@ -35,6 +32,9 @@
 
 <a href="~/sponsoredlisting/selectlisting?sponsorshipType=@ViewBag.SponsorshipType&subCategoryId=@ViewBag.SubCategoryId&categoryId=@ViewBag.CategoryId">&lt; back</a>
 <hr />
+
+<p><b>Name:</b> @this.ViewBag.DirectoryEntrName</p>
+<p><b>Sponsorship Type:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(ViewBag.SponsorshipType)</p>
 
 @if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.SubcategorySponsor)
 {
@@ -50,7 +50,7 @@ else if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.
 <form method="post" action="~/sponsoredlisting/selectduration">
     <input name="directoryEntryId" type="hidden" value="@ViewBag.DirectoryEntryId" />
     <div class="form-group">
-        <label>Options for @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(ViewBag.SponsorshipType):</label>
+        <label>Available Options:</label>
         @for (var i = 0; i < offersList.Count; i++)
         {
             var offer = offersList[i];
