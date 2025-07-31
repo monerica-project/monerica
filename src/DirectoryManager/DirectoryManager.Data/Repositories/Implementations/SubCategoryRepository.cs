@@ -148,6 +148,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                          .ToListAsync();
         }
 
+
         private async Task<IEnumerable<Subcategory>> GetFilteredActiveSubCategoriesAsync(int? minimumInSubcategory = null)
         {
             var query = this.context.Subcategories

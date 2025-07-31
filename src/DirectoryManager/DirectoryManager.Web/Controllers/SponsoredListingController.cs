@@ -870,80 +870,161 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Offers()
         {
-            // Retrieve all MainSponsor offers and include the Subcategory and Category navigation properties
-            var mainSponsorshipOffers = await this.sponsoredListingOfferRepository
-                .GetAllByTypeAsync(SponsorshipType.MainSponsor);
+            // 1) Fetch all three types
+            var mainOffers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(SponsorshipType.MainSponsor);
+            var categoryOffers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(SponsorshipType.CategorySponsor);
+            var subcategoryOffers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(SponsorshipType.SubcategorySponsor);
 
-            // Map, filter, and order the main sponsorship offers
-            var enabledMainSponsorshipOffers = mainSponsorshipOffers
-                .Select(o => new SponsoredListingOfferDisplayModel
+            // 2) Pull in the counts in bulk
+            var mainActiveCount = (await this.sponsoredListingRepository
+                                           .GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor))
+                                           .Count();
+            var activeByCategory = await this.sponsoredListingRepository
+                                           .GetActiveSponsorCountByCategoryAsync(SponsorshipType.CategorySponsor);
+            var activeBySubcategory = await this.sponsoredListingRepository
+                                           .GetActiveSponsorCountBySubcategoryAsync(SponsorshipType.SubcategorySponsor);
+
+            // 3) Get your master lists
+            var allCats = await this.categoryRepository.GetActiveCategoriesAsync();
+            var allSubcats = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync();
+
+            var freeCategories = allCats.Where(c => !activeByCategory.ContainsKey(c.CategoryId))
+                                             .Select(c => c.CategoryId)
+                                             .ToHashSet();
+            var freeSubcategories = allSubcats.Where(sc => !activeBySubcategory.ContainsKey(sc.SubCategoryId))
+                                             .Select(sc => sc.SubCategoryId)
+                                             .ToHashSet();
+
+            // 4a) MainSponsor — use the Subcategory → Category formatting if present, otherwise fall back to Default
+            var vmMain = mainOffers.Select(o =>
+            {
+                bool available = mainActiveCount < Common.Constants.IntegerConstants.MaxMainSponsoredListings;
+                var link = available
+                    ? this.Url.Action("SelectListing", "SponsoredListing", new { sponsorshipType = SponsorshipType.MainSponsor })
+                    : this.Url.Action("Subscribe", "SponsoredListingNotification", new { sponsorshipType = SponsorshipType.MainSponsor });
+
+                // **Here’s the only change** — compute the label dynamically
+                var label = o.Subcategory != null
+                    ? FormattingHelper.SubcategoryFormatting(
+                        o.Subcategory.Category!.Name,
+                        o.Subcategory.Name)
+                    : StringConstants.Default;
+
+                return new SponsoredListingOfferDisplayModel
                 {
                     Description = o.Description,
                     Days = o.Days,
-                    PriceCurrency = o.PriceCurrency,
                     Price = o.Price,
+                    PriceCurrency = o.PriceCurrency,
                     SponsorshipType = o.SponsorshipType,
-                    CategorySubcategory = o.Subcategory != null
-                        ? FormattingHelper.SubcategoryFormatting(o.Subcategory.Category?.Name ?? StringConstants.Default, o.Subcategory.Name)
-                        : StringConstants.Default
-                })
-                .OrderBy(o => o.CategorySubcategory == StringConstants.Default ? 0 : 1) // Entries with no Subcategory come first
-                .ThenBy(o => o.CategorySubcategory)
-                .ThenBy(o => o.Days)
-                .ToList();
+                    CategorySubcategory = label,       // ← dynamic label now
+                    IsAvailable = available,
+                    ActionLink = link
+                };
+            })
+            .OrderBy(o => o.CategorySubcategory)
+            .ToList();
 
-            // Retrieve all SubcategorySponsor offers and include the Subcategory and Category navigation properties
-            var subCategorySponsorshipOffers = await this.sponsoredListingOfferRepository
-                .GetAllByTypeAsync(SponsorshipType.SubcategorySponsor);
+            // 4b) CategorySponsor: default (o.Subcategory == null) is ALWAYS available
+            var vmCat = categoryOffers.Select(o =>
+            {
+                bool isDefault = o.Subcategory == null;
+                int catId = o.Subcategory?.CategoryId ?? 0;
+                bool available = isDefault || freeCategories.Contains(catId);
 
-            // Map, filter, and order the subcategory sponsorship offers
-            var enabledSubCategoryOffers = subCategorySponsorshipOffers
-                .Select(o => new SponsoredListingOfferDisplayModel
+                string link;
+                if (available)
+                {
+                    // if default, no categoryId param
+                    link = isDefault
+                        ? this.Url.Action("SelectListing", "SponsoredListing", new { sponsorshipType = SponsorshipType.CategorySponsor })
+                        : this.Url.Action("SelectListing", "SponsoredListing", new { sponsorshipType = SponsorshipType.CategorySponsor, categoryId = catId });
+                }
+                else
+                {
+                    link = this.Url.Action("Subscribe", "SponsoredListingNotification", new
+                    {
+                        sponsorshipType = SponsorshipType.CategorySponsor,
+                        typeId = isDefault ? (int?)null : catId
+                    });
+                }
+
+                var label = isDefault
+                    ? StringConstants.Default
+                    : FormattingHelper.SubcategoryFormatting(o.Subcategory.Category.Name, o.Subcategory.Name);
+
+                return new SponsoredListingOfferDisplayModel
                 {
                     Description = o.Description,
                     Days = o.Days,
-                    PriceCurrency = o.PriceCurrency,
                     Price = o.Price,
+                    PriceCurrency = o.PriceCurrency,
                     SponsorshipType = o.SponsorshipType,
-                    CategorySubcategory = o.Subcategory != null
-                        ? FormattingHelper.SubcategoryFormatting(o.Subcategory.Category?.Name ?? StringConstants.Default, o.Subcategory.Name)
-                        : StringConstants.Default
-                })
-                .OrderBy(o => o.CategorySubcategory == StringConstants.Default ? 0 : 1) // Entries with no Subcategory come first
-                .ThenBy(o => o.CategorySubcategory)
-                .ThenBy(o => o.Days)
-                .ToList();
+                    CategorySubcategory = label,
+                    IsAvailable = available,
+                    ActionLink = link
+                };
+            })
+            .OrderBy(o => o.CategorySubcategory)
+            .ThenBy(o => o.Days)
+            .ToList();
 
-            var categorySponsorshipOffers = await this.sponsoredListingOfferRepository
-                .GetAllByTypeAsync(SponsorshipType.CategorySponsor);
+            // 4c) SubcategorySponsor: same idea, default always available but most will have subCategory
+            var vmSub = subcategoryOffers.Select(o =>
+            {
+                bool isDefault = o.Subcategory == null;
+                int subId = o.Subcategory?.SubCategoryId ?? 0;
+                bool available = isDefault || freeSubcategories.Contains(subId);
 
-            var enabledCategoryOffers = categorySponsorshipOffers
-                .Select(o => new SponsoredListingOfferDisplayModel
+                string link;
+                if (available)
+                {
+                    link = isDefault
+                        ? this.Url.Action("SelectListing", "SponsoredListing", new { sponsorshipType = SponsorshipType.SubcategorySponsor })
+                        : this.Url.Action("SelectListing", "SponsoredListing", new { sponsorshipType = SponsorshipType.SubcategorySponsor, subCategoryId = subId });
+                }
+                else
+                {
+                    link = this.Url.Action("Subscribe", "SponsoredListingNotification", new
+                    {
+                        sponsorshipType = SponsorshipType.SubcategorySponsor,
+                        typeId = isDefault ? (int?)null : subId
+                    });
+                }
+
+                var label = isDefault
+                    ? StringConstants.Default
+                    : FormattingHelper.SubcategoryFormatting(o.Subcategory.Category.Name, o.Subcategory.Name);
+
+                return new SponsoredListingOfferDisplayModel
                 {
                     Description = o.Description,
                     Days = o.Days,
-                    PriceCurrency = o.PriceCurrency,
                     Price = o.Price,
+                    PriceCurrency = o.PriceCurrency,
                     SponsorshipType = o.SponsorshipType,
-                    CategorySubcategory = o.Subcategory != null
-                        ? FormattingHelper.SubcategoryFormatting(o.Subcategory.Category?.Name ?? StringConstants.Default, o.Subcategory.Name)
-                        : StringConstants.Default
-                })
-                .OrderBy(o => o.CategorySubcategory == StringConstants.Default ? 0 : 1) // Entries with no Subcategory come first
-                .ThenBy(o => o.CategorySubcategory)
-                .ThenBy(o => o.Days)
-                .ToList();
+                    CategorySubcategory = label,
+                    IsAvailable = available,
+                    ActionLink = link
+                };
+            })
+            .OrderBy(o => o.CategorySubcategory)
+            .ThenBy(o => o.Days)
+            .ToList();
 
-            // Pass the data to the view using a strongly typed model
+            // 5) Return the composite
             var model = new SponsoredListingOffersViewModel
             {
-                MainSponsorshipOffers = enabledMainSponsorshipOffers,
-                SubCategorySponsorshipOffers = enabledSubCategoryOffers,
-                CategorySponsorshipOffers = enabledCategoryOffers,
+                MainSponsorshipOffers = vmMain,
+                CategorySponsorshipOffers = vmCat,
+                SubCategorySponsorshipOffers = vmSub,
+                ConversionRate = 0,
+                SelectedCurrency = "XMR"
             };
 
             return this.View(model);
         }
+
 
         [AllowAnonymous]
         [Route("sponsoredlisting/current")]

@@ -311,5 +311,22 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Select(x => (DateTime?)x.CampaignEndDate)
                 .FirstOrDefaultAsync();
         }
+
+
+        public async Task<Dictionary<int, int>> GetActiveSponsorCountByCategoryAsync(SponsorshipType type)
+        {
+            return await this.context.SponsoredListings
+              .Where(s => s.SponsorshipType == type && s.CampaignEndDate > DateTime.UtcNow)
+              .GroupBy(s => s.CategoryId)
+              .ToDictionaryAsync(g => g.Key.Value, g => g.Count());
+        }
+
+        public async Task<Dictionary<int, int>> GetActiveSponsorCountBySubcategoryAsync(SponsorshipType type)
+        {
+            return await this.context.SponsoredListings
+              .Where(s => s.SponsorshipType == type && s.CampaignEndDate > DateTime.UtcNow)
+              .GroupBy(s => s.SubCategoryId)
+              .ToDictionaryAsync(g => g.Key.Value, g => g.Count());
+        }
     }
 }

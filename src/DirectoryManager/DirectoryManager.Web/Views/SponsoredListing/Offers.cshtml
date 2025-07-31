@@ -12,6 +12,7 @@
     Layout = "_CenteredLayout";
 
     var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(httpContextAccessor, memoryCache, nowPaymentsService);
+    var conversionRate = conversionResult.conversionRate;
 }
 
 @section PageContent {
@@ -26,25 +27,32 @@
 
     <hr />
     <p>Rates as of: @DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</p>
-
-    @await Html.PartialAsync("_SponsorshipOfferTable", new SponsorshipOffersTableViewModel {
-    SponsorshipType = SponsorshipType.MainSponsor,
+@await Html.PartialAsync(
+    "_SponsorshipOffersTable",
+    new DirectoryManager.Web.Models.SponsorshipOffersTableViewModel {
+        SponsorshipType = SponsorshipType.MainSponsor,
         Offers = Model.MainSponsorshipOffers,
-        ConversionRate = conversionResult.conversionRate,
-        SelectedCurrency = conversionResult.selectedCurrency
+        ConversionRate = conversionRate,
+        SelectedCurrency = "XMR"
     })
 
-@await Html.PartialAsync("_SponsorshipOfferTable", new SponsorshipOffersTableViewModel {
+@* render CategorySponsor table *@
+@await Html.PartialAsync(
+    "_SponsorshipOffersTable",
+    new DirectoryManager.Web.Models.SponsorshipOffersTableViewModel {
         SponsorshipType = SponsorshipType.CategorySponsor,
         Offers = Model.CategorySponsorshipOffers,
-        ConversionRate = conversionResult.conversionRate,
-        SelectedCurrency = conversionResult.selectedCurrency
+        ConversionRate = conversionRate,
+        SelectedCurrency = "XMR"
     })
 
-@await Html.PartialAsync("_SponsorshipOfferTable", new SponsorshipOffersTableViewModel {
+@* render SubcategorySponsor table *@
+@await Html.PartialAsync(
+    "_SponsorshipOffersTable",
+    new DirectoryManager.Web.Models.SponsorshipOffersTableViewModel {
         SponsorshipType = SponsorshipType.SubcategorySponsor,
         Offers = Model.SubCategorySponsorshipOffers,
-        ConversionRate = conversionResult.conversionRate,
-        SelectedCurrency = conversionResult.selectedCurrency
+        ConversionRate = conversionRate,
+        SelectedCurrency = "XMR"
     })
 }
