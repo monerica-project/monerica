@@ -45,5 +45,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<IReadOnlyList<DirectoryEntryUrl>> GetAllIdsAndUrlsAsync();
         Task<int> CountByCategoryAsync(int categoryId);
         Task<int> CountBySubcategoryAsync(int subCategoryId);
+        Task<Dictionary<int, int>> GetCategoryEntryCountsAsync();
+        Task<Dictionary<int, int>> GetSubcategoryEntryCountsAsync();
     }
 }

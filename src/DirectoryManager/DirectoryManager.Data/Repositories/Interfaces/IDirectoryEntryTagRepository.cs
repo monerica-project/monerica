@@ -27,5 +27,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// </summary>
         Task<IReadOnlyList<DirectoryEntry>> ListEntriesForTagAsync(string tagName);
         Task<PagedResult<DirectoryEntry>> ListEntriesForTagPagedAsync(string tagName, int page, int pageSize);
+        Task<int> CountByTagAsync(int tagId);
     }
 }

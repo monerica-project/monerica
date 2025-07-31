@@ -14,7 +14,7 @@ namespace DirectoryManager.Web.Controllers
     [Route("tagged")]
     public class TagController : Controller
     {
-        private const int PageSize = 10;
+        private const int PageSize = Constants.IntegerConstants.MaxPageSize;
         private readonly ITagRepository tagRepo;
         private readonly IDirectoryEntryTagRepository entryTagRepo;
         private readonly ICacheService cacheService;
@@ -31,10 +31,10 @@ namespace DirectoryManager.Web.Controllers
 
         [AllowAnonymous]
         [HttpGet("")]
+        [HttpGet("page/{page:int}")]
         public async Task<IActionResult> All(int page = 1)
         {
-            var all = await this.tagRepo.ListAllAsync();
-            var pageSize = 100;
+            var pageSize = Constants.IntegerConstants.MaxPageSize;
             var paged = await this.tagRepo
                 .ListTagsWithCountsPagedAsync(page, pageSize)
                 .ConfigureAwait(false);
@@ -45,10 +45,12 @@ namespace DirectoryManager.Web.Controllers
                 CurrentPage = page,
                 PageSize = pageSize
             };
+
             return this.View("AllTags", vm);
         }
 
         [HttpGet("{tagSlug}")]
+        [HttpGet("{tagSlug}/page/{page:int}")]
         public async Task<IActionResult> Index(string tagSlug, int page = 1)
         {
             if (string.IsNullOrWhiteSpace(tagSlug))

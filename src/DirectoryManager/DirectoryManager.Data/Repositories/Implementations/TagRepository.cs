@@ -103,7 +103,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
-        // in TagRepository.cs
+        public async Task<int> CountAllTagsAsync()
+        {
+            return await this.context.Tags.CountAsync();
+        }
+
+        public async Task<List<TagSitemapInfo>> ListTagsWithSitemapInfoAsync()
+        {
+            return await this.context.Tags
+                             .Select(t => new TagSitemapInfo
+                             {
+                                 TagId = t.TagId,
+                                 Slug = t.Key,
+                                 LastModified = t.UpdateDate ?? t.CreateDate,
+                                 EntryCount = t.EntryTags.Count(et => et.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed)
+                             })
+                             .ToListAsync();
+        }
+
         public async Task<PagedResult<TagCount>> ListTagsWithCountsPagedAsync(int page, int pageSize)
         {
             // only count non-removed entries

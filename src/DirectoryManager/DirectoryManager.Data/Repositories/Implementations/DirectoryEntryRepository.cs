@@ -541,6 +541,32 @@ namespace DirectoryManager.Data.Repositories.Implementations
             };
         }
 
+        public async Task<Dictionary<int, int>> GetCategoryEntryCountsAsync()
+        {
+            return await this.context.DirectoryEntries
+                .Where(e => e.DirectoryStatus != DirectoryStatus.Removed)
+                .GroupBy(e => e.SubCategory.CategoryId)
+                .Select(g => new
+                {
+                    CategoryId = g.Key,
+                    Count = g.Count()
+                })
+                .ToDictionaryAsync(x => x.CategoryId, x => x.Count);
+        }
+
+        public async Task<Dictionary<int, int>> GetSubcategoryEntryCountsAsync()
+        {
+            return await this.context.DirectoryEntries
+                .Where(de => de.DirectoryStatus != DirectoryStatus.Removed)
+                .GroupBy(de => de.SubCategoryId)
+                .Select(g => new
+                {
+                    SubCategoryId = g.Key,
+                    Count = g.Count()
+                })
+                .ToDictionaryAsync(g => g.SubCategoryId, g => g.Count);
+        }
+
         public async Task<PagedResult<DirectoryEntry>> GetActiveEntriesBySubcategoryPagedAsync(
             int subCategoryId,
             int page,

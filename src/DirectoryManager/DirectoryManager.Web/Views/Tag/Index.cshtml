@@ -4,19 +4,20 @@
 
 @{
     Layout = "_CenteredLayout";
-    ViewData["Title"] = $"Tagged: {Model.Tag.Name}";
 
-    int totalPages = (int)Math.Ceiling(
-        Model.PagedEntries.TotalCount / (double)Model.PageSize);
+    int totalPages = (int)Math.Ceiling(Model.PagedEntries.TotalCount / (double)Model.PageSize);
+    string pageSuffix = Model.CurrentPage > 1 ? $" – Page {Model.CurrentPage}" : "";
+    ViewData["Title"] = $"Tagged: {Model.Tag.Name}{pageSuffix}";
 }
 
 @section PageContent {
     <h1>Tagged “@Model.Tag.Name”</h1>
     <hr />
-    @await Html.PartialAsync("_BackToHome") 
+    @await Html.PartialAsync("_BackToHome")
     <hr />
     <a class="no-app-link" href="@(UrlResolver.ResolveToRoot("/tagged"))">All Tags</a>
     <br />
+
     @if (!Model.PagedEntries.Items.Any())
     {
         <p>No listings found under this tag.</p>
@@ -35,15 +36,12 @@
             <ul class="pagination">
                 @for (int p = 1; p <= totalPages; p++)
                 {
-                    // build raw path
-                    string rawPath = $"/tagged/{Model.Tag.Key}"
-                    + (p > 1 ? $"?page={p}" : "");
-                    // page 1 on canonical root, pages 2+ on app domain
+                    string rawPath = $"/tagged/{Model.Tag.Key}" + (p > 1 ? $"?page={p}" : "");
                     string href = p == 1
-                    ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
-                    : UrlResolver.ResolveToApp(rawPath);
+                        ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
+                        : UrlResolver.ResolveToApp(rawPath);
 
-                    string linkClass = p == 1 ? "no-app-link" : "app-link";
+                    string linkClass = p == 1 ? "no-app-link" : "no-app-link";
                     string activeClass = p == Model.CurrentPage ? "active" : "";
 
                     <li class="page-item @activeClass">

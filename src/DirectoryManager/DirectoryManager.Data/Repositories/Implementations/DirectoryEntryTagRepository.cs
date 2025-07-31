@@ -66,6 +66,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync();
         }
 
+        public async Task<int> CountByTagAsync(int tagId)
+        {
+            return await this.context.DirectoryEntryTags
+                .Where(et => et.TagId == tagId && et.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed)
+                .Select(et => et.DirectoryEntryId)
+                .Distinct()
+                .CountAsync();
+        }
+
         public async Task<PagedResult<DirectoryEntry>> ListEntriesForTagPagedAsync(
             string tagName,
             int page,
