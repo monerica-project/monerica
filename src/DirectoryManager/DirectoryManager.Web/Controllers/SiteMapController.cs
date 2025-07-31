@@ -69,13 +69,13 @@ namespace DirectoryManager.Web.Controllers
             var nextAdExpiration = await this.sponsoredListingRepository.GetNextExpirationDateAsync();
             var sponsoredListings = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
             var isAdSpaceAvailable = sponsoredListings.Count() < Common.Constants.IntegerConstants.MaxMainSponsoredListings;
-            var lastMainSponsorExpiration = await this.sponsoredListingRepository.GetLastMainSponsorExpirationDateAsync();
+            var lastSponsorExpiration = await this.sponsoredListingRepository.GetLastSponsorExpirationDateAsync();
             var mostRecentUpdateDate = this.GetLatestUpdateDate(
                                                 lastDirectoryEntryDate,
                                                 lastContentSnippetUpdate,
                                                 lastPaidInvoiceUpdate,
                                                 nextAdExpiration,
-                                                lastMainSponsorExpiration,
+                                                lastSponsorExpiration,
                                                 isAdSpaceAvailable);
 
             // Get the last modification date for any sponsored listing

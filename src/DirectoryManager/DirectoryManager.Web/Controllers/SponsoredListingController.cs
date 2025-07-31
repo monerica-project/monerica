@@ -923,6 +923,7 @@ namespace DirectoryManager.Web.Controllers
                 };
             })
             .OrderBy(o => o.CategorySubcategory)
+            .ThenBy(o => o.Days)
             .ToList();
 
             // 4b) CategorySponsor: default (o.Subcategory == null) is ALWAYS available
@@ -932,7 +933,7 @@ namespace DirectoryManager.Web.Controllers
                 int catId = o.Subcategory?.CategoryId ?? 0;
                 bool available = isDefault || freeCategories.Contains(catId);
 
-                string link;
+                string? link;
                 if (available)
                 {
                     // if default, no categoryId param
@@ -976,7 +977,7 @@ namespace DirectoryManager.Web.Controllers
                 int subId = o.Subcategory?.SubCategoryId ?? 0;
                 bool available = isDefault || freeSubcategories.Contains(subId);
 
-                string link;
+                string? link;
                 if (available)
                 {
                     link = isDefault

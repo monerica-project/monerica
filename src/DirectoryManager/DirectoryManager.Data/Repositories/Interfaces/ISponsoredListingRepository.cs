@@ -36,7 +36,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         Task<IEnumerable<SponsoredListing>> GetActiveSubCategorySponsorsAsync(int categoryId);
 
-        Task<DateTime?> GetLastMainSponsorExpirationDateAsync();
+        Task<DateTime?> GetLastSponsorExpirationDateAsync();
       
         /// <summary>
         /// Gets the number of active sponsors **grouped by category**.

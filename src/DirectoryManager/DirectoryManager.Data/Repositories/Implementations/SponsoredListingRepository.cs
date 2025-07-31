@@ -299,19 +299,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
               .Where(s => s.DirectoryEntry?.SubCategory?.CategoryId == categoryId);
         }
 
-        public async Task<DateTime?> GetLastMainSponsorExpirationDateAsync()
+        public async Task<DateTime?> GetLastSponsorExpirationDateAsync()
         {
             var now = DateTime.UtcNow;
 
             return await this.context.SponsoredListings
-                .Where(x =>
-                    x.SponsorshipType == SponsorshipType.MainSponsor &&
-                    x.CampaignEndDate < now) // only already expired
+                // only look at campaigns that have already ended
+                .Where(x => x.CampaignEndDate < now)
+                // pick the one with the most recent end date
                 .OrderByDescending(x => x.CampaignEndDate)
                 .Select(x => (DateTime?)x.CampaignEndDate)
                 .FirstOrDefaultAsync();
         }
-
 
         public async Task<Dictionary<int, int>> GetActiveSponsorCountByCategoryAsync(SponsorshipType type)
         {
