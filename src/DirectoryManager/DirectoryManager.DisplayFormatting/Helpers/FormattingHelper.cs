@@ -32,8 +32,14 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 return string.Empty;
             }
 
-            // 1) trim + lower
+            // 1) normalize
             var clean = raw.Trim().ToLowerInvariant();
+
+            // → if it contains any spaces, just return it verbatim (no singularizing)
+            if (clean.Contains(' '))
+            {
+                return clean;
+            }
 
             // 1a) if a short tag (3–4 chars) ends with “s”, leave the “s” intact
             if ((clean.Length == 3 || clean.Length == 4) && clean.EndsWith("s"))
@@ -41,20 +47,20 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 return clean;
             }
 
-            // 2) manual rule for common “-es” plurals
+            // 2) manual rule for common “-es” plurals:
             //    taxes→tax, boxes→box, churches→church, brushes→brush, etc.
             if (Regex.IsMatch(clean, "(ses|xes|zes|ches|shes)$"))
             {
                 return clean.Substring(0, clean.Length - 2);
             }
 
-            // 2b) don’t singularize adjectives ending in “ous” (anonymous, dangerous, etc.)
+            // 2b) don’t singularize adjectives ending in “ous”
             if (clean.EndsWith("ous"))
             {
                 return clean;
             }
 
-            // 3) fallback to Humanizer’s singularizer for everything else
+            // 3) fallback to Humanizer’s singularizer
             return clean.Singularize(false);
         }
     }
