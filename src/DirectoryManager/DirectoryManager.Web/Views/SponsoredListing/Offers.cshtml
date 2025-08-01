@@ -26,7 +26,18 @@
     <p><a class="btn btn-primary" href="~/sponsoredlisting">Buy Advertising</a></p>
 
     <hr />
-    <p>Rates as of: @DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</p>
+   
+    @if (Model.LastUpdatedDate.HasValue)
+    {
+        <p>Rates last updated on: 
+           @Model.LastUpdatedDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+        </p>
+    }
+    else
+    {
+        <p>Rates last updated on: (not available)</p>
+    }
+
 @await Html.PartialAsync(
     "_SponsorshipOffersTable",
     new DirectoryManager.Web.Models.SponsorshipOffersTableViewModel {

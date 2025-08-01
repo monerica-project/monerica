@@ -1014,6 +1014,9 @@ namespace DirectoryManager.Web.Controllers
             .ThenBy(o => o.Days)
             .ToList();
 
+            var lastUpdated = await this.sponsoredListingOfferRepository.GetLastModifiedDateAsync();
+
+
             // 5) Return the composite
             var model = new SponsoredListingOffersViewModel
             {
@@ -1021,7 +1024,8 @@ namespace DirectoryManager.Web.Controllers
                 CategorySponsorshipOffers = vmCat,
                 SubCategorySponsorshipOffers = vmSub,
                 ConversionRate = 0,
-                SelectedCurrency = "XMR"
+                SelectedCurrency = "XMR",
+                LastUpdatedDate = lastUpdated
             };
 
             return this.View(model);
