@@ -20,38 +20,40 @@
 
 <hr />
 
-<form method="get" action="@Url.Action("Report")">
+<form method="get" asp-controller="SponsoredListingInvoice" asp-action="Report">
   <div class="form-row">
-    <!-- Sponsorship Type dropdown -->
     <div class="form-group col-md-4">
-      <label asp-for="SponsorshipType">Sponsorship Type</label>
-      <select asp-for="SponsorshipType"
-              asp-items="Model.SponsorshipTypeOptions"
-              class="form-control">
+      <label for="SponsorshipType">Sponsorship Type</label>
+      <select id="SponsorshipType"
+              name="sponsorshipType"
+              class="form-control"
+              asp-items="Model.SponsorshipTypeOptions">
       </select>
     </div>
-
-    <!-- Start Date -->
     <div class="form-group col-md-4">
       <label for="StartDate">Start Date</label>
-      <input type="date"
-             class="form-control"
-             asp-for="StartDate"
-             required />
+      <input
+        id="StartDate"
+        name="startDate"
+        type="date"
+        class="form-control"
+        value="@Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)"
+        required />
     </div>
-
-    <!-- End Date -->
     <div class="form-group col-md-4">
       <label for="EndDate">End Date</label>
-      <input type="date"
-             class="form-control"
-             asp-for="EndDate"
-             required />
+      <input
+        id="EndDate"
+        name="endDate"
+        type="date"
+        class="form-control"
+        value="@Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)"
+        required />
     </div>
   </div>
-
   <button type="submit" class="btn btn-primary">Get Totals</button>
 </form>
+
 
 <br />
 

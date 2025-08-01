@@ -106,7 +106,6 @@ namespace DirectoryManager.Web.Charting
             })
        .ToList();
 
-            // 1) build your ScottPlot Bar[] list
             var now = DateTime.UtcNow;
 
             // Build bars
@@ -118,13 +117,14 @@ namespace DirectoryManager.Web.Charting
                 Label = d.Month.ToString("MMM yyyy")
             }).ToList();
 
-            // 2) create the plot and add bars
             var plt = new Plot();
             var barPlot = plt.Add.Bars(bars);
 
-            // 3) rotate tick labels
             plt.Axes.Bottom.TickLabelStyle.Rotation = 90;
-            // 4) add a little text label over each bar
+
+            double maxBar = bars.Max(b => b.Value);
+            double yOffset = maxBar * 0.05;
+
             for (int i = 0; i < bars.Count; i++)
             {
                 double x = bars[i].Position;
@@ -132,12 +132,11 @@ namespace DirectoryManager.Web.Charting
                 var txt = plt.Add.Text(
                     text: $"{y:C2}",
                     x: x,
-                    y: y + 5);
+                    y: y + yOffset);
                 txt.Alignment = ScottPlot.Alignment.LowerCenter;
                 txt.LabelFontSize = 12;
             }
 
-            // 5) decorate
             plt.Title("Average Daily Revenue");
             plt.XLabel("Month");
             plt.YLabel("USD per day");
