@@ -508,13 +508,20 @@ namespace DirectoryManager.Web.Controllers
                     var start = inv.CampaignStartDate.Date;
                     var end = inv.CampaignEndDate.Date;
                     var days = (end - start).TotalDays;
-                    if (days <= 0) days = 1; // Avoid divide-by-zero or bad data
+                    if (days <= 0)
+                    {
+                        days = 1; // Avoid divide-by-zero or bad data
+                    }
+
                     totalActiveDays += days;
 
                     invoiceCount++;
                 }
 
-                if (totalActiveDays <= 0) totalActiveDays = 1;
+                if (totalActiveDays <= 0)
+                {
+                    totalActiveDays = 1;
+                }
 
                 var avgPerDay = Math.Round(advertiserTotal / (decimal)totalActiveDays, 2);
                 totalRevenue += advertiserTotal;

@@ -1,6 +1,8 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using ScottPlot;
+using ScottPlot.TickGenerators.Financial;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DirectoryManager.Web.Charting
 {
@@ -59,8 +61,8 @@ namespace DirectoryManager.Web.Charting
         public byte[] CreateMonthlyAvgDailyRevenueChart(IEnumerable<SponsoredListingInvoice> invoices)
         {
             var paid = invoices
-                .Where(i => i.Currency == Currency.USD && i.PaymentStatus == PaymentStatus.Paid)
-                .ToList();
+                        .Where(i => i.Currency == Currency.USD && i.PaymentStatus == PaymentStatus.Paid)
+                        .ToList();
             if (!paid.Any())
             {
                 return Array.Empty<byte>();
@@ -79,7 +81,7 @@ namespace DirectoryManager.Web.Charting
                 months.Add(m);
             }
 
-            // Compute average daily revenue per calendar day in each month
+            // … compute your `data` list of { Month, AvgDaily } exactly as before …
             var data = months.Select(m =>
             {
                 int daysInMonth = DateTime.DaysInMonth(m.Year, m.Month);
@@ -102,25 +104,47 @@ namespace DirectoryManager.Web.Charting
 
                 return new { Month = m, AvgDaily = total / daysInMonth };
             })
-            .ToList();
+       .ToList();
+
+            // 1) build your ScottPlot Bar[] list
+            var now = DateTime.UtcNow;
 
             // Build bars
             var bars = data.Select((d, idx) => new Bar
             {
+                FillColor = d.Month.Year == now.Year && d.Month.Month == now.Month ? Color.FromHex("#000000") : Color.FromHex("#dddddd"),
                 Position = idx,
                 Value = d.AvgDaily,
                 Label = d.Month.ToString("MMM yyyy")
             }).ToList();
 
+            // 2) create the plot and add bars
             var plt = new Plot();
-            plt.Add.Bars(bars);
+            var barPlot = plt.Add.Bars(bars);
+
+            // 3) rotate tick labels
             plt.Axes.Bottom.TickLabelStyle.Rotation = 90;
+            // 4) add a little text label over each bar
+            for (int i = 0; i < bars.Count; i++)
+            {
+                double x = bars[i].Position;
+                double y = bars[i].Value;
+                var txt = plt.Add.Text(
+                    text: $"{y:C2}",
+                    x: x,
+                    y: y + 5);
+                txt.Alignment = ScottPlot.Alignment.LowerCenter;
+                txt.LabelFontSize = 12;
+            }
+
+            // 5) decorate
             plt.Title("Average Daily Revenue");
             plt.XLabel("Month");
             plt.YLabel("USD per day");
 
             return plt.GetImageBytes(width: 1200, height: 600, format: ImageFormat.Png);
         }
+
 
         public byte[] CreateSubcategoryRevenuePieChart(
             IEnumerable<SponsoredListingInvoice> invoices,
