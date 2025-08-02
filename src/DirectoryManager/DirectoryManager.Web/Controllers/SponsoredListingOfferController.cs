@@ -94,6 +94,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     return this.BadRequest("Check if the same days and type have been created");
                 }
+
                 return this.RedirectToAction(nameof(this.Index));
             }
 
