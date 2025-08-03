@@ -1,5 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
-using DirectoryManager.Data.Repositories.Interfaces;
+﻿using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -16,19 +15,22 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpGet("searchlog/report")]
         public async Task<IActionResult> Report(
-            [FromQuery, DataType(DataType.Date)] DateTime? start,
-            [FromQuery, DataType(DataType.Date)] DateTime? end)
+            [FromQuery] DateTime? start,
+            [FromQuery] DateTime? end)
         {
+            // normalize "to" = end of requested window (or now)
             DateTime to = end.HasValue
-                ? end.Value.Date.AddDays(1).AddTicks(-1)
+                ? end.Value
                 : DateTime.UtcNow;
 
+            // normalize "from" = start of window (or last 24h)
             DateTime from = start.HasValue
-                ? start.Value.Date
-                : to.Date.AddDays(-30);
+                ? start.Value
+                : to.AddHours(-24);
 
-            // 3) Fetch and render
+            // fetch
             var rows = await this.searchLogRepo.GetReportAsync(from, to);
+
             var vm = new SearchLogReportViewModel
             {
                 StartDate = from,
