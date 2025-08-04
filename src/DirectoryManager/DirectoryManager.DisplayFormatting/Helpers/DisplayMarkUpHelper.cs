@@ -1,11 +1,12 @@
-﻿using System;
-using System.Globalization;
-using System.Net;
-using System.Text;
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.DisplayFormatting.Enums;
 using DirectoryManager.DisplayFormatting.Models;
+using DirectoryManager.Utilities.Helpers;
+using System;
+using System.Globalization;
+using System.Net;
+using System.Text;
 
 namespace DirectoryManager.DisplayFormatting.Helpers
 {
@@ -377,6 +378,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             {
                 // preserve the original for alt/title
                 var code = countryCode.Trim();
+                var countryName = CountryHelper.GetCountryName(code);
 
                 // use lowercase for the filename
                 var file = code.ToLowerInvariant();
@@ -387,8 +389,8 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 sb.Append("<img")
                   .Append(" class=\"country-flag\"")
                   .Append(" src=\"").Append(src).Append("\"")
-                  .Append(" alt=\"").Append(code).Append("\"")
-                  .Append(" title=\"Flag of: ").Append(code).Append("\"")
+                  .Append(" alt=\"Flag of ").Append(countryName).Append("\"")
+                  .Append(" title=\"").Append(countryName).Append("\"")
                   .Append(" />");
             }
 
