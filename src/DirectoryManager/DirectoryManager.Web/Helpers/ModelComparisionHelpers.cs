@@ -81,6 +81,11 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("Contact", entry.Contact, submission.Contact);
             }
 
+            if (NotEqualTrimmed(entry.PgpKey, submission.PgpKey))
+            {
+                AddDifference("PgpKey", entry.PgpKey, submission.PgpKey);
+            }
+
             // Compare SubCategory and Category names safely.
             if (entry.SubCategoryId != submission.SubCategoryId)
             {

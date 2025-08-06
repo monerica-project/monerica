@@ -1,6 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.BaseModels;
+using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
 namespace DirectoryManager.Data.Models
 {
@@ -38,6 +39,9 @@ namespace DirectoryManager.Data.Models
 
         [MaxLength(1000)]
         public string? Note { get; set; }
+
+        [Column(TypeName = "nvarchar(max)")]
+        public string? PgpKey { get; set; }
 
         [MaxLength(1000)]
         public string? NoteToAdmin { get; set; }

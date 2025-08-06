@@ -20,13 +20,15 @@
 <a href="~/submission/findexisting">&lt; find listing to edit</a>
 <hr />
 
-@if (!ViewData.ModelState.IsValid)
-{
-    <div class="alert alert-danger">
-        <strong>There were errors with your submission</strong>
-        @Html.ValidationSummary(true, "", new { @class = "text-danger" })
-    </div>
-}
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <strong>There were errors with your submission</strong>
+            @* include property errors by passing false *@
+            @Html.ValidationSummary(false, "", new { @class = "text-danger" })
+        </div>
+    }
+ 
 
 <form asp-action="Create" method="post">
     <!-- Use the partial view for the form -->

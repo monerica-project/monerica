@@ -42,7 +42,8 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 Link3A = entry.Link3A,
                 DirectoryBadge = entry.DirectoryBadge,
                 ItemDisplayType = itemDisplayType,
-                CountryCode = entry.CountryCode
+                CountryCode = entry.CountryCode,
+                PgpKey = entry.PgpKey,
             }).ToList();
         }
     }

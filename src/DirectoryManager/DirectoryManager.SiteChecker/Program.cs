@@ -100,6 +100,9 @@ async Task CreateOfflineSubmissionIfNotExists(
         Location = entry.Location,
         Processor = entry.Processor,
         SubCategory = entry.SubCategory,
+        CountryCode = entry.CountryCode,
+        NoteToAdmin = "(automated submission)",
+        PgpKey = entry.PgpKey,
     };
 
     await submissionRepository.CreateAsync(submission);

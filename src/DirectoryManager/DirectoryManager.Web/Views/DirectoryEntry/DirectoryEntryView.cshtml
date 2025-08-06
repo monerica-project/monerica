@@ -178,6 +178,15 @@
             </div>
         }
 
+        @if (!string.IsNullOrEmpty(Model.PgpKey))
+        {
+<br />
+<h4>PGP Key</h4>
+<pre class="pgp-key">
+@Model.PgpKey
+</pre>
+        }
+
         @if (Model.TagsAndKeys?.Any() ?? false)
         {
             <br />

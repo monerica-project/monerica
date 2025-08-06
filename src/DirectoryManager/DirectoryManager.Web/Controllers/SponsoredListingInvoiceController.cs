@@ -142,7 +142,9 @@ namespace DirectoryManager.Web.Controllers
                 Location = entry.Location,
                 Note = entry.Note,
                 Processor = entry.Processor,
-                SubCategoryId = entry.SubCategoryId
+                SubCategoryId = entry.SubCategoryId,
+                CountryCode = entry.CountryCode,
+                PgpKey = entry.PgpKey
             };
 
             return this.View(invoice);

@@ -239,7 +239,9 @@
             Location              = catSponsor.DirectoryEntry.Location,
             Note                  = catSponsor.DirectoryEntry.Note,
             Processor             = catSponsor.DirectoryEntry.Processor,
-            SubCategoryId         = catSponsor.DirectoryEntry.SubCategoryId
+            SubCategoryId         = catSponsor.DirectoryEntry.SubCategoryId,
+            CountryCode           = catSponsor.DirectoryEntry.CountryCode,
+            PgpKey                = catSponsor.DirectoryEntry.PgpKey
         };
         // fetch normal entries
         var normalEntries = await directoryEntryRepository

@@ -131,6 +131,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.SubCategoryId = entry.SubCategoryId;
             existing.UpdateDate = DateTime.UtcNow;
             existing.UpdatedByUserId = entry.UpdatedByUserId;
+            existing.PgpKey = entry.PgpKey;
+            existing.CountryCode = entry.CountryCode;
 
             try
             {

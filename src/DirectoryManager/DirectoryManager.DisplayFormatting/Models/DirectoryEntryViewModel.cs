@@ -83,5 +83,7 @@ namespace DirectoryManager.DisplayFormatting.Models
         public Dictionary<string, string>? TagsAndKeys { get; set; }
 
         public string? CountryCode { get; set; }
+
+        public string? PgpKey { get; set; }
     }
 }

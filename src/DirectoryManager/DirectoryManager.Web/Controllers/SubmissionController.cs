@@ -88,17 +88,26 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!UrlHelper.IsValidUrl(model.Link))
             {
-                this.ModelState.AddModelError("Link", "The link is not a valid URL.");
+                this.ModelState.AddModelError(nameof(model.Link), "The link is not a valid URL.");
             }
 
             if (!string.IsNullOrWhiteSpace(model.Link2) && !UrlHelper.IsValidUrl(model.Link2))
             {
-                this.ModelState.AddModelError("Link2", "The link 2 is not a valid URL.");
+                this.ModelState.AddModelError(nameof(model.Link2), "The link 2 is not a valid URL.");
             }
 
             if (!string.IsNullOrWhiteSpace(model.Link3) && !UrlHelper.IsValidUrl(model.Link3))
             {
-                this.ModelState.AddModelError("Link3", "The link 3 is not a valid URL.");
+                this.ModelState.AddModelError(nameof(model.Link3), "The link 3 is not a valid URL.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.PgpKey) &&
+                !PgpKeyValidator.IsValid(model.PgpKey))
+            {
+                this.ModelState.AddModelError(
+                    nameof(model.PgpKey),
+                    "The PGP public key block you entered is not valid. " +
+                    "Please supply a valid ASCII-armored PGP public key.");
             }
 
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
@@ -116,9 +125,8 @@ namespace DirectoryManager.Web.Controllers
             else
             {
                 await this.LoadDropDowns();
+                return this.View("SubmitEdit", model);
             }
-
-            return this.View("SubmitEdit", model);
         }
 
         [AllowAnonymous]
@@ -437,6 +445,7 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryId = directoryEntry.DirectoryEntryId,
                 DirectoryStatus = directoryEntry.DirectoryStatus,
                 CountryCode = directoryEntry.CountryCode,
+                PgpKey = directoryEntry.PgpKey
             };
         }
 
@@ -673,7 +682,8 @@ namespace DirectoryManager.Web.Controllers
                     DirectoryStatus = DirectoryStatus.Admitted,
                     SubCategoryId = model.SubCategoryId.Value,
                     CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty,
-                    CountryCode = model.CountryCode
+                    CountryCode = model.CountryCode,
+                    PgpKey = model.PgpKey?.Trim(),
                 });
         }
 
@@ -701,6 +711,7 @@ namespace DirectoryManager.Web.Controllers
             existing.Note = model.Note?.Trim();
             existing.Contact = model.Contact?.Trim();
             existing.CountryCode = model.CountryCode;
+            existing.PgpKey = model.PgpKey?.Trim();
 
             if (model.DirectoryStatus != null)
             {
@@ -777,6 +788,7 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.SubCategoryId = submissionModel.SubCategoryId;
             existingSubmission.SuggestedSubCategory = submissionModel.SuggestedSubCategory;
             existingSubmission.CountryCode = submissionModel.CountryCode;
+            existingSubmission.PgpKey = submissionModel.PgpKey;
 
             await this.submissionRepository.UpdateAsync(existingSubmission);
         }
@@ -846,6 +858,16 @@ namespace DirectoryManager.Web.Controllers
             }
 
             if (existingEntry.DirectoryStatus != model.DirectoryStatus)
+            {
+                return true;
+            }
+
+            if (existingEntry.CountryCode != model.CountryCode)
+            {
+                return true;
+            }
+
+            if (existingEntry.PgpKey != model.PgpKey)
             {
                 return true;
             }

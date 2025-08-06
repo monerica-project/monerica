@@ -1145,7 +1145,9 @@ namespace DirectoryManager.Web.Controllers
                     Location = directoryEntry.Location,
                     Note = directoryEntry.Note,
                     Processor = directoryEntry.Processor,
-                    SubCategoryId = directoryEntry.SubCategoryId
+                    SubCategoryId = directoryEntry.SubCategoryId,
+                    CountryCode = directoryEntry.CountryCode,
+                    PgpKey = directoryEntry.PgpKey
                 },
                 Offer = new SponsoredListingOfferModel()
                 {

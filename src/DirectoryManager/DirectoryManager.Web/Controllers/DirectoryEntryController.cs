@@ -110,7 +110,7 @@ namespace DirectoryManager.Web.Controllers
                 await this.LoadLists();
 
                 this.ModelState.AddModelError("Link", "The provided link is already used by another entry.");
-                return this.View("create", model); // Return view with model error
+                return this.View("create", model);
             }
 
             model.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
@@ -127,6 +127,7 @@ namespace DirectoryManager.Web.Controllers
             model.Link2A = model.Link2A?.Trim();
             model.Link3 = model.Link3?.Trim();
             model.Link3A = model.Link3A?.Trim();
+            model.PgpKey = model.PgpKey?.Trim();
 
             await this.directoryEntryRepository.CreateAsync(model);
 
@@ -203,6 +204,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Location = entry.Location?.Trim();
             existingEntry.Processor = entry.Processor?.Trim();
             existingEntry.CountryCode = entry.CountryCode;
+            existingEntry.PgpKey = entry.PgpKey?.Trim();
 
             await this.directoryEntryRepository.UpdateAsync(existingEntry);
 
@@ -274,6 +276,7 @@ namespace DirectoryManager.Web.Controllers
                 Processor = directoryEntry.Processor,
                 SubCategoryId = directoryEntry.SubCategoryId,
                 CountryCode = directoryEntry.CountryCode,
+                PgpKey = directoryEntry.PgpKey
             };
 
             // Set category and subcategory names for each audit entry
@@ -404,7 +407,8 @@ namespace DirectoryManager.Web.Controllers
                 Tags = tagNames,
                 TagsAndKeys = tagDictionary,
                 CountryCode = existingEntry.CountryCode,
-                IsSponsored = isSponsor
+                IsSponsored = isSponsor,
+                PgpKey = existingEntry.PgpKey,
             };
 
             this.ViewBag.CategoryName = category.Name;

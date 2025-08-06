@@ -101,7 +101,7 @@ public class RssController : Controller
                     Processor = sponsoredListing.DirectoryEntry.Processor,
                     Note = sponsoredListing.DirectoryEntry.Note,
                     Contact = sponsoredListing.DirectoryEntry.Contact,
-                    CreateDate = invoice.CreateDate
+                    CreateDate = invoice.CreateDate,
                 },
                 IsSponsored = true
             };

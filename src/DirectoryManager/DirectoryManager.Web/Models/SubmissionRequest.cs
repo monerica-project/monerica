@@ -41,6 +41,10 @@ namespace DirectoryManager.Web.Models
         [MaxLength(2)]
         public string? CountryCode { get; set; }
 
+        [MaxLength(1000)]
+        [Display(Name = "PGP Key", Prompt = "PGP Key")]
+        public string? PgpKey { get; set; }
+
         [MaxLength(75)]
         [Display(Name = "Processor", Prompt = "Payment processing company/ plugin")]
         public string? Processor { get; set; }

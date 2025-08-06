@@ -80,6 +80,11 @@
 </div>
 
 <div class="form-group">
+    <label asp-for="PgpKey">PGP Key</label>
+    <textarea class="input-width" asp-for="PgpKey"></textarea>
+</div>
+
+<div class="form-group">
     <label asp-for="Tags">Tags (comma-separated)</label>
     <input asp-for="Tags" class="input-width form-control"
            placeholder="e.g. privacy, wallet, exchange" />

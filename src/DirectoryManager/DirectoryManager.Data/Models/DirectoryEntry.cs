@@ -72,6 +72,9 @@ namespace DirectoryManager.Data.Models
         [MaxLength(75)]
         public string? Contact { get; set; }
 
+        [Column(TypeName = "nvarchar(max)")]
+        public string? PgpKey { get; set; }
+
         public virtual Subcategory? SubCategory { get; set; }
 
         public int SubCategoryId { get; set; }
@@ -101,6 +104,8 @@ namespace DirectoryManager.Data.Models
                 this.Processor == other.Processor &&
                 this.Note == other.Note &&
                 this.Contact == other.Contact &&
+                this.CountryCode == other.CountryCode &&
+                this.PgpKey == other.PgpKey &&
                 this.SubCategoryId == other.SubCategoryId;
         }
 

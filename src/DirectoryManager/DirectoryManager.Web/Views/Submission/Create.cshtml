@@ -26,6 +26,16 @@
 <hr />
 <br />
 
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <strong>There were errors with your submission</strong>
+            @* include property errors by passing false *@
+            @Html.ValidationSummary(false, "", new { @class = "text-danger" })
+        </div>
+    }
+
+
 <form asp-action="Create" method="post">
     <!-- Use the partial view for the form -->
     @await Html.PartialAsync("_SubmissionForm")
