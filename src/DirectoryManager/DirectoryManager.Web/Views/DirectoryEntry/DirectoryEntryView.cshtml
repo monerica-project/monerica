@@ -125,7 +125,8 @@
                                     {
                                         var iso = Model.CountryCode.Trim().ToLowerInvariant();
                                         var src = $"/images/flags/{iso}.png";
-                                        <img class="country-flag ms-2" src="@src" alt="Flag of @Model.CountryCode" title="@Model.CountryCode" />
+                                        var countryName = DirectoryManager.Utilities.Helpers.CountryHelper.GetCountryName(Model.CountryCode);
+                                        <img class="country-flag ms-2" src="@src" alt="Flag of countryName (@Model.CountryCode)" title="@countryName" />
                                     }
                                 </td>
                             </tr>
