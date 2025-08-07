@@ -2,11 +2,14 @@
 @model DirectoryManager.Web.Models.TagListViewModel
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
  
-
 @{
-    ViewData["Title"] = "All Tags";
     Layout = "_CenteredLayout";
+
+    int totalPages = (int)Math.Ceiling(Model.PagedTags.TotalCount / (double)Model.PageSize);
+    string pageSuffix = Model.CurrentPage > 1 ? $" – Page {Model.CurrentPage}" : "";
+    ViewData["Title"] = $"All Tags: {pageSuffix}";
 }
+
 @section PageContent {
 
     <h1>All Tags</h1>

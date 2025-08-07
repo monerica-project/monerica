@@ -2,9 +2,6 @@
 @using DirectoryManager.Web.Constants;
 @{
     ViewData[StringConstants.TitleHeader] = "Submission Requests";
-}
-
-@{
     Layout = "_CenteredLayout";
 }
 
@@ -42,9 +39,12 @@
                     </td>
                 <td>@submission.CreateDate</td>
                 <td>
-                    @if (submission?.UpdateDate != null)
+                    @if (submission?.UpdateDate == null)
                     {
-                        <text> -- </text>
+                                <text> -- </text>
+                    }
+                    else
+                    {
                         @submission.UpdateDate
                     }
                 </td>

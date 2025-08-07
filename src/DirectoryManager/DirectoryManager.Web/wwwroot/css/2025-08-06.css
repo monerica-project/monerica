@@ -1032,7 +1032,8 @@ li.category-item ul {
         margin: 1rem 0 0.5rem;
     }
 
-    .sponsor-sections .subcategory-name {
+    .sponsor-sections ul.blank_list_item a {
+       font-weight: bold;
     }
 
     .sponsor-sections ul.blank_list_item {
