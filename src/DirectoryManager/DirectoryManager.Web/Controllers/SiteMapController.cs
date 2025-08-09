@@ -522,8 +522,12 @@ namespace DirectoryManager.Web.Controllers
             var domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
             int pageSize = IntegerConstants.MaxPageSize;
 
-            int totalTags = await this.tagRepository.CountAllTagsAsync();
-            int totalPages = (int)Math.Ceiling(totalTags / (double)pageSize);
+            // Get the paged result, which includes the total count
+            var pagedResult = await this.tagRepository.ListTagsWithCountsPagedAsync(1, int.MaxValue).ConfigureAwait(false);
+
+            // Use the total count of active tags for pagination
+            int totalTags = pagedResult.TotalCount;
+            int totalPages = (totalTags + pageSize - 1) / pageSize; // Calculate total pages
 
             for (int page = 1; page <= totalPages; page++)
             {
