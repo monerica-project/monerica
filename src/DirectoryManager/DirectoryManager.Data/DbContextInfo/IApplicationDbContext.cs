@@ -34,8 +34,9 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<TrafficLog> TrafficLogs { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<DirectoryEntryTag> DirectoryEntryTags { get; set; }
-
         public DbSet<SearchLog> SearchLogs { get; set; }
+        public DbSet<ReviewerKey> ReviewerKeys { get; set; }
+        public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
 
         int SaveChanges();
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

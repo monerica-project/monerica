@@ -41,8 +41,9 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<TrafficLog> TrafficLogs { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<DirectoryEntryTag> DirectoryEntryTags { get; set; }
-
         public DbSet<SearchLog> SearchLogs { get; set; }
+        public DbSet<ReviewerKey> ReviewerKeys { get; set; }
+        public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
 
         public override int SaveChanges()
         {
@@ -224,6 +225,48 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasIndex(e => new { e.Email, e.SponsorshipType, e.TypeId, e.SubscribedDate })
                    .IsUnique()
                    .HasDatabaseName("IX_SponsoredListingOpeningNotification_Unique");
+
+            // ReviewerKey
+            builder.Entity<ReviewerKey>(rk =>
+            {
+                rk.ToTable("ReviewerKeys");
+
+                // one row per PGP identity
+                rk.HasIndex(x => x.Fingerprint).IsUnique();
+
+                rk.Property(x => x.Fingerprint)
+                  .HasMaxLength(64)
+                  .IsRequired();
+
+                rk.Property(x => x.PublicKeyBlock)
+                  .HasColumnType("nvarchar(max)")
+                  .IsRequired();
+
+                rk.Property(x => x.Alias)
+                  .HasMaxLength(64);
+            });
+
+            // DirectoryEntryReview (no FK to ReviewerKey; uses AuthorFingerprint)
+            builder.Entity<DirectoryEntryReview>(r =>
+            {
+                r.ToTable("DirectoryEntryReviews");
+
+                // lookups & moderation queue
+                r.HasIndex(x => x.DirectoryEntryId);
+                r.HasIndex(x => new { x.DirectoryEntryId, x.ModerationStatus });
+
+                // author lookups
+                r.HasIndex(x => x.AuthorFingerprint);
+
+                // relationship to DirectoryEntry
+                r.HasOne(x => x.DirectoryEntry)
+                 .WithMany() // add .WithMany(e => e.Reviews) if you later add a nav on DirectoryEntry
+                 .HasForeignKey(x => x.DirectoryEntryId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                // concurrency token (since you have [Timestamp])
+                r.Property(x => x.RowVersion).IsRowVersion();
+            });
         }
 
         private void SetDates()
