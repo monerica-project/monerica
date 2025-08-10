@@ -184,6 +184,21 @@ namespace DirectoryManager.Web.Controllers
           int? subCategoryId = null,
           int? categoryId = null)
         {
+            if (!subCategoryId.HasValue && !categoryId.HasValue)
+            {
+                if (sponsorshipType == SponsorshipType.CategorySponsor)
+                {
+                    return this.Redirect(this.Url.Content("~/sponsoredlisting#category-sponsor-section"));
+                }
+
+                if (sponsorshipType == SponsorshipType.SubcategorySponsor)
+                {
+                    return this.Redirect(this.Url.Content("~/sponsoredlisting#subcategory-sponsor-section"));
+                }
+
+                return this.Redirect(this.Url.Content("~/sponsoredlisting#main-sponsor-section"));
+            }
+
             var typeValue = subCategoryId ?? categoryId;
             var totalActiveListings = await this.sponsoredListingRepository
                                                 .GetActiveSponsorsCountAsync(sponsorshipType, typeValue);
