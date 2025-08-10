@@ -328,7 +328,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 link = model.LinkA;
             }
 
-            sb.AppendFormat(@" <a target=""_blank"" class=""external-link"" href=""{0}""></a> ", link);
+            sb.AppendFormat(@" <a target=""_blank"" class=""external-link"" title=""{0}"" href=""{0}""></a> ", link);
         }
 
         /// <summary>
