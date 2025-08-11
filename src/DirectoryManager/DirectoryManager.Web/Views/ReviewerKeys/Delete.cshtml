@@ -1,0 +1,41 @@
+﻿// DirectoryManager.Web/Views/ReviewerKeys/Delete.cshtml
+@using DirectoryManager.Data.Models
+@model ReviewerKey
+@{
+    ViewData["Title"] = "Delete Reviewer Key";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="top-section search-section search-top-align">
+        @await Html.PartialAsync("_SearchForm")
+    </div>
+
+    <div class="container py-4">
+        <h1 class="mb-3">Delete Reviewer Key</h1>
+        <hr />
+        <div class="alert alert-warning">Are you sure you want to delete this key?</div>
+
+        <div class="card mb-3">
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tbody>
+                        <tr><th>Id</th><td>@Model.ReviewerKeyId</td></tr>
+                        <tr><th>Fingerprint</th><td class="text-break">@Model.Fingerprint</td></tr>
+                        <tr><th>Alias</th><td>@Model.Alias</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <form asp-action="Delete" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="ReviewerKeyId" />
+            <button type="submit" class="btn btn-danger">Delete</button>
+            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+        </form>
+
+        <hr />
+        @await Html.PartialAsync("_SponsoredListingPartial")
+    </div>
+}

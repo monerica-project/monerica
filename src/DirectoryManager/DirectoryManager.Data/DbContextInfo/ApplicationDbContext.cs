@@ -3,6 +3,7 @@ using DirectoryManager.Data.Models.BaseModels;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.SponsoredListings;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 using System.Reflection.Emit;
 
 namespace DirectoryManager.Data.DbContextInfo
@@ -267,6 +268,19 @@ namespace DirectoryManager.Data.DbContextInfo
                 // concurrency token (since you have [Timestamp])
                 r.Property(x => x.RowVersion).IsRowVersion();
             });
+        }
+
+        object IApplicationDbContext.Set<T>()
+        {
+            var method = typeof(DbContext)
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .First(m => m.Name == "Set"
+                            && m.IsGenericMethodDefinition
+                            && m.GetGenericArguments().Length == 1
+                            && m.GetParameters().Length == 0);
+
+            var generic = method.MakeGenericMethod(typeof(T));
+            return generic.Invoke(this, null)!; // returns DbSet<T>
         }
 
         private void SetDates()

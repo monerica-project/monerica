@@ -1,0 +1,52 @@
+﻿// DirectoryManager.Web/Views/ReviewerKeys/Details.cshtml
+@using DirectoryManager.Data.Models
+@model ReviewerKey
+@{
+    ViewData["Title"] = "Reviewer Key Details";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="top-section search-section search-top-align">
+        @await Html.PartialAsync("_SearchForm")
+    </div>
+
+    <div class="container py-4">
+        <h1 class="mb-3">Reviewer Key Details</h1>
+        <hr />
+        <div class="card mb-4">
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tbody>
+                        <tr><th>Id</th><td>@Model.ReviewerKeyId</td></tr>
+                        <tr><th>Fingerprint</th><td class="text-break">@Model.Fingerprint</td></tr>
+                        <tr><th>Alias</th><td>@Model.Alias</td></tr>
+                        <tr>
+                            <th>Created</th>
+                            <td>@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                        </tr>
+                        @if (Model.UpdateDate.HasValue)
+                        {
+                            <tr>
+                                <th>Updated</th>
+                                <td>@Model.UpdateDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                            </tr>
+                        }
+                        <tr>
+                            <th>Public Key</th>
+                            <td>
+    <pre class="pgp-key mb-0">@Model.PublicKeyBlock</pre>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <a asp-action="Edit" asp-route-id="@Model.ReviewerKeyId" class="btn btn-primary">Edit</a>
+        <a asp-action="Index" class="btn btn-secondary">Back</a>
+
+        <hr />
+        @await Html.PartialAsync("_SponsoredListingPartial")
+    </div>
+}

@@ -1,0 +1,67 @@
+﻿// DirectoryManager.Web/Views/ReviewerKeys/Index.cshtml
+@using DirectoryManager.Data.Models
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+@model IEnumerable<ReviewerKey>
+
+@{
+    ViewData["Title"] = "Reviewer Keys";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="top-section search-section search-top-align">
+        @await Html.PartialAsync("_SearchForm")
+    </div>
+
+    <div class="container py-4">
+        <h1 class="mb-3">Reviewer Keys</h1>
+        <hr />
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a class="no-app-link" href="@UrlResolver.ResolveToRoot("/")">Home</a></li>
+                <li class="breadcrumb-item" aria-current="page">Reviewer Keys</li>
+            </ol>
+        </nav>
+
+        <p>
+            <a class="btn btn-primary" asp-action="Create">New Key</a>
+        </p>
+
+        <div class="card">
+            <div class="card-body p-0">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Fingerprint</th>
+                            <th>Alias</th>
+                            <th>Created</th>
+                            <th>Updated</th>
+                            <th style="width:160px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var k in Model)
+                        {
+                            <tr>
+                                <td>@k.ReviewerKeyId</td>
+                                <td class="text-break">@k.Fingerprint</td>
+                                <td>@k.Alias</td>
+                                <td>@k.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                                <td>@(k.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))</td>
+                                <td>
+                                    <a asp-action="Details" asp-route-id="@k.ReviewerKeyId">Details</a> |
+                                    <a asp-action="Edit" asp-route-id="@k.ReviewerKeyId">Edit</a> |
+                                    <a asp-action="Delete" asp-route-id="@k.ReviewerKeyId">Delete</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <hr />
+        @await Html.PartialAsync("_SponsoredListingPartial")
+    </div>
+}

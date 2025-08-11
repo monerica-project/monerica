@@ -40,5 +40,6 @@ namespace DirectoryManager.Data.DbContextInfo
 
         int SaveChanges();
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+        object Set<T>();
     }
 }
