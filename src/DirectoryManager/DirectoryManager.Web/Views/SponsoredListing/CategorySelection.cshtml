@@ -6,8 +6,15 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing by Category";
     ViewData[StringConstants.IsIndexable] = false;
-    var categoryId = (int)ViewBag.CategoryId;
-    Guid? reservationGuid = (Guid?)ViewBag.ReservationGuid;
+
+    // values set by controller (CategorySelection)
+    var categoryId = ViewBag.CategoryId is int c ? c : 0;
+    Guid? reservationGuid = ViewBag.ReservationGuid is Guid g ? g : (Guid?)null;
+    DateTime? reservationExpiresUtc = ViewBag.ReservationExpiresUtc is DateTime d ? d : (DateTime?)null;
+
+    int? minutesLeft = reservationExpiresUtc.HasValue
+        ? (int?)Math.Max(0, (int)Math.Ceiling((reservationExpiresUtc.Value - DateTime.UtcNow).TotalMinutes))
+        : null;
 }
 
 @{
@@ -18,20 +25,31 @@
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 <hr />
 
+@if (reservationGuid.HasValue && reservationExpiresUtc.HasValue)
+{
+    <div class="alert alert-warning" role="alert">
+        <strong>Reserved checkout:</strong>
+        Your ad slot is reserved until
+        <b>@reservationExpiresUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</b> UTC
+        (@minutesLeft minute@(minutesLeft == 1 ? "" : "s") left).
+        Use the <em>Select</em> links below to continue before it expires.
+    </div>
+}
+
 @foreach (var entry in Model)
 {
     <div>
         <a target="_blank" href="@entry.Link">@entry.Name</a> –
         <a rel="nofollow"
            href="@Url.Action(
-               "SelectDuration",
-               "SponsoredListing",
-               new {
-                   directoryEntryId = entry.DirectoryEntryId,
-                   sponsorshipType  = SponsorshipType.CategorySponsor,
-                   categoryId       = categoryId,
-                   rsvId            = reservationGuid
-               })">
+                    "SelectDuration",
+                    "SponsoredListing",
+                    new {
+                        directoryEntryId = entry.DirectoryEntryId,
+                        sponsorshipType  = SponsorshipType.CategorySponsor,
+                        categoryId       = categoryId,
+                        rsvId            = reservationGuid
+                    })">
             Select
         </a>
     </div>

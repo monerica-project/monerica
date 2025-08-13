@@ -72,11 +72,9 @@ namespace DirectoryManager.Web.Controllers
         {
             var mainSponsorType = SponsorshipType.MainSponsor;
             var mainSponsorReservationGroup = ReservationGroupHelper.BuildReservationGroupName(mainSponsorType, 0);
-            var currentMainSponsorListings = await this.sponsoredListingRepository
-                                                      .GetActiveSponsorsByTypeAsync(mainSponsorType);
+            var currentMainSponsorListings = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(mainSponsorType);
             var model = new SponsoredListingHomeModel();
 
-            // Main sponsor logic
             if (currentMainSponsorListings != null && currentMainSponsorListings.Any())
             {
                 var count = currentMainSponsorListings.Count();
@@ -88,10 +86,8 @@ namespace DirectoryManager.Web.Controllers
                 }
                 else
                 {
-                    var totalActiveListings = await this.sponsoredListingRepository
-                                                       .GetActiveSponsorsCountAsync(mainSponsorType, null);
-                    var totalActiveReservations = await this.sponsoredListingReservationRepository
-                                                           .GetActiveReservationsCountAsync(mainSponsorReservationGroup);
+                    var totalActiveListings = await this.sponsoredListingRepository.GetActiveSponsorsCountAsync(mainSponsorType, null);
+                    var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(mainSponsorReservationGroup);
 
                     if (CanPurchaseListing(totalActiveListings, totalActiveReservations, mainSponsorType))
                     {
@@ -111,11 +107,8 @@ namespace DirectoryManager.Web.Controllers
                 model.CanCreateMainListing = true;
             }
 
-            // Subcategory sponsor logic
-            var allActiveSubcategories = await this.subCategoryRepository
-                                              .GetAllActiveSubCategoriesAsync(Common.Constants.IntegerConstants.MinRequiredSubcategories);
-            var currentSubSponsors = await this.sponsoredListingRepository
-                                       .GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor);
+            var allActiveSubcategories = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync(Common.Constants.IntegerConstants.MinRequiredSubcategories);
+            var currentSubSponsors = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor);
 
             if (currentSubSponsors != null)
             {
@@ -135,16 +128,12 @@ namespace DirectoryManager.Web.Controllers
                     }
                 }
 
-                model.AvailableSubCatetgories = model.AvailableSubCatetgories.OrderBy(kv => kv.Value)
-                                                                                  .ToDictionary(kv => kv.Key, kv => kv.Value);
-                model.UnavailableSubCatetgories = model.UnavailableSubCatetgories.OrderBy(kv => kv.Value)
-                                                                                    .ToDictionary(kv => kv.Key, kv => kv.Value);
+                model.AvailableSubCatetgories = model.AvailableSubCatetgories.OrderBy(kv => kv.Value).ToDictionary(kv => kv.Key, kv => kv.Value);
+                model.UnavailableSubCatetgories = model.UnavailableSubCatetgories.OrderBy(kv => kv.Value).ToDictionary(kv => kv.Key, kv => kv.Value);
             }
 
-            // Category sponsor logic
             var allCategories = await this.categoryRepository.GetAllAsync();
-            var currentCatSponsors = await this.sponsoredListingRepository
-                                       .GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
+            var currentCatSponsors = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
 
             if (currentCatSponsors != null)
             {
@@ -167,10 +156,8 @@ namespace DirectoryManager.Web.Controllers
                     }
                 }
 
-                model.AvailableCategories = model.AvailableCategories.OrderBy(kv => kv.Value)
-                                                                      .ToDictionary(kv => kv.Key, kv => kv.Value);
-                model.UnavailableCategories = model.UnavailableCategories.OrderBy(kv => kv.Value)
-                                                                          .ToDictionary(kv => kv.Key, kv => kv.Value);
+                model.AvailableCategories = model.AvailableCategories.OrderBy(kv => kv.Value).ToDictionary(kv => kv.Key, kv => kv.Value);
+                model.UnavailableCategories = model.UnavailableCategories.OrderBy(kv => kv.Value).ToDictionary(kv => kv.Key, kv => kv.Value);
             }
 
             return this.View(model);
@@ -180,9 +167,9 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [Route("sponsoredlisting/selectlisting")]
         public async Task<IActionResult> SelectListing(
-          SponsorshipType sponsorshipType = SponsorshipType.MainSponsor,
-          int? subCategoryId = null,
-          int? categoryId = null)
+            SponsorshipType sponsorshipType = SponsorshipType.MainSponsor,
+            int? subCategoryId = null,
+            int? categoryId = null)
         {
             if (!subCategoryId.HasValue && !categoryId.HasValue)
             {
@@ -198,26 +185,22 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var typeValue = subCategoryId ?? categoryId;
-            var totalActiveListings = await this.sponsoredListingRepository
-                                                .GetActiveSponsorsCountAsync(sponsorshipType, typeValue);
+            var totalActiveListings = await this.sponsoredListingRepository.GetActiveSponsorsCountAsync(sponsorshipType, typeValue);
 
             if (sponsorshipType == SponsorshipType.SubcategorySponsor)
             {
                 if (subCategoryId != null)
                 {
-                    var totalActiveEntriesInCategory = await this.directoryEntryRepository
-                                                                 .GetActiveEntriesBySubcategoryAsync(subCategoryId.Value);
+                    var totalActiveEntriesInCategory = await this.directoryEntryRepository.GetActiveEntriesBySubcategoryAsync(subCategoryId.Value);
 
                     this.ViewBag.CanAdvertise =
-                            totalActiveListings < Common.Constants.IntegerConstants.MaxSubcategorySponsoredListings &&
-                            totalActiveEntriesInCategory.Count() >= Common.Constants.IntegerConstants.MinRequiredSubcategories;
+                        totalActiveListings < Common.Constants.IntegerConstants.MaxSubcategorySponsoredListings &&
+                        totalActiveEntriesInCategory.Count() >= Common.Constants.IntegerConstants.MinRequiredSubcategories;
                 }
             }
             else if (sponsorshipType == SponsorshipType.CategorySponsor && categoryId.HasValue)
             {
-                var entriesInCat = await this.directoryEntryRepository
-                                           .GetActiveEntriesByCategoryAsync(categoryId.Value)
-                                           .ConfigureAwait(false);
+                var entriesInCat = await this.directoryEntryRepository.GetActiveEntriesByCategoryAsync(categoryId.Value).ConfigureAwait(false);
                 this.ViewBag.CanAdvertise =
                     totalActiveListings < Common.Constants.IntegerConstants.MaxCategorySponsoredListings &&
                     entriesInCat.Count() >= Common.Constants.IntegerConstants.MinRequiredCategories;
@@ -225,8 +208,7 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.SponsorshipType = sponsorshipType;
 
-            IEnumerable<DirectoryEntry> entries = await this.FilterEntries(subCategoryId, categoryId);
-
+            var entries = await this.FilterEntries(subCategoryId, categoryId);
             return this.View("SelectListing", entries);
         }
 
@@ -234,130 +216,186 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [Route("sponsoredlisting/selectduration")]
         public async Task<IActionResult> SelectDurationAsync(
-            int directoryEntryId,
-            SponsorshipType sponsorshipType)
+    int directoryEntryId,
+    SponsorshipType sponsorshipType,
+    Guid? rsvId = null)
         {
             if (sponsorshipType == SponsorshipType.Unknown)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidSponsorshipType });
             }
 
-            var directoryEntry = await this.directoryEntryRepository
-                                           .GetByIdAsync(directoryEntryId)
-                                           .ConfigureAwait(false);
-            if (directoryEntry == null)
+            var entry = await this.directoryEntryRepository
+                .GetByIdAsync(directoryEntryId)
+                .ConfigureAwait(false);
+
+            if (entry is null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
 
-            if (!this.IsOldEnough(directoryEntry))
+            if (!this.IsOldEnough(entry))
             {
-                return this.BadRequest(new { Error = $"Unverified listing must be listed for at least {IntegerConstants.UnverifiedMinimumDaysListedBeforeAdvertising} days before advertising." });
+                return this.BadRequest(new
+                {
+                    Error = $"Unverified listing must be listed for at least {IntegerConstants.UnverifiedMinimumDaysListedBeforeAdvertising} days before advertising."
+                });
             }
 
-            // Determine which ID to use for counting
+            // Work out group key for this sponsorship context
             int? typeId = sponsorshipType == SponsorshipType.CategorySponsor
-                          ? directoryEntry?.SubCategory?.CategoryId
-                          : directoryEntry.SubCategoryId;
+                ? entry.SubCategory?.CategoryId
+                : entry.SubCategoryId;
 
-            var currentListings = await this.sponsoredListingRepository
-                                            .GetActiveSponsorsByTypeAsync(sponsorshipType)
-                                            .ConfigureAwait(false);
-            var isCurrentSponsor = currentListings?.Any(x => x.DirectoryEntryId == directoryEntryId) == true;
+            var reservationGroup = ReservationGroupHelper.BuildReservationGroupName(sponsorshipType, typeId ?? 0);
 
-            var totalActiveListings = await this.sponsoredListingRepository
-                                              .GetActiveSponsorsCountAsync(sponsorshipType, typeId)
-                                              .ConfigureAwait(false);
-            if (!isCurrentSponsor && !CanAdvertise(sponsorshipType, totalActiveListings))
+            // If an rsvId was supplied, make sure it is valid for THIS group and still active
+            if (rsvId.HasValue)
             {
-                return this.BadRequest(new { Error = StringConstants.MaximumNumberOfSponsorsReached });
+                var existing = await this.sponsoredListingReservationRepository
+                    .GetReservationByGuidAsync(rsvId.Value)
+                    .ConfigureAwait(false);
+
+                if (existing is null ||
+                    existing.ReservationGroup != reservationGroup ||
+                    existing.ExpirationDateTime <= DateTime.UtcNow)
+                {
+                    // Treat as no reservation
+                    rsvId = null;
+                }
             }
 
-            // Set ViewBag values for the view
+            // No rsvId? Try to create a new one only if capacity allows. Otherwise block.
+            if (!rsvId.HasValue)
+            {
+                var totalActiveListings = await this.sponsoredListingRepository
+                    .GetActiveSponsorsCountAsync(sponsorshipType, typeId)
+                    .ConfigureAwait(false);
+
+                var totalActiveReservations = await this.sponsoredListingReservationRepository
+                    .GetActiveReservationsCountAsync(reservationGroup)
+                    .ConfigureAwait(false);
+
+                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, sponsorshipType))
+                {
+                    var msg = await this.BuildCheckoutInProcessMessageAsync(reservationGroup);
+                    return this.BadRequest(new { Error = msg });
+                }
+
+                // Capacity free → create fresh reservation and round-trip with the GUID
+                var expiration = DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes);
+                var reservation = await this.sponsoredListingReservationRepository
+                    .CreateReservationAsync(expiration, reservationGroup)
+                    .ConfigureAwait(false);
+
+                return this.RedirectToAction(
+                   "SelectDuration",
+                   new { directoryEntryId, sponsorshipType, rsvId = reservation.ReservationGuid });
+            }
+
+            // Populate view context
             if (sponsorshipType == SponsorshipType.SubcategorySponsor)
             {
                 this.ViewBag.Subcategory = FormattingHelper.SubcategoryFormatting(
-                    directoryEntry?.SubCategory?.Category.Name,
-                    directoryEntry?.SubCategory?.Name);
-
-                this.ViewBag.SubCategoryId = directoryEntry?.SubCategoryId;
+                    entry.SubCategory?.Category?.Name,
+                    entry.SubCategory?.Name);
+                this.ViewBag.SubCategoryId = entry.SubCategoryId;
             }
             else if (sponsorshipType == SponsorshipType.CategorySponsor)
             {
-                var catName = directoryEntry?.SubCategory?.Category.Name;
-                this.ViewBag.Category = catName;
-                this.ViewBag.CategoryId = directoryEntry?.SubCategory?.Category?.CategoryId;
+                this.ViewBag.Category = entry.SubCategory?.Category?.Name;
+                this.ViewBag.CategoryId = entry.SubCategory?.CategoryId;
             }
 
-            this.ViewBag.DirectoryEntrName = directoryEntry.Name;
-            this.ViewBag.DirectoryEntryId = directoryEntryId;
+            this.ViewBag.DirectoryEntrName = entry.Name;
+            this.ViewBag.DirectoryEntryId = entry.DirectoryEntryId;
             this.ViewBag.SponsorshipType = sponsorshipType;
+            this.ViewBag.ReservationGuid = rsvId; // ← keep token alive in the view
 
-            var model = await this.GetListingDurations(sponsorshipType, directoryEntry?.SubCategoryId)
-                                  .ConfigureAwait(false);
+            var model = await this.GetListingDurations(sponsorshipType, entry.SubCategoryId)
+                .ConfigureAwait(false);
+
             return this.View(model);
         }
 
         [HttpPost]
         [AllowAnonymous]
+        [ValidateAntiForgeryToken]
         [Route("sponsoredlisting/selectduration")]
         public async Task<IActionResult> SelectDurationAsync(
             int directoryEntryId,
-            int selectedOfferId)
+            int selectedOfferId,
+            Guid? rsvId = null)
         {
-            var selectedOffer = await this.sponsoredListingOfferRepository
-                                         .GetByIdAsync(selectedOfferId)
-                                         .ConfigureAwait(false);
-            if (selectedOffer == null)
+            var offer = await this.sponsoredListingOfferRepository
+                .GetByIdAsync(selectedOfferId)
+                .ConfigureAwait(false);
+
+            if (offer is null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
             }
 
-            var directoryEntry = await this.directoryEntryRepository
-                                           .GetByIdAsync(directoryEntryId)
-                                           .ConfigureAwait(false);
-            if (directoryEntry == null)
+            var entry = await this.directoryEntryRepository
+                .GetByIdAsync(directoryEntryId)
+                .ConfigureAwait(false);
+
+            if (entry is null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidListing });
             }
 
-            int? typeId = GetSponsorshipTypeId(selectedOffer, directoryEntry);
+            int? typeId = GetSponsorshipTypeId(offer, entry);
+            var reservationGroup = ReservationGroupHelper.BuildReservationGroupName(offer.SponsorshipType, typeId ?? 0);
 
-            var reservationGroup = ReservationGroupHelper.BuildReservationGroupName(
-                                        selectedOffer.SponsorshipType,
-                                        typeId ?? 0);
-
-            var isActiveSponsor = await this.sponsoredListingRepository
-                                          .IsSponsoredListingActive(directoryEntryId, selectedOffer.SponsorshipType)
-                                          .ConfigureAwait(false);
-
-            var totalActiveListings = await this.sponsoredListingRepository
-                                               .GetActiveSponsorsCountAsync(selectedOffer.SponsorshipType, typeId)
-                                               .ConfigureAwait(false);
-            var totalActiveReservations = await this.sponsoredListingReservationRepository
-                                                  .GetActiveReservationsCountAsync(reservationGroup)
-                                                  .ConfigureAwait(false);
-
-            if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, selectedOffer.SponsorshipType)
-                && !isActiveSponsor)
+            // If a token was posted, validate it for the group and time
+            if (rsvId.HasValue)
             {
-                var msg = await this.BuildCheckoutInProcessMessageAsync(reservationGroup);
-                return this.BadRequest(new { Error = msg });
+                var existing = await this.sponsoredListingReservationRepository
+                    .GetReservationByGuidAsync(rsvId.Value)
+                    .ConfigureAwait(false);
+
+                if (existing is null ||
+                    existing.ReservationGroup != reservationGroup ||
+                    existing.ExpirationDateTime <= DateTime.UtcNow)
+                {
+                    rsvId = null; // invalid/expired → treat as missing
+                }
             }
 
-            var reservationExpirationDate = DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes);
-            var reservation = await this.sponsoredListingReservationRepository
-                                        .CreateReservationAsync(reservationExpirationDate, reservationGroup)
-                                        .ConfigureAwait(false);
+            // No valid reservation? Only proceed if capacity allows, and create a fresh reservation
+            if (!rsvId.HasValue)
+            {
+                var isActiveSponsor = await this.sponsoredListingRepository
+                    .IsSponsoredListingActive(directoryEntryId, offer.SponsorshipType)
+                    .ConfigureAwait(false);
 
+                var totalActiveListings = await this.sponsoredListingRepository
+                    .GetActiveSponsorsCountAsync(offer.SponsorshipType, typeId)
+                    .ConfigureAwait(false);
+
+                var totalActiveReservations = await this.sponsoredListingReservationRepository
+                    .GetActiveReservationsCountAsync(reservationGroup)
+                    .ConfigureAwait(false);
+
+                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, offer.SponsorshipType) && !isActiveSponsor)
+                {
+                    var msg = await this.BuildCheckoutInProcessMessageAsync(reservationGroup);
+                    return this.BadRequest(new { Error = msg });
+                }
+
+                var expiration = DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes);
+                var newReservation = await this.sponsoredListingReservationRepository
+                    .CreateReservationAsync(expiration, reservationGroup)
+                    .ConfigureAwait(false);
+
+                rsvId = newReservation.ReservationGuid;
+            }
+
+            // Carry the new/validated token into the payment step
             return this.RedirectToAction(
                 "ConfirmNowPayments",
-                new
-                {
-                    directoryEntryId,
-                    selectedOfferId,
-                    rsvId = reservation.ReservationGuid
-                });
+                new { directoryEntryId, selectedOfferId, rsvId });
         }
 
         [HttpGet]
@@ -371,15 +409,10 @@ namespace DirectoryManager.Web.Controllers
             var typeId = subCategoryId;
             var group = ReservationGroupHelper.BuildReservationGroupName(type, typeId);
 
-            // handle reservation creation / validation just like before
-            if (rsvId == null)
+            if (!await this.TryAttachReservationAsync(rsvId, group))
             {
-                var totalActive = await this.sponsoredListingRepository
-                                            .GetActiveSponsorsCountAsync(type, typeId)
-                                            .ConfigureAwait(false);
-                var totalResv = await this.sponsoredListingReservationRepository
-                                           .GetActiveReservationsCountAsync(group)
-                                           .ConfigureAwait(false);
+                var totalActive = await this.sponsoredListingRepository.GetActiveSponsorsCountAsync(type, typeId).ConfigureAwait(false);
+                var totalResv = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(group).ConfigureAwait(false);
 
                 if (!CanPurchaseListing(totalActive, totalResv, type))
                 {
@@ -388,31 +421,17 @@ namespace DirectoryManager.Web.Controllers
                 }
 
                 var exp = DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes);
-                var res = await this.sponsoredListingReservationRepository
-                                    .CreateReservationAsync(exp, group)
-                                    .ConfigureAwait(false);
+                var res = await this.sponsoredListingReservationRepository.CreateReservationAsync(exp, group).ConfigureAwait(false);
 
-                return this.RedirectToAction(
-                    nameof(this.SubCategorySelection),
-                    new { subCategoryId, rsvId = res.ReservationGuid });
+                rsvId = res.ReservationGuid;
+                await this.TryAttachReservationAsync(rsvId, group);
+
+                return this.RedirectToAction(nameof(this.SubCategorySelection), new { subCategoryId, rsvId });
             }
 
-            // ensure reservation still valid
-            var existing = await this.sponsoredListingReservationRepository
-                                     .GetReservationByGuidAsync(rsvId.Value)
-                                     .ConfigureAwait(false);
-            if (existing == null)
-            {
-                var msg = await this.BuildCheckoutInProcessMessageAsync(group);
-                return this.BadRequest(new { Error = msg });
-            }
-
-            this.ViewBag.ReservationGuid = rsvId;
             this.ViewBag.SubCategoryId = subCategoryId;
 
-            var entries = await this.FilterEntries(SponsorshipType.SubcategorySponsor, subCategoryId)
-                                   .ConfigureAwait(false);
-
+            var entries = await this.FilterEntries(SponsorshipType.SubcategorySponsor, subCategoryId).ConfigureAwait(false);
             return this.View("SubCategorySelection", entries);
         }
 
@@ -427,14 +446,10 @@ namespace DirectoryManager.Web.Controllers
             var typeId = categoryId;
             var group = ReservationGroupHelper.BuildReservationGroupName(type, typeId);
 
-            if (rsvId == null)
+            if (!await this.TryAttachReservationAsync(rsvId, group))
             {
-                var totalActive = await this.sponsoredListingRepository
-                                            .GetActiveSponsorsCountAsync(type, typeId)
-                                            .ConfigureAwait(false);
-                var totalResv = await this.sponsoredListingReservationRepository
-                                           .GetActiveReservationsCountAsync(group)
-                                           .ConfigureAwait(false);
+                var totalActive = await this.sponsoredListingRepository.GetActiveSponsorsCountAsync(type, typeId).ConfigureAwait(false);
+                var totalResv = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(group).ConfigureAwait(false);
 
                 if (!CanPurchaseListing(totalActive, totalResv, type))
                 {
@@ -443,30 +458,17 @@ namespace DirectoryManager.Web.Controllers
                 }
 
                 var exp = DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes);
-                var res = await this.sponsoredListingReservationRepository
-                                    .CreateReservationAsync(exp, group)
-                                    .ConfigureAwait(false);
+                var res = await this.sponsoredListingReservationRepository.CreateReservationAsync(exp, group).ConfigureAwait(false);
 
-                return this.RedirectToAction(
-                    nameof(this.CategorySelection),
-                    new { categoryId, rsvId = res.ReservationGuid });
+                rsvId = res.ReservationGuid;
+                await this.TryAttachReservationAsync(rsvId, group);
+
+                return this.RedirectToAction(nameof(this.CategorySelection), new { categoryId, rsvId });
             }
 
-            var existing = await this.sponsoredListingReservationRepository
-                                     .GetReservationByGuidAsync(rsvId.Value)
-                                     .ConfigureAwait(false);
-            if (existing == null)
-            {
-                var msg = await this.BuildCheckoutInProcessMessageAsync(group);
-                return this.BadRequest(new { Error = msg });
-            }
-
-            this.ViewBag.ReservationGuid = rsvId;
             this.ViewBag.CategoryId = categoryId;
 
-            var entries = await this.FilterEntries(SponsorshipType.CategorySponsor, categoryId)
-                                   .ConfigureAwait(false);
-
+            var entries = await this.FilterEntries(SponsorshipType.CategorySponsor, categoryId).ConfigureAwait(false);
             return this.View("CategorySelection", entries);
         }
 
@@ -479,24 +481,18 @@ namespace DirectoryManager.Web.Controllers
             int selectedOfferId,
             Guid? rsvId = null)
         {
-            // 1) Load the offer & listing
-            var offer = await this.sponsoredListingOfferRepository
-                                  .GetByIdAsync(selectedOfferId)
-                                  .ConfigureAwait(false);
+            var offer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId).ConfigureAwait(false);
             if (offer == null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
             }
 
-            var entry = await this.directoryEntryRepository
-                                 .GetByIdAsync(directoryEntryId)
-                                 .ConfigureAwait(false);
+            var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId).ConfigureAwait(false);
             if (entry == null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
 
-            // 2) Figure out whether we're in sub-category or category land
             int? typeId = offer.SponsorshipType switch
             {
                 SponsorshipType.SubcategorySponsor => entry.SubCategoryId,
@@ -504,16 +500,12 @@ namespace DirectoryManager.Web.Controllers
                 _ => null
             };
 
-            // 3) Reservation guard
-            if (rsvId == null)
+            var group = ReservationGroupHelper.BuildReservationGroupName(offer.SponsorshipType, typeId ?? 0);
+
+            if (!await this.TryAttachReservationAsync(rsvId, group))
             {
-                var group = ReservationGroupHelper.BuildReservationGroupName(offer.SponsorshipType, typeId ?? 0);
-                var totalActive = await this.sponsoredListingRepository
-                                              .GetActiveSponsorsCountAsync(offer.SponsorshipType, typeId)
-                                              .ConfigureAwait(false);
-                var totalReservations = await this.sponsoredListingReservationRepository
-                                                  .GetActiveReservationsCountAsync(group)
-                                                  .ConfigureAwait(false);
+                var totalActive = await this.sponsoredListingRepository.GetActiveSponsorsCountAsync(offer.SponsorshipType, typeId).ConfigureAwait(false);
+                var totalReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(group).ConfigureAwait(false);
 
                 if (!CanPurchaseListing(totalActive, totalReservations, offer.SponsorshipType))
                 {
@@ -521,19 +513,7 @@ namespace DirectoryManager.Web.Controllers
                     return this.BadRequest(new { Error = msg });
                 }
             }
-            else
-            {
-                var existing = await this.sponsoredListingReservationRepository
-                                         .GetReservationByGuidAsync(rsvId.Value)
-                                         .ConfigureAwait(false);
-                if (existing == null)
-                {
-                    return this.BadRequest(new { Error = StringConstants.ErrorWithCheckoutProcess });
-                }
-            }
 
-            // 4) Stuff for the view so your form can round-trip
-            this.ViewBag.ReservationGuid = rsvId;
             if (offer.SponsorshipType == SponsorshipType.SubcategorySponsor)
             {
                 this.ViewBag.SubCategoryId = typeId;
@@ -543,28 +523,20 @@ namespace DirectoryManager.Web.Controllers
                 this.ViewBag.CategoryId = typeId;
             }
 
-            // 5) Build the confirmation view model
             var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
-            var current = await this.sponsoredListingRepository
-                                      .GetActiveSponsorsByTypeAsync(offer.SponsorshipType)
-                                      .ConfigureAwait(false);
+            var current = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(offer.SponsorshipType).ConfigureAwait(false);
 
             var vm = GetConfirmationModel(offer, entry, link2Name, link3Name, current);
 
-            // 6) Determine if this is an extension or a fresh purchase
             var isCurrent = current.Any(x => x.DirectoryEntryId == directoryEntryId);
             if (!isCurrent)
             {
-                // brand-new slot
                 vm.CanCreateSponsoredListing = true;
             }
             else
             {
-                // extension: re-check capacity under the hood
-                var totalActive = await this.sponsoredListingRepository
-                                            .GetActiveSponsorsCountAsync(offer.SponsorshipType, typeId)
-                                            .ConfigureAwait(false);
+                var totalActive = await this.sponsoredListingRepository.GetActiveSponsorsCountAsync(offer.SponsorshipType, typeId).ConfigureAwait(false);
                 vm.CanCreateSponsoredListing = CanAdvertise(offer.SponsorshipType, totalActive);
 
                 if (!vm.CanCreateSponsoredListing && vm.IsExtension)
@@ -598,38 +570,28 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var sponsoredListingOffer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
-
             if (sponsoredListingOffer == null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
             }
 
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
-
             if (directoryEntry == null)
             {
                 return this.BadRequest(new { Error = StringConstants.DirectoryEntryNotFound });
             }
 
             int? typeId = GetSponsorshipTypeId(sponsoredListingOffer, directoryEntry);
+            var group = ReservationGroupHelper.BuildReservationGroupName(sponsoredListingOffer.SponsorshipType, typeId);
 
-            var group = ReservationGroupHelper.BuildReservationGroupName(
-                                                    sponsoredListingOffer.SponsorshipType,
-                                                    typeId);
-
-            if (rsvId == null)
+            // Exempt the holder of the valid reservation; otherwise enforce capacity.
+            if (!await this.TryAttachReservationAsync(rsvId, group))
             {
                 var isActiveSponsor = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId, sponsoredListingOffer.SponsorshipType);
-                var totalActiveListings = await this.sponsoredListingRepository
-                                                    .GetActiveSponsorsCountAsync(
-                                                        sponsoredListingOffer.SponsorshipType,
-                                                        typeId);
+                var totalActiveListings = await this.sponsoredListingRepository.GetActiveSponsorsCountAsync(sponsoredListingOffer.SponsorshipType, typeId);
+                var totalActiveReservations = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(group);
 
-                var totalActiveReservations = await this.sponsoredListingReservationRepository
-                                                        .GetActiveReservationsCountAsync(group);
-
-                if (!CanPurchaseListing(
-                    totalActiveListings, totalActiveReservations, sponsoredListingOffer.SponsorshipType) && !isActiveSponsor)
+                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, sponsoredListingOffer.SponsorshipType) && !isActiveSponsor)
                 {
                     var msg = await this.BuildCheckoutInProcessMessageAsync(group);
                     return this.BadRequest(new { Error = msg });
@@ -638,26 +600,34 @@ namespace DirectoryManager.Web.Controllers
             else
             {
                 var existingReservation = await this.sponsoredListingReservationRepository.GetReservationByGuidAsync(rsvId.Value);
-
                 if (existingReservation == null)
                 {
                     return this.BadRequest(new { Error = StringConstants.ErrorWithCheckoutProcess });
                 }
 
+                // If an invoice already exists for this reservation:
+                // - If it’s PAID: block (you can’t change it anymore).
+                // - If it’s NOT paid: mark it expired/superseded and detach it from the reservation,
+                //   so we can issue a fresh invoice under the same reservation.
                 var existingInvoice = await this.sponsoredListingInvoiceRepository.GetByReservationGuidAsync(existingReservation.ReservationGuid);
-
                 if (existingInvoice != null)
                 {
-                    return this.BadRequest(new { Error = StringConstants.InvoiceAlreadyCreated });
+                    if (existingInvoice.PaymentStatus == PaymentStatus.Paid)
+                    {
+                        return this.BadRequest(new { Error = StringConstants.InvoiceAlreadyCreated });
+                    }
+
+                    // Supersede the old, unpaid invoice
+                    existingInvoice.PaymentStatus = PaymentStatus.Canceled; 
+                    existingInvoice.ReservationGuid = Guid.Empty;          // detach from this reservation
+                    await this.sponsoredListingInvoiceRepository.UpdateAsync(existingInvoice);
                 }
             }
 
             this.ViewBag.ReservationGuid = rsvId;
-            var existingListing = await this.sponsoredListingRepository.GetActiveSponsorAsync(
-                directoryEntryId,
-                sponsoredListingOffer.SponsorshipType);
-            var startDate = DateTime.UtcNow;
 
+            var existingListing = await this.sponsoredListingRepository.GetActiveSponsorAsync(directoryEntryId, sponsoredListingOffer.SponsorshipType);
+            var startDate = DateTime.UtcNow;
             if (existingListing != null)
             {
                 startDate = existingListing.CampaignEndDate;
@@ -669,7 +639,6 @@ namespace DirectoryManager.Web.Controllers
             this.paymentService.SetDefaultUrls(invoiceRequest);
 
             var invoiceFromProcessor = await this.paymentService.CreateInvoice(invoiceRequest);
-
             if (invoiceFromProcessor == null)
             {
                 return this.BadRequest(new { Error = "Failed to create invoice." });
@@ -681,7 +650,6 @@ namespace DirectoryManager.Web.Controllers
             }
 
             SetInvoiceProperties(rsvId, email, invoice, invoiceRequest, invoiceFromProcessor);
-
             await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
 
             if (string.IsNullOrWhiteSpace(invoiceFromProcessor?.InvoiceUrl))
@@ -717,23 +685,12 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = StringConstants.DeserializationObjectIsNull });
             }
 
-            var nowPaymentsSig = this.Request
-                                     .Headers[NowPayments.API.Constants.StringConstants.HeaderNameAuthCallBack]
-                                     .FirstOrDefault() ?? string.Empty;
+            var nowPaymentsSig = this.Request.Headers[NowPayments.API.Constants.StringConstants.HeaderNameAuthCallBack].FirstOrDefault() ?? string.Empty;
 
-            bool isValidRequest = this.paymentService.IsIpnRequestValid(
-                callbackPayload,
-                nowPaymentsSig,
-                out string errorMsg);
-
+            var isValidRequest = this.paymentService.IsIpnRequestValid(callbackPayload, nowPaymentsSig, out var errorMsg);
             if (!isValidRequest)
             {
                 return this.BadRequest(new { Error = errorMsg });
-            }
-
-            if (ipnMessage == null)
-            {
-                return this.BadRequest(new { Error = StringConstants.DeserializationObjectIsNull });
             }
 
             if (ipnMessage.OrderId == null)
@@ -741,9 +698,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = "Order ID is null." });
             }
 
-            var invoice = await this.sponsoredListingInvoiceRepository
-                                    .GetByInvoiceIdAsync(Guid.Parse(ipnMessage.OrderId));
-
+            var invoice = await this.sponsoredListingInvoiceRepository.GetByInvoiceIdAsync(Guid.Parse(ipnMessage.OrderId));
             if (invoice == null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvoiceNotFound });
@@ -752,11 +707,6 @@ namespace DirectoryManager.Web.Controllers
             invoice.PaymentResponse = JsonConvert.SerializeObject(ipnMessage);
             invoice.PaidAmount = ipnMessage.PayAmount;
             invoice.OutcomeAmount = ipnMessage.OutcomeAmount;
-
-            if (ipnMessage == null)
-            {
-                return this.BadRequest(new { Error = StringConstants.DeserializationObjectIsNull });
-            }
 
             if (ipnMessage.PaymentStatus == null)
             {
@@ -788,13 +738,12 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [Route("sponsoredlisting/nowpaymentssuccess")]
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
-                "StyleCop.CSharp.NamingRules",
-                "SA1313:Parameter names should begin with lower-case letter",
-                Justification = "This is the param from them")]
+            "StyleCop.CSharp.NamingRules",
+            "SA1313:Parameter names should begin with lower-case letter",
+            Justification = "External parameter name.")]
         public async Task<IActionResult> NowPaymentsSuccess([FromQuery] string NP_id)
         {
             var processorInvoice = await this.paymentService.GetPaymentStatusAsync(NP_id);
-
             if (processorInvoice == null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvoiceNotFound });
@@ -805,9 +754,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = "Order ID not found." });
             }
 
-            var existingInvoice = await this.sponsoredListingInvoiceRepository
-                                            .GetByInvoiceIdAsync(Guid.Parse(processorInvoice.OrderId));
-
+            var existingInvoice = await this.sponsoredListingInvoiceRepository.GetByInvoiceIdAsync(Guid.Parse(processorInvoice.OrderId));
             if (existingInvoice == null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvoiceNotFound });
@@ -821,7 +768,7 @@ namespace DirectoryManager.Web.Controllers
             var viewModel = new SuccessViewModel
             {
                 OrderId = existingInvoice.InvoiceId,
-                ListingEndDate = existingInvoice.CampaignEndDate
+                ListingEndDate = existingInvoice.CampaignEndDate,
             };
 
             return this.View("NowPaymentsSuccess", viewModel);
@@ -846,7 +793,7 @@ namespace DirectoryManager.Web.Controllers
                 CampaignStartDate = listing.CampaignStartDate,
                 CampaignEndDate = listing.CampaignEndDate,
                 SponsorshipType = listing.SponsorshipType,
-                Name = directoryEntry.Name
+                Name = directoryEntry.Name,
             };
 
             return this.View(model);
@@ -884,153 +831,136 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Offers()
         {
-            // 1) Fetch all three types
             var mainOffers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(SponsorshipType.MainSponsor);
             var categoryOffers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(SponsorshipType.CategorySponsor);
             var subcategoryOffers = await this.sponsoredListingOfferRepository.GetAllByTypeAsync(SponsorshipType.SubcategorySponsor);
 
-            // 2) Pull in the counts in bulk
-            var mainActiveCount = (await this.sponsoredListingRepository
-                                           .GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor))
-                                           .Count();
-            var activeByCategory = await this.sponsoredListingRepository
-                                           .GetActiveSponsorCountByCategoryAsync(SponsorshipType.CategorySponsor);
-            var activeBySubcategory = await this.sponsoredListingRepository
-                                           .GetActiveSponsorCountBySubcategoryAsync(SponsorshipType.SubcategorySponsor);
+            var mainActiveCount = (await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor)).Count();
+            var activeByCategory = await this.sponsoredListingRepository.GetActiveSponsorCountByCategoryAsync(SponsorshipType.CategorySponsor);
+            var activeBySubcategory = await this.sponsoredListingRepository.GetActiveSponsorCountBySubcategoryAsync(SponsorshipType.SubcategorySponsor);
 
-            // 3) Get your master lists
             var allCats = await this.categoryRepository.GetActiveCategoriesAsync();
             var allSubcats = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync();
 
-            var freeCategories = allCats.Where(c => !activeByCategory.ContainsKey(c.CategoryId))
-                                             .Select(c => c.CategoryId)
-                                             .ToHashSet();
-            var freeSubcategories = allSubcats.Where(sc => !activeBySubcategory.ContainsKey(sc.SubCategoryId))
-                                             .Select(sc => sc.SubCategoryId)
-                                             .ToHashSet();
+            var freeCategories = allCats.Where(c => !activeByCategory.ContainsKey(c.CategoryId)).Select(c => c.CategoryId).ToHashSet();
+            var freeSubcategories = allSubcats.Where(sc => !activeBySubcategory.ContainsKey(sc.SubCategoryId)).Select(sc => sc.SubCategoryId).ToHashSet();
 
-            // 4a) MainSponsor — use the Subcategory → Category formatting if present, otherwise fall back to Default
-            var vmMain = mainOffers.Select(o =>
-            {
-                bool available = mainActiveCount < Common.Constants.IntegerConstants.MaxMainSponsoredListings;
-                var link = available
-                    ? this.Url.Action("SelectListing", "SponsoredListing", new { sponsorshipType = SponsorshipType.MainSponsor })
-                    : this.Url.Action("Subscribe", "SponsoredListingNotification", new { sponsorshipType = SponsorshipType.MainSponsor });
-
-                // **Here’s the only change** — compute the label dynamically
-                var label = o.Subcategory != null
-                    ? FormattingHelper.SubcategoryFormatting(
-                        o.Subcategory.Category!.Name,
-                        o.Subcategory.Name)
-                    : StringConstants.Default;
-
-                return new SponsoredListingOfferDisplayModel
+            var vmMain = mainOffers
+                .Select(o =>
                 {
-                    Description = o.Description,
-                    Days = o.Days,
-                    Price = o.Price,
-                    PriceCurrency = o.PriceCurrency,
-                    SponsorshipType = o.SponsorshipType,
-                    CategorySubcategory = label,       // ← dynamic label now
-                    IsAvailable = available,
-                    ActionLink = link
-                };
-            })
-            .OrderBy(o => o.CategorySubcategory)
-            .ThenBy(o => o.Days)
-            .ToList();
+                    var available = mainActiveCount < Common.Constants.IntegerConstants.MaxMainSponsoredListings;
+                    var link = available
+                        ? this.Url.Action("SelectListing", "SponsoredListing", new { sponsorshipType = SponsorshipType.MainSponsor })
+                        : this.Url.Action("Subscribe", "SponsoredListingNotification", new { sponsorshipType = SponsorshipType.MainSponsor });
 
-            // 4b) CategorySponsor: default (o.Subcategory == null) is ALWAYS available
-            var vmCat = categoryOffers.Select(o =>
-            {
-                bool isDefault = o.Subcategory == null;
-                int catId = o.Subcategory?.CategoryId ?? 0;
-                bool available = isDefault || freeCategories.Contains(catId);
+                    var label = o.Subcategory != null
+                        ? FormattingHelper.SubcategoryFormatting(o.Subcategory.Category!.Name, o.Subcategory.Name)
+                        : StringConstants.Default;
 
-                string? link;
-                if (available)
-                {
-                    // if default, no categoryId param
-                    link = isDefault
-                        ? this.Url.Action("SelectListing", "SponsoredListing", new { sponsorshipType = SponsorshipType.CategorySponsor })
-                        : this.Url.Action("SelectListing", "SponsoredListing", new { sponsorshipType = SponsorshipType.CategorySponsor, categoryId = catId });
-                }
-                else
-                {
-                    link = this.Url.Action("Subscribe", "SponsoredListingNotification", new
+                    return new SponsoredListingOfferDisplayModel
                     {
-                        sponsorshipType = SponsorshipType.CategorySponsor,
-                        typeId = isDefault ? (int?)null : catId
-                    });
-                }
+                        Description = o.Description,
+                        Days = o.Days,
+                        Price = o.Price,
+                        PriceCurrency = o.PriceCurrency,
+                        SponsorshipType = o.SponsorshipType,
+                        CategorySubcategory = label,
+                        IsAvailable = available,
+                        ActionLink = link,
+                    };
+                })
+                .OrderBy(o => o.CategorySubcategory)
+                .ThenBy(o => o.Days)
+                .ToList();
 
-                var label = isDefault
-                    ? StringConstants.Default
-                    : FormattingHelper.SubcategoryFormatting(o.Subcategory.Category.Name, o.Subcategory.Name);
-
-                return new SponsoredListingOfferDisplayModel
+            var vmCat = categoryOffers
+                .Select(o =>
                 {
-                    Description = o.Description,
-                    Days = o.Days,
-                    Price = o.Price,
-                    PriceCurrency = o.PriceCurrency,
-                    SponsorshipType = o.SponsorshipType,
-                    CategorySubcategory = label,
-                    IsAvailable = available,
-                    ActionLink = link
-                };
-            })
-            .OrderBy(o => o.CategorySubcategory)
-            .ThenBy(o => o.Days)
-            .ToList();
+                    var isDefault = o.Subcategory == null;
+                    var catId = o.Subcategory?.CategoryId ?? 0;
+                    var available = isDefault || freeCategories.Contains(catId);
 
-            // 4c) SubcategorySponsor: same idea, default always available but most will have subCategory
-            var vmSub = subcategoryOffers.Select(o =>
-            {
-                bool isDefault = o.Subcategory == null;
-                int subId = o.Subcategory?.SubCategoryId ?? 0;
-                bool available = isDefault || freeSubcategories.Contains(subId);
-
-                string? link;
-                if (available)
-                {
-                    link = isDefault
-                        ? this.Url.Action("SelectListing", "SponsoredListing", new { sponsorshipType = SponsorshipType.SubcategorySponsor })
-                        : this.Url.Action("SelectListing", "SponsoredListing", new { sponsorshipType = SponsorshipType.SubcategorySponsor, subCategoryId = subId });
-                }
-                else
-                {
-                    link = this.Url.Action("Subscribe", "SponsoredListingNotification", new
+                    string? link;
+                    if (available)
                     {
-                        sponsorshipType = SponsorshipType.SubcategorySponsor,
-                        typeId = isDefault ? (int?)null : subId
-                    });
-                }
+                        link = isDefault
+                            ? this.Url.Action("SelectListing", "SponsoredListing", new { sponsorshipType = SponsorshipType.CategorySponsor })
+                            : this.Url.Action("SelectListing", "SponsoredListing", new { sponsorshipType = SponsorshipType.CategorySponsor, categoryId = catId });
+                    }
+                    else
+                    {
+                        link = this.Url.Action("Subscribe", "SponsoredListingNotification", new
+                        {
+                            sponsorshipType = SponsorshipType.CategorySponsor,
+                            typeId = isDefault ? (int?)null : catId,
+                        });
+                    }
 
-                var label = isDefault
-                    ? StringConstants.Default
-                    : FormattingHelper.SubcategoryFormatting(o.Subcategory.Category.Name, o.Subcategory.Name);
+                    var label = isDefault
+                        ? StringConstants.Default
+                        : FormattingHelper.SubcategoryFormatting(o.Subcategory.Category.Name, o.Subcategory.Name);
 
-                return new SponsoredListingOfferDisplayModel
+                    return new SponsoredListingOfferDisplayModel
+                    {
+                        Description = o.Description,
+                        Days = o.Days,
+                        Price = o.Price,
+                        PriceCurrency = o.PriceCurrency,
+                        SponsorshipType = o.SponsorshipType,
+                        CategorySubcategory = label,
+                        IsAvailable = available,
+                        ActionLink = link,
+                    };
+                })
+                .OrderBy(o => o.CategorySubcategory)
+                .ThenBy(o => o.Days)
+                .ToList();
+
+            var vmSub = subcategoryOffers
+                .Select(o =>
                 {
-                    Description = o.Description,
-                    Days = o.Days,
-                    Price = o.Price,
-                    PriceCurrency = o.PriceCurrency,
-                    SponsorshipType = o.SponsorshipType,
-                    CategorySubcategory = label,
-                    IsAvailable = available,
-                    ActionLink = link
-                };
-            })
-            .OrderBy(o => o.CategorySubcategory)
-            .ThenBy(o => o.Days)
-            .ToList();
+                    var isDefault = o.Subcategory == null;
+                    var subId = o.Subcategory?.SubCategoryId ?? 0;
+                    var available = isDefault || freeSubcategories.Contains(subId);
+
+                    string? link;
+                    if (available)
+                    {
+                        link = isDefault
+                            ? this.Url.Action("SelectListing", "SponsoredListing", new { sponsorshipType = SponsorshipType.SubcategorySponsor })
+                            : this.Url.Action("SelectListing", "SponsoredListing", new { sponsorshipType = SponsorshipType.SubcategorySponsor, subCategoryId = subId });
+                    }
+                    else
+                    {
+                        link = this.Url.Action("Subscribe", "SponsoredListingNotification", new
+                        {
+                            sponsorshipType = SponsorshipType.SubcategorySponsor,
+                            typeId = isDefault ? (int?)null : subId,
+                        });
+                    }
+
+                    var label = isDefault
+                        ? StringConstants.Default
+                        : FormattingHelper.SubcategoryFormatting(o.Subcategory.Category.Name, o.Subcategory.Name);
+
+                    return new SponsoredListingOfferDisplayModel
+                    {
+                        Description = o.Description,
+                        Days = o.Days,
+                        Price = o.Price,
+                        PriceCurrency = o.PriceCurrency,
+                        SponsorshipType = o.SponsorshipType,
+                        CategorySubcategory = label,
+                        IsAvailable = available,
+                        ActionLink = link,
+                    };
+                })
+                .OrderBy(o => o.CategorySubcategory)
+                .ThenBy(o => o.Days)
+                .ToList();
 
             var lastUpdated = await this.sponsoredListingOfferRepository.GetLastModifiedDateAsync();
 
-
-            // 5) Return the composite
             var model = new SponsoredListingOffersViewModel
             {
                 MainSponsorshipOffers = vmMain,
@@ -1038,12 +968,11 @@ namespace DirectoryManager.Web.Controllers
                 SubCategorySponsorshipOffers = vmSub,
                 ConversionRate = 0,
                 SelectedCurrency = "XMR",
-                LastUpdatedDate = lastUpdated
+                LastUpdatedDate = lastUpdated,
             };
 
             return this.View(model);
         }
-
 
         [AllowAnonymous]
         [Route("sponsoredlisting/current")]
@@ -1059,7 +988,6 @@ namespace DirectoryManager.Web.Controllers
         {
             var listings = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
 
-            // Filter listings by type
             var mainSponsorListings = listings.Where(l => l.SponsorshipType == SponsorshipType.MainSponsor).ToList();
             var subCategorySponsorListings = listings.Where(l => l.SponsorshipType == SponsorshipType.SubcategorySponsor).ToList();
             var categorySponsorListings = listings.Where(l => l.SponsorshipType == SponsorshipType.CategorySponsor).ToList();
@@ -1073,7 +1001,7 @@ namespace DirectoryManager.Web.Controllers
                     CampaignEndDate = listing.CampaignEndDate,
                     ListingUrl = listing.DirectoryEntry?.Link ?? string.Empty,
                     DirectoryListingId = listing.DirectoryEntryId,
-                    SponsorshipType = listing.SponsorshipType
+                    SponsorshipType = listing.SponsorshipType,
                 }).ToList(),
 
                 SubCategorySponsorItems = subCategorySponsorListings.Select(listing => new ActiveSponsoredListingModel
@@ -1084,7 +1012,7 @@ namespace DirectoryManager.Web.Controllers
                     ListingUrl = listing.DirectoryEntry?.Link ?? string.Empty,
                     DirectoryListingId = listing.DirectoryEntryId,
                     SubcategoryName = this.SetSubcategoryNameAsync(listing.SubCategoryId),
-                    SponsorshipType = listing.SponsorshipType
+                    SponsorshipType = listing.SponsorshipType,
                 }).ToList(),
 
                 CategorySponsorItems = categorySponsorListings.Select(listing => new ActiveSponsoredListingModel
@@ -1095,8 +1023,8 @@ namespace DirectoryManager.Web.Controllers
                     ListingUrl = listing.DirectoryEntry?.Link ?? string.Empty,
                     DirectoryListingId = listing.DirectoryEntryId,
                     CategoryName = this.CategoryNameAsync(listing.CategoryId),
-                    SponsorshipType = listing.SponsorshipType
-                }).ToList()
+                    SponsorshipType = listing.SponsorshipType,
+                }).ToList(),
             };
 
             return this.View("activelistings", model);
@@ -1107,7 +1035,7 @@ namespace DirectoryManager.Web.Controllers
         [Authorize]
         public async Task<IActionResult> List(int page = 1)
         {
-            int pageSize = IntegerConstants.DefaultPageSize;
+            var pageSize = IntegerConstants.DefaultPageSize;
             var totalListings = await this.sponsoredListingRepository.GetTotalCountAsync();
             var listings = await this.sponsoredListingRepository.GetPaginatedListingsAsync(page, pageSize);
 
@@ -1121,8 +1049,8 @@ namespace DirectoryManager.Web.Controllers
                     DirectoryEntryName = l.DirectoryEntry?.Name ?? StringConstants.DefaultName,
                     SponsorshipType = l.SponsorshipType,
                     StartDate = l.CampaignStartDate,
-                    EndDate = l.CampaignEndDate
-                }).ToList()
+                    EndDate = l.CampaignEndDate,
+                }).ToList(),
             };
 
             return this.View(model);
@@ -1137,7 +1065,7 @@ namespace DirectoryManager.Web.Controllers
         {
             return new ConfirmSelectionViewModel
             {
-                SelectedDirectoryEntry = new DirectoryEntryViewModel()
+                SelectedDirectoryEntry = new DirectoryEntryViewModel
                 {
                     CreateDate = directoryEntry.CreateDate,
                     UpdateDate = directoryEntry.UpdateDate,
@@ -1160,17 +1088,17 @@ namespace DirectoryManager.Web.Controllers
                     Processor = directoryEntry.Processor,
                     SubCategoryId = directoryEntry.SubCategoryId,
                     CountryCode = directoryEntry.CountryCode,
-                    PgpKey = directoryEntry.PgpKey
+                    PgpKey = directoryEntry.PgpKey,
                 },
-                Offer = new SponsoredListingOfferModel()
+                Offer = new SponsoredListingOfferModel
                 {
                     Description = offer.Description,
                     Days = offer.Days,
                     SponsoredListingOfferId = offer.SponsoredListingOfferId,
                     USDPrice = offer.Price,
-                    SponsorshipType = offer.SponsorshipType
+                    SponsorshipType = offer.SponsorshipType,
                 },
-                IsExtension = currentListings.FirstOrDefault(x => x.DirectoryEntryId == directoryEntry.DirectoryEntryId) != null
+                IsExtension = currentListings.FirstOrDefault(x => x.DirectoryEntryId == directoryEntry.DirectoryEntryId) != null,
             };
         }
 
@@ -1181,7 +1109,7 @@ namespace DirectoryManager.Web.Controllers
             PaymentRequest invoiceRequest,
             InvoiceResponse invoiceFromProcessor)
         {
-            invoice.ReservationGuid = (rsvId == null) ? Guid.Empty : rsvId.Value;
+            invoice.ReservationGuid = rsvId == null ? Guid.Empty : rsvId.Value;
             invoice.ProcessorInvoiceId = invoiceFromProcessor.Id;
             invoice.PaymentProcessor = PaymentProcessor.NOWPayments;
             invoice.InvoiceRequest = JsonConvert.SerializeObject(invoiceRequest);
@@ -1189,20 +1117,19 @@ namespace DirectoryManager.Web.Controllers
             invoice.Email = InputHelper.SetEmail(email);
         }
 
-        private static PaymentStatus ConvertToInternalStatus(
-            NowPayments.API.Enums.PaymentStatus externalStatus)
+        private static PaymentStatus ConvertToInternalStatus(NowPayments.API.Enums.PaymentStatus externalStatus)
         {
             return externalStatus switch
             {
                 NowPayments.API.Enums.PaymentStatus.Unknown => PaymentStatus.Unknown,
                 NowPayments.API.Enums.PaymentStatus.Waiting => PaymentStatus.InvoiceCreated,
                 NowPayments.API.Enums.PaymentStatus.Sending or
-                    NowPayments.API.Enums.PaymentStatus.Confirming or
-                    NowPayments.API.Enums.PaymentStatus.Confirmed => PaymentStatus.Pending,
+                NowPayments.API.Enums.PaymentStatus.Confirming or
+                NowPayments.API.Enums.PaymentStatus.Confirmed => PaymentStatus.Pending,
                 NowPayments.API.Enums.PaymentStatus.Finished => PaymentStatus.Paid,
                 NowPayments.API.Enums.PaymentStatus.PartiallyPaid => PaymentStatus.UnderPayment,
                 NowPayments.API.Enums.PaymentStatus.Failed or
-                    NowPayments.API.Enums.PaymentStatus.Refunded => PaymentStatus.Failed,
+                NowPayments.API.Enums.PaymentStatus.Refunded => PaymentStatus.Failed,
                 NowPayments.API.Enums.PaymentStatus.Expired => PaymentStatus.Expired,
                 _ => throw new ArgumentOutOfRangeException(nameof(externalStatus), externalStatus, null),
             };
@@ -1223,9 +1150,7 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
-        private static bool CanAdvertise(
-            SponsorshipType sponsorshipType,
-            int totalForTypeInGroup)
+        private static bool CanAdvertise(SponsorshipType sponsorshipType, int totalForTypeInGroup)
         {
             if (sponsorshipType == SponsorshipType.MainSponsor)
             {
@@ -1246,9 +1171,9 @@ namespace DirectoryManager.Web.Controllers
         }
 
         private static bool CanPurchaseListing(
-                int totalActiveListings,
-                int totalActiveReservations,
-                SponsorshipType sponsorshipType)
+            int totalActiveListings,
+            int totalActiveReservations,
+            SponsorshipType sponsorshipType)
         {
             if (sponsorshipType == SponsorshipType.MainSponsor)
             {
@@ -1279,14 +1204,12 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var subcategory = this.subCategoryRepository.GetByIdAsync(subCategoryId.Value).Result;
-
             if (subcategory == null)
             {
                 return string.Empty;
             }
 
             var category = this.categoryRepository.GetByIdAsync(subcategory.CategoryId).Result;
-
             if (category == null)
             {
                 return string.Empty;
@@ -1303,7 +1226,6 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var category = this.categoryRepository.GetByIdAsync(categoryId.Value).Result;
-
             if (category == null)
             {
                 return string.Empty;
@@ -1323,7 +1245,7 @@ namespace DirectoryManager.Web.Controllers
                 PriceCurrency = this.paymentService.PriceCurrency,
                 PayCurrency = this.paymentService.PayCurrency,
                 OrderId = invoice.InvoiceId.ToString(),
-                OrderDescription = sponsoredListingOffer.Description
+                OrderDescription = sponsoredListingOffer.Description,
             };
         }
 
@@ -1352,7 +1274,7 @@ namespace DirectoryManager.Web.Controllers
                     SponsorshipType = sponsoredListingOffer.SponsorshipType,
                     SubCategoryId = directoryEntry.SubCategoryId,
                     CategoryId = directoryEntry?.SubCategory?.CategoryId,
-                    IpAddress = ipAddress
+                    IpAddress = ipAddress,
                 });
         }
 
@@ -1368,7 +1290,7 @@ namespace DirectoryManager.Web.Controllers
                     SponsoredListingOfferId = offer.SponsoredListingOfferId,
                     Description = offer.Description,
                     Days = offer.Days,
-                    USDPrice = offer.Price
+                    USDPrice = offer.Price,
                 });
             }
 
@@ -1379,19 +1301,16 @@ namespace DirectoryManager.Web.Controllers
         {
             if (await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice))
             {
-                var existingSponsoredListing = await this.sponsoredListingRepository
-                                                         .GetByInvoiceIdAsync(invoice.SponsoredListingInvoiceId);
+                var existingSponsoredListing = await this.sponsoredListingRepository.GetByInvoiceIdAsync(invoice.SponsoredListingInvoiceId);
 
                 if (existingSponsoredListing == null && invoice.PaymentStatus == PaymentStatus.Paid)
                 {
-                    var activeListing = await this.sponsoredListingRepository
-                                                  .GetActiveSponsorAsync(invoice.DirectoryEntryId, invoice.SponsorshipType);
+                    var activeListing = await this.sponsoredListingRepository.GetActiveSponsorAsync(invoice.DirectoryEntryId, invoice.SponsorshipType);
 
                     if (activeListing == null)
                     {
-                        // if the invoice is paid and there is no existing sponsored listing, create one
                         var sponsoredListing = await this.sponsoredListingRepository.CreateAsync(
-                            new SponsoredListing()
+                            new SponsoredListing
                             {
                                 DirectoryEntryId = invoice.DirectoryEntryId,
                                 CampaignStartDate = invoice.CampaignStartDate,
@@ -1407,14 +1326,10 @@ namespace DirectoryManager.Web.Controllers
                     }
                     else
                     {
-                        // extend the existing listing
                         activeListing.CampaignEndDate = invoice.CampaignEndDate;
-
-                        // set the current active listing's invoice to the new invoice
                         activeListing.SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId;
                         await this.sponsoredListingRepository.UpdateAsync(activeListing);
 
-                        // set the new invoice's sponsored listing to the current active listing
                         invoice.SponsoredListingId = activeListing.SponsoredListingId;
                         await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
                     }
@@ -1437,9 +1352,7 @@ namespace DirectoryManager.Web.Controllers
                 entries = entries.Where(e => e.SubCategory.CategoryId == categoryId.Value).ToList();
             }
 
-            entries = entries.OrderBy(e => e.Name)
-                             .ToList();
-
+            entries = entries.OrderBy(e => e.Name).ToList();
             await this.GetSubCateogryOptions();
 
             return entries;
@@ -1447,18 +1360,17 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task GetSubCateogryOptions()
         {
-            this.ViewBag.SubCategories = (await this.subCategoryRepository
-                                                    .GetAllActiveSubCategoriesAsync())
-                                                    .OrderBy(sc => sc.Category.Name)
-                                                    .ThenBy(sc => sc.Name)
-                                                    .ToList();
+            this.ViewBag.SubCategories = (await this.subCategoryRepository.GetAllActiveSubCategoriesAsync())
+                .OrderBy(sc => sc.Category.Name)
+                .ThenBy(sc => sc.Name)
+                .ToList();
         }
 
         private bool IsOldEnough(DirectoryEntry directoryEntry)
         {
             if (directoryEntry.CreateDate == DateTime.MinValue)
             {
-                return false; // Or throw an exception if CreateDate is required
+                return false;
             }
 
             if (directoryEntry.DirectoryStatus == DirectoryStatus.Verified)
@@ -1466,48 +1378,77 @@ namespace DirectoryManager.Web.Controllers
                 return true;
             }
 
-            // Check if the entry is at least 30 days old
             return (DateTime.UtcNow - directoryEntry.CreateDate).TotalDays >= IntegerConstants.UnverifiedMinimumDaysListedBeforeAdvertising;
         }
 
         private async Task<IEnumerable<DirectoryEntry>> FilterEntries(SponsorshipType sponsorshipType, int? typeId)
         {
-            // Start with all allowable advertisers
-            var entries = await this.directoryEntryRepository
-                                     .GetAllowableAdvertisers()
-                                     .ConfigureAwait(false);
+            var entries = await this.directoryEntryRepository.GetAllowableAdvertisers().ConfigureAwait(false);
 
-            // If filtering by subcategory sponsor, restrict by SubCategoryId
             if (sponsorshipType == SponsorshipType.SubcategorySponsor && typeId.HasValue)
             {
-                entries = entries
-                    .Where(e => e.SubCategoryId == typeId.Value)
-                    .ToList();
+                entries = entries.Where(e => e.SubCategoryId == typeId.Value).ToList();
             }
-
-            // If filtering by category sponsor, restrict by the CategoryId of the SubCategory navigation
             else if (sponsorshipType == SponsorshipType.CategorySponsor && typeId.HasValue)
             {
-                entries = entries
-                    .Where(e => e.SubCategory != null &&
-                                e.SubCategory.CategoryId == typeId.Value)
-                    .ToList();
+                entries = entries.Where(e => e.SubCategory != null && e.SubCategory.CategoryId == typeId.Value).ToList();
             }
 
-            // Always sort alphabetically by Name
-            return entries
-                .OrderBy(e => e.Name)
-                .ToList();
+            return entries.OrderBy(e => e.Name).ToList();
         }
 
         /// <summary>
-        /// Returns a user‑friendly “checkout in process” message,
-        /// showing the actual expiration time and minutes left.
+        /// If <paramref name="rsvId"/> is non-null and valid for <paramref name="reservationGroup"/>,
+        /// attach it to ViewBag and return true. Also exposes the reservation's expiration for banners.
+        /// </summary>
+        private async Task<bool> TryAttachReservationAsync(Guid? rsvId, string reservationGroup)
+        {
+            if (rsvId == null)
+            {
+                return false;
+            }
+
+            var existing = await this.sponsoredListingReservationRepository.GetReservationByGuidAsync(rsvId.Value).ConfigureAwait(false);
+            if (existing == null)
+            {
+                return false;
+            }
+
+            // best-effort: read expiration either from entity or from group helper as fallback
+            DateTime? expiresUtc = null;
+            try
+            {
+                // assuming repository entity exposes ExpirationDate (rename if different)
+                var prop = existing.GetType().GetProperty("ExpirationDate");
+                expiresUtc = (DateTime?)prop?.GetValue(existing);
+            }
+            catch
+            {
+                // ignore and fallback
+            }
+
+            if (!expiresUtc.HasValue)
+            {
+                expiresUtc = await this.sponsoredListingReservationRepository.GetActiveReservationExpirationAsync(reservationGroup).ConfigureAwait(false);
+            }
+
+            // If expired or mismatched group, reject.
+            if (!expiresUtc.HasValue || expiresUtc.Value <= DateTime.UtcNow)
+            {
+                return false;
+            }
+
+            this.ViewBag.ReservationGuid = rsvId;
+            this.ViewBag.ReservationExpiresUtc = expiresUtc.Value;
+            return true;
+        }
+
+        /// <summary>
+        /// Returns a user-friendly “checkout in process” message.
         /// </summary>
         private async Task<string> BuildCheckoutInProcessMessageAsync(string reservationGroup)
         {
-            var expiration = await this.sponsoredListingReservationRepository
-                                      .GetActiveReservationExpirationAsync(reservationGroup);
+            var expiration = await this.sponsoredListingReservationRepository.GetActiveReservationExpirationAsync(reservationGroup);
             if (expiration.HasValue)
             {
                 var expiryUtc = expiration.Value;
@@ -1515,7 +1456,6 @@ namespace DirectoryManager.Web.Controllers
                 return $"Another checkout is in process and will expire at {expiryUtc:yyyy-MM-dd HH:mm} UTC (in {minutesLeft} minutes).";
             }
 
-            // fallback if somehow no reservation was found
             return "Another checkout is currently in process.";
         }
     }

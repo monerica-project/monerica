@@ -63,5 +63,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return expiration;  // null if none active
         }
 
+        public async Task<Guid?> GetAnyActiveReservationGuidAsync(string reservationGroup)
+        {
+            var now = DateTime.UtcNow;
+            return await this.context.SponsoredListingReservations
+                .Where(r => r.ReservationGroup == reservationGroup && r.ExpirationDateTime > now)
+                .OrderByDescending(r => r.ExpirationDateTime)
+                .Select(r => (Guid?)r.ReservationGuid)
+                .FirstOrDefaultAsync();
+        }
     }
 }

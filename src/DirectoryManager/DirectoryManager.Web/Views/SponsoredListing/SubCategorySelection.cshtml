@@ -1,10 +1,21 @@
 ﻿@using DirectoryManager.Data.Models
-@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants
 @model IEnumerable<DirectoryEntry>
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing";
+    ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing by Subcategory";
     ViewData[StringConstants.IsIndexable] = false;
+
+    var subCategoryId = ViewBag.SubCategoryId is int sc ? sc : 0;
+    Guid? reservationGuid =
+        ViewBag.ReservationGuid is Guid g ? g : (Guid?)null;
+    DateTime? reservationExpiresUtc =
+        ViewBag.ReservationExpiresUtc is DateTime d ? d : (DateTime?)null;
+
+    int? minutesLeft = reservationExpiresUtc.HasValue
+        ? (int?)Math.Max(0, (int)Math.Ceiling((reservationExpiresUtc.Value - DateTime.UtcNow).TotalMinutes))
+        : null;
 }
 
 @{
@@ -17,11 +28,32 @@
 
 <hr />
 
+@if (reservationGuid.HasValue && reservationExpiresUtc.HasValue)
+{
+    <div class="alert alert-warning" role="alert">
+        <strong>Reserved checkout:</strong>
+        Your slot is held until
+        <b>@reservationExpiresUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</b> UTC
+        (@minutesLeft minute@(minutesLeft == 1 ? "" : "s") left). Selecting a listing will keep using this reservation.
+    </div>
+}
+
 @foreach (var entry in Model)
 {
     <div>
         <a target="_blank" href="@entry.Link">@entry.Name</a> <text> - </text>
-        <a rel="nofollow" href="@Url.Action("selectduration", new { id = entry.DirectoryEntryId, rsvId = ViewBag.ReservationGuid })">Select</a>
+        <a rel="nofollow"
+           href="@Url.Action(
+               "SelectDuration",
+               "SponsoredListing",
+               new {
+                   directoryEntryId = entry.DirectoryEntryId,
+                   sponsorshipType  = SponsorshipType.SubcategorySponsor,
+                   subCategoryId    = subCategoryId,
+                   rsvId            = reservationGuid
+               })">
+            Select
+        </a>
     </div>
 }
 
