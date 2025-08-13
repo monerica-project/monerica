@@ -10,90 +10,93 @@
     Layout = "_CenteredLayout";
 }
 
-
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
-@await Html.PartialAsync("_AdminMenu")
+    @await Html.PartialAsync("_AdminMenu")
+    @await Html.PartialAsync("_ReportMenu")
 
-@await Html.PartialAsync("_ReportMenu")
+    <hr />
 
-<hr />
+    <form method="get" asp-controller="SponsoredListingInvoice" asp-action="Report">
+        <div class="form-row">
+            <div class="form-group col-md-4">
+                <label for="SponsorshipType">Sponsorship Type</label>
+                <select id="SponsorshipType"
+                        name="sponsorshipType"
+                        class="form-control"
+                        asp-items="Model.SponsorshipTypeOptions">
+                </select>
+            </div>
+            <div class="form-group col-md-4">
+                <label for="StartDate">Start Date</label>
+                <input id="StartDate" name="startDate" type="date" class="form-control"
+                       value="@Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)" required />
+            </div>
+            <div class="form-group col-md-4">
+                <label for="EndDate">End Date</label>
+                <input id="EndDate" name="endDate" type="date" class="form-control"
+                       value="@Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)" required />
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Get Totals</button>
+    </form>
 
-<form method="get" asp-controller="SponsoredListingInvoice" asp-action="Report">
-  <div class="form-row">
-    <div class="form-group col-md-4">
-      <label for="SponsorshipType">Sponsorship Type</label>
-      <select id="SponsorshipType"
-              name="sponsorshipType"
-              class="form-control"
-              asp-items="Model.SponsorshipTypeOptions">
-      </select>
-    </div>
-    <div class="form-group col-md-4">
-      <label for="StartDate">Start Date</label>
-      <input
-        id="StartDate"
-        name="startDate"
-        type="date"
-        class="form-control"
-        value="@Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)"
-        required />
-    </div>
-    <div class="form-group col-md-4">
-      <label for="EndDate">End Date</label>
-      <input
-        id="EndDate"
-        name="endDate"
-        type="date"
-        class="form-control"
-        value="@Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)"
-        required />
-    </div>
-  </div>
-  <button type="submit" class="btn btn-primary">Get Totals</button>
-</form>
+    <br />
 
+    <p>
+        Time Range:
+        @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+        -
+        @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+    </p>
 
-<br />
+    @{
+        // Compute implied fiat-per-coin and coin-per-fiat
+        var usCulture = CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS);
+        var paidCoin = Model.PaidInCurrency.ToString();        // e.g., XMR
+        var fiatCode = Model.Currency.ToString();              // e.g., USD
 
-<p>
-    Time Range: @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat) - @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
-</p>
-<br />
-<p>
-  Total Amount <strong>Paid</strong>: 
-  @Model.TotalPaidAmount @Model.PaidInCurrency
-</p>
-<p>
-  Total Amount Requested In Time Range: 
-  @Model.TotalAmount.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS)) 
-  @Model.Currency
-</p>
- 
-<img style="width:100%"
-     src="@Url.Action("monthlyincomebarchart", "sponsoredlistinginvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType })"
-     alt="chart" />
+        // Assume these are decimals in your view model. If nullable, coalesce to 0m.
+        decimal totalCoin = Model.TotalPaidAmount;
+        decimal totalFiat = Model.TotalAmount;
 
-     
-     <img style="width:100%"
-     src="@Url.Action(
-             "monthlyavgdailyrevenuechart",
-             "SponsoredListingInvoice",
-             new {
-               startDate = Model.StartDate,
-               endDate = Model.EndDate,
-               sponsorshipType = Model.SponsorshipType
-             })"
-     alt="Average Daily Revenue per Month" />
+        bool canCompute = totalCoin > 0 && !string.IsNullOrWhiteSpace(paidCoin) && !string.IsNullOrWhiteSpace(fiatCode);
+        decimal? impliedFiatPerCoin = canCompute ? totalFiat / totalCoin : (decimal?)null;  // e.g., $/XMR
+        decimal? impliedCoinPerFiat = (canCompute && totalFiat != 0) ? totalCoin / totalFiat : (decimal?)null; // e.g., XMR/$
+    }
 
+    <br />
+    <p>
+        Total Amount <strong>Paid</strong>:
+        @Model.TotalPaidAmount @Model.PaidInCurrency
+    </p>
+    <p>
+        Total Amount Requested In Time Range:
+        @Model.TotalAmount.ToString("C", usCulture) @Model.Currency
+    </p>
 
-<img style="width:100%"
-     src="@Url.Action(
-             "subcategoryrevenuepiechart",
-             "sponsoredlistinginvoice",
-                  new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType }
-          )"
-     alt="Subcategory Revenue Pie Chart" />
+    @if (impliedFiatPerCoin.HasValue)
+    {
+        <p>
+            Implied Average Price:
+            <strong>@impliedFiatPerCoin.Value.ToString("C", usCulture)</strong> per @paidCoin
+            @* Example: $300.00 per XMR *@
+        </p>
+        <p class="text-muted">
+            (~ @impliedCoinPerFiat?.ToString("N6", usCulture) @paidCoin per 1 @fiatCode)
+        </p>
+    }
 
+    <img style="width:100%"
+         src="@Url.Action("monthlyincomebarchart", "sponsoredlistinginvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType })"
+         alt="chart" />
+
+    <img style="width:100%"
+         src="@Url.Action("monthlyavgdailyrevenuechart", "SponsoredListingInvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType })"
+         alt="Average Daily Revenue per Month" />
+
+    <img style="width:100%"
+         src="@Url.Action("subcategoryrevenuepiechart", "sponsoredlistinginvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType })"
+         alt="Subcategory Revenue Pie Chart" />
 }
