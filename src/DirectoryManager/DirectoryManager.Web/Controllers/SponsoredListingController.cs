@@ -195,8 +195,6 @@ namespace DirectoryManager.Web.Controllers
                 {
                     return this.Redirect(this.Url.Content("~/sponsoredlisting#subcategory-sponsor-section"));
                 }
-
-                return this.Redirect(this.Url.Content("~/sponsoredlisting#main-sponsor-section"));
             }
 
             var typeValue = subCategoryId ?? categoryId;
