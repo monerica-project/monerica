@@ -17,5 +17,6 @@ namespace DirectoryManager.Data.Enums
         Failed = 7,
         Test = 8,
         Canceled = 9,
+        Refunded = 10
     }
 }
