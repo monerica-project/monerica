@@ -723,8 +723,9 @@ namespace DirectoryManager.Web.Controllers
                 return this.Ok();
             }
 
-            // 4) Idempotency: if already terminal, we’re done
+            // 4) Idempotency: if already terminal OR explicitly marked Test, do nothing on IPN
             if (invoice.PaymentStatus is PaymentStatus.Paid
+                or PaymentStatus.Test
                 or PaymentStatus.Expired
                 or PaymentStatus.Failed
                 or PaymentStatus.Refunded
@@ -738,12 +739,12 @@ namespace DirectoryManager.Web.Controllers
             invoice.PaidAmount = ipnMessage.PayAmount;
             invoice.OutcomeAmount = ipnMessage.OutcomeAmount;
 
-            // Map external status to internal; do not downgrade a Paid invoice
+            // Map external status to internal; do not override if already Paid or Test
             var processorStatus = DirectoryManager.Utilities.Helpers.EnumHelper
                 .ParseStringToEnum<NowPayments.API.Enums.PaymentStatus>(ipnMessage.PaymentStatus);
 
             var newStatus = ConvertToInternalStatus(processorStatus);
-            if (invoice.PaymentStatus != PaymentStatus.Paid)
+            if (invoice.PaymentStatus is not PaymentStatus.Paid and not PaymentStatus.Test)
             {
                 invoice.PaymentStatus = newStatus;
             }
@@ -754,7 +755,7 @@ namespace DirectoryManager.Web.Controllers
                     .ParseStringToEnum<Currency>(ipnMessage.PayCurrency);
             }
 
-            // 6) Apply business effects (creates/extends listing when Paid) — your method is already idempotent
+            // 6) Apply business effects (creates/extends listing when Paid) — method is already idempotent
             await this.CreateNewSponsoredListing(invoice);
 
             // 7) Always 200 OK so NOWPayments doesn’t retry
