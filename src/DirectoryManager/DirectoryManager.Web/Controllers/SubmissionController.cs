@@ -666,6 +666,8 @@ namespace DirectoryManager.Web.Controllers
                 throw new NullReferenceException(nameof(model.SubCategoryId));
             }
 
+            var status = (DirectoryStatus)(model.DirectoryStatus == null ? DirectoryStatus.Admitted : model.DirectoryStatus);
+
             await this.directoryEntryRepository.CreateAsync(
                 new DirectoryEntry
                 {
@@ -679,7 +681,7 @@ namespace DirectoryManager.Web.Controllers
                     Processor = model.Processor?.Trim(),
                     Note = model.Note?.Trim(),
                     Contact = model.Contact?.Trim(),
-                    DirectoryStatus = DirectoryStatus.Admitted,
+                    DirectoryStatus = status,
                     SubCategoryId = model.SubCategoryId.Value,
                     CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty,
                     CountryCode = model.CountryCode,
