@@ -92,10 +92,12 @@
          src="@Url.Action("monthlyincomebarchart", "sponsoredlistinginvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType })"
          alt="chart" />
 
+    <br />
     <img style="width:100%"
          src="@Url.Action("monthlyavgdailyrevenuechart", "SponsoredListingInvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType })"
          alt="Average Daily Revenue per Month" />
 
+    <br />
     <img style="width:100%"
          src="@Url.Action("subcategoryrevenuepiechart", "sponsoredlistinginvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType })"
          alt="Subcategory Revenue Pie Chart" />

@@ -1,8 +1,6 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using ScottPlot;
-using ScottPlot.TickGenerators.Financial;
-using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace DirectoryManager.Web.Charting
 {
@@ -12,57 +10,86 @@ namespace DirectoryManager.Web.Charting
         {
             if (invoices == null || !invoices.Any())
             {
-                // Return an empty byte array if there is no data
                 return Array.Empty<byte>();
             }
 
-            // Filter for paid invoices in USD currency
+            // Paid USD invoices only
             var paidInvoices = invoices
                 .Where(i => i.PaymentStatus == Data.Enums.PaymentStatus.Paid && i.Currency == Data.Enums.Currency.USD)
                 .ToList();
 
-            // Group data by month and sum the income for each month
+            // Sum by month (use first day of month as key)
             var monthlyData = paidInvoices
-                .GroupBy(i => new DateTime(i.CreateDate.Year, i.CreateDate.Month, 1)) // Group by year and month
+                .GroupBy(i => new DateTime(i.CreateDate.Year, i.CreateDate.Month, 1))
                 .Select(g => new
                 {
-                    Month = g.Key, // First day of the month for the X-axis
-                    TotalIncome = (double)g.Sum(i => i.Amount) // Convert total income to double
+                    Month = g.Key,
+                    TotalIncome = (double)g.Sum(i => i.Amount)
                 })
                 .OrderBy(d => d.Month)
                 .ToList();
 
-            // Prepare a list of Bar objects for plotting
+            // Build bars
             var bars = monthlyData.Select((d, index) => new Bar
             {
-                Position = index, // Sequential position for each month
-                Value = d.TotalIncome, // Income for the month
-                Label = d.Month.ToString("MMM yyyy") // Month label as string
+                Position = index,
+                Value = d.TotalIncome
+                // no need to set Label; we hide the bottom axis and draw our own labels
             }).ToList();
 
-            // Create the plot
-            var myPlot = new Plot();
+            var plt = new Plot();
 
-            // Add the bar plot with the list of Bar objects
-            var barPlot = myPlot.Add.Bars(bars);
+            // bars
+            var barPlot = plt.Add.Bars(bars);
 
-            // Configure the plot for the bar chart
-            myPlot.Axes.Bottom.IsVisible = false;
+            // hide bottom axis entirely (no month names there)
+            plt.Axes.Bottom.IsVisible = false;
 
-            // Label the plot
-            myPlot.Title($"Monthly {Data.Enums.Currency.USD.ToString()} Income");
-            myPlot.XLabel("Month");
-            myPlot.YLabel($"Total Income ({Data.Enums.Currency.USD.ToString()})");
+            // title & Y label
+            plt.Title("Monthly USD Income");
+            plt.YLabel("Total Income (USD)");
 
-            // Return the plot as a byte array to display in the view
-            return myPlot.GetImageBytes(1200, 800, ImageFormat.Png);
+            // Fit with a bit of *top* headroom only (baseline at 0)
+            plt.Axes.Margins(left: 0.06, right: 0.06, bottom: 0, top: 0.12);
+            plt.Axes.AutoScale();
+
+            // Pin the floor at exactly 0
+            var lim = plt.Axes.GetLimits();
+            plt.Axes.SetLimitsY(0, lim.Top);
+
+            // Ensure enough room for text above tallest bar
+            double maxBar = bars.Max(b => b.Value);
+            double yOffset = Math.Max(maxBar * 0.04, 30); // 4% or $30 worth of headroom
+            double neededTop = maxBar + yOffset;
+            if (lim.Top < neededTop)
+            {
+                plt.Axes.SetLimitsY(0, neededTop);
+            }
+
+            // Add labels above each bar: amount (currency) and month on the next line
+            for (int i = 0; i < bars.Count; i++)
+            {
+                double x = bars[i].Position;
+                double y = bars[i].Value;
+
+                string amount = $"{y:C0}";
+                string month = monthlyData[i].Month.ToString("MMM yyyy");
+
+                var txt = plt.Add.Text($"{amount}\n{month}", x, y + (yOffset * 0.5));
+                txt.Alignment = ScottPlot.Alignment.LowerCenter; // anchor at bottom of text
+                txt.LabelFontSize = 12;
+            }
+
+            // Render
+            return plt.GetImageBytes(width: 1200, height: 800, format: ImageFormat.Png);
         }
+
 
         public byte[] CreateMonthlyAvgDailyRevenueChart(IEnumerable<SponsoredListingInvoice> invoices)
         {
             var paid = invoices
-                        .Where(i => i.Currency == Currency.USD && i.PaymentStatus == PaymentStatus.Paid)
-                        .ToList();
+                .Where(i => i.Currency == Currency.USD && i.PaymentStatus == PaymentStatus.Paid)
+                .ToList();
             if (!paid.Any())
             {
                 return Array.Empty<byte>();
@@ -81,7 +108,7 @@ namespace DirectoryManager.Web.Charting
                 months.Add(m);
             }
 
-            // … compute your `data` list of { Month, AvgDaily } exactly as before …
+            // Compute average daily revenue per month
             var data = months.Select(m =>
             {
                 int daysInMonth = DateTime.DaysInMonth(m.Year, m.Month);
@@ -91,10 +118,13 @@ namespace DirectoryManager.Web.Charting
                     var start = inv.CampaignStartDate.Date;
                     var end = inv.CampaignEndDate.Date;
                     double span = (end - start).TotalDays + 1;
+
                     var monthStart = m;
                     var monthEnd = m.AddMonths(1).AddDays(-1);
+
                     var overlapStart = start > monthStart ? start : monthStart;
                     var overlapEnd = end < monthEnd ? end : monthEnd;
+
                     if (overlapEnd >= overlapStart)
                     {
                         double overlapDays = (overlapEnd - overlapStart).TotalDays + 1;
@@ -103,15 +133,16 @@ namespace DirectoryManager.Web.Charting
                 }
 
                 return new { Month = m, AvgDaily = total / daysInMonth };
-            })
-       .ToList();
+            }).ToList();
 
             var now = DateTime.UtcNow;
 
-            // Build bars
+            // Bars
             var bars = data.Select((d, idx) => new Bar
             {
-                FillColor = d.Month.Year == now.Year && d.Month.Month == now.Month ? Color.FromHex("#000000") : Color.FromHex("#dddddd"),
+                FillColor = (d.Month.Year == now.Year && d.Month.Month == now.Month)
+                    ? Color.FromHex("#000000")
+                    : Color.FromHex("#dddddd"),
                 Position = idx,
                 Value = d.AvgDaily,
                 Label = d.Month.ToString("MMM yyyy")
@@ -120,19 +151,30 @@ namespace DirectoryManager.Web.Charting
             var plt = new Plot();
             var barPlot = plt.Add.Bars(bars);
 
+            // Bottom month labels rotated (keep if you like)
             plt.Axes.Bottom.TickLabelStyle.Rotation = 90;
 
-            double maxBar = bars.Max(b => b.Value);
-            double yOffset = maxBar * 0.05;
+            // ---- Force non-negative Y and add headroom for labels ----
+            plt.Axes.Margins(left: 0.06, right: 0.06, bottom: 0, top: 0.12); // no bottom margin
+            plt.Axes.AutoScale();
 
+            double maxBar = Math.Max(0, bars.Max(b => b.Value));
+            double yOffset = maxBar * 0.05;                 // for value labels
+            double neededTop = maxBar + Math.Max(yOffset, 1);
+
+            var lim = plt.Axes.GetLimits();
+            if (lim.Bottom != 0 || lim.Top < neededTop)
+            {
+                plt.Axes.SetLimitsY(0, Math.Max(lim.Top, neededTop));
+            }
+            // ----------------------------------------------------------
+
+            // Value labels above each bar
             for (int i = 0; i < bars.Count; i++)
             {
                 double x = bars[i].Position;
                 double y = bars[i].Value;
-                var txt = plt.Add.Text(
-                    text: $"{y:C2}",
-                    x: x,
-                    y: y + yOffset);
+                var txt = plt.Add.Text($"{y:C2}", x, y + yOffset);
                 txt.Alignment = ScottPlot.Alignment.LowerCenter;
                 txt.LabelFontSize = 12;
             }
@@ -143,7 +185,6 @@ namespace DirectoryManager.Web.Charting
 
             return plt.GetImageBytes(width: 1200, height: 600, format: ImageFormat.Png);
         }
-
 
         public byte[] CreateSubcategoryRevenuePieChart(
             IEnumerable<SponsoredListingInvoice> invoices,
