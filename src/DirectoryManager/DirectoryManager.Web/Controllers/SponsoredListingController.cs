@@ -1101,24 +1101,12 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
-        private static int GetMaxSlotsForType(SponsorshipType type)
-        {
-            return type switch
-            {
-                SponsorshipType.MainSponsor => Common.Constants.IntegerConstants.MaxMainSponsoredListings,
-                SponsorshipType.CategorySponsor => Common.Constants.IntegerConstants.MaxCategorySponsoredListings,
-                SponsorshipType.SubcategorySponsor => Common.Constants.IntegerConstants.MaxSubcategorySponsoredListings,
-                _ => 0
-            };
-        }
-
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
         [Route("sponsoredlisting/startreservation")]
         public async Task<IActionResult> StartReservationAsync(StartReservationInput input)
         {
-            // Honeypot / JS proof
             if (!string.IsNullOrEmpty(input.Website) || input.Js != "1")
             {
                 return this.BadRequest(new { Error = "Bad request." });
@@ -1176,6 +1164,17 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(
                 nameof(this.SelectDurationAsync),
                 new { directoryEntryId = entry.DirectoryEntryId, sponsorshipType = input.SponsorshipType, rsvId });
+        }
+
+        private static int GetMaxSlotsForType(SponsorshipType type)
+        {
+            return type switch
+            {
+                SponsorshipType.MainSponsor => Common.Constants.IntegerConstants.MaxMainSponsoredListings,
+                SponsorshipType.CategorySponsor => Common.Constants.IntegerConstants.MaxCategorySponsoredListings,
+                SponsorshipType.SubcategorySponsor => Common.Constants.IntegerConstants.MaxSubcategorySponsoredListings,
+                _ => 0
+            };
         }
 
         private static ConfirmSelectionViewModel GetConfirmationModel(
