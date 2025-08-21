@@ -14,14 +14,14 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly IMemoryCache cache;
         private readonly ICaptchaService captcha;
-        private readonly PgpService pgp;
+        private readonly IPgpService pgp;
         private readonly IDirectoryEntryReviewRepository repo;
 
         public DirectoryEntryReviewsController(
             IDirectoryEntryReviewRepository repo,
             IMemoryCache cache,
             ICaptchaService captcha,
-            PgpService pgp)
+            IPgpService  pgp)
         {
             this.repo = repo;
             this.cache = cache;

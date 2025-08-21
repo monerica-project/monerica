@@ -1,27 +1,26 @@
-﻿@{
+﻿@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Leave a Review – Verify Code";
     Layout = "_CenteredLayout";
-    ViewData["Title"] = "Decrypt and verify";
 }
-<h1>Decrypt and verify</h1>
 
-<p>Decrypt the message below with your private key. It contains a 6-digit number.</p>
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
 
-<div class="card mb-3">
-    <div class="card-body">
-        <pre style="white-space: pre-wrap; font-size: .9rem;">@ViewBag.Ciphertext</pre>
-    </div>
-</div>
+    <p>Decrypt the message below with your private key. Enter the 6-digit code you obtain.</p>
 
-<form method="post" asp-action="VerifyCodePost">
-    @Html.AntiForgeryToken()
-    <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+    <div class="card p-3" style="white-space:pre-wrap">@ViewBag.Ciphertext</div>
 
-    <div class="mb-3">
-        <label class="form-label">Enter the 6-digit number</label>
-        <input name="code" class="form-control" pattern="[1-9][0-9]{5}" inputmode="numeric" required />
-        <div class="form-text">Must be 6 digits and cannot start with 0.</div>
-        @Html.ValidationSummary()
-    </div>
+    <br />
+    <div asp-validation-summary="All" class="text-danger"></div>
 
-    <button class="btn btn-primary" type="submit">Continue</button>
-</form>
+    <form asp-action="VerifyCodePost" asp-controller="DirectoryEntryReviews" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+
+        <input name="code" class="form-control" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit code" />
+        <br />
+        <button type="submit" class="btn btn-primary">Verify</button>
+    </form>
+}

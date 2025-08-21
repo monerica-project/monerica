@@ -1,37 +1,37 @@
 ﻿@model DirectoryManager.Web.Models.CreateDirectoryEntryReviewInputModel
+@using DirectoryManager.Web.Constants
 @{
+    ViewData[StringConstants.TitleHeader] = "Leave a Review – Compose";
     Layout = "_CenteredLayout";
-    ViewData["Title"] = "Write your review";
 }
-<h1>Write your review</h1>
-<p class="text-muted">
-    Your review will be submitted for manual moderation and won’t appear publicly until approved.
-</p>
 
-<form method="post" asp-action="ComposePost">
-    @Html.AntiForgeryToken()
-    <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
-    <input type="hidden" name="DirectoryEntryId" value="@Model.DirectoryEntryId" />
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
 
-    <div class="mb-3">
-        <label class="form-label">Rating</label>
-        <select name="Rating" class="form-select">
-            <option value="5" selected>5</option>
-            <option value="4">4</option>
-            <option value="3">3</option>
-            <option value="2">2</option>
-            <option value="1">1</option>
-        </select>
-    </div>
+    <p><b>Verified PGP fingerprint:</b> @ViewBag.PgpFingerprint</p>
 
-    <div class="mb-3">
-        <label class="form-label">Review</label>
-        <textarea name="Body" class="form-control" rows="8" maxlength="5000" required></textarea>
-    </div>
+    <div asp-validation-summary="All" class="text-danger"></div>
 
-    <div class="mb-2 text-muted">
-        Verified reviewer: @ViewBag.PgpFingerprint
-    </div>
+    <form asp-action="ComposePost" asp-controller="DirectoryEntryReviews" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+        <input type="hidden" asp-for="DirectoryEntryId" />
 
-    <button class="btn btn-success" type="submit">Submit review</button>
-</form>
+        <div class="mb-3">
+            <label asp-for="Rating" class="form-label">Rating (1–5)</label>
+            <input asp-for="Rating" class="form-control" type="number" min="1" max="5" />
+            <span asp-validation-for="Rating" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Body" class="form-label">Your Review</label>
+            <textarea asp-for="Body" class="form-control" rows="8"></textarea>
+            <span asp-validation-for="Body" class="text-danger"></span>
+        </div>
+
+        <p class="text-muted"><i>Reviews are moderated before appearing publicly.</i></p>
+
+        <button type="submit" class="btn btn-success">Submit Review</button>
+    </form>
+}

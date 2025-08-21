@@ -1,7 +1,11 @@
-﻿@{
+﻿@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Thank You";
     Layout = "_CenteredLayout";
-    ViewData["Title"] = "Thank you";
 }
-<h1>Thank you!</h1>
-<p>Your review was received and will be shown after a manual review by our team.</p>
-<p><a href="~/">Return to home</a></p>
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+    <p>Thanks for your review! It has been queued for moderation and won’t be visible until approved.</p>
+}

@@ -1,19 +1,23 @@
-﻿@{
+﻿@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Leave a Review – Submit PGP Key";
     Layout = "_CenteredLayout";
-    ViewData["Title"] = "Submit your PGP public key";
 }
-<h1>Submit your PGP public key</h1>
-<p>Paste your ASCII-armored <strong>public</strong> key. We’ll send you an encrypted 6-digit code.</p>
 
-<form method="post" asp-action="SubmitKeyPost">
-    @Html.AntiForgeryToken()
-    <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
 
-    <div class="mb-3">
-        <label class="form-label">PGP Public Key (ASCII armored)</label>
-        <textarea name="pgpArmored" class="form-control" rows="10" required></textarea>
-        @Html.ValidationSummary()
-    </div>
+    <div asp-validation-summary="All" class="text-danger"></div>
 
-    <button class="btn btn-primary" type="submit">Get encrypted code</button>
-</form>
+    <form asp-action="SubmitKeyPost" asp-controller="DirectoryEntryReviews" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+
+        <p>Paste your ASCII-armored PGP public key:</p>
+        <textarea name="pgpArmored" rows="10" class="form-control" placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----"></textarea>
+
+        <br />
+        <button type="submit" class="btn btn-primary">Get Challenge</button>
+    </form>
+}
