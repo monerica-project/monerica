@@ -25,6 +25,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task SetModerationStatusAsync(int id, ReviewModerationStatus status, CancellationToken ct = default);
         Task ApproveAsync(int id, CancellationToken ct = default);
         Task RejectAsync(int id, CancellationToken ct = default);
-
+        Task<Dictionary<int, DateTime>> GetLatestApprovedReviewDatesByEntryAsync(CancellationToken ct = default);
     }
 }

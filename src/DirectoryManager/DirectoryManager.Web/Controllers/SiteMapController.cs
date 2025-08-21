@@ -7,8 +7,8 @@ using DirectoryManager.Web.Enums;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
-using EllipticCurve.Utils;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
@@ -26,6 +26,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntrySelectionRepository directoryEntrySelectionRepository;
         private readonly ITagRepository tagRepository;
         private readonly IDirectoryEntryTagRepository entryTagRepository;
+        private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
 
         public SiteMapController(
             ICacheService cacheService,
@@ -38,7 +39,8 @@ namespace DirectoryManager.Web.Controllers
             ISponsoredListingRepository sponsoredListingRepository,
             IDirectoryEntrySelectionRepository directoryEntrySelectionRepository,
             ITagRepository tagRepository,
-            IDirectoryEntryTagRepository entryTagRepository)
+            IDirectoryEntryTagRepository entryTagRepository,
+            IDirectoryEntryReviewRepository directoryEntryReviewRepository)
         {
             this.cacheService = cacheService;
             this.memoryCache = memoryCache;
@@ -51,6 +53,7 @@ namespace DirectoryManager.Web.Controllers
             this.directoryEntrySelectionRepository = directoryEntrySelectionRepository;
             this.tagRepository = tagRepository;
             this.entryTagRepository = entryTagRepository;
+            this.directoryEntryReviewRepository = directoryEntryReviewRepository;
         }
 
         [Route("sitemap_index.xml")]
@@ -90,21 +93,19 @@ namespace DirectoryManager.Web.Controllers
 
             await this.AddTags(mostRecentUpdateDate, siteMapHelper, domain);
 
-            // Add the root sitemap item
+            // Root
             siteMapHelper.SiteMapItems.Add(new SiteMapItem
             {
                 Url = WebRequestHelper.GetCurrentDomain(this.HttpContext),
                 Priority = 1.0,
                 ChangeFrequency = ChangeFrequency.Daily,
-                LastMod = mostRecentUpdateDate // Always use mostRecentUpdateDate here
+                LastMod = mostRecentUpdateDate
             });
 
-            // Add additional pages to the sitemap
             await this.AddNewestPagesListAsync(mostRecentUpdateDate, siteMapHelper);
             await this.AddPagesAsync(mostRecentUpdateDate, siteMapHelper);
             await this.AddAllTagsPaginationAsync(mostRecentUpdateDate, siteMapHelper);
 
-            // Get active categories and their last modified dates
             var categories = await this.categoryRepository.GetActiveCategoriesAsync();
             var subcategoryEntryCounts = await this.directoryEntryRepository.GetSubcategoryEntryCountsAsync();
 
@@ -132,11 +133,51 @@ namespace DirectoryManager.Web.Controllers
                     category);
             }
 
+            var latestApprovedReviewByEntry =
+                    await this.directoryEntryReviewRepository.GetLatestApprovedReviewDatesByEntryAsync();
+
             var allActiveEntries = await this.directoryEntryRepository.GetAllEntitiesAndPropertiesAsync();
 
             foreach (var entry in allActiveEntries.Where(x => x.DirectoryStatus != DirectoryStatus.Removed))
             {
-                var directoryItemLastMod = new[] { entry.CreateDate, entry.UpdateDate ?? entry.CreateDate, mostRecentUpdateDate }.Max();
+                var baseLastMod = new[]
+                {
+                    entry.CreateDate,
+                    entry.UpdateDate ?? entry.CreateDate,
+                    mostRecentUpdateDate
+                }.Max();
+
+                var reviewLastMod = latestApprovedReviewByEntry.TryGetValue(entry.DirectoryEntryId, out var rdt)
+                    ? rdt
+                    : DateTime.MinValue;
+
+                var directoryItemLastMod = new[] { baseLastMod, reviewLastMod }.Max();
+
+                siteMapHelper.SiteMapItems.Add(new SiteMapItem
+                {
+                    Url = $"{domain}/{entry.SubCategory?.Category.CategoryKey}/{entry.SubCategory?.SubCategoryKey}/{entry.DirectoryEntryKey}",
+                    Priority = 0.7,
+                    ChangeFrequency = ChangeFrequency.Weekly,
+                    LastMod = directoryItemLastMod
+                });
+            }
+
+            foreach (var entry in allActiveEntries.Where(x => x.DirectoryStatus != DirectoryStatus.Removed))
+            {
+                // Base last-mod (existing logic)
+                var baseLastMod = new[]
+                {
+                    entry.CreateDate,
+                    entry.UpdateDate ?? entry.CreateDate,
+                    mostRecentUpdateDate
+                }.Max();
+
+                // If there is an approved review newer than the entry's own dates, use it
+                var reviewLastMod = latestApprovedReviewByEntry.TryGetValue(entry.DirectoryEntryId, out var rdt)
+                    ? rdt
+                    : DateTime.MinValue;
+
+                var directoryItemLastMod = new[] { baseLastMod, reviewLastMod }.Max();
 
                 siteMapHelper.SiteMapItems.Add(new SiteMapItem
                 {
@@ -148,13 +189,11 @@ namespace DirectoryManager.Web.Controllers
                             entry.DirectoryEntryKey),
                     Priority = 0.7,
                     ChangeFrequency = ChangeFrequency.Weekly,
-                    LastMod = directoryItemLastMod // Use mostRecentUpdateDate
+                    LastMod = directoryItemLastMod
                 });
             }
 
-            // Generate the sitemap XML
             var xml = siteMapHelper.GenerateXml();
-
             return this.Content(xml, "text/xml");
         }
 
@@ -192,9 +231,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
-
             this.ViewData[Constants.StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "sitemap");
-
             return this.View("Index", model);
         }
 

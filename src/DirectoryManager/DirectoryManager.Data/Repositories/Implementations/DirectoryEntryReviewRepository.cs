@@ -147,9 +147,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Select(r => (double)r.Rating!.Value);
 
             if (!await q.AnyAsync(ct))
+            {
                 return null;
+            }
 
             return await q.AverageAsync(ct);
+        }
+
+        public async Task<Dictionary<int, DateTime>> GetLatestApprovedReviewDatesByEntryAsync(CancellationToken ct = default)
+        {
+            return await this.Set.AsNoTracking()
+                .Where(r => r.ModerationStatus == ReviewModerationStatus.Approved)
+                .GroupBy(r => r.DirectoryEntryId)
+                .Select(g => new
+                {
+                    DirectoryEntryId = g.Key,
+                    Last = g.Max(r => r.UpdateDate ?? r.CreateDate)
+                })
+                .ToDictionaryAsync(x => x.DirectoryEntryId, x => x.Last, ct);
         }
     }
 }
