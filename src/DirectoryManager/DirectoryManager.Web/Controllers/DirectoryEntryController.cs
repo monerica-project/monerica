@@ -311,12 +311,22 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
-        [HttpGet("directoryentry/weeklyplotimage")]
-        public async Task<IActionResult> WeeklyPlotImageAsync()
+        [HttpGet("directoryentry/monthlyplotimage")]
+        public async Task<IActionResult> MonthlyPlotImageAsync()
         {
             DirectoryEntryPlotting plottingChart = new DirectoryEntryPlotting();
             var entries = await this.auditRepository.GetAllAsync();
             var imageBytes = plottingChart.CreateMonthlyActivePlot(entries.ToList());
+            return this.File(imageBytes, StringConstants.PngImage);
+        }
+
+        [HttpGet("directoryentry/categorypiechart")]
+        public async Task<IActionResult> CategoryPieChartImageAsync()
+        {
+            DirectoryEntryPlotting plottingChart = new DirectoryEntryPlotting();
+            var allCategories = await this.categoryRepository.GetActiveCategoriesAsync();
+            var entries = await this.directoryEntryRepository.GetAllActiveEntries();
+            var imageBytes = plottingChart.CreateCategoryPieChartImage(entries, allCategories);
             return this.File(imageBytes, StringConstants.PngImage);
         }
 
