@@ -6,6 +6,8 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.EntityFrameworkCore;
+using DirectoryManager.Data.Enums; 
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -13,6 +15,7 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly ISubmissionRepository submissionRepository;
+        private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
         private readonly SignInManager<ApplicationUser> signInManager;
         private readonly UserManager<ApplicationUser> userManager;
 
@@ -21,6 +24,7 @@ namespace DirectoryManager.Web.Controllers
             UserManager<ApplicationUser> userManager,
             IDirectoryEntryRepository directoryEntryRepository,
             ISubmissionRepository submissionRepository,
+            IDirectoryEntryReviewRepository directoryEntryReviewRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
@@ -30,6 +34,7 @@ namespace DirectoryManager.Web.Controllers
             this.userManager = userManager;
             this.directoryEntryRepository = directoryEntryRepository;
             this.submissionRepository = submissionRepository;
+            this.directoryEntryReviewRepository = directoryEntryReviewRepository;
         }
 
         [HttpGet]
@@ -70,7 +75,13 @@ namespace DirectoryManager.Web.Controllers
         {
             var totalPendingSubmissions = await this.submissionRepository.GetByStatus(Data.Enums.SubmissionStatus.Pending);
 
+            var totalPendingReviews = await this.directoryEntryReviewRepository
+                .Query()
+                .Where(r => r.ModerationStatus == ReviewModerationStatus.Pending)
+                .CountAsync();
+
             this.ViewBag.TotalPendingSubmissions = totalPendingSubmissions;
+            this.ViewBag.TotalPendingReviews = totalPendingReviews;
 
             return this.View();
         }

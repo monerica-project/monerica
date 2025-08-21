@@ -8,11 +8,13 @@ using DirectoryManager.Utilities;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Charting;
 using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
@@ -30,6 +32,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ICacheService cacheService;
         private readonly ISponsoredListingRepository sponsoredListingRepository;
         private readonly IMemoryCache cache;
+        private readonly IDirectoryEntryReviewRepository reviewRepository;
 
         public DirectoryEntryController(
             UserManager<ApplicationUser> userManager,
@@ -43,7 +46,8 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryTagRepository entryTagRepo,
             ICacheService cacheService,
             ISponsoredListingRepository sponsoredListingRepository,
-            IMemoryCache cache)
+            IMemoryCache cache,
+            IDirectoryEntryReviewRepository reviewRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -56,6 +60,7 @@ namespace DirectoryManager.Web.Controllers
             this.cache = cache;
             this.sponsoredListingRepository = sponsoredListingRepository;
             this.cacheService = cacheService;
+            this.reviewRepository = reviewRepository;
         }
 
         [Route("directoryentry/index")]
@@ -384,6 +389,37 @@ namespace DirectoryManager.Web.Controllers
                         AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
                     });
             }
+
+            var approved = await this.reviewRepository
+                .Query()
+                .Where(r => r.DirectoryEntryId == existingEntry.DirectoryEntryId
+                         && r.ModerationStatus == ReviewModerationStatus.Approved)
+                .OrderByDescending(r => r.UpdateDate ?? r.CreateDate)
+                .ToListAsync();
+
+            double? average = null;
+            var rated = approved.Where(r => r.Rating.HasValue).ToList();
+            if (rated.Count > 0)
+            {
+                average = rated.Average(r => (double)r.Rating!.Value);
+            }
+
+            var reviewsVm = new EntryReviewsBlockViewModel
+            {
+                DirectoryEntryId = existingEntry.DirectoryEntryId,
+                DirectoryEntryName = existingEntry.Name,
+                AverageRating = average,
+                ReviewCount = approved.Count,
+                Reviews = approved.Select(r => new EntryReviewItem
+                {
+                    Rating = r.Rating,
+                    Body = r.Body,
+                    AuthorFingerprint = r.AuthorFingerprint,
+                    CreateDate = r.CreateDate
+                }).ToList()
+            };
+
+            this.ViewBag.ReviewsVm = reviewsVm;
 
             // flag if this entry is a sponsor
             bool isSponsor = allSponsors == null ? false : allSponsors.Any(s => s.DirectoryEntryId == existingEntry.DirectoryEntryId);

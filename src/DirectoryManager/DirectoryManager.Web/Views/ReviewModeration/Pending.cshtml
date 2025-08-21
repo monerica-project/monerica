@@ -10,6 +10,8 @@
 @section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
+    @await Html.PartialAsync("_AdminMenu")
+
 <p>
     <a asp-action="All" asp-route-status="Approved">View Approved</a> |
     <a asp-action="All" asp-route-status="Rejected">View Rejected</a> |

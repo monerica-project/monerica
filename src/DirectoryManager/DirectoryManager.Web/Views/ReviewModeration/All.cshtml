@@ -13,6 +13,8 @@
 @section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
+    @await Html.PartialAsync("_AdminMenu")
+
 <p>
     <a asp-action="Pending">Pending Queue</a> |
     <a asp-action="All" asp-route-status="Approved">Approved</a> |

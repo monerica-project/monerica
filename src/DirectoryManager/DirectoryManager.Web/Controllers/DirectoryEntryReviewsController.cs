@@ -32,10 +32,19 @@ namespace DirectoryManager.Web.Controllers
             this.directoryEntryRepository = directoryEntryRepository;
         }
 
-        // Step 0: begin (linked from listing)
+        // DirectoryEntryReviewsController
+
         [HttpGet("begin")]
-        public IActionResult Begin(int directoryEntryId)
+        public IActionResult BeginGet() => this.NotFound(); // don’t expose a crawlable GET
+
+        [HttpPost("begin")]
+        [IgnoreAntiforgeryToken] // static page can’t emit a token
+        public IActionResult Begin([FromForm] int directoryEntryId, [FromForm] string? website)
         {
+            // simple honeypot check (optional)
+            if (!string.IsNullOrWhiteSpace(website))
+                return this.BadRequest();
+
             var flowId = this.CreateFlow(directoryEntryId);
             return this.RedirectToAction(nameof(this.Captcha), new { flowId });
         }

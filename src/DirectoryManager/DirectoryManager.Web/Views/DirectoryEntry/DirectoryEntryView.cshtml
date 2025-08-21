@@ -4,11 +4,13 @@
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Helpers
 @using DirectoryManager.Web.Models
+@using DirectoryManager.Web.Services.Interfaces
 @model DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @inject ICategoryRepository categoryRepo
 @inject ISubcategoryRepository subCatRepo
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+@inject IUrlResolutionService Urls
 
 @{
     ViewData["Title"] = Model.Name;
@@ -208,18 +210,10 @@
             </div>
         }
 
-      
+        <br />
+        @await Html.PartialAsync("_EntryReviews", (DirectoryManager.Web.Models.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
+
     </div>
-
-    <a class="app-link"
-       rel="nofollow"
-       href="@Url.Action("Begin", "DirectoryEntryReviews", new { directoryEntryId = Model.DirectoryEntryId })">
-        Leave a review
-    </a>
-
-
-
-
 
 
 <hr />
