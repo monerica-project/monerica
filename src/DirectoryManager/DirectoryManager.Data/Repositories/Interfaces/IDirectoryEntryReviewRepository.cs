@@ -1,4 +1,4 @@
-﻿// DirectoryManager.Data/Repositories/Interfaces/IDirectoryEntryReviewRepository.cs
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
@@ -17,5 +17,14 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<double?> AverageRatingForEntryAsync(int directoryEntryId, CancellationToken ct = default);
 
         IQueryable<DirectoryEntryReview> Query();
+
+        Task<List<DirectoryEntryReview>> ListApprovedForEntryAsync(int directoryEntryId, int page = 1, int pageSize = 50, CancellationToken ct = default);
+        Task<double?> AverageRatingForEntryApprovedAsync(int directoryEntryId, CancellationToken ct = default);
+        Task<List<DirectoryEntryReview>> ListByStatusAsync(ReviewModerationStatus status, int page = 1, int pageSize = 50, CancellationToken ct = default);
+        Task<int> CountByStatusAsync(ReviewModerationStatus status, CancellationToken ct = default);
+        Task SetModerationStatusAsync(int id, ReviewModerationStatus status, CancellationToken ct = default);
+        Task ApproveAsync(int id, CancellationToken ct = default);
+        Task RejectAsync(int id, CancellationToken ct = default);
+
     }
 }

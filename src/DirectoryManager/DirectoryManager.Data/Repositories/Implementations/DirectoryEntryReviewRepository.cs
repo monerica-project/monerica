@@ -1,5 +1,6 @@
 ﻿// DirectoryManager.Data/Repositories/Implementations/DirectoryEntryReviewRepository.cs
 using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.Enums; // ReviewModerationStatus
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -10,18 +11,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
     {
         private readonly IApplicationDbContext context;
 
-        // Use the typed DbSet exposed on the interface
         private DbSet<DirectoryEntryReview> Set => this.context.DirectoryEntryReviews;
 
         public DirectoryEntryReviewRepository(IApplicationDbContext context) => this.context = context;
 
-        public IQueryable<DirectoryEntryReview> Query() =>
-            this.Set.AsNoTracking();
+        /// <summary>Base query (no tracking, for read views).</summary>
+        public IQueryable<DirectoryEntryReview> Query() => this.Set.AsNoTracking();
 
         public async Task<DirectoryEntryReview?> GetByIdAsync(int id, CancellationToken ct = default) =>
             await this.Set.FindAsync(new object[] { id }, ct);
 
-        public async Task<List<DirectoryEntryReview>> ListAsync(int page = 1, int pageSize = 50, CancellationToken ct = default) =>
+        public async Task<List<DirectoryEntryReview>> ListAsync(
+            int page = 1, int pageSize = 50, CancellationToken ct = default) =>
             await this.Set.AsNoTracking()
                 .OrderByDescending(x => x.UpdateDate ?? x.CreateDate)
                 .ThenBy(x => x.DirectoryEntryReviewId)
@@ -34,12 +35,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task AddAsync(DirectoryEntryReview entity, CancellationToken ct = default)
         {
+            // Ensure required model invariants from your entity:
+            // AuthorFingerprint is [Required] (uppercase, no spaces) – callers should normalize it.
+            entity.CreateDate = DateTime.UtcNow;
+            entity.UpdateDate = null; // first insert
             this.Set.Add(entity);
             await this.context.SaveChangesAsync(ct);
         }
 
         public async Task UpdateAsync(DirectoryEntryReview entity, CancellationToken ct = default)
         {
+            entity.UpdateDate = DateTime.UtcNow;
             this.Set.Update(entity);
             await this.context.SaveChangesAsync(ct);
         }
@@ -47,28 +53,103 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var existing = await this.Set.FindAsync(new object[] { id }, ct);
-            if (existing is null) return;
+            if (existing is null)
+                return;
+
             this.Set.Remove(existing);
             await this.context.SaveChangesAsync(ct);
         }
 
-        // Optional helpers — use strongly-typed properties if your model has them
+        // ---------------------------
+        // Public-side helpers (approved only)
+        // ---------------------------
+
+        public async Task<List<DirectoryEntryReview>> ListApprovedForEntryAsync(
+            int directoryEntryId, int page = 1, int pageSize = 50, CancellationToken ct = default) =>
+            await this.Set.AsNoTracking()
+                .Where(r => r.DirectoryEntryId == directoryEntryId &&
+                            r.ModerationStatus == ReviewModerationStatus.Approved)
+                .OrderByDescending(x => x.UpdateDate ?? x.CreateDate)
+                .ThenBy(x => x.DirectoryEntryReviewId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(ct);
+
+        public async Task<double?> AverageRatingForEntryApprovedAsync(
+            int directoryEntryId, CancellationToken ct = default)
+        {
+            var q = this.Set.AsNoTracking()
+                .Where(r => r.DirectoryEntryId == directoryEntryId &&
+                            r.ModerationStatus == ReviewModerationStatus.Approved &&
+                            r.Rating.HasValue)
+                .Select(r => (double)r.Rating!.Value);
+
+            if (!await q.AnyAsync(ct))
+                return null;
+
+            return await q.AverageAsync(ct);
+        }
+
+        // ---------------------------
+        // Moderation helpers
+        // ---------------------------
+
+        public async Task<List<DirectoryEntryReview>> ListByStatusAsync(
+            ReviewModerationStatus status, int page = 1, int pageSize = 50, CancellationToken ct = default) =>
+            await this.Set.AsNoTracking()
+                .Where(r => r.ModerationStatus == status)
+                .OrderBy(r => r.CreateDate) // oldest first for queue processing
+                .ThenBy(r => r.DirectoryEntryReviewId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(ct);
+
+        public Task<int> CountByStatusAsync(
+            ReviewModerationStatus status, CancellationToken ct = default) =>
+            this.Set.Where(r => r.ModerationStatus == status).CountAsync(ct);
+
+        public async Task SetModerationStatusAsync(
+            int id, ReviewModerationStatus status, CancellationToken ct = default)
+        {
+            var review = await this.Set.FindAsync(new object[] { id }, ct);
+            if (review is null)
+                return;
+
+            review.ModerationStatus = status;
+            review.UpdateDate = DateTime.UtcNow;
+            await this.context.SaveChangesAsync(ct);
+        }
+
+        public Task ApproveAsync(int id, CancellationToken ct = default) =>
+            this.SetModerationStatusAsync(id, ReviewModerationStatus.Approved, ct);
+
+        public Task RejectAsync(int id, CancellationToken ct = default) =>
+            this.SetModerationStatusAsync(id, ReviewModerationStatus.Rejected, ct);
+
+        // ---------------------------
+        // Existing helpers you already had (kept for compatibility)
+        // ---------------------------
+
         public async Task<List<DirectoryEntryReview>> ListForEntryAsync(
             int directoryEntryId, int page = 1, int pageSize = 50, CancellationToken ct = default) =>
             await this.Set.AsNoTracking()
-                .Where(r => r.DirectoryEntryId == directoryEntryId)   // <-- uses your property
+                .Where(r => r.DirectoryEntryId == directoryEntryId)
                 .OrderByDescending(x => x.UpdateDate ?? x.CreateDate)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(ct);
 
-        public async Task<double?> AverageRatingForEntryAsync(int directoryEntryId, CancellationToken ct = default)
+        public async Task<double?> AverageRatingForEntryAsync(
+            int directoryEntryId, CancellationToken ct = default)
         {
-            var q = this.Set
-                .Where(r => r.DirectoryEntryId == directoryEntryId)
-                .Select(r => (int?)r.Rating); // assumes int? Rating exists
-            if (!await q.AnyAsync(ct)) return null;
-            return await q.AverageAsync(x => (double?)x, ct);
+            var q = this.Set.AsNoTracking()
+                .Where(r => r.DirectoryEntryId == directoryEntryId && r.Rating.HasValue)
+                .Select(r => (double)r.Rating!.Value);
+
+            if (!await q.AnyAsync(ct))
+                return null;
+
+            return await q.AverageAsync(ct);
         }
     }
 }

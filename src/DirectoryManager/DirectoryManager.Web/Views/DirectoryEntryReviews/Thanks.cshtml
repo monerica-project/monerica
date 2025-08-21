@@ -8,4 +8,7 @@
     <h1>@ViewData[StringConstants.TitleHeader]</h1>
     <hr />
     <p>Thanks for your review! It has been queued for moderation and won’t be visible until approved.</p>
+
+    @await Html.PartialAsync("_BackToHome")
+
 }
