@@ -1,5 +1,4 @@
-﻿// DirectoryManager.Web/Controllers/ReviewerKeysController.cs
-using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,11 +22,15 @@ namespace DirectoryManager.Web.Controllers
             return this.View(items);
         }
 
-        [HttpGet("{id:int}")]               // GET /reviewer-keys/123
+        [HttpGet("{id:int}")] // GET /reviewer-keys/123
         public async Task<IActionResult> Details(int id)
         {
             var item = await this.repo.GetByIdAsync(id);
-            if (item is null) return this.NotFound();
+            if (item is null)
+            {
+                return this.NotFound();
+            }
+
             return this.View(item);
         }
 
@@ -35,28 +38,46 @@ namespace DirectoryManager.Web.Controllers
         public IActionResult Create() => this.View(new ReviewerKey());
 
         [HttpPost("create")]
-        [HttpPost, ValidateAntiForgeryToken]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(ReviewerKey model)
         {
-            if (!this.ModelState.IsValid) return this.View(model);
+            if (!this.ModelState.IsValid)
+            {
+                return this.View(model);
+            }
+
             await this.repo.AddAsync(model);
             return this.RedirectToAction(nameof(this.Index));
         }
 
-        [HttpGet("{id:int}/edit")]          // GET /reviewer-keys/123/edit
+        [HttpGet("{id:int}/edit")] // GET /reviewer-keys/123/edit
         public async Task<IActionResult> Edit(int id)
         {
             var item = await this.repo.GetByIdAsync(id);
-            if (item is null) return this.NotFound();
+            if (item is null)
+            {
+                return this.NotFound();
+            }
+
             return this.View(item);
         }
 
-        [HttpPost("{id:int}/edit")]         // POST /reviewer-keys/123/edit
-        [HttpPost, ValidateAntiForgeryToken]
+        [HttpPost("{id:int}/edit")] // POST /reviewer-keys/123/edit
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, ReviewerKey model)
         {
-            if (id != model.ReviewerKeyId) return this.BadRequest();
-            if (!this.ModelState.IsValid) return this.View(model);
+            if (id != model.ReviewerKeyId)
+            {
+                return this.BadRequest();
+            }
+
+            if (!this.ModelState.IsValid)
+            {
+                return this.View(model);
+            }
+
             await this.repo.UpdateAsync(model);
             return this.RedirectToAction(nameof(this.Index));
         }
@@ -65,12 +86,18 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Delete(int id)
         {
             var item = await this.repo.GetByIdAsync(id);
-            if (item is null) return this.NotFound();
+            if (item is null)
+            {
+                return this.NotFound();
+            }
+
             return this.View(item);
         }
 
-        [HttpPost("{id:int}/delete")]       // POST /reviewer-keys/123/delete
-        [HttpPost, ActionName("Delete"), ValidateAntiForgeryToken]
+        [HttpPost("{id:int}/delete")] // POST /reviewer-keys/123/delete
+        [HttpPost]
+        [ActionName("Delete")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
             await this.repo.DeleteAsync(id);

@@ -1,18 +1,218 @@
-﻿// DirectoryManager.Web/Controllers/DirectoryEntryReviewsController.cs
-using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
+using System.Security.Cryptography;
 
 namespace DirectoryManager.Web.Controllers
 {
     [Route("directory-entry-reviews")]
     public class DirectoryEntryReviewsController : Controller
     {
+        private readonly IMemoryCache cache;
+        private readonly ICaptchaService captcha;
+        private readonly PgpService pgp;
         private readonly IDirectoryEntryReviewRepository repo;
 
-        public DirectoryEntryReviewsController(IDirectoryEntryReviewRepository repo) => this.repo = repo;
+        public DirectoryEntryReviewsController(
+            IDirectoryEntryReviewRepository repo,
+            IMemoryCache cache,
+            ICaptchaService captcha,
+            PgpService pgp)
+        {
+            this.repo = repo;
+            this.cache = cache;
+            this.captcha = captcha;
+            this.pgp = pgp;
+        }
+
+
+        private static string CacheKey(Guid flowId) => $"review-flow:{flowId}";
+        private Guid CreateFlow(int directoryEntryId)
+        {
+            var id = Guid.NewGuid();
+            var state = new ReviewFlowState
+            {
+                DirectoryEntryId = directoryEntryId,
+                ExpiresUtc = DateTime.UtcNow.AddMinutes(20)
+            };
+            this.cache.Set(CacheKey(id), state, state.ExpiresUtc);
+            return id;
+        }
+        private bool TryGetFlow(Guid flowId, out ReviewFlowState state) =>
+            this.cache.TryGetValue(CacheKey(flowId), out state) && state.ExpiresUtc > DateTime.UtcNow;
+
+        private static int SixDigits() => RandomNumberGenerator.GetInt32(100_000, 1_000_000);
+
+        // ---- New actions (no JS, no cookies) ----
+
+        // Step 0: begin (linked from listing)
+        [HttpGet("begin")]
+        public IActionResult Begin(int directoryEntryId)
+        {
+            var flowId = this.CreateFlow(directoryEntryId);
+            return this.RedirectToAction(nameof(this.Captcha), new { flowId });
+        }
+
+        // Step 1: captcha (GET shows form, POST validates)
+        [HttpGet("captcha")]
+        public IActionResult Captcha(Guid flowId)
+        {
+            if (!this.TryGetFlow(flowId, out var state)) return this.BadRequest("Session expired.");
+            this.ViewBag.FlowId = flowId;
+            this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+            return this.View();
+        }
+
+        [HttpPost("captcha")]
+        [ValidateAntiForgeryToken]
+        public IActionResult CaptchaPost(Guid flowId)
+        {
+            if (!this.TryGetFlow(flowId, out var state)) return this.BadRequest("Session expired.");
+            if (!this.captcha.IsValid(this.Request))
+            {
+                this.ModelState.AddModelError(string.Empty, "Captcha failed. Please try again.");
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+                return this.View("Captcha");
+            }
+
+            state.CaptchaOk = true;
+            this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
+            return this.RedirectToAction(nameof(this.SubmitKey), new { flowId });
+        }
+
+        // Step 2: submit PGP key (GET/POST)
+        [HttpGet("submit-key")]
+        public IActionResult SubmitKey(Guid flowId)
+        {
+            if (!this.TryGetFlow(flowId, out var state)) return this.BadRequest("Session expired.");
+            if (!state.CaptchaOk) return this.RedirectToAction(nameof(this.Captcha), new { flowId });
+
+            this.ViewBag.FlowId = flowId;
+            this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+            return this.View();
+        }
+
+        [HttpPost("submit-key")]
+        [ValidateAntiForgeryToken]
+        public IActionResult SubmitKeyPost(Guid flowId, string pgpArmored)
+        {
+            if (!this.TryGetFlow(flowId, out var state)) return this.BadRequest("Session expired.");
+            if (!state.CaptchaOk) return this.RedirectToAction(nameof(this.Captcha), new { flowId });
+
+            var fp = this.pgp.GetFingerprint(pgpArmored);
+            if (string.IsNullOrWhiteSpace(fp))
+            {
+               this.ModelState.AddModelError(string.Empty, "Invalid PGP public key.");
+               this.ViewBag.FlowId = flowId;
+                this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+                return this.View("SubmitKey");
+            }
+
+            // Generate 6-digit code and encrypt it to their key
+            int code = SixDigits();
+            string cipher = this.pgp.EncryptTo(pgpArmored, code.ToString());
+
+            state.PgpArmored = pgpArmored;
+            state.PgpFingerprint = fp;
+            state.ChallengeCode = code;
+            state.ChallengeCiphertext = cipher;
+            this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
+
+            return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
+        }
+
+        // Step 3: show ciphertext and collect decrypted code
+        [HttpGet("verify-code")]
+        public IActionResult VerifyCode(Guid flowId)
+        {
+            if (!this.TryGetFlow(flowId, out var state)) return this.BadRequest("Session expired.");
+            if (string.IsNullOrWhiteSpace(state.ChallengeCiphertext))
+                return this.RedirectToAction(nameof(this.SubmitKey), new { flowId });
+
+            this.ViewBag.FlowId = flowId;
+            this.ViewBag.Ciphertext = state.ChallengeCiphertext;
+            this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+            return this.View();
+        }
+
+        [HttpPost("verify-code")]
+        [ValidateAntiForgeryToken]
+        public IActionResult VerifyCodePost(Guid flowId, string code)
+        {
+            if (!this.TryGetFlow(flowId, out var state)) return this.BadRequest("Session expired.");
+            if (state.ChallengeCode is null) return this.RedirectToAction(nameof(this.SubmitKey), new { flowId });
+
+            if (!int.TryParse(code, out var numeric) || numeric != state.ChallengeCode.Value)
+            {
+                this.ModelState.AddModelError(string.Empty, "That code doesn’t match. Decrypt the message with your private key and try again.");
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.Ciphertext = state.ChallengeCiphertext;
+                this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+                return this.View("VerifyCode");
+            }
+
+            state.ChallengeSolved = true;
+            this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
+            return this.RedirectToAction(nameof(this.Compose), new { flowId });
+        }
+
+        // Step 4: compose review (GET/POST)
+        [HttpGet("compose")]
+        public IActionResult Compose(Guid flowId)
+        {
+            if (!this.TryGetFlow(flowId, out var state)) return this.BadRequest("Session expired.");
+            if (!state.ChallengeSolved) return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
+
+            var vm = new CreateDirectoryEntryReviewInputModel
+            {
+                DirectoryEntryId = state.DirectoryEntryId,
+                Rating = 5
+            };
+            this.ViewBag.FlowId = flowId;
+            this.ViewBag.PgpFingerprint = state.PgpFingerprint;
+            return this.View(vm);
+        }
+
+        [HttpPost("compose")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ComposePost(Guid flowId, CreateDirectoryEntryReviewInputModel input, CancellationToken ct)
+        {
+            if (!this.TryGetFlow(flowId, out var state)) return this.BadRequest("Session expired.");
+            if (!state.ChallengeSolved) return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
+
+            if (!this.ModelState.IsValid)
+            {
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.PgpFingerprint = state.PgpFingerprint;
+                return this.View("Compose", input);
+            }
+
+            var entity = new DirectoryEntryReview
+            {
+                DirectoryEntryId = state.DirectoryEntryId,
+                Rating = input.Rating,
+                Body = input.Body,
+                CreateDate = DateTime.UtcNow,
+                ModerationStatus = Data.Enums.ReviewModerationStatus.Pending,
+                AuthorFingerprint = state.PgpFingerprint
+            };
+
+            await this.repo.AddAsync(entity, ct);
+
+            // clear flow
+            this.cache.Remove(CacheKey(flowId));
+
+            return this.RedirectToAction(nameof(this.Thanks));
+        }
+
+        // Step 5: thank you
+        [HttpGet("thanks")]
+        public IActionResult Thanks() => this.View();
 
         [HttpGet("")]                                // GET /directory-entry-reviews
         public async Task<IActionResult> Index(int page = 1, int pageSize = 50)
@@ -71,7 +271,7 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
-        [HttpGet("{id:int}/edit")]                   // GET /directory-entry-reviews/123/edit
+        [HttpGet("{id:int}/edit")] // GET /directory-entry-reviews/123/edit
         public async Task<IActionResult> Edit(int id)
         {
             var item = await this.repo.GetByIdAsync(id);
@@ -80,7 +280,8 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("{id:int}/edit")]                   // GET /directory-entry-reviews/123/edit
-        [HttpPost, ValidateAntiForgeryToken]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, DirectoryEntryReview model)
         {
             // replace DirectoryEntryReviewId with your PK if named differently

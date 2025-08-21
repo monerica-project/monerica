@@ -6,7 +6,6 @@ using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models.Emails;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using SkiaSharp;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -41,100 +40,65 @@ namespace DirectoryManager.Web.Controllers
             this.cacheService = cacheService;
         }
 
-        [Route("EmailSubscription/CaptchaImage")]
-        [HttpGet]
-        public IActionResult CaptchaImage()
-        {
-            string captchaText = this.GenerateCaptchaText();
-            this.HttpContext.Session.SetString("CaptchaCode", captchaText);
-
-            int width = 120;
-            int height = 40;
-
-            using var bitmap = new SKBitmap(width, height);
-            using var canvas = new SKCanvas(bitmap);
-            canvas.Clear(SKColors.White);
-
-            using var typeface = SKTypeface.FromFamilyName("Arial", SKFontStyle.Bold);
-            float fontSize = 20;
-
-            using var paint = new SKPaint
-            {
-                Color = SKColors.Black,
-                IsAntialias = true,
-            };
-
-            using var font = new SKFont
-            {
-                Typeface = typeface,
-                Size = fontSize
-            };
-
-            // Measure text width using glyphs
-            var glyphs = font.GetGlyphs(captchaText);
-            var widths = font.GetGlyphWidths(glyphs);
-            float textWidth = widths.Sum();
-
-            // Measure height using font metrics
-            var metrics = font.Metrics;
-            float textHeight = metrics.Descent - metrics.Ascent;
-
-            // Calculate position
-            float x = (width - textWidth) / 2; // center horizontally
-            float y = ((height + textHeight) / 2) - metrics.Descent; // center vertically
-
-            // Draw the text
-            canvas.DrawText(
-                   text: captchaText,
-                   x: x,
-                   y: y,
-                   textAlign: SKTextAlign.Left,
-                   font: font,
-                   paint: paint);
-
-            // Encode to PNG
-            using var image = SKImage.FromBitmap(bitmap);
-            using var data = image.Encode(SKEncodedImageFormat.Png, 100);
-
-            return this.File(data.ToArray(), "image/png");
-        }
-
-        // Existing GET action for Subscribe
+        // GET /newsletter (or /subscribe)
         [Route("newsletter")]
         [Route("subscribe")]
         [HttpGet]
         public IActionResult Subscribe()
         {
-            this.ViewBag.NewsletterSummaryHtml = this.cacheService.GetSnippet(Data.Enums.SiteConfigSetting.NewsletterSummaryHtml);
-            return this.View();
+            this.ViewBag.NewsletterSummaryHtml =
+                this.cacheService.GetSnippet(DirectoryManager.Data.Enums.SiteConfigSetting.NewsletterSummaryHtml);
+
+            // supply an empty model so ValidationMessage/ValidationSummary can render cleanly
+            return this.View(new EmailSubscribeModel());
         }
 
-        // Modified POST action to validate CAPTCHA
+        // POST /newsletter (or /subscribe)
         [Route("newsletter")]
         [Route("subscribe")]
         [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Subscribe(EmailSubscribeModel model)
         {
-            // Validate CAPTCHA
-            var sessionCaptcha = this.HttpContext.Session.GetString("CaptchaCode");
-            if (string.IsNullOrWhiteSpace(model.Captcha) ||
-                !string.Equals(model.Captcha.Trim(), sessionCaptcha, StringComparison.OrdinalIgnoreCase))
+            // Make sure page content always repopulates when we re-render on error
+            this.ViewBag.NewsletterSummaryHtml =
+                this.cacheService.GetSnippet(DirectoryManager.Data.Enums.SiteConfigSetting.NewsletterSummaryHtml);
+
+            // Determine captcha context key from the form (hidden field in _CaptchaBlock)
+            var ctx = (this.Request.Form["CaptchaContext"].ToString() ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(ctx))
+            {
+                ctx = "newsletter";
+            }
+
+            // Validate CAPTCHA (consumes stored value so next render shows a fresh one)
+            var captchaOk = CaptchaTools.Validate(this.HttpContext, ctx, model.Captcha, consume: true);
+            if (!captchaOk)
             {
                 this.ModelState.AddModelError("Captcha", "Incorrect CAPTCHA. Please try again.");
-                this.ViewBag.NewsletterSummaryHtml = this.cacheService.GetSnippet(Data.Enums.SiteConfigSetting.NewsletterSummaryHtml);
+            }
+
+            // Validate email format
+            if (string.IsNullOrWhiteSpace(model.Email) || !ValidationHelper.IsValidEmail(model.Email))
+            {
+                this.ModelState.AddModelError("Email", "Please enter a valid email address.");
+            }
+
+            // Blocked IP check (add as a model-level error so it appears in the summary)
+            var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+            if (this.blockedIPRepository.IsBlockedIp(ipAddress))
+            {
+                this.ModelState.AddModelError(string.Empty, "Your IP is not allowed to subscribe.");
+            }
+
+            // If any errors were added above, re-render the same view with messages
+            if (!this.ModelState.IsValid)
+            {
                 return this.View(model);
             }
 
-            var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
-
-            if (!this.ModelState.IsValid ||
-                !ValidationHelper.IsValidEmail(model.Email) ||
-                this.blockedIPRepository.IsBlockedIp(ipAddress))
-            {
-                return this.BadRequest("Invalid email");
-            }
-
-            var email = model.Email.Trim();
+            // --- Proceed with subscription workflow ---
+            var email = model.Email!.Trim();
             var emailDbModel = this.emailSubscriptionRepository.Get(email);
 
             if (emailDbModel == null || emailDbModel.EmailSubscriptionId == 0)
@@ -147,7 +111,6 @@ namespace DirectoryManager.Web.Controllers
                 });
 
                 var campaigns = this.emailCampaignRepository.GetAll(0, int.MaxValue, out _);
-
                 if (campaigns != null)
                 {
                     foreach (var campaign in campaigns)
@@ -158,7 +121,6 @@ namespace DirectoryManager.Web.Controllers
                     }
 
                     var emailCampaign = this.emailCampaignRepository.GetDefault();
-
                     if (emailCampaign != null)
                     {
                         var subscribedDate = emailSubscription.CreateDate;
@@ -182,9 +144,7 @@ namespace DirectoryManager.Web.Controllers
                             var plainTextContent = nextMessage.EmailMessage.EmailBodyText;
                             var htmlContent = nextMessage.EmailMessage.EmailBodyHtml;
 
-                            // Wrap the email in a list as the method expects a List<string>
                             var recipients = new List<string> { emailSubscription.Email };
-
                             await this.emailService.SendEmailAsync(subject, plainTextContent, htmlContent, recipients);
 
                             this.sentEmailRecordRepository.LogMessageDelivery(
@@ -216,7 +176,6 @@ namespace DirectoryManager.Web.Controllers
             var subscription = this.emailSubscriptionRepository.Get(finalEmail);
             if (subscription == null)
             {
-                // Add an error if email is not found and return the view with the form
                 this.ModelState.AddModelError(string.Empty, "Email not found in our subscription list.");
                 return this.View(nameof(this.Unsubscribe), null);
             }
@@ -227,15 +186,6 @@ namespace DirectoryManager.Web.Controllers
 
             // Pass the email to the view for confirmation message
             return this.View(nameof(this.Unsubscribe), finalEmail);
-        }
-
-        // Helper method to generate a random CAPTCHA string
-        private string GenerateCaptchaText(int length = 5)
-        {
-            const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-            var random = new Random();
-            return new string(Enumerable.Repeat(chars, length)
-                .Select(s => s[random.Next(s.Length)]).ToArray());
         }
     }
 }

@@ -1,0 +1,19 @@
+﻿@{
+    Layout = "_CenteredLayout";
+    ViewData["Title"] = "Prove you’re human";
+}
+<h1>Prove you’re human</h1>
+<p>Please complete the captcha to start your review.</p>
+
+<form method="post" asp-action="CaptchaPost">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+
+    <!-- Your captcha widget goes here (e.g., hCaptcha) -->
+    <div class="mb-3">
+        <!-- server-side captcha integration -->
+        <div class="h-captcha" data-sitekey="YOUR_SITE_KEY"></div>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Continue</button>
+</form>

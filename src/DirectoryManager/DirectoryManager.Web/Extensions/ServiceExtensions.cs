@@ -10,6 +10,7 @@ using DirectoryManager.FileStorage.Repositories.Interfaces;
 using DirectoryManager.Services.Implementations;
 using DirectoryManager.Services.Interfaces;
 using DirectoryManager.Services.Models;
+using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
@@ -51,11 +52,20 @@ namespace DirectoryManager.Web.Extensions
             // Register all repositories from DatabaseExtensions
             services.AddDbRepositories();
 
+
+            // ⬇️ Captcha options + HttpClient + service registration
+            services.Configure<CaptchaOptions>(config.GetSection("Captcha"));
+            services.AddHttpClient();
+            services.AddTransient<ICaptchaService, CaptchaService>();
+
+
             // Services
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>()
                     .AddScoped<IUrlResolutionService, UrlResolutionService>();
             services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
             services.AddTransient<ICacheService, CacheService>();
+ 
+            services.AddTransient<IPgpService, PgpService>();
             services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
             services.AddScoped<IRssFeedService, RssFeedService>();
             services.AddScoped<IDirectoryEntriesAuditService, DirectoryEntriesAuditService>();

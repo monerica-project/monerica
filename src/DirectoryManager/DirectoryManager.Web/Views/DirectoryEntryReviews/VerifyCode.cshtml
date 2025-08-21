@@ -1,0 +1,27 @@
+﻿@{
+    Layout = "_CenteredLayout";
+    ViewData["Title"] = "Decrypt and verify";
+}
+<h1>Decrypt and verify</h1>
+
+<p>Decrypt the message below with your private key. It contains a 6-digit number.</p>
+
+<div class="card mb-3">
+    <div class="card-body">
+        <pre style="white-space: pre-wrap; font-size: .9rem;">@ViewBag.Ciphertext</pre>
+    </div>
+</div>
+
+<form method="post" asp-action="VerifyCodePost">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+
+    <div class="mb-3">
+        <label class="form-label">Enter the 6-digit number</label>
+        <input name="code" class="form-control" pattern="[1-9][0-9]{5}" inputmode="numeric" required />
+        <div class="form-text">Must be 6 digits and cannot start with 0.</div>
+        @Html.ValidationSummary()
+    </div>
+
+    <button class="btn btn-primary" type="submit">Continue</button>
+</form>
