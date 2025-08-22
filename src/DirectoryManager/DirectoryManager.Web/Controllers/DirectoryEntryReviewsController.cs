@@ -43,7 +43,9 @@ namespace DirectoryManager.Web.Controllers
         {
             // simple honeypot check (optional)
             if (!string.IsNullOrWhiteSpace(website))
+            {
                 return this.BadRequest();
+            }
 
             var flowId = this.CreateFlow(directoryEntryId);
             return this.RedirectToAction(nameof(this.Captcha), new { flowId });
@@ -192,8 +194,15 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("compose")]
         public async Task<IActionResult> Compose(Guid flowId)
         {
-            if (!this.TryGetFlow(flowId, out var state)) return this.BadRequest("Session expired.");
-            if (!state.ChallengeSolved) return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
+            if (!this.TryGetFlow(flowId, out var state))
+            {
+                return this.BadRequest("Session expired.");
+            }
+
+            if (!state.ChallengeSolved)
+            {
+                return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
+            }
 
             var vm = new CreateDirectoryEntryReviewInputModel
             {
@@ -214,10 +223,14 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> ComposePost(Guid flowId, CreateDirectoryEntryReviewInputModel input, CancellationToken ct)
         {
             if (!this.TryGetFlow(flowId, out var flow))
+            {
                 return this.BadRequest("Session expired.");
+            }
 
             if (!flow.ChallengeSolved)
+            {
                 return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
+            }
 
             if (!this.ModelState.IsValid)
             {
@@ -340,7 +353,11 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest();
             }
 
-            if (!this.ModelState.IsValid) return this.View(model);
+            if (!this.ModelState.IsValid)
+            {
+                return this.View(model);
+            }
+
             await this.directoryEntryReviewRepository.UpdateAsync(model);
             return this.RedirectToAction(nameof(this.Index));
         }
