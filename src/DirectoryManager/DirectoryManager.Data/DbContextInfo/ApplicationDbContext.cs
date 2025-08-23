@@ -65,7 +65,19 @@ namespace DirectoryManager.Data.DbContextInfo
             return base.SaveChangesAsync(cancellationToken);
         }
 
-        [Obsolete]
+        object IApplicationDbContext.Set<T>()
+        {
+            var method = typeof(DbContext)
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .First(m => m.Name == "Set"
+                            && m.IsGenericMethodDefinition
+                            && m.GetGenericArguments().Length == 1
+                            && m.GetParameters().Length == 0);
+
+            var generic = method.MakeGenericMethod(typeof(T));
+            return generic.Invoke(this, null)!; // returns DbSet<T>
+        }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -315,19 +327,6 @@ namespace DirectoryManager.Data.DbContextInfo
                 // concurrency token (since you have [Timestamp])
                 r.Property(x => x.RowVersion).IsRowVersion();
             });
-        }
-
-        object IApplicationDbContext.Set<T>()
-        {
-            var method = typeof(DbContext)
-                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .First(m => m.Name == "Set"
-                            && m.IsGenericMethodDefinition
-                            && m.GetGenericArguments().Length == 1
-                            && m.GetParameters().Length == 0);
-
-            var generic = method.MakeGenericMethod(typeof(T));
-            return generic.Invoke(this, null)!; // returns DbSet<T>
         }
 
         private void SetDates()
