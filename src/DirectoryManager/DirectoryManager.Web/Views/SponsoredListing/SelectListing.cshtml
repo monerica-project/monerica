@@ -1,14 +1,21 @@
 ﻿@using DirectoryManager.Data.Enums
 @using DirectoryManager.Data.Models
+@using DirectoryManager.Web.Constants
 @model IEnumerable<DirectoryEntry>
-@using DirectoryManager.Web.Constants;
 
 @{
     ViewData[StringConstants.IsIndexable] = false;
-}
+    ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing";
 
-@{
-  ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing";
+    // Reservation context (optional – if you arrived with an rsvId already)
+    Guid? reservationGuid =
+        ViewBag.ReservationGuid is Guid g ? g : (Guid?)null;
+    DateTime? reservationExpiresUtc =
+        ViewBag.ReservationExpiresUtc is DateTime d ? d : (DateTime?)null;
+
+    int? minutesLeft = reservationExpiresUtc.HasValue
+        ? (int?)Math.Max(0, (int)Math.Ceiling((reservationExpiresUtc.Value - DateTime.UtcNow).TotalMinutes))
+        : null;
 }
 
 @{
@@ -17,45 +24,74 @@
 
 @section PageContent {
 
-<h1>Select Sponsored Listing</h1>
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
-<hr />
-<a href="~/sponsoredlisting">&lt; back</a>
-<hr />
+    <hr />
+    <a href="~/sponsoredlisting">&lt; back</a>
+    <hr />
 
-<form method="get">
-    <input name="sponsorshipType" type="hidden" value="@ViewBag.SponsorshipType" />
-    <select id="combinedFilter" name="subCategoryId">
-        <option value="">--Category > Subcategory--</option>
-        @foreach (var subCategory in (IEnumerable<Subcategory>)ViewBag.SubCategories)
-        {
-            <option value="@subCategory.SubCategoryId" selected="@(Context.Request.Query["subCategoryId"] == 
-            subCategory.SubCategoryId.ToString() ? "selected" : null)">@subCategory.Category.Name > @subCategory.Name</option>
-        }
-    </select>
-
-    <input type="submit" value="Filter" />
-</form>
-
-<br />
-
-@if (ViewBag.CanAdvertise != null && ViewBag.CanAdvertise == false)
-{
-    <i>There is no available ad space for this sub catetgory. Select another Subcategory.</i>
-}
-else
-{
-    @foreach (var entry in Model)
+    @if (reservationGuid.HasValue && reservationExpiresUtc.HasValue)
     {
-        <div>
-
-            <a rel="nofollow" href="@Url.Action("selectduration", new { 
-                directoryEntryId = entry.DirectoryEntryId,
-                sponsorshipType = ViewBag.SponsorshipType })">Select</a>
-                     <text> - </text>
-            <a target="_blank" href="@entry.Link">@entry.Name</a>
+        <div class="alert alert-warning" role="alert">
+            <strong>Reserved checkout:</strong>
+            Your slot is held until
+            <b>@reservationExpiresUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</b> UTC
+            (@minutesLeft minute@(minutesLeft == 1 ? "" : "s") left).
+            Selecting a listing will keep using this reservation.
         </div>
     }
-}
-<br />
+
+    <form method="get">
+        <input name="sponsorshipType" type="hidden" value="@ViewBag.SponsorshipType" />
+        <input name="rsvId" type="hidden" value="@reservationGuid" />
+        <select id="combinedFilter" name="subCategoryId">
+            <option value="">--Category &gt; Subcategory--</option>
+            @foreach (var subCategory in (IEnumerable<Subcategory>)ViewBag.SubCategories)
+            {
+                <option value="@subCategory.SubCategoryId"
+                        selected="@(Context.Request.Query["subCategoryId"] == subCategory.SubCategoryId.ToString() ? "selected" : null)">
+                    @subCategory.Category.Name &gt; @subCategory.Name
+                </option>
+            }
+        </select>
+        <input type="submit" value="Filter" />
+    </form>
+
+    <br />
+
+    @if (ViewBag.CanAdvertise != null && ViewBag.CanAdvertise == false)
+    {
+        <i>There is no available ad space for this subcategory. Select another subcategory.</i>
+    }
+    else
+    {
+        @* Use POST to begin a reservation for this scope when a listing is selected *@
+        @foreach (var entry in Model)
+        {
+            <div style="display:flex; gap:.5rem; align-items:center;">
+                <form method="post" action="~/sponsoredlisting/selectlisting" style="display:inline;">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="directoryEntryId" value="@entry.DirectoryEntryId" />
+                    <input type="hidden" name="sponsorshipType" value="@ViewBag.SponsorshipType" />
+                    <input type="hidden" name="rsvId" value="@reservationGuid" />
+
+                    @* Pass the current scope id so the controller can build the correct reservation group *@
+                    @if (ViewBag.SponsorshipType == SponsorshipType.SubcategorySponsor)
+                    {
+                        <input type="hidden" name="subCategoryId" value="@Context.Request.Query["subCategoryId"]" />
+                    }
+                    else if (ViewBag.SponsorshipType == SponsorshipType.CategorySponsor)
+                    {
+                        <input type="hidden" name="categoryId" value="@ViewBag.CategoryId" />
+                    }
+
+                    <button type="submit" style="margin:2px;">Select</button>
+                </form>
+
+                <a target="_blank" href="@entry.Link">@entry.Name</a>
+            </div>
+        }
+    }
+
+    <br />
 }

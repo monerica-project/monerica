@@ -1,8 +1,10 @@
-﻿using DirectoryManager.Data.DbContextInfo;
+﻿using DirectoryManager.Data.Constants;
+using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Utilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Data.Repositories.Implementations
@@ -23,12 +25,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.Tags.FindAsync(tagId);
 
         /// <summary>
-        /// Find a tag by its name.
+        /// Find a tag by its key.
         /// </summary>
-        public async Task<Tag?> GetByNameAsync(string name) =>
+        public async Task<Tag?> GetByKeyAsync(string key) =>
             await this.context.Tags
                           .AsNoTracking()
-                          .FirstOrDefaultAsync(t => t.Name == name);
+                          .FirstOrDefaultAsync(t => t.Key == key);
 
         /// <summary>
         /// List all tags, alphabetically.
@@ -44,7 +46,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         /// </summary>
         public async Task<Tag> CreateAsync(string name)
         {
-            var tag = new Tag { Name = name };
+            var tag = new Tag { Name = name, Key = name.UrlKey() };
             await this.context.Tags.AddAsync(tag);
             await this.context.SaveChangesAsync();
             return tag;
@@ -76,18 +78,20 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 {
                     et.TagId,
                     TagName = et.Tag.Name,
+                    Slug = et.Tag.Key,
                     Created = et.DirectoryEntry.CreateDate,
                     Updated = et.DirectoryEntry.UpdateDate
                 })
 
                 // group by TagId + Name
-                .GroupBy(x => new { x.TagId, x.TagName })
+                .GroupBy(x => new { x.TagId, x.TagName, x.Slug })
 
                 // project into our DTO, computing the MAX() of (Updated ?? Created)
                 .Select(g => new TagWithLastModified
                 {
                     TagId = g.Key.TagId,
                     Name = g.Key.TagName,
+                    Slug = g.Key.Slug,
                     LastModified = g.Max(x => x.Updated.HasValue ? x.Updated.Value : x.Created)
                 })
 
@@ -99,23 +103,51 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
-
-        public async Task<Tag?> GetBySlugAsync(string slug)
+        public async Task<int> CountAllTagsAsync()
         {
-            slug = slug.Trim().ToLowerInvariant();
-
-            return await this.context.Tags
-                .AsNoTracking()
-                .FirstOrDefaultAsync(t =>
-                    // exact name match
-                    t.Name.ToLower() == slug
-                    // allow "web-hosting" → t.Name = "web hosting"
-                    || t.Name.Replace(" ", "-").ToLower() == slug
-                    // allow "web hosting" → slug = "web-hosting"
-                    || t.Name.Replace("-", " ").ToLower() == slug
-                    // drop both hyphens and spaces for "nonprofit" vs "non-profit"
-                    || t.Name.Replace(" ", "").Replace("-", "").ToLower() == slug);
+            return await this.context.Tags.CountAsync();
         }
 
+        public async Task<List<TagSitemapInfo>> ListTagsWithSitemapInfoAsync()
+        {
+            return await this.context.Tags
+                             .Select(t => new TagSitemapInfo
+                             {
+                                 TagId = t.TagId,
+                                 Slug = t.Key,
+                                 LastModified = t.UpdateDate ?? t.CreateDate,
+                                 EntryCount = t.EntryTags.Count(et => et.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed)
+                             })
+                             .ToListAsync();
+        }
+
+        public async Task<PagedResult<TagCount>> ListTagsWithCountsPagedAsync(int page, int pageSize)
+        {
+            // only count non-removed entries
+            var query = this.context.DirectoryEntryTags
+                .Where(et => et.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed)
+                .GroupBy(et => new { et.TagId, et.Tag.Name, et.Tag.Key })
+                .Select(g => new TagCount
+                {
+                    TagId = g.Key.TagId,
+                    Name = g.Key.Name,
+                    Key = g.Key.Key,
+                    Count = g.Count()
+                })
+                .OrderBy(tc => tc.Name);
+
+            var total = await query.CountAsync().ConfigureAwait(false);
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            return new PagedResult<TagCount>
+            {
+                TotalCount = total,
+                Items = items
+            };
+        }
     }
 }

@@ -1,0 +1,23 @@
+﻿@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Leave a Review – Submit PGP Key";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <form asp-action="SubmitKeyPost" asp-controller="DirectoryEntryReviews" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+
+        <p>Paste your PGP public key:</p>
+        <textarea name="pgpArmored" rows="10" class="form-control" placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----"></textarea>
+
+        <br />
+        <button type="submit" class="btn btn-primary">Get Challenge</button>
+    </form>
+}

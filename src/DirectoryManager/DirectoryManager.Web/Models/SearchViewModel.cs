@@ -2,8 +2,6 @@
 
 namespace DirectoryManager.Web.Models
 {
-    // Models/PagedResult.cs
-    // Web/Models/SearchViewModel.cs
     public class SearchViewModel
     {
         public string Query { get; set; } = "";
@@ -12,5 +10,4 @@ namespace DirectoryManager.Web.Models
         public int TotalCount { get; set; }
         public IList<DirectoryEntryViewModel> Entries { get; set; } = Array.Empty<DirectoryEntryViewModel>();
     }
-
 }

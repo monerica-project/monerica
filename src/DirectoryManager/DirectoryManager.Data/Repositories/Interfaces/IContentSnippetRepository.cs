@@ -18,6 +18,8 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         ContentSnippet? Get(SiteConfigSetting snippetType);
 
+        Task<ContentSnippet?> GetAsync(SiteConfigSetting snippetType);
+
         string GetValue(SiteConfigSetting snippetType);
 
         bool Delete(int tagId);

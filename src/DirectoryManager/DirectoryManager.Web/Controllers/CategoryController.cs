@@ -1,6 +1,8 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.DisplayFormatting.Enums;
+using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Models;
@@ -60,6 +62,7 @@ namespace DirectoryManager.Web.Controllers
 
         [AllowAnonymous]
         [HttpGet("{categoryKey}")]
+        [HttpGet("{categoryKey}/page/{page:int}")]
         public async Task<IActionResult> Category(string categoryKey, int page = 1)
         {
             const int PageSize = 25;
@@ -73,30 +76,52 @@ namespace DirectoryManager.Web.Controllers
 
             // 2) canonical URL
             var cd = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[Constants.StringConstants.CanonicalUrl]
-                = UrlBuilder.CombineUrl(cd, categoryKey);
+            this.ViewData[Constants.StringConstants.CanonicalUrl] =
+                UrlBuilder.CombineUrl(cd, categoryKey);
 
             // 3) fetch paged entries
-            var paged = await this.directoryEntryRepository.ListEntriesByCategoryAsync(category.CategoryId, page, PageSize);
+            var paged = await this.directoryEntryRepository
+                .ListEntriesByCategoryAsync(category.CategoryId, page, PageSize);
 
-            // 4) convert to view‐models
+            // 4) convert to view‑models
             var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
             var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
-            var vmItems = DirectoryManager.DisplayFormatting.Helpers
-                .ViewModelConverter.ConvertToViewModels(
-                    paged.Items.ToList(),
-                    DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
-                    DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Normal,
-                    link2Name,
-                    link3Name);
+            var vmItems = ViewModelConverter.ConvertToViewModels(
+                paged.Items.ToList(),
+                DateDisplayOption.NotDisplayed,
+                ItemDisplayType.Normal,
+                link2Name,
+                link3Name);
 
-            var subCatSponsors = await this.sponsoredListingRepository.GetActiveSubCategorySponsorsAsync(category.CategoryId);
-            var sponsoredDirectoryEntryIds = subCatSponsors
-                .Select(s => s.DirectoryEntry.DirectoryEntryId)
+            // 5) pull _all_ sponsors and collect their entry‑IDs:
+            var mainSponsors = await this.sponsoredListingRepository
+                .GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
+            var categorySponsors = await this.sponsoredListingRepository
+                .GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
+            var subCatSponsors = await this.sponsoredListingRepository
+                .GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor);
+
+            var mainIds = mainSponsors
+                .Where(s => s.DirectoryEntry != null)
+                .Select(s => s.DirectoryEntry.DirectoryEntryId);
+
+            var categoryIds = categorySponsors
+                .Where(s =>
+                    s.DirectoryEntry?.SubCategory?.CategoryId == category.CategoryId)
+                .Select(s => s.DirectoryEntry.DirectoryEntryId);
+
+            var subCatIds = subCatSponsors
+                .Where(s =>
+                    s.DirectoryEntry?.SubCategory?.CategoryId == category.CategoryId)
+                .Select(s => s.DirectoryEntry.DirectoryEntryId);
+
+            var sponsoredDirectoryEntryIds = mainIds
+                .Concat(categoryIds)
+                .Concat(subCatIds)
                 .Distinct()
                 .ToHashSet();
 
-            // 5) build CategoryEntriesViewModel
+            // 6) build CategoryEntriesViewModel
             var vm = new CategoryEntriesViewModel
             {
                 CategoryId = category.CategoryId,
@@ -105,7 +130,10 @@ namespace DirectoryManager.Web.Controllers
                 Description = category.Description,
                 Note = category.Note,
                 MetaDescription = category.MetaDescription,
+
+                // <-- now includes main, category & subcategory sponsors:
                 SponsoredDirectoryEntryIds = sponsoredDirectoryEntryIds,
+
                 PagedEntries = new PagedResult<DirectoryEntryViewModel>
                 {
                     TotalCount = paged.TotalCount,
@@ -118,7 +146,6 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View("CategoryItems", vm);
         }
-
 
         [Route("category/create")]
         [HttpPost]

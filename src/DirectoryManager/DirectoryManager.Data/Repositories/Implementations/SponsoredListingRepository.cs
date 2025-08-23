@@ -31,7 +31,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var currentDate = DateTime.UtcNow;
 
             return await this.context.SponsoredListings
+                .AsNoTracking()
                                      .Include(x => x.DirectoryEntry) // Include DirectoryEntry navigation property
+                                     .ThenInclude(x => x.SubCategory!)
+                                     .ThenInclude(x => x.Category!)
                                      .Where(x => x.SponsorshipType == sponsorshipType &&
                                                  x.CampaignStartDate <= currentDate &&
                                                  x.CampaignEndDate >= currentDate) // Filter active listings
@@ -296,5 +299,33 @@ namespace DirectoryManager.Data.Repositories.Implementations
               .Where(s => s.DirectoryEntry?.SubCategory?.CategoryId == categoryId);
         }
 
+        public async Task<DateTime?> GetLastSponsorExpirationDateAsync()
+        {
+            var now = DateTime.UtcNow;
+
+            return await this.context.SponsoredListings
+                // only look at campaigns that have already ended
+                .Where(x => x.CampaignEndDate < now)
+                // pick the one with the most recent end date
+                .OrderByDescending(x => x.CampaignEndDate)
+                .Select(x => (DateTime?)x.CampaignEndDate)
+                .FirstOrDefaultAsync();
+        }
+
+        public async Task<Dictionary<int, int>> GetActiveSponsorCountByCategoryAsync(SponsorshipType type)
+        {
+            return await this.context.SponsoredListings
+              .Where(s => s.SponsorshipType == type && s.CampaignEndDate > DateTime.UtcNow)
+              .GroupBy(s => s.CategoryId)
+              .ToDictionaryAsync(g => g.Key.Value, g => g.Count());
+        }
+
+        public async Task<Dictionary<int, int>> GetActiveSponsorCountBySubcategoryAsync(SponsorshipType type)
+        {
+            return await this.context.SponsoredListings
+              .Where(s => s.SponsorshipType == type && s.CampaignEndDate > DateTime.UtcNow)
+              .GroupBy(s => s.SubCategoryId)
+              .ToDictionaryAsync(g => g.Key.Value, g => g.Count());
+        }
     }
 }

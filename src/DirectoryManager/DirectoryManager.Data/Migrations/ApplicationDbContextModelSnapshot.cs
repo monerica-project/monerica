@@ -17,10 +17,94 @@ namespace DirectoryManager.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.6")
+                .HasAnnotation("ProductVersion", "9.0.8")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Affiliates.AffiliateAccount", b =>
+                {
+                    b.Property<int>("AffiliateAccountId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AffiliateAccountId"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<int>("PayoutCurrency")
+                        .HasColumnType("int");
+
+                    b.Property<string>("ReferralCode")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("nvarchar(12)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("WalletAddress")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.HasKey("AffiliateAccountId");
+
+                    b.HasIndex("ReferralCode")
+                        .IsUnique()
+                        .HasDatabaseName("UX_AffiliateAccount_ReferralCode");
+
+                    b.ToTable("AffiliateAccounts");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Affiliates.AffiliateCommission", b =>
+                {
+                    b.Property<int>("AffiliateCommissionId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AffiliateCommissionId"));
+
+                    b.Property<int>("AffiliateAccountId")
+                        .HasColumnType("int");
+
+                    b.Property<decimal>("AmountDue")
+                        .HasColumnType("decimal(18,8)");
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("PayoutCurrency")
+                        .HasColumnType("int");
+
+                    b.Property<int>("PayoutStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PayoutTransactionId")
+                        .HasMaxLength(255)
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<int>("SponsoredListingInvoiceId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.HasKey("AffiliateCommissionId");
+
+                    b.HasIndex("AffiliateAccountId");
+
+                    b.HasIndex("SponsoredListingInvoiceId")
+                        .IsUnique()
+                        .HasDatabaseName("UX_AffiliateCommission_Invoice");
+
+                    b.ToTable("AffiliateCommissions");
+                });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.ApplicationUser", b =>
                 {
@@ -285,6 +369,10 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(75)
                         .HasColumnType("nvarchar(75)");
 
+                    b.Property<string>("CountryCode")
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
+
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime2");
 
@@ -346,6 +434,9 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("PgpKey")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Processor")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
@@ -368,10 +459,100 @@ namespace DirectoryManager.Data.Migrations
                     b.HasIndex("SubCategoryId")
                         .HasDatabaseName("IX_DirectoryEntries_SubCategoryId");
 
+                    b.HasIndex("DirectoryEntryId", "DirectoryStatus")
+                        .IsUnique();
+
                     b.HasIndex("SubCategoryId", "DirectoryEntryKey")
                         .IsUnique();
 
                     b.ToTable("DirectoryEntries");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryReview", b =>
+                {
+                    b.Property<int>("DirectoryEntryReviewId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DirectoryEntryReviewId"));
+
+                    b.Property<string>("AuthorFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("AuthorHandle")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("AuthorPublicKeyArmor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.Property<string>("DeletionSignatureHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("DirectoryEntryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("DisplayNameSignatureArmor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ModerationStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("PostSignatureHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<byte?>("Rating")
+                        .HasColumnType("tinyint");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SourceIpHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.HasKey("DirectoryEntryReviewId");
+
+                    b.HasIndex("AuthorFingerprint");
+
+                    b.HasIndex("DirectoryEntryId");
+
+                    b.HasIndex("DirectoryEntryId", "ModerationStatus");
+
+                    b.ToTable("DirectoryEntryReviews", (string)null);
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntrySelection", b =>
@@ -711,6 +892,50 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("LogEntries");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.ReviewerKey", b =>
+                {
+                    b.Property<int>("ReviewerKeyId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ReviewerKeyId"));
+
+                    b.Property<string>("Alias")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.Property<string>("Fingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("PublicKeyBlock")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.HasKey("ReviewerKeyId");
+
+                    b.HasIndex("Fingerprint")
+                        .IsUnique();
+
+                    b.ToTable("ReviewerKeys", (string)null);
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.SearchLog", b =>
                 {
                     b.Property<int>("Id")
@@ -854,7 +1079,6 @@ namespace DirectoryManager.Data.Migrations
                         .HasColumnType("int");
 
                     b.Property<string>("Email")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -904,6 +1128,10 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("ReferralCodeUsed")
+                        .HasMaxLength(12)
+                        .HasColumnType("nvarchar(12)");
+
                     b.Property<Guid>("ReservationGuid")
                         .HasColumnType("uniqueidentifier");
 
@@ -921,10 +1149,11 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasKey("SponsoredListingInvoiceId");
 
-                    b.HasIndex("DirectoryEntryId");
-
                     b.HasIndex("InvoiceId")
                         .IsUnique();
+
+                    b.HasIndex("DirectoryEntryId", "PaymentStatus")
+                        .HasDatabaseName("IX_Invoice_Dir_PaidStatus");
 
                     b.ToTable("SponsoredListingInvoices");
                 });
@@ -1136,7 +1365,7 @@ namespace DirectoryManager.Data.Migrations
                     b.HasIndex("SubCategoryKey", "CategoryId")
                         .IsUnique();
 
-                    b.ToTable("SubCategories");
+                    b.ToTable("Subcategories");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.Submission", b =>
@@ -1150,6 +1379,10 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("Contact")
                         .HasMaxLength(75)
                         .HasColumnType("nvarchar(75)");
+
+                    b.Property<string>("CountryCode")
+                        .HasMaxLength(2)
+                        .HasColumnType("nvarchar(2)");
 
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime2");
@@ -1198,6 +1431,9 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
+                    b.Property<string>("PgpKey")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<string>("Processor")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
@@ -1239,6 +1475,11 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<string>("Key")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(100)
@@ -1248,6 +1489,9 @@ namespace DirectoryManager.Data.Migrations
                         .HasColumnType("datetime2");
 
                     b.HasKey("TagId");
+
+                    b.HasIndex("Key")
+                        .IsUnique();
 
                     b.HasIndex("Name")
                         .IsUnique();
@@ -1435,6 +1679,25 @@ namespace DirectoryManager.Data.Migrations
                     b.HasDiscriminator().HasValue("ApplicationUserRole");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.Affiliates.AffiliateCommission", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.Affiliates.AffiliateAccount", "AffiliateAccount")
+                        .WithMany("Commissions")
+                        .HasForeignKey("AffiliateAccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice", "SponsoredListingInvoice")
+                        .WithMany()
+                        .HasForeignKey("SponsoredListingInvoiceId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("AffiliateAccount");
+
+                    b.Navigation("SponsoredListingInvoice");
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntriesAudit", b =>
                 {
                     b.HasOne("DirectoryManager.Data.Models.Subcategory", "SubCategory")
@@ -1453,6 +1716,17 @@ namespace DirectoryManager.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("SubCategory");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryReview", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntry", "DirectoryEntry")
+                        .WithMany()
+                        .HasForeignKey("DirectoryEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DirectoryEntry");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntrySelection", b =>
@@ -1662,6 +1936,11 @@ namespace DirectoryManager.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Affiliates.AffiliateAccount", b =>
+                {
+                    b.Navigation("Commissions");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntry", b =>

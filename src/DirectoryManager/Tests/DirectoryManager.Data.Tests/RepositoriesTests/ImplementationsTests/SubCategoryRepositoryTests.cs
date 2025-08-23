@@ -21,7 +21,7 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
             };
 
             var mockDbSet = MockHelpers.MockHelpers.GetQueryableMockDbSet(data);
-            this.mockContext.Setup(c => c.SubCategories).Returns(mockDbSet.Object);
+            this.mockContext.Setup(c => c.Subcategories).Returns(mockDbSet.Object);
 
             this.repository = new SubcategoryRepository(this.mockContext.Object);
         }

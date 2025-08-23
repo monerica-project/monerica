@@ -61,6 +61,11 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("Location", entry.Location, submission.Location);
             }
 
+            if (NotEqualTrimmed(entry.CountryCode, submission.CountryCode))
+            {
+                AddDifference("Country", entry.CountryCode, submission.CountryCode);
+            }
+
             if (NotEqualTrimmed(entry.Processor, submission.Processor))
             {
                 AddDifference("Processor", entry.Processor, submission.Processor);
@@ -74,6 +79,11 @@ namespace DirectoryManager.Web.Helpers
             if (NotEqualTrimmed(entry.Contact, submission.Contact))
             {
                 AddDifference("Contact", entry.Contact, submission.Contact);
+            }
+
+            if (NotEqualTrimmed(entry.PgpKey, submission.PgpKey))
+            {
+                AddDifference("PgpKey", entry.PgpKey, submission.PgpKey);
             }
 
             // Compare SubCategory and Category names safely.

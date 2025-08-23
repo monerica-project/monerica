@@ -1,0 +1,96 @@
+﻿@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Models
+@model IReadOnlyList<DirectoryManager.Data.Models.DirectoryEntryReview>
+
+@{
+    Layout = "_CenteredLayout";
+    ViewData[StringConstants.TitleHeader] = "Pending Reviews";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+
+<p>
+    <a asp-action="All" asp-route-status="Approved">View Approved</a> |
+    <a asp-action="All" asp-route-status="Rejected">View Rejected</a> |
+    <a asp-action="All">View All</a>
+</p>
+
+@if (!Model.Any())
+{
+    <p><i>No pending reviews.</i></p>
+}
+else
+{
+    <div class="table-wrapper">
+ 
+    <table class="table table-striped table-sm">
+        <thead>
+            <tr>
+                <th>Id</th>
+                <th>Entry</th>
+                <th>Rating</th>
+                <th>Title</th>
+                <th>Created (UTC)</th>
+                <th>Fingerprint</th>
+                <th>Excerpt</th>
+                <th style="width: 220px;">Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var r in Model)
+        {
+            <tr>
+                <td>@r.DirectoryEntryReviewId</td>
+                <td>@r.DirectoryEntryId</td>
+                <td>@(r.Rating?.ToString() ?? "-")</td>
+                <td>@(string.IsNullOrWhiteSpace(r.Title) ? "-" : r.Title)</td>
+                <td>@r.CreateDate.ToString("yyyy-MM-dd HH:mm")</td>
+                <td><code>@r.AuthorFingerprint</code></td>
+                <td>@(string.IsNullOrWhiteSpace(r.Body) ? "-" : (r.Body.Length > 80 ? r.Body[..80] + "…" : r.Body))</td>
+                <td>
+                    <a 
+                       asp-action="Show"
+                       asp-route-id="@r.DirectoryEntryReviewId">View</a>
+
+                    <form asp-action="Approve"
+                          asp-route-id="@r.DirectoryEntryReviewId"
+                          method="post"
+                          style="display:inline-block;margin-left:.25rem;">
+                        @Html.AntiForgeryToken()
+                        <button type="submit">Approve</button>
+                    </form>
+
+                    <a  
+                       asp-action="Show"
+                       asp-route-id="@r.DirectoryEntryReviewId"
+                       style="margin-left:.25rem;">Reject/Delete…</a>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    </div>
+}
+
+    @if (ViewBag.Total is int total && ViewBag.Page is int pageNumber && ViewBag.PageSize is int pageSize)
+{
+    var last = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
+    <div class="mt-3">
+        <span>Page @pageNumber of @last (@total total)</span>
+        <div>
+            @if (pageNumber > 1)
+            {
+                    <a asp-action="Pending" asp-route-page="@(pageNumber - 1)" asp-route-pageSize="@pageSize">Prev</a>
+                @: |
+            }
+                @if (pageNumber < last)
+            {
+                    <a asp-action="Pending" asp-route-page="@(pageNumber + 1)" asp-route-pageSize="@pageSize">Next</a>
+            }
+        </div>
+    </div>
+}
+}

@@ -12,5 +12,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task CreateAsync(SponsoredListingOffer offer);
         Task UpdateAsync(SponsoredListingOffer offer);
         Task DeleteOfferAsync(int sponsoredListingOfferId);
+        Task<DateTime?> GetLastModifiedDateAsync();
     }
 }

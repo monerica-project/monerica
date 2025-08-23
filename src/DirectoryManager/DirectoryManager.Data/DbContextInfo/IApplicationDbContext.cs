@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.SponsoredListings;
 using Microsoft.EntityFrameworkCore;
@@ -30,14 +31,18 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<SponsoredListingOffer> SponsoredListingOffers { get; set; }
         public DbSet<SponsoredListingReservation> SponsoredListingReservations { get; set; }
         public DbSet<Submission> Submissions { get; set; }
-        public DbSet<Subcategory> SubCategories { get; set; }
+        public DbSet<Subcategory> Subcategories { get; set; }
         public DbSet<TrafficLog> TrafficLogs { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<DirectoryEntryTag> DirectoryEntryTags { get; set; }
-
         public DbSet<SearchLog> SearchLogs { get; set; }
+        public DbSet<ReviewerKey> ReviewerKeys { get; set; }
+        public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
+        public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
+        public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
 
         int SaveChanges();
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);
+        object Set<T>();
     }
 }

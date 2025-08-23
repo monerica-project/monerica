@@ -101,5 +101,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 await this.context.SaveChangesAsync();
             }
         }
+
+        public async Task<DateTime?> GetLastModifiedDateAsync()
+        {
+            return await this.context.SponsoredListingOffers
+                .Where(o => o.IsEnabled)
+                .Select(o =>
+                    o.UpdateDate.HasValue && o.UpdateDate > o.CreateDate
+                        ? o.UpdateDate.Value
+                        : o.CreateDate)
+                .MaxAsync();
+        }
     }
 }

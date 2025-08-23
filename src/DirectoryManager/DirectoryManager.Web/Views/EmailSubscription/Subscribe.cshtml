@@ -1,36 +1,51 @@
-﻿@using DirectoryManager.Web.Constants;
-@{
-    ViewData[StringConstants.TitleHeader] = "Join Email Newsletter";
-}
+﻿@model DirectoryManager.Web.Models.Emails.EmailSubscribeModel
+@using DirectoryManager.Web.Constants;
 
 @{
+    ViewData[StringConstants.TitleHeader] = "Join Email Newsletter";
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
-<hr />
+    <hr />
 
-@if (this.ViewBag.NewsletterSummaryHtml != null)
-{
-    @Html.Raw(this.ViewBag.NewsletterSummaryHtml)
-}
+    @if (this.ViewBag.NewsletterSummaryHtml != null)
+    {
+        @Html.Raw(this.ViewBag.NewsletterSummaryHtml)
+    }
 
-<form asp-controller="EmailSubscription" asp-action="Subscribe" method="post" class="form-inline">
-
-    <p>Email:</p>
-    <input name="Email" type="email" id="inlineFormInput" placeholder="yourname@email.com" />
- 
-    <br />
-    <br />
-    <img src="@Url.Action("CaptchaImage", "EmailSubscription")?t=@DateTime.Now.Ticks" alt="CAPTCHA" />
-
-    <div>
-        <input name="Captcha" type="text" placeholder="Enter CAPTCHA" />
+    <!-- Validation summary (server-side errors show here) -->
+    <div class="text-danger">
+        @Html.ValidationSummary(excludePropertyErrors: false)
     </div>
 
-    <br />
-    <button type="submit" class="btn btn-success">Subscribe</button>
-</form>
+    <form asp-controller="EmailSubscription" asp-action="Subscribe" method="post" class="form-inline">
+        @Html.AntiForgeryToken()
+
+        <p>Email:</p>
+        <input name="Email"
+               type="email"
+               id="inlineFormInput"
+               placeholder="yourname@email.com"
+               value="@(Model?.Email ?? string.Empty)" />
+        <div class="text-danger" style="margin-top:4px;">
+            @Html.ValidationMessage("Email")
+        </div>
+
+        <br />
+        <br />
+
+        <div>
+            <!-- Shared, no-JS CAPTCHA block (context = "newsletter") -->
+            @await Html.PartialAsync("_CaptchaBlock", "newsletter")
+            <div class="text-danger" style="margin-top:4px;">
+                @Html.ValidationMessage("Captcha")
+            </div>
+        </div>
+
+        <br />
+        <button type="submit" class="btn btn-success">Subscribe</button>
+    </form>
 }

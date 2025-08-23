@@ -2,8 +2,10 @@
 {
     public class StringConstants
     {
-        public const string EntriesCacheKey = "entries-cache-key";
-        public const string SponsoredListingsCacheKey = "sponsored-listings-cache-key";
+        public const string CacheKeyPrefixConversion = "conversion_rate_";
+        public const string CacheKeyAllActiveSponsors = "AllActiveSponsors";
+        public const string CacheKeyEntries = "entries-cache-key";
+        public const string CacheKeySponsoredListings = "sponsored-listings-cache-key";
         public const string DefaultName = "Default Name";
         public const string InvalidOfferSelection = "Invalid offer selection.";
         public const string CheckoutInProcess = "A checkout for a sponsored advertisement is in progress, check back in {0} minutes.";
@@ -35,5 +37,8 @@
         public const string CategoryName = "CategoryName";
         public const string EnglishUS = "en-US";
         public const string AllCategories = "All Categories";
+        public const string SelectText = "- Select -";
+        public const string CookieNameCurrency = "currency";
+        public const string NavMenu = "NavModel";
     }
 }

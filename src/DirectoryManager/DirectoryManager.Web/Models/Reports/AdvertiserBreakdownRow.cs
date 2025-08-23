@@ -7,5 +7,6 @@
         public decimal Revenue { get; set; }
         public int Count { get; set; }
         public decimal Percentage { get; set; }
+        public decimal AveragePerDay { get; set; }
     }
 }

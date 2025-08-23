@@ -1,7 +1,7 @@
-﻿using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models.BaseModels;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models.BaseModels;
 
 namespace DirectoryManager.Data.Models
 {
@@ -51,6 +51,12 @@ namespace DirectoryManager.Data.Models
 
         public DirectoryBadge DirectoryBadge { get; set; } = DirectoryBadge.Unknown;
 
+        /// <summary>
+        /// The two-letter ISO country code.
+        /// </summary>
+        [MaxLength(2)]
+        public string? CountryCode { get; set; }
+
         [MaxLength(500)]
         public string? Description { get; set; }
 
@@ -66,12 +72,15 @@ namespace DirectoryManager.Data.Models
         [MaxLength(75)]
         public string? Contact { get; set; }
 
+        [Column(TypeName = "nvarchar(max)")]
+        public string? PgpKey { get; set; }
+
         public virtual Subcategory? SubCategory { get; set; }
 
         public int SubCategoryId { get; set; }
 
         [NotMapped]
-        public string? Tags {get; set; }
+        public string? Tags { get; set; }
 
         public ICollection<DirectoryEntryTag> EntryTags { get; set; }
            = new List<DirectoryEntryTag>();
@@ -95,6 +104,8 @@ namespace DirectoryManager.Data.Models
                 this.Processor == other.Processor &&
                 this.Note == other.Note &&
                 this.Contact == other.Contact &&
+                this.CountryCode == other.CountryCode &&
+                this.PgpKey == other.PgpKey &&
                 this.SubCategoryId == other.SubCategoryId;
         }
 

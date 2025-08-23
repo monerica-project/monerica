@@ -4,10 +4,8 @@ using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
-
 namespace DirectoryManager.Data.Repositories.Implementations
 {
-    /// <inheritdoc />
     public class SearchLogRepository : ISearchLogRepository
     {
         private readonly IApplicationDbContext context;
@@ -17,7 +15,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        /// <inheritdoc />
         public async Task CreateAsync(SearchLog log)
         {
             if (log == null)

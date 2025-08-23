@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.Utilities.Helpers;
@@ -46,16 +47,16 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Index(int? categoryId = null)
         {
-            IEnumerable<Subcategory> subCategories;
+            IEnumerable<SubcategoryDto> subCategories;
 
             if (categoryId.HasValue)
             {
-                subCategories = await this.subcategoryRepository.GetAllAsync();
+                subCategories = await this.subcategoryRepository.GetAllDtoAsync();
                 subCategories = subCategories.Where(sc => sc.CategoryId == categoryId.Value);
             }
             else
             {
-                subCategories = await this.subcategoryRepository.GetAllAsync();
+                subCategories = await this.subcategoryRepository.GetAllDtoAsync();
             }
 
             this.ViewBag.Categories = await this.categoryRepository.GetAllAsync(); // For dropdown list
@@ -86,7 +87,14 @@ namespace DirectoryManager.Web.Controllers
             subCategory.MetaDescription = subCategory.MetaDescription?.Trim();
             subCategory.PageDetails = subCategory.PageDetails?.Trim();
 
-            await this.subcategoryRepository.CreateAsync(subCategory);
+            try
+            {
+                await this.subcategoryRepository.CreateAsync(subCategory);
+            }
+            catch
+            {
+                return this.BadRequest("Can't create subcategory");
+            }
 
             this.ClearCachedItems();
 
@@ -138,12 +146,13 @@ namespace DirectoryManager.Web.Controllers
 
         [AllowAnonymous]
         [HttpGet("{categoryKey}/{subCategoryKey}")]
+        [HttpGet("{categoryKey}/{subCategoryKey}/page/{page}")]
         public async Task<IActionResult> SubCategoryListings(
             string categoryKey,
             string subCategoryKey,
             int page = 1)
         {
-            const int PageSize = 25;
+            const int PageSize = IntegerConstants.DefaultPageSize;
 
             var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
             if (category == null)

@@ -1,0 +1,48 @@
+﻿// DirectoryManager.Web/Views/ReviewerKeys/Edit.cshtml
+@using DirectoryManager.Data.Models
+@model ReviewerKey
+@{
+    ViewData["Title"] = "Edit Reviewer Key";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="top-section search-section search-top-align">
+        @await Html.PartialAsync("_SearchForm")
+    </div>
+
+    <div class="container py-4">
+        <h1 class="mb-3">Edit Reviewer Key</h1>
+        <hr />
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="ReviewerKeyId" />
+            <div class="card">
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label asp-for="Fingerprint" class="form-label"></label>
+                        <input asp-for="Fingerprint" class="form-control" />
+                        <span asp-validation-for="Fingerprint" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="Alias" class="form-label"></label>
+                        <input asp-for="Alias" class="form-control" />
+                        <span asp-validation-for="Alias" class="text-danger"></span>
+                    </div>
+                    <div class="mb-3">
+                        <label asp-for="PublicKeyBlock" class="form-label"></label>
+                        <textarea asp-for="PublicKeyBlock" rows="10" class="form-control"></textarea>
+                        <span asp-validation-for="PublicKeyBlock" class="text-danger"></span>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-3">
+                <button type="submit" class="btn btn-primary">Save</button>
+                <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+            </div>
+        </form>
+
+        <hr />
+        @await Html.PartialAsync("_SponsoredListingPartial")
+    </div>
+}

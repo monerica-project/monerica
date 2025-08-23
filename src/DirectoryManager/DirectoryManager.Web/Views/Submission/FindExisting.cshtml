@@ -1,5 +1,6 @@
 ﻿@using DirectoryManager.Data.Models
 @model IEnumerable<DirectoryEntry>
+@using DirectoryManager.Data.Models.TransferModels
 @using DirectoryManager.Web.Constants;
 @{
     ViewData[StringConstants.TitleHeader] = "Current Listings";
@@ -19,10 +20,10 @@
 <form method="get">
     <select id="combinedFilter" name="subCategoryId">
         <option value="">--Select: Category > Subcategory--</option>
-        @foreach (var subCategory in (IEnumerable<Subcategory>)ViewBag.SubCategories)
+        @foreach (var subCategory in (IEnumerable<SubcategoryDto>)ViewBag.SubCategories)
         {
-            <option value="@subCategory.SubCategoryId"
-                    selected="@(Context.Request.Query["subCategoryId"] == subCategory.SubCategoryId.ToString() ? "selected" : null)">@subCategory.Category.Name > @subCategory.Name</option>
+            <option value="@subCategory.SubcategoryId"
+                    selected="@(Context.Request.Query["subCategoryId"] == subCategory.SubcategoryId.ToString() ? "selected" : null)">@subCategory.CategoryName > @subCategory.Name</option>
         }
     </select>
 

@@ -1,0 +1,45 @@
+﻿@model DirectoryManager.Web.Models.Affiliates.AffiliateSignupInputModel
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Enums
+@{
+    ViewData[StringConstants.TitleHeader] = "Affiliate Sign-up";
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <form method="post" asp-controller="Affiliates" asp-action="Signup">
+        @Html.AntiForgeryToken()
+
+        <div class="mb-3">
+            <label asp-for="ReferralCode" class="form-label">Referral Code (3–12 letters or numbers, no spaces)</label><br />
+            <input asp-for="ReferralCode" class="form-control" maxlength="12" autocomplete="off" />
+            <span asp-validation-for="ReferralCode" class="text-danger"></span>
+        </div>
+        <br />
+        <div class="mb-3">
+            <label asp-for="WalletAddress" class="form-label">Wallet Address</label><br />
+            <input asp-for="WalletAddress" class="form-control" autocomplete="off" />
+            <span asp-validation-for="WalletAddress" class="text-danger" ></span>
+        </div>
+        <br />
+        <div class="mb-3">
+            <label asp-for="PayoutCurrency" class="form-label">Payout Currency</label><br />
+            <input type="hidden" name="PayoutCurrency" value="@Currency.XMR.ToString()" />
+            @Currency.XMR.ToString()
+        </div>
+        <br />
+        <div class="mb-3">
+            <label asp-for="Email" class="form-label">Email (optional)</label><br />
+            <input asp-for="Email" class="form-control" autocomplete="off" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+        <br />
+        @await Html.PartialAsync("_CaptchaBlock", "affiliate")
+
+        <br />
+        <button type="submit" class="btn btn-success">Create Affiliate Account</button>
+    </form>
+}

@@ -1,8 +1,10 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.DisplayFormatting.Models;
+using DirectoryManager.Utilities;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Charting;
 using DirectoryManager.Web.Constants;
@@ -11,6 +13,8 @@ using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
@@ -26,7 +30,9 @@ namespace DirectoryManager.Web.Controllers
         private readonly ITagRepository tagRepo;
         private readonly IDirectoryEntryTagRepository entryTagRepo;
         private readonly ICacheService cacheService;
+        private readonly ISponsoredListingRepository sponsoredListingRepository;
         private readonly IMemoryCache cache;
+        private readonly IDirectoryEntryReviewRepository reviewRepository;
 
         public DirectoryEntryController(
             UserManager<ApplicationUser> userManager,
@@ -39,7 +45,9 @@ namespace DirectoryManager.Web.Controllers
             ITagRepository tagRepo,
             IDirectoryEntryTagRepository entryTagRepo,
             ICacheService cacheService,
-            IMemoryCache cache)
+            ISponsoredListingRepository sponsoredListingRepository,
+            IMemoryCache cache,
+            IDirectoryEntryReviewRepository reviewRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -50,7 +58,9 @@ namespace DirectoryManager.Web.Controllers
             this.tagRepo = tagRepo;
             this.entryTagRepo = entryTagRepo;
             this.cache = cache;
+            this.sponsoredListingRepository = sponsoredListingRepository;
             this.cacheService = cacheService;
+            this.reviewRepository = reviewRepository;
         }
 
         [Route("directoryentry/index")]
@@ -65,8 +75,8 @@ namespace DirectoryManager.Web.Controllers
             entries = entries.OrderBy(e => e.Name)
                              .ToList();
 
-            this.ViewBag.SubCategories = (await this.subCategoryRepository.GetAllAsync())
-                                    .OrderBy(sc => sc.Category.Name)
+            this.ViewBag.SubCategories = (await this.subCategoryRepository.GetAllDtoAsync())
+                                    .OrderBy(sc => sc.CategoryName)
                                     .ThenBy(sc => sc.Name)
                                     .ToList();
 
@@ -77,7 +87,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<IActionResult> Create()
         {
-            await this.SetSubcategories();
+            await this.LoadLists();
 
             return this.View();
         }
@@ -90,7 +100,7 @@ namespace DirectoryManager.Web.Controllers
                 model.DirectoryStatus == DirectoryStatus.Unknown ||
                 model.SubCategoryId == 0)
             {
-                await this.SetSubcategories();
+                await this.LoadLists();
 
                 return this.View("create", model);
             }
@@ -100,10 +110,10 @@ namespace DirectoryManager.Web.Controllers
             var existingEntry = await this.directoryEntryRepository.GetByLinkAsync(link);
             if (existingEntry != null)
             {
-                await this.SetSubcategories();
+                await this.LoadLists();
 
                 this.ModelState.AddModelError("Link", "The provided link is already used by another entry.");
-                return this.View("create", model); // Return view with model error
+                return this.View("create", model);
             }
 
             model.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
@@ -120,6 +130,7 @@ namespace DirectoryManager.Web.Controllers
             model.Link2A = model.Link2A?.Trim();
             model.Link3 = model.Link3?.Trim();
             model.Link3A = model.Link3A?.Trim();
+            model.PgpKey = model.PgpKey?.Trim();
 
             await this.directoryEntryRepository.CreateAsync(model);
 
@@ -135,7 +146,7 @@ namespace DirectoryManager.Web.Controllers
                 foreach (var name in tagNames)
                 {
                     var normalizedName = FormattingHelper.NormalizeTagName(name);
-                    var tag = await this.tagRepo.GetByNameAsync(normalizedName)
+                    var tag = await this.tagRepo.GetByKeyAsync(normalizedName.UrlKey())
                            ?? await this.tagRepo.CreateAsync(normalizedName);
                     await this.entryTagRepo.AssignTagAsync(model.DirectoryEntryId, tag.TagId);
                 }
@@ -156,19 +167,14 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            // Get all subcategories without projection into an anonymous type
-            var subCategories = (await this.subCategoryRepository.GetAllAsync())
-                .OrderBy(sc => sc.Category.Name)
-                .ThenBy(sc => sc.Name)
-                .ToList();
-
-            this.ViewBag.SubCategories = subCategories;  // Pass the actual Subcategory objects
+            await this.LoadSubCategories();
 
             var tags = await this.entryTagRepo.GetTagsForEntryAsync(id);
             entry.Tags = string.Join(", ", tags
                                          .OrderBy(t => t.Name)
                                          .Select(t => t.Name));
 
+            await this.PopulateCountryDropDownList();
 
             return this.View(entry);  // Pass the entry model for editing
         }
@@ -200,6 +206,8 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Contact = entry.Contact?.Trim();
             existingEntry.Location = entry.Location?.Trim();
             existingEntry.Processor = entry.Processor?.Trim();
+            existingEntry.CountryCode = entry.CountryCode;
+            existingEntry.PgpKey = entry.PgpKey?.Trim();
 
             await this.directoryEntryRepository.UpdateAsync(existingEntry);
 
@@ -225,7 +233,7 @@ namespace DirectoryManager.Web.Controllers
             foreach (var name in newTagNames)
             {
                 var normalizedName = FormattingHelper.NormalizeTagName(name);
-                var tag = await this.tagRepo.GetByNameAsync(normalizedName)
+                var tag = await this.tagRepo.GetByKeyAsync(normalizedName.UrlKey())
                        ?? await this.tagRepo.CreateAsync(normalizedName);
                 await this.entryTagRepo.AssignTagAsync(id, tag.TagId);
             }
@@ -270,6 +278,8 @@ namespace DirectoryManager.Web.Controllers
                 Note = directoryEntry.Note,
                 Processor = directoryEntry.Processor,
                 SubCategoryId = directoryEntry.SubCategoryId,
+                CountryCode = directoryEntry.CountryCode,
+                PgpKey = directoryEntry.PgpKey
             };
 
             // Set category and subcategory names for each audit entry
@@ -304,12 +314,22 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
-        [HttpGet("directoryentry/weeklyplotimage")]
-        public async Task<IActionResult> WeeklyPlotImageAsync()
+        [HttpGet("directoryentry/monthlyplotimage")]
+        public async Task<IActionResult> MonthlyPlotImageAsync()
         {
             DirectoryEntryPlotting plottingChart = new DirectoryEntryPlotting();
             var entries = await this.auditRepository.GetAllAsync();
             var imageBytes = plottingChart.CreateMonthlyActivePlot(entries.ToList());
+            return this.File(imageBytes, StringConstants.PngImage);
+        }
+
+        [HttpGet("directoryentry/categorypiechart")]
+        public async Task<IActionResult> CategoryPieChartImageAsync()
+        {
+            DirectoryEntryPlotting plottingChart = new DirectoryEntryPlotting();
+            var allCategories = await this.categoryRepository.GetActiveCategoriesAsync();
+            var entries = await this.directoryEntryRepository.GetAllActiveEntries();
+            var imageBytes = plottingChart.CreateCategoryPieChartImage(entries, allCategories);
             return this.File(imageBytes, StringConstants.PngImage);
         }
 
@@ -351,6 +371,59 @@ namespace DirectoryManager.Web.Controllers
                 .OrderBy(n => n)
                 .ToList();
 
+            var tagDictionary = tagEntities
+                .OrderBy(t => t.Name)
+                .ToDictionary(
+                    t => t.Key,
+                    t => t.Name);
+
+            const string sponsorCacheKey = StringConstants.CacheKeyAllActiveSponsors;
+            if (!this.cache.TryGetValue(sponsorCacheKey, out List<SponsoredListing> allSponsors))
+            {
+                allSponsors = (List<SponsoredListing>?)await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
+                this.cache.Set(
+                    sponsorCacheKey,
+                    allSponsors,
+                    new MemoryCacheEntryOptions
+                    {
+                        AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
+                    });
+            }
+
+            var approved = await this.reviewRepository
+                .Query()
+                .Where(r => r.DirectoryEntryId == existingEntry.DirectoryEntryId
+                         && r.ModerationStatus == ReviewModerationStatus.Approved)
+                .OrderByDescending(r => r.UpdateDate ?? r.CreateDate)
+                .ToListAsync();
+
+            double? average = null;
+            var rated = approved.Where(r => r.Rating.HasValue).ToList();
+            if (rated.Count > 0)
+            {
+                average = rated.Average(r => (double)r.Rating!.Value);
+            }
+
+            var reviewsVm = new EntryReviewsBlockViewModel
+            {
+                DirectoryEntryId = existingEntry.DirectoryEntryId,
+                DirectoryEntryName = existingEntry.Name,
+                AverageRating = average,
+                ReviewCount = approved.Count,
+                Reviews = approved.Select(r => new EntryReviewItem
+                {
+                    Rating = r.Rating,
+                    Body = r.Body,
+                    AuthorFingerprint = r.AuthorFingerprint,
+                    CreateDate = r.CreateDate
+                }).ToList()
+            };
+
+            this.ViewBag.ReviewsVm = reviewsVm;
+
+            // flag if this entry is a sponsor
+            bool isSponsor = allSponsors == null ? false : allSponsors.Any(s => s.DirectoryEntryId == existingEntry.DirectoryEntryId);
+
             var model = new DirectoryEntryViewModel
             {
                 DirectoryEntryId = existingEntry.DirectoryEntryId,
@@ -375,7 +448,11 @@ namespace DirectoryManager.Web.Controllers
                 CreateDate = existingEntry.CreateDate,
                 Link2Name = link2Name,
                 Link3Name = link3Name,
-                Tags = tagNames
+                Tags = tagNames,
+                TagsAndKeys = tagDictionary,
+                CountryCode = existingEntry.CountryCode,
+                IsSponsored = isSponsor,
+                PgpKey = existingEntry.PgpKey,
             };
 
             this.ViewBag.CategoryName = category.Name;
@@ -386,19 +463,45 @@ namespace DirectoryManager.Web.Controllers
             return this.View("DirectoryEntryView", model);
         }
 
-        private async Task SetSubcategories()
+        private async Task LoadLists()
         {
-            var subCategories = (await this.subCategoryRepository.GetAllAsync())
-                .OrderBy(sc => sc.Category.Name)
+            await this.LoadSubCategories();
+            await this.PopulateCountryDropDownList();
+        }
+
+        private async Task PopulateCountryDropDownList(object selectedId = null)
+        {
+            // Get the dictionary of countries from the helper.
+            var countries = CountryHelper.GetCountries();
+
+            countries = countries.OrderBy(x => x.Value).ToDictionary<string, string>();
+
+            // Build a list of SelectListItem from the dictionary.
+            var list = countries.Select(c => new SelectListItem
+            {
+                Value = c.Key,
+                Text = c.Value
+            }).ToList();
+
+            // Insert default option at the top.
+            list.Insert(0, new SelectListItem { Value = "", Text = StringConstants.SelectText });
+            this.ViewBag.CountryCode = new SelectList(list, "Value", "Text", selectedId);
+            await Task.CompletedTask; // For async signature compliance.
+        }
+
+        private async Task LoadSubCategories()
+        {
+            var subCategories = (await this.subCategoryRepository.GetAllDtoAsync())
+                .OrderBy(sc => sc.CategoryName)
                 .ThenBy(sc => sc.Name)
                 .Select(sc => new
                 {
-                    sc.SubCategoryId,
-                    DisplayName = $"{sc.Category.Name} > {sc.Name}"
+                    sc.SubcategoryId,
+                    DisplayName = $"{sc.CategoryName} > {sc.Name}"
                 })
                 .ToList();
 
-            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
+            subCategories.Insert(0, new { SubcategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
 
             this.ViewBag.SubCategories = subCategories;
         }

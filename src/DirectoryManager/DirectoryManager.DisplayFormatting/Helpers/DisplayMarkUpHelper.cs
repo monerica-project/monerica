@@ -1,21 +1,20 @@
-﻿using System.Globalization;
-using System.Net;
-using System.Text;
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.DisplayFormatting.Enums;
 using DirectoryManager.DisplayFormatting.Models;
+using DirectoryManager.Utilities.Helpers;
+using System;
+using System.Globalization;
+using System.Net;
+using System.Text;
 
 namespace DirectoryManager.DisplayFormatting.Helpers
 {
     public class DisplayMarkUpHelper
     {
-        public static string GenerateDirectoryEntryHtml(DirectoryEntryViewModel model)
+        public static string GenerateDirectoryEntryHtml(DirectoryEntryViewModel model, string? rootUrl = null)
         {
             var sb = new StringBuilder();
-
-            // Generate a unique ID for the checkbox (to avoid conflicts)
-            var checkboxId = $"entry_checkbox_{model.DirectoryEntryId}_{model.ItemDisplayType.ToString()}";
 
             // Opening <li> tag with optional sponsored class
             sb.Append("<li");
@@ -45,30 +44,30 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 sb.Append("&#9989; ");
                 if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.Link, false);
+                    AppendLink(sb, model, model.Link, false, rootUrl);
                 }
                 else if (!string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.LinkA, false);
+                    AppendLink(sb, model, model.LinkA, false, rootUrl);
                 }
                 else
                 {
-                    AppendLink(sb, model, model.Link, false);
+                    AppendLink(sb, model, model.Link, false, rootUrl);
                 }
             }
             else if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Admitted)
             {
                 if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.Link, true);
+                    AppendLink(sb, model, model.Link, true, rootUrl);
                 }
                 else if (!string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.LinkA, false);
+                    AppendLink(sb, model, model.LinkA, false, rootUrl);
                 }
                 else
                 {
-                    AppendLink(sb, model, model.Link, false);
+                    AppendLink(sb, model, model.Link, false, rootUrl);
                 }
             }
             else if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Questionable)
@@ -77,15 +76,15 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
                 if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.Link, true);
+                    AppendLink(sb, model, model.Link, true, rootUrl);
                 }
                 else if (!string.IsNullOrWhiteSpace(model.LinkA))
                 {
-                    AppendLink(sb, model, model.LinkA, false);
+                    AppendLink(sb, model, model.LinkA, false, rootUrl);
                 }
                 else
                 {
-                    AppendLink(sb, model, model.Link, false);
+                    AppendLink(sb, model, model.Link, false, rootUrl);
                 }
             }
             else if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Scam)
@@ -98,6 +97,17 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             if (model.LinkType != LinkType.ListingPage)
             {
                 AppendAdditionalLinks(sb, model);
+            }
+
+            if (model.ItemDisplayType == ItemDisplayType.Featured ||
+                model.LinkType == LinkType.ListingPage)
+            {
+                AppendExternalLinkIcon(sb, model);
+            }
+
+            if (model.ItemDisplayType != ItemDisplayType.Email)
+            {
+                sb.Append(BuildFlagImgTag(model.CountryCode, rootUrl));
             }
 
             if (!string.IsNullOrWhiteSpace(model.Description))
@@ -191,15 +201,28 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             // 1) Name → profile link, and “Website” link inline
             var name = WebUtility.HtmlEncode(model.Name);
+
             // model.ItemPath should be something like "/category/subcategory/entrykey"
             var profRelative = model.ItemPath.StartsWith("/") ? model.ItemPath : "/" + model.ItemPath;
             var profUrl = $"{domain}{profRelative}";
 
             sb.Append("<p>");
-            sb.Append(GetDirectoryStausIcon(model.DirectoryStatus)); // your helper for ✅❌ etc.
+
+            sb.Append(GetDirectoryStausIcon(model.DirectoryStatus)); // ✅❌
+
             sb.AppendFormat(
-                "<strong><a class=\"no-app-link\" href=\"{1}\">{0}</a></strong> — ",
-                name, profUrl);
+                "<strong><a class=\"no-app-link\" href=\"{1}\">{0}</a></strong>",
+                name,
+                profUrl);
+
+            // Append flag immediately after name
+            if (model.ItemDisplayType != ItemDisplayType.Email)
+            {
+                sb.Append("&nbsp;");
+                sb.Append(BuildFlagImgTag(model.CountryCode, rootUrl));
+            }
+
+            sb.Append(" — ");
 
             // pick affiliate if available
             var websiteUrl = !string.IsNullOrWhiteSpace(model.LinkA) && !model.IsSponsored
@@ -226,12 +249,14 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                     var t2 = WebUtility.HtmlEncode(model.Link2Name);
                     sb.AppendFormat("<a href=\"{0}\" target=\"_blank\">{1}</a>", l2, t2);
                 }
+
                 if (!string.IsNullOrWhiteSpace(model.Link3))
                 {
                     var l3 = WebUtility.HtmlEncode(model.Link3);
                     var t3 = WebUtility.HtmlEncode(model.Link3Name);
                     sb.AppendFormat(" | <a href=\"{0}\" target=\"_blank\">{1}</a>", l3, t3);
                 }
+
                 sb.Append("</p>");
             }
 
@@ -247,9 +272,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 var subUrl = $"{domain}/{catKey}/{subKey}";
 
                 sb.AppendFormat(
-                    "<p><a class=\"no-app-link\" href=\"{0}\">{1}</a> &rsaquo; <a class=\"no-app-link\" href=\"{2}\">{3}</a></p>",
-                    catUrl, catName,
-                    subUrl, subName);
+                    "<p><a class=\"no-app-link\" href=\"{0}\">{1}</a> &rsaquo; <a class=\"no-app-link\" href=\"{2}\">{3}</a></p>", catUrl, catName, subUrl, subName);
             }
 
             // 4) Description & Note
@@ -277,7 +300,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             if (directoryStatus == Data.Enums.DirectoryStatus.Verified)
             {
                 return "&#9989; ";
-
             }
             else if (directoryStatus == Data.Enums.DirectoryStatus.Admitted)
             {
@@ -286,7 +308,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             else if (directoryStatus == Data.Enums.DirectoryStatus.Questionable)
             {
                 return "&#10067; ";
-
             }
             else if (directoryStatus == Data.Enums.DirectoryStatus.Scam)
             {
@@ -298,12 +319,24 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             }
         }
 
+        private static void AppendExternalLinkIcon(StringBuilder sb, DirectoryEntryViewModel model)
+        {
+            var link = model.Link;
+
+            if (!string.IsNullOrWhiteSpace(model.LinkA) && model.IsSponsored == false)
+            {
+                link = model.LinkA;
+            }
+
+            sb.AppendFormat(@" <a target=""_blank"" class=""external-link"" title=""{0}"" href=""{0}""></a> ", link);
+        }
+
         /// <summary>
         /// Helper method for appending the main link.
         /// </summary>
-        private static void AppendLink(StringBuilder sb, DirectoryEntryViewModel model, string? affiliateLink, bool isScam = false)
+        private static void AppendLink(StringBuilder sb, DirectoryEntryViewModel model, string? affiliateLink, bool isScam = false, string? rootUrl = null)
         {
-            string link = model.LinkType == LinkType.ListingPage ? model.ItemPath : affiliateLink ?? model.Link;
+            string link = model.LinkType == LinkType.ListingPage ? string.Format("{0}{1}", rootUrl ?? string.Empty, model.ItemPath) : affiliateLink ?? model.Link;
             string target = model.LinkType == LinkType.Direct ? "target=\"_blank\"" : string.Empty;
             string name = model.Name;
 
@@ -325,10 +358,8 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         }
 
         /// <summary>
-        /// Helper method for appending additional links (Link2 and Link3)
+        /// Helper method for appending additional links (Link2 and Link3).
         /// </summary>
-        /// <param name="sb"></param>
-        /// <param name="model"></param>
         private static void AppendAdditionalLinks(StringBuilder sb, DirectoryEntryViewModel model)
         {
             // compute once whether this is a scam item
@@ -339,15 +370,36 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             AppendLinkWithSeparator(sb, model, model.Link3, model.Link3A, model.Link3Name, isScam);
         }
 
+        private static string BuildFlagImgTag(string? countryCode, string? rootUrl = null)
+        {
+            var sb = new StringBuilder();
+
+            if (!string.IsNullOrWhiteSpace(countryCode))
+            {
+                // preserve the original for alt/title
+                var code = countryCode.Trim();
+                var countryName = CountryHelper.GetCountryName(code);
+
+                // use lowercase for the filename
+                var file = code.ToLowerInvariant();
+
+                // resolves “~/…” to “/your-app-root/…” (or just “/” if you’re at IIS root)
+                var src = string.Concat(rootUrl, $"/images/flags/{file}.png");
+
+                sb.Append("<img")
+                  .Append(" class=\"country-flag\"")
+                  .Append(" src=\"").Append(src).Append("\"")
+                  .Append(" alt=\"Flag of ").Append(countryName).Append("\"")
+                  .Append(" title=\"").Append(countryName).Append("\"")
+                  .Append(" />");
+            }
+
+            return sb.ToString();
+        }
+
         /// <summary>
-        /// Helper method to append links with a separator (" | ")
+        /// Helper method to append links with a separator (" | ").
         /// </summary>
-        /// <param name="sb"></param>
-        /// <param name="model"></param>
-        /// <param name="link"></param>
-        /// <param name="affiliateLink"></param>
-        /// <param name="linkName"></param>
-        /// <param name="isScam"></param>
         private static void AppendLinkWithSeparator(
             StringBuilder sb,
             DirectoryEntryViewModel model,
@@ -357,7 +409,9 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             bool isScam)
         {
             if (string.IsNullOrWhiteSpace(link))
+            {
                 return;
+            }
 
             sb.Append(" | ");
 
@@ -382,15 +436,9 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             }
         }
 
-
         /// <summary>
-        /// Helper method to append the link based on the logic
+        /// Helper method to append the link based on the logic.
         /// </summary>
-        /// <param name="sb"></param>
-        /// <param name="model"></param>
-        /// <param name="link"></param>
-        /// <param name="isSponsored"></param>
-        /// <param name="isScam"></param>
         private static void AppendLink(StringBuilder sb, DirectoryEntryViewModel model, string link, bool isSponsored = false, bool isScam = false)
         {
             string finalLink = model.LinkType == LinkType.ListingPage ? model.ItemPath : link;

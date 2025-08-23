@@ -1,56 +1,119 @@
-﻿@using DirectoryManager.Web.Constants;
-@using DirectoryManager.Web.Models;
-@using System.Globalization;
+﻿@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Models
+@using System.Globalization
 @using DirectoryManager.Data.Enums
 @model IEnumerable<SponsoredListingOfferModel>
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
-
-@{
-    ViewData[StringConstants.TitleHeader] = "Select Listing Duration";
-    var offersList = Model.ToList();
-    int defaultChoiceIndex = 0;
-    ViewData[StringConstants.IsIndexable] = false;
-}
+@using DirectoryManager.Utilities.Helpers
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
+@inject NowPayments.API.Interfaces.INowPaymentsService nowPaymentsService
+@using DirectoryManager.Web.Helpers
+@using Microsoft.Extensions.Caching.Memory
+@inject IMemoryCache memoryCache
 
 @{
     Layout = "_CenteredLayout";
+    ViewData[StringConstants.TitleHeader] = "Select Listing Duration";
+    ViewData[StringConstants.IsIndexable] = false;
+
+    var offersList = Model.ToList();
+    int defaultChoiceIndex = 0;
+
+    // Reservation context (set by controller if a valid reservation exists)
+    Guid? reservationGuid = ViewBag.ReservationGuid is Guid g ? g : (Guid?)null;
+    DateTime? reservationExpiresUtc = ViewBag.ReservationExpiresUtc is DateTime d ? d : (DateTime?)null;
+
+    int? minutesLeft = reservationExpiresUtc.HasValue
+        ? (int?)Math.Max(0, (int)Math.Ceiling((reservationExpiresUtc.Value - DateTime.UtcNow).TotalMinutes))
+        : null;
+
+    // Currency conversion context
+    var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(httpContextAccessor, memoryCache, nowPaymentsService);
+    bool showConverted = conversionResult.showConverted;
+    decimal conversionRate = conversionResult.conversionRate;
+
+    // Build back URL and only include rsvId if we have one
+    var backUrl = Url.Content($"~/sponsoredlisting/selectlisting?sponsorshipType={ViewBag.SponsorshipType}"
+        + (ViewBag.SubCategoryId != null ? $"&subCategoryId={ViewBag.SubCategoryId}" : string.Empty)
+        + (ViewBag.CategoryId != null ? $"&categoryId={ViewBag.CategoryId}" : string.Empty)
+        + (reservationGuid.HasValue ? $"&rsvId={reservationGuid}" : string.Empty));
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
-<hr />
+    <hr />
+    <a href="@backUrl">&lt; back</a>
+    <hr />
 
-<a href="~/sponsoredlisting/selectlisting?sponsorshipType=@ViewBag.SponsorshipType&subCategoryId=@ViewBag.SubCategoryId&categoryId=@ViewBag.CategoryId">&lt; back</a>
-<hr />
+    @if (reservationGuid.HasValue && reservationExpiresUtc.HasValue)
+    {
+        <div class="alert alert-warning" role="alert">
+            <strong>Reserved checkout:</strong>
+            Your slot is held until
+            <b>@reservationExpiresUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</b> UTC
+            (@minutesLeft minute@(minutesLeft == 1 ? "" : "s") left).
+            Selecting a duration will continue under this reservation.
+        </div>
+    }
 
-@if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.SubcategorySponsor)
-{
-    <p><b>Subcategory:</b> @this.ViewBag.Subcategory</p>
-}
-else if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.CategorySponsor)
-{
-    <p><b>Category:</b> @this.ViewBag.Category</p>
-}
+    <p><b>Name:</b> @ViewBag.DirectoryEntrName</p>
+    <p><b>Sponsorship Type:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(ViewBag.SponsorshipType)</p>
 
-<p><i>@Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.PaymentCurrencyMessage))</i></p>
+    @if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.SubcategorySponsor)
+    {
+        <p><b>Subcategory:</b> @ViewBag.Subcategory</p>
+    }
+    else if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.CategorySponsor)
+    {
+        <p><b>Category:</b> @ViewBag.Category</p>
+    }
 
-<form method="post" action="~/sponsoredlisting/selectduration">
-    <input name="directoryEntryId" type="hidden" value="@ViewBag.DirectoryEntryId" />
-    <div class="form-group">
-        <label>Options for @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(ViewBag.SponsorshipType):</label>
-        @for (var i = 0; i < offersList.Count; i++)
+    <br />
+
+    <form method="post" action="~/sponsoredlisting/selectduration">
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" name="directoryEntryId" value="@ViewBag.DirectoryEntryId" />
+        @* Only send rsvId if we actually have one *@
+        @if (reservationGuid.HasValue)
         {
-            var offer = offersList[i];
-            <div class="form-check">
-                <label class="form-check-label" style="display: flex; align-items: center;">
-                    <input class="form-check-input" type="radio" name="SelectedOfferId" value="@offer.SponsoredListingOfferId" @(i == defaultChoiceIndex ? "checked" : string.Empty)>
-                    @offer.Description - @offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
-                        new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure)) @Currency.USD.ToString()
+            <input type="hidden" name="rsvId" value="@reservationGuid" />
+        }
+
+        <div class="form-group">
+            <label>Available Options:</label>
+            @for (var i = 0; i < offersList.Count; i++)
+            {
+                var offer = offersList[i];
+                <div class="form-check">
+                    <label class="form-check-label" style="display:flex;align-items:center;">
+                        <input class="form-check-input"
+                               type="radio"
+                               name="selectedOfferId"
+                               value="@offer.SponsoredListingOfferId"
+                               @(i == defaultChoiceIndex ? "checked" : null) />
+                        @offer.Days-Days –
+                        @offer.USDPrice.ToString(
+                        DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
+                                new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure))
+                @Currency.USD
+                @if (showConverted)
+                    {
+                        <span>
+                            &nbsp;&#8212;&nbsp;
+                            @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
+                            offer.USDPrice,
+                                        conversionRate,
+                                        conversionResult.selectedCurrency,
+                                        true)
+                </span>
+                                }
                 </label>
             </div>
         }
     </div>
+
     @if (offersList.Count > 0)
     {
         <button type="submit" class="btn btn-primary">Select</button>

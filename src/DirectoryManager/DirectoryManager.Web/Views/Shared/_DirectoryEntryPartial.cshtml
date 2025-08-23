@@ -1,5 +1,6 @@
 ﻿@using DirectoryManager.Web.Enums;
 @using DirectoryManager.Web.Constants;
 @model DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 
-@Html.Raw(DirectoryManager.DisplayFormatting.Helpers.DisplayMarkUpHelper.GenerateDirectoryEntryHtml(Model))
+@Html.Raw(DirectoryManager.DisplayFormatting.Helpers.DisplayMarkUpHelper.GenerateDirectoryEntryHtml(Model, UrlResolver.BaseUrl))

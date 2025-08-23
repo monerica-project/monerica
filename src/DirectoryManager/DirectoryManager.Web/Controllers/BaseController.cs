@@ -68,8 +68,10 @@ namespace DirectoryManager.Web.Controllers
 
         protected void ClearCachedItems()
         {
-            this.cache.Remove(StringConstants.EntriesCacheKey);
-            this.cache.Remove(StringConstants.SponsoredListingsCacheKey);
+            this.cache.Remove(StringConstants.CacheKeyEntries);
+            this.cache.Remove(StringConstants.CacheKeySponsoredListings);
+            this.cache.Remove(StringConstants.CacheKeyAllActiveSponsors);
+            this.cache.Remove(StringConstants.NavMenu);
         }
     }
 }

@@ -139,25 +139,13 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
                             var displayModel = ViewModelConverter.ConvertToViewModels(
                                                 new List<DirectoryEntry> { entry },
                                                 DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
-                                                DisplayFormatting.Enums.ItemDisplayType.Normal,
+                                                DisplayFormatting.Enums.ItemDisplayType.Email,
                                                 link2Name,
                                                 link3Name);
 
                             var htmlItem = DisplayMarkUpHelper.GenerateDirectoryEntryHtml(displayModel.First());
 
                             result.AppendLine(htmlItem);
-                            //string statusIcon = entry.DirectoryStatus switch
-                            //{
-                            //    Data.Enums.DirectoryStatus.Verified => "&#9989; ",
-                            //    Data.Enums.DirectoryStatus.Admitted => "", // No icon for Admitted
-                            //    Data.Enums.DirectoryStatus.Questionable => "&#10067; ",
-                            //    Data.Enums.DirectoryStatus.Scam => "&#10060; <del>",
-                            //    _ => ""
-                            //};
-
-                            //string closingTag = entry.DirectoryStatus == Data.Enums.DirectoryStatus.Scam ? "</del>" : "";
-
-                            //result.AppendLine($"<li>{statusIcon}<a href='{entry.Link}' target='_blank'>{entry.Name}</a>{closingTag} - {entry.Description}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $" <i>({entry.Note})</i>")}</li>");
                         }
 
                         result.AppendLine("</ul>");

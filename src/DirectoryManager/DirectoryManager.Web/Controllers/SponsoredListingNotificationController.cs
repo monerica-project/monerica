@@ -3,6 +3,7 @@ using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -24,84 +25,9 @@ namespace DirectoryManager.Web.Controllers
             this.subcategoryRepository = subcategoryRepository;
         }
 
+        [Authorize]
         [HttpGet]
-        [Route("sponsoredlistingnotification/subscribe")]
-        public async Task<IActionResult> SubscribeAsync(
-            SponsorshipType sponsorshipType,
-            int? typeId)
-        {
-            var model = new SponsoredListingOpeningNotification
-            {
-                SponsorshipType = sponsorshipType,
-                TypeId = typeId
-            };
-
-            if (typeId.HasValue)
-            {
-                if (sponsorshipType == SponsorshipType.SubcategorySponsor)
-                {
-                    var subcat = await this.subcategoryRepository
-                                          .GetByIdAsync(typeId.Value)
-                                          .ConfigureAwait(false);
-                    var cat = await this.categoryRepository
-                                        .GetByIdAsync(subcat.CategoryId)
-                                        .ConfigureAwait(false);
-                    this.TempData[StringConstants.SubcategoryName] =
-                        FormattingHelper.SubcategoryFormatting(cat?.Name, subcat.Name);
-                }
-                else if (sponsorshipType == SponsorshipType.CategorySponsor)
-                {
-                    var cat = await this.categoryRepository
-                                        .GetByIdAsync(typeId.Value)
-                                        .ConfigureAwait(false);
-                    this.TempData[StringConstants.CategoryName] = cat.Name;
-                }
-            }
-
-            return this.View(model);
-        }
-
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        [Route("sponsoredlistingnotification/subscribe")]
-        public async Task<IActionResult> Subscribe(SponsoredListingOpeningNotification model)
-        {
-            if (string.IsNullOrWhiteSpace(model.Email))
-            {
-                return this.BadRequest("Email is required.");
-            }
-
-            this.ModelState.Clear(); // ensure clean state
-            model.Email = model.Email.Trim();
-            if (string.IsNullOrWhiteSpace(model.Email))
-            {
-                this.TempData[StringConstants.ErrorMessage] = "Valid email is required.";
-                return this.RedirectToAction(
-                    nameof(this.SubscribeAsync),
-                    new { sponsorshipType = model.SponsorshipType, typeId = model.TypeId });
-            }
-
-            var exists = await this.notificationRepository
-                                  .ExistsAsync(model.Email, model.SponsorshipType, model.TypeId)
-                                  .ConfigureAwait(false);
-            if (exists)
-            {
-                this.TempData[StringConstants.ErrorMessage] = "Already subscribed.";
-                return this.View(model);
-            }
-
-            model.SubscribedDate = DateTime.UtcNow;
-            model.IsReminderSent = false;
-            await this.notificationRepository
-                     .CreateAsync(model)
-                     .ConfigureAwait(false);
-
-            this.TempData[StringConstants.SuccessMessage] = "Subscription successful.";
-
-            return this.View(model);
-        }
-
-        [Authorize, HttpGet, Route("sponsoredlistingnotification/list")]
+        [Route("sponsoredlistingnotification/list")]
         public async Task<IActionResult> List()
         {
             var list = await this.notificationRepository
@@ -110,7 +36,9 @@ namespace DirectoryManager.Web.Controllers
             return this.View(list);
         }
 
-        [Authorize, HttpGet, Route("sponsoredlistingnotification/edit/{id}")]
+        [Authorize]
+        [HttpGet]
+        [Route("sponsoredlistingnotification/edit/{id}")]
         public async Task<IActionResult> Edit(int id)
         {
             var notification = await this.notificationRepository
@@ -147,7 +75,10 @@ namespace DirectoryManager.Web.Controllers
             return this.View(notification);
         }
 
-        [Authorize, HttpPost, ValidateAntiForgeryToken, Route("sponsoredlistingnotification/edit/{id}")]
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("sponsoredlistingnotification/edit/{id}")]
         public async Task<IActionResult> Edit(SponsoredListingOpeningNotification model)
         {
             if (!this.ModelState.IsValid)
@@ -178,7 +109,10 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.List));
         }
 
-        [Authorize, HttpPost, ValidateAntiForgeryToken, Route("sponsoredlistingnotification/delete/{id}")]
+        [Authorize]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("sponsoredlistingnotification/delete/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
             var ok = await this.notificationRepository
@@ -188,5 +122,77 @@ namespace DirectoryManager.Web.Controllers
                 ok ? "Deleted." : "Delete failed.";
             return this.RedirectToAction(nameof(this.List));
         }
+
+
+        [HttpGet]
+        [Route("sponsoredlistingnotification/subscribe")]
+        public async Task<IActionResult> SubscribeAsync(
+            SponsorshipType sponsorshipType,
+            int? typeId)
+        {
+            var vm = new SubscribeViewModel
+            {
+                SponsorshipType = sponsorshipType,
+                TypeId = typeId
+            };
+
+            // populate friendly label
+            if (typeId.HasValue)
+            {
+                if (sponsorshipType == SponsorshipType.SubcategorySponsor)
+                {
+                    var subcat = await this.subcategoryRepository.GetByIdAsync(typeId.Value);
+                    var cat = await this.categoryRepository.GetByIdAsync(subcat.CategoryId);
+                    vm.CategoryOrSubcategoryName =
+                        FormattingHelper.SubcategoryFormatting(cat?.Name, subcat.Name);
+                }
+                else if (sponsorshipType == SponsorshipType.CategorySponsor)
+                {
+                    var cat = await this.categoryRepository.GetByIdAsync(typeId.Value);
+                    vm.CategoryOrSubcategoryName = cat.Name;
+                }
+            }
+
+            return this.View(vm);
+        }
+
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Route("sponsoredlistingnotification/subscribe")]
+        public async Task<IActionResult> Subscribe(SubscribeViewModel vm)
+        {
+            // trim
+            vm.Email = (vm.Email ?? "").Trim();
+
+            if (string.IsNullOrWhiteSpace(vm.Email))
+            {
+                vm.ErrorMessage = "A valid email is required.";
+                return this.View(vm);
+            }
+
+            if (await this.notificationRepository
+                      .ExistsAsync(vm.Email, vm.SponsorshipType, vm.TypeId))
+            {
+                vm.ErrorMessage = "You’re already subscribed.";
+                return this.View(vm);
+            }
+
+            // persist
+            var notif = new SponsoredListingOpeningNotification
+            {
+                Email = vm.Email,
+                SponsorshipType = vm.SponsorshipType,
+                TypeId = vm.TypeId,
+                SubscribedDate = DateTime.UtcNow,
+                IsReminderSent = false
+            };
+            await this.notificationRepository.CreateAsync(notif);
+
+            vm.SuccessMessage = "Subscription successful!";
+            // keep the friendly label too
+            return this.View(vm);
+        }
+
+
     }
 }

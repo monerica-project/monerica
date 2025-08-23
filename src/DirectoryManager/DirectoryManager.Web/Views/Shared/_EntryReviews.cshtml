@@ -1,0 +1,65 @@
+﻿@using DirectoryManager.Web.Services.Interfaces
+@using Microsoft.AspNetCore.Html
+@model DirectoryManager.Web.Models.EntryReviewsBlockViewModel
+@inject IUrlResolutionService Urls
+
+@functions {
+    // simple stars helper (★★★★★ / ☆☆☆☆☆)
+    public static string Stars(byte? rating)
+    {
+        if (rating is null || rating.Value < 1) return "☆☆☆☆☆";
+        var n = Math.Min(5, Math.Max(1, (int)rating.Value));
+        return new string('★', n) + new string('☆', 5 - n);
+    }
+
+    // minimal newline-preserving body encoder
+    public static IHtmlContent SafeBody(string txt)
+    {
+        var encoded = System.Net.WebUtility.HtmlEncode(txt ?? string.Empty)
+            .Replace("\r\n", "\n")
+            .Replace("\n", "<br/>");
+        return new HtmlString(encoded);
+    }
+}
+
+<div class="reviews-block mt-4">
+    <h3 class="mb-3">Reviews</h3>
+
+    @if (Model.ReviewCount > 0)
+    {
+        <p>
+            <strong>Average rating:</strong>
+            @(Model.AverageRating?.ToString("0.0") ?? "-") / 5
+            <span class="text-muted">(@Model.ReviewCount @(Model.ReviewCount == 1 ? "review" : "reviews"))</span>
+        </p>
+
+        <ul class="list-unstyled">
+            @foreach (var r in Model.Reviews)
+            {
+                <li class="mb-4 pb-3 border-bottom">
+                    <div class="d-flex align-items-center">
+                        <span class="me-2" aria-label="rating">@Stars(r.Rating)</span>
+                        <small class="text-muted">@((r.Rating ?? 0))/5</small>
+                    </div>
+                    <div class="mt-2">
+                        @SafeBody(r.Body)
+                    </div>
+                    <div class="mt-2">
+                        <small class="text-muted">Author: @r.AuthorFingerprint</small>
+                        <small class="text-muted ms-2">•</small>
+                        <small class="text-muted ms-2">@r.CreateDate.ToString("yyyy-MM-dd")</small>
+                    </div>
+                </li>
+            }
+        </ul>
+    }
+    else
+    {
+        <p class="text-muted">No reviews yet.</p>
+    }
+
+    <form action="@Urls.ResolveToApp("/directory-entry-reviews/begin")" method="post" class="d-inline" rel="nofollow">
+        <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
+        <button type="submit">Leave a review</button>
+    </form>
+</div>

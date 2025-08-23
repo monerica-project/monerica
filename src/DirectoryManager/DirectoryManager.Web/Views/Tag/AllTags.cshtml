@@ -1,0 +1,59 @@
+﻿@using DirectoryManager.Utilities
+@model DirectoryManager.Web.Models.TagListViewModel
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+ 
+@{
+    Layout = "_CenteredLayout";
+
+    int totalPages = (int)Math.Ceiling(Model.PagedTags.TotalCount / (double)Model.PageSize);
+    string pageSuffix = Model.CurrentPage > 1 ? $" – Page {Model.CurrentPage}" : "";
+    ViewData["Title"] = $"All Tags: {pageSuffix}";
+}
+
+@section PageContent {
+
+    <h1>All Tags</h1>
+
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    <div class="tag-list">
+        @foreach (var tc in Model.PagedTags.Items)
+        {
+            <a class="tag-item no-app-link"
+               href="@(UrlResolver.BaseUrl.TrimEnd('/') + $"/tagged/{tc.Key}")"
+               title="@tc.Name">
+                @tc.Name (@tc.Count)
+            </a>
+        }
+    </div>
+
+<nav aria-label="Pagination" class="mt-4">
+    <ul class="pagination">
+        @{
+            int totalPages = (int)Math.Ceiling(Model.PagedTags.TotalCount / (double)Model.PageSize);
+            for (int p = 1; p <= totalPages; p++)
+            {
+                bool isCurrent = p == Model.CurrentPage;
+                string rawPath = p == 1 ? "/tagged" : $"/tagged/page/{p}";
+
+                string href = p == 1
+                    ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
+                    : UrlResolver.ResolveToApp(rawPath);
+
+                string linkClass = p == 1 ? "no-app-link" :"no-app-link";
+                string activeClass = isCurrent ? "active" : "";
+
+                <li class="page-item @activeClass">
+                    <a class="page-link @linkClass" href="@href">@p</a>
+                </li>
+            }
+        }
+    </ul>
+</nav>
+
+ 
+    <hr />
+    @await Html.PartialAsync("_SponsoredListingPartial")
+}

@@ -12,25 +12,13 @@
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 
 @{
-    // build nav VM
-    var cats = await categoryRepo.GetActiveCategoriesAsync();
-    var lookup = new Dictionary<int, List<Subcategory>>();
-    foreach (var c in cats)
-        lookup[c.CategoryId] = (await subCatRepo.GetActiveSubCategoriesAsync(c.CategoryId)).ToList();
-
-    var navModel = new NavigationViewModel
-    {
-        Categories = cats,
-        SubsByCategory = lookup,
-        CurrentCategoryKey = Model.CategoryKey,
-        CurrentSubCategoryKey = null
-    };
+    ViewData["CurrentCategoryKey"] = Model.CategoryKey;
+    ViewData["CurrentSubCategoryKey"] = null;
 }
 
 @{
   Layout = "_LayoutWithNav";
-  ViewData["NavModel"] = navModel;
-  ViewData[StringConstants.TitleHeader] = "Category: " + Model.CategoryName;
+  ViewData[StringConstants.TitleHeader] = "Category: " + Model.CategoryName + (Model.CurrentPage > 1 ? $" (Page {Model.CurrentPage})" : "");
   ViewData[StringConstants.MetaDescription] = Model.MetaDescription;
 }
  
@@ -60,7 +48,7 @@
 <nav aria-label="breadcrumb">
     <ol class="breadcrumb">
         <li class="breadcrumb-item">
-            <a class="no-app-link" href="~/">Home</a>
+            <a class="no-app-link" href="@UrlResolver.ResolveToRoot("~/")">Home</a>
         </li>
         <li class="breadcrumb-item" aria-current="page">
             @Model.CategoryName
@@ -111,10 +99,13 @@
                         Note = catSponsor.DirectoryEntry.Note,
                         Processor = catSponsor.DirectoryEntry.Processor,
                         SubCategoryId = catSponsor.DirectoryEntry.SubCategoryId,
+                        SubCategory = catSponsor.DirectoryEntry.SubCategory,
+                        DirectoryEntryKey = catSponsor.DirectoryEntry.DirectoryEntryKey,
                         IsSponsored = true,
                         DisplayAsSponsoredItem = false,
                         Link2Name = link2Name,
-                        Link3Name = link3Name
+                        Link3Name = link3Name,
+                        LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage
                     } : null
                 };
 }
@@ -132,8 +123,8 @@
                 if (Model.SponsoredDirectoryEntryIds.Contains(entryVm.DirectoryEntryId))
                 {
                     entryVm.IsSponsored = true;
-                    entryVm.IsSubCategorySponsor = true;
                     entryVm.DisplayAsSponsoredItem = true;
+                    entryVm.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
                 }
 
                 @await Html.PartialAsync("_DirectoryEntryPartial", entryVm)
@@ -153,15 +144,15 @@
             @for (int p = 1; p <= totalPages; p++)
             {
                 // Build the raw path: first page is "/{categoryKey}", subsequent pages add "?page={p}"
-                string rawPath = $"/{categoryKey}" + (p > 1 ? $"?page={p}" : "");
+                string rawPath = $"/{categoryKey}" + (p > 1 ? $"/page/{p}" : "");
 
                 // Page 1 → canonical root; pages 2+ → app domain
                 string href = p == 1
                 ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
-                : UrlResolver.Resolve(rawPath);
+                : UrlResolver.ResolveToApp(rawPath);
 
                 // Style classes
-                string linkClass = p == 1 ? "no-app-link" : "app-link";
+                string linkClass = p == 1 ? "no-app-link" : "no-app-link";
                 string activeClass = p == currentPage ? "active" : "";
 
                 <li class="page-item @activeClass">

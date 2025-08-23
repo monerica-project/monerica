@@ -31,10 +31,21 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// For SubcategorySponsor: typeId is the SubCategoryId.
         /// For CategorySponsor:   typeId is the CategoryId.
         /// </summary>
-        /// <returns><placeholder>A <see cref="Task"/> representing the asynchronous operation.</placeholder></returns>
+        /// <returns>A task representing the asynchronous operation.</returns>
         Task<int> GetActiveSponsorsCountAsync(SponsorshipType sponsorshipType, int? typeId);
 
         Task<IEnumerable<SponsoredListing>> GetActiveSubCategorySponsorsAsync(int categoryId);
 
+        Task<DateTime?> GetLastSponsorExpirationDateAsync();
+
+        /// <summary>
+        /// Gets the number of active sponsors **grouped by category**.
+        /// </summary>
+        Task<Dictionary<int, int>> GetActiveSponsorCountByCategoryAsync(SponsorshipType type);
+
+        /// <summary>
+        /// Gets the number of active sponsors **grouped by subcategory**.
+        /// </summary>
+        Task<Dictionary<int, int>> GetActiveSponsorCountBySubcategoryAsync(SponsorshipType type);
     }
 }

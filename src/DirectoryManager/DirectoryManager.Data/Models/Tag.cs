@@ -7,11 +7,14 @@ namespace DirectoryManager.Data.Models
     {
         public int TagId { get; set; }
 
-        [Required, MaxLength(100)]
+        [Required]
+        [MaxLength(100)]
         public string Name { get; set; } = null!;
 
-        // navigation 
-        public ICollection<DirectoryEntryTag> EntryTags { get; set; }
-            = new List<DirectoryEntryTag>();
+        [Required]
+        [MaxLength(100)]
+        public string Key { get; set; } = null!;
+
+        public ICollection<DirectoryEntryTag> EntryTags { get; set; } = [];
     }
 }

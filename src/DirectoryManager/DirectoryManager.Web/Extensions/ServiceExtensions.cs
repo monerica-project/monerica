@@ -4,12 +4,14 @@ using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Extensions;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.FileStorage.Repositories.Implementations;
 using DirectoryManager.FileStorage.Repositories.Interfaces;
 using DirectoryManager.Services.Implementations;
 using DirectoryManager.Services.Interfaces;
 using DirectoryManager.Services.Models;
+using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
@@ -37,16 +39,32 @@ namespace DirectoryManager.Web.Extensions
 
             // Register ApplicationDbContext with DbContextOptions
             services.AddDbContext<ApplicationDbContext>(options =>
-                  options.UseSqlServer(config.GetConnectionString(StringConstants.DefaultConnection)));
+                options.UseSqlServer(
+                  config.GetConnectionString(StringConstants.DefaultConnection),
+                  sqlOptions =>
+                  {
+                        // retry up to 5 times with up to 10s between retries
+                        sqlOptions.EnableRetryOnFailure(
+                          maxRetryCount: 5,
+                          maxRetryDelay: TimeSpan.FromSeconds(30),
+                          errorNumbersToAdd: null);
+                  }));
 
             // Register all repositories from DatabaseExtensions
             services.AddDbRepositories();
+
+            // ⬇️ Captcha options + HttpClient + service registration
+            services.Configure<CaptchaOptions>(config.GetSection("Captcha"));
+            services.AddHttpClient();
+            services.AddTransient<ICaptchaService, CaptchaService>();
 
             // Services
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>()
                     .AddScoped<IUrlResolutionService, UrlResolutionService>();
             services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
             services.AddTransient<ICacheService, CacheService>();
+ 
+            services.AddTransient<IPgpService, PgpService>();
             services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
             services.AddScoped<IRssFeedService, RssFeedService>();
             services.AddScoped<IDirectoryEntriesAuditService, DirectoryEntriesAuditService>();
@@ -62,7 +80,6 @@ namespace DirectoryManager.Web.Extensions
                       SenderName = cacheService.GetSnippet(SiteConfigSetting.SendGridSenderName)
                   };
 
-
                   var emailSettings = new EmailSettings
                   {
                       UnsubscribeUrlFormat = cacheService.GetSnippet(SiteConfigSetting.EmailSettingUnsubscribeUrlFormat),
@@ -71,6 +88,9 @@ namespace DirectoryManager.Web.Extensions
 
                   return new EmailService(emailConfig, emailSettings);
               });
+
+            services.AddScoped<IAffiliateAccountRepository, AffiliateAccountRepository>();
+            services.AddScoped<IAffiliateCommissionRepository, AffiliateCommissionRepository>();
 
             // NOWPayments configuration and service registration
             services.AddScoped<INowPaymentsService>(provider =>

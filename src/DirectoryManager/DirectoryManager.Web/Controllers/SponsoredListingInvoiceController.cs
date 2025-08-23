@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using System.Text;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Web.Charting;
@@ -9,7 +10,6 @@ using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using System.Text;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -142,7 +142,9 @@ namespace DirectoryManager.Web.Controllers
                 Location = entry.Location,
                 Note = entry.Note,
                 Processor = entry.Processor,
-                SubCategoryId = entry.SubCategoryId
+                SubCategoryId = entry.SubCategoryId,
+                CountryCode = entry.CountryCode,
+                PgpKey = entry.PgpKey
             };
 
             return this.View(invoice);
@@ -202,12 +204,12 @@ namespace DirectoryManager.Web.Controllers
             // 4) Build a little “result” that mirrors your old repository DTO
             var result = new
             {
-                TotalReceivedAmount = filtered.Sum(inv => inv.PaidAmount),   // what actually paid
-                TotalAmount = filtered.Sum(inv => inv.Amount),       // requested USD
+                TotalReceivedAmount = filtered.Sum(inv => inv.PaidAmount),
+                TotalAmount = filtered.Sum(inv => inv.Amount),
                 Currency = filtered.Select(inv => inv.Currency)
-                                              .FirstOrDefault(),            // USDcode
+                                              .FirstOrDefault(),
                 PaidInCurrency = filtered.Select(inv => inv.PaidInCurrency)
-                                              .FirstOrDefault()             // XMR or other
+                                              .FirstOrDefault()
             };
 
             // 5) Exactly the assignments you had before:
@@ -477,43 +479,75 @@ namespace DirectoryManager.Web.Controllers
             var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
             var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
 
-            // 1) fetch & filter paid invoices in range
+            // Get all invoices
             var allPaid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
-                .Where(inv => inv.CreateDate >= startUtc
-                           && inv.CreateDate <= endUtc
-                           && inv.PaymentStatus == PaymentStatus.Paid);
+                .Where(inv =>
+                    inv.PaymentStatus == PaymentStatus.Paid &&
+                    inv.CreateDate >= startUtc &&
+                    inv.CreateDate <= endUtc);
 
             if (sponsorshipType.HasValue)
             {
                 allPaid = allPaid.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
             }
 
-            // 2) group by advertiser
             var paidList = allPaid.ToList();
-            var totalRevenue = paidList.Sum(inv => inv.Amount);
 
             var rows = new List<AdvertiserBreakdownRow>();
-            foreach (var g in paidList
-                              .GroupBy(inv => inv.DirectoryEntryId)
-                              .OrderByDescending(g => g.Sum(inv => inv.Amount)))
-            {
-                var entry = await this.directoryEntryRepository.GetByIdAsync(g.Key);
-                var revenue = g.Sum(inv => inv.Amount);
-                var count = g.Count();
+            decimal totalRevenue = 0m;
 
+            var grouped = paidList.GroupBy(inv => inv.DirectoryEntryId);
+            foreach (var g in grouped)
+            {
+                decimal advertiserTotal = 0m;
+                double totalActiveDays = 0d;
+                int invoiceCount = 0;
+
+                foreach (var inv in g)
+                {
+                    advertiserTotal += inv.Amount;
+
+                    var start = inv.CampaignStartDate.Date;
+                    var end = inv.CampaignEndDate.Date;
+                    var days = (end - start).TotalDays;
+                    if (days <= 0)
+                    {
+                        days = 1; // Avoid divide-by-zero or bad data
+                    }
+
+                    totalActiveDays += days;
+
+                    invoiceCount++;
+                }
+
+                if (totalActiveDays <= 0)
+                {
+                    totalActiveDays = 1;
+                }
+
+                var avgPerDay = Math.Round(advertiserTotal / (decimal)totalActiveDays, 2);
+                totalRevenue += advertiserTotal;
+
+                var entry = await this.directoryEntryRepository.GetByIdAsync(g.Key);
                 rows.Add(new AdvertiserBreakdownRow
                 {
                     DirectoryEntryId = g.Key,
                     DirectoryEntryName = entry?.Name ?? $"(#{g.Key})",
-                    Revenue = revenue,
-                    Count = count,    // ← new
-                    Percentage = totalRevenue > 0
-                                          ? Math.Round(revenue * 100m / totalRevenue, 2)
-                                          : 0
+                    Revenue = advertiserTotal,
+                    Count = invoiceCount,
+                    AveragePerDay = avgPerDay
                 });
             }
 
-            // 3) build sponsorship‐type dropdown (unchanged)...
+            foreach (var r in rows)
+            {
+                r.Percentage = totalRevenue > 0
+                    ? Math.Round(r.Revenue * 100m / totalRevenue, 2)
+                    : 0m;
+            }
+
+            rows = rows.OrderByDescending(r => r.Revenue).ToList();
+
             var options = Enum.GetValues(typeof(SponsorshipType))
                 .Cast<SponsorshipType>()
                 .Where(st => st != SponsorshipType.Unknown)
@@ -541,6 +575,56 @@ namespace DirectoryManager.Web.Controllers
             };
 
             return this.View(vm);
+        }
+
+
+        [Route("sponsoredlistinginvoice/advertiser")]
+        [HttpGet]
+        public async Task<IActionResult> Advertiser(int directoryEntryId, int page = 1, int pageSize = 25)
+        {
+            var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
+            if (entry == null)
+            {
+                return this.NotFound();
+            }
+
+            var (invoices, total) = await this.invoiceRepository
+                .GetInvoicesForDirectoryEntryAsync(directoryEntryId, page, pageSize);
+
+            var (allInvoices, _) = await this.invoiceRepository
+                .GetInvoicesForDirectoryEntryAsync(directoryEntryId, page: 1, pageSize: int.MaxValue);
+
+            var totalPaidAllTime = allInvoices.Sum(i => i.Amount);
+
+            var model = new DirectoryManager.Web.Models.Reports.AdvertiserInvoiceListViewModel
+            {
+                DirectoryEntryId = directoryEntryId,
+                DirectoryEntryName = entry.Name,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = total,
+                TotalPaidAllTime = totalPaidAllTime,
+                Rows = invoices.Select(i =>
+                {
+                    var days = Math.Max(1, (i.CampaignEndDate.Date - i.CampaignStartDate.Date).TotalDays);
+                    var avg = Math.Round((double)(i.Amount / (decimal)days), 2);
+
+                    return new DirectoryManager.Web.Models.Reports.AdvertiserInvoiceRow
+                    {
+                        SponsoredListingInvoiceId = i.SponsoredListingInvoiceId,
+                        Amount = i.Amount,
+                        Currency = i.Currency.ToString(),
+                        CampaignStartDate = i.CampaignStartDate,
+                        CampaignEndDate = i.CampaignEndDate,
+                        AvgUsdPerDay = avg,
+                        SponsorshipType = i.SponsorshipType.ToString(),
+                        PaymentStatus = i.PaymentStatus.ToString(),
+                        CreateDate = i.CreateDate,
+                    };
+                }).ToList()
+            };
+
+            return this.View("AdvertiserInvoices", model);
         }
     }
 }

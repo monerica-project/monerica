@@ -45,7 +45,7 @@
         </div>
     </div>
 
-    <cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.EntriesCacheKey">
+    <cache-content cache-key="@DirectoryManager.Web.Constants.StringConstants.CacheKeyEntries">
 
     <hr />
 
@@ -149,7 +149,7 @@
                 <input type="checkbox" id="@string.Format("{0}_checkbox", category.CategoryKey)" />
                 <div class="hidden">
                     <ul>
-                        @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId))
+                        @foreach (var subCategory in await subCategoryRepository.GetActiveSubcategoriesAsync(category.CategoryId))
                         {
                             <li>
                                 <a href="@category.CategoryKey/@subCategory.SubCategoryKey">@subCategory.Name</a>
@@ -239,7 +239,9 @@
             Location              = catSponsor.DirectoryEntry.Location,
             Note                  = catSponsor.DirectoryEntry.Note,
             Processor             = catSponsor.DirectoryEntry.Processor,
-            SubCategoryId         = catSponsor.DirectoryEntry.SubCategoryId
+            SubCategoryId         = catSponsor.DirectoryEntry.SubCategoryId,
+            CountryCode           = catSponsor.DirectoryEntry.CountryCode,
+            PgpKey                = catSponsor.DirectoryEntry.PgpKey
         };
         // fetch normal entries
         var normalEntries = await directoryEntryRepository
@@ -270,7 +272,7 @@
                                 );
     }
 
-        @foreach (var subCategory in await subCategoryRepository.GetActiveSubCategoriesAsync(category.CategoryId))
+        @foreach (var subCategory in await subCategoryRepository.GetActiveSubcategoriesAsync(category.CategoryId))
         {
             <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3>
             if (!string.IsNullOrEmpty(subCategory.Description))

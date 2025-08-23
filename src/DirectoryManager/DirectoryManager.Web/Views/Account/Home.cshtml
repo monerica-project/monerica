@@ -16,12 +16,31 @@
 
 <hr />
 
-<h3>Submissions</h3>
-<ul>
-    <li>
-        <a href="~/submission/index">Submissions (@ViewBag.TotalPendingSubmissions)</a>
-    </li>
-</ul>
+    <h3>User Submission</h3>
+    <ul>
+        <li>
+            <a href="~/admin/reviews">Reviews (@ViewBag.TotalPendingReviews)</a>
+        </li>
+        <li>
+            <a href="~/submission/index">Submissions (@ViewBag.TotalPendingSubmissions)</a>
+        </li>
+    </ul>
+
+        
+    <ul>
+        <li>
+            Affiliates
+            <ul>
+                <li>
+                    <a href="~/admin/affiliates">List all</a>
+                </li>
+                <li>
+                    <a href="~/admin/affiliates/commissions">Commissions (@(ViewBag.PendingAffiliateCommissions ?? 0))</a>
+                </li>
+            </ul>
+        </li>
+    </ul>
+
 
 <h3>Listing Management</h3>
 <ul>

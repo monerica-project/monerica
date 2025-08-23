@@ -1,0 +1,83 @@
+﻿@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Enums
+@model DirectoryManager.Data.Models.DirectoryEntryReview
+
+@{
+    Layout = "_CenteredLayout";
+    ViewData[StringConstants.TitleHeader] = $"Review #{Model.DirectoryEntryReviewId}";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            @Html.ValidationSummary(excludePropertyErrors: true, message: "Please fix the errors below.")
+        </div>
+    }
+
+    <dl class="row">
+        <dt class="col-sm-3">Status</dt>
+        <dd class="col-sm-9">@Model.ModerationStatus</dd>
+
+        <dt class="col-sm-3">Directory Entry Id</dt>
+        <dd class="col-sm-9"><a href="~/directoryentry/edit/@Model.DirectoryEntryId">@Model.DirectoryEntryId</a></dd>
+
+        <dt class="col-sm-3">Rating</dt>
+        <dd class="col-sm-9">@((Model.Rating?.ToString()) ?? "-")</dd>
+
+        <dt class="col-sm-3">Title</dt>
+        <dd class="col-sm-9">@(string.IsNullOrWhiteSpace(Model.Title) ? "-" : Model.Title)</dd>
+
+        <dt class="col-sm-3">Author Fingerprint</dt>
+        <dd class="col-sm-9"><code>@Model.AuthorFingerprint</code></dd>
+
+        <dt class="col-sm-3">Created (UTC)</dt>
+        <dd class="col-sm-9">@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</dd>
+
+        <dt class="col-sm-3">Updated (UTC)</dt>
+        <dd class="col-sm-9">@((Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)) ?? "-")</dd>
+
+        <dt class="col-sm-3">Body</dt>
+        <dd class="col-sm-9"><pre style="white-space:pre-wrap;">@Model.Body</pre></dd>
+    </dl>
+
+    <div class="mt-3">
+        <a  asp-action="Pending">Back to Pending</a> | <a asp-action="All">Back to All</a>
+    </div>
+
+    <hr />
+
+    <div class="mt-3">
+        @if (Model.ModerationStatus != ReviewModerationStatus.Approved)
+        {
+            <form asp-action="Approve" asp-route-id="@Model.DirectoryEntryReviewId" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit">Approve</button>
+            </form>
+        }
+
+        <form asp-action="Reject" asp-route-id="@Model.DirectoryEntryReviewId" method="post" class="mt-3">
+            @Html.AntiForgeryToken()
+            <div class="mb-2">
+                <label for="reason" class="form-label">Rejection reason (required to reject)</label>
+                <br />
+                <textarea id="reason" name="reason" class="form-control" rows="3"></textarea>
+                @Html.ValidationMessage("reason", new { @class = "text-danger" })
+            </div>
+            <button type="submit">Reject</button>
+        </form>
+
+        <form asp-action="Delete" asp-route-id="@Model.DirectoryEntryReviewId" method="post" class="mt-3">
+            @Html.AntiForgeryToken()
+            <button type="submit"  
+                    onclick="return confirm('Delete this review permanently?');">
+                Delete
+            </button>
+        </form>
+    </div>
+}

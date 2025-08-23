@@ -1,8 +1,10 @@
 ﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.BaseModels;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.SponsoredListings;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
 using System.Reflection.Emit;
 
 namespace DirectoryManager.Data.DbContextInfo
@@ -36,13 +38,17 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<SponsoredListingInvoice> SponsoredListingInvoices { get; set; }
         public DbSet<SponsoredListingOffer> SponsoredListingOffers { get; set; }
         public DbSet<SponsoredListingReservation> SponsoredListingReservations { get; set; }
-        public DbSet<Subcategory> SubCategories { get; set; }
+        public DbSet<Subcategory> Subcategories { get; set; }
         public DbSet<Submission> Submissions { get; set; }
         public DbSet<TrafficLog> TrafficLogs { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<DirectoryEntryTag> DirectoryEntryTags { get; set; }
-
         public DbSet<SearchLog> SearchLogs { get; set; }
+        public DbSet<ReviewerKey> ReviewerKeys { get; set; }
+        public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
+
+        public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
+        public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
 
         public override int SaveChanges()
         {
@@ -59,9 +65,14 @@ namespace DirectoryManager.Data.DbContextInfo
             return base.SaveChangesAsync(cancellationToken);
         }
 
+        [Obsolete]
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
+
+            builder.Entity<DirectoryEntry>()
+                   .HasIndex(e => new { e.DirectoryEntryId, e.DirectoryStatus })
+                   .IsUnique();
 
             builder.Entity<DirectoryEntry>()
                    .HasIndex(e => e.Link)
@@ -93,6 +104,10 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<Tag>()
                 .HasIndex(t => t.Name)
                 .IsUnique();
+
+            builder.Entity<Tag>()
+                 .HasIndex(t => t.Key)
+                 .IsUnique();
 
             builder.Entity<Category>()
                    .HasIndex(e => e.CategoryKey)
@@ -216,6 +231,103 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasIndex(e => new { e.Email, e.SponsorshipType, e.TypeId, e.SubscribedDate })
                    .IsUnique()
                    .HasDatabaseName("IX_SponsoredListingOpeningNotification_Unique");
+
+            // --- Affiliates ---
+            builder.Entity<AffiliateAccount>(aa =>
+            {
+                // unique referral code
+                aa.HasIndex(x => x.ReferralCode)
+                  .IsUnique()
+                  .HasDatabaseName("UX_AffiliateAccount_ReferralCode");
+
+                // enforce 3–12 chars
+                aa.Property(x => x.ReferralCode)
+                  .HasMaxLength(12)
+                  .IsRequired();
+
+                aa.Property(x => x.WalletAddress).HasMaxLength(256).IsRequired();
+                aa.Property(x => x.Email).HasMaxLength(256);
+            });
+
+            builder.Entity<AffiliateCommission>(ac =>
+            {
+                // one commission per invoice
+                ac.HasIndex(x => x.SponsoredListingInvoiceId)
+                  .IsUnique()
+                  .HasDatabaseName("UX_AffiliateCommission_Invoice");
+
+                ac.Property(x => x.AmountDue).HasColumnType("decimal(18,8)");
+
+                ac.HasOne(x => x.AffiliateAccount)
+                  .WithMany(a => a.Commissions)
+                  .HasForeignKey(x => x.AffiliateAccountId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+                // don't allow invoice deletes via commissions
+                ac.HasOne(x => x.SponsoredListingInvoice)
+                  .WithMany() // or .WithMany(i => i.AffiliateCommissions) if you add a nav
+                  .HasForeignKey(x => x.SponsoredListingInvoiceId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<SponsoredListingInvoice>()
+                .HasIndex(i => new { i.DirectoryEntryId, i.PaymentStatus })
+                .HasDatabaseName("IX_Invoice_Dir_PaidStatus");
+
+            // ReviewerKey
+            builder.Entity<ReviewerKey>(rk =>
+            {
+                rk.ToTable("ReviewerKeys");
+
+                // one row per PGP identity
+                rk.HasIndex(x => x.Fingerprint).IsUnique();
+
+                rk.Property(x => x.Fingerprint)
+                  .HasMaxLength(64)
+                  .IsRequired();
+
+                rk.Property(x => x.PublicKeyBlock)
+                  .HasColumnType("nvarchar(max)")
+                  .IsRequired();
+
+                rk.Property(x => x.Alias)
+                  .HasMaxLength(64);
+            });
+
+            // DirectoryEntryReview (no FK to ReviewerKey; uses AuthorFingerprint)
+            builder.Entity<DirectoryEntryReview>(r =>
+            {
+                r.ToTable("DirectoryEntryReviews");
+
+                // lookups & moderation queue
+                r.HasIndex(x => x.DirectoryEntryId);
+                r.HasIndex(x => new { x.DirectoryEntryId, x.ModerationStatus });
+
+                // author lookups
+                r.HasIndex(x => x.AuthorFingerprint);
+
+                // relationship to DirectoryEntry
+                r.HasOne(x => x.DirectoryEntry)
+                 .WithMany() // add .WithMany(e => e.Reviews) if you later add a nav on DirectoryEntry
+                 .HasForeignKey(x => x.DirectoryEntryId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                // concurrency token (since you have [Timestamp])
+                r.Property(x => x.RowVersion).IsRowVersion();
+            });
+        }
+
+        object IApplicationDbContext.Set<T>()
+        {
+            var method = typeof(DbContext)
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .First(m => m.Name == "Set"
+                            && m.IsGenericMethodDefinition
+                            && m.GetGenericArguments().Length == 1
+                            && m.GetParameters().Length == 0);
+
+            var generic = method.MakeGenericMethod(typeof(T));
+            return generic.Invoke(this, null)!; // returns DbSet<T>
         }
 
         private void SetDates()

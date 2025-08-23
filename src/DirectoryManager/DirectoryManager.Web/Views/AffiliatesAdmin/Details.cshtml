@@ -1,0 +1,126 @@
+﻿@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Enums
+@model List<DirectoryManager.Data.Models.Affiliates.AffiliateCommission>
+@{
+    ViewData[StringConstants.TitleHeader] = "Affiliate Details";
+    Layout = "_CenteredLayout";
+    var acct = ViewBag.Account as DirectoryManager.Data.Models.Affiliates.AffiliateAccount;
+}
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+
+    @await Html.PartialAsync("_AdminMenu")
+
+@if (acct != null)
+{
+        <div class="table-wrapper">
+    <table class="table table-borderless">
+        <tr><th>Referral Code</th><td>@acct.ReferralCode</td></tr>
+        <tr><th>Wallet</th><td>@acct.WalletAddress</td></tr>
+        <tr><th>Payout Currency</th><td>@acct.PayoutCurrency</td></tr>
+        @if (!string.IsNullOrWhiteSpace(acct.Email))
+        {
+            <tr><th>Email</th><td>@acct.Email</td></tr>
+        }
+            <tr><th>Created</th><td>@acct.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td></tr>
+            <tr><th>Updated</th><td>@(acct.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) ?? "-")</td></tr>
+    </table>
+    </div>
+}
+
+<h3>Commissions</h3>
+@if (Model?.Any() ?? false)
+{
+        <div class="table-wrapper">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Commission Id</th>
+                <th>Invoice Id</th>
+                <th>Amount Due</th>
+                <th>Currency</th>
+                <th>Status</th>
+                <th>Tx Id</th>
+                <th>Created</th>
+                <th>Updated</th>
+                <th>Update</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var c in Model)
+        {
+            <tr>
+                <td>@c.AffiliateCommissionId</td>
+                <td>@c.SponsoredListingInvoiceId</td>
+                <td>@c.AmountDue</td>
+                <td>@c.PayoutCurrency</td>
+                <td>@c.PayoutStatus</td>
+                <td>@(string.IsNullOrWhiteSpace(c.PayoutTransactionId) ? "-" : c.PayoutTransactionId)</td>
+                <td>@c.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                        <td>@(c.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) ?? "-")</td>
+                <td>
+                            <form method="post"
+                                  asp-controller="AffiliatesAdmin"
+                                  asp-action="UpdateCommission"
+                                  asp-route-id="@c.AffiliateCommissionId">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@c.AffiliateCommissionId" />
+                   
+                                <select name="payoutStatus" class="form-select">
+                                    @{
+                                        var s = c.PayoutStatus;
+                                    }
+                                    @if (s == DirectoryManager.Data.Enums.CommissionPayoutStatus.Unknown)
+                                    {
+                                        <option value="Unknown" selected>Unknown</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="Unknown">Unknown</option>
+                                    }
+
+                                    @if (s == DirectoryManager.Data.Enums.CommissionPayoutStatus.Pending)
+                                    {
+                                        <option value="Pending" selected>Pending</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="Pending">Pending</option>
+                                    }
+
+                                    @if (s == DirectoryManager.Data.Enums.CommissionPayoutStatus.Paid)
+                                    {
+                                        <option value="Paid" selected>Paid</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="Paid">Paid</option>
+                                    }
+
+                                    @if (s == DirectoryManager.Data.Enums.CommissionPayoutStatus.Canceled)
+                                    {
+                                        <option value="Canceled" selected>Canceled</option>
+                                    }
+                                    else
+                                    {
+                                        <option value="Canceled">Canceled</option>
+                                    }
+                                </select>
+
+                        <input name="payoutTransactionId" class="form-control" value="@c.PayoutTransactionId" placeholder="Tx Id (optional)" />
+                        <button type="submit" class="btn btn-sm btn-primary mt-1">Save</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    </div>
+}
+else
+{
+    <p><em>No commissions yet.</em></p>
+}
+<a class="app-link" href="~/admin/affiliates">Back</a>
+}

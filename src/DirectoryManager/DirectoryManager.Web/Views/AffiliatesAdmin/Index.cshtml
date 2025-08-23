@@ -1,0 +1,72 @@
+﻿@model List<DirectoryManager.Data.Models.Affiliates.AffiliateAccount>
+@using DirectoryManager.Web.Constants
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Affiliates";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+
+    @await Html.PartialAsync("_AdminMenu")
+
+    <form method="post" action="~/admin/affiliates/find">
+        
+        <label>Find by referral code:</label>
+        <input type="text" name="referralCode" />
+        <button type="submit">Find</button>
+    </form>
+
+    <br />
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="text-danger">
+            @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <div>@err.ErrorMessage</div>
+            }
+        </div>
+        <br />
+    }
+
+    <h3>All affiliates (@Model.Count)</h3>
+
+    @if (Model.Count == 0)
+    {
+        <p><em>No affiliates yet.</em></p>
+    }
+    else
+    {    <div class="table-wrapper">
+        <table class="table table-striped table-sm">
+            <thead>
+                <tr>
+                    <th>Referral Code</th>
+                    <th>Wallet</th>
+                    <th>Payout Currency</th>
+                    <th>Email</th>
+                    <th>Created</th>
+                    <th>Updated</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var a in Model)
+                {
+                    <tr>
+                        <td>@a.ReferralCode</td>
+                        <td>@a.WalletAddress</td>
+                        <td>@a.PayoutCurrency</td>
+                        <td>@(string.IsNullOrWhiteSpace(a.Email) ? "-" : a.Email)</td>
+                        <td>@a.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                        <td>@(a.UpdateDate.HasValue? a.UpdateDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) : "-")</td>
+                        <td><a href="~/admin/affiliates/@a.AffiliateAccountId">Details</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        </div>
+    }
+}

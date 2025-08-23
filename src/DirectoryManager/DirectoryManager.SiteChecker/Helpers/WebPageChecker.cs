@@ -31,6 +31,12 @@ namespace DirectoryManager.SiteChecker.Helpers
                     return true;
                 }
 
+                var webServerDownStatusCode = 521;
+                if ((int)headResp.StatusCode == webServerDownStatusCode)
+                {
+                    return false;
+                }
+
                 // otherwise (including 404, 4xx, 5xx) fall through to GET
             }
             catch (HttpRequestException hre) when (hre.StatusCode == HttpStatusCode.MethodNotAllowed)
@@ -67,7 +73,7 @@ namespace DirectoryManager.SiteChecker.Helpers
             {
                 using var ping = new Ping();
                 var result = await ping
-                    .SendPingAsync(uri.Host, 1000)
+                    .SendPingAsync(uri.Host, TimeSpan.FromSeconds(1))
                     .ConfigureAwait(false);
                 return result.Status == IPStatus.Success;
             }

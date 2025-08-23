@@ -3,8 +3,10 @@ using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.DisplayFormatting.Models;
+using DirectoryManager.Utilities;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Utilities.Validation;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
@@ -12,6 +14,7 @@ using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
@@ -28,7 +31,6 @@ namespace DirectoryManager.Web.Controllers
         private readonly ICacheService cacheHelper;
         private readonly ITagRepository tagRepo;
         private readonly IDirectoryEntryTagRepository entryTagRepo;
-
 
         public SubmissionController(
             UserManager<ApplicationUser> userManager,
@@ -75,7 +77,7 @@ namespace DirectoryManager.Web.Controllers
                 model = GetSubmissionCreateModel(submission);
             }
 
-            await this.LoadSubCategories();
+            await this.LoadDropDowns();
 
             return this.View(model);
         }
@@ -86,17 +88,26 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!UrlHelper.IsValidUrl(model.Link))
             {
-                this.ModelState.AddModelError("Link", "The link is not a valid URL.");
+                this.ModelState.AddModelError(nameof(model.Link), "The link is not a valid URL.");
             }
 
             if (!string.IsNullOrWhiteSpace(model.Link2) && !UrlHelper.IsValidUrl(model.Link2))
             {
-                this.ModelState.AddModelError("Link2", "The link 2 is not a valid URL.");
+                this.ModelState.AddModelError(nameof(model.Link2), "The link 2 is not a valid URL.");
             }
 
             if (!string.IsNullOrWhiteSpace(model.Link3) && !UrlHelper.IsValidUrl(model.Link3))
             {
-                this.ModelState.AddModelError("Link3", "The link 3 is not a valid URL.");
+                this.ModelState.AddModelError(nameof(model.Link3), "The link 3 is not a valid URL.");
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.PgpKey) &&
+                !PgpKeyValidator.IsValid(model.PgpKey))
+            {
+                this.ModelState.AddModelError(
+                    nameof(model.PgpKey),
+                    "The PGP public key block you entered is not valid. " +
+                    "Please supply a valid ASCII-armored PGP public key.");
             }
 
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
@@ -113,10 +124,9 @@ namespace DirectoryManager.Web.Controllers
             }
             else
             {
-                await this.LoadSubCategories();
+                await this.LoadDropDowns();
+                return this.View("SubmitEdit", model);
             }
-
-            return this.View("SubmitEdit", model);
         }
 
         [AllowAnonymous]
@@ -148,7 +158,8 @@ namespace DirectoryManager.Web.Controllers
 
             // load existing tags for this entry
             var entryTags = await this.entryTagRepo.GetTagsForEntryAsync(id);
-            var tagCsv = string.Join(", ",
+            var tagCsv = string.Join(
+                ", ",
                 entryTags
                   .OrderBy(et => et.Name, StringComparer.OrdinalIgnoreCase)
                   .Select(et => et.Name));
@@ -158,9 +169,10 @@ namespace DirectoryManager.Web.Controllers
             model.Tags = tagCsv;
 
             await this.SetSelectSubCategoryViewBag();
+            await this.LoadDropDowns();
+
             return this.View("SubmitEdit", model);
         }
-
 
         [AllowAnonymous]
         [HttpGet("submission/findexisting")]
@@ -176,8 +188,8 @@ namespace DirectoryManager.Web.Controllers
             entries = entries.OrderBy(e => e.Name)
                              .ToList();
 
-            this.ViewBag.SubCategories = (await this.subCategoryRepository.GetAllAsync())
-                                    .OrderBy(sc => sc.Category.Name)
+            this.ViewBag.SubCategories = (await this.subCategoryRepository.GetAllDtoAsync())
+                                    .OrderBy(sc => sc.CategoryName)
                                     .ThenBy(sc => sc.Name)
                                     .ToList();
 
@@ -270,7 +282,8 @@ namespace DirectoryManager.Web.Controllers
                         .GetTagsForEntryAsync(existing.DirectoryEntryId);
 
                     // 2) set submission.Tags so the UI shows them
-                    existing.Tags = string.Join(", ",
+                    existing.Tags = string.Join(
+                        ", ",
                         existingTags
                             .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
                             .Select(t => t.Name));
@@ -281,11 +294,11 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
+            await this.LoadDropDowns();
             await this.SetSelectSubCategoryViewBag();
 
             return this.View(submission);
         }
-
 
         [Authorize]
         [HttpPost("submission/{id}")]
@@ -356,7 +369,7 @@ namespace DirectoryManager.Web.Controllers
                     foreach (var name in names)
                     {
                         // get or create the Tag row
-                        var tag = await this.tagRepo.GetByNameAsync(name)
+                        var tag = await this.tagRepo.GetByKeyAsync(name.UrlKey())
                                ?? await this.tagRepo.CreateAsync(name);
 
                         // link it
@@ -369,13 +382,13 @@ namespace DirectoryManager.Web.Controllers
 
             // 4) store the admin’s final status & tags on the submission record
             submission.SubmissionStatus = model.SubmissionStatus;
+            submission.CountryCode = model.CountryCode;
             submission.Tags = model.Tags?.Trim();
 
             await this.submissionRepository.UpdateAsync(submission);
 
             return this.RedirectToAction(nameof(this.Index));
         }
-
 
         [Authorize]
         [HttpGet("submission/delete/{id}")]
@@ -430,7 +443,9 @@ namespace DirectoryManager.Web.Controllers
                 Processor = directoryEntry.Processor,
                 SubCategoryId = directoryEntry.SubCategoryId,
                 DirectoryEntryId = directoryEntry.DirectoryEntryId,
-                DirectoryStatus = directoryEntry.DirectoryStatus
+                DirectoryStatus = directoryEntry.DirectoryStatus,
+                CountryCode = directoryEntry.CountryCode,
+                PgpKey = directoryEntry.PgpKey
             };
         }
 
@@ -452,7 +467,8 @@ namespace DirectoryManager.Web.Controllers
                 Note = submission.Note,
                 Processor = submission.Processor,
                 SuggestedSubCategory = submission.SuggestedSubCategory,
-                Tags = submission.Tags
+                Tags = submission.Tags,
+                CountryCode = submission.CountryCode
             };
         }
 
@@ -486,17 +502,17 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task SetSelectSubCategoryViewBag()
         {
-            var subCategories = (await this.subCategoryRepository.GetAllAsync())
-              .OrderBy(sc => sc.Category.Name)
+            var subCategories = (await this.subCategoryRepository.GetAllDtoAsync())
+              .OrderBy(sc => sc.CategoryName)
               .ThenBy(sc => sc.Name)
               .Select(sc => new
               {
-                  sc.SubCategoryId,
-                  DisplayName = $"{sc.Category.Name} > {sc.Name}"
+                  sc.SubcategoryId,
+                  DisplayName = $"{sc.CategoryName} > {sc.Name}"
               })
               .ToList();
 
-            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
+            subCategories.Insert(0, new { SubcategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
 
             this.ViewBag.SubCategories = subCategories;
         }
@@ -533,7 +549,8 @@ namespace DirectoryManager.Web.Controllers
                     Note = submission.Note,
                     Processor = submission.Processor,
                     SubCategoryId = submission.SubCategoryId,
-                    Tags = submission?.Tags?.Split(",").ToList()
+                    Tags = submission?.Tags?.Split(",").ToList(),
+                    CountryCode = submission?.CountryCode
                 },
                 SubmissionId = submission.SubmissionId,
                 NoteToAdmin = submission.NoteToAdmin,
@@ -605,6 +622,26 @@ namespace DirectoryManager.Web.Controllers
                 });
         }
 
+        private async Task PopulateCountryDropDownList(object selectedId = null)
+        {
+            // Get the dictionary of countries from the helper.
+            var countries = CountryHelper.GetCountries();
+
+            countries = countries.OrderBy(x => x.Value).ToDictionary<string, string>();
+
+            // Build a list of SelectListItem from the dictionary.
+            var list = countries.Select(c => new SelectListItem
+            {
+                Value = c.Key,
+                Text = c.Value
+            }).ToList();
+
+            // Insert default option at the top.
+            list.Insert(0, new SelectListItem { Value = "", Text = StringConstants.SelectText });
+            this.ViewBag.CountryCode = new SelectList(list, "Value", "Text", selectedId);
+            await Task.CompletedTask; // For async signature compliance.
+        }
+
         private async Task AssignExistingProperties(Submission submissionModel, int existingDirectoryEntryId)
         {
             var existingDirectoryEntry = await this.directoryEntryRepository.GetByIdAsync(existingDirectoryEntryId);
@@ -616,12 +653,20 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
+        private async Task LoadDropDowns()
+        {
+            await this.LoadSubCategories();
+            await this.PopulateCountryDropDownList();
+        }
+
         private async Task CreateDirectoryEntry(Submission model)
         {
             if (model.SubCategoryId == null)
             {
                 throw new NullReferenceException(nameof(model.SubCategoryId));
             }
+
+            var status = (DirectoryStatus)(model.DirectoryStatus == null ? DirectoryStatus.Admitted : model.DirectoryStatus);
 
             await this.directoryEntryRepository.CreateAsync(
                 new DirectoryEntry
@@ -636,9 +681,11 @@ namespace DirectoryManager.Web.Controllers
                     Processor = model.Processor?.Trim(),
                     Note = model.Note?.Trim(),
                     Contact = model.Contact?.Trim(),
-                    DirectoryStatus = DirectoryStatus.Admitted,
+                    DirectoryStatus = status,
                     SubCategoryId = model.SubCategoryId.Value,
-                    CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty
+                    CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty,
+                    CountryCode = model.CountryCode,
+                    PgpKey = model.PgpKey?.Trim(),
                 });
         }
 
@@ -665,6 +712,8 @@ namespace DirectoryManager.Web.Controllers
             existing.Processor = model.Processor?.Trim();
             existing.Note = model.Note?.Trim();
             existing.Contact = model.Contact?.Trim();
+            existing.CountryCode = model.CountryCode;
+            existing.PgpKey = model.PgpKey?.Trim();
 
             if (model.DirectoryStatus != null)
             {
@@ -699,24 +748,25 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryId = (model.DirectoryEntryId == 0) ? null : model.DirectoryEntryId,
                 DirectoryStatus = (model.DirectoryStatus == null) ? DirectoryStatus.Unknown : model.DirectoryStatus,
                 NoteToAdmin = model.NoteToAdmin,
-                Tags = model.Tags?.Trim()
+                Tags = model.Tags?.Trim(),
+                CountryCode = model.CountryCode
             };
             return submission;
         }
 
         private async Task LoadSubCategories()
         {
-            var subCategories = (await this.subCategoryRepository.GetAllAsync())
-                .OrderBy(sc => sc.Category.Name)
+            var subCategories = (await this.subCategoryRepository.GetAllDtoAsync())
+                .OrderBy(sc => sc.CategoryName)
                 .ThenBy(sc => sc.Name)
                 .Select(sc => new
                 {
-                    sc.SubCategoryId,
-                    DisplayName = $"{sc.Category.Name} > {sc.Name}"
+                    sc.SubcategoryId,
+                    DisplayName = $"{sc.CategoryName} > {sc.Name}"
                 })
                 .ToList();
 
-            subCategories.Insert(0, new { SubCategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
+            subCategories.Insert(0, new { SubcategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
 
             this.ViewBag.SubCategories = subCategories;
         }
@@ -739,6 +789,8 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.Processor = submissionModel.Processor;
             existingSubmission.SubCategoryId = submissionModel.SubCategoryId;
             existingSubmission.SuggestedSubCategory = submissionModel.SuggestedSubCategory;
+            existingSubmission.CountryCode = submissionModel.CountryCode;
+            existingSubmission.PgpKey = submissionModel.PgpKey;
 
             await this.submissionRepository.UpdateAsync(existingSubmission);
         }
@@ -808,6 +860,16 @@ namespace DirectoryManager.Web.Controllers
             }
 
             if (existingEntry.DirectoryStatus != model.DirectoryStatus)
+            {
+                return true;
+            }
+
+            if (existingEntry.CountryCode != model.CountryCode)
+            {
+                return true;
+            }
+
+            if (existingEntry.PgpKey != model.PgpKey)
             {
                 return true;
             }

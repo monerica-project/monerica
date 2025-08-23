@@ -100,6 +100,9 @@ async Task CreateOfflineSubmissionIfNotExists(
         Location = entry.Location,
         Processor = entry.Processor,
         SubCategory = entry.SubCategory,
+        CountryCode = entry.CountryCode,
+        NoteToAdmin = "(automated submission)",
+        PgpKey = entry.PgpKey,
     };
 
     await submissionRepository.CreateAsync(submission);
@@ -134,8 +137,6 @@ async Task CheckAndSubmitAsync(
     {
         // load the entry *from this scope’s* repo
         var dirEntry = await scopedEntriesRepo.GetByIdAsync(entry.DirectoryEntryId);
-        await CreateOfflineSubmissionIfNotExists(
-        dirEntry,
-        scopedSubmissionRepo);
+        await CreateOfflineSubmissionIfNotExists(dirEntry, scopedSubmissionRepo);
     }
 }

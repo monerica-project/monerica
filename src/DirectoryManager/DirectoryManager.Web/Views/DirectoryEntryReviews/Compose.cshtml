@@ -1,0 +1,54 @@
+﻿@model DirectoryManager.Web.Models.CreateDirectoryEntryReviewInputModel
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Leave a Review – Compose";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    <p><b>Listing:</b> @ViewBag.DirectoryEntryName</p>
+    <p><b>Verified PGP fingerprint:</b> @ViewBag.PgpFingerprint</p>
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <form asp-action="ComposePost" asp-controller="DirectoryEntryReviews" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+        <input type="hidden" asp-for="DirectoryEntryId" />
+
+        <div class="mb-3">
+            <label asp-for="Rating" class="form-label">Rating (1–5)</label><br />
+            <select id="Rating" name="Rating" class="form-select">
+                @{
+                    var current = (int)(Model?.Rating ?? (byte)5);
+                }
+                @for (var i = 1; i <= 5; i++)
+                {
+                    if (i == current)
+                    {
+                        <option value="@i" selected>@i</option>
+                    }
+                    else
+                    {
+                        <option value="@i">@i</option>
+                    }
+                }
+            </select>
+
+            <span asp-validation-for="Rating" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="Body" class="form-label">Your Review</label><br />
+            <textarea asp-for="Body" class="form-control" rows="8"></textarea>
+            <span asp-validation-for="Body" class="text-danger"></span>
+        </div>
+
+        <p class="text-muted"><i>Reviews are moderated before appearing publicly.</i></p>
+
+        <button type="submit" class="btn btn-success">Submit Review</button>
+    </form>
+}

@@ -1,11 +1,15 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Migrations;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Enums;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.DisplayFormatting.Models;
+using DirectoryManager.Utilities.Helpers;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
@@ -13,7 +17,7 @@ namespace DirectoryManager.Web.Controllers
     [Route("tagged")]
     public class TagController : Controller
     {
-        private const int PageSize = 10;
+        private const int PageSize = Constants.IntegerConstants.MaxPageSize;
         private readonly ITagRepository tagRepo;
         private readonly IDirectoryEntryTagRepository entryTagRepo;
         private readonly ICacheService cacheService;
@@ -28,7 +32,37 @@ namespace DirectoryManager.Web.Controllers
             this.cacheService = cacheService;
         }
 
+        [AllowAnonymous]
+        [HttpGet("")]
+        [HttpGet("page/{page:int}")]
+        public async Task<IActionResult> All(int page = 1)
+        {
+            var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var path = page > 1
+                ? $"tagged/page/{page}"
+                : "tagged";
+
+            // set the full canonical URL
+            this.ViewData[StringConstants.CanonicalUrl] =
+                UrlBuilder.CombineUrl(canonicalDomain, path);
+
+            var pageSize = Constants.IntegerConstants.MaxPageSize;
+            var paged = await this.tagRepo
+                .ListTagsWithCountsPagedAsync(page, pageSize)
+                .ConfigureAwait(false);
+
+            var vm = new TagListViewModel
+            {
+                PagedTags = paged,
+                CurrentPage = page,
+                PageSize = pageSize
+            };
+
+            return this.View("AllTags", vm);
+        }
+
         [HttpGet("{tagSlug}")]
+        [HttpGet("{tagSlug}/page/{page:int}")]
         public async Task<IActionResult> Index(string tagSlug, int page = 1)
         {
             if (string.IsNullOrWhiteSpace(tagSlug))
@@ -36,11 +70,20 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var tag = await this.tagRepo.GetBySlugAsync(tagSlug);
+            var tag = await this.tagRepo.GetByKeyAsync(tagSlug);
             if (tag == null)
             {
                 return this.NotFound();
             }
+
+            // build canonical URL
+            var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var basePath = $"tagged/{tagSlug}";
+            var path = page > 1
+                ? $"{basePath}/page/{page}"
+                : basePath;
+            this.ViewData[StringConstants.CanonicalUrl] =
+                UrlBuilder.CombineUrl(canonicalDomain, path);
 
             // get the paged raw entries
             var paged = await this.entryTagRepo.ListEntriesForTagPagedAsync(

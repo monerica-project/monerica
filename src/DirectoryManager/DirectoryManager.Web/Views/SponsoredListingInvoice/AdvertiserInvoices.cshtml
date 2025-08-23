@@ -1,0 +1,75 @@
+﻿@model DirectoryManager.Web.Models.Reports.AdvertiserInvoiceListViewModel
+@using DirectoryManager.Web.Constants
+
+@{
+    ViewData[StringConstants.TitleHeader] = $"Invoices for {Model.DirectoryEntryName}";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+
+    @await Html.PartialAsync("_ReportMenu")
+
+    <hr />
+
+    <p><strong>Total paid all time:</strong> @Model.TotalPaidAllTime.ToString("C")</p>
+
+    <div class="table-wrapper">
+
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Invoice ID</th>
+                <th>Amount (USD)</th>
+                <th>Avg USD/Day</th>
+                <th>Type</th>
+                <th>Start</th>
+                <th>End</th>
+                <th>Details</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var invoice in Model.Rows)
+            {
+                <tr>
+                    <td>@invoice.SponsoredListingInvoiceId</td>
+                    <td>@invoice.Amount.ToString("C")</td>
+                    <td>@invoice.AvgUsdPerDay.ToString("0.00")</td>
+                    <td>@invoice.SponsorshipType</td>
+                    <td>@invoice.CampaignStartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                    <td>@invoice.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                    <td>
+                        <a 
+                           href="@Url.Action("details", "sponsoredlistinginvoice", new { id = invoice.SponsoredListingInvoiceId })">
+                            View
+                        </a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    </div>
+
+    @if (Model.TotalCount > Model.PageSize)
+    {
+        var totalPages = (int)Math.Ceiling((double)Model.TotalCount / Model.PageSize);
+        <nav>
+            <ul class="pagination">
+                @for (var p = 1; p <= totalPages; p++)
+                {
+                    <li class="page-item @(p == Model.Page ? "active" : "")">
+                        <a class="page-link"
+                           href="@Url.Action("Advertiser", "SponsoredListingInvoice", new { directoryEntryId = Model.DirectoryEntryId, page = p, pageSize = Model.PageSize })">
+                            @p
+                        </a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+}

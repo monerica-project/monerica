@@ -195,6 +195,29 @@ namespace NowPayments.API.Implementations
             }
         }
 
+        public async Task<CurrencyEstimateResponse> GetEstimatedConversionAsync(decimal amount, string fromCurrency, string toCurrency)
+        {
+            string url = $"{StringConstants.ApiUrl}/estimate?amount={amount:0.0000}&currency_from={fromCurrency}&currency_to={toCurrency}";
+
+            var request = new HttpRequestMessage(HttpMethod.Get, url);
+            request.Headers.Add("x-api-key", this.apiKey);
+
+            try
+            {
+                var response = await this.client.SendAsync(request);
+                response.EnsureSuccessStatusCode();
+
+                var content = await response.Content.ReadAsStringAsync();
+                var estimate = JsonConvert.DeserializeObject<CurrencyEstimateResponse>(content);
+
+                return estimate;
+            }
+            catch (Exception ex)
+            {
+                throw new InvalidOperationException("Failed to parse estimate response.", ex.InnerException);
+            }
+        }
+
         private static string CalculateHMAC(string data, string secret)
         {
             using var hmac = new HMACSHA512(Encoding.UTF8.GetBytes(secret));

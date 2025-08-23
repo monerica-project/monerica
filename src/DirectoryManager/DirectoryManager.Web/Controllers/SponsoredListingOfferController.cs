@@ -76,7 +76,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
-
         [Route("sponsoredlistingoffer/create")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -84,10 +83,18 @@ namespace DirectoryManager.Web.Controllers
         {
             if (this.ModelState.IsValid)
             {
-                sponsoredListingOffer.PriceCurrency = Data.Enums.Currency.USD;
-                await this.sponsoredListingOfferRepository
-                         .CreateAsync(sponsoredListingOffer)
-                         .ConfigureAwait(false);
+                try
+                {
+                    sponsoredListingOffer.PriceCurrency = Data.Enums.Currency.USD;
+                    await this.sponsoredListingOfferRepository
+                             .CreateAsync(sponsoredListingOffer)
+                             .ConfigureAwait(false);
+                }
+                catch
+                {
+                    return this.BadRequest("Check if the same days and type have been created");
+                }
+
                 return this.RedirectToAction(nameof(this.Index));
             }
 

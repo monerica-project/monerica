@@ -1,0 +1,29 @@
+﻿@model DirectoryManager.Web.Models.Affiliates.AffiliateCommissionLookupInputModel
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Check Commissions";
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <form method="post" asp-controller="Affiliates" asp-action="Commissions">
+        @Html.AntiForgeryToken()
+
+        <div class="mb-3">
+            <label asp-for="ReferralCode" class="form-label">Referral Code</label><br />
+            <input asp-for="ReferralCode" class="form-control" />
+            <span asp-validation-for="ReferralCode" class="text-danger"></span>
+        </div>
+
+        <div class="mb-3">
+            <label asp-for="WalletAddress" class="form-label">Wallet Address</label><br />
+            <input asp-for="WalletAddress" class="form-control" />
+            <span asp-validation-for="WalletAddress" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Lookup</button>
+    </form>
+}

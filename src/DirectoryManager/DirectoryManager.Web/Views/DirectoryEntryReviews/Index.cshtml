@@ -1,0 +1,67 @@
+﻿// DirectoryManager.Web/Views/DirectoryEntryReviews/Index.cshtml
+@using DirectoryManager.Data.Models
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+@model IEnumerable<DirectoryEntryReview>
+
+@{
+    ViewData["Title"] = "Directory Entry Reviews";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="top-section search-section search-top-align">
+        @await Html.PartialAsync("_SearchForm")
+    </div>
+
+    <div class="container py-4">
+        <h1 class="mb-3">Directory Entry Reviews</h1>
+        <hr />
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a class="no-app-link" href="@UrlResolver.ResolveToRoot("/")">Home</a></li>
+                <li class="breadcrumb-item" aria-current="page">Reviews</li>
+            </ol>
+        </nav>
+
+        <p>
+            <a class="btn btn-primary" asp-action="Create">New Review</a>
+        </p>
+
+        <div class="card">
+            <div class="card-body p-0">
+                <table class="table table-striped mb-0">
+                    <thead>
+                        <tr>
+                            <th>Id</th>
+                            <th>Entry Id</th>
+                            <th>Rating</th>
+                            <th>Created</th>
+                            <th>Updated</th>
+                            <th style="width:160px;"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in Model)
+                        {
+                            <tr>
+                                <td>@r.DirectoryEntryReviewId</td>
+                                <td>@r.DirectoryEntryId</td>
+                                <td>@r.Rating</td>
+                                <td>@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                                <td>@(r.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))</td>
+                                <td>
+                                    <a asp-action="Details" asp-route-id="@r.DirectoryEntryReviewId">Details</a> |
+                                    <a asp-action="Edit" asp-route-id="@r.DirectoryEntryReviewId">Edit</a> |
+                                    <a asp-action="Delete" asp-route-id="@r.DirectoryEntryReviewId">Delete</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <hr />
+        @await Html.PartialAsync("_SponsoredListingPartial")
+    </div>
+}

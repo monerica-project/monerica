@@ -2,21 +2,11 @@
 @using DirectoryManager.Data.Models
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @model DirectoryEntry
+@using DirectoryManager.Data.Models.TransferModels
 @using DirectoryManager.Web.Constants;
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
-@{
-    var orderedSubCategories = ((IEnumerable<Subcategory>)ViewBag.SubCategories)
-                                    .OrderBy(sc => sc.Category.Name)
-                                    .ThenBy(sc => sc.Name)
-                                    .Select(sc => new
-                                    {
-                                        SubCategoryId = sc.SubCategoryId,
-                                        DisplayName = $"{sc.Category.Name} > {sc.Name}"
-                                    });
 
-    ViewBag.SubCategories = orderedSubCategories; // Populate ViewBag with ordered subcategories
-}
 @{
     Layout = "_CenteredLayout";
 }

@@ -1,67 +1,97 @@
 ﻿@model DirectoryManager.Web.Models.HtmlSiteMapModel
-@using DirectoryManager.Data.Enums;
-@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Repositories.Interfaces
+@using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Helpers
 @using DirectoryManager.Web.Models
-@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@using DirectoryManager.Web.Services.Interfaces
+@inject ICacheService cacheHelper
+@inject ICategoryRepository categoryRepo
+@inject ISubcategoryRepository subCatRepo
+@inject IUrlResolutionService urlResolver
 
 @{
     Layout = "_CenteredLayout";
-}
+    ViewData[StringConstants.TitleHeader] = $"{cacheHelper.GetSnippet(SiteConfigSetting.SiteName)}: Sitemap";
 
-
-@section PageContent {
-
-
-@{
-    ViewData[StringConstants.TitleHeader] = string.Format("{0}: Sitemap", cacheHelper.GetSnippet(SiteConfigSetting.SiteName));
-    var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
-
-    // Build your breadcrumb list dynamically based on page context
-    var breadcrumbs = new List<BreadcrumbItem>
-    {
-        new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") }
+    // build breadcrumb JSON
+    var breadcrumbs = new List<BreadcrumbItem> {
+        new BreadcrumbItem {
+            Position = 1,
+            Name     = "Home",
+            Url      = urlResolver.ResolveToApp("/")          // <-- use Resolve
+        }
     };
 }
-
 @BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
 
-<h1>Sitemap : @StringConstants.AllCategories</h1>
-<hr />
+@section PageContent {
+    <h1>Sitemap: @StringConstants.AllCategories</h1>
+    <hr />
 
-<nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-            <a class="no-app-link" href="~/">Home</a>
-        </li>
-        <li class="breadcrumb-item" aria-current="page">
-            <span>@StringConstants.AllCategories</span>
-        </li>
-    </ol>
-</nav>
- 
-@if (Model.SectionPages.Count > 0)
-{
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a class="no-app-link"
+                   href="@urlResolver.ResolveToApp("/")">Home</a>
+            </li>
+            <li class="breadcrumb-item" aria-current="page">
+                <span>@StringConstants.AllCategories</span>
+            </li>
+        </ol>
+    </nav>
+
+    @{
+        // load categories & subs
+        var cats = await categoryRepo.GetActiveCategoriesAsync();
+        var subsByCat = new Dictionary<int, List<Subcategory>>();
+        foreach (var c in cats)
+        {
+            subsByCat[c.CategoryId] =
+                (await subCatRepo.GetActiveSubcategoriesAsync(c.CategoryId))
+                .ToList();
+        }
+    }
+
     <section>
-        <div class="container">
-            <div class="row">
-                <div class="col-md-12">
-                    <ul>
-                        @foreach (var item in Model.SectionPages)
+        <h2>Categories &amp; Subcategories</h2>
+        <ul>
+            @foreach (var cat in cats.OrderBy(c => c.Name))
+            {
+                // resolve to “/CategoryKey”
+                var catHref = urlResolver.ResolveToRoot($"/{cat.CategoryKey}");
+                <li>
+                    <strong>
+                        <a class="no-app-link" href="@catHref">
+                            @cat.Name
+                        </a>
+                    </strong>
+
+                    @{
+                        var subs = subsByCat[cat.CategoryId];
+                        if (subs.Any())
                         {
-                            <li>
-                                <a class="no-app-link" title="@item.AnchorText" href="@item.CanonicalUrl">@item.AnchorText</a>                            
-                            </li>
+                            <ul>
+                                @foreach (var sub in subs.OrderBy(s => s.Name))
+                                {
+                                    // resolve to “/CategoryKey/SubCategoryKey”
+                                    var subHref = urlResolver.ResolveToRoot(
+                                    $"/{cat.CategoryKey}/{sub.SubCategoryKey}");
+                                    <li>
+                                        <a class="no-app-link" href="@subHref">
+                                            @sub.Name
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
                         }
+                    }
+                </li>
+            }
+        </ul>
+    </section>
 
-                    </ul>
-                </div>
-            </div>
-        </div>
-     </section>
-}
-
-<hr />
-
-@await Html.PartialAsync("_SponsoredListingPartial")
+    <hr />
+    @await Html.PartialAsync("_SponsoredListingPartial")
 }

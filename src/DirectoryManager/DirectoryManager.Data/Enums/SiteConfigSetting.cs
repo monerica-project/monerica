@@ -42,6 +42,7 @@
         CategorySponsoredListingDetails = 37,
         SponsoredListingSteps = 38,
         AppDomain = 39,
-        TextIntro = 40
+        TextIntro = 40,
+        FAQHtml = 41
     }
 }

@@ -4,10 +4,14 @@
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Helpers
 @using DirectoryManager.Web.Models
+@using DirectoryManager.Web.Services.Interfaces
 @model DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @inject ICategoryRepository categoryRepo
 @inject ISubcategoryRepository subCatRepo
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+@inject IUrlResolutionService Urls
+
 @{
     ViewData["Title"] = Model.Name;
     var categoryKey = ViewBag.CategoryKey as string;
@@ -15,10 +19,13 @@
     var categoryName = ViewBag.CategoryName as string;
     var subCategoryName = ViewBag.SubCategoryName as string;
 
+    ViewData["CurrentCategoryKey"] = categoryKey;
+    ViewData["CurrentSubCategoryKey"] = subCategoryKey;
+
     // Determine which links to use based on the availability of "A" versions
-    var finalLink = !string.IsNullOrEmpty(Model.LinkA) ? Model.LinkA : Model.Link;
-    var finalLink2 = !string.IsNullOrEmpty(Model.Link2A) ? Model.Link2A : Model.Link2;
-    var finalLink3 = !string.IsNullOrEmpty(Model.Link3A) ? Model.Link3A : Model.Link3;
+    var finalLink = !string.IsNullOrEmpty(Model.LinkA) && !Model.IsSponsored ? Model.LinkA : Model.Link;
+    var finalLink2 = !string.IsNullOrEmpty(Model.Link2A) && !Model.IsSponsored ? Model.Link2A : Model.Link2;
+    var finalLink3 = !string.IsNullOrEmpty(Model.Link3A) && !Model.IsSponsored ? Model.Link3A : Model.Link3;
     var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
 
     // Build your breadcrumb list dynamically based on page context
@@ -31,136 +38,184 @@
     };
 }
 
+
 @{
-    // build nav VM
-    var cats = await categoryRepo.GetActiveCategoriesAsync();
-    var lookup = new Dictionary<int, List<Subcategory>>();
-    foreach (var c in cats)
-        lookup[c.CategoryId] = (await subCatRepo.GetActiveSubCategoriesAsync(c.CategoryId)).ToList();
-
-    var navModel = new NavigationViewModel
-    {
-        Categories = cats,
-        SubsByCategory = lookup,
-        CurrentCategoryKey = Model?.SubCategory?.Category.CategoryKey,
-        CurrentSubCategoryKey = Model?.SubCategory?.SubCategoryKey
-    };
-
-    ViewData["NavModel"] = navModel;
     Layout = "_LayoutWithNav";
 }
- 
-@BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
 
- @section PageContent {
 
-    <div class="top-section search-section search-top-align" >
+@section PageContent {
+    <div class="top-section search-section search-top-align">
         @await Html.PartialAsync("_SearchForm")
     </div>
 
-<h1>@Model.Name</h1>
-<hr />
+    <div class="directory-entry-details container py-4">
+        <h1 class="mb-3">@Model.Name</h1>
+        <hr />
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a class="no-app-link" href="@UrlResolver.ResolveToRoot("/")">Home</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a class="no-app-link" href="@UrlResolver.ResolveToRoot($"/{categoryKey}")">@categoryName</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a class="no-app-link" href="@UrlResolver.ResolveToRoot($"/{categoryKey}/{subCategoryKey}")">@subCategoryName</a>
+                </li>
+                <li class="breadcrumb-item" aria-current="page">
+                    @Model.Name
+                </li>
+            </ol>
+        </nav>
 
-<div class="directory-entry-details">
+   
+        @{
+            var sponsoredClass = Model.IsSponsored ? "sponsor-card" : "";
+        }
 
-    <nav aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item">
-            <a class="no-app-link" href="~/">Home</a>
-        </li>
-        <li class="breadcrumb-item">
-            <a class="no-app-link" href="~/@categoryKey">@categoryName</a>
-        </li>
-        <li class="breadcrumb-item">
-            <a class="no-app-link" href="~/@categoryKey/@subCategoryKey">@subCategoryName</a>
-        </li>
-        <li class="breadcrumb-item" aria-current="page">
-            @Model.Name
-        </li>
-    </ol>
-    </nav>
+        <div class="card mb-4 ">
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <th scope="row">Name</th>
+                            <td>
+                                <div class="@sponsoredClass">@Model.Name</div>
+                            </td>
+                        </tr>
+                        @if (!string.IsNullOrEmpty(finalLink))
+                        {
+                            <tr>
+                                <th scope="row">Website</th>
+                                <td><a class="multi-line-text" href="@finalLink" target="_blank">@Model.Link</a></td>
+                            </tr>
+                        }
+                        @if (!string.IsNullOrEmpty(finalLink2))
+                        {
+                            <tr>
+                                <th scope="row">@Model.Link2Name</th>
+                                <td><a class="multi-line-text" href="@finalLink2" target="_blank">@Model.Link2</a></td>
+                            </tr>
+                         
+                        }
+                        @if (!string.IsNullOrEmpty(finalLink3))
+                        {
+                            <tr>
+                                <th scope="row">@Model.Link3Name</th>
+                                <td><a class="multi-line-text" href="@finalLink2" target="_blank">@Model.Link3</a></td>
+                            </tr>
+                        }
+                        <tr>
+                            <th scope="row">Status</th>
+                            <td>@Model.DirectoryStatus.ToHtmlIcon() @Model.DirectoryStatus</td>
+                        </tr>
+                        @if (!string.IsNullOrEmpty(Model.Contact))
+                        {
+                            <tr>
+                                <th scope="row">Contact</th>
+                                <td><span class="multi-line-text">@Model.Contact</span></td>
+                            </tr>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Location) || !string.IsNullOrWhiteSpace(Model.CountryCode))
+                        {
+                            <tr>
+                                <th scope="row">Location</th>
+                                <td>
+                                    @Model.Location
+                                    @if (!string.IsNullOrEmpty(Model.CountryCode))
+                                    {
+                                        var iso = Model.CountryCode.Trim().ToLowerInvariant();
+                                        var src = $"/images/flags/{iso}.png";
+                                        var countryName = DirectoryManager.Utilities.Helpers.CountryHelper.GetCountryName(Model.CountryCode);
+                                        <img class="country-flag ms-2" src="@src" alt="Flag of countryName (@Model.CountryCode)" title="@countryName" />
+                                    }
+                                </td>
+                            </tr>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Processor))
+                        {
+                            <tr>
+                                <th scope="row">Processor</th>
+                                <td>@Model.Processor</td>
+                            </tr>
+                        }
+                        <tr>
+                            <th scope="row">Added On</th>
+                            <td>@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                        </tr>
+                        @if (Model.UpdateDate.HasValue)
+                        {
+                            <tr>
+                                <th scope="row">Last Updated</th>
+                                <td>@Model.UpdateDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
 
-    <div class="entry-details">
-        <p><strong>Name:</strong> @Model.Name</p>
         @if (!string.IsNullOrEmpty(finalLink))
         {
-            <p><strong>Link:</strong> <b><a class="multi-line-text" href="@finalLink" target="_blank">@Model.Link</a></b></p>
-        }
-        @if (!string.IsNullOrEmpty(finalLink2))
-        {
-            <p><strong>@Model.Link2Name:</strong> <a class="multi-line-text" href="@finalLink2" target="_blank">@Model.Link2</a></p>
-        }
-        @if (!string.IsNullOrEmpty(finalLink3))
-        {
-            <p><strong>@Model.Link3Name:</strong> <a class="multi-line-text" href="@finalLink3" target="_blank">@Model.Link3</a></p>
-        }
-
-        <br />
-        <h3>Details</h3>
-        <p>
-            <strong>Status:</strong>
-
-            @Model.DirectoryStatus.ToHtmlIcon()
-          
-            @Model.DirectoryStatus
-        </p>
-
-        @if (!string.IsNullOrEmpty(Model.Contact))
-        {
-            <p><strong>Contact:</strong> <span class="multi-line-text">@Model.Contact</span></p>
-        }
-     
-        @if (!string.IsNullOrEmpty(Model.Location))
-        {
-            <p><strong>Location:</strong> @Model.Location</p>
-        }
-        @if (!string.IsNullOrEmpty(Model.Processor))
-        {
-            <p><strong>Processor:</strong> @Model.Processor</p>
-        }
-
-        <p><strong>Added On:</strong> @Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</p>
-        @if (Model.UpdateDate.HasValue)
-        {
-            <p><strong>Last Updated:</strong> @Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</p>
+            <br />
+            <a href="@finalLink" class="btn btn-primary" target="_blank">Visit Website</a>
+            <br />
         }
 
         @if (!string.IsNullOrEmpty(Model.Description))
         {
             <br />
-            <h3>Description</h3>
-            <p>@Model.Description</p>
+            <div class="mb-4">
+                <h3>Description</h3>
+                <p>@Model.Description</p>
+            </div>
         }
 
         @if (!string.IsNullOrEmpty(Model.Note))
         {
             <br />
-            <h4>Note</h4>
-            <p><i>@Html.Raw(Model.Note)</i></p>
+            <div class="mb-4">
+                <h4>Note</h4>
+                <p><em>@Html.Raw(Model.Note)</em></p>
+            </div>
         }
 
-        @if (Model.Tags?.Any() ?? false)
+        @if (!string.IsNullOrEmpty(Model.PgpKey))
+        {
+<br />
+<h4>PGP Key</h4>
+<pre class="pgp-key">
+@Model.PgpKey
+</pre>
+        }
+
+        @if (Model.TagsAndKeys?.Any() ?? false)
         {
             <br />
             <div class="entry-tags">
                 <strong>Tags:</strong>
-                @for (int i = 0; i < Model.Tags.Count; i++)
-                {
-                    var tag = Model.Tags[i];
-                    // slugify by replacing spaces with hyphens
-                    var slug = tag.Replace(" ", "-").ToLowerInvariant();
-                    <a href="~/tagged/@slug">@tag</a>@if (i < Model.Tags.Count - 1){
-                    <text>, </text>
+                @{
+                    // materialize to list so we can test “last” easily
+                    var tags = Model.TagsAndKeys.ToList();
                 }
+                @for (int i = 0; i < tags.Count; i++)
+                {
+                    var key = tags[i].Key;    // slug / url‐key
+                    var name = tags[i].Value;  // display name
+                    var slug = key.Replace(" ", "-").ToLowerInvariant();
+
+                    <a class="no-app-link" href="~/tagged/@slug">@name</a>@(i < tags.Count - 1 ? ", " : "")
                 }
             </div>
         }
-    </div>
-</div>
 
+        <br />
+        @await Html.PartialAsync("_EntryReviews", (DirectoryManager.Web.Models.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
+
+    </div>
 
 
 <hr />
 @await Html.PartialAsync("_SponsoredListingPartial")
-
 }

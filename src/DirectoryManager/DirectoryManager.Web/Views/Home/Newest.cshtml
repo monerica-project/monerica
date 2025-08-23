@@ -5,62 +5,58 @@
 @using DirectoryManager.Web.Services.Interfaces
 @inject IUrlResolutionService UrlResolver
 @model IEnumerable<DirectoryManager.Data.Models.GroupedDirectoryEntry>
-@{
-    ViewData[StringConstants.TitleHeader] = "Newest Additions";
-}
 
 @{
+    ViewData[StringConstants.TitleHeader] = "Newest Additions";
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
-<hr />
-@await Html.PartialAsync("_BackToHome")
-<hr />
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+    @await Html.PartialAsync("_SponsoredListingPartial")
+    <hr />
 
-@await Html.PartialAsync("_SponsoredListingPartial")
-<hr />
+    @{
+        var htmlOutput = DisplayMarkUpHelper.GenerateGroupedDirectoryEntryHtml(Model);
+    }
 
-@{
-    var htmlOutput = DisplayMarkUpHelper.GenerateGroupedDirectoryEntryHtml(Model);
-}
-
-@Html.Raw(htmlOutput)
-
-
+    @Html.Raw(htmlOutput)
 
     @{
         int totalPages = ViewBag.TotalPages;
         int currentPage = ViewBag.PageNumber;
     }
 
-    <nav aria-label="Pagination">
-        <ul class="pagination">
-            @for (int i = 1; i <= totalPages; i++)
-            {
-                // build the raw path: page 1 is “/newest”, pages 2+ add ?pageNumber=…
-                string rawPath = "/newest" + (i > 1 ? $"?pageNumber={i}" : "");
+    @if (totalPages > 1)
+    {
+        <nav aria-label="Pagination">
+            <ul class="pagination">
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    // Use /newest for page 1, and /newest/page/2+ for others
+                    string rawPath = i == 1 ? "/newest" : $"/newest/page/{i}";
 
-                // page 1 always on canonical root; pages 2+ on “app” domain
-                string href = i == 1
-                ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
-                : UrlResolver.Resolve(rawPath);
+                    // Use app link for pages 2+, root for page 1
+                    string href = i == 1
+                    ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
+                    : UrlResolver.ResolveToApp(rawPath);
 
-                // choose link class
-                string linkClass = i == 1 ? "no-app-link" : "app-link";
+                    string linkClass = i == 1 ? "no-app-link" : "no-app-link";
 
-                <li class="page-item @(i == currentPage ? "active" : "")">
-                    <a class="page-link @linkClass" href="@href">
-                        @i
-                    </a>
-                </li>
-            }
-        </ul>
-    </nav>
+                    <li class="page-item @(i == currentPage ? "active" : "")">
+                        <a class="page-link @linkClass" href="@href">@i</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
 
+    <p>Total: @ViewBag.TotalEntries</p>
 
-<p>Total: @ViewBag.TotalEntries</p>
-
+    <hr />
+    @await Html.PartialAsync("_SponsoredListingPartial")
 }

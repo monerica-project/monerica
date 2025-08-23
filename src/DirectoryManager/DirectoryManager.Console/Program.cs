@@ -1,4 +1,4 @@
-﻿// See https://aka.ms/new-console-template for more information
+﻿using System.Text;
 using DirectoryManager.Console.Models;
 using DirectoryManager.Console.Services;
 using DirectoryManager.Data.Constants;
@@ -8,12 +8,9 @@ using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Identity.Client;
 using Newtonsoft.Json;
 using OpenAI;
 using OpenAI.Chat;
-using System;
-using System.Text;
 
 var config = new ConfigurationBuilder()
     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory) // Set the base path to your project's directory
@@ -35,7 +32,6 @@ var serviceProvider = new ServiceCollection()
     .AddScoped<IAITagService, AITagService>()
 
     .BuildServiceProvider();
- 
 
 Console.WriteLine("Type 1 for user agent loaded");
 var choice = Console.ReadLine();
@@ -103,7 +99,6 @@ else if (choice == "2")
                              .ConfigureAwait(false);
 
     var tags = response.Value.Content[0].Text;
- 
 }
 else
 {

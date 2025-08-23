@@ -1,0 +1,10 @@
+﻿@* Views/Shared/_CaptchaBlock.cshtml *@
+@model string 
+
+<div class="form-group">
+    <img src="~/captcha/image?ctx=@Model&t=@DateTime.UtcNow.Ticks" alt="CAPTCHA" />
+</div>
+<div class="form-group">
+    <input autocomplete="off" name="Captcha" type="text" placeholder="Enter CAPTCHA" />
+    <input type="hidden" name="CaptchaContext" value="@Model" />
+</div>

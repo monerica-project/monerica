@@ -6,9 +6,6 @@
         public int Count { get; set; }
         public DateTime FirstSearched { get; set; }
         public DateTime LastSearched { get; set; }
-        /// <summary>
-        /// From 0..100
-        /// </summary>
         public double Percentage { get; set; }
     }
 }

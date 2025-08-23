@@ -1,0 +1,48 @@
+﻿@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Affiliate Program";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    <p>Earn commission by referring <strong>new</strong> advertisers to Monerica.</p>
+
+    <h3>Rules</h3>
+    <ul>
+        <li>
+            You may only sign up <strong>new advertisers</strong>.
+            See the current list of advertisers here:
+            <a class="no-app-link" href="~/advertisers">Existing advertisers</a>
+            (anyone already listed there does <em>not</em> qualify).
+        </li>
+        <li>
+            Commission: <strong>50% (minus network fees)</strong> of what the advertiser pays to Monerica for a new package
+            (Main, Category, or Subcategory sponsor).
+        </li>
+        <li>
+            Inventory: you can sell anything shown on the
+            <a class="app-link" href="~/advertise">Available inventory</a> page.
+        </li>
+        <li>Referral codes are <strong>case-insensitive</strong> (we store them in lowercase).</li>
+        <li>Spam complaints may result in disqualification of the referral.</li>
+        <li>Payouts are <strong>manual</strong>.</li>
+    </ul>
+
+    <h3>How it works</h3>
+    <ol>
+        <li>Sign up and get your referral code.</li>
+        <li>Send prospects to <a class="app-link" href="~/advertise">/advertise</a>.</li>
+        <li>They complete checkout and enter your referral code in the box.</li>
+        <li>Once paid, your <strong>50% (minus network fees)</strong> commission is recorded.</li>
+    </ol>
+
+    <div class="mt-3">
+        <a  href="~/affiliates/signup">Sign up</a>  |
+        <a href="~/affiliates/commissions">Check commissions</a> |
+        <a href="~/advertisers">Existing advertisers</a> | 
+        <a href="~/advertise">Available inventory</a>
+    </div>
+}

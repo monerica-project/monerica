@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.DisplayFormatting.Enums;
 using DirectoryManager.DisplayFormatting.Models;
+using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace DirectoryManager.DisplayFormatting.Helpers
 {
@@ -41,6 +42,8 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 Link3A = entry.Link3A,
                 DirectoryBadge = entry.DirectoryBadge,
                 ItemDisplayType = itemDisplayType,
+                CountryCode = entry.CountryCode,
+                PgpKey = entry.PgpKey,
             }).ToList();
         }
     }

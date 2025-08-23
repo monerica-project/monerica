@@ -1,80 +1,141 @@
-﻿@using DirectoryManager.Web.Constants;
+﻿@using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Models
-@using System.Globalization;
+@using System.Globalization
 @using DirectoryManager.Data.Enums
-@model DirectoryManager.Web.Models.ConfirmSelectionViewModel;
+@model DirectoryManager.Web.Models.ConfirmSelectionViewModel
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
+@using DirectoryManager.Utilities.Helpers
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
+@inject NowPayments.API.Interfaces.INowPaymentsService nowPaymentsService
+@using DirectoryManager.Web.Helpers
+@using Microsoft.Extensions.Caching.Memory
+@inject IMemoryCache memoryCache
 
 @{
     ViewData[StringConstants.TitleHeader] = "Confirm Selection";
-}
-
-@{
     Layout = "_CenteredLayout";
+
+    Guid? reservationGuid = ViewBag.ReservationGuid is Guid g ? g : (Guid?)null;
+    DateTime? reservationExpiresUtc = ViewBag.ReservationExpiresUtc is DateTime d ? d : (DateTime?)null;
+
+    int? minutesLeft = reservationExpiresUtc.HasValue
+        ? (int?)Math.Max(0, (int)Math.Ceiling((reservationExpiresUtc.Value - DateTime.UtcNow).TotalMinutes))
+        : null;
+
+    var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(httpContextAccessor, memoryCache, nowPaymentsService);
+    bool showConverted = conversionResult.showConverted;
+    decimal conversionRate = conversionResult.conversionRate;
+
+    // show sponsored preview
+    Model.SelectedDirectoryEntry.IsSponsored = true;
+
+    // referral (if controller passed one via ViewBag)
+    var prefillReferral = ViewBag.ReferralCode as string ?? string.Empty;
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
 
-<hr />
-
-<div>
-
-    @{
-        Model.SelectedDirectoryEntry.IsSponsored = true;
+    @if (reservationGuid.HasValue && reservationExpiresUtc.HasValue)
+    {
+        <div class="alert alert-warning" role="alert">
+            <strong>Reserved checkout:</strong>
+            Your slot is held until
+            <b>@reservationExpiresUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</b> UTC
+            (@minutesLeft minute@(minutesLeft == 1 ? "" : "s") left).
+            Complete purchase before it expires to keep your place in line.
+        </div>
     }
 
-    @if (Model.CanCreateSponsoredListing)
-    {
-        <h2>Selected Listing</h2>
-
-        <ul class="blank_list_item">
-            @await Html.PartialAsync("_DirectoryEntryPartial", Model.SelectedDirectoryEntry)
-        </ul>
-
-        <hr />
-
-        <h2>Your Order</h2>
-        <p>
-            <b>Sponsorship Type:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.Offer.SponsorshipType) <br />
-            <b>Description:</b> @Model.Offer.Description<br />
-            <b>Price:</b> @Model.Offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
-        new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure)) @DirectoryManager.Data.Enums.Currency.USD.ToString()<br />
-            <b>Days:</b> @Model.Offer.Days
-        </p>
-
-        if (Model.IsExtension)
+    <div>
+        @if (Model.CanCreateSponsoredListing)
         {
-            <p>
-                These days will be added to the current listing.
-            </p>
-        }
+            <h2>Selected Listing</h2>
+            <ul class="blank_list_item">
+                @await Html.PartialAsync("_DirectoryEntryPartial", Model.SelectedDirectoryEntry)
+            </ul>
 
-        @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.NowPaymentsMessageHtml))
-
-        <form method="post" action="~/sponsoredlisting/confirmnowpayments">
             <hr />
-            
-            <div class="form-group">
-                <i>Receive a reminder before your listing expires so you can renew in time.</i>
-                <label>Email (optional)</label>
-                <input style="width:18%;" name="email" type="email" placeholder="yourname@email.com" />
-            </div>
-           
-            <input name="rsvId" type="hidden" value="@ViewBag.ReservationGuid" />
-            <input type="hidden" name="directoryEntryId" value="@Model.SelectedDirectoryEntry.DirectoryEntryId" />
-            <input type="hidden" name="selectedOfferId" value="@Model.Offer.SponsoredListingOfferId" />
+            <h2>Your Order</h2>
+            <br />
+            <table>
+                <tr>
+                    <td><b>Sponsorship Type:</b></td>
+                    <td>@DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.Offer.SponsorshipType)</td>
+                </tr>
+                <tr>
+                    <td><b>Days:</b></td>
+                    <td>@Model.Offer.Days</td>
+                </tr>
+                <tr>
+                    <td><b>Description:</b></td>
+                    <td>@Model.Offer.Description</td>
+                </tr>
+                <tr>
+                    <td><b>Price:</b></td>
+                    <td>
+                        @Model.Offer.USDPrice.ToString(
+                        DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
+                                new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure))
+                @Currency.USD
+                <i>
+                    (Approximately:
+                    @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
+                                        Model.Offer.USDPrice,
+                                        conversionRate,
+                                        conversionResult.selectedCurrency,
+                                        true))
+                </i>
+            </td>
+        </tr>
+    </table>
 
-            <button class="btn" type="submit">Purchase Listing</button>
-        </form>
-    }
-    else
-    {
+    @if (Model.IsExtension)
+            {
+                <br />
+                <p>These days will be added to the current sponsored listing.</p>
+            }
 
-        @await Html.PartialAsync("_AdSpaceFull", new ListingInventoryModel() 
-        { CanCreateSponsoredListing = Model.CanCreateSponsoredListing,
-         NextListingExpiration = Model.NextListingExpiration});
-    }
+            @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.NowPaymentsMessageHtml))
 
-</div>
+            <form method="post" action="~/sponsoredlisting/confirmnowpayments">
+                <hr />
+
+                <div class="form-group">
+                    <i>Receive a reminder before your listing expires so you can renew in time.</i>
+                    <label>Email (optional)</label>
+                    <input style="width:18%;" name="email" type="email" placeholder="yourname@email.com" autocomplete="off" />
+                </div>
+
+                <div class="form-group">
+                    <label>Referral code (optional)</label>
+                    <input style="width:18%;"
+                           name="referralCode"
+                           type="text"
+                           value="@prefillReferral"
+                           placeholder="e.g. alice"
+                           maxlength="12"
+                           inputmode="latin"
+                           pattern="^[A-Za-z0-9]{3,12}$"
+                           title="Letters and numbers only, 3–12 characters."
+                           autocomplete="off" />
+                </div>
+
+                <input name="rsvId" type="hidden" value="@reservationGuid" />
+                <input type="hidden" name="directoryEntryId" value="@Model.SelectedDirectoryEntry.DirectoryEntryId" />
+                <input type="hidden" name="selectedOfferId" value="@Model.Offer.SponsoredListingOfferId" />
+
+                <button class="btn" type="submit">Purchase Listing</button>
+            </form>
+        }
+        else
+        {
+            @await Html.PartialAsync("_AdSpaceFull", new ListingInventoryModel
+            {
+                CanCreateSponsoredListing = Model.CanCreateSponsoredListing,
+        NextListingExpiration = Model.NextListingExpiration
+        })
+        }
+    </div>
 }
