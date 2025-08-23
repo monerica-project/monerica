@@ -284,9 +284,7 @@
                     var reviewDate = (r.UpdateDate ?? r.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
 
                     <li>
-                        <i>@reviewDate</i>
-                        &nbsp;
-                        <a href="@url"><b>@listingName</b></a> — Rating: @rating — @oneLine
+                        <i>@reviewDate</i> <a href="@url"><b>@listingName</b></a> — Rating: @rating — @oneLine
                     </li>
                 }
             </ul>

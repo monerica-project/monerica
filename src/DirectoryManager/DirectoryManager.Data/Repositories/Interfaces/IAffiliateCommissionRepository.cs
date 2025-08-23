@@ -1,4 +1,5 @@
 ﻿// DirectoryManager.Data/Repositories/Interfaces/IAffiliateCommissionRepository.cs
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.Affiliates;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
@@ -12,5 +13,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task UpdateAsync(AffiliateCommission entity, CancellationToken ct = default);
         Task<List<AffiliateCommission>> ListForAffiliateAsync(int affiliateAccountId, CancellationToken ct = default);
         Task<bool> ExistsForInvoiceAsync(int sponsoredListingInvoiceId, CancellationToken ct);
+        Task<int> CountByStatusAsync(CommissionPayoutStatus status, CancellationToken ct = default);
     }
 }

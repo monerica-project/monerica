@@ -1,13 +1,13 @@
-﻿using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Enums; 
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.Extensions.Caching.Memory;
 using Microsoft.EntityFrameworkCore;
-using DirectoryManager.Data.Enums; 
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -18,6 +18,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
         private readonly SignInManager<ApplicationUser> signInManager;
         private readonly UserManager<ApplicationUser> userManager;
+        private readonly IAffiliateCommissionRepository affiliateCommissionRepository;
 
         public AccountController(
             SignInManager<ApplicationUser> signInManager,
@@ -27,6 +28,7 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryReviewRepository directoryEntryReviewRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
+            IAffiliateCommissionRepository affiliateCommissionRepository,
             IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
@@ -35,6 +37,7 @@ namespace DirectoryManager.Web.Controllers
             this.directoryEntryRepository = directoryEntryRepository;
             this.submissionRepository = submissionRepository;
             this.directoryEntryReviewRepository = directoryEntryReviewRepository;
+            this.affiliateCommissionRepository = affiliateCommissionRepository;
         }
 
         [HttpGet]
@@ -80,8 +83,11 @@ namespace DirectoryManager.Web.Controllers
                 .Where(r => r.ModerationStatus == ReviewModerationStatus.Pending)
                 .CountAsync();
 
+            var pendingAffiliateCommissions = await this.affiliateCommissionRepository.CountByStatusAsync(CommissionPayoutStatus.Pending);
+
             this.ViewBag.TotalPendingSubmissions = totalPendingSubmissions;
             this.ViewBag.TotalPendingReviews = totalPendingReviews;
+            this.ViewBag.PendingAffiliateCommissions = pendingAffiliateCommissions;
 
             return this.View();
         }

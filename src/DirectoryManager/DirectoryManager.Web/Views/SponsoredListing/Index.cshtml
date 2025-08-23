@@ -13,7 +13,14 @@
     Layout = "_CenteredLayout";
 }
 
+
+
 @section PageContent {
+    <style>
+        .orange-text {
+            color: #ff6600
+        }
+    </style>
     <h1>@ViewData[StringConstants.TitleHeader]</h1>
 <hr />
 @await Html.PartialAsync("_BackToHome")
@@ -107,7 +114,7 @@ else
                 <li>
                     @item.Value
                     <ul>
-                        <li>Expires @end.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</li>
+                        <li><span class="orange-text">Expires @end.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</span></li>
                         <li>
                             <a asp-controller="SponsoredListingNotification"
                                asp-action="Subscribe"
@@ -165,7 +172,7 @@ else
                 <li>
                     @item.Value
                     <ul>
-                        <li>Expires: @end.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</li>
+                        <li><span class="orange-text">Expires: @end.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</span></li>
                         <li>
                             <a asp-controller="SponsoredListingNotification"
                                asp-action="Subscribe"

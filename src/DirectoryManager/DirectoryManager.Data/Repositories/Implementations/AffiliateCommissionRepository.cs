@@ -1,9 +1,8 @@
-﻿// DirectoryManager.Data/Repositories/Implementations/AffiliateCommissionRepository.cs
-using DirectoryManager.Data.DbContextInfo;
+﻿using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
-using System.Collections.Generic;
 
 namespace DirectoryManager.Data.Repositories.Implementations
 {
@@ -53,5 +52,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .OrderByDescending(c => c.CreateDate)
                 .ToListAsync(ct);
         }
+
+        public Task<int> CountByStatusAsync(CommissionPayoutStatus status, CancellationToken ct = default) =>
+            this.context.AffiliateCommissions
+            .AsNoTracking()
+            .Where(c => c.PayoutStatus == status)
+            .CountAsync(ct);
     }
 }
