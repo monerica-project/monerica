@@ -14,6 +14,7 @@
 
 @if (acct != null)
 {
+        <div class="table-wrapper">
     <table class="table table-borderless">
         <tr><th>Referral Code</th><td>@acct.ReferralCode</td></tr>
         <tr><th>Wallet</th><td>@acct.WalletAddress</td></tr>
@@ -25,11 +26,13 @@
             <tr><th>Created</th><td>@acct.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td></tr>
             <tr><th>Updated</th><td>@(acct.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) ?? "-")</td></tr>
     </table>
+    </div>
 }
 
 <h3>Commissions</h3>
 @if (Model?.Any() ?? false)
 {
+        <div class="table-wrapper">
     <table class="table">
         <thead>
             <tr>
@@ -113,6 +116,7 @@
         }
         </tbody>
     </table>
+    </div>
 }
 else
 {

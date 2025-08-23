@@ -20,6 +20,7 @@
     @if (Model.Commissions?.Any() ?? false)
     {
         <h3>Commissions</h3>
+            <div class="table-wrapper">
         <table class="table">
             <thead>
                 <tr>
@@ -47,6 +48,7 @@
                 }
             </tbody>
         </table>
+        </div>
     }
     else
     {
