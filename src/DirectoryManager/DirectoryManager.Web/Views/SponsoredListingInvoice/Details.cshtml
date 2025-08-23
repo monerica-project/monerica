@@ -104,6 +104,12 @@
             <dt>Is Reminder Sent</dt>
             <dd>@Model.IsReminderSent</dd>
         }
+
+            @if (!string.IsNullOrWhiteSpace(Model.ReferralCodeUsed))
+            {
+                <dt>Referral Code</dt>
+                <dd>@Model.ReferralCodeUsed</dd>
+            }
     </dl>
     <hr />
     <h3>Listing</h3>

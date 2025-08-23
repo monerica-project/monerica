@@ -4,6 +4,7 @@ using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Extensions;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.FileStorage.Repositories.Implementations;
 using DirectoryManager.FileStorage.Repositories.Interfaces;
@@ -52,12 +53,10 @@ namespace DirectoryManager.Web.Extensions
             // Register all repositories from DatabaseExtensions
             services.AddDbRepositories();
 
-
             // ⬇️ Captcha options + HttpClient + service registration
             services.Configure<CaptchaOptions>(config.GetSection("Captcha"));
             services.AddHttpClient();
             services.AddTransient<ICaptchaService, CaptchaService>();
-
 
             // Services
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>()
@@ -89,6 +88,9 @@ namespace DirectoryManager.Web.Extensions
 
                   return new EmailService(emailConfig, emailSettings);
               });
+
+            services.AddScoped<IAffiliateAccountRepository, AffiliateAccountRepository>();
+            services.AddScoped<IAffiliateCommissionRepository, AffiliateCommissionRepository>();
 
             // NOWPayments configuration and service registration
             services.AddScoped<INowPaymentsService>(provider =>

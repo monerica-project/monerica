@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.BaseModels;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.SponsoredListings;
@@ -46,6 +47,9 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<ReviewerKey> ReviewerKeys { get; set; }
         public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
 
+        public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
+        public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
+
         public override int SaveChanges()
         {
             this.SetDates();
@@ -61,6 +65,7 @@ namespace DirectoryManager.Data.DbContextInfo
             return base.SaveChangesAsync(cancellationToken);
         }
 
+        [Obsolete]
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -226,6 +231,48 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasIndex(e => new { e.Email, e.SponsorshipType, e.TypeId, e.SubscribedDate })
                    .IsUnique()
                    .HasDatabaseName("IX_SponsoredListingOpeningNotification_Unique");
+
+            // --- Affiliates ---
+            builder.Entity<AffiliateAccount>(aa =>
+            {
+                // unique referral code
+                aa.HasIndex(x => x.ReferralCode)
+                  .IsUnique()
+                  .HasDatabaseName("UX_AffiliateAccount_ReferralCode");
+
+                // enforce 3–12 chars
+                aa.Property(x => x.ReferralCode)
+                  .HasMaxLength(12)
+                  .IsRequired();
+
+                aa.Property(x => x.WalletAddress).HasMaxLength(256).IsRequired();
+                aa.Property(x => x.Email).HasMaxLength(256);
+            });
+
+            builder.Entity<AffiliateCommission>(ac =>
+            {
+                // one commission per invoice
+                ac.HasIndex(x => x.SponsoredListingInvoiceId)
+                  .IsUnique()
+                  .HasDatabaseName("UX_AffiliateCommission_Invoice");
+
+                ac.Property(x => x.AmountDue).HasColumnType("decimal(18,8)");
+
+                ac.HasOne(x => x.AffiliateAccount)
+                  .WithMany(a => a.Commissions)
+                  .HasForeignKey(x => x.AffiliateAccountId)
+                  .OnDelete(DeleteBehavior.Cascade);
+
+                // don't allow invoice deletes via commissions
+                ac.HasOne(x => x.SponsoredListingInvoice)
+                  .WithMany() // or .WithMany(i => i.AffiliateCommissions) if you add a nav
+                  .HasForeignKey(x => x.SponsoredListingInvoiceId)
+                  .OnDelete(DeleteBehavior.Restrict);
+            });
+
+            builder.Entity<SponsoredListingInvoice>()
+                .HasIndex(i => new { i.DirectoryEntryId, i.PaymentStatus })
+                .HasDatabaseName("IX_Invoice_Dir_PaidStatus");
 
             // ReviewerKey
             builder.Entity<ReviewerKey>(rk =>

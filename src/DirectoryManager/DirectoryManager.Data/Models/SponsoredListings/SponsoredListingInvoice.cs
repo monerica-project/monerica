@@ -81,7 +81,10 @@ namespace DirectoryManager.Data.Models.SponsoredListings
         public Guid ReservationGuid { get; set; }
 
         [StringLength(100)]
-        public string Email { get; set; } = string.Empty;
+        public string? Email { get; set; } = string.Empty;
+
+        [StringLength(12, MinimumLength = 3)]
+        public string? ReferralCodeUsed { get; set; }
 
         public bool IsReminderSent { get; set; }
 

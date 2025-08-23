@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -171,6 +172,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return (items, total);
         }
+
+        public Task<bool> HasAnyPaidInvoiceForDirectoryEntryAsync(
+            int directoryEntryId,
+            int excludeSponsoredListingInvoiceId,
+            CancellationToken ct = default) =>
+            this.context.SponsoredListingInvoices.AsNoTracking()
+                .AnyAsync(i =>
+                    i.DirectoryEntryId == directoryEntryId &&
+                    i.PaymentStatus == PaymentStatus.Paid &&
+                    i.SponsoredListingInvoiceId != excludeSponsoredListingInvoiceId, ct);
 
     }
 }

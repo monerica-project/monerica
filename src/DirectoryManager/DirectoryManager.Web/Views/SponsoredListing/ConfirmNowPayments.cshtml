@@ -15,11 +15,8 @@
     ViewData[StringConstants.TitleHeader] = "Confirm Selection";
     Layout = "_CenteredLayout";
 
-    // Reservation context (set by controller)
-    Guid? reservationGuid =
-        ViewBag.ReservationGuid is Guid g ? g : (Guid?)null;
-    DateTime? reservationExpiresUtc =
-        ViewBag.ReservationExpiresUtc is DateTime d ? d : (DateTime?)null;
+    Guid? reservationGuid = ViewBag.ReservationGuid is Guid g ? g : (Guid?)null;
+    DateTime? reservationExpiresUtc = ViewBag.ReservationExpiresUtc is DateTime d ? d : (DateTime?)null;
 
     int? minutesLeft = reservationExpiresUtc.HasValue
         ? (int?)Math.Max(0, (int)Math.Ceiling((reservationExpiresUtc.Value - DateTime.UtcNow).TotalMinutes))
@@ -29,8 +26,11 @@
     bool showConverted = conversionResult.showConverted;
     decimal conversionRate = conversionResult.conversionRate;
 
-    // Display the chosen entry as a sponsored preview
+    // show sponsored preview
     Model.SelectedDirectoryEntry.IsSponsored = true;
+
+    // referral (if controller passed one via ViewBag)
+    var prefillReferral = ViewBag.ReferralCode as string ?? string.Empty;
 }
 
 @section PageContent {
@@ -81,7 +81,11 @@
                 @Currency.USD
                 <i>
                     (Approximately:
-                    @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(Model.Offer.USDPrice, conversionRate, conversionResult.selectedCurrency, true))
+                    @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
+                                        Model.Offer.USDPrice,
+                                        conversionRate,
+                                        conversionResult.selectedCurrency,
+                                        true))
                 </i>
             </td>
         </tr>
@@ -97,10 +101,25 @@
 
             <form method="post" action="~/sponsoredlisting/confirmnowpayments">
                 <hr />
+
                 <div class="form-group">
                     <i>Receive a reminder before your listing expires so you can renew in time.</i>
                     <label>Email (optional)</label>
-                    <input style="width:18%;" name="email" type="email" placeholder="yourname@email.com" />
+                    <input style="width:18%;" name="email" type="email" placeholder="yourname@email.com" autocomplete="off" />
+                </div>
+
+                <div class="form-group">
+                    <label>Referral code (optional)</label>
+                    <input style="width:18%;"
+                           name="referralCode"
+                           type="text"
+                           value="@prefillReferral"
+                           placeholder="e.g. alice"
+                           maxlength="12"
+                           inputmode="latin"
+                           pattern="^[A-Za-z0-9]{3,12}$"
+                           title="Letters and numbers only, 3–12 characters."
+                           autocomplete="off" />
                 </div>
 
                 <input name="rsvId" type="hidden" value="@reservationGuid" />

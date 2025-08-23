@@ -1,0 +1,26 @@
+﻿@model List<DirectoryManager.Web.Controllers.AdvertisersController.AdvertisedEntryVm>
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Advertisers";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    @if (Model == null || !Model.Any())
+    {
+        <p>No advertisers found.</p>
+    }
+    else
+    {
+        <p><i>Total: @Model.Count</i></p>
+        <ul>
+            @foreach (var item in Model)
+            {
+                <li>@item.Name</li>
+            }
+        </ul>
+    }
+}

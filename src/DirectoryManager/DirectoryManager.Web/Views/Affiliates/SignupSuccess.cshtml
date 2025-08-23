@@ -1,0 +1,21 @@
+﻿@model DirectoryManager.Data.Models.Affiliates.AffiliateAccount
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Affiliate Sign-up Complete";
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+    <p>Your affiliate account has been created.</p>
+    <table class="table">
+        <tr><th>Referral Code</th><td>@Model.ReferralCode</td></tr>
+        <tr><th>Wallet</th><td>@Model.WalletAddress</td></tr>
+        <tr><th>Payout Currency</th><td>@Model.PayoutCurrency</td></tr>
+        @if (!string.IsNullOrWhiteSpace(Model.Email))
+        {
+            <tr><th>Email</th><td>@Model.Email</td></tr>
+        }
+    </table>
+    <a class="app-link" href="~/affiliates/commissions">Check commissions</a>
+}

@@ -37,10 +37,10 @@
         <dd class="col-sm-9"><code>@Model.AuthorFingerprint</code></dd>
 
         <dt class="col-sm-3">Created (UTC)</dt>
-        <dd class="col-sm-9">@Model.CreateDate.ToString("yyyy-MM-dd HH:mm")</dd>
+        <dd class="col-sm-9">@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</dd>
 
         <dt class="col-sm-3">Updated (UTC)</dt>
-        <dd class="col-sm-9">@((Model.UpdateDate?.ToString("yyyy-MM-dd HH:mm")) ?? "-")</dd>
+        <dd class="col-sm-9">@((Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)) ?? "-")</dd>
 
         <dt class="col-sm-3">Body</dt>
         <dd class="col-sm-9"><pre style="white-space:pre-wrap;">@Model.Body</pre></dd>

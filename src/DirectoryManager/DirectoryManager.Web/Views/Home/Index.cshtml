@@ -14,6 +14,9 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepo
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository subCatRepo
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository reviewRepository
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+@using DirectoryManager.Utilities.Helpers
 
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
@@ -255,6 +258,39 @@
             </section>
         </div>
 
+
+        @{
+            var latestReviews = await reviewRepository.ListLatestApprovedAsync(10);
+        }
+
+        @if (latestReviews?.Any() == true)
+        {
+            <hr />
+            <p><b>Latest Reviews</b></p>
+            <ul class="blank_list_item">
+                @foreach (var r in latestReviews)
+                {
+                    var e = r.DirectoryEntry;
+                    if (e == null || e.SubCategory == null || e.SubCategory.Category == null)
+                    {
+                        continue; // can’t build a /cat/sub/entry URL
+                    }
+
+                    var listingName = e.Name ?? "Listing";
+                    var rating = r.Rating.HasValue ? $"{r.Rating.Value}/5" : "—";
+                    var oneLine = TextHelper.TruncateAtWord((r.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
+
+                    var url = UrlResolver.ResolveToRoot($"/{e.SubCategory.Category.CategoryKey}/{e.SubCategory.SubCategoryKey}/{e.DirectoryEntryKey}");
+                    var reviewDate = (r.UpdateDate ?? r.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
+
+                    <li>
+                        <i>@reviewDate</i>
+                        &nbsp;
+                        <a href="@url"><b>@listingName</b></a> — Rating: @rating — @oneLine
+                    </li>
+                }
+            </ul>
+        }
     
 
     </div>

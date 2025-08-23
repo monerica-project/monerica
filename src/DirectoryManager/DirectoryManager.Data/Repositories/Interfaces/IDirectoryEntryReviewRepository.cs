@@ -26,5 +26,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task ApproveAsync(int id, CancellationToken ct = default);
         Task RejectAsync(int id, CancellationToken ct = default);
         Task<Dictionary<int, DateTime>> GetLatestApprovedReviewDatesByEntryAsync(CancellationToken ct = default);
+        Task<List<DirectoryEntryReview>> ListLatestApprovedAsync(int count = 10, CancellationToken ct = default);
     }
 }

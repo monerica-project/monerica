@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -33,6 +34,8 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISponsoredListingReservationRepository sponsoredListingReservationRepository;
         private readonly IBlockedIPRepository blockedIPRepository;
         private readonly ICacheService cacheService;
+        private readonly IAffiliateAccountRepository affiliateRepo;
+        private readonly IAffiliateCommissionRepository commissionRepo;
         private readonly ILogger<SponsoredListingController> logger;
 
         public SponsoredListingController(
@@ -49,6 +52,8 @@ namespace DirectoryManager.Web.Controllers
             ISponsoredListingReservationRepository sponsoredListingReservationRepository,
             IBlockedIPRepository blockedIPRepository,
             ICacheService cacheService,
+            IAffiliateAccountRepository affiliateRepo,
+            IAffiliateCommissionRepository commissionRepo,
             ILogger<SponsoredListingController> logger)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
@@ -64,8 +69,11 @@ namespace DirectoryManager.Web.Controllers
             this.cacheService = cacheService;
             this.blockedIPRepository = blockedIPRepository;
             this.logger = logger;
+            this.affiliateRepo = affiliateRepo;
+            this.commissionRepo = commissionRepo;
         }
 
+        [Route("advertise")]
         [Route("advertising")]
         [Route("sponsoredlisting")]
         public async Task<IActionResult> IndexAsync()
@@ -487,7 +495,8 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> ConfirmNowPaymentsAsync(
             int directoryEntryId,
             int selectedOfferId,
-            Guid? rsvId = null)
+            Guid? rsvId = null,
+            string? referralCode = null)
         {
             var offer = await this.sponsoredListingOfferRepository
                 .GetByIdAsync(selectedOfferId)
@@ -556,11 +565,16 @@ namespace DirectoryManager.Web.Controllers
                 .GetActiveSponsorsByTypeAsync(offer.SponsorshipType)
                 .ConfigureAwait(false);
 
+            referralCode ??= this.Request.Query["ref"].ToString();
+            var normalizedRef = ReferralCodeHelper.NormalizeOrNull(referralCode);
+            this.ViewBag.ReferralCode = normalizedRef ?? string.Empty;
+
             var vm = GetConfirmationModel(offer, entry, link2Name, link3Name, current);
             vm.CanCreateSponsoredListing = true; // always true for extension; for new, we’re here only if allowed
 
             return this.View(vm);
         }
+
         [HttpPost]
         [AllowAnonymous]
         [Route("sponsoredlisting/confirmnowpayments")]
@@ -568,7 +582,8 @@ namespace DirectoryManager.Web.Controllers
            int directoryEntryId,
            int selectedOfferId,
            Guid? rsvId = null,
-           string? email = null)
+           string? email = null,
+           string? referralCode = null)
         {
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
             if (this.blockedIPRepository.IsBlockedIp(ipAddress))
@@ -596,10 +611,9 @@ namespace DirectoryManager.Web.Controllers
                 _ => 0,
             };
             var group = ReservationGroupHelper.BuildReservationGroupName(sponsoredListingOffer.SponsorshipType, typeIdForGroup);
-
             int? typeIdForCapacity = sponsoredListingOffer.SponsorshipType == SponsorshipType.MainSponsor ? (int?)null : typeIdForGroup;
 
-            // Exempt holder of a valid reservation; otherwise enforce capacity
+            // Reservation/capacity (unchanged)...
             if (!await this.TryAttachReservationAsync(rsvId, group))
             {
                 var isActiveSponsor = await this.sponsoredListingRepository
@@ -613,14 +627,12 @@ namespace DirectoryManager.Web.Controllers
 
                 if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, sponsoredListingOffer.SponsorshipType) && !isActiveSponsor)
                 {
-                    // UPDATED: pass type, scoped typeId, group
                     var msg = await this.BuildCheckoutInProcessMessageAsync(sponsoredListingOffer.SponsorshipType, typeIdForCapacity, group);
                     return this.BadRequest(new { Error = msg });
                 }
             }
             else
             {
-                // We have a valid reservation — supersede unpaid prior invoice for this reservation
                 var existingReservation = await this.sponsoredListingReservationRepository.GetReservationByGuidAsync(rsvId.Value);
                 if (existingReservation == null)
                 {
@@ -648,9 +660,18 @@ namespace DirectoryManager.Web.Controllers
 
             var startDate = existingListing?.CampaignEndDate ?? DateTime.UtcNow;
 
+            // create the invoice
             var invoice = await this.CreateInvoice(directoryEntry, sponsoredListingOffer, startDate, ipAddress);
-            var invoiceRequest = this.GetInvoiceRequest(sponsoredListingOffer, invoice);
 
+            // normalize/store referral code on the invoice (optional)
+            if (DirectoryManager.Utilities.Helpers.ReferralCodeHelper
+                    .TryNormalize(referralCode, out var normalized, out _)
+                && !string.IsNullOrEmpty(normalized))
+            {
+                invoice.ReferralCodeUsed = normalized; // stored lowercased
+            }
+
+            var invoiceRequest = this.GetInvoiceRequest(sponsoredListingOffer, invoice);
             this.paymentService.SetDefaultUrls(invoiceRequest);
 
             var invoiceFromProcessor = await this.paymentService.CreateInvoice(invoiceRequest);
@@ -681,10 +702,8 @@ namespace DirectoryManager.Web.Controllers
                 callbackPayload = await reader.ReadToEndAsync();
             }
 
-            // Log at info (or debug) level rather than error to avoid noise
             this.logger.LogInformation("NOWPayments IPN received: {Payload}", callbackPayload);
 
-            // 1) Verify signature FIRST — if invalid, acknowledge anyway (nothing to retry).
             var nowPaymentsSig = this.Request
                 .Headers[NowPayments.API.Constants.StringConstants.HeaderNameAuthCallBack]
                 .FirstOrDefault() ?? string.Empty;
@@ -692,19 +711,15 @@ namespace DirectoryManager.Web.Controllers
             if (!this.paymentService.IsIpnRequestValid(callbackPayload, nowPaymentsSig, out var sigError))
             {
                 this.logger.LogWarning("NOWPayments IPN signature invalid: {Error}", sigError);
-                return this.Ok(); // acknowledge to prevent retries
+                return this.Ok();
             }
 
-            // 2) Parse payload safely
             IpnPaymentMessage? ipnMessage = null;
-            try
-            {
-                ipnMessage = JsonConvert.DeserializeObject<IpnPaymentMessage>(callbackPayload);
-            }
+            try { ipnMessage = JsonConvert.DeserializeObject<IpnPaymentMessage>(callbackPayload); }
             catch (JsonException ex)
             {
                 this.logger.LogWarning(ex, "NOWPayments IPN deserialize failed.");
-                return this.Ok(); // acknowledge; we can’t process this one
+                return this.Ok();
             }
 
             if (ipnMessage?.OrderId == null || ipnMessage.PaymentStatus == null)
@@ -713,17 +728,20 @@ namespace DirectoryManager.Web.Controllers
                 return this.Ok();
             }
 
-            // 3) Find our invoice
             var orderId = ipnMessage.OrderId;
             var invoice = await this.sponsoredListingInvoiceRepository.GetByInvoiceIdAsync(Guid.Parse(orderId));
             if (invoice == null)
             {
-                // Could be a stray/old callback; log and ack
                 this.logger.LogWarning("NOWPayments IPN for unknown OrderId: {OrderId}", orderId);
                 return this.Ok();
             }
 
-            // 4) Idempotency: if already terminal OR explicitly marked Test, do nothing on IPN
+            if (invoice.PaymentStatus == PaymentStatus.Paid)
+            {
+                await this.TryCreateAffiliateCommissionForInvoiceAsync(invoice);
+                return this.Ok();
+            }
+
             if (invoice.PaymentStatus is PaymentStatus.Paid
                 or PaymentStatus.Test
                 or PaymentStatus.Expired
@@ -734,12 +752,11 @@ namespace DirectoryManager.Web.Controllers
                 return this.Ok();
             }
 
-            // 5) Update invoice with latest gateway info
+            // update invoice with gateway info
             invoice.PaymentResponse = JsonConvert.SerializeObject(ipnMessage);
             invoice.PaidAmount = ipnMessage.PayAmount;
             invoice.OutcomeAmount = ipnMessage.OutcomeAmount;
 
-            // Map external status to internal; do not override if already Paid or Test
             var processorStatus = DirectoryManager.Utilities.Helpers.EnumHelper
                 .ParseStringToEnum<NowPayments.API.Enums.PaymentStatus>(ipnMessage.PaymentStatus);
 
@@ -755,10 +772,15 @@ namespace DirectoryManager.Web.Controllers
                     .ParseStringToEnum<Currency>(ipnMessage.PayCurrency);
             }
 
-            // 6) Apply business effects (creates/extends listing when Paid) — method is already idempotent
+            // create/extend listing if paid (idempotent)
             await this.CreateNewSponsoredListing(invoice);
 
-            // 7) Always 200 OK so NOWPayments doesn’t retry
+            // if paid, attempt to create affiliate commission (idempotent via unique index & ExistsForInvoiceAsync)
+            if (invoice.PaymentStatus == PaymentStatus.Paid)
+            {
+                await this.TryCreateAffiliateCommissionForInvoiceAsync(invoice);
+            }
+
             return this.Ok();
         }
 
@@ -766,9 +788,9 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [Route("sponsoredlisting/nowpaymentssuccess")]
         [System.Diagnostics.CodeAnalysis.SuppressMessage(
-        "StyleCop.CSharp.NamingRules",
-        "SA1313:Parameter names should begin with lower-case letter",
-        Justification = "External parameter name.")]
+    "StyleCop.CSharp.NamingRules",
+    "SA1313:Parameter names should begin with lower-case letter",
+    Justification = "External parameter name.")]
         public async Task<IActionResult> NowPaymentsSuccess([FromQuery] string NP_id)
         {
             var processorInvoice = await this.paymentService.GetPaymentStatusAsync(NP_id);
@@ -789,8 +811,7 @@ namespace DirectoryManager.Web.Controllers
             // Do NOT resurrect superseded invoices
             if (existingInvoice.PaymentStatus == PaymentStatus.Canceled)
             {
-                // Persist any response for audit, but don't modify listing or status.
-                existingInvoice.PaymentResponse = NP_id;
+                existingInvoice.PaymentResponse = NP_id; // audit
                 await this.sponsoredListingInvoiceRepository.UpdateAsync(existingInvoice);
 
                 var vmCanceled = new SuccessViewModel
@@ -801,14 +822,18 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("NowPaymentsSuccess", vmCanceled);
             }
 
-            // Idempotent: don’t downgrade; mark paid if not already
+            // Mark paid if not already
             if (existingInvoice.PaymentStatus != PaymentStatus.Paid)
             {
                 existingInvoice.PaymentStatus = PaymentStatus.Paid;
                 existingInvoice.PaymentResponse = NP_id;
             }
 
+            // Create/extend the listing (already idempotent and persists invoice)
             await this.CreateNewSponsoredListing(existingInvoice);
+
+            // NEW: attempt to create the affiliate commission on success as well
+            await this.TryCreateAffiliateCommissionForInvoiceAsync(existingInvoice);
 
             var viewModel = new SuccessViewModel
             {
@@ -1616,6 +1641,39 @@ namespace DirectoryManager.Web.Controllers
             };
 
             return scoped.Any() ? scoped.Min(x => (DateTime?)x.CampaignEndDate) : null;
+        }
+
+        private async Task TryCreateAffiliateCommissionForInvoiceAsync(SponsoredListingInvoice invoice, CancellationToken ct = default)
+        {
+            if (invoice == null || invoice.PaymentStatus != PaymentStatus.Paid) return;
+            if (string.IsNullOrWhiteSpace(invoice.ReferralCodeUsed)) return;
+
+            if (!ReferralCodeHelper.TryNormalize(invoice.ReferralCodeUsed, out var code, out _))
+            {
+                return;
+            }
+
+            var affiliate = await this.affiliateRepo.GetByReferralCodeAsync(code!, ct);
+            if (affiliate == null) return;
+
+            if (await this.commissionRepo.ExistsForInvoiceAsync(invoice.SponsoredListingInvoiceId, ct)) return;
+
+            // ✅ Only consider other paid invoices (exclude this one)
+            var hasOtherPaid = await this.sponsoredListingInvoiceRepository
+                .HasAnyPaidInvoiceForDirectoryEntryAsync(invoice.DirectoryEntryId, invoice.SponsoredListingInvoiceId, ct);
+            if (hasOtherPaid) return; // not first paid → no commission
+
+            var amountDue = Math.Round(invoice.OutcomeAmount * 0.50m, 8);
+            var commission = new AffiliateCommission
+            {
+                SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId,
+                AffiliateAccountId = affiliate.AffiliateAccountId,
+                AmountDue = amountDue,
+                PayoutCurrency = invoice.PaidInCurrency,
+                PayoutStatus = CommissionPayoutStatus.Pending
+            };
+
+            await this.commissionRepo.AddAsync(commission, ct);
         }
     }
 }

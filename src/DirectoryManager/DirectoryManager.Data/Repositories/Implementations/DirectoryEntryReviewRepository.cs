@@ -120,7 +120,21 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync(ct);
         }
 
-        public Task ApproveAsync(int id, CancellationToken ct = default) =>
+ 
+public async Task<List<DirectoryEntryReview>> ListLatestApprovedAsync(
+    int count = 10, CancellationToken ct = default) =>
+    await this.Set.AsNoTracking()
+        .Where(r => r.ModerationStatus == ReviewModerationStatus.Approved)
+        .Include(r => r.DirectoryEntry)
+            .ThenInclude(de => de.SubCategory!)
+                .ThenInclude(sc => sc.Category!)
+        .OrderByDescending(r => r.UpdateDate ?? r.CreateDate)
+        .ThenBy(r => r.DirectoryEntryReviewId)
+        .Take(count)
+        .ToListAsync(ct);
+
+
+    public Task ApproveAsync(int id, CancellationToken ct = default) =>
             this.SetModerationStatusAsync(id, ReviewModerationStatus.Approved, ct);
 
         public Task RejectAsync(int id, CancellationToken ct = default) =>

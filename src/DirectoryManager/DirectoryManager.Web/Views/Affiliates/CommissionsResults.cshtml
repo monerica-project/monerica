@@ -1,0 +1,56 @@
+﻿@model DirectoryManager.Web.Models.Affiliates.AffiliateCommissionLookupResultModel
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Your Commissions";
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+    <table class="table table-borderless">
+        <tr><th>Referral Code</th><td>@Model.ReferralCode</td></tr>
+        <tr><th>Wallet</th><td>@Model.WalletAddress</td></tr>
+        <tr><th>Payout Currency</th><td>@Model.PayoutCurrency</td></tr>
+        @if (!string.IsNullOrWhiteSpace(Model.Email))
+        {
+            <tr><th>Email</th><td>@Model.Email</td></tr>
+        }
+    </table>
+
+    @if (Model.Commissions?.Any() ?? false)
+    {
+        <h3>Commissions</h3>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Invoice Id</th>
+                    <th>Amount Due</th>
+                    <th>Currency</th>
+                    <th>Status</th>
+                    <th>Payout Tx</th>
+                    <th>Created</th>
+                    <th>Updated</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var c in Model.Commissions)
+                {
+                    <tr>
+                        <td>@c.SponsoredListingInvoiceId</td>
+                        <td>@c.AmountDue</td>
+                        <td>@c.PayoutCurrency</td>
+                        <td>@c.PayoutStatus</td>
+                        <td>@(string.IsNullOrWhiteSpace(c.PayoutTransactionId) ? "-" : c.PayoutTransactionId)</td>
+                        <td>@c.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
+                        <td>@(c.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat) ?? "-")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+    else
+    {
+        <p><em>No commissions found for this account.</em></p>
+    }
+    <a class="app-link" href="~/affiliates/commissions">Back</a>
+}

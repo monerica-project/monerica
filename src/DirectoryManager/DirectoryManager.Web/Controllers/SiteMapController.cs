@@ -83,6 +83,17 @@ namespace DirectoryManager.Web.Controllers
 
             // Get the last modification date for any sponsored listing
             var lastSponsoredListingChange = await this.sponsoredListingRepository.GetLastChangeDateForMainSponsorAsync();
+            var latestApprovedReviewByEntry =
+                await this.directoryEntryReviewRepository.GetLatestApprovedReviewDatesByEntryAsync();
+
+            if (latestApprovedReviewByEntry != null && latestApprovedReviewByEntry.Count > 0)
+            {
+                var latestApprovedReviewDate = latestApprovedReviewByEntry.Values.Max();
+                if (latestApprovedReviewDate > mostRecentUpdateDate)
+                {
+                    mostRecentUpdateDate = latestApprovedReviewDate;
+                }
+            }
 
             mostRecentUpdateDate = lastSponsoredListingChange.HasValue && lastSponsoredListingChange > mostRecentUpdateDate
                 ? lastSponsoredListingChange.Value
@@ -132,9 +143,6 @@ namespace DirectoryManager.Web.Controllers
                     domain,
                     category);
             }
-
-            var latestApprovedReviewByEntry =
-                    await this.directoryEntryReviewRepository.GetLatestApprovedReviewDatesByEntryAsync();
 
             var allActiveEntries = await this.directoryEntryRepository.GetAllEntitiesAndPropertiesAsync();
 
