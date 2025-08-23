@@ -11,6 +11,5 @@
 
         public IList<AdvertiserInvoiceRow> Rows { get; set; } = new List<AdvertiserInvoiceRow>();
         public decimal TotalPaidAllTime { get; set; }
-
     }
 }

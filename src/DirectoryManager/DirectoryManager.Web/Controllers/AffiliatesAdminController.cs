@@ -91,7 +91,10 @@ namespace DirectoryManager.Web.Controllers
             foreach (var a in affiliates)
             {
                 var list = await this.commissionRepo.ListForAffiliateAsync(a.AffiliateAccountId, ct);
-                if (list != null && list.Count > 0) all.AddRange(list);
+                if (list != null && list.Count > 0)
+                {
+                    all.AddRange(list);
+                }
             }
 
             // Optional filter

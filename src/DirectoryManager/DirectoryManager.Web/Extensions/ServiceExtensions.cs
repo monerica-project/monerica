@@ -63,7 +63,6 @@ namespace DirectoryManager.Web.Extensions
                     .AddScoped<IUrlResolutionService, UrlResolutionService>();
             services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
             services.AddTransient<ICacheService, CacheService>();
- 
             services.AddTransient<IPgpService, PgpService>();
             services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
             services.AddScoped<IRssFeedService, RssFeedService>();

@@ -368,11 +368,7 @@ namespace DirectoryManager.Web.Controllers
 
                     foreach (var name in names)
                     {
-                        // get or create the Tag row
-                        var tag = await this.tagRepo.GetByKeyAsync(name.UrlKey())
-                               ?? await this.tagRepo.CreateAsync(name);
-
-                        // link it
+                        var tag = await this.tagRepo.GetByKeyAsync(name.UrlKey()) ?? await this.tagRepo.CreateAsync(name);
                         await this.entryTagRepo.AssignTagAsync(entryId, tag.TagId);
                     }
                 }
@@ -622,7 +618,7 @@ namespace DirectoryManager.Web.Controllers
                 });
         }
 
-        private async Task PopulateCountryDropDownList(object selectedId = null)
+        private async Task PopulateCountryDropDownList(object? selectedId = null)
         {
             // Get the dictionary of countries from the helper.
             var countries = CountryHelper.GetCountries();

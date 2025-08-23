@@ -1,9 +1,8 @@
-﻿using System.Linq;
-using System.Text;
+﻿using System.Text;
+using System.Text.Encodings.Web;
 using HtmlAgilityPack;
 using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using System.Text.Encodings.Web;
 
 namespace DirectoryManager.Web.Helpers
 {
@@ -13,6 +12,7 @@ namespace DirectoryManager.Web.Helpers
         /// Truncates the input HTML to a maximum of <paramref name="maxLength"/> text characters,
         /// preserving tags and closing them properly.
         /// </summary>
+        /// <returns>The string with all words and dots at end.</returns>
         public static IHtmlContent TruncateHtml(
             this IHtmlHelper html,
             string sourceHtml,
@@ -31,7 +31,10 @@ namespace DirectoryManager.Web.Helpers
 
             void Walk(HtmlNode node)
             {
-                if (current >= maxLength) return;
+                if (current >= maxLength)
+                {
+                    return;
+                }
 
                 switch (node.NodeType)
                 {
@@ -48,6 +51,7 @@ namespace DirectoryManager.Web.Helpers
                             sb.Append(HtmlEncoder.Default.Encode(text.Substring(0, remain)));
                             current = maxLength;
                         }
+
                         break;
 
                     case HtmlNodeType.Element:
@@ -61,13 +65,17 @@ namespace DirectoryManager.Web.Helpers
                               .Append(HtmlEncoder.Default.Encode(attr.Value))
                               .Append('"');
                         }
+
                         sb.Append('>');
 
                         // children
                         foreach (var child in node.ChildNodes)
                         {
                             Walk(child);
-                            if (current >= maxLength) break;
+                            if (current >= maxLength)
+                            {
+                                break;
+                            }
                         }
 
                         // close tag
@@ -79,7 +87,10 @@ namespace DirectoryManager.Web.Helpers
             foreach (var child in doc.DocumentNode.ChildNodes)
             {
                 Walk(child);
-                if (current >= maxLength) break;
+                if (current >= maxLength)
+                {
+                    break;
+                }
             }
 
             // if we hit the limit, add ellipsis

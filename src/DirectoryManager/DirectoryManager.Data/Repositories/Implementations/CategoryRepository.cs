@@ -70,8 +70,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     on sc.SubCategoryId equals e.SubCategoryId
                 where e.DirectoryStatus != DirectoryStatus.Removed
                    && e.DirectoryStatus != DirectoryStatus.Unknown
-                select c
-            )
+                select c)
             .Distinct()
             .OrderBy(c => c.Name)
             .ToListAsync();

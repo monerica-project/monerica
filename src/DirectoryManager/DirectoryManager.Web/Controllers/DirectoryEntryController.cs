@@ -469,7 +469,7 @@ namespace DirectoryManager.Web.Controllers
             await this.PopulateCountryDropDownList();
         }
 
-        private async Task PopulateCountryDropDownList(object selectedId = null)
+        private async Task PopulateCountryDropDownList(object? selectedId = null)
         {
             // Get the dictionary of countries from the helper.
             var countries = CountryHelper.GetCountries();

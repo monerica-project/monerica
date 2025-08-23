@@ -292,10 +292,6 @@ namespace DirectoryManager.Web.Controllers
             return this.File(imageBytes, StringConstants.PngImage);
         }
 
-        /// <summary>
-        /// Renders a pie chart of total revenue by subcategory within the date range,
-        /// optionally scoped to one SponsorshipType.
-        /// </summary>
         [AllowAnonymous]
         [HttpGet("sponsoredlistinginvoice/subcategory-revenue-pie")]
         public async Task<IActionResult> SubcategoryRevenuePieChart(
@@ -576,7 +572,6 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(vm);
         }
-
 
         [Route("sponsoredlistinginvoice/advertiser")]
         [HttpGet]

@@ -354,7 +354,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var primaryPattern = $"%{term}%";
             string? rootTerm = null;
             string? rootPattern = null;
-            if (term.EndsWith("s") && term.Length > 3) // <-- only strip "s" when length > 3
+
+            if (term.EndsWith("s") && term.Length > 3)
             {
                 rootTerm = term.Substring(0, term.Length - 1);
                 rootPattern = $"%{rootTerm}%";

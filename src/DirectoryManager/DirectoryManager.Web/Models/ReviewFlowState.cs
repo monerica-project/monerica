@@ -7,8 +7,8 @@
         public bool CaptchaOk { get; set; }
         public string? PgpArmored { get; set; }
         public string? PgpFingerprint { get; set; }
-        public int? ChallengeCode { get; set; }          // 6 digits (100000–999999)
-        public string? ChallengeCiphertext { get; set; } // Encrypted-to-key blob
+        public int? ChallengeCode { get; set; }
+        public string? ChallengeCiphertext { get; set; }
         public bool ChallengeSolved { get; set; }
     }
 }

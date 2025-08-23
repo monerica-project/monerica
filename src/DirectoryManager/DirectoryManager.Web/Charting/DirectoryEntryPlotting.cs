@@ -147,7 +147,7 @@ namespace DirectoryManager.Web.Charting
                 var catIdProp = sc.GetType().GetProperty("CategoryId");
                 if (catIdProp is not null && catIdProp.PropertyType == typeof(int))
                 {
-                    int cid = (int)catIdProp.GetValue(sc)!;
+                    int cid = (int)catIdProp.GetValue(sc) !;
                     if (cid > 0)
                     {
                         return cid;
@@ -164,7 +164,7 @@ namespace DirectoryManager.Web.Charting
                         var cidProp = catObj.GetType().GetProperty("CategoryId");
                         if (cidProp is not null && cidProp.PropertyType == typeof(int))
                         {
-                            int cid = (int)cidProp.GetValue(catObj)!;
+                            int cid = (int)cidProp.GetValue(catObj) !;
                             if (cid > 0)
                             {
                                 return cid;

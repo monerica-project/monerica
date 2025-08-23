@@ -2,8 +2,7 @@
 
 namespace DirectoryManager.Web.Models
 {
-
-    public   class VerifyResult
+    public class VerifyResult
     {
         [JsonProperty("success")]
         public bool Success { get; set; }
@@ -16,7 +15,5 @@ namespace DirectoryManager.Web.Models
 
         [JsonProperty("error_codes")]
         public string[]? ErrorCodes { get; set; }
-        // Turnstile returns "challenge_ts", "hostname" etc. We only need success=true.
     }
-
 }

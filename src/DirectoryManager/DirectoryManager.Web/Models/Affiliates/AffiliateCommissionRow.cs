@@ -1,9 +1,7 @@
-﻿// Web/Models/Affiliates/AffiliateCommissionLookupResultModel.cs
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 
 namespace DirectoryManager.Web.Models.Affiliates
 {
-
     public class AffiliateCommissionRow
     {
         public int AffiliateCommissionId { get; set; }

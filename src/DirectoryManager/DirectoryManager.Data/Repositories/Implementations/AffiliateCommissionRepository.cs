@@ -9,12 +9,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
     public class AffiliateCommissionRepository : IAffiliateCommissionRepository
     {
         private readonly IApplicationDbContext context;
-        private DbSet<AffiliateCommission> Set => this.context.AffiliateCommissions;
 
         public AffiliateCommissionRepository(IApplicationDbContext context)
         {
             this.context = context;
         }
+
+        private DbSet<AffiliateCommission> Set => this.context.AffiliateCommissions;
 
         public async Task<AffiliateCommission?> GetByIdAsync(int id, CancellationToken ct = default) =>
             await this.Set.AsNoTracking().FirstOrDefaultAsync(c => c.AffiliateCommissionId == id, ct);

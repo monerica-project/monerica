@@ -1,6 +1,6 @@
 ﻿// DirectoryManager.Data/Repositories/Implementations/DirectoryEntryReviewRepository.cs
 using DirectoryManager.Data.DbContextInfo;
-using DirectoryManager.Data.Enums; // ReviewModerationStatus
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -10,12 +10,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
     public class DirectoryEntryReviewRepository : IDirectoryEntryReviewRepository
     {
         private readonly IApplicationDbContext context;
+        public DirectoryEntryReviewRepository(IApplicationDbContext context) => this.context = context;
 
         private DbSet<DirectoryEntryReview> Set => this.context.DirectoryEntryReviews;
 
-        public DirectoryEntryReviewRepository(IApplicationDbContext context) => this.context = context;
-
-        /// <summary>Base query (no tracking, for read views).</summary>
         public IQueryable<DirectoryEntryReview> Query() => this.Set.AsNoTracking();
 
         public async Task<DirectoryEntryReview?> GetByIdAsync(int id, CancellationToken ct = default) =>
@@ -54,7 +52,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             var existing = await this.Set.FindAsync(new object[] { id }, ct);
             if (existing is null)
+            {
                 return;
+            }
 
             this.Set.Remove(existing);
             await this.context.SaveChangesAsync(ct);
@@ -63,7 +63,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
         // ---------------------------
         // Public-side helpers (approved only)
         // ---------------------------
-
         public async Task<List<DirectoryEntryReview>> ListApprovedForEntryAsync(
             int directoryEntryId, int page = 1, int pageSize = 50, CancellationToken ct = default) =>
             await this.Set.AsNoTracking()
@@ -85,14 +84,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Select(r => (double)r.Rating!.Value);
 
             if (!await q.AnyAsync(ct))
+            {
                 return null;
+            }
 
             return await q.AverageAsync(ct);
         }
-
-        // ---------------------------
-        // Moderation helpers
-        // ---------------------------
 
         public async Task<List<DirectoryEntryReview>> ListByStatusAsync(
             ReviewModerationStatus status, int page = 1, int pageSize = 50, CancellationToken ct = default) =>
@@ -113,17 +110,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             var review = await this.Set.FindAsync(new object[] { id }, ct);
             if (review is null)
+            {
                 return;
+            }
 
             review.ModerationStatus = status;
             review.UpdateDate = DateTime.UtcNow;
             await this.context.SaveChangesAsync(ct);
         }
 
- 
-public async Task<List<DirectoryEntryReview>> ListLatestApprovedAsync(
-    int count = 10, CancellationToken ct = default) =>
-    await this.Set.AsNoTracking()
+        public async Task<List<DirectoryEntryReview>> ListLatestApprovedAsync(
+            int count = 10, CancellationToken ct = default) =>
+            await this.Set.AsNoTracking()
         .Where(r => r.ModerationStatus == ReviewModerationStatus.Approved)
         .Include(r => r.DirectoryEntry)
             .ThenInclude(de => de.SubCategory!)
@@ -133,16 +131,11 @@ public async Task<List<DirectoryEntryReview>> ListLatestApprovedAsync(
         .Take(count)
         .ToListAsync(ct);
 
-
-    public Task ApproveAsync(int id, CancellationToken ct = default) =>
+        public Task ApproveAsync(int id, CancellationToken ct = default) =>
             this.SetModerationStatusAsync(id, ReviewModerationStatus.Approved, ct);
 
         public Task RejectAsync(int id, CancellationToken ct = default) =>
             this.SetModerationStatusAsync(id, ReviewModerationStatus.Rejected, ct);
-
-        // ---------------------------
-        // Existing helpers you already had (kept for compatibility)
-        // ---------------------------
 
         public async Task<List<DirectoryEntryReview>> ListForEntryAsync(
             int directoryEntryId, int page = 1, int pageSize = 50, CancellationToken ct = default) =>

@@ -25,7 +25,10 @@ public static class CaptchaTools
     public static bool Validate(HttpContext http, string ctx, string userInput, bool consume = true)
     {
         var expected = http.Session.GetString(SessionKey(ctx));
-        if (string.IsNullOrWhiteSpace(expected)) return false;
+        if (string.IsNullOrWhiteSpace(expected))
+        {
+            return false;
+        }
 
         var ok = !string.IsNullOrWhiteSpace(userInput) &&
                  string.Equals(userInput.Trim(), expected, StringComparison.OrdinalIgnoreCase);

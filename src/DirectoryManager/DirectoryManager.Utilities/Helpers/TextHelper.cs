@@ -7,6 +7,7 @@ namespace DirectoryManager.Utilities.Helpers
         /// Truncates to the nearest word at or before maxLength and appends an ellipsis if truncated.
         /// Preserves empty/null safely.
         /// </summary>
+        /// <returns>The value returned with dots.</returns>
         public static string TruncateAtWord(string? input, int maxLength)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -21,7 +22,11 @@ namespace DirectoryManager.Utilities.Helpers
             }
 
             var cut = s.LastIndexOf(' ', Math.Min(maxLength, s.Length - 1));
-            if (cut <= 0) cut = maxLength;
+            if (cut <= 0)
+            {
+                cut = maxLength;
+            }
+
             return s[..cut].TrimEnd() + "…";
         }
     }

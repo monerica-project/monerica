@@ -1,12 +1,12 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using System;
+using System.Globalization;
+using System.Net;
+using System.Text;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.DisplayFormatting.Enums;
 using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Utilities.Helpers;
-using System;
-using System.Globalization;
-using System.Net;
-using System.Text;
 
 namespace DirectoryManager.DisplayFormatting.Helpers
 {
