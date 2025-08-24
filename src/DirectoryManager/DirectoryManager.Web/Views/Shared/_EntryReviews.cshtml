@@ -2,11 +2,12 @@
 @using Microsoft.AspNetCore.Html
 @using System.Text.RegularExpressions
 @using System.Net
+@using System.Text.Json
 @model DirectoryManager.Web.Models.EntryReviewsBlockViewModel
 @inject IUrlResolutionService Urls
 
 @functions {
-    // ⭐ helper
+    // ★ helper
     public static string Stars(byte? rating)
     {
         if (rating is null || rating.Value < 1) return "☆☆☆☆☆";
@@ -14,46 +15,64 @@
         return new string('★', n) + new string('☆', 5 - n);
     }
 
-    // ⛳ change to your real CSS class name if different
+    // CSS class so long links wrap onto multiple lines
     private const string LinkClass = "multi-line-text";
 
-    // Render body: encode text, auto-link URLs, keep newlines
+    // Precompiled URL regex: http(s)://... or www....
+    private static readonly Regex UrlRegex = new(
+        @"(?:(?:https?://)|(?:www\.))[\w\-\.]+(?:\.[a-z]{2,})(?:[^\s<]*)?",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+    // Render body: encode text, auto-link URLs, preserve newlines
     public static IHtmlContent RenderBodyWithLinks(string? text)
     {
         if (string.IsNullOrEmpty(text))
             return new HtmlString(string.Empty);
 
-        // URL pattern: http(s)://... or www....
-        var rx = new Regex(@"(?:(?:https?://)|(?:www\.))[\w\-\.]+(?:\.[a-z]{2,})(?:[^\s<]*)?",
-                           RegexOptions.IgnoreCase | RegexOptions.Compiled);
-
         var sb = new System.Text.StringBuilder();
         int last = 0;
 
-        foreach (Match m in rx.Matches(text))
+        foreach (Match m in UrlRegex.Matches(text))
         {
-            // encode any text before this match
-            string before = WebUtility.HtmlEncode(text.Substring(last, m.Index - last));
-            sb.Append(before.Replace("\r\n", "\n").Replace("\n", "<br/>"));
+            // encode text before the link (preserve newlines)
+            string before = WebUtility.HtmlEncode(text.Substring(last, m.Index - last))
+                                      .Replace("\r\n", "\n").Replace("\n", "<br/>");
+            sb.Append(before);
 
+            // raw match and any trailing punctuation to exclude from URL
             string raw = m.Value;
-            string href = raw.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? $"https://{raw}" : raw;
+            string trimmed = raw.TrimEnd('.', ',', ';', ')', ']', '}', '!', '?');
+            string trailing = raw.Substring(trimmed.Length);
 
-            // attribute-safe & visible text
+            // ensure scheme for www.* links
+            string href = trimmed.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
+                ? $"https://{trimmed}"
+                : trimmed;
+
+            // Safe attributes and visible text
             string hrefAttr = WebUtility.HtmlEncode(href);
-            string visible = WebUtility.HtmlEncode(raw);
+            string visible = WebUtility.HtmlEncode(trimmed);
 
             sb.Append($"<a class=\"{LinkClass}\" href=\"{hrefAttr}\" target=\"_blank\" rel=\"noopener noreferrer nofollow ugc\">{visible}</a>");
+
+            if (trailing.Length > 0)
+                sb.Append(WebUtility.HtmlEncode(trailing));
 
             last = m.Index + m.Length;
         }
 
-        // tail after last match
-        string tail = WebUtility.HtmlEncode(text.Substring(last));
-        sb.Append(tail.Replace("\r\n", "\n").Replace("\n", "<br/>"));
+        // Tail after last match
+        string tail = WebUtility.HtmlEncode(text.Substring(last))
+                                .Replace("\r\n", "\n").Replace("\n", "<br/>");
+        sb.Append(tail);
 
         return new HtmlString(sb.ToString());
     }
+}
+
+@{
+    // Current page URL for JSON-LD itemReviewed @id
+    var pageUrl = this.ViewData[DirectoryManager.Web.Constants.StringConstants.CanonicalUrl];
 }
 
 <div class="reviews-block mt-4">
@@ -70,22 +89,84 @@
         <ul class="list-unstyled">
             @foreach (var r in Model.Reviews)
             {
-                <li class="mb-4 pb-3 border-bottom">
+                <li class="mb-4 pb-3 border-bottom" itemscope itemtype="https://schema.org/Review">
                     <div class="d-flex align-items-center">
                         <span class="me-2" aria-label="rating">@Stars(r.Rating)</span>
                         <small class="text-muted">@((r.Rating ?? 0))/5</small>
+
+                        <!-- reviewRating microdata -->
+                        <span itemprop="reviewRating" itemscope itemtype="https://schema.org/Rating">
+                            <meta itemprop="ratingValue" content="@((r.Rating ?? 0))" />
+                            <meta itemprop="bestRating" content="5" />
+                            <meta itemprop="worstRating" content="1" />
+                        </span>
                     </div>
-                    <div class="mt-2">
+
+                    <div class="mt-2" itemprop="reviewBody">
                         @RenderBodyWithLinks(r.Body)
                     </div>
+
                     <div class="mt-2">
-                        <small class="text-muted">Author: @r.AuthorFingerprint</small>
+                        <!-- author microdata -->
+                        <span itemprop="author" itemscope itemtype="https://schema.org/Person">
+                            <small class="text-muted">Author: <span itemprop="name">@r.AuthorFingerprint</span></small>
+                        </span>
                         <small class="text-muted ms-2">•</small>
-                        <small class="text-muted ms-2">@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</small>
+                        <!-- datePublished microdata -->
+                        <time class="text-muted ms-2" itemprop="datePublished" datetime="@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)">
+                            @r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
+                        </time>
                     </div>
                 </li>
             }
         </ul>
+
+        @* JSON-LD: AggregateRating + individual Review objects referencing this page as itemReviewed *@
+        {
+            var graph = new List<object>();
+
+            if (Model.AverageRating.HasValue && Model.ReviewCount > 0)
+            {
+                graph.Add(new
+                {
+                    @type = "AggregateRating",
+                    itemReviewed = new { @id = pageUrl },
+                    ratingValue = Math.Round(Model.AverageRating.Value, 1),
+                    ratingCount = Model.ReviewCount,
+                    bestRating = 5,
+                    worstRating = 1
+                });
+            }
+
+            foreach (var r in Model.Reviews)
+            {
+                graph.Add(new
+                {
+                    @type = "Review",
+                    itemReviewed = new { @id = pageUrl },
+                    reviewRating = new
+                    {
+                        @type = "Rating",
+                        ratingValue = (int)(r.Rating ?? 0),
+                        bestRating = 5,
+                        worstRating = 1
+                    },
+                    author = new { @type = "Person", name = r.AuthorFingerprint },
+                    datePublished = r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat),
+                    reviewBody = r.Body ?? string.Empty
+                });
+            }
+
+            var jsonLd = JsonSerializer.Serialize(new
+            {
+                @context = "https://schema.org",
+                @graph = graph
+            }, new JsonSerializerOptions { Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+
+            <script type="application/ld+json">
+                @Html.Raw(jsonLd)
+            </script>
+        }
     }
     else
     {
