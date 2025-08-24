@@ -1,10 +1,12 @@
 ﻿@using DirectoryManager.Web.Services.Interfaces
 @using Microsoft.AspNetCore.Html
+@using System.Text.RegularExpressions
+@using System.Net
 @model DirectoryManager.Web.Models.EntryReviewsBlockViewModel
 @inject IUrlResolutionService Urls
 
 @functions {
-    // simple stars helper (★★★★★ / ☆☆☆☆☆)
+    // ⭐ helper
     public static string Stars(byte? rating)
     {
         if (rating is null || rating.Value < 1) return "☆☆☆☆☆";
@@ -12,13 +14,45 @@
         return new string('★', n) + new string('☆', 5 - n);
     }
 
-    // minimal newline-preserving body encoder
-    public static IHtmlContent SafeBody(string txt)
+    // ⛳ change to your real CSS class name if different
+    private const string LinkClass = "multi-line-text";
+
+    // Render body: encode text, auto-link URLs, keep newlines
+    public static IHtmlContent RenderBodyWithLinks(string? text)
     {
-        var encoded = System.Net.WebUtility.HtmlEncode(txt ?? string.Empty)
-            .Replace("\r\n", "\n")
-            .Replace("\n", "<br/>");
-        return new HtmlString(encoded);
+        if (string.IsNullOrEmpty(text))
+            return new HtmlString(string.Empty);
+
+        // URL pattern: http(s)://... or www....
+        var rx = new Regex(@"(?:(?:https?://)|(?:www\.))[\w\-\.]+(?:\.[a-z]{2,})(?:[^\s<]*)?",
+                           RegexOptions.IgnoreCase | RegexOptions.Compiled);
+
+        var sb = new System.Text.StringBuilder();
+        int last = 0;
+
+        foreach (Match m in rx.Matches(text))
+        {
+            // encode any text before this match
+            string before = WebUtility.HtmlEncode(text.Substring(last, m.Index - last));
+            sb.Append(before.Replace("\r\n", "\n").Replace("\n", "<br/>"));
+
+            string raw = m.Value;
+            string href = raw.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? $"https://{raw}" : raw;
+
+            // attribute-safe & visible text
+            string hrefAttr = WebUtility.HtmlEncode(href);
+            string visible = WebUtility.HtmlEncode(raw);
+
+            sb.Append($"<a class=\"{LinkClass}\" href=\"{hrefAttr}\" target=\"_blank\" rel=\"noopener noreferrer nofollow ugc\">{visible}</a>");
+
+            last = m.Index + m.Length;
+        }
+
+        // tail after last match
+        string tail = WebUtility.HtmlEncode(text.Substring(last));
+        sb.Append(tail.Replace("\r\n", "\n").Replace("\n", "<br/>"));
+
+        return new HtmlString(sb.ToString());
     }
 }
 
@@ -42,12 +76,12 @@
                         <small class="text-muted">@((r.Rating ?? 0))/5</small>
                     </div>
                     <div class="mt-2">
-                        @SafeBody(r.Body)
+                        @RenderBodyWithLinks(r.Body)
                     </div>
                     <div class="mt-2">
                         <small class="text-muted">Author: @r.AuthorFingerprint</small>
                         <small class="text-muted ms-2">•</small>
-                        <small class="text-muted ms-2">@r.CreateDate.ToString("yyyy-MM-dd")</small>
+                        <small class="text-muted ms-2">@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</small>
                     </div>
                 </li>
             }
