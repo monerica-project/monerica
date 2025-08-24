@@ -86,6 +86,11 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("PgpKey", entry.PgpKey, submission.PgpKey);
             }
 
+            if (NotEqualTrimmed(entry.ProofLink, submission.ProofLink))
+            {
+                AddDifference("ProofLink", entry.ProofLink, submission.ProofLink);
+            }
+
             // Compare SubCategory and Category names safely.
             if (entry.SubCategoryId != submission.SubCategoryId)
             {

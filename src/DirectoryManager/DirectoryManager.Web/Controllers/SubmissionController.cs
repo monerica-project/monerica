@@ -101,6 +101,11 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(nameof(model.Link3), "The link 3 is not a valid URL.");
             }
 
+            if (!string.IsNullOrWhiteSpace(model.ProofLink) && !UrlHelper.IsValidUrl(model.ProofLink))
+            {
+                this.ModelState.AddModelError(nameof(model.ProofLink), "The proof link is not a valid URL.");
+            }
+
             if (!string.IsNullOrWhiteSpace(model.PgpKey) &&
                 !PgpKeyValidator.IsValid(model.PgpKey))
             {
@@ -682,6 +687,7 @@ namespace DirectoryManager.Web.Controllers
                     CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty,
                     CountryCode = model.CountryCode,
                     PgpKey = model.PgpKey?.Trim(),
+                    ProofLink = model.ProofLink?.Trim(),
                 });
         }
 
@@ -699,6 +705,7 @@ namespace DirectoryManager.Web.Controllers
 
             var existing = await this.directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value) ??
                                     throw new Exception("Submission has a directory entry id, but the entry does not exist.");
+            existing.DirectoryEntryKey = StringHelpers.UrlKey(model.Name).UrlKey();
             existing.Name = model.Name.Trim();
             existing.Link = model.Link.Trim();
             existing.Link2 = model.Link2?.Trim();
@@ -710,6 +717,7 @@ namespace DirectoryManager.Web.Controllers
             existing.Contact = model.Contact?.Trim();
             existing.CountryCode = model.CountryCode;
             existing.PgpKey = model.PgpKey?.Trim();
+            existing.ProofLink = model.ProofLink?.Trim();
 
             if (model.DirectoryStatus != null)
             {
@@ -733,6 +741,7 @@ namespace DirectoryManager.Web.Controllers
                 Link = (model.Link == null) ? string.Empty : model.Link.Trim(),
                 Link2 = (model.Link2 == null) ? string.Empty : model.Link2.Trim(),
                 Link3 = (model.Link3 == null) ? string.Empty : model.Link3.Trim(),
+                ProofLink = (model.ProofLink == null) ? string.Empty : model.ProofLink.Trim(),
                 Description = (model.Description == null) ? string.Empty : model.Description.Trim(),
                 Location = (model.Location == null) ? string.Empty : model.Location.Trim(),
                 Processor = (model.Processor == null) ? string.Empty : model.Processor.Trim(),
@@ -787,6 +796,7 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.SuggestedSubCategory = submissionModel.SuggestedSubCategory;
             existingSubmission.CountryCode = submissionModel.CountryCode;
             existingSubmission.PgpKey = submissionModel.PgpKey;
+            existingSubmission.ProofLink = submissionModel.ProofLink;
 
             await this.submissionRepository.UpdateAsync(existingSubmission);
         }
@@ -826,6 +836,11 @@ namespace DirectoryManager.Web.Controllers
             }
 
             if (existingEntry.Link3?.Trim() != model.Link3?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.ProofLink?.Trim() != model.ProofLink?.Trim())
             {
                 return true;
             }

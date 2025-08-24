@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+﻿using DirectoryManager.Utilities.Helpers;
 
 namespace DirectoryManager.Utilities
 {
@@ -6,25 +6,7 @@ namespace DirectoryManager.Utilities
     {
         public static string UrlKey(this string p)
         {
-            var replaceRegex = Regex.Replace(p, @"[\W_-[#]]+", " ");
-
-            var beforeTrim = replaceRegex.Trim()
-                                         .Replace("  ", " ")
-                                         .Replace(" ", "-")
-                                         .Replace("%", string.Empty)
-                                         .ToLowerInvariant();
-
-            if (beforeTrim.EndsWith("#"))
-            {
-                beforeTrim = beforeTrim.TrimEnd('#');
-            }
-
-            if (beforeTrim.StartsWith("#"))
-            {
-                beforeTrim = beforeTrim.TrimStart('#');
-            }
-
-            return beforeTrim;
+            return StringHelpers.UrlKey(p);
         }
 
         public static string GetFileNameFromUrl(this string url)

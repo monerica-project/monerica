@@ -103,6 +103,7 @@ async Task CreateOfflineSubmissionIfNotExists(
         CountryCode = entry.CountryCode,
         NoteToAdmin = "(automated submission)",
         PgpKey = entry.PgpKey,
+        ProofLink = entry.ProofLink,
     };
 
     await submissionRepository.CreateAsync(submission);

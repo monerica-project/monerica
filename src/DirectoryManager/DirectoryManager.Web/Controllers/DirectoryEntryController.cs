@@ -131,6 +131,7 @@ namespace DirectoryManager.Web.Controllers
             model.Link3 = model.Link3?.Trim();
             model.Link3A = model.Link3A?.Trim();
             model.PgpKey = model.PgpKey?.Trim();
+            model.ProofLink = model.ProofLink?.Trim();
 
             await this.directoryEntryRepository.CreateAsync(model);
 
@@ -198,6 +199,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Link2A = entry.Link2A?.Trim();
             existingEntry.Link3 = entry.Link3?.Trim();
             existingEntry.Link3A = entry.Link3A?.Trim();
+            existingEntry.ProofLink = entry.ProofLink?.Trim();
             existingEntry.Name = entry.Name.Trim();
             existingEntry.DirectoryEntryKey = StringHelpers.UrlKey(entry.Name);
             existingEntry.Description = entry.Description?.Trim();
@@ -279,7 +281,8 @@ namespace DirectoryManager.Web.Controllers
                 Processor = directoryEntry.Processor,
                 SubCategoryId = directoryEntry.SubCategoryId,
                 CountryCode = directoryEntry.CountryCode,
-                PgpKey = directoryEntry.PgpKey
+                PgpKey = directoryEntry.PgpKey,
+                ProofLink = directoryEntry.ProofLink
             };
 
             // Set category and subcategory names for each audit entry
@@ -453,6 +456,7 @@ namespace DirectoryManager.Web.Controllers
                 CountryCode = existingEntry.CountryCode,
                 IsSponsored = isSponsor,
                 PgpKey = existingEntry.PgpKey,
+                ProofLink = existingEntry.ProofLink,
             };
 
             this.ViewBag.CategoryName = category.Name;

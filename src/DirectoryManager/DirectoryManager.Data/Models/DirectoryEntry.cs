@@ -46,6 +46,12 @@ namespace DirectoryManager.Data.Models
         [MaxLength(500)]
         public string? Link3A { get; set; }
 
+        /// <summary>
+        /// An optional link that shows proof as to why they are in the directory.
+        /// </summary>
+        [MaxLength(500)]
+        public string? ProofLink { get; set; } = string.Empty;
+
         [Required]
         public DirectoryStatus DirectoryStatus { get; set; }
 
