@@ -33,6 +33,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISponsoredListingRepository sponsoredListingRepository;
         private readonly IMemoryCache cache;
         private readonly IDirectoryEntryReviewRepository reviewRepository;
+        private readonly ISubmissionRepository submissionRepository;
 
         public DirectoryEntryController(
             UserManager<ApplicationUser> userManager,
@@ -47,7 +48,8 @@ namespace DirectoryManager.Web.Controllers
             ICacheService cacheService,
             ISponsoredListingRepository sponsoredListingRepository,
             IMemoryCache cache,
-            IDirectoryEntryReviewRepository reviewRepository)
+            IDirectoryEntryReviewRepository reviewRepository,
+            ISubmissionRepository submissionRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -61,6 +63,7 @@ namespace DirectoryManager.Web.Controllers
             this.sponsoredListingRepository = sponsoredListingRepository;
             this.cacheService = cacheService;
             this.reviewRepository = reviewRepository;
+            this.submissionRepository = submissionRepository;
         }
 
         [Route("directoryentry/index")]
@@ -315,6 +318,20 @@ namespace DirectoryManager.Web.Controllers
         public IActionResult Report()
         {
             return this.View();
+        }
+
+        [HttpGet("directoryentry/submissionmonthlyplotimage")]
+        public async Task<IActionResult> SubmissionMonthlyPlotImage()
+        {
+            var submissions = await this.submissionRepository.GetAllAsync();
+            var plotting = new SubmissionsPlotting();
+            var bytes = plotting.CreateMonthlySubmissionBarChart(submissions);
+            if (bytes.Length == 0)
+            {
+                return this.File(Array.Empty<byte>(), "image/png");
+            }
+
+            return this.File(bytes, StringConstants.PngImage); // or "image/png"
         }
 
         [HttpGet("directoryentry/monthlyplotimage")]
