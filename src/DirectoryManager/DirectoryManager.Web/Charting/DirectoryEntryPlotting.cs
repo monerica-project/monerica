@@ -53,69 +53,78 @@ namespace DirectoryManager.Web.Charting
             return report;
         }
 
-        /// <summary>
-        /// Single‐bar‐per‐month showing how many entries were active at month‐end.
-        /// </summary>
-        /// <returns>bytes.</returns>
         public byte[] CreateMonthlyActivePlot(List<DirectoryEntriesAudit> audits)
         {
-            // build the month‐end counts
             var monthly = GetMonthlyActiveCounts(audits);
-            int n = monthly.Count;
-            double[] positions = Enumerable.Range(0, n).Select(i => (double)i).ToArray();
-            double[] heights = monthly.Select(x => (double)x.ActiveCount).ToArray();
-            string[] labels = monthly
-                .Select(x => new DateTime(x.Year, x.Month, 1)
-                    .ToString("MMM yyyy", CultureInfo.InvariantCulture))
-                .ToArray();
+            if (monthly == null || monthly.Count == 0)
+                return Array.Empty<byte>();
 
-            var plt = new Plot();
-            plt.Add.HorizontalLine(0, color: Colors.Transparent);
+            var data = monthly
+                .OrderBy(m => new DateTime(m.Year, m.Month, 1))
+                .Select(m => new { Month = new DateTime(m.Year, m.Month, 1), Count = (double)m.ActiveCount })
+                .ToList();
 
-            // build Bar objects with red/green fill
-            var bars = new List<Bar>();
-            for (int i = 0; i < n; i++)
+            // (1) a touch more spacing between bars
+            const double GAP = 1.12;       // >1 widens spacing
+            const double BAR_SIZE = 0.72;  // slightly thinner bars
+
+            var bars = new List<Bar>(data.Count);
+            for (int i = 0; i < data.Count; i++)
             {
-                bool grew = i == 0 || heights[i] >= heights[i - 1];
-                bars.Add(new Bar()
+                bool grew = i == 0 || data[i].Count >= data[i - 1].Count;
+                bars.Add(new Bar
                 {
-                    Position = positions[i],
-                    Value = heights[i],
-                    FillColor = grew ? Colors.Green
-                                     : Colors.Red,
-                    LineStyle = new () { Color = Colors.Transparent } // no border
+                    Position = i * GAP,
+                    Value = data[i].Count,
+                    Size = BAR_SIZE,
+                    Orientation = Orientation.Vertical,
+                    FillColor = grew ? Colors.Green : Colors.Red,
+                    LineStyle = new () { Color = Colors.Transparent }
                 });
             }
 
-            // add them all at once
+            var plt = new Plot();
             var barPlot = plt.Add.Bars(bars);
 
-            // force y≥0
+            plt.Axes.Bottom.IsVisible = false;
+
+            plt.Axes.Margins(left: 0.06, right: 0.06, bottom: 0, top: 0.14);
             plt.Axes.AutoScale();
-            var limits = plt.Axes.GetLimits();
-            plt.Axes.SetLimits(limits.Left, limits.Right, 0, limits.Top);
 
-            // bottom axis ticks & labels
-            var bot = plt.Axes.Bottom;
-            bot.MinimumSize = 100;
-            bot.TickLabelStyle.Rotation = 90;
-            bot.TickLabelStyle.Alignment = Alignment.LowerCenter;
-            bot.TickLabelStyle.OffsetY = 30;
-            bot.SetTicks(positions, labels);
-            bot.Label.Text = "Month";
-            bot.Label.FontSize = 14;
-            bot.Label.OffsetY = 100;
+            double maxBar = Math.Max(0, bars.Max(b => b.Value));
+            double yOffset = Math.Max(maxBar * 0.05, 1);
+            var lim = plt.Axes.GetLimits();
+            // (2) a bit more headroom for two lines of text
+            plt.Axes.SetLimitsY(0, Math.Max(lim.Top, maxBar + (yOffset * 2.0)));
 
-            // title & legend
+            // (3) two separate labels: big number + small month
+            // Add labels without overlap: value above, month below (same baseline, opposite alignments)
+            for (int i = 0; i < bars.Count; i++)
+            {
+                double x = bars[i].Position;
+                double y = bars[i].Value;
+
+                // baseline a little above each bar
+                double baseY = y + (yOffset * 0.45);
+
+                // value goes above the baseline
+                var tVal = plt.Add.Text($"{y:0}", x, baseY);
+                tVal.Alignment = ScottPlot.Alignment.LowerCenter; // sits above the baseline
+                tVal.LabelFontSize = 12;
+
+                // month goes below the same baseline
+                var tMon = plt.Add.Text(data[i].Month.ToString("MMM yyyy", CultureInfo.InvariantCulture), x, baseY);
+                tMon.Alignment = ScottPlot.Alignment.UpperCenter; // sits below the baseline
+                tMon.LabelFontSize = 9; // smaller month text
+            }
+
+
             plt.Title("Active Directory Entries by Month");
             plt.YLabel("Active Entries");
-            var legend = plt.ShowLegend(Edge.Bottom);
-            legend.Alignment = Alignment.UpperRight;
 
-            // layout & export
-            plt.Layout.Default();
             return plt.GetImageBytes(width: 1200, height: 600, format: ImageFormat.Png);
         }
+
 
         public byte[] CreateCategoryPieChartImage(
             IEnumerable<DirectoryEntry> entries,
