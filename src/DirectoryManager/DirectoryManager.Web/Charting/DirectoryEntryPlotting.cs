@@ -57,16 +57,18 @@ namespace DirectoryManager.Web.Charting
         {
             var monthly = GetMonthlyActiveCounts(audits);
             if (monthly == null || monthly.Count == 0)
+            {
                 return Array.Empty<byte>();
+            }
 
             var data = monthly
                 .OrderBy(m => new DateTime(m.Year, m.Month, 1))
                 .Select(m => new { Month = new DateTime(m.Year, m.Month, 1), Count = (double)m.ActiveCount })
                 .ToList();
 
-            // (1) a touch more spacing between bars
-            const double GAP = 1.12;       // >1 widens spacing
-            const double BAR_SIZE = 0.72;  // slightly thinner bars
+            // spacing & bar width (unchanged from your version)
+            const double GAP = 1.12;
+            const double BAR_SIZE = 0.72;
 
             var bars = new List<Bar>(data.Count);
             for (int i = 0; i < data.Count; i++)
@@ -86,45 +88,43 @@ namespace DirectoryManager.Web.Charting
             var plt = new Plot();
             var barPlot = plt.Add.Bars(bars);
 
+            // hide bottom ticks; month text is drawn manually
             plt.Axes.Bottom.IsVisible = false;
 
             plt.Axes.Margins(left: 0.06, right: 0.06, bottom: 0, top: 0.14);
             plt.Axes.AutoScale();
 
             double maxBar = Math.Max(0, bars.Max(b => b.Value));
-            double yOffset = Math.Max(maxBar * 0.05, 1);
+            double yOffset = Math.Max(maxBar * 0.05, 1); // space for labels above bars
             var lim = plt.Axes.GetLimits();
-            // (2) a bit more headroom for two lines of text
-            plt.Axes.SetLimitsY(0, Math.Max(lim.Top, maxBar + (yOffset * 2.0)));
 
-            // (3) two separate labels: big number + small month
-            // Add labels without overlap: value above, month below (same baseline, opposite alignments)
+            // add bottom padding so "0" and the baseline aren't clipped
+            double bottomPad = Math.Max(1, maxBar * 0.03);
+            double topNeeded = Math.Max(lim.Top, maxBar + (yOffset * 2.0));
+            plt.Axes.SetLimitsY(-bottomPad, topNeeded);
+
+            // stacked labels: Value above, Month below (same baseline, opposite alignments)
             for (int i = 0; i < bars.Count; i++)
             {
                 double x = bars[i].Position;
                 double y = bars[i].Value;
 
-                // baseline a little above each bar
                 double baseY = y + (yOffset * 0.45);
 
-                // value goes above the baseline
                 var tVal = plt.Add.Text($"{y:0}", x, baseY);
-                tVal.Alignment = ScottPlot.Alignment.LowerCenter; // sits above the baseline
+                tVal.Alignment = Alignment.LowerCenter;
                 tVal.LabelFontSize = 12;
 
-                // month goes below the same baseline
                 var tMon = plt.Add.Text(data[i].Month.ToString("MMM yyyy", CultureInfo.InvariantCulture), x, baseY);
-                tMon.Alignment = ScottPlot.Alignment.UpperCenter; // sits below the baseline
-                tMon.LabelFontSize = 9; // smaller month text
+                tMon.Alignment = Alignment.UpperCenter;
+                tMon.LabelFontSize = 9;
             }
-
 
             plt.Title("Active Directory Entries by Month");
             plt.YLabel("Active Entries");
 
             return plt.GetImageBytes(width: 1200, height: 600, format: ImageFormat.Png);
         }
-
 
         public byte[] CreateCategoryPieChartImage(
             IEnumerable<DirectoryEntry> entries,

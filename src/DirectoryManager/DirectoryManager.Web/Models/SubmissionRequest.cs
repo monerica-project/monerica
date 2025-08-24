@@ -30,7 +30,7 @@ namespace DirectoryManager.Web.Models
         public string? Link3 { get; set; }
 
         [MaxLength(500)]
-        [Display(Name = "Proof Link", Prompt = "Proof Link")]
+        [Display(Name = "Proof Link", Prompt = "Link where it shows acceptance on site")]
         public string? ProofLink { get; set; }
 
         [MaxLength(75)]
@@ -38,7 +38,7 @@ namespace DirectoryManager.Web.Models
         public string? Contact { get; set; }
 
         [MaxLength(75)]
-        [Display(Name = "Location", Prompt = "City, Region, Country (example: New York, NY, USA)")]
+        [Display(Name = "Location", Prompt = "City, Region (example: Miami Beach, Florida)")]
         public string? Location { get; set; }
 
         [Display(Name = "Country")]
