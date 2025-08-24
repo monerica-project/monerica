@@ -260,7 +260,7 @@
 
 
         @{
-            var latestReviews = await reviewRepository.ListLatestApprovedAsync(10);
+            var latestReviews = await reviewRepository.ListLatestApprovedAsync(15);
         }
 
         @if (latestReviews?.Any() == true)

@@ -245,6 +245,11 @@ namespace DirectoryManager.Utilities.Helpers
             { "ZW", "Zimbabwe" }
         };
 
+        // --- add inside your repository class (private static is fine) ---
+        private static readonly Dictionary<string, string> CountryNamesToCodes =
+            CountryHelper.GetCountries()
+                .ToDictionary(kv => kv.Value.ToLowerInvariant(), kv => kv.Key, StringComparer.OrdinalIgnoreCase);
+
         public static IDictionary<string, string> GetCountries()
         {
             return Countries;
@@ -259,6 +264,81 @@ namespace DirectoryManager.Utilities.Helpers
 
             isoCode = isoCode.ToUpperInvariant();
             return Countries.TryGetValue(isoCode, out string fullName) ? fullName : isoCode;
+        }
+
+        // minimal alias map (extend as you like)
+        private static readonly Dictionary<string, string> CountryAliases = new (StringComparer.OrdinalIgnoreCase)
+        {
+            ["us"] = "US",
+            ["usa"] = "US",
+            ["u.s."] = "US",
+            ["u.s.a."] = "US",
+            ["united states"] = "US",
+            ["united states of america"] = "US",
+            ["america"] = "US",
+            ["uk"] = "GB",
+            ["great britain"] = "GB",
+            ["britain"] = "GB",
+            ["england"] = "GB",
+            ["south korea"] = "KR",
+            ["republic of korea"] = "KR",
+            ["korea"] = "KR",
+            ["czechia"] = "CZ",
+            ["russia"] = "RU",
+            ["grand cayman"] = "KY",
+            ["cayman islands"] = "KY",
+            ["cayman"] = "KY",
+            ["saint kitts"] = "KN",
+            ["st kitts"] = "KN",
+            ["st. kitts"] = "KN",
+            ["nevis"] = "KN",
+        };
+
+        public static string? ExtractCountryCode(string rawTerm)
+        {
+            if (string.IsNullOrWhiteSpace(rawTerm))
+            {
+                return null;
+            }
+
+            var t = rawTerm.Trim().ToLowerInvariant();
+
+            // exact 2-letter ISO code?
+            if (t.Length == 2 && CountryHelper.GetCountries().ContainsKey(t.ToUpperInvariant()))
+            {
+                return t.ToUpperInvariant();
+            }
+
+            // alias exact?
+            if (CountryAliases.TryGetValue(t, out var aliasCode))
+            {
+                return aliasCode;
+            }
+
+            // phrase contains a known country name (e.g., "wallets germany")
+            foreach (var kv in CountryNamesToCodes)
+            {
+                if (t.Contains(kv.Key)) // simple contains; fast and good enough
+                {
+                    return kv.Value;
+                }
+            }
+
+            // token-level aliases / names
+            foreach (var token in t.Split(new[] { ' ', '\t', '\r', '\n', ',', '.', ';', '-' }, StringSplitOptions.RemoveEmptyEntries))
+            {
+                if (CountryAliases.TryGetValue(token, out var codeAlias))
+                {
+                    return codeAlias;
+                }
+
+                if (CountryNamesToCodes.TryGetValue(token, out var codeByName))
+                {
+                    return codeByName;
+                }
+            }
+
+            return null;
         }
     }
 }

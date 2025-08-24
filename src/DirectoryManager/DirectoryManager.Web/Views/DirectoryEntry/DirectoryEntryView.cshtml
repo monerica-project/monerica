@@ -68,7 +68,6 @@
                 </li>
             </ol>
         </nav>
-
    
         @{
             var sponsoredClass = Model.IsSponsored ? "sponsor-card" : "";
@@ -129,17 +128,48 @@
                             <tr>
                                 <th scope="row">Location</th>
                                 <td>
-                                    @Model.Location
-                                    @if (!string.IsNullOrEmpty(Model.CountryCode))
-                                    {
-                                        var iso = Model.CountryCode.Trim().ToLowerInvariant();
-                                        var src = $"/images/flags/{iso}.png";
-                                        var countryName = DirectoryManager.Utilities.Helpers.CountryHelper.GetCountryName(Model.CountryCode);
-                                        <img class="country-flag ms-2" src="@src" alt="Flag of countryName (@Model.CountryCode)" title="@countryName" />
+                                    @{
+                                        // prep values
+                                        var locationRaw = Model.Location?.Trim();
+                                        var ccRaw = Model.CountryCode?.Trim();
+
+                                        string? countryName = null;
+                                        string? flagSrc = null;
+
+                                        if (!string.IsNullOrWhiteSpace(ccRaw))
+                                        {
+                                            countryName = DirectoryManager.Utilities.Helpers.CountryHelper.GetCountryName(ccRaw);
+                                            flagSrc = $"/images/flags/{ccRaw.ToLowerInvariant()}.png";
+                                        }
+
+                                        // should we append country name?
+                                        bool hasCountryInLocation =
+                                        !string.IsNullOrWhiteSpace(locationRaw) &&
+                                        !string.IsNullOrWhiteSpace(countryName) &&
+                                        locationRaw!.IndexOf(countryName!, StringComparison.OrdinalIgnoreCase) >= 0;
+
+                                        var displayLocation =
+                                        (!string.IsNullOrWhiteSpace(countryName) && !hasCountryInLocation)
+                                        ? (string.IsNullOrWhiteSpace(locationRaw)
+                                        ? countryName
+                                        : $"{locationRaw}, {countryName}")
+                                        : (locationRaw ?? countryName ?? string.Empty);
                                     }
+
+                                    @* flag (if we have a country code) *@
+                                    @if (!string.IsNullOrWhiteSpace(flagSrc) && !string.IsNullOrWhiteSpace(countryName))
+                                    {
+                                        <img class="country-flag ms-2"
+                                             src="@flagSrc"
+                                             alt="Flag of @countryName (@Model.CountryCode)"
+                                             title="@countryName" />
+                                    }
+
+                                    @displayLocation
                                 </td>
                             </tr>
                         }
+
                         @if (!string.IsNullOrEmpty(Model.Processor))
                         {
                             <tr>
