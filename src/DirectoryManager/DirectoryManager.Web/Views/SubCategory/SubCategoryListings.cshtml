@@ -160,8 +160,8 @@
         {
             viewModel.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
 
-            if (highlightIds.Contains(viewModel.DirectoryEntryId) &&
-            (!subSponsorEntryId.HasValue || viewModel.DirectoryEntryId != subSponsorEntryId.Value))
+            if (highlightIds.Contains(viewModel.DirectoryEntryId) ||
+            (subSponsorEntryId.HasValue && viewModel.DirectoryEntryId == subSponsorEntryId.Value))
             {
                 viewModel.IsSponsored = true;
                 viewModel.DisplayAsSponsoredItem = true;
@@ -170,6 +170,7 @@
             @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
         }
     </ul>
+
 
 
 
