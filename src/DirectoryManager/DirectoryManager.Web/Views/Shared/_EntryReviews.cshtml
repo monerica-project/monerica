@@ -109,8 +109,12 @@
                     <div class="mt-2">
                         <!-- author microdata -->
                         <span itemprop="author" itemscope itemtype="https://schema.org/Person">
-                            <small class="text-muted">Author: <span itemprop="name">@r.AuthorFingerprint</span></small>
+                            <small class="text-muted">
+                                Author:
+                                @(string.IsNullOrWhiteSpace(r.AuthorDisplay) ? r.AuthorFingerprint : r.AuthorDisplay)
+                            </small>
                         </span>
+
                         <small class="text-muted ms-2">•</small>
                         <!-- datePublished microdata -->
                         <time class="text-muted ms-2" itemprop="datePublished" datetime="@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)">
@@ -140,6 +144,8 @@
 
             foreach (var r in Model.Reviews)
             {
+                var authorText = !string.IsNullOrWhiteSpace(r.AuthorDisplay) ? r.AuthorDisplay : r.AuthorFingerprint;
+
                 graph.Add(new
                 {
                     @type = "Review",
@@ -151,11 +157,12 @@
                         bestRating = 5,
                         worstRating = 1
                     },
-                    author = new { @type = "Person", name = r.AuthorFingerprint },
+                    author = new { @type = "Person", name = authorText },
                     datePublished = r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat),
                     reviewBody = r.Body ?? string.Empty
                 });
             }
+
 
             var jsonLd = JsonSerializer.Serialize(new
             {

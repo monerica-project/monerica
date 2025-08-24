@@ -458,6 +458,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     int score = hits + (countryMatch ? CountryBoost : 0);
                     return new { Entry = e, Score = score, Hits = hits, Weight = weight, CountryMatch = countryMatch };
                 })
+
                 // include items that only matched by country
                 .Where(x => x.Hits > 0 || x.CountryMatch)
                 .OrderByDescending(x => x.Weight)
@@ -470,7 +471,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return new PagedResult<DirectoryEntry> { TotalCount = total, Items = items };
         }
-
 
         /// <inheritdoc/>
         public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesBySubcategoryAsync(int subCategoryId)

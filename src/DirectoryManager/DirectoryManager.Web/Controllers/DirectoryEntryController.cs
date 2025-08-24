@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Migrations;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -8,6 +9,7 @@ using DirectoryManager.Utilities;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Charting;
 using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -16,6 +18,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using System.Text.RegularExpressions;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -424,18 +427,33 @@ namespace DirectoryManager.Web.Controllers
                 average = rated.Average(r => (double)r.Rating!.Value);
             }
 
+            // Try to get a normalized fingerprint from the entry's PGP key text
+            string? entryFp = PgpFingerprintTools.GetFingerprintFromArmored(existingEntry.PgpKey);
+            string entryFpNorm = NormalizeFp(entryFp);
+
+            // collect ALL fingerprints from the entry's armored key (primary + subkeys)
+            var entryFps = PgpFingerprintTools.GetAllFingerprints(existingEntry.PgpKey); // HashSet<string> (UPPER hex, includes short forms)
+
+            // ... build reviews VM
             var reviewsVm = new EntryReviewsBlockViewModel
             {
                 DirectoryEntryId = existingEntry.DirectoryEntryId,
                 DirectoryEntryName = existingEntry.Name,
                 AverageRating = average,
                 ReviewCount = approved.Count,
-                Reviews = approved.Select(r => new EntryReviewItem
+                Reviews = approved.Select(r =>
                 {
-                    Rating = r.Rating,
-                    Body = r.Body,
-                    AuthorFingerprint = r.AuthorFingerprint,
-                    CreateDate = r.CreateDate
+                    string reviewNorm = PgpFingerprintTools.Normalize(r.AuthorFingerprint);
+                    bool isOwner = entryFps.Any(fp => PgpFingerprintTools.Matches(reviewNorm, fp));
+
+                    return new EntryReviewItem
+                    {
+                        Rating = r.Rating,
+                        Body = r.Body,
+                        AuthorFingerprint = r.AuthorFingerprint,
+                        AuthorDisplay = isOwner ? existingEntry.Name : r.AuthorFingerprint,
+                        CreateDate = r.CreateDate
+                    };
                 }).ToList()
             };
 
@@ -526,5 +544,18 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.SubCategories = subCategories;
         }
+
+        // Normalize any fingerprint (strip spaces/separators, upper-case)
+        private static string NormalizeFp(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+            {
+                return string.Empty;
+            }
+
+            string hex = Regex.Replace(s, @"[^0-9A-Fa-f]", ""); // keep hex only
+            return hex.ToUpperInvariant();
+        }
+         
     }
 }
