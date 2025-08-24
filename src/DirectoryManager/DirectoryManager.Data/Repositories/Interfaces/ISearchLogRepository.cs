@@ -13,5 +13,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation of report items.</returns>
         Task<IReadOnlyList<SearchReportItem>> GetReportAsync(DateTime start, DateTime end);
+
+        Task<IReadOnlyList<WeeklySearchCount>> GetWeeklyCountsAsync(DateTime start, DateTime end);
     }
 }

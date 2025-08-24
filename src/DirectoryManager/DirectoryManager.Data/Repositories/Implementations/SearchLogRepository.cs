@@ -58,5 +58,55 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return report;
         }
+
+        public async Task<IReadOnlyList<WeeklySearchCount>> GetWeeklyCountsAsync(DateTime start, DateTime end)
+        {
+            // Treat input as UTC dates; include the whole end day
+            DateTime startUtc = start.Kind == DateTimeKind.Utc ? start : DateTime.SpecifyKind(start, DateTimeKind.Utc);
+            DateTime endUtc = end.Kind == DateTimeKind.Utc ? end : DateTime.SpecifyKind(end, DateTimeKind.Utc);
+
+            DateTime endExclusive = endUtc.AddDays(1); // include end day fully
+
+            // Pull just the timestamps in range
+            var dates = await this.context.SearchLogs
+                .Where(x => x.CreateDate >= startUtc && x.CreateDate < endExclusive)
+                .Select(x => x.CreateDate)
+                .ToListAsync();
+
+            // Normalize to UTC date and group by ISO-week (Monday start)
+            static DateTime ToUtcDate(DateTime dt)
+            {
+                if (dt.Kind == DateTimeKind.Utc)
+                {
+                    return dt.Date;
+                }
+
+                if (dt.Kind == DateTimeKind.Local)
+                {
+                    return dt.ToUniversalTime().Date;
+                }
+
+                return DateTime.SpecifyKind(dt, DateTimeKind.Utc).Date;
+            }
+
+            static DateTime StartOfIsoWeek(DateTime dUtcDate)
+            {
+                int diff = ((int)dUtcDate.DayOfWeek + 6) % 7; // Monday=0 .. Sunday=6
+                return dUtcDate.AddDays(-diff).Date;
+            }
+
+            var buckets = dates
+                .Select(ToUtcDate)
+                .GroupBy(d => StartOfIsoWeek(d))
+                .Select(g => new WeeklySearchCount
+                {
+                    WeekStartUtc = g.Key,
+                    Count = g.Count()
+                })
+                .OrderBy(x => x.WeekStartUtc)
+                .ToList();
+
+            return buckets;
+        }
     }
 }
