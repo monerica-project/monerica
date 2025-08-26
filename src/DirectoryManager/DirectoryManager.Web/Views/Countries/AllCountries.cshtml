@@ -1,0 +1,63 @@
+﻿@using DirectoryManager.Utilities
+@model DirectoryManager.Web.Models.CountryListViewModel
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+
+@{
+    Layout = "_CenteredLayout";
+    int totalPages = (int)Math.Ceiling(Model.PagedCountries.TotalCount / (double)Model.PageSize);
+    string pageSuffix = Model.CurrentPage > 1 ? $" – Page {Model.CurrentPage}" : "";
+    ViewData["Title"] = $"Countries{pageSuffix}";
+}
+
+@section PageContent {
+
+    <h1>Countries</h1>
+
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    @if (!Model.PagedCountries.Items.Any())
+    {
+        <p>No active countries found.</p>
+    }
+    else
+    {
+        <ul class="blank_list_item">
+            @foreach (var c in Model.PagedCountries.Items)
+            {
+                <li>
+                    <a class="no-app-link"
+                       href="@(UrlResolver.BaseUrl.TrimEnd('/') + $"/countries/{c.Key}")"
+                       title="@c.Name">@c.Name</a>  (@c.Count)
+                </li>
+            }
+        </ul>
+
+        <nav aria-label="Pagination" class="mt-4">
+            <ul class="pagination">
+                @{
+                    for (int p = 1; p <= totalPages; p++)
+                    {
+                        bool isCurrent = p == Model.CurrentPage;
+                        string rawPath = p == 1 ? "/countries" : $"/countries/page/{p}";
+
+                        string href = p == 1
+                        ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
+                        : UrlResolver.ResolveToApp(rawPath);
+
+                        string linkClass = "no-app-link";
+                        string activeClass = isCurrent ? "active" : "";
+
+                        <li class="page-item @activeClass">
+                            <a class="page-link @linkClass" href="@href">@p</a>
+                        </li>
+                    }
+                }
+            </ul>
+        </nav>
+    }
+
+    <hr />
+    @await Html.PartialAsync("_SponsoredListingPartial")
+}

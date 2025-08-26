@@ -4,6 +4,7 @@ using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Utilities.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Data.Repositories.Implementations
@@ -631,6 +632,78 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Where(e => e.SubCategoryId == subCategoryId && e.DirectoryStatus != DirectoryStatus.Removed)
                 .CountAsync();
         }
+
+        public async Task<PagedResult<CountryWithCount>> ListActiveCountriesWithCountsPagedAsync(int page, int pageSize)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+
+            // Group active entries with a non-empty, known ISO2 country code
+            var grouped = await this.context.DirectoryEntries
+                .Where(e => 
+                    (e.DirectoryStatus == DirectoryStatus.Verified
+                  || e.DirectoryStatus == DirectoryStatus.Admitted
+                  || e.DirectoryStatus == DirectoryStatus.Questionable
+                  || e.DirectoryStatus == DirectoryStatus.Scam)
+                         && !string.IsNullOrWhiteSpace(e.CountryCode))
+                .GroupBy(e => e.CountryCode!.Trim().ToUpper())
+                .Select(g => new { Code = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            if (grouped.Count == 0)
+            {
+                return new PagedResult<CountryWithCount> { TotalCount = 0, Items = new List<CountryWithCount>() };
+            }
+
+            // Map to display names using CountryHelper; drop unknown codes
+            var countries = CountryHelper.GetCountries(); // ISO2 -> Full Name
+            var items = grouped
+                .Where(x => countries.ContainsKey(x.Code))
+                .Select(x =>
+                {
+                    var name = countries[x.Code];
+                    var key = StringHelpers.UrlKey(name);
+                    return new CountryWithCount { Code = x.Code, Name = name, Key = key, Count = x.Count };
+                })
+                .OrderByDescending(x => x.Count)
+                .ThenBy(x => x.Name)
+                .ToList();
+
+            int total = items.Count;
+            var pageItems = items.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+
+            return new PagedResult<CountryWithCount>
+            {
+                TotalCount = total,
+                Items = pageItems
+            };
+        }
+
+        public async Task<PagedResult<DirectoryEntry>> ListActiveEntriesByCountryPagedAsync(string countryCode, int page, int pageSize)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
+
+            var code = (countryCode ?? "").Trim().ToUpperInvariant();
+
+            var q = this.context.DirectoryEntries
+                .Include(e => e.SubCategory)
+                .ThenInclude(sc => sc.Category)
+                .Where(e =>
+                    (e.DirectoryStatus == DirectoryStatus.Verified
+                  || e.DirectoryStatus == DirectoryStatus.Admitted
+                  || e.DirectoryStatus == DirectoryStatus.Questionable
+                  || e.DirectoryStatus == DirectoryStatus.Scam)
+                 && e.CountryCode != null
+                 && e.CountryCode.ToUpper() == code)
+                .OrderBy(e => e.Name);
+
+            var total = await q.CountAsync();
+            var items = await q.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+
+            return new PagedResult<DirectoryEntry> { TotalCount = total, Items = items };
+        }
+
 
         /// <summary>
         /// Base query including SubCategory→Category and EntryTags→Tag.
