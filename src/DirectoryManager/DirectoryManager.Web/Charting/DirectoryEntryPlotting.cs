@@ -1,6 +1,8 @@
-﻿using System.Globalization;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Utilities.Helpers;
 using ScottPlot;
+using System.Globalization;
 
 namespace DirectoryManager.Web.Charting
 {
@@ -51,6 +53,102 @@ namespace DirectoryManager.Web.Charting
             }
 
             return report;
+        }
+
+        /// <summary>
+        /// Pie chart of ACTIVE directory entries by country.
+        /// Uses DirectoryEntry.CountryCode (ISO-2) and expands to full names with CountryHelper.
+        /// Active = Admitted, Verified, Questionable, or Scam (same definition as other charts).
+        /// Returns PNG bytes (900x700). Returns empty array if no data.
+        /// </summary>
+        public byte[] CreateActiveCountriesPieChartImage(IEnumerable<DirectoryEntry> entries)
+        {
+            if (entries is null)
+            {
+                return Array.Empty<byte>();
+            }
+
+            // Filter to "active" the same way as your other plots
+            static bool IsActive(DirectoryStatus s) =>
+                s == DirectoryStatus.Admitted
+             || s == DirectoryStatus.Verified
+             || s == DirectoryStatus.Questionable
+             || s == DirectoryStatus.Scam;
+
+            var active = entries
+                .Where(e => e != null && IsActive(e.DirectoryStatus))
+                .ToList();
+
+            if (active.Count == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            // Group by ISO code (normalize to uppercase), bucket missing as "Unknown"
+            var byCountry = active
+                .GroupBy(e =>
+                {
+                    var code = (e.CountryCode ?? string.Empty).Trim().ToUpperInvariant();
+                    return string.IsNullOrWhiteSpace(code) ? "??" : code;
+                })
+                .Select(g =>
+                {
+                    string iso = g.Key;
+                    // Expand to full name (CountryHelper returns iso if unknown)
+                    string label = iso == "??" ? "Unknown" : CountryHelper.GetCountryName(iso);
+                    return new { Iso = iso, Label = label, Count = g.Count() };
+                })
+                .OrderByDescending(x => x.Count)
+                .ToArray();
+
+            if (byCountry.Length == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            double total = byCountry.Sum(x => (double)x.Count);
+
+            // D3-like palette (same style as your other pie)
+            var hexPalette = new[]
+            {
+        "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+        "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+        "#393b79", "#637939", "#8c6d31", "#843c39", "#7b4173",
+        "#3182bd", "#31a354", "#756bb1", "#636363", "#e6550d",
+
+        "#393b79", "#5254a3", "#6b6ecf", "#9c9ede", "#637939",
+        "#8ca252", "#b5cf6b", "#cedb9c", "#8c6d31", "#bd9e39",
+        "#e7ba52", "#e7cb94", "#843c39", "#ad494a", "#d6616b",
+        "#e7969c", "#7b4173", "#a55194", "#ce6dbd", "#de9ed6"
+            };
+            var palette = hexPalette.Select(Color.FromHex).ToArray();
+
+            // Build pie slices: show percent on each slice, legend shows full country name
+            var slices = byCountry
+                .Select((c, i) =>
+                {
+                    double pct = total > 0 ? Math.Round(c.Count * 100.0 / total, 1) : 0;
+                    return new PieSlice(c.Count, palette[i % palette.Length], $"{pct}%")
+                    {
+                        LegendText = $"{c.Label} ({c.Count})"
+                    };
+                })
+                .ToArray();
+
+            var plt = new Plot();
+
+            // Clean look like your other pie charts
+            plt.HideAxesAndGrid();
+
+            var pie = plt.Add.Pie(slices);
+            pie.DonutFraction = 0;          // full pie
+            pie.SliceLabelDistance = 1.2;   // labels just outside slices
+            pie.Rotation = Angle.FromDegrees(-90); // start at 12 o'clock
+
+            plt.Title("Active Entries by Country");
+            plt.ShowLegend(Edge.Right);
+
+            return plt.GetImageBytes(width: 900, height: 700, format: ImageFormat.Png);
         }
 
         public byte[] CreateMonthlyActivePlot(List<DirectoryEntriesAudit> audits)

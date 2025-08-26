@@ -355,6 +355,26 @@ namespace DirectoryManager.Web.Controllers
             var imageBytes = plottingChart.CreateCategoryPieChartImage(entries, allCategories);
             return this.File(imageBytes, StringConstants.PngImage);
         }
+ 
+
+    [HttpGet("directoryentry/countrieschart")]
+    public async Task<IActionResult> CountryPlotImageAsync()
+    {
+        var entries = await this.directoryEntryRepository.GetAllActiveEntries();
+
+        // keep only entries with a non-empty, recognized ISO-2 country code
+        var knownCountries = CountryHelper.GetCountries(); // key = ISO code (upper)
+        var filtered = (entries ?? Enumerable.Empty<DirectoryEntry>())
+            .Where(e => !string.IsNullOrWhiteSpace(e.CountryCode)
+                     && knownCountries.ContainsKey(e.CountryCode!.Trim().ToUpperInvariant()))
+            .ToList();
+
+        var plottingChart = new DirectoryEntryPlotting();
+        var imageBytes = plottingChart.CreateActiveCountriesPieChartImage(filtered);
+
+        return this.File(imageBytes.Length == 0 ? Array.Empty<byte>() : imageBytes, StringConstants.PngImage);
+    }
+
 
         [AllowAnonymous]
         [HttpGet("{categorykey}/{subcategorykey}/{directoryEntryKey}")]
@@ -556,6 +576,5 @@ namespace DirectoryManager.Web.Controllers
             string hex = Regex.Replace(s, @"[^0-9A-Fa-f]", ""); // keep hex only
             return hex.ToUpperInvariant();
         }
-         
     }
 }
