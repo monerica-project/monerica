@@ -363,6 +363,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Where(e =>
                     e.DirectoryStatus != DirectoryStatus.Removed &&
                     (
+
                         // Country
                         (countryCode != null && e.CountryCode == countryCode)
 
@@ -385,7 +386,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                             EF.Functions.Like(et.Tag.Name.ToLower(), primaryPattern) ||
                             (rootPattern != null && EF.Functions.Like(et.Tag.Name.ToLower(), rootPattern)))
 
-                        // Note, Processor, Location, Contact, Link
+                        // Note, Processor, Location, Contact
                         || EF.Functions.Like((e.Note ?? "").ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like((e.Note ?? "").ToLower(), rootPattern))
                         || EF.Functions.Like((e.Processor ?? "").ToLower(), primaryPattern)
@@ -394,9 +395,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         || (rootPattern != null && EF.Functions.Like((e.Location ?? "").ToLower(), rootPattern))
                         || EF.Functions.Like((e.Contact ?? "").ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like((e.Contact ?? "").ToLower(), rootPattern))
+
+                        // Links
                         || EF.Functions.Like((e.Link ?? "").ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like((e.Link ?? "").ToLower(), rootPattern))
-                    ));
+                        || EF.Functions.Like((e.Link2 ?? "").ToLower(), primaryPattern)
+                        || (rootPattern != null && EF.Functions.Like((e.Link2 ?? "").ToLower(), rootPattern))
+                        || EF.Functions.Like((e.Link3 ?? "").ToLower(), primaryPattern)
+                        || (rootPattern != null && EF.Functions.Like((e.Link3 ?? "").ToLower(), rootPattern))
+                        || EF.Functions.Like((e.ProofLink ?? "").ToLower(), primaryPattern)
+                        || (rootPattern != null && EF.Functions.Like((e.ProofLink ?? "").ToLower(), rootPattern))));
 
             // 2) in-memory scoring
             var candidates = await filtered.ToListAsync();
@@ -442,7 +450,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
                              + CountOcc(e.Contact, term)
                              + (rootTerm != null ? CountOcc(e.Contact, rootTerm) : 0)
                              + CountOcc(e.Link, term)
-                             + (rootTerm != null ? CountOcc(e.Link, rootTerm) : 0);
+                             + (rootTerm != null ? CountOcc(e.Link, rootTerm) : 0)
+                             + CountOcc(e.Link2, term)
+                             + (rootTerm != null ? CountOcc(e.Link2, rootTerm) : 0)
+                             + CountOcc(e.Link3, term)
+                             + (rootTerm != null ? CountOcc(e.Link3, rootTerm) : 0)
+                             + CountOcc(e.ProofLink, term)
+                             + (rootTerm != null ? CountOcc(e.ProofLink, rootTerm) : 0);
 
                     bool countryMatch = countryCode != null && string.Equals(e.CountryCode, countryCode, StringComparison.OrdinalIgnoreCase);
 
