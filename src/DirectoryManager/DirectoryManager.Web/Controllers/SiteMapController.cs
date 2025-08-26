@@ -579,16 +579,16 @@ namespace DirectoryManager.Web.Controllers
             IReadOnlyDictionary<int, DateTime> latestApprovedReviewByEntry,
             DateTime siteWideLastMod)
         {
-            // Active statuses (mirror your site’s definition)
-            bool IsActive(DirectoryStatus s) =>
+            // Active statuses (mirror your definition)
+            static bool IsActive(DirectoryStatus s) =>
                 s == DirectoryStatus.Admitted
                 || s == DirectoryStatus.Verified
                 || s == DirectoryStatus.Scam
                 || s == DirectoryStatus.Questionable;
 
-            // Only entries with a known ISO2 country
             var countriesMap = CountryHelper.GetCountries(); // ISO2 -> Full Name
 
+            // Only active entries with a known ISO2 code
             var activeWithCountry = allEntries
                 .Where(e => e.DirectoryStatus != DirectoryStatus.Removed
                             && IsActive(e.DirectoryStatus)
@@ -602,47 +602,35 @@ namespace DirectoryManager.Web.Controllers
                 .ToList();
 
             if (activeWithCountry.Count == 0)
+            {
                 return;
+            }
 
-            // Group by country and compute count + last-mod (consider newest approved review per entry)
+            // Group by country (we’ll use siteWideLastMod for all sitemap items)
             var byCountry = activeWithCountry
                 .GroupBy(x => x.Code)
                 .Select(g =>
                 {
-                    // per-entry last-mod = max(entry dates, newest approved review date if newer)
-                    DateTime CountryLastModForEntry(DirectoryEntry e)
-                    {
-                        var baseMod = e.UpdateDate ?? e.CreateDate;
-                        if (latestApprovedReviewByEntry.TryGetValue(e.DirectoryEntryId, out var rv)
-                            && rv > baseMod)
-                            baseMod = rv;
-                        return baseMod;
-                    }
-
-                    var lastMod = g.Max(x => CountryLastModForEntry(x.Entry));
-                    var count = g.Count();
-                    var code = g.Key;
-                    var name = CountryHelper.GetCountryName(code); // display
-                    var slug = StringHelpers.UrlKey(name);         // /countries/{slug}
+                    string code = g.Key;
+                    string name = CountryHelper.GetCountryName(code);
+                    string slug = StringHelpers.UrlKey(name);
+                    int count = g.Count();
 
                     return new
                     {
                         Code = code,
                         Name = name,
                         Slug = slug,
-                        Count = count,
-                        LastMod = lastMod
+                        Count = count
                     };
                 })
                 .OrderBy(x => x.Name)
                 .ToList();
 
-            // ---------- /countries (index) ----------
-            int countriesPageSize = IntegerConstants.MaxPageSize;       // matches your "All" page page-size
+            // -------- /countries (index) + pagination --------
+            int countriesPageSize = IntegerConstants.MaxPageSize;
             int countriesTotal = byCountry.Count;
             int countriesPages = (int)Math.Ceiling(countriesTotal / (double)countriesPageSize);
-
-            DateTime countriesIndexLastMod = byCountry.Max(c => c.LastMod);
 
             for (int page = 1; page <= countriesPages; page++)
             {
@@ -655,25 +643,21 @@ namespace DirectoryManager.Web.Controllers
                     Url = url,
                     Priority = page == 1 ? 0.3 : 0.2,
                     ChangeFrequency = ChangeFrequency.Monthly,
-                    LastMod = countriesIndexLastMod > siteWideLastMod ? countriesIndexLastMod : siteWideLastMod
+                    LastMod = siteWideLastMod
                 });
             }
 
-            // Build fast lookup for how many entries each country has (for pagination)
-            var entriesByCountry = activeWithCountry
-                .GroupBy(x => x.Code)
-                .ToDictionary(g => g.Key, g => g.Count());
-
-            // ---------- /countries/{slug} (per-country pages) ----------
-            int countryEntriesPageSize = IntegerConstants.MaxPageSize; // matches country entries listing page-size
+            // -------- /countries/{slug} + pagination --------
+            int countryEntriesPageSize = IntegerConstants.DefaultPageSize; // match listing page size
 
             foreach (var c in byCountry)
             {
-                entriesByCountry.TryGetValue(c.Code, out int totalEntriesForCountry);
-                if (totalEntriesForCountry <= 0)
+                if (c.Count <= 0)
+                {
                     continue;
+                }
 
-                int pages = (int)Math.Ceiling(totalEntriesForCountry / (double)countryEntriesPageSize);
+                int pages = (int)Math.Ceiling(c.Count / (double)countryEntriesPageSize);
 
                 // page 1
                 siteMapHelper.SiteMapItems.Add(new SiteMapItem
@@ -681,10 +665,10 @@ namespace DirectoryManager.Web.Controllers
                     Url = $"{domain}/countries/{c.Slug}",
                     Priority = 0.5,
                     ChangeFrequency = ChangeFrequency.Weekly,
-                    LastMod = c.LastMod
+                    LastMod = siteWideLastMod
                 });
 
-                // page 2...N
+                // pages 2..N
                 for (int i = 2; i <= pages; i++)
                 {
                     siteMapHelper.SiteMapItems.Add(new SiteMapItem
@@ -692,7 +676,7 @@ namespace DirectoryManager.Web.Controllers
                         Url = $"{domain}/countries/{c.Slug}/page/{i}",
                         Priority = 0.3,
                         ChangeFrequency = ChangeFrequency.Weekly,
-                        LastMod = c.LastMod
+                        LastMod = siteWideLastMod
                     });
                 }
             }
