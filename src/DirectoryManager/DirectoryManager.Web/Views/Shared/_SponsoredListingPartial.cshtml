@@ -34,7 +34,7 @@
         );
 
         // 4) Truncation limit (tweak as you like)
-        const int descLimit = 150;
+        const int descLimit = 165;
 
         // 5) Helper to get status icon
         // Map DirectoryStatus → HTML entity string
@@ -59,7 +59,7 @@
               <!-- Status + Title -->
               <div class="sponsor-header">
                 <span class="status">@Html.Raw(statusIcon(vm.DirectoryStatus))</span>
-                    <a href="@(vm.Link)"
+                <a rel="sponsored" href="@(vm.Link)"
                        target="_blank" 
                        class="title"><b>@vm.Name</b></a>
               </div>
@@ -68,12 +68,12 @@
               <div class="sponsor-links">
                 @if (!string.IsNullOrEmpty(vm.Link2))
                 {
-                  <a href="@vm.Link2" target="_blank">@vm.Link2Name</a>
+                    <a rel="sponsored" href="@vm.Link2" target="_blank">@vm.Link2Name</a>
                 }
                 @if (!string.IsNullOrEmpty(vm.Link3))
                 {
                   <text> | </text>
-                  <a href="@vm.Link3" target="_blank">@vm.Link3Name</a>
+                    <a rel="sponsored" href="@vm.Link3" target="_blank">@vm.Link3Name</a>
                 }
               </div>
 
