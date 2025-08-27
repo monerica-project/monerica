@@ -10,7 +10,7 @@
 }
 
 @section PageContent {
-
+     
     <h1>Countries</h1>
 
     <hr />
@@ -26,10 +26,25 @@
         <ul class="blank_list_item">
             @foreach (var c in Model.PagedCountries.Items)
             {
+                var code = c.Code?.Trim();
+                var hasCode = !string.IsNullOrWhiteSpace(code);
+                var flagSrc = hasCode ? $"/images/flags/{code!.ToLowerInvariant()}.png" : null;
+
                 <li>
                     <a class="no-app-link"
                        href="@(UrlResolver.BaseUrl.TrimEnd('/') + $"/countries/{c.Key}")"
-                       title="@c.Name">@c.Name</a> (@c.Count)
+                       title="@c.Name">@c.Name</a>
+
+                    @* flag between name and count *@
+                    @if (hasCode)
+                    {
+                        <img class="country-flag"
+                             src="@flagSrc"
+                             alt="Flag of @c.Name (@code)"
+                             title="@c.Name" />
+                    }
+
+                    <span>(@c.Count)</span>
                 </li>
             }
         </ul>
