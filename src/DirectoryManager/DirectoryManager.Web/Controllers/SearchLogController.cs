@@ -61,7 +61,7 @@ namespace DirectoryManager.Web.Controllers
 
             // dates for display (inclusive)
             DateTime toDisplay = end?.Date ?? todayUtc;
-            DateTime fromDisplay = start?.Date ?? toDisplay.AddYears(-1);
+            DateTime fromDisplay = start?.Date ?? toDisplay.AddMinutes(-1);
 
             if (fromDisplay > toDisplay)
             {

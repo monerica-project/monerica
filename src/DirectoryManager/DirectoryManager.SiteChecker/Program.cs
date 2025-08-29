@@ -104,6 +104,7 @@ async Task CreateOfflineSubmissionIfNotExists(
         NoteToAdmin = "(automated submission)",
         PgpKey = entry.PgpKey,
         ProofLink = entry.ProofLink,
+        Tags = entry.Tags,
     };
 
     await submissionRepository.CreateAsync(submission);
