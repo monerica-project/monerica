@@ -48,6 +48,7 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
+        public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
 
         public override int SaveChanges()
         {
@@ -326,6 +327,8 @@ namespace DirectoryManager.Data.DbContextInfo
                 // concurrency token (since you have [Timestamp])
                 r.Property(x => x.RowVersion).IsRowVersion();
             });
+
+            builder.Entity<SearchBlacklistTerm>().HasIndex(e => new { e.Term }).IsUnique();
         }
 
         private void SetDates()

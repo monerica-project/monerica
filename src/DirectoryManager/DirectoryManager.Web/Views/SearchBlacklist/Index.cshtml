@@ -1,0 +1,54 @@
+﻿@* Views/SearchBlacklist/Index.cshtml *@
+@model DirectoryManager.Data.Models.PagedResult<DirectoryManager.Data.Models.SearchBlacklistTerm>
+@{
+    Layout = "_CenteredLayout";
+    int page = (int)(ViewBag.Page ?? 1);
+    int pageSize = (int)(ViewBag.PageSize ?? 50);
+    int totalPages = (int)Math.Ceiling(Model.TotalCount / (double)pageSize);
+    ViewData["Title"] = "Search Blacklist";
+}
+@section PageContent {
+    <h1>Search Blacklist</h1>
+    @await Html.PartialAsync("_AdminMenu")
+    <p>
+        <a class="btn btn-primary" href="~/admin/blacklist/create">Add term</a>
+    </p>
+    @if (!Model.Items.Any())
+    {
+        <p>No blacklisted terms.</p>
+    }
+    else
+    {
+        <table class="table">
+            <thead>
+                <tr><th>Term</th><th>Added</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var t in Model.Items)
+                {
+                    <tr>
+                        <td>@t.Term</td>
+                        <td>@t.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
+                        <td class="text-end">
+                            <form asp-action="Delete" asp-route-id="@t.Id" method="post">
+                            
+                                <button class="btn btn-sm btn-danger" type="submit" onclick="return confirm('Delete this term?');">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        <nav aria-label="Pagination">
+            <ul class="pagination">
+                @for (int p = 1; p <= totalPages; p++)
+                {
+                    <li class="page-item @(p == page ? "active" : "")">
+                        <a class="page-link" href="~/admin/blacklist/page/@p">@p</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+}

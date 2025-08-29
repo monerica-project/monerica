@@ -40,6 +40,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
+        public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
 
         int SaveChanges();
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

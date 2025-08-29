@@ -105,6 +105,8 @@ namespace DirectoryManager.Web.Extensions
                 return new NowPaymentsService(nowPaymentsConfig);
             });
 
+            services.AddScoped<ISearchBlacklistRepository, SearchBlacklistRepository>();
+
             // BlobService with Azure Storage configuration
             services.AddSingleton<IBlobService>(provider =>
             {
