@@ -186,21 +186,22 @@
                                                 var after = locationRaw.Substring(idx + countryName!.Length);
 
                                                 @before
-                                                @:<a class="no-app-link" href="@countryHref">@countryName</a>
+                                                <a class="no-app-link" href="@countryHref">@countryName</a>
+
                                                 @after
                                             }
                                             else
                                             {
-                                                // "City/Region, <linked country>"
-                                                @locationRaw
-                                                @:,
-                                                @:<a class="no-app-link" href="@countryHref">@countryName</a>
+                                                // "City/Region, <linked country>" with no space before the comma and 1 space after
+                                                @($"{locationRaw}, ")
+                            
+                                                <a class="no-app-link" href="@countryHref">@countryName</a>
                                             }
                                         }
                                         else
                                         {
                                             // only the linked country
-                                            @:<a class="no-app-link" href="@countryHref">@countryName</a>
+                                            <a class="no-app-link" href="@countryHref">@countryName</a>
                                         }
                                     }
                                     else

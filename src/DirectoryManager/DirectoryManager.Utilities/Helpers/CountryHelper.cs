@@ -275,6 +275,7 @@ namespace DirectoryManager.Utilities.Helpers
             ["u.s.a."] = "US",
             ["united states"] = "US",
             ["united states of america"] = "US",
+            ["uae"] = "AE",
             ["america"] = "US",
             ["uk"] = "GB",
             ["great britain"] = "GB",
