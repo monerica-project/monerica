@@ -46,22 +46,22 @@ public class SearchController : Controller
         }
 
         // 🔒 Blacklist check (case-insensitive contains)
-        var black = await this.GetBlackTermsAsync();
         var qNorm = q.Trim().ToLowerInvariant();
-        bool blocked = black.Any(term => qNorm.Contains(term));
+        var black = (await this.GetBlackTermsAsync())
+                    .Where(t => !string.IsNullOrWhiteSpace(t))
+                    .Select(t => t.Trim().ToLowerInvariant())
+                    .ToArray();
 
-        if (blocked)
+        string? hit = black.FirstOrDefault(term =>
+            System.Text.RegularExpressions.Regex.IsMatch(
+                qNorm, $@"\b{System.Text.RegularExpressions.Regex.Escape(term)}\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant));
+
+        if (hit is not null)
         {
             var blackListUrl = this.cacheService.GetSnippet(SiteConfigSetting.SearchBlacklistRedirectUrl);
-
-            if (!string.IsNullOrWhiteSpace(blackListUrl))
-            {
-                return this.Redirect(blackListUrl);
-            }
-            else
-            {
-                return this.NotFound();
-            }
+            return !string.IsNullOrWhiteSpace(blackListUrl)
+                ? this.Redirect(blackListUrl)
+                : this.NotFound();
         }
 
         // normal flow below ...
