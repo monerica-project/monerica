@@ -54,7 +54,9 @@ public class SearchController : Controller
 
         string? hit = black.FirstOrDefault(term =>
             System.Text.RegularExpressions.Regex.IsMatch(
-                qNorm, $@"\b{System.Text.RegularExpressions.Regex.Escape(term)}\b", System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant));
+                qNorm,
+                $@"\b{System.Text.RegularExpressions.Regex.Escape(term)}\b",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant));
 
         if (hit is not null)
         {
