@@ -304,8 +304,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var now = DateTime.UtcNow;
 
             return await this.context.SponsoredListings
+
                 // only look at campaigns that have already ended
                 .Where(x => x.CampaignEndDate < now)
+
                 // pick the one with the most recent end date
                 .OrderByDescending(x => x.CampaignEndDate)
                 .Select(x => (DateTime?)x.CampaignEndDate)

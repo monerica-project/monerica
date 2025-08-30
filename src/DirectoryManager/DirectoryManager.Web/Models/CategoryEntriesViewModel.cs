@@ -19,5 +19,4 @@ namespace DirectoryManager.Web.Models
         public int PageSize { get; set; }
         public HashSet<int> SponsoredDirectoryEntryIds { get; set; }
     }
-
 }

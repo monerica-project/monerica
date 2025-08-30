@@ -63,7 +63,6 @@ namespace DirectoryManager.Web.Extensions
                     .AddScoped<IUrlResolutionService, UrlResolutionService>();
             services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
             services.AddTransient<ICacheService, CacheService>();
- 
             services.AddTransient<IPgpService, PgpService>();
             services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
             services.AddScoped<IRssFeedService, RssFeedService>();
@@ -105,6 +104,8 @@ namespace DirectoryManager.Web.Extensions
 
                 return new NowPaymentsService(nowPaymentsConfig);
             });
+
+            services.AddScoped<ISearchBlacklistRepository, SearchBlacklistRepository>();
 
             // BlobService with Azure Storage configuration
             services.AddSingleton<IBlobService>(provider =>

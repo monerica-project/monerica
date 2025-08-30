@@ -65,6 +65,12 @@
 </div>
 
 <div class="form-group">
+    <label asp-for="ProofLink">Proof Link</label>
+    <input autocomplete="off" asp-for="ProofLink" class="form-control input-width" />
+    <span asp-validation-for="ProofLink" class="text-danger"></span>
+</div>
+
+<div class="form-group">
     <label asp-for="Contact">Contact</label>
     <input autocomplete="off" asp-for="Contact" class="form-control input-width" />
     <span asp-validation-for="Contact" class="text-danger"></span>

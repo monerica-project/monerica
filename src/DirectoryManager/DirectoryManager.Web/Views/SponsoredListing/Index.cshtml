@@ -13,7 +13,10 @@
     Layout = "_CenteredLayout";
 }
 
-
+@functions {
+    private static int DaysLeftUtc(DateTime end) =>
+        Math.Max(0, (end.Date - DateTime.UtcNow.Date).Days);
+}
 
 @section PageContent {
     <style>
@@ -114,7 +117,12 @@ else
                 <li>
                     @item.Value
                     <ul>
-                        <li><span class="orange-text">Expires @end.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</span></li>
+                        <li>
+                            <span class="orange-text">
+                                Expires @end.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+                                - @DaysLeftUtc(end) Days Left
+                            </span>
+                        </li>
                         <li>
                             <a asp-controller="SponsoredListingNotification"
                                asp-action="Subscribe"
@@ -172,7 +180,12 @@ else
                 <li>
                     @item.Value
                     <ul>
-                        <li><span class="orange-text">Expires: @end.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</span></li>
+                        <li>
+                            <span class="orange-text">
+                                Expires: @end.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+                                - @DaysLeftUtc(end) Days Left
+                            </span>
+                        </li>
                         <li>
                             <a asp-controller="SponsoredListingNotification"
                                asp-action="Subscribe"

@@ -40,5 +40,6 @@
         public const string SelectText = "- Select -";
         public const string CookieNameCurrency = "currency";
         public const string NavMenu = "NavModel";
+        public const string CacheKeySearchBlacklistTerms = "blacklistterms";
     }
 }

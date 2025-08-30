@@ -6,16 +6,19 @@ namespace DirectoryManager.Web.Models.Affiliates
 {
     public class AffiliateSignupInputModel
     {
-        [Required, StringLength(12, MinimumLength = 3)]
+        [Required]
+        [StringLength(12, MinimumLength = 3)]
         public string ReferralCode { get; set; } = string.Empty;
 
-        [Required, MaxLength(256)]
+        [Required]
+        [MaxLength(256)]
         public string WalletAddress { get; set; } = string.Empty;
 
         [Required]
         public Currency PayoutCurrency { get; set; }
 
-        [EmailAddress, MaxLength(256)]
+        [EmailAddress]
+        [MaxLength(256)]
         public string? Email { get; set; }
         public string? Captcha { get; set; }
     }

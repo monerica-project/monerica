@@ -1,11 +1,10 @@
-﻿using DirectoryManager.Data.Models;
+﻿using System.Reflection;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.BaseModels;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.SponsoredListings;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection;
-using System.Reflection.Emit;
 
 namespace DirectoryManager.Data.DbContextInfo
 {
@@ -49,6 +48,7 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
+        public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
 
         public override int SaveChanges()
         {
@@ -65,7 +65,19 @@ namespace DirectoryManager.Data.DbContextInfo
             return base.SaveChangesAsync(cancellationToken);
         }
 
-        [Obsolete]
+        object IApplicationDbContext.Set<T>()
+        {
+            var method = typeof(DbContext)
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .First(m => m.Name == "Set"
+                            && m.IsGenericMethodDefinition
+                            && m.GetGenericArguments().Length == 1
+                            && m.GetParameters().Length == 0);
+
+            var generic = method.MakeGenericMethod(typeof(T));
+            return generic.Invoke(this, null) !;
+        }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -315,19 +327,8 @@ namespace DirectoryManager.Data.DbContextInfo
                 // concurrency token (since you have [Timestamp])
                 r.Property(x => x.RowVersion).IsRowVersion();
             });
-        }
 
-        object IApplicationDbContext.Set<T>()
-        {
-            var method = typeof(DbContext)
-                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .First(m => m.Name == "Set"
-                            && m.IsGenericMethodDefinition
-                            && m.GetGenericArguments().Length == 1
-                            && m.GetParameters().Length == 0);
-
-            var generic = method.MakeGenericMethod(typeof(T));
-            return generic.Invoke(this, null)!; // returns DbSet<T>
+            builder.Entity<SearchBlacklistTerm>().HasIndex(e => new { e.Term }).IsUnique();
         }
 
         private void SetDates()

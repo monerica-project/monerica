@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Migrations;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -8,6 +9,7 @@ using DirectoryManager.Utilities;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Charting;
 using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -16,6 +18,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using System.Text.RegularExpressions;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -33,6 +36,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISponsoredListingRepository sponsoredListingRepository;
         private readonly IMemoryCache cache;
         private readonly IDirectoryEntryReviewRepository reviewRepository;
+        private readonly ISubmissionRepository submissionRepository;
 
         public DirectoryEntryController(
             UserManager<ApplicationUser> userManager,
@@ -47,7 +51,8 @@ namespace DirectoryManager.Web.Controllers
             ICacheService cacheService,
             ISponsoredListingRepository sponsoredListingRepository,
             IMemoryCache cache,
-            IDirectoryEntryReviewRepository reviewRepository)
+            IDirectoryEntryReviewRepository reviewRepository,
+            ISubmissionRepository submissionRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -61,6 +66,7 @@ namespace DirectoryManager.Web.Controllers
             this.sponsoredListingRepository = sponsoredListingRepository;
             this.cacheService = cacheService;
             this.reviewRepository = reviewRepository;
+            this.submissionRepository = submissionRepository;
         }
 
         [Route("directoryentry/index")]
@@ -131,6 +137,7 @@ namespace DirectoryManager.Web.Controllers
             model.Link3 = model.Link3?.Trim();
             model.Link3A = model.Link3A?.Trim();
             model.PgpKey = model.PgpKey?.Trim();
+            model.ProofLink = model.ProofLink?.Trim();
 
             await this.directoryEntryRepository.CreateAsync(model);
 
@@ -198,6 +205,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Link2A = entry.Link2A?.Trim();
             existingEntry.Link3 = entry.Link3?.Trim();
             existingEntry.Link3A = entry.Link3A?.Trim();
+            existingEntry.ProofLink = entry.ProofLink?.Trim();
             existingEntry.Name = entry.Name.Trim();
             existingEntry.DirectoryEntryKey = StringHelpers.UrlKey(entry.Name);
             existingEntry.Description = entry.Description?.Trim();
@@ -279,7 +287,8 @@ namespace DirectoryManager.Web.Controllers
                 Processor = directoryEntry.Processor,
                 SubCategoryId = directoryEntry.SubCategoryId,
                 CountryCode = directoryEntry.CountryCode,
-                PgpKey = directoryEntry.PgpKey
+                PgpKey = directoryEntry.PgpKey,
+                ProofLink = directoryEntry.ProofLink
             };
 
             // Set category and subcategory names for each audit entry
@@ -314,6 +323,20 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
+        [HttpGet("directoryentry/submissionmonthlyplotimage")]
+        public async Task<IActionResult> SubmissionMonthlyPlotImage()
+        {
+            var submissions = await this.submissionRepository.GetAllAsync();
+            var plotting = new SubmissionsPlotting();
+            var bytes = plotting.CreateMonthlySubmissionBarChart(submissions);
+            if (bytes.Length == 0)
+            {
+                return this.File(Array.Empty<byte>(), "image/png");
+            }
+
+            return this.File(bytes, StringConstants.PngImage); // or "image/png"
+        }
+
         [HttpGet("directoryentry/monthlyplotimage")]
         public async Task<IActionResult> MonthlyPlotImageAsync()
         {
@@ -332,6 +355,26 @@ namespace DirectoryManager.Web.Controllers
             var imageBytes = plottingChart.CreateCategoryPieChartImage(entries, allCategories);
             return this.File(imageBytes, StringConstants.PngImage);
         }
+ 
+
+    [HttpGet("directoryentry/countrieschart")]
+    public async Task<IActionResult> CountryPlotImageAsync()
+    {
+        var entries = await this.directoryEntryRepository.GetAllActiveEntries();
+
+        // keep only entries with a non-empty, recognized ISO-2 country code
+        var knownCountries = CountryHelper.GetCountries(); // key = ISO code (upper)
+        var filtered = (entries ?? Enumerable.Empty<DirectoryEntry>())
+            .Where(e => !string.IsNullOrWhiteSpace(e.CountryCode)
+                     && knownCountries.ContainsKey(e.CountryCode!.Trim().ToUpperInvariant()))
+            .ToList();
+
+        var plottingChart = new DirectoryEntryPlotting();
+        var imageBytes = plottingChart.CreateActiveCountriesPieChartImage(filtered);
+
+        return this.File(imageBytes.Length == 0 ? Array.Empty<byte>() : imageBytes, StringConstants.PngImage);
+    }
+
 
         [AllowAnonymous]
         [HttpGet("{categorykey}/{subcategorykey}/{directoryEntryKey}")]
@@ -404,18 +447,33 @@ namespace DirectoryManager.Web.Controllers
                 average = rated.Average(r => (double)r.Rating!.Value);
             }
 
+            // Try to get a normalized fingerprint from the entry's PGP key text
+            string? entryFp = PgpFingerprintTools.GetFingerprintFromArmored(existingEntry.PgpKey);
+            string entryFpNorm = NormalizeFp(entryFp);
+
+            // collect ALL fingerprints from the entry's armored key (primary + subkeys)
+            var entryFps = PgpFingerprintTools.GetAllFingerprints(existingEntry.PgpKey); // HashSet<string> (UPPER hex, includes short forms)
+
+            // ... build reviews VM
             var reviewsVm = new EntryReviewsBlockViewModel
             {
                 DirectoryEntryId = existingEntry.DirectoryEntryId,
                 DirectoryEntryName = existingEntry.Name,
                 AverageRating = average,
                 ReviewCount = approved.Count,
-                Reviews = approved.Select(r => new EntryReviewItem
+                Reviews = approved.Select(r =>
                 {
-                    Rating = r.Rating,
-                    Body = r.Body,
-                    AuthorFingerprint = r.AuthorFingerprint,
-                    CreateDate = r.CreateDate
+                    string reviewNorm = PgpFingerprintTools.Normalize(r.AuthorFingerprint);
+                    bool isOwner = entryFps.Any(fp => PgpFingerprintTools.Matches(reviewNorm, fp));
+
+                    return new EntryReviewItem
+                    {
+                        Rating = r.Rating,
+                        Body = r.Body,
+                        AuthorFingerprint = r.AuthorFingerprint,
+                        AuthorDisplay = isOwner ? existingEntry.Name : r.AuthorFingerprint,
+                        CreateDate = r.CreateDate
+                    };
                 }).ToList()
             };
 
@@ -453,6 +511,7 @@ namespace DirectoryManager.Web.Controllers
                 CountryCode = existingEntry.CountryCode,
                 IsSponsored = isSponsor,
                 PgpKey = existingEntry.PgpKey,
+                ProofLink = existingEntry.ProofLink,
             };
 
             this.ViewBag.CategoryName = category.Name;
@@ -469,7 +528,7 @@ namespace DirectoryManager.Web.Controllers
             await this.PopulateCountryDropDownList();
         }
 
-        private async Task PopulateCountryDropDownList(object selectedId = null)
+        private async Task PopulateCountryDropDownList(object? selectedId = null)
         {
             // Get the dictionary of countries from the helper.
             var countries = CountryHelper.GetCountries();
@@ -504,6 +563,18 @@ namespace DirectoryManager.Web.Controllers
             subCategories.Insert(0, new { SubcategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
 
             this.ViewBag.SubCategories = subCategories;
+        }
+
+        // Normalize any fingerprint (strip spaces/separators, upper-case)
+        private static string NormalizeFp(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+            {
+                return string.Empty;
+            }
+
+            string hex = Regex.Replace(s, @"[^0-9A-Fa-f]", ""); // keep hex only
+            return hex.ToUpperInvariant();
         }
     }
 }

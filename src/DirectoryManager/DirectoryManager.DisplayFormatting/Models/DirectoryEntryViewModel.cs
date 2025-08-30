@@ -85,5 +85,8 @@ namespace DirectoryManager.DisplayFormatting.Models
         public string? CountryCode { get; set; }
 
         public string? PgpKey { get; set; }
+
+        [MaxLength(500)]
+        public string? ProofLink { get; set; }
     }
 }

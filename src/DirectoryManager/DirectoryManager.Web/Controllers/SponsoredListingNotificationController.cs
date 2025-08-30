@@ -123,7 +123,6 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.List));
         }
 
-
         [HttpGet]
         [Route("sponsoredlistingnotification/subscribe")]
         public async Task<IActionResult> SubscribeAsync(
@@ -161,7 +160,6 @@ namespace DirectoryManager.Web.Controllers
         [Route("sponsoredlistingnotification/subscribe")]
         public async Task<IActionResult> Subscribe(SubscribeViewModel vm)
         {
-            // trim
             vm.Email = (vm.Email ?? "").Trim();
 
             if (string.IsNullOrWhiteSpace(vm.Email))
@@ -177,7 +175,6 @@ namespace DirectoryManager.Web.Controllers
                 return this.View(vm);
             }
 
-            // persist
             var notif = new SponsoredListingOpeningNotification
             {
                 Email = vm.Email,
@@ -189,10 +186,8 @@ namespace DirectoryManager.Web.Controllers
             await this.notificationRepository.CreateAsync(notif);
 
             vm.SuccessMessage = "Subscription successful!";
-            // keep the friendly label too
+
             return this.View(vm);
         }
-
-
     }
 }

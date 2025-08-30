@@ -34,6 +34,7 @@ namespace DirectoryManager.Web.Charting
             {
                 Position = index,
                 Value = d.TotalIncome
+
                 // no need to set Label; we hide the bottom axis and draw our own labels
             }).ToList();
 
@@ -83,7 +84,6 @@ namespace DirectoryManager.Web.Charting
             // Render
             return plt.GetImageBytes(width: 1200, height: 800, format: ImageFormat.Png);
         }
-
 
         public byte[] CreateMonthlyAvgDailyRevenueChart(IEnumerable<SponsoredListingInvoice> invoices)
         {
@@ -167,7 +167,6 @@ namespace DirectoryManager.Web.Charting
             {
                 plt.Axes.SetLimitsY(0, Math.Max(lim.Top, neededTop));
             }
-            // ----------------------------------------------------------
 
             // Value labels above each bar
             for (int i = 0; i < bars.Count; i++)

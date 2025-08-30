@@ -201,9 +201,19 @@ namespace DirectoryManager.Web.Controllers
                 });
             }
 
+            // Add /countries and per-country pages to the sitemap
+            this.AddCountriesToSitemap(
+                siteMapHelper,
+                domain,
+                allActiveEntries,
+                latestApprovedReviewByEntry,
+                mostRecentUpdateDate);
+
+
             var xml = siteMapHelper.GenerateXml();
             return this.Content(xml, "text/xml");
         }
+
 
         [Route("sitemap")]
         public async Task<IActionResult> SiteMap()
@@ -560,6 +570,116 @@ namespace DirectoryManager.Web.Controllers
                 ChangeFrequency = ChangeFrequency.Daily,
                 LastMod = date
             });
+        }
+
+        private void AddCountriesToSitemap(
+            SiteMapHelper siteMapHelper,
+            string domain,
+            IEnumerable<DirectoryEntry> allEntries,
+            IReadOnlyDictionary<int, DateTime> latestApprovedReviewByEntry,
+            DateTime siteWideLastMod)
+        {
+            // Active statuses (mirror your definition)
+            static bool IsActive(DirectoryStatus s) =>
+                s == DirectoryStatus.Admitted
+                || s == DirectoryStatus.Verified
+                || s == DirectoryStatus.Scam
+                || s == DirectoryStatus.Questionable;
+
+            var countriesMap = CountryHelper.GetCountries(); // ISO2 -> Full Name
+
+            // Only active entries with a known ISO2 code
+            var activeWithCountry = allEntries
+                .Where(e => e.DirectoryStatus != DirectoryStatus.Removed
+                            && IsActive(e.DirectoryStatus)
+                            && !string.IsNullOrWhiteSpace(e.CountryCode))
+                .Select(e => new
+                {
+                    Entry = e,
+                    Code = e.CountryCode!.Trim().ToUpperInvariant()
+                })
+                .Where(x => countriesMap.ContainsKey(x.Code))
+                .ToList();
+
+            if (activeWithCountry.Count == 0)
+            {
+                return;
+            }
+
+            // Group by country (we’ll use siteWideLastMod for all sitemap items)
+            var byCountry = activeWithCountry
+                .GroupBy(x => x.Code)
+                .Select(g =>
+                {
+                    string code = g.Key;
+                    string name = CountryHelper.GetCountryName(code);
+                    string slug = StringHelpers.UrlKey(name);
+                    int count = g.Count();
+
+                    return new
+                    {
+                        Code = code,
+                        Name = name,
+                        Slug = slug,
+                        Count = count
+                    };
+                })
+                .OrderBy(x => x.Name)
+                .ToList();
+
+            // -------- /countries (index) + pagination --------
+            int countriesPageSize = IntegerConstants.MaxPageSize;
+            int countriesTotal = byCountry.Count;
+            int countriesPages = (int)Math.Ceiling(countriesTotal / (double)countriesPageSize);
+
+            for (int page = 1; page <= countriesPages; page++)
+            {
+                string url = page == 1
+                    ? $"{domain}/countries"
+                    : $"{domain}/countries/page/{page}";
+
+                siteMapHelper.SiteMapItems.Add(new SiteMapItem
+                {
+                    Url = url,
+                    Priority = page == 1 ? 0.3 : 0.2,
+                    ChangeFrequency = ChangeFrequency.Monthly,
+                    LastMod = siteWideLastMod
+                });
+            }
+
+            // -------- /countries/{slug} + pagination --------
+            int countryEntriesPageSize = IntegerConstants.DefaultPageSize; // match listing page size
+
+            foreach (var c in byCountry)
+            {
+                if (c.Count <= 0)
+                {
+                    continue;
+                }
+
+                int pages = (int)Math.Ceiling(c.Count / (double)countryEntriesPageSize);
+
+                // page 1
+                siteMapHelper.SiteMapItems.Add(new SiteMapItem
+                {
+                    Url = $"{domain}/countries/{c.Slug}",
+                    Priority = 0.5,
+                    ChangeFrequency = ChangeFrequency.Weekly,
+                    LastMod = siteWideLastMod
+                });
+
+                // pages 2..N
+                for (int i = 2; i <= pages; i++)
+                {
+                    siteMapHelper.SiteMapItems.Add(new SiteMapItem
+                    {
+                        Url = $"{domain}/countries/{c.Slug}/page/{i}",
+                        Priority = 0.3,
+                        ChangeFrequency = ChangeFrequency.Weekly,
+                        LastMod = siteWideLastMod
+                    });
+                }
+            }
         }
 
         private async Task AddAllTagsPaginationAsync(DateTime date, SiteMapHelper siteMapHelper)

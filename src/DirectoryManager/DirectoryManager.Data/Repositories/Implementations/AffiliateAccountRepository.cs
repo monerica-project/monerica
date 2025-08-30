@@ -1,5 +1,4 @@
-﻿// DirectoryManager.Data/Repositories/Implementations/AffiliateAccountRepository.cs
-using DirectoryManager.Data.DbContextInfo;
+﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -9,12 +8,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
     public class AffiliateAccountRepository : IAffiliateAccountRepository
     {
         private readonly IApplicationDbContext context;
-        private DbSet<AffiliateAccount> Set => this.context.AffiliateAccounts;
 
         public AffiliateAccountRepository(IApplicationDbContext context)
         {
             this.context = context;
         }
+
+        private DbSet<AffiliateAccount> Set => this.context.AffiliateAccounts;
 
         public async Task<AffiliateAccount?> GetByIdAsync(int id, CancellationToken ct = default) =>
             await this.Set.AsNoTracking().FirstOrDefaultAsync(a => a.AffiliateAccountId == id, ct);
@@ -53,7 +53,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.Set.Update(entity);
             await this.context.SaveChangesAsync(ct);
         }
-
 
         public async Task<List<AffiliateAccount>> ListAllAsync(CancellationToken ct)
         {

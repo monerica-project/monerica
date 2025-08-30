@@ -12,12 +12,18 @@ namespace DirectoryManager.Web.Services.Interfaces
             try
             {
                 var key = ReadEncryptionKey(armoredPublicKey);
-                if (key is null) return null;
+                if (key is null)
+                {
+                    return null;
+                }
 
                 byte[] fp = key.GetFingerprint();
                 return string.Concat(fp.Select(b => b.ToString("X2")));
             }
-            catch { return null; }
+            catch
+            {
+                return null;
+            }
         }
 
         public string EncryptTo(string armoredPublicKey, string message)
@@ -81,13 +87,23 @@ namespace DirectoryManager.Web.Services.Interfaces
             var bundle = new PgpPublicKeyRingBundle(keyIn);
 
             foreach (PgpPublicKeyRing ring in bundle.GetKeyRings())
+            {
                 foreach (PgpPublicKey k in ring.GetPublicKeys())
+                {
                     if (k.IsEncryptionKey)
+                    {
                         return k;
+                    }
+                }
+            }
 
             foreach (PgpPublicKeyRing ring in bundle.GetKeyRings())
+            {
                 foreach (PgpPublicKey k in ring.GetPublicKeys())
+                {
                     return k;
+                }
+            }
 
             return null;
         }

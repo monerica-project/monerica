@@ -1,6 +1,8 @@
-﻿using System.Globalization;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Utilities.Helpers;
 using ScottPlot;
+using System.Globalization;
 
 namespace DirectoryManager.Web.Charting
 {
@@ -54,66 +56,171 @@ namespace DirectoryManager.Web.Charting
         }
 
         /// <summary>
-        /// Single‐bar‐per‐month showing how many entries were active at month‐end.
+        /// Pie chart of ACTIVE directory entries by country.
+        /// Uses DirectoryEntry.CountryCode (ISO-2) and expands to full names with CountryHelper.
+        /// Active = Admitted, Verified, Questionable, or Scam (same definition as other charts).
+        /// Returns PNG bytes (900x700). Returns empty array if no data.
         /// </summary>
-        /// <returns>bytes.</returns>
-        public byte[] CreateMonthlyActivePlot(List<DirectoryEntriesAudit> audits)
+        public byte[] CreateActiveCountriesPieChartImage(IEnumerable<DirectoryEntry> entries)
         {
-            // build the month‐end counts
-            var monthly = GetMonthlyActiveCounts(audits);
-            int n = monthly.Count;
-            double[] positions = Enumerable.Range(0, n).Select(i => (double)i).ToArray();
-            double[] heights = monthly.Select(x => (double)x.ActiveCount).ToArray();
-            string[] labels = monthly
-                .Select(x => new DateTime(x.Year, x.Month, 1)
-                    .ToString("MMM yyyy", CultureInfo.InvariantCulture))
+            if (entries is null)
+            {
+                return Array.Empty<byte>();
+            }
+
+            // Filter to "active" the same way as your other plots
+            static bool IsActive(DirectoryStatus s) =>
+                s == DirectoryStatus.Admitted
+             || s == DirectoryStatus.Verified
+             || s == DirectoryStatus.Questionable
+             || s == DirectoryStatus.Scam;
+
+            var active = entries
+                .Where(e => e != null && IsActive(e.DirectoryStatus))
+                .ToList();
+
+            if (active.Count == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            // Group by ISO code (normalize to uppercase), bucket missing as "Unknown"
+            var byCountry = active
+                .GroupBy(e =>
+                {
+                    var code = (e.CountryCode ?? string.Empty).Trim().ToUpperInvariant();
+                    return string.IsNullOrWhiteSpace(code) ? "??" : code;
+                })
+                .Select(g =>
+                {
+                    string iso = g.Key;
+                    // Expand to full name (CountryHelper returns iso if unknown)
+                    string label = iso == "??" ? "Unknown" : CountryHelper.GetCountryName(iso);
+                    return new { Iso = iso, Label = label, Count = g.Count() };
+                })
+                .OrderByDescending(x => x.Count)
+                .ToArray();
+
+            if (byCountry.Length == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            double total = byCountry.Sum(x => (double)x.Count);
+
+            // D3-like palette (same style as your other pie)
+            var hexPalette = new[]
+            {
+        "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+        "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+        "#393b79", "#637939", "#8c6d31", "#843c39", "#7b4173",
+        "#3182bd", "#31a354", "#756bb1", "#636363", "#e6550d",
+
+        "#393b79", "#5254a3", "#6b6ecf", "#9c9ede", "#637939",
+        "#8ca252", "#b5cf6b", "#cedb9c", "#8c6d31", "#bd9e39",
+        "#e7ba52", "#e7cb94", "#843c39", "#ad494a", "#d6616b",
+        "#e7969c", "#7b4173", "#a55194", "#ce6dbd", "#de9ed6"
+            };
+            var palette = hexPalette.Select(Color.FromHex).ToArray();
+
+            // Build pie slices: show percent on each slice, legend shows full country name
+            var slices = byCountry
+                .Select((c, i) =>
+                {
+                    double pct = total > 0 ? Math.Round(c.Count * 100.0 / total, 1) : 0;
+                    return new PieSlice(c.Count, palette[i % palette.Length], $"{pct}%")
+                    {
+                        LegendText = $"{c.Label} ({c.Count})"
+                    };
+                })
                 .ToArray();
 
             var plt = new Plot();
-            plt.Add.HorizontalLine(0, color: Colors.Transparent);
 
-            // build Bar objects with red/green fill
-            var bars = new List<Bar>();
-            for (int i = 0; i < n; i++)
+            // Clean look like your other pie charts
+            plt.HideAxesAndGrid();
+
+            var pie = plt.Add.Pie(slices);
+            pie.DonutFraction = 0;          // full pie
+            pie.SliceLabelDistance = 1.2;   // labels just outside slices
+            pie.Rotation = Angle.FromDegrees(-90); // start at 12 o'clock
+
+            plt.Title("Active Entries by Country");
+            plt.ShowLegend(Edge.Right);
+
+            return plt.GetImageBytes(width: 900, height: 700, format: ImageFormat.Png);
+        }
+
+        public byte[] CreateMonthlyActivePlot(List<DirectoryEntriesAudit> audits)
+        {
+            var monthly = GetMonthlyActiveCounts(audits);
+            if (monthly == null || monthly.Count == 0)
             {
-                bool grew = i == 0 || heights[i] >= heights[i - 1];
-                bars.Add(new Bar()
+                return Array.Empty<byte>();
+            }
+
+            var data = monthly
+                .OrderBy(m => new DateTime(m.Year, m.Month, 1))
+                .Select(m => new { Month = new DateTime(m.Year, m.Month, 1), Count = (double)m.ActiveCount })
+                .ToList();
+
+            // spacing & bar width (unchanged from your version)
+            const double GAP = 1.12;
+            const double BAR_SIZE = 0.72;
+
+            var bars = new List<Bar>(data.Count);
+            for (int i = 0; i < data.Count; i++)
+            {
+                bool grew = i == 0 || data[i].Count >= data[i - 1].Count;
+                bars.Add(new Bar
                 {
-                    Position = positions[i],
-                    Value = heights[i],
-                    FillColor = grew ? Colors.Green
-                                     : Colors.Red,
-                    LineStyle = new () { Color = Colors.Transparent } // no border
+                    Position = i * GAP,
+                    Value = data[i].Count,
+                    Size = BAR_SIZE,
+                    Orientation = Orientation.Vertical,
+                    FillColor = grew ? Colors.Green : Colors.Red,
+                    LineStyle = new () { Color = Colors.Transparent }
                 });
             }
 
-            // add them all at once
+            var plt = new Plot();
             var barPlot = plt.Add.Bars(bars);
 
-            // force y≥0
+            // hide bottom ticks; month text is drawn manually
+            plt.Axes.Bottom.IsVisible = false;
+
+            plt.Axes.Margins(left: 0.06, right: 0.06, bottom: 0, top: 0.14);
             plt.Axes.AutoScale();
-            var limits = plt.Axes.GetLimits();
-            plt.Axes.SetLimits(limits.Left, limits.Right, 0, limits.Top);
 
-            // bottom axis ticks & labels
-            var bot = plt.Axes.Bottom;
-            bot.MinimumSize = 100;
-            bot.TickLabelStyle.Rotation = 90;
-            bot.TickLabelStyle.Alignment = Alignment.LowerCenter;
-            bot.TickLabelStyle.OffsetY = 30;
-            bot.SetTicks(positions, labels);
-            bot.Label.Text = "Month";
-            bot.Label.FontSize = 14;
-            bot.Label.OffsetY = 100;
+            double maxBar = Math.Max(0, bars.Max(b => b.Value));
+            double yOffset = Math.Max(maxBar * 0.05, 1); // space for labels above bars
+            var lim = plt.Axes.GetLimits();
 
-            // title & legend
+            // add bottom padding so "0" and the baseline aren't clipped
+            double bottomPad = Math.Max(1, maxBar * 0.03);
+            double topNeeded = Math.Max(lim.Top, maxBar + (yOffset * 2.0));
+            plt.Axes.SetLimitsY(-bottomPad, topNeeded);
+
+            // stacked labels: Value above, Month below (same baseline, opposite alignments)
+            for (int i = 0; i < bars.Count; i++)
+            {
+                double x = bars[i].Position;
+                double y = bars[i].Value;
+
+                double baseY = y + (yOffset * 0.45);
+
+                var tVal = plt.Add.Text($"{y:0}", x, baseY);
+                tVal.Alignment = Alignment.LowerCenter;
+                tVal.LabelFontSize = 12;
+
+                var tMon = plt.Add.Text(data[i].Month.ToString("MMM yyyy", CultureInfo.InvariantCulture), x, baseY);
+                tMon.Alignment = Alignment.UpperCenter;
+                tMon.LabelFontSize = 9;
+            }
+
             plt.Title("Active Directory Entries by Month");
             plt.YLabel("Active Entries");
-            var legend = plt.ShowLegend(Edge.Bottom);
-            legend.Alignment = Alignment.UpperRight;
 
-            // layout & export
-            plt.Layout.Default();
             return plt.GetImageBytes(width: 1200, height: 600, format: ImageFormat.Png);
         }
 
@@ -147,7 +254,7 @@ namespace DirectoryManager.Web.Charting
                 var catIdProp = sc.GetType().GetProperty("CategoryId");
                 if (catIdProp is not null && catIdProp.PropertyType == typeof(int))
                 {
-                    int cid = (int)catIdProp.GetValue(sc)!;
+                    int cid = (int)catIdProp.GetValue(sc) !;
                     if (cid > 0)
                     {
                         return cid;
@@ -164,7 +271,7 @@ namespace DirectoryManager.Web.Charting
                         var cidProp = catObj.GetType().GetProperty("CategoryId");
                         if (cidProp is not null && cidProp.PropertyType == typeof(int))
                         {
-                            int cid = (int)cidProp.GetValue(catObj)!;
+                            int cid = (int)cidProp.GetValue(catObj) !;
                             if (cid > 0)
                             {
                                 return cid;

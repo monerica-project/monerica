@@ -189,6 +189,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
+
             if (!this.IsOldEnough(entry))
             {
                 return this.BadRequest(new
@@ -364,7 +365,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
-
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -463,6 +463,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 var group = ReservationGroupHelper.BuildReservationGroupName(SponsorshipType.SubcategorySponsor, subCategoryId);
                 await this.TryAttachReservationAsync(rsvId, group).ConfigureAwait(false);
+
                 // Even if it fails, the page is still viewable without a reservation.
             }
 
@@ -482,6 +483,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 var group = ReservationGroupHelper.BuildReservationGroupName(SponsorshipType.CategorySponsor, categoryId);
                 await this.TryAttachReservationAsync(rsvId, group).ConfigureAwait(false);
+
                 // Even if it fails, the page is still viewable without a reservation.
             }
 
@@ -715,7 +717,10 @@ namespace DirectoryManager.Web.Controllers
             }
 
             IpnPaymentMessage? ipnMessage = null;
-            try { ipnMessage = JsonConvert.DeserializeObject<IpnPaymentMessage>(callbackPayload); }
+            try
+            {
+                ipnMessage = JsonConvert.DeserializeObject<IpnPaymentMessage>(callbackPayload);
+            }
             catch (JsonException ex)
             {
                 this.logger.LogWarning(ex, "NOWPayments IPN deserialize failed.");
@@ -1560,8 +1565,12 @@ namespace DirectoryManager.Web.Controllers
                     if (typeId.HasValue)
                     {
                         var cat = await this.categoryRepository.GetByIdAsync(typeId.Value).ConfigureAwait(false);
-                        if (cat != null) return $"category \"{cat.Name}\"";
+                        if (cat != null)
+                        {
+                            return $"category \"{cat.Name}\"";
+                        }
                     }
+
                     return "the selected category";
 
                 case SponsorshipType.SubcategorySponsor:
@@ -1575,6 +1584,7 @@ namespace DirectoryManager.Web.Controllers
                             return $"subcategory \"{catName} > {sub.Name}\"";
                         }
                     }
+
                     return "the selected subcategory";
 
                 default:
@@ -1645,8 +1655,15 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task TryCreateAffiliateCommissionForInvoiceAsync(SponsoredListingInvoice invoice, CancellationToken ct = default)
         {
-            if (invoice == null || invoice.PaymentStatus != PaymentStatus.Paid) return;
-            if (string.IsNullOrWhiteSpace(invoice.ReferralCodeUsed)) return;
+            if (invoice == null || invoice.PaymentStatus != PaymentStatus.Paid)
+            {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(invoice.ReferralCodeUsed))
+            {
+                return;
+            }
 
             if (!ReferralCodeHelper.TryNormalize(invoice.ReferralCodeUsed, out var code, out _))
             {
@@ -1654,14 +1671,23 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var affiliate = await this.affiliateRepo.GetByReferralCodeAsync(code!, ct);
-            if (affiliate == null) return;
+            if (affiliate == null)
+            {
+                return;
+            }
 
-            if (await this.commissionRepo.ExistsForInvoiceAsync(invoice.SponsoredListingInvoiceId, ct)) return;
+            if (await this.commissionRepo.ExistsForInvoiceAsync(invoice.SponsoredListingInvoiceId, ct))
+            {
+                return;
+            }
 
             // ✅ Only consider other paid invoices (exclude this one)
             var hasOtherPaid = await this.sponsoredListingInvoiceRepository
                 .HasAnyPaidInvoiceForDirectoryEntryAsync(invoice.DirectoryEntryId, invoice.SponsoredListingInvoiceId, ct);
-            if (hasOtherPaid) return; // not first paid → no commission
+            if (hasOtherPaid)
+            {
+                return; // not first paid → no commission
+            }
 
             var amountDue = Math.Round(invoice.OutcomeAmount * 0.50m, 8);
             var commission = new AffiliateCommission

@@ -9,9 +9,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
     public class ReviewerKeyRepository : IReviewerKeyRepository
     {
         private readonly IApplicationDbContext context;
-        private DbSet<ReviewerKey> Set => this.context.ReviewerKeys; // use typed DbSet from interface
-
         public ReviewerKeyRepository(IApplicationDbContext context) => this.context = context;
+        private DbSet<ReviewerKey> Set => this.context.ReviewerKeys;
 
         public IQueryable<ReviewerKey> Query() => this.Set.AsNoTracking();
 
@@ -48,7 +47,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var existing = await this.Set.FindAsync(new object[] { id }, ct);
-            if (existing is null) return;
+            if (existing is null)
+            {
+                return;
+            }
+
             this.Set.Remove(existing);
             await this.context.SaveChangesAsync(ct);
         }

@@ -32,8 +32,6 @@ namespace DirectoryManager.Web.Controllers
             this.directoryEntryRepository = directoryEntryRepository;
         }
 
-        // DirectoryEntryReviewsController
-
         [HttpGet("begin")]
         public IActionResult BeginGet() => this.NotFound(); // don’t expose a crawlable GET
 
@@ -263,7 +261,6 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Thanks));
         }
 
-
         // Step 5: thank you
         [HttpGet("thanks")]
         public IActionResult Thanks() => this.View();
@@ -290,7 +287,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(item);
         }
 
-        [HttpGet("create")]                          // GET /directory-entry-reviews/create
+        [HttpGet("create")]
         public IActionResult Create() => this.View(new DirectoryEntryReview());
 
         [HttpPost("create")]
@@ -341,7 +338,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View(item);
         }
 
-        [HttpGet("{id:int}/edit")] // GET /directory-entry-reviews/123/edit
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, DirectoryEntryReview model)
@@ -374,7 +370,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View(item);
         }
 
-        [HttpPost("{id:int}/delete")] // POST /directory-entry-reviews/123/delete
         [HttpPost]
         [ActionName("Delete")]
         [ValidateAntiForgeryToken]
@@ -403,9 +398,9 @@ namespace DirectoryManager.Web.Controllers
             return id;
         }
 
-        private bool TryGetFlow(Guid flowId, out ReviewFlowState state) =>
-            this.cache.TryGetValue(CacheKey(flowId), out state) && state.ExpiresUtc > DateTime.UtcNow;
-
-
+        private bool TryGetFlow(Guid flowId, out ReviewFlowState state)
+        {
+            return this.cache.TryGetValue(CacheKey(flowId), out state) && state.ExpiresUtc > DateTime.UtcNow;
+        }
     }
 }

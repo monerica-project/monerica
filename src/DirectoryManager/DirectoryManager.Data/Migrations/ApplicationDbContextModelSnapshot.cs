@@ -441,6 +441,10 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
+                    b.Property<string>("ProofLink")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
                     b.Property<int>("SubCategoryId")
                         .HasColumnType("int");
 
@@ -934,6 +938,29 @@ namespace DirectoryManager.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("ReviewerKeys", (string)null);
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.SearchBlacklistTerm", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("Term")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Term")
+                        .IsUnique();
+
+                    b.ToTable("SearchBlacklistTerms");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.SearchLog", b =>
@@ -1437,6 +1464,10 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("Processor")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
+
+                    b.Property<string>("ProofLink")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<int?>("SubCategoryId")
                         .HasColumnType("int");

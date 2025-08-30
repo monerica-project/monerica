@@ -1,7 +1,7 @@
-﻿using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models.BaseModels;
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models.BaseModels;
 
 namespace DirectoryManager.Data.Models
 {
@@ -27,6 +27,9 @@ namespace DirectoryManager.Data.Models
 
         [MaxLength(500)]
         public string? Link3 { get; set; } = string.Empty;
+
+        [MaxLength(500)]
+        public string? ProofLink { get; set; } = string.Empty;
 
         [MaxLength(500)]
         public string? Description { get; set; }

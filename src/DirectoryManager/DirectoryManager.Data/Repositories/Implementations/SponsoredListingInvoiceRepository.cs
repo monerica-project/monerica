@@ -178,10 +178,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
             int excludeSponsoredListingInvoiceId,
             CancellationToken ct = default) =>
             this.context.SponsoredListingInvoices.AsNoTracking()
-                .AnyAsync(i =>
+                .AnyAsync(
+                    i =>
                     i.DirectoryEntryId == directoryEntryId &&
                     i.PaymentStatus == PaymentStatus.Paid &&
                     i.SponsoredListingInvoiceId != excludeSponsoredListingInvoiceId, ct);
-
     }
 }

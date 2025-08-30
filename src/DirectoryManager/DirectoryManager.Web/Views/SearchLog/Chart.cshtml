@@ -1,0 +1,48 @@
+﻿@model DirectoryManager.Web.Models.SearchLogReportViewModel
+@{
+    ViewData["Title"] = "Search Log Report";
+    Layout = "_CenteredLayout";
+    string startVal = Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
+    string endVal = Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
+}
+
+@section PageContent {
+
+    <h1>@ViewData["Title"]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+
+    <form method="get" class="row g-2 mb-3" action="/searchlog/report">
+        <div class="col-auto">
+            <label class="form-label">Start</label>
+            <input type="date" name="start" class="form-control" value="@startVal" />
+        </div>
+        <div class="col-auto">
+            <label class="form-label">End</label>
+            <input type="date" name="end" class="form-control" value="@endVal" />
+        </div>
+        <div class="col-auto align-self-end">
+            <button class="btn btn-primary">Update</button>
+        </div>
+    </form>
+
+
+    <p>
+        Time Range:
+        @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+        –
+        @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+    </p>
+ 
+
+    <div class="card mb-4">
+        <div class="card-header">Weekly Searches</div>
+        <div class="card-body">
+            <img src="~/searchlog/weekly-plot?start=@startVal&end=@endVal"
+                 alt="Weekly searches"
+                 style="max-width:100%;height:auto; display:block; margin:0 auto; padding-bottom:10px;" />
+        </div>
+    </div>
+ 
+
+}

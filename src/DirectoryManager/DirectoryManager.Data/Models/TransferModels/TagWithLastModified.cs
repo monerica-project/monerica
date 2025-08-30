@@ -1,5 +1,4 @@
-﻿
-namespace DirectoryManager.Data.Models.TransferModels
+﻿namespace DirectoryManager.Data.Models.TransferModels
 {
     public class TagWithLastModified
     {

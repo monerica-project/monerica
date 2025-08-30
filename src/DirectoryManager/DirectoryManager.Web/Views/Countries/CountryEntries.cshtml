@@ -1,0 +1,58 @@
+﻿@using DirectoryManager.Utilities
+@model DirectoryManager.Web.Models.CountryEntriesViewModel
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+
+@{
+    Layout = "_CenteredLayout";
+    int totalPages = (int)Math.Ceiling(Model.PagedEntries.TotalCount / (double)Model.PageSize);
+    string pageSuffix = Model.CurrentPage > 1 ? $" – Page {Model.CurrentPage}" : "";
+    ViewData["Title"] = $"Country: {Model.CountryName}{pageSuffix}";
+}
+
+@section PageContent {
+    <h1>@Model.CountryName</h1>
+
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    <a class="no-app-link" href="@(UrlResolver.ResolveToRoot("/countries"))">All Countries</a>
+    <br />
+
+    @if (!Model.PagedEntries.Items.Any())
+    {
+        <p>No listings found for this country.</p>
+    }
+    else
+    {
+        <ul class="blank_list_item">
+            @foreach (var entry in Model.PagedEntries.Items)
+            {
+                entry.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
+                @await Html.PartialAsync("_DirectoryEntryPartial", entry)
+            }
+        </ul>
+
+        <nav aria-label="Pagination">
+            <ul class="pagination">
+                @for (int p = 1; p <= totalPages; p++)
+                {
+                    string rawPath = $"/countries/{Model.CountryKey}" + (p > 1 ? $"/page/{p}" : "");
+                    string href = p == 1
+                        ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
+                        : UrlResolver.ResolveToApp(rawPath);
+
+                    string linkClass = "no-app-link";
+                    string activeClass = p == Model.CurrentPage ? "active" : "";
+
+                    <li class="page-item @activeClass">
+                        <a class="page-link @linkClass" href="@href">@p</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+
+    <hr />
+    @await Html.PartialAsync("_SponsoredListingPartial")
+}
