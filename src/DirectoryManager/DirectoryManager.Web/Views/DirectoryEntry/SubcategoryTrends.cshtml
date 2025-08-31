@@ -1,0 +1,107 @@
+﻿@model DirectoryManager.Web.Models.SubcategoryTrendsReportViewModel
+@{
+    Layout = "_CenteredLayout";
+    ViewData["Title"] = "Subcategory Trends";
+}
+ @section PageContent {
+<h1>Subcategory Trends</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+
+    <form method="get" asp-controller="DirectoryEntry" asp-action="SubcategoryTrends" class="mb-3">
+        <div class="form-row">
+            <div class="form-group col-md-3">
+                <label for="Start">Start date</label>
+                <input id="Start"
+                       name="start"
+                       type="date"
+                       class="form-control"
+                       value="@Model.Start.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)"
+                       required />
+            </div>
+            <div class="form-group col-md-3">
+                <label for="End">End date</label>
+                <input id="End"
+                       name="end"
+                       type="date"
+                       class="form-control"
+                       value="@Model.End.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)"
+                       required />
+            </div>
+
+            <div class="form-group col-md-3 d-flex align-items-end">
+                <button type="submit" class="btn btn-primary w-100">Update</button>
+            </div>
+        </div>
+    </form>
+
+<div class="row">
+    <div class="col-md-6">
+            <h3>Top @Model.TopGrowth?.Count() Growth</h3>
+        @if (Model.TopGrowth?.Any() == true)
+        {
+            <table class="table table-sm table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Subcategory</th>
+                        <th class="text-end">Start</th>
+                        <th class="text-end">End</th>
+                        <th class="text-end">Δ</th>
+                        <th class="text-end">% Change</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model.TopGrowth)
+                    {
+                        <tr>
+                            <td>@t.SubCategoryName</td>
+                            <td class="text-end">@t.StartCount</td>
+                            <td class="text-end">@t.EndCount</td>
+                            <td class="text-end">@(t.Delta >= 0 ? "+" : "")@t.Delta</td>
+                            <td class="text-end">@t.PercentChange.ToString("0.0")%</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="text-muted">No data.</p>
+        }
+    </div>
+
+    <div class="col-md-6">
+            <h3>Top @Model.TopDecline?.Count() Decline</h3>
+        @if (Model.TopDecline?.Any() == true)
+        {
+            <table class="table table-sm table-striped align-middle">
+                <thead>
+                    <tr>
+                        <th>Subcategory</th>
+                        <th class="text-end">Start</th>
+                        <th class="text-end">End</th>
+                        <th class="text-end">Δ</th>
+                        <th class="text-end">% Change</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var t in Model.TopDecline)
+                    {
+                        <tr>
+                            <td>@t.SubCategoryName</td>
+                            <td class="text-end">@t.StartCount</td>
+                            <td class="text-end">@t.EndCount</td>
+                            <td class="text-end">@(t.Delta >= 0 ? "+" : "")@t.Delta</td>
+                            <td class="text-end">@t.PercentChange.ToString("0.0")%</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p class="text-muted">No data.</p>
+        }
+    </div>
+</div>
+}

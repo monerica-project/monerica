@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Web.Helpers;
+﻿using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Helpers;
 using Microsoft.AspNetCore.Mvc;
 
 [Route("captcha")]
@@ -20,6 +21,6 @@ public class CaptchaController : Controller
 
         // Draw PNG (your existing SkiaSharp logic)
         var pngBytes = CaptchaTools.RenderPng(code); // returns byte[]
-        return this.File(pngBytes, "image/png");
+        return this.File(pngBytes, StringConstants.PngImage);
     }
 }

@@ -331,10 +331,10 @@ namespace DirectoryManager.Web.Controllers
             var bytes = plotting.CreateMonthlySubmissionBarChart(submissions);
             if (bytes.Length == 0)
             {
-                return this.File(Array.Empty<byte>(), "image/png");
+                return this.File(Array.Empty<byte>(), StringConstants.PngImage);
             }
 
-            return this.File(bytes, StringConstants.PngImage); // or "image/png"
+            return this.File(bytes, StringConstants.PngImage);
         }
 
         [HttpGet("directoryentry/monthlyplotimage")]
@@ -355,26 +355,24 @@ namespace DirectoryManager.Web.Controllers
             var imageBytes = plottingChart.CreateCategoryPieChartImage(entries, allCategories);
             return this.File(imageBytes, StringConstants.PngImage);
         }
- 
 
-    [HttpGet("directoryentry/countrieschart")]
-    public async Task<IActionResult> CountryPlotImageAsync()
-    {
-        var entries = await this.directoryEntryRepository.GetAllActiveEntries();
+        [HttpGet("directoryentry/countrieschart")]
+        public async Task<IActionResult> CountryPlotImageAsync()
+        {
+            var entries = await this.directoryEntryRepository.GetAllActiveEntries();
 
-        // keep only entries with a non-empty, recognized ISO-2 country code
-        var knownCountries = CountryHelper.GetCountries(); // key = ISO code (upper)
-        var filtered = (entries ?? Enumerable.Empty<DirectoryEntry>())
-            .Where(e => !string.IsNullOrWhiteSpace(e.CountryCode)
-                     && knownCountries.ContainsKey(e.CountryCode!.Trim().ToUpperInvariant()))
-            .ToList();
+            // keep only entries with a non-empty, recognized ISO-2 country code
+            var knownCountries = CountryHelper.GetCountries(); // key = ISO code (upper)
+            var filtered = (entries ?? Enumerable.Empty<DirectoryEntry>())
+                .Where(e => !string.IsNullOrWhiteSpace(e.CountryCode)
+                         && knownCountries.ContainsKey(e.CountryCode!.Trim().ToUpperInvariant()))
+                .ToList();
 
-        var plottingChart = new DirectoryEntryPlotting();
-        var imageBytes = plottingChart.CreateActiveCountriesPieChartImage(filtered);
+            var plottingChart = new DirectoryEntryPlotting();
+            var imageBytes = plottingChart.CreateActiveCountriesPieChartImage(filtered);
 
-        return this.File(imageBytes.Length == 0 ? Array.Empty<byte>() : imageBytes, StringConstants.PngImage);
-    }
-
+            return this.File(imageBytes.Length == 0 ? Array.Empty<byte>() : imageBytes, StringConstants.PngImage);
+        }
 
         [AllowAnonymous]
         [HttpGet("{categorykey}/{subcategorykey}/{directoryEntryKey}")]
@@ -522,6 +520,18 @@ namespace DirectoryManager.Web.Controllers
             return this.View("DirectoryEntryView", model);
         }
 
+        // Normalize any fingerprint (strip spaces/separators, upper-case)
+        private static string NormalizeFp(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+            {
+                return string.Empty;
+            }
+
+            string hex = Regex.Replace(s, @"[^0-9A-Fa-f]", ""); // keep hex only
+            return hex.ToUpperInvariant();
+        }
+
         private async Task LoadLists()
         {
             await this.LoadSubCategories();
@@ -548,6 +558,131 @@ namespace DirectoryManager.Web.Controllers
             await Task.CompletedTask; // For async signature compliance.
         }
 
+        [HttpGet("directoryentry/subcategory-trends")]
+        public async Task<IActionResult> SubcategoryTrends([FromQuery] DateTime? start, [FromQuery] DateTime? end)
+        {
+            const string unknown = "(Unknown)";
+            DateTime to = end ?? DateTime.UtcNow;
+            DateTime from = start ?? to.AddYears(-1);
+
+            // widen fetch a bit so we can resolve "latest <= from"
+            DateTime preloadFrom = from.AddYears(-5);
+            var audits = await this.auditRepository.GetAllWithSubcategoriesAsync(preloadFrom, to);
+
+            var vmEmpty = new SubcategoryTrendsReportViewModel { Start = from, End = to };
+            if (audits.Count == 0)
+            {
+                return this.View("SubcategoryTrends", vmEmpty);
+            }
+
+            // --- strongly-typed timeline item (avoid anonymous/dynamic) ---
+            // adjust the Subcategory namespace if different in your project
+            var byEntry = audits
+                .Select(a => new TimelineItem
+                {
+                    DirectoryEntryId = a.DirectoryEntryId,
+                    Effective = a.UpdateDate ?? a.CreateDate,
+                    DirectoryStatus = a.DirectoryStatus,
+                    SubCategoryId = a.SubCategoryId,
+                    SubCategory = a.SubCategory
+                })
+                .GroupBy(x => x.DirectoryEntryId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderBy(x => x.Effective).ToList());
+
+            static bool IsActive(DirectoryManager.Data.Enums.DirectoryStatus s) =>
+                s == DirectoryManager.Data.Enums.DirectoryStatus.Admitted
+                || s == DirectoryManager.Data.Enums.DirectoryStatus.Verified
+                || s == DirectoryManager.Data.Enums.DirectoryStatus.Questionable
+                || s == DirectoryManager.Data.Enums.DirectoryStatus.Scam;
+
+            (int? subCatId, string name, bool active) StateAt(DateTime t, List<TimelineItem> timeline)
+            {
+                var rec = timeline.LastOrDefault(r => r.Effective <= t);
+                if (rec is null)
+                {
+                    return (null, unknown, false);
+                }
+
+                string scName = rec.SubCategory is null
+                    ? unknown
+                    : $"{rec.SubCategory.Category?.Name ?? unknown} > {rec.SubCategory.Name ?? unknown}";
+
+                return (rec.SubCategoryId, scName, IsActive(rec.DirectoryStatus));
+            }
+
+            var startCounts = new Dictionary<int?, (string name, int count)>();
+            var endCounts = new Dictionary<int?, (string name, int count)>();
+
+            foreach (var kvp in byEntry)
+            {
+                var timeline = kvp.Value;
+
+                var (sid, sname, sactive) = StateAt(from, timeline);
+                if (sactive)
+                {
+                    if (!startCounts.TryGetValue(sid, out var s))
+                    {
+                        startCounts[sid] = (sname, 1);
+                    }
+                    else
+                    {
+                        startCounts[sid] = (s.name, s.count + 1);
+                    }
+                }
+
+                var (eid, ename, eactive) = StateAt(to, timeline);
+                if (eactive)
+                {
+                    if (!endCounts.TryGetValue(eid, out var e))
+                    {
+                        endCounts[eid] = (ename, 1);
+                    }
+                    else
+                    {
+                        endCounts[eid] = (e.name, e.count + 1);
+                    }
+                }
+            }
+
+            var allIds = new HashSet<int?>(startCounts.Keys.Concat(endCounts.Keys));
+            var trends = new List<SubcategoryTrendItem>();
+            foreach (var id in allIds)
+            {
+                var s = startCounts.TryGetValue(id, out var sv) ? sv : (name: unknown, count: 0);
+                var e = endCounts.TryGetValue(id, out var ev) ? ev : (name: s.name, count: 0);
+
+                trends.Add(new SubcategoryTrendItem
+                {
+                    SubCategoryId = id,
+                    SubCategoryName = string.IsNullOrWhiteSpace(e.name) ? s.name : e.name,
+                    StartCount = s.count,
+                    EndCount = e.count
+                });
+            }
+
+            var countToTake = 10;
+
+            var topGrowth = trends.OrderByDescending(t => t.Delta)
+                                  .ThenByDescending(t => t.PercentChange)
+                                  .Take(countToTake).ToList();
+
+            var topDecline = trends.OrderBy(t => t.Delta)
+                                   .ThenBy(t => t.PercentChange)
+                                   .Take(countToTake).ToList();
+
+            var vm = new SubcategoryTrendsReportViewModel
+            {
+                Start = from,
+                End = to,
+                TopGrowth = topGrowth,
+                TopDecline = topDecline
+            };
+
+            return this.View("SubcategoryTrends", vm);
+        }
+
         private async Task LoadSubCategories()
         {
             var subCategories = (await this.subCategoryRepository.GetAllDtoAsync())
@@ -565,16 +700,13 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.SubCategories = subCategories;
         }
 
-        // Normalize any fingerprint (strip spaces/separators, upper-case)
-        private static string NormalizeFp(string? s)
+        private sealed class TimelineItem
         {
-            if (string.IsNullOrWhiteSpace(s))
-            {
-                return string.Empty;
-            }
-
-            string hex = Regex.Replace(s, @"[^0-9A-Fa-f]", ""); // keep hex only
-            return hex.ToUpperInvariant();
+            public int DirectoryEntryId { get; set; }
+            public DateTime Effective { get; set; }
+            public DirectoryManager.Data.Enums.DirectoryStatus DirectoryStatus { get; set; }
+            public int? SubCategoryId { get; set; }
+            public DirectoryManager.Data.Models.Subcategory? SubCategory { get; set; }
         }
     }
 }

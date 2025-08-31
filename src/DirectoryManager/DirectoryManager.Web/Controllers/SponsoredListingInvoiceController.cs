@@ -341,7 +341,7 @@ namespace DirectoryManager.Web.Controllers
                     subToCat);
 
             // 5) return as PNG
-            return this.File(chartBytes, "image/png");
+            return this.File(chartBytes, StringConstants.PngImage);
         }
 
         [Route("sponsoredlistinginvoice/subcategorybreakdown")]

@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Charting;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using Microsoft.AspNetCore.Mvc;
 
@@ -51,7 +52,7 @@ namespace DirectoryManager.Web.Controllers
             var plotting = new SearchAnalyticsPlotting();
             var png = plotting.CreateWeeklySearchTotalsBarChart(weekly, from, to);
 
-            return this.File(png.Length == 0 ? Array.Empty<byte>() : png, "image/png");
+            return this.File(png.Length == 0 ? Array.Empty<byte>() : png, StringConstants.PngImage);
         }
 
         private static (DateTime fromUtc, DateTime toExclusiveUtc, DateTime fromDisplay, DateTime toDisplay)

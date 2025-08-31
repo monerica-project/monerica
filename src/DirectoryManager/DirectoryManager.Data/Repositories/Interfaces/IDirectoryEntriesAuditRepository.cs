@@ -6,6 +6,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
     {
         Task<IEnumerable<DirectoryEntriesAudit>> GetAllAsync();
         Task CreateAsync(DirectoryEntriesAudit directoryEntriesAudit);
-        Task<IEnumerable<DirectoryEntriesAudit>> GetAuditsWithSubCategoriesForEntryAsync(int entryId);
+        Task<IEnumerable<DirectoryEntriesAudit>> GetAuditsWithSubCategoriesForEntryAsync(int entryId); 
+        Task<List<DirectoryEntriesAudit>> GetAllWithSubcategoriesAsync(DateTime fromUtc, DateTime toUtc);
     }
 }

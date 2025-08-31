@@ -47,5 +47,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ThenInclude(subCategory => subCategory.Category!)
                 .ToListAsync();
         }
+
+        public async Task<List<DirectoryEntriesAudit>> GetAllWithSubcategoriesAsync(DateTime fromUtc, DateTime toUtc)
+        {
+            return await this.context.DirectoryEntriesAudit
+                .Include(a => a.SubCategory).ThenInclude(sc => sc.Category)
+                .Where(a =>
+                    (a.UpdateDate ?? a.CreateDate) >= fromUtc &&
+                    (a.UpdateDate ?? a.CreateDate) <= toUtc)
+                .AsNoTracking()
+                .ToListAsync();
+        }
+
     }
 }
