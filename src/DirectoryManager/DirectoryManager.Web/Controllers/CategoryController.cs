@@ -5,6 +5,7 @@ using DirectoryManager.DisplayFormatting.Enums;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Utilities.Helpers;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -65,7 +66,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("{categoryKey}/page/{page:int}")]
         public async Task<IActionResult> Category(string categoryKey, int page = 1)
         {
-            const int PageSize = 25;
+            const int PageSize = IntegerConstants.MediumPageSize;
 
             // 1) find category
             var category = await this.categoryRepository.GetByKeyAsync(categoryKey);

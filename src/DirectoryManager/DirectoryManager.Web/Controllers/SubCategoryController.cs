@@ -152,7 +152,7 @@ namespace DirectoryManager.Web.Controllers
             string subCategoryKey,
             int page = 1)
         {
-            const int PageSize = IntegerConstants.DefaultPageSize;
+            const int PageSize = IntegerConstants.MediumPageSize;
 
             var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
             if (category == null)
