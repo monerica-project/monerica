@@ -13,7 +13,8 @@ namespace DirectoryManager.Utilities.Validation
         /// Returns true if <paramref name="armoredKey"/> is a valid ASCII-armored PGP public key,
         /// including a matching CRC24 checksum.
         /// </summary>
-        public static bool IsValid(string armoredKey)
+        /// <returns>If the PGP public key is valid.</returns>
+        public static bool IsValid(string? armoredKey)
         {
             if (string.IsNullOrWhiteSpace(armoredKey))
             {

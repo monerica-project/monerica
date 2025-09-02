@@ -407,10 +407,16 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             // build rel attribute
             var relParts = new List<string>();
+
             if (isScam)
+            {
                 relParts.Add("nofollow");
+            }
+
             if (model.IsSponsored)
+            {
                 relParts.Add("sponsored");
+            }
 
             string relAttr = relParts.Count > 0
                 ? $"rel=\"{string.Join(" ", relParts)}\""
@@ -433,7 +439,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                     relAttr);
             }
         }
-
 
         /// <summary>
         /// Helper method for appending additional links (Link2 and Link3).

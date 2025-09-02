@@ -1,5 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Migrations;
+﻿using System.Text.RegularExpressions;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -18,7 +18,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using System.Text.RegularExpressions;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -374,6 +373,131 @@ namespace DirectoryManager.Web.Controllers
             return this.File(imageBytes.Length == 0 ? Array.Empty<byte>() : imageBytes, StringConstants.PngImage);
         }
 
+        [HttpGet("directoryentry/subcategory-trends")]
+        public async Task<IActionResult> SubcategoryTrends([FromQuery] DateTime? start, [FromQuery] DateTime? end)
+        {
+            const string unknown = "(Unknown)";
+            DateTime to = end ?? DateTime.UtcNow;
+            DateTime from = start ?? to.AddYears(-1);
+
+            // widen fetch a bit so we can resolve "latest <= from"
+            DateTime preloadFrom = from.AddYears(-5);
+            var audits = await this.auditRepository.GetAllWithSubcategoriesAsync(preloadFrom, to);
+
+            var vmEmpty = new SubcategoryTrendsReportViewModel { Start = from, End = to };
+            if (audits.Count == 0)
+            {
+                return this.View("SubcategoryTrends", vmEmpty);
+            }
+
+            // --- strongly-typed timeline item (avoid anonymous/dynamic) ---
+            // adjust the Subcategory namespace if different in your project
+            var byEntry = audits
+                .Select(a => new TimelineItem
+                {
+                    DirectoryEntryId = a.DirectoryEntryId,
+                    Effective = a.UpdateDate ?? a.CreateDate,
+                    DirectoryStatus = a.DirectoryStatus,
+                    SubCategoryId = a.SubCategoryId,
+                    SubCategory = a.SubCategory
+                })
+                .GroupBy(x => x.DirectoryEntryId)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.OrderBy(x => x.Effective).ToList());
+
+            static bool IsActive(DirectoryManager.Data.Enums.DirectoryStatus s) =>
+                s == DirectoryManager.Data.Enums.DirectoryStatus.Admitted
+                || s == DirectoryManager.Data.Enums.DirectoryStatus.Verified
+                || s == DirectoryManager.Data.Enums.DirectoryStatus.Questionable
+                || s == DirectoryManager.Data.Enums.DirectoryStatus.Scam;
+
+            (int? subCatId, string name, bool active) StateAt(DateTime t, List<TimelineItem> timeline)
+            {
+                var rec = timeline.LastOrDefault(r => r.Effective <= t);
+                if (rec is null)
+                {
+                    return (null, unknown, false);
+                }
+
+                string scName = rec.SubCategory is null
+                    ? unknown
+                    : $"{rec.SubCategory.Category?.Name ?? unknown} > {rec.SubCategory.Name ?? unknown}";
+
+                return (rec.SubCategoryId, scName, IsActive(rec.DirectoryStatus));
+            }
+
+            var startCounts = new Dictionary<int?, (string name, int count)>();
+            var endCounts = new Dictionary<int?, (string name, int count)>();
+
+            foreach (var kvp in byEntry)
+            {
+                var timeline = kvp.Value;
+
+                var (sid, sname, sactive) = StateAt(from, timeline);
+                if (sactive)
+                {
+                    if (!startCounts.TryGetValue(sid, out var s))
+                    {
+                        startCounts[sid] = (sname, 1);
+                    }
+                    else
+                    {
+                        startCounts[sid] = (s.name, s.count + 1);
+                    }
+                }
+
+                var (eid, ename, eactive) = StateAt(to, timeline);
+                if (eactive)
+                {
+                    if (!endCounts.TryGetValue(eid, out var e))
+                    {
+                        endCounts[eid] = (ename, 1);
+                    }
+                    else
+                    {
+                        endCounts[eid] = (e.name, e.count + 1);
+                    }
+                }
+            }
+
+            var allIds = new HashSet<int?>(startCounts.Keys.Concat(endCounts.Keys));
+            var trends = new List<SubcategoryTrendItem>();
+            foreach (var id in allIds)
+            {
+                var s = startCounts.TryGetValue(id, out var sv) ? sv : (name: unknown, count: 0);
+                var e = endCounts.TryGetValue(id, out var ev) ? ev : (name: s.name, count: 0);
+
+                trends.Add(new SubcategoryTrendItem
+                {
+                    SubCategoryId = id,
+                    SubCategoryName = string.IsNullOrWhiteSpace(e.name) ? s.name : e.name,
+                    StartCount = s.count,
+                    EndCount = e.count
+                });
+            }
+
+            var countToTake = 10;
+
+            var topGrowth = trends.OrderByDescending(t => t.Delta)
+                                  .ThenByDescending(t => t.PercentChange)
+                                  .Take(countToTake).ToList();
+
+            var topDecline = trends.OrderBy(t => t.Delta)
+                                   .ThenBy(t => t.PercentChange)
+                                   .Take(countToTake).ToList();
+
+            var vm = new SubcategoryTrendsReportViewModel
+            {
+                Start = from,
+                End = to,
+                TopGrowth = topGrowth,
+                TopDecline = topDecline
+            };
+
+            return this.View("SubcategoryTrends", vm);
+        }
+
         [AllowAnonymous]
         [HttpGet("{categorykey}/{subcategorykey}/{directoryEntryKey}")]
         public async Task<IActionResult> DirectoryEntryView(string categoryKey, string subCategoryKey, string directoryEntryKey)
@@ -556,131 +680,6 @@ namespace DirectoryManager.Web.Controllers
             list.Insert(0, new SelectListItem { Value = "", Text = StringConstants.SelectText });
             this.ViewBag.CountryCode = new SelectList(list, "Value", "Text", selectedId);
             await Task.CompletedTask; // For async signature compliance.
-        }
-
-        [HttpGet("directoryentry/subcategory-trends")]
-        public async Task<IActionResult> SubcategoryTrends([FromQuery] DateTime? start, [FromQuery] DateTime? end)
-        {
-            const string unknown = "(Unknown)";
-            DateTime to = end ?? DateTime.UtcNow;
-            DateTime from = start ?? to.AddYears(-1);
-
-            // widen fetch a bit so we can resolve "latest <= from"
-            DateTime preloadFrom = from.AddYears(-5);
-            var audits = await this.auditRepository.GetAllWithSubcategoriesAsync(preloadFrom, to);
-
-            var vmEmpty = new SubcategoryTrendsReportViewModel { Start = from, End = to };
-            if (audits.Count == 0)
-            {
-                return this.View("SubcategoryTrends", vmEmpty);
-            }
-
-            // --- strongly-typed timeline item (avoid anonymous/dynamic) ---
-            // adjust the Subcategory namespace if different in your project
-            var byEntry = audits
-                .Select(a => new TimelineItem
-                {
-                    DirectoryEntryId = a.DirectoryEntryId,
-                    Effective = a.UpdateDate ?? a.CreateDate,
-                    DirectoryStatus = a.DirectoryStatus,
-                    SubCategoryId = a.SubCategoryId,
-                    SubCategory = a.SubCategory
-                })
-                .GroupBy(x => x.DirectoryEntryId)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.OrderBy(x => x.Effective).ToList());
-
-            static bool IsActive(DirectoryManager.Data.Enums.DirectoryStatus s) =>
-                s == DirectoryManager.Data.Enums.DirectoryStatus.Admitted
-                || s == DirectoryManager.Data.Enums.DirectoryStatus.Verified
-                || s == DirectoryManager.Data.Enums.DirectoryStatus.Questionable
-                || s == DirectoryManager.Data.Enums.DirectoryStatus.Scam;
-
-            (int? subCatId, string name, bool active) StateAt(DateTime t, List<TimelineItem> timeline)
-            {
-                var rec = timeline.LastOrDefault(r => r.Effective <= t);
-                if (rec is null)
-                {
-                    return (null, unknown, false);
-                }
-
-                string scName = rec.SubCategory is null
-                    ? unknown
-                    : $"{rec.SubCategory.Category?.Name ?? unknown} > {rec.SubCategory.Name ?? unknown}";
-
-                return (rec.SubCategoryId, scName, IsActive(rec.DirectoryStatus));
-            }
-
-            var startCounts = new Dictionary<int?, (string name, int count)>();
-            var endCounts = new Dictionary<int?, (string name, int count)>();
-
-            foreach (var kvp in byEntry)
-            {
-                var timeline = kvp.Value;
-
-                var (sid, sname, sactive) = StateAt(from, timeline);
-                if (sactive)
-                {
-                    if (!startCounts.TryGetValue(sid, out var s))
-                    {
-                        startCounts[sid] = (sname, 1);
-                    }
-                    else
-                    {
-                        startCounts[sid] = (s.name, s.count + 1);
-                    }
-                }
-
-                var (eid, ename, eactive) = StateAt(to, timeline);
-                if (eactive)
-                {
-                    if (!endCounts.TryGetValue(eid, out var e))
-                    {
-                        endCounts[eid] = (ename, 1);
-                    }
-                    else
-                    {
-                        endCounts[eid] = (e.name, e.count + 1);
-                    }
-                }
-            }
-
-            var allIds = new HashSet<int?>(startCounts.Keys.Concat(endCounts.Keys));
-            var trends = new List<SubcategoryTrendItem>();
-            foreach (var id in allIds)
-            {
-                var s = startCounts.TryGetValue(id, out var sv) ? sv : (name: unknown, count: 0);
-                var e = endCounts.TryGetValue(id, out var ev) ? ev : (name: s.name, count: 0);
-
-                trends.Add(new SubcategoryTrendItem
-                {
-                    SubCategoryId = id,
-                    SubCategoryName = string.IsNullOrWhiteSpace(e.name) ? s.name : e.name,
-                    StartCount = s.count,
-                    EndCount = e.count
-                });
-            }
-
-            var countToTake = 10;
-
-            var topGrowth = trends.OrderByDescending(t => t.Delta)
-                                  .ThenByDescending(t => t.PercentChange)
-                                  .Take(countToTake).ToList();
-
-            var topDecline = trends.OrderBy(t => t.Delta)
-                                   .ThenBy(t => t.PercentChange)
-                                   .Take(countToTake).ToList();
-
-            var vm = new SubcategoryTrendsReportViewModel
-            {
-                Start = from,
-                End = to,
-                TopGrowth = topGrowth,
-                TopDecline = topDecline
-            };
-
-            return this.View("SubcategoryTrends", vm);
         }
 
         private async Task LoadSubCategories()
