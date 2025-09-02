@@ -1,5 +1,4 @@
-﻿using System;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net;
 using System.Text;
 using DirectoryManager.Data.Enums;
@@ -471,9 +470,9 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
                 sb.Append("<img")
                   .Append(" class=\"country-flag\"")
-                  .Append(" src=\"").Append(src).Append("\"")
-                  .Append(" alt=\"Flag of ").Append(countryName).Append("\"")
-                  .Append(" title=\"").Append(countryName).Append("\"")
+                  .Append(" src=\"").Append(src).Append('"')
+                  .Append(" alt=\"Flag of ").Append(countryName).Append('"')
+                  .Append(" title=\"").Append(countryName).Append('"')
                   .Append(" />");
             }
 
