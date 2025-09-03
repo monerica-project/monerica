@@ -1,5 +1,4 @@
-﻿using System.Text.RegularExpressions;
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -18,6 +17,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using System.Net;
+using System.Text.RegularExpressions;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -36,6 +37,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IMemoryCache cache;
         private readonly IDirectoryEntryReviewRepository reviewRepository;
         private readonly ISubmissionRepository submissionRepository;
+        private readonly IUrlResolutionService urlResolver;
 
         public DirectoryEntryController(
             UserManager<ApplicationUser> userManager,
@@ -51,7 +53,8 @@ namespace DirectoryManager.Web.Controllers
             ISponsoredListingRepository sponsoredListingRepository,
             IMemoryCache cache,
             IDirectoryEntryReviewRepository reviewRepository,
-            ISubmissionRepository submissionRepository)
+            ISubmissionRepository submissionRepository,
+            IUrlResolutionService urlResolver)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -66,6 +69,7 @@ namespace DirectoryManager.Web.Controllers
             this.cacheService = cacheService;
             this.reviewRepository = reviewRepository;
             this.submissionRepository = submissionRepository;
+            this.urlResolver = urlResolver;
         }
 
         [Route("directoryentry/index")]
@@ -634,6 +638,7 @@ namespace DirectoryManager.Web.Controllers
                 IsSponsored = isSponsor,
                 PgpKey = existingEntry.PgpKey,
                 ProofLink = existingEntry.ProofLink,
+                FormattedLocation = BuildLocationHtml(existingEntry.Location, existingEntry.CountryCode, this.urlResolver)
             };
 
             this.ViewBag.CategoryName = category.Name;
@@ -654,6 +659,86 @@ namespace DirectoryManager.Web.Controllers
 
             string hex = Regex.Replace(s, @"[^0-9A-Fa-f]", ""); // keep hex only
             return hex.ToUpperInvariant();
+        }
+
+        private static string BuildLocationHtml(string? locationRaw, string? countryCode, IUrlResolutionService urlResolver)
+        {
+            var location = locationRaw?.Trim();
+            var ccRaw = countryCode?.Trim();
+
+            // Prepare flag (show whenever we have a country code)
+            string flagHtml = string.Empty;
+            if (!string.IsNullOrWhiteSpace(ccRaw))
+            {
+                var ccLower = ccRaw.ToLowerInvariant();
+                var countryNameForAlt = CountryHelper.GetCountryName(ccRaw) ?? string.Empty;
+                var altTitle = string.IsNullOrWhiteSpace(countryNameForAlt)
+                    ? $"Flag ({ccRaw})"
+                    : $"Flag of {countryNameForAlt} ({ccRaw.ToUpperInvariant()})";
+
+                // margin-right so text doesn’t collide with the flag
+                flagHtml = $"<img class=\"country-flag me-2 align-text-bottom\" src=\"/images/flags/{ccLower}.png\" alt=\"{WebUtility.HtmlEncode(altTitle)}\" title=\"{WebUtility.HtmlEncode(countryNameForAlt)}\" /> ";
+            }
+
+            // Compute country name + link (if available)
+            string? countryName = null;
+            string? anchorHtml = null;
+
+            if (!string.IsNullOrWhiteSpace(ccRaw))
+            {
+                countryName = CountryHelper.GetCountryName(ccRaw);
+                if (!string.IsNullOrWhiteSpace(countryName))
+                {
+                    var slug = StringHelpers.UrlKey(countryName);
+                    var href = urlResolver.ResolveToRoot($"/countries/{slug}");
+                    anchorHtml = $"<a class=\"no-app-link\" href=\"{href}\">{WebUtility.HtmlEncode(countryName)}</a>";
+                }
+            }
+
+            // Nothing else to show
+            if (string.IsNullOrWhiteSpace(location) && string.IsNullOrWhiteSpace(countryName))
+            {
+                return flagHtml; // could be empty if no cc
+            }
+
+            // If we don't have a country name/link, just emit flag + encoded location
+            if (string.IsNullOrWhiteSpace(countryName) || string.IsNullOrWhiteSpace(anchorHtml))
+            {
+                return $"{flagHtml}{WebUtility.HtmlEncode(location ?? string.Empty)}";
+            }
+
+            // Do we already have the country name inside the location string?
+            var idx = !string.IsNullOrWhiteSpace(location)
+                ? location!.IndexOf(countryName!, StringComparison.OrdinalIgnoreCase)
+                : -1;
+
+            if (idx >= 0)
+            {
+                // Replace first occurrence with a link, preserve punctuation (no extra spaces before commas)
+                var before = location!.Substring(0, idx);
+                var after = location!.Substring(idx + countryName!.Length);
+                return $"{flagHtml}{WebUtility.HtmlEncode(before)}{anchorHtml}{WebUtility.HtmlEncode(after)}";
+            }
+            else if (!string.IsNullOrWhiteSpace(location))
+            {
+                // Append ", <linked country>" with exactly one comma+space
+                var left = location!.TrimEnd();
+                if (left.EndsWith(",", StringComparison.Ordinal))
+                {
+                    left += " ";
+                }
+                else
+                {
+                    left = left + ", ";
+                }
+
+                return $"{flagHtml}{WebUtility.HtmlEncode(left)}{anchorHtml}";
+            }
+            else
+            {
+                // No location text; only the linked country (with flag)
+                return $"{flagHtml}{anchorHtml}";
+            }
         }
 
         private async Task LoadLists()
