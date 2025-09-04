@@ -347,47 +347,92 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             term = term.Trim().ToLowerInvariant();
 
+            // Country code extraction (kept)
             string? countryCode = Utilities.Helpers.CountryHelper.ExtractCountryCode(term);
 
+            // plural→singular (kept)
             var primaryPattern = $"%{term}%";
             string? rootTerm = null;
             string? rootPattern = null;
-
             if (term.EndsWith("s") && term.Length > 3)
             {
                 rootTerm = term[..^1];
                 rootPattern = $"%{rootTerm}%";
             }
 
-            // 1) server-side filter
+            // --- URL-awareness: build variants if the query looks like a URL -------------
+            static bool LooksLikeUrl(string s) =>
+                s.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
+                s.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
+                s.StartsWith("www.", StringComparison.OrdinalIgnoreCase);
+
+            static string TrimTrailingSlash(string s) => s.EndsWith("/") ? s[..^1] : s;
+
+            static string ExtractHost(string url)
+            {
+                try
+                {
+                    if (!url.Contains("://", StringComparison.Ordinal)) url = "https://" + url;
+                    var u = new Uri(url, UriKind.Absolute);
+                    return (u.Host ?? "").ToLowerInvariant();
+                }
+                catch
+                {
+                    var s = url;
+                    s = s.Replace("https://", "", StringComparison.OrdinalIgnoreCase)
+                         .Replace("http://", "", StringComparison.OrdinalIgnoreCase);
+                    int slash = s.IndexOf('/');
+                    return (slash >= 0 ? s[..slash] : s).ToLowerInvariant();
+                }
+            }
+
+            static string StripWww(string host) =>
+                host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? host[4..] : host;
+
+            bool isUrlTerm = LooksLikeUrl(term);
+            string noSlash = isUrlTerm ? TrimTrailingSlash(term) : term;
+            string withSlash = isUrlTerm ? (noSlash + "/") : term;
+
+            string hostOnly = isUrlTerm ? ExtractHost(term) : string.Empty;
+            string hostNoWww = isUrlTerm ? StripWww(hostOnly) : string.Empty;
+
+            // LIKE patterns for EF (empty strings are ignored below)
+            string pNoSlash = $"%{noSlash}%";
+            string pWithSlash = $"%{withSlash}%";
+            string pHostOnly = string.IsNullOrEmpty(hostOnly) ? "" : $"%{hostOnly}%";
+            string pNoWww = string.IsNullOrEmpty(hostNoWww) ? "" : $"%{hostNoWww}%";
+
+            // ---------------------------------------------------------------------------
+
+            // 1) server-side filter (kept & extended with URL-variant matches)
             var filtered = this.BaseQuery()
                 .Where(e =>
                     e.DirectoryStatus != DirectoryStatus.Removed &&
                     (
 
-                        // Country
+                        // Country (kept)
                         (countryCode != null && e.CountryCode == countryCode)
 
-                        // Name
+                        // Name (kept)
                         || EF.Functions.Like(e.Name.ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like(e.Name.ToLower(), rootPattern))
 
-                        // Description
+                        // Description (kept)
                         || EF.Functions.Like((e.Description ?? "").ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like((e.Description ?? "").ToLower(), rootPattern))
 
-                        // Subcategory / Category
+                        // Subcategory / Category (kept)
                         || EF.Functions.Like(e.SubCategory!.Name.ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like(e.SubCategory.Name.ToLower(), rootPattern))
                         || EF.Functions.Like(e.SubCategory.Category!.Name.ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like(e.SubCategory.Category.Name.ToLower(), rootPattern))
 
-                        // Tags
+                        // Tags (kept)
                         || e.EntryTags.Any(et =>
                             EF.Functions.Like(et.Tag.Name.ToLower(), primaryPattern) ||
                             (rootPattern != null && EF.Functions.Like(et.Tag.Name.ToLower(), rootPattern)))
 
-                        // Note, Processor, Location, Contact
+                        // Note, Processor, Location, Contact (kept)
                         || EF.Functions.Like((e.Note ?? "").ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like((e.Note ?? "").ToLower(), rootPattern))
                         || EF.Functions.Like((e.Processor ?? "").ToLower(), primaryPattern)
@@ -397,7 +442,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         || EF.Functions.Like((e.Contact ?? "").ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like((e.Contact ?? "").ToLower(), rootPattern))
 
-                        // Links
+                        // Links (kept)
                         || EF.Functions.Like((e.Link ?? "").ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like((e.Link ?? "").ToLower(), rootPattern))
                         || EF.Functions.Like((e.Link2 ?? "").ToLower(), primaryPattern)
@@ -405,18 +450,36 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         || EF.Functions.Like((e.Link3 ?? "").ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like((e.Link3 ?? "").ToLower(), rootPattern))
                         || EF.Functions.Like((e.ProofLink ?? "").ToLower(), primaryPattern)
-                        || (rootPattern != null && EF.Functions.Like((e.ProofLink ?? "").ToLower(), rootPattern))));
+                        || (rootPattern != null && EF.Functions.Like((e.ProofLink ?? "").ToLower(), rootPattern))
 
-            // 2) in-memory scoring
+                        // NEW: URL variants (apply to all link-ish fields you store)
+                        || (isUrlTerm && (
+                               EF.Functions.Like((e.Link ?? "").ToLower(), pNoSlash) ||
+                               EF.Functions.Like((e.Link ?? "").ToLower(), pWithSlash) ||
+                               (pHostOnly != "" && EF.Functions.Like((e.Link ?? "").ToLower(), pHostOnly)) ||
+                               (pNoWww != "" && EF.Functions.Like((e.Link ?? "").ToLower(), pNoWww)) ||
+
+                               EF.Functions.Like((e.Link2 ?? "").ToLower(), pNoSlash) ||
+                               EF.Functions.Like((e.Link2 ?? "").ToLower(), pWithSlash) ||
+                               (pHostOnly != "" && EF.Functions.Like((e.Link2 ?? "").ToLower(), pHostOnly)) ||
+                               (pNoWww != "" && EF.Functions.Like((e.Link2 ?? "").ToLower(), pNoWww)) ||
+
+                               EF.Functions.Like((e.Link3 ?? "").ToLower(), pNoSlash) ||
+                               EF.Functions.Like((e.Link3 ?? "").ToLower(), pWithSlash) ||
+                               (pHostOnly != "" && EF.Functions.Like((e.Link3 ?? "").ToLower(), pHostOnly)) ||
+                               (pNoWww != "" && EF.Functions.Like((e.Link3 ?? "").ToLower(), pNoWww)) ||
+
+                               EF.Functions.Like((e.ProofLink ?? "").ToLower(), pNoSlash) ||
+                               EF.Functions.Like((e.ProofLink ?? "").ToLower(), pWithSlash) ||
+                               (pHostOnly != "" && EF.Functions.Like((e.ProofLink ?? "").ToLower(), pHostOnly)) ||
+                               (pNoWww != "" && EF.Functions.Like((e.ProofLink ?? "").ToLower(), pNoWww))))));
+
+            // 2) to memory for scoring (kept)
             var candidates = await filtered.ToListAsync();
 
             static int CountOcc(string? field, string t)
             {
-                if (string.IsNullOrEmpty(field))
-                {
-                    return 0;
-                }
-
+                if (string.IsNullOrEmpty(field) || string.IsNullOrEmpty(t)) return 0;
                 var txt = field.ToLowerInvariant();
                 int count = 0, idx = 0;
                 while ((idx = txt.IndexOf(t, idx, StringComparison.Ordinal)) != -1)
@@ -428,38 +491,46 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return count;
             }
 
-            const int CountryBoost = 7; // tune this to push country matches up
+            const int CountryBoost = 7; // kept
 
+            // 3) scoring (kept & extended with URL variants)
             var scored = candidates
                 .Select(e =>
                 {
-                    int hits = CountOcc(e.Name, term)
-                             + (rootTerm != null ? CountOcc(e.Name, rootTerm) : 0)
-                             + CountOcc(e.Description, term)
-                             + (rootTerm != null ? CountOcc(e.Description, rootTerm) : 0)
-                             + CountOcc(e.SubCategory?.Name, term)
-                             + (rootTerm != null ? CountOcc(e.SubCategory?.Name, rootTerm) : 0)
-                             + CountOcc(e.SubCategory?.Category?.Name, term)
-                             + (rootTerm != null ? CountOcc(e.SubCategory?.Category?.Name, rootTerm) : 0)
-                             + e.EntryTags.Sum(et => CountOcc(et.Tag.Name, term) + (rootTerm != null ? CountOcc(et.Tag.Name, rootTerm) : 0))
-                             + CountOcc(e.Note, term)
-                             + (rootTerm != null ? CountOcc(e.Note, rootTerm) : 0)
-                             + CountOcc(e.Processor, term)
-                             + (rootTerm != null ? CountOcc(e.Processor, rootTerm) : 0)
-                             + CountOcc(e.Location, term)
-                             + (rootTerm != null ? CountOcc(e.Location, rootTerm) : 0)
-                             + CountOcc(e.Contact, term)
-                             + (rootTerm != null ? CountOcc(e.Contact, rootTerm) : 0)
-                             + CountOcc(e.Link, term)
-                             + (rootTerm != null ? CountOcc(e.Link, rootTerm) : 0)
-                             + CountOcc(e.Link2, term)
-                             + (rootTerm != null ? CountOcc(e.Link2, rootTerm) : 0)
-                             + CountOcc(e.Link3, term)
-                             + (rootTerm != null ? CountOcc(e.Link3, rootTerm) : 0)
-                             + CountOcc(e.ProofLink, term)
-                             + (rootTerm != null ? CountOcc(e.ProofLink, rootTerm) : 0);
+                    int hits =
+                        // text-ish fields (kept)
+                        CountOcc(e.Name, term) + (rootTerm != null ? CountOcc(e.Name, rootTerm) : 0) +
+                        CountOcc(e.Description, term) + (rootTerm != null ? CountOcc(e.Description, rootTerm) : 0) +
+                        CountOcc(e.SubCategory?.Name, term) + (rootTerm != null ? CountOcc(e.SubCategory?.Name, rootTerm) : 0) +
+                        CountOcc(e.SubCategory?.Category?.Name, term) + (rootTerm != null ? CountOcc(e.SubCategory?.Category?.Name, rootTerm) : 0) +
+                        e.EntryTags.Sum(et => CountOcc(et.Tag.Name, term) + (rootTerm != null ? CountOcc(et.Tag.Name, rootTerm) : 0)) +
+                        CountOcc(e.Note, term) + (rootTerm != null ? CountOcc(e.Note, rootTerm) : 0) +
+                        CountOcc(e.Processor, term) + (rootTerm != null ? CountOcc(e.Processor, rootTerm) : 0) +
+                        CountOcc(e.Location, term) + (rootTerm != null ? CountOcc(e.Location, rootTerm) : 0) +
+                        CountOcc(e.Contact, term) + (rootTerm != null ? CountOcc(e.Contact, rootTerm) : 0) +
 
-                    bool countryMatch = countryCode != null && string.Equals(e.CountryCode, countryCode, StringComparison.OrdinalIgnoreCase);
+                        // link-ish fields (kept)
+                        CountOcc(e.Link, term) + (rootTerm != null ? CountOcc(e.Link, rootTerm) : 0) +
+                        CountOcc(e.Link2, term) + (rootTerm != null ? CountOcc(e.Link2, rootTerm) : 0) +
+                        CountOcc(e.Link3, term) + (rootTerm != null ? CountOcc(e.Link3, rootTerm) : 0) +
+                        CountOcc(e.ProofLink, term) + (rootTerm != null ? CountOcc(e.ProofLink, rootTerm) : 0) +
+
+                        // NEW: URL variants count hits as well
+                        (isUrlTerm
+                            ? CountOcc(e.Link, noSlash) + CountOcc(e.Link, withSlash)
+                             + CountOcc(e.Link2, noSlash) + CountOcc(e.Link2, withSlash)
+                             + CountOcc(e.Link3, noSlash) + CountOcc(e.Link3, withSlash)
+                             + CountOcc(e.ProofLink, noSlash) + CountOcc(e.ProofLink, withSlash)
+                             + (string.IsNullOrEmpty(hostOnly) ? 0 :
+                                    CountOcc(e.Link, hostOnly) + CountOcc(e.Link2, hostOnly) +
+                                    CountOcc(e.Link3, hostOnly) + CountOcc(e.ProofLink, hostOnly))
+                             + (string.IsNullOrEmpty(hostNoWww) ? 0 :
+                                    CountOcc(e.Link, hostNoWww) + CountOcc(e.Link2, hostNoWww) +
+                                    CountOcc(e.Link3, hostNoWww) + CountOcc(e.ProofLink, hostNoWww))
+                            : 0);
+
+                    bool countryMatch = countryCode != null &&
+                                        string.Equals(e.CountryCode, countryCode, StringComparison.OrdinalIgnoreCase);
 
                     int weight = e.DirectoryStatus switch
                     {
@@ -473,16 +544,19 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     int score = hits + (countryMatch ? CountryBoost : 0);
                     return new { Entry = e, Score = score, Hits = hits, Weight = weight, CountryMatch = countryMatch };
                 })
-
-                // include items that only matched by country
+                // include items that only matched by country (kept)
                 .Where(x => x.Hits > 0 || x.CountryMatch)
                 .OrderByDescending(x => x.Weight)
                 .ThenByDescending(x => x.Score)
                 .ToList();
 
-            // 4) paging
+            // 4) paging (kept)
             int total = scored.Count;
-            var items = scored.Skip((page - 1) * pageSize).Take(pageSize).Select(x => x.Entry).ToList();
+            var items = scored
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(x => x.Entry)
+                .ToList();
 
             return new PagedResult<DirectoryEntry> { TotalCount = total, Items = items };
         }
