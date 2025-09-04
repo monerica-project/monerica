@@ -506,6 +506,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Select(e =>
                 {
                     int hits =
+
                         // text-ish fields (kept)
                         CountOcc(e.Name, term) + (rootTerm != null ? CountOcc(e.Name, rootTerm) : 0) +
                         CountOcc(e.Description, term) + (rootTerm != null ? CountOcc(e.Description, rootTerm) : 0) +
@@ -523,7 +524,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         CountOcc(e.Link3, term) + (rootTerm != null ? CountOcc(e.Link3, rootTerm) : 0) +
                         CountOcc(e.ProofLink, term) + (rootTerm != null ? CountOcc(e.ProofLink, rootTerm) : 0) +
 
-                        // NEW: URL variants count hits as well
+                        // URL variants count hits as well
                         (isUrlTerm
                             ? CountOcc(e.Link, noSlash) + CountOcc(e.Link, withSlash)
                              + CountOcc(e.Link2, noSlash) + CountOcc(e.Link2, withSlash)
@@ -552,6 +553,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     int score = hits + (countryMatch ? CountryBoost : 0);
                     return new { Entry = e, Score = score, Hits = hits, Weight = weight, CountryMatch = countryMatch };
                 })
+
                 // include items that only matched by country (kept)
                 .Where(x => x.Hits > 0 || x.CountryMatch)
                 .OrderByDescending(x => x.Weight)
@@ -717,8 +719,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<PagedResult<CountryWithCount>> ListActiveCountriesWithCountsPagedAsync(int page, int pageSize)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 10;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 10;
+            }
 
             // Group active entries with a non-empty, known ISO2 country code
             var grouped = await this.context.DirectoryEntries
@@ -763,8 +772,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<PagedResult<DirectoryEntry>> ListActiveEntriesByCountryPagedAsync(string countryCode, int page, int pageSize)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 10;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 10;
+            }
 
             var code = (countryCode ?? "").Trim().ToUpperInvariant();
 
@@ -785,7 +801,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return new PagedResult<DirectoryEntry> { TotalCount = total, Items = items };
         }
-
 
         /// <summary>
         /// Base query including SubCategory→Category and EntryTags→Tag.

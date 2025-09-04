@@ -56,16 +56,21 @@ public class CountriesController : Controller
     public async Task<IActionResult> Index(string countrySlug, int page = 1)
     {
         if (string.IsNullOrWhiteSpace(countrySlug))
+        {
             return this.NotFound();
+        }
 
         // Resolve slug -> ISO code & canonical name
         var bySlug = CountryHelper.GetCountries()
-            .ToDictionary(kv => StringHelpers.UrlKey(kv.Value),
-                          kv => new { Code = kv.Key, Name = kv.Value });
+            .ToDictionary(
+            kv => StringHelpers.UrlKey(kv.Value),
+            kv => new { Code = kv.Key, Name = kv.Value });
 
         var key = countrySlug.Trim().ToLowerInvariant();
         if (!bySlug.TryGetValue(key, out var info))
+        {
             return this.NotFound();
+        }
 
         var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
         var basePath = $"countries/{key}";
