@@ -372,7 +372,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
             {
                 try
                 {
-                    if (!url.Contains("://", StringComparison.Ordinal)) url = "https://" + url;
+                    if (!url.Contains("://", StringComparison.Ordinal))
+                    {
+                        url = "https://" + url;
+                    }
+
                     var u = new Uri(url, UriKind.Absolute);
                     return (u.Host ?? "").ToLowerInvariant();
                 }
@@ -452,7 +456,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         || EF.Functions.Like((e.ProofLink ?? "").ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like((e.ProofLink ?? "").ToLower(), rootPattern))
 
-                        // NEW: URL variants (apply to all link-ish fields you store)
+                        // URL variants (apply to all link-ish fields you store)
                         || (isUrlTerm && (
                                EF.Functions.Like((e.Link ?? "").ToLower(), pNoSlash) ||
                                EF.Functions.Like((e.Link ?? "").ToLower(), pWithSlash) ||
@@ -479,7 +483,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             static int CountOcc(string? field, string t)
             {
-                if (string.IsNullOrEmpty(field) || string.IsNullOrEmpty(t)) return 0;
+                if (string.IsNullOrEmpty(field) || string.IsNullOrEmpty(t))
+                {
+                    return 0;
+                }
+
                 var txt = field.ToLowerInvariant();
                 int count = 0, idx = 0;
                 while ((idx = txt.IndexOf(t, idx, StringComparison.Ordinal)) != -1)
@@ -491,7 +499,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return count;
             }
 
-            const int CountryBoost = 7; // kept
+            const int CountryBoost = 7;
 
             // 3) scoring (kept & extended with URL variants)
             var scored = candidates
