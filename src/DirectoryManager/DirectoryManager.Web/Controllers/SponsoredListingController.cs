@@ -837,7 +837,7 @@ namespace DirectoryManager.Web.Controllers
             // Create/extend the listing (already idempotent and persists invoice)
             await this.CreateNewSponsoredListing(existingInvoice);
 
-            // NEW: attempt to create the affiliate commission on success as well
+            // attempt to create the affiliate commission on success as well
             await this.TryCreateAffiliateCommissionForInvoiceAsync(existingInvoice);
 
             var viewModel = new SuccessViewModel
