@@ -1386,7 +1386,7 @@ namespace DirectoryManager.Web.Controllers
         private async Task CreateNewSponsoredListing(SponsoredListingInvoice invoice)
         {
             // Persist any updated invoice fields first
-            if (!await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice))
+            if (!await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice).ConfigureAwait(false))
             {
                 return;
             }
@@ -1425,26 +1425,39 @@ namespace DirectoryManager.Web.Controllers
                         SponsorshipType = invoice.SponsorshipType,
                         SubCategoryId = invoice.SubCategoryId,
                         CategoryId = invoice.CategoryId,
-                    });
+                    }).ConfigureAwait(false);
 
                 invoice.SponsoredListingId = created.SponsoredListingId;
-                await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
+                await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice).ConfigureAwait(false);
                 this.ClearCachedItems();
                 return;
             }
 
-            // Active listing exists → EXTEND, but never shorten
+            // Active listing exists → EXTEND end date if later, but ALWAYS link latest invoice
             var proposedEnd = invoice.CampaignEndDate;
+            var changed = false;
+
             if (proposedEnd > activeListing.CampaignEndDate)
             {
                 activeListing.CampaignEndDate = proposedEnd;
+                changed = true;
+            }
+
+            // Always ensure the listing points to the newest paid invoice
+            if (activeListing.SponsoredListingInvoiceId != invoice.SponsoredListingInvoiceId)
+            {
                 activeListing.SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId;
-                await this.sponsoredListingRepository.UpdateAsync(activeListing);
+                changed = true;
+            }
+
+            if (changed)
+            {
+                await this.sponsoredListingRepository.UpdateAsync(activeListing).ConfigureAwait(false);
             }
 
             // Always link the paid invoice to the listing for bookkeeping
             invoice.SponsoredListingId = activeListing.SponsoredListingId;
-            await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
+            await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice).ConfigureAwait(false);
 
             this.ClearCachedItems();
         }
