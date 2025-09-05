@@ -481,14 +481,14 @@ namespace DirectoryManager.Web.Controllers
                 });
             }
 
-            var countToTake = 10;
+            var countToTake = 100;
 
-            var topGrowth = trends.OrderByDescending(t => t.Delta)
-                                  .ThenByDescending(t => t.PercentChange)
+            var topGrowth = trends.OrderByDescending(t => t.PercentChange)
+                                  .ThenByDescending(t => t.Delta)
                                   .Take(countToTake).ToList();
 
-            var topDecline = trends.OrderBy(t => t.Delta)
-                                   .ThenBy(t => t.PercentChange)
+            var topDecline = trends.OrderBy(t => t.PercentChange)
+                                   .ThenBy(t => t.Delta)
                                    .Take(countToTake).ToList();
 
             var vm = new SubcategoryTrendsReportViewModel
