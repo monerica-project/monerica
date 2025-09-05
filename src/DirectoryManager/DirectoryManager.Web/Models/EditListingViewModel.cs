@@ -16,5 +16,6 @@ namespace DirectoryManager.Web.Models
         public DateTime CampaignEndDate { get; set; }
 
         public SponsorshipType SponsorshipType { get; set; }
+        public int SponsoredListingInvoiceId { get; set; }
     }
 }

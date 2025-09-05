@@ -869,6 +869,7 @@ namespace DirectoryManager.Web.Controllers
                 CampaignEndDate = listing.CampaignEndDate,
                 SponsorshipType = listing.SponsorshipType,
                 Name = directoryEntry.Name,
+                SponsoredListingInvoiceId = listing.SponsoredListingInvoiceId
             };
 
             return this.View(model);
