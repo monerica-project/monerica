@@ -633,8 +633,9 @@ p.intro {
 
 .sponsor-card a { font-size: 18px;}
 
-.sponsors {
-    padding: 1rem;
+
+.sponsor-card .sponsor-desc a {
+    font-size: 0.88rem;
 }
 
 .sponsors-grid {
@@ -683,12 +684,14 @@ p.intro {
     margin-top: 0 !important;
     margin: 5px;
 }
-
-ul.search-results {
-    list-style: none;
-    margin: 0;
-    padding: 0;
+-size: 0.88rem;
 }
+
+    ul.search-results {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
 
     ul.search-results li.search-result-item {
         margin-bottom: 1.5rem;
