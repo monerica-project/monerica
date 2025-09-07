@@ -23,13 +23,8 @@
 @{
     ViewData[StringConstants.TitleHeader] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageTitle));
     ViewData[StringConstants.MetaContent] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageMetaTags));
-}
-@{
     ViewData["CurrentCategoryKey"]    = null;
     ViewData["CurrentSubCategoryKey"] = null;
-}
-
-@{
     Layout = "_LayoutWithNav";
 }
 
@@ -38,7 +33,6 @@
 }
 
 @{
-     
     // ----- Category sponsors -----
     var catSponsors = await sponsoredListingRepository
         .GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
@@ -74,12 +68,8 @@
         );
 }
 
-
  @section PageContent {
-
-
     <div>
- 
         <!-- Hero and sponsored listing partial (stays full‐width under the fixed sidebar) -->
         @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageDisplayHtml))
         @await Html.PartialAsync("_SponsoredListingPartial")
@@ -258,7 +248,6 @@
             </section>
         </div>
 
-
         @{
             var latestReviews = await reviewRepository.ListLatestApprovedAsync(15);
         }
@@ -284,13 +273,10 @@
                     var reviewDate = (r.UpdateDate ?? r.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
 
                     <li>
-                        <i>@reviewDate</i> <a href="@url"><b>@listingName</b></a> — Rating: @rating — @oneLine
+                        <i>@reviewDate</i> <a href="@url">@listingName</a> — Rating: @rating — @oneLine
                     </li>
                 }
             </ul>
         }
-    
-
     </div>
     }
-

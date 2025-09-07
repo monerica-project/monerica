@@ -684,8 +684,8 @@ p.intro {
     margin-top: 0 !important;
     margin: 5px;
 }
--size: 0.88rem;
-}
+ 
+ 
 
     ul.search-results {
         list-style: none;
@@ -693,11 +693,12 @@ p.intro {
         padding: 0;
     }
 
-    ul.search-results li.search-result-item {
-        margin-bottom: 1.5rem;
-        padding-left: 1rem;
-        border-left: 2px solid #444;
-    }
+        ul.search-results li.search-result-item {
+            margin-bottom: 1.5rem;
+            padding-left: 1rem;
+            border-left: 2px solid #444;
+            list-style: none;
+        }
 
         ul.search-results li.search-result-item p {
             margin: 0.3em 0;
