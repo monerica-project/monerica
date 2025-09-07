@@ -3,9 +3,6 @@
 
 @{
     ViewData[StringConstants.TitleHeader] = "Advertiser Breakdown";
-}
-
-@{
     Layout = "_CenteredLayout";
 }
 
@@ -14,63 +11,92 @@
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
-
 @await Html.PartialAsync("_ReportMenu")
 
 <hr />
 
-<form method="get" asp-action="AdvertiserBreakdown">
+<form method="get"
+      asp-action="AdvertiserBreakdown"
+      asp-controller="SponsoredListingInvoice">
     <div class="form-row">
+
+        <!-- Sponsorship Type -->
         <div class="form-group col-md-4">
             <label asp-for="SponsorshipType">Sponsorship Type</label>
             <select asp-for="SponsorshipType"
                     asp-items="Model.SponsorshipTypeOptions"
-                    class="form-control"></select>
+                    class="form-control">
+            </select>
         </div>
+
+        <!-- Start Date -->
         <div class="form-group col-md-4">
             <label asp-for="StartDate">Start Date</label>
-            <input asp-for="StartDate" type="date" class="form-control" required />
+            <input asp-for="StartDate"
+                   type="date"
+                   class="form-control"
+                   asp-format="{0:@DirectoryManager.Common.Constants.StringConstants.DateFormat}"
+                   required />
         </div>
+
+        <!-- End Date -->
         <div class="form-group col-md-4">
             <label asp-for="EndDate">End Date</label>
-            <input asp-for="EndDate" type="date" class="form-control" required />
+            <input asp-for="EndDate"
+                   type="date"
+                   class="form-control"
+                   asp-format="{0:@DirectoryManager.Common.Constants.StringConstants.DateFormat}"
+                   required />
         </div>
     </div>
+
     <button type="submit" class="btn btn-primary">Run Report</button>
 </form>
 
 <hr />
 
 <p>
-    Time Range: @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat) - @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+    Time Range:
+    @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
+    -
+    @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
 </p>
-    <div class="table-wrapper">
+
+<div class="table-wrapper">
     <table class="table table-striped">
         <thead>
             <tr>
                 <th>Advertiser</th>
                 <th>Revenue</th>
                 <th>Invoices</th>
-                <th>Avg USD/Day</th> 
+                <th>Avg USD/Day</th>
                 <th>Percentage</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var row in Model.Rows)
-            {
-                <tr>
-                    <td>
-                        <a href="@Url.Action("Advertiser", "SponsoredListingInvoice", new { directoryEntryId = row.DirectoryEntryId })">
-                            @row.DirectoryEntryName
-                        </a>
-                    </td>
-                    <td>@row.Revenue.ToString("C")</td>
-                    <td>@row.Count</td>
-                    <td>@row.AveragePerDay.ToString("C")</td> 
-                    <td>@row.Percentage %</td>
-                </tr>
-            }
+        @foreach (var row in Model.Rows)
+        {
+            <tr>
+                <td>
+                    <!-- Click = ALL paid invoices for this advertiser (no date range) -->
+                    <a href="@Url.Action(
+                                "Advertiser",
+                                "SponsoredListingInvoice",
+                                new {
+                                    directoryEntryId = row.DirectoryEntryId,
+                                 
+                                })">
+                        @row.DirectoryEntryName
+                    </a>
+                </td>
+                <td>@row.Revenue.ToString("C")</td>
+                <td>@row.Count</td>
+                <td>@row.AveragePerDay.ToString("C")</td>
+                <td>@row.Percentage.ToString("0.##") %</td>
+            </tr>
+        }
         </tbody>
-        </table>
-    </div>
+    </table>
+</div> 
+
 }

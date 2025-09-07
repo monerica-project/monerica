@@ -245,27 +245,6 @@ namespace DirectoryManager.Utilities.Helpers
             { "ZW", "Zimbabwe" }
         };
 
-        // --- add inside your repository class (private static is fine) ---
-        private static readonly Dictionary<string, string> CountryNamesToCodes =
-            CountryHelper.GetCountries()
-                .ToDictionary(kv => kv.Value.ToLowerInvariant(), kv => kv.Key, StringComparer.OrdinalIgnoreCase);
-
-        public static IDictionary<string, string> GetCountries()
-        {
-            return Countries;
-        }
-
-        public static string GetCountryName(string isoCode)
-        {
-            if (string.IsNullOrWhiteSpace(isoCode))
-            {
-                return string.Empty;
-            }
-
-            isoCode = isoCode.ToUpperInvariant();
-            return Countries.TryGetValue(isoCode, out string fullName) ? fullName : isoCode;
-        }
-
         // minimal alias map (extend as you like)
         private static readonly Dictionary<string, string> CountryAliases = new (StringComparer.OrdinalIgnoreCase)
         {
@@ -294,6 +273,27 @@ namespace DirectoryManager.Utilities.Helpers
             ["st. kitts"] = "KN",
             ["nevis"] = "KN",
         };
+
+        // --- add inside your repository class (private static is fine) ---
+        private static readonly Dictionary<string, string> CountryNamesToCodes =
+            CountryHelper.GetCountries()
+                .ToDictionary(kv => kv.Value.ToLowerInvariant(), kv => kv.Key, StringComparer.OrdinalIgnoreCase);
+
+        public static IDictionary<string, string> GetCountries()
+        {
+            return Countries;
+        }
+
+        public static string GetCountryName(string isoCode)
+        {
+            if (string.IsNullOrWhiteSpace(isoCode))
+            {
+                return string.Empty;
+            }
+
+            isoCode = isoCode.ToUpperInvariant();
+            return Countries.TryGetValue(isoCode, out string fullName) ? fullName : isoCode;
+        }
 
         public static string? ExtractCountryCode(string rawTerm)
         {

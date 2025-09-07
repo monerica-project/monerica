@@ -16,7 +16,6 @@
     var avgUsdPerDay = Math.Round(Model.Amount / totalDays, 2);     // 2 decimals
 }
 
-
 @section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
@@ -35,6 +34,9 @@
 
         <dt>Invoice ID</dt>
         <dd>@Model.InvoiceId</dd>
+
+            <dt>Directory Entry ID</dt>
+            <dd>@Model.DirectoryEntryId</dd>
 
         <dt>Invoice Description</dt>
         <dd>@Model.InvoiceDescription</dd>

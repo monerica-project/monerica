@@ -157,9 +157,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             var baseQuery =
                 from inv in this.context.SponsoredListingInvoices.AsNoTracking()
-                join sl in this.context.SponsoredListings.AsNoTracking()
-                     on inv.SponsoredListingId equals sl.SponsoredListingId
-                where sl.DirectoryEntryId == directoryEntryId
+                join sl in this.context.SponsoredListings
+                        .AsNoTracking()
+                        .IgnoreQueryFilters() // if a global filter is hiding rows
+                    on inv.SponsoredListingId equals sl.SponsoredListingId
+                    into gj
+                from sl in gj.DefaultIfEmpty()
+                where inv.DirectoryEntryId == directoryEntryId // still filter on invoices
                 orderby inv.CreateDate descending
                 select inv;
 
@@ -183,5 +187,54 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     i.DirectoryEntryId == directoryEntryId &&
                     i.PaymentStatus == PaymentStatus.Paid &&
                     i.SponsoredListingInvoiceId != excludeSponsoredListingInvoiceId, ct);
+
+        // in SponsoredListingInvoiceRepository
+        public async Task<(IEnumerable<SponsoredListingInvoice> Invoices, int TotalCount)>
+            GetInvoicesForDirectoryEntryInWindowAsync(
+                int directoryEntryId,
+                DateTime windowStartUtc,
+                DateTime windowEndUtc,
+                SponsorshipType? sponsorshipType,
+                bool paidOnly,
+                bool useCampaignOverlap,
+                int page,
+                int pageSize)
+        {
+            var q = this.context.SponsoredListingInvoices
+                .AsNoTracking()
+                .Where(i => i.DirectoryEntryId == directoryEntryId);
+
+            if (paidOnly)
+            {
+                q = q.Where(i => i.PaymentStatus == PaymentStatus.Paid);
+            }
+
+            if (sponsorshipType.HasValue)
+            {
+                q = q.Where(i => i.SponsorshipType == sponsorshipType.Value);
+            }
+
+            // match the breakdown: include invoices whose CAMPAIGN overlaps the window
+            if (useCampaignOverlap)
+            {
+                q = q.Where(i => i.CampaignEndDate >= windowStartUtc &&
+                                 i.CampaignStartDate <= windowEndUtc);
+            }
+            else
+            {
+                q = q.Where(i => i.CreateDate >= windowStartUtc &&
+                                 i.CreateDate <= windowEndUtc);
+            }
+
+            var total = await q.CountAsync();
+
+            var items = await q
+                .OrderByDescending(i => i.CreateDate) // keep your current sort
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+
+            return (items, total);
+        }
     }
 }

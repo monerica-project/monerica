@@ -467,83 +467,104 @@ namespace DirectoryManager.Web.Controllers
             DateTime? endDate,
             SponsorshipType? sponsorshipType)
         {
+            // 1) Normalize dates: date-only for view; inclusive end for overlap math
             const int defaultYears = 1;
             var now = DateTime.UtcNow;
-            var from = startDate?.Date ?? now.AddYears(-defaultYears).Date;
-            var to = endDate?.Date ?? now.Date;
+            var from = (startDate ?? now.AddYears(-defaultYears)).Date; // date-only
+            var to = (endDate ?? now).Date;                         // date-only (inclusive)
 
-            var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
-            var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
+            // 2) Fetch paid invoices (all time), then filter by CAMPAIGN OVERLAP with [from..to]
+            var invoices = await this.invoiceRepository.GetAllAsync().ConfigureAwait(false);
 
-            // Get all invoices
-            var allPaid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
-                .Where(inv =>
-                    inv.PaymentStatus == PaymentStatus.Paid &&
-                    inv.CreateDate >= startUtc &&
-                    inv.CreateDate <= endUtc);
+            var byOverlap = invoices
+                .Where(inv => inv.PaymentStatus == PaymentStatus.Paid)
+
+                // overlap if campaignEnd >= windowStart AND campaignStart <= windowEnd (date-only)
+                .Where(inv => inv.CampaignEndDate.Date >= from
+                           && inv.CampaignStartDate.Date <= to);
 
             if (sponsorshipType.HasValue)
             {
-                allPaid = allPaid.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+                byOverlap = byOverlap.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
             }
 
-            var paidList = allPaid.ToList();
+            var paidList = byOverlap.ToList();
 
+            // 3) Build rows: count invoices that overlap; prorate revenue & days to the overlap window
             var rows = new List<AdvertiserBreakdownRow>();
-            decimal totalRevenue = 0m;
+            decimal totalRevenueInWindow = 0m;
 
-            var grouped = paidList.GroupBy(inv => inv.DirectoryEntryId);
-            foreach (var g in grouped)
+            foreach (var grp in paidList.GroupBy(inv => inv.DirectoryEntryId))
             {
-                decimal advertiserTotal = 0m;
-                double totalActiveDays = 0d;
+                decimal advertiserRevenueInWindow = 0m;
+                double advertiserActiveDaysInWin = 0d;
                 int invoiceCount = 0;
 
-                foreach (var inv in g)
+                foreach (var inv in grp)
                 {
-                    advertiserTotal += inv.Amount;
+                    // Campaign bounds (date-only, inclusive)
+                    var campStart = inv.CampaignStartDate.Date;
+                    var campEnd = inv.CampaignEndDate.Date;
 
-                    var start = inv.CampaignStartDate.Date;
-                    var end = inv.CampaignEndDate.Date;
-                    var days = (end - start).TotalDays;
-                    if (days <= 0)
+                    // Overlap window (date-only, inclusive)
+                    var winStart = from;
+                    var winEnd = to;
+
+                    // Compute overlap (in days, inclusive)
+                    var overlapStart = campStart > winStart ? campStart : winStart;
+                    var overlapEnd = campEnd < winEnd ? campEnd : winEnd;
+                    var overlapDays = (overlapEnd - overlapStart).TotalDays + 1; // inclusive
+
+                    if (overlapDays <= 0)
                     {
-                        days = 1; // Avoid divide-by-zero or bad data
+                        continue; // no actual overlap (paranoia guard)
                     }
 
-                    totalActiveDays += days;
-
                     invoiceCount++;
+
+                    // Total campaign days (guarded minimum 1)
+                    var totalCampDays = (campEnd - campStart).TotalDays + 1;
+                    if (totalCampDays <= 0)
+                    {
+                        totalCampDays = 1;
+                    }
+
+                    // **Prorate** invoice amount into the window by days overlapped
+                    var fraction = overlapDays / totalCampDays;
+                    var proratedAmount = inv.Amount * (decimal)fraction;
+
+                    advertiserRevenueInWindow += proratedAmount;
+                    advertiserActiveDaysInWin += overlapDays;
                 }
 
-                if (totalActiveDays <= 0)
+                if (advertiserActiveDaysInWin <= 0)
                 {
-                    totalActiveDays = 1;
+                    advertiserActiveDaysInWin = 1; // avoid divide-by-zero
                 }
 
-                var avgPerDay = Math.Round(advertiserTotal / (decimal)totalActiveDays, 2);
-                totalRevenue += advertiserTotal;
+                var avgPerDay = Math.Round(advertiserRevenueInWindow / (decimal)advertiserActiveDaysInWin, 2);
+                totalRevenueInWindow += advertiserRevenueInWindow;
 
-                var entry = await this.directoryEntryRepository.GetByIdAsync(g.Key);
+                var entry = await this.directoryEntryRepository.GetByIdAsync(grp.Key);
                 rows.Add(new AdvertiserBreakdownRow
                 {
-                    DirectoryEntryId = g.Key,
-                    DirectoryEntryName = entry?.Name ?? $"(#{g.Key})",
-                    Revenue = advertiserTotal,
+                    DirectoryEntryId = grp.Key,
+                    DirectoryEntryName = entry?.Name ?? $"(#{grp.Key})",
+                    Revenue = advertiserRevenueInWindow,
                     Count = invoiceCount,
                     AveragePerDay = avgPerDay
                 });
             }
 
+            // 4) Percentages and ordering
             foreach (var r in rows)
             {
-                r.Percentage = totalRevenue > 0
-                    ? Math.Round(r.Revenue * 100m / totalRevenue, 2)
-                    : 0m;
+                r.Percentage = totalRevenueInWindow > 0 ? Math.Round(r.Revenue * 100m / totalRevenueInWindow, 2) : 0m;
             }
 
             rows = rows.OrderByDescending(r => r.Revenue).ToList();
 
+            // 5) Dropdown options
             var options = Enum.GetValues(typeof(SponsorshipType))
                 .Cast<SponsorshipType>()
                 .Where(st => st != SponsorshipType.Unknown)
@@ -561,10 +582,11 @@ namespace DirectoryManager.Web.Controllers
                 })
                 .ToList();
 
+            // Important: send date-only to the view so the <input type="date"> fields populate
             var vm = new AdvertiserBreakdownViewModel
             {
-                StartDate = startUtc,
-                EndDate = endUtc,
+                StartDate = from,
+                EndDate = to,
                 SponsorshipType = sponsorshipType,
                 SponsorshipTypeOptions = options,
                 Rows = rows
@@ -575,7 +597,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("sponsoredlistinginvoice/advertiser")]
         [HttpGet]
-        public async Task<IActionResult> Advertiser(int directoryEntryId, int page = 1, int pageSize = 25)
+        public async Task<IActionResult> Advertiser(int directoryEntryId, int page = 1, int pageSize = int.MaxValue)
         {
             var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
             if (entry == null)
@@ -583,13 +605,22 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var (invoices, total) = await this.invoiceRepository
-                .GetInvoicesForDirectoryEntryAsync(directoryEntryId, page, pageSize);
-
-            var (allInvoices, _) = await this.invoiceRepository
+            // Pull all invoices for this advertiser (all-time), then filter to PAID and page in-memory
+            var (allInvoicesForEntry, _) = await this.invoiceRepository
                 .GetInvoicesForDirectoryEntryAsync(directoryEntryId, page: 1, pageSize: int.MaxValue);
 
-            var totalPaidAllTime = allInvoices.Sum(i => i.Amount);
+            var paid = allInvoicesForEntry
+                .Where(i => i.PaymentStatus == PaymentStatus.Paid)
+                .OrderByDescending(i => i.CreateDate) // keep your existing sort
+                .ToList();
+
+            var total = paid.Count;
+            var items = paid
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var totalPaidAllTime = paid.Sum(i => i.Amount);
 
             var model = new DirectoryManager.Web.Models.Reports.AdvertiserInvoiceListViewModel
             {
@@ -597,13 +628,12 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryName = entry.Name,
                 Page = page,
                 PageSize = pageSize,
-                TotalCount = total,
+                TotalCount = total,              // total PAID invoices (all-time)
                 TotalPaidAllTime = totalPaidAllTime,
-                Rows = invoices.Select(i =>
+                Rows = items.Select(i =>
                 {
-                    var days = Math.Max(1, (i.CampaignEndDate.Date - i.CampaignStartDate.Date).TotalDays);
+                    var days = Math.Max(1, (i.CampaignEndDate.Date - i.CampaignStartDate.Date).TotalDays + 1);
                     var avg = Math.Round((double)(i.Amount / (decimal)days), 2);
-
                     return new DirectoryManager.Web.Models.Reports.AdvertiserInvoiceRow
                     {
                         SponsoredListingInvoiceId = i.SponsoredListingInvoiceId,

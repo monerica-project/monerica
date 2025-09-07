@@ -15,7 +15,6 @@
     string currentSub = (string?)ViewData["CurrentSubCategoryKey"] ?? "";
 }
 
-
 @{
     // pull from cache or rebuild once per hour
     var navModel = await MemoryCache.GetOrCreateAsync(StringConstants.NavMenu, async entry =>
@@ -39,7 +38,6 @@
     // now push it into ViewData so your layout/nav partial can pick it up
     ViewData["NavModel"] = navModel;
 }
-
 
 <details class="mobile-nav">
     <summary>Menu</summary>

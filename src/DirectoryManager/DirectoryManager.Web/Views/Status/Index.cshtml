@@ -14,6 +14,7 @@
 @{
     ViewData[StringConstants.TitleHeader] = $"{Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SiteName))} - Listings with Status: {ViewBag.Status}";
     ViewData[StringConstants.MetaContent] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageMetaTags));
+    Layout = "_CenteredLayout";
 
     var filteredEntries = ViewBag.FilteredEntries as IEnumerable<DirectoryEntry>;
     var filteredSubcategories = ViewBag.FilteredSubcategories as IEnumerable<Subcategory>;
@@ -23,10 +24,6 @@
     var categorySponsors = ViewBag.CategorySponsors as IEnumerable<SponsoredListing>;
     var link2Name = ViewBag.Link2Name as string;
     var link3Name = ViewBag.Link3Name as string;
-}
-
-@{
-    Layout = "_CenteredLayout";
 }
 
 @section PageContent {
@@ -162,7 +159,6 @@
                                         cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)
                                     );
         }
-
 
 
         foreach (var subCategory in filteredSubcategories.Where(sc => sc.CategoryId == category.CategoryId))
