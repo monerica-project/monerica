@@ -188,6 +188,95 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     i.PaymentStatus == PaymentStatus.Paid &&
                     i.SponsoredListingInvoiceId != excludeSponsoredListingInvoiceId, ct);
 
+
+        public async Task<List<AdvertiserWindowStat>> GetAdvertiserWindowStatsAsync(
+            DateTime windowStartDate,
+            DateTime windowEndDate,
+            SponsorshipType? sponsorshipType = null,
+            bool paidOnly = true)
+        {
+            // date-only, inclusive window
+            var from = windowStartDate.Date;
+            var to = windowEndDate.Date;
+
+            var q = this.context.SponsoredListingInvoices
+                .AsNoTracking()
+                .Where(inv => inv.CampaignEndDate.Date >= from
+                           && inv.CampaignStartDate.Date <= to);
+
+            if (paidOnly)
+                q = q.Where(inv => inv.PaymentStatus == PaymentStatus.Paid);
+
+            if (sponsorshipType.HasValue)
+                q = q.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+
+            // Pull just what we need
+            var list = await q
+                .Select(inv => new
+                {
+                    inv.DirectoryEntryId,
+                    inv.Amount,
+                    inv.PaidAmount,
+                    inv.CampaignStartDate,
+                    inv.CampaignEndDate
+                })
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            var groups = list.GroupBy(i => i.DirectoryEntryId).ToList();
+
+            // One shot lookup for names (avoid N+1)
+            var dirEntryIds = groups.Select(g => g.Key).Distinct().ToList();
+            var nameLookup = await this.context.DirectoryEntries.AsNoTracking()
+                .Where(de => dirEntryIds.Contains(de.DirectoryEntryId))
+                .Select(de => new { de.DirectoryEntryId, de.Name })
+                .ToDictionaryAsync(x => x.DirectoryEntryId, x => x.Name)
+                .ConfigureAwait(false);
+
+            var results = new List<AdvertiserWindowStat>(groups.Count);
+
+            foreach (var grp in groups)
+            {
+                decimal revenue = 0m;
+                double activeDays = 0d;
+                int count = 0;
+
+                foreach (var inv in grp)
+                {
+                    var campStart = inv.CampaignStartDate.Date;
+                    var campEnd = inv.CampaignEndDate.Date;
+                    var overlapFrom = campStart > from ? campStart : from;
+                    var overlapTo = campEnd < to ? campEnd : to;
+
+                    var overlapDays = (overlapTo - overlapFrom).TotalDays + 1; // inclusive
+                    if (overlapDays <= 0) continue;
+
+                    count++;
+
+                    var totalCampDays = (campEnd - campStart).TotalDays + 1;
+                    if (totalCampDays <= 0) totalCampDays = 1;
+
+                    // Use PaidAmount when available; fallback to Amount
+                    var baseAmount = inv.PaidAmount > 0m ? inv.PaidAmount : inv.Amount;
+
+                    var fraction = overlapDays / totalCampDays;
+                    revenue += baseAmount * (decimal)fraction;
+                    activeDays += overlapDays;
+                }
+
+                results.Add(new AdvertiserWindowStat
+                {
+                    DirectoryEntryId = grp.Key,
+                    DirectoryEntryName = nameLookup.TryGetValue(grp.Key, out var n) ? n : $"(#{grp.Key})",
+                    RevenueInWindow = Math.Round(revenue, 2),
+                    InvoiceCount = count,
+                    OverlapDays = activeDays
+                });
+            }
+
+            return results;
+        }
+
         // in SponsoredListingInvoiceRepository
         public async Task<(IEnumerable<SponsoredListingInvoice> Invoices, int TotalCount)>
             GetInvoicesForDirectoryEntryInWindowAsync(
@@ -235,6 +324,80 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync();
 
             return (items, total);
+        }
+
+        public async Task<List<AdvertiserWindowSum>> GetAdvertiserInvoiceWindowSumsAsync(
+            DateTime windowStartUtc,
+            DateTime windowEndOpenUtc,
+            SponsorshipType? sponsorshipType = null)
+        {
+            // Half-open [start, end)
+            var q = this.context.SponsoredListingInvoices.AsNoTracking()
+                .Where(i => i.PaymentStatus == PaymentStatus.Paid)
+                .Where(i => i.CreateDate >= windowStartUtc && i.CreateDate < windowEndOpenUtc);
+
+            if (sponsorshipType.HasValue)
+            {
+                q = q.Where(i => i.SponsorshipType == sponsorshipType.Value);
+            }
+
+            // Pull only what we need to memory (campaign-day math is simpler & safe here)
+            var raw = await q
+                .Select(i => new
+                {
+                    i.DirectoryEntryId,
+                    i.Amount, // USD (your requirement)
+                    i.CampaignStartDate,
+                    i.CampaignEndDate
+                })
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            var groups = raw.GroupBy(x => x.DirectoryEntryId);
+
+            // One-shot name lookup to avoid N+1
+            var ids = groups.Select(g => g.Key).Distinct().ToList();
+            var names = await this.context.DirectoryEntries.AsNoTracking()
+                .Where(de => ids.Contains(de.DirectoryEntryId))
+                .Select(de => new { de.DirectoryEntryId, de.Name })
+                .ToDictionaryAsync(x => x.DirectoryEntryId, x => x.Name)
+                .ConfigureAwait(false);
+
+            var results = new List<AdvertiserWindowSum>(ids.Count);
+
+            foreach (var g in groups)
+            {
+                decimal revenue = 0m;
+                int invoices = 0;
+                long daysPurchased = 0;
+
+                foreach (var i in g)
+                {
+                    // inclusive day count; guard against inverted dates
+                    var days = (i.CampaignEndDate.Date - i.CampaignStartDate.Date).Days + 1;
+                    if (days <= 0)
+                    {
+                        days = 1;
+                    }
+
+                    revenue += i.Amount;
+                    invoices++;
+                    daysPurchased += days;
+                }
+
+                if (daysPurchased <= 0) daysPurchased = 1;
+
+                results.Add(new AdvertiserWindowSum
+                {
+                    DirectoryEntryId = g.Key,
+                    DirectoryEntryName = names.TryGetValue(g.Key, out var n) ? n : $"(#{g.Key})",
+                    Revenue = Math.Round(revenue, 2),
+                    Count = invoices,
+                    DaysPurchased = (int)daysPurchased
+                });
+            }
+
+            return results;
         }
     }
 }

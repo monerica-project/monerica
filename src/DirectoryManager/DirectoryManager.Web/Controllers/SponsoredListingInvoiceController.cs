@@ -467,104 +467,39 @@ namespace DirectoryManager.Web.Controllers
             DateTime? endDate,
             SponsorshipType? sponsorshipType)
         {
-            // 1) Normalize dates: date-only for view; inclusive end for overlap math
+            // Date-only for UI; half-open [start, end) for correctness
             const int defaultYears = 1;
             var now = DateTime.UtcNow;
-            var from = (startDate ?? now.AddYears(-defaultYears)).Date; // date-only
-            var to = (endDate ?? now).Date;                         // date-only (inclusive)
+            var from = (startDate ?? now.AddYears(-defaultYears)).Date;
+            var to = (endDate ?? now).Date;
 
-            // 2) Fetch paid invoices (all time), then filter by CAMPAIGN OVERLAP with [from..to]
-            var invoices = await this.invoiceRepository.GetAllAsync().ConfigureAwait(false);
+            var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
+            var endOpenUtc = new DateTime(to.Year, to.Month, to.Day, 0, 0, 0, DateTimeKind.Utc).AddDays(1);
 
-            var byOverlap = invoices
-                .Where(inv => inv.PaymentStatus == PaymentStatus.Paid)
+            var stats = await this.invoiceRepository
+                .GetAdvertiserInvoiceWindowSumsAsync(startUtc, endOpenUtc, sponsorshipType)
+                .ConfigureAwait(false);
 
-                // overlap if campaignEnd >= windowStart AND campaignStart <= windowEnd (date-only)
-                .Where(inv => inv.CampaignEndDate.Date >= from
-                           && inv.CampaignStartDate.Date <= to);
+            var totalRevenue = stats.Sum(s => s.Revenue);
 
-            if (sponsorshipType.HasValue)
+            var rows = stats.Select(s =>
             {
-                byOverlap = byOverlap.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
-            }
+                var avgPerDay = Math.Round(s.Revenue / Math.Max(1, s.DaysPurchased), 2);
+                var pct = totalRevenue > 0m ? Math.Round(s.Revenue * 100m / totalRevenue, 2) : 0m;
 
-            var paidList = byOverlap.ToList();
-
-            // 3) Build rows: count invoices that overlap; prorate revenue & days to the overlap window
-            var rows = new List<AdvertiserBreakdownRow>();
-            decimal totalRevenueInWindow = 0m;
-
-            foreach (var grp in paidList.GroupBy(inv => inv.DirectoryEntryId))
-            {
-                decimal advertiserRevenueInWindow = 0m;
-                double advertiserActiveDaysInWin = 0d;
-                int invoiceCount = 0;
-
-                foreach (var inv in grp)
+                return new AdvertiserBreakdownRow
                 {
-                    // Campaign bounds (date-only, inclusive)
-                    var campStart = inv.CampaignStartDate.Date;
-                    var campEnd = inv.CampaignEndDate.Date;
+                    DirectoryEntryId = s.DirectoryEntryId,
+                    DirectoryEntryName = s.DirectoryEntryName,
+                    Revenue = s.Revenue,             // sum of Amount
+                    Count = s.Count,               // invoices in window
+                    AveragePerDay = avgPerDay,             // Amount ÷ purchased days
+                    Percentage = pct
+                };
+            })
+            .OrderByDescending(r => r.Revenue)
+            .ToList();
 
-                    // Overlap window (date-only, inclusive)
-                    var winStart = from;
-                    var winEnd = to;
-
-                    // Compute overlap (in days, inclusive)
-                    var overlapStart = campStart > winStart ? campStart : winStart;
-                    var overlapEnd = campEnd < winEnd ? campEnd : winEnd;
-                    var overlapDays = (overlapEnd - overlapStart).TotalDays + 1; // inclusive
-
-                    if (overlapDays <= 0)
-                    {
-                        continue; // no actual overlap (paranoia guard)
-                    }
-
-                    invoiceCount++;
-
-                    // Total campaign days (guarded minimum 1)
-                    var totalCampDays = (campEnd - campStart).TotalDays + 1;
-                    if (totalCampDays <= 0)
-                    {
-                        totalCampDays = 1;
-                    }
-
-                    // **Prorate** invoice amount into the window by days overlapped
-                    var fraction = overlapDays / totalCampDays;
-                    var proratedAmount = inv.Amount * (decimal)fraction;
-
-                    advertiserRevenueInWindow += proratedAmount;
-                    advertiserActiveDaysInWin += overlapDays;
-                }
-
-                if (advertiserActiveDaysInWin <= 0)
-                {
-                    advertiserActiveDaysInWin = 1; // avoid divide-by-zero
-                }
-
-                var avgPerDay = Math.Round(advertiserRevenueInWindow / (decimal)advertiserActiveDaysInWin, 2);
-                totalRevenueInWindow += advertiserRevenueInWindow;
-
-                var entry = await this.directoryEntryRepository.GetByIdAsync(grp.Key);
-                rows.Add(new AdvertiserBreakdownRow
-                {
-                    DirectoryEntryId = grp.Key,
-                    DirectoryEntryName = entry?.Name ?? $"(#{grp.Key})",
-                    Revenue = advertiserRevenueInWindow,
-                    Count = invoiceCount,
-                    AveragePerDay = avgPerDay
-                });
-            }
-
-            // 4) Percentages and ordering
-            foreach (var r in rows)
-            {
-                r.Percentage = totalRevenueInWindow > 0 ? Math.Round(r.Revenue * 100m / totalRevenueInWindow, 2) : 0m;
-            }
-
-            rows = rows.OrderByDescending(r => r.Revenue).ToList();
-
-            // 5) Dropdown options
             var options = Enum.GetValues(typeof(SponsorshipType))
                 .Cast<SponsorshipType>()
                 .Where(st => st != SponsorshipType.Unknown)
@@ -574,15 +509,9 @@ namespace DirectoryManager.Web.Controllers
                     Text = st.ToString(),
                     Selected = sponsorshipType.HasValue && sponsorshipType.Value == st
                 })
-                .Prepend(new SelectListItem
-                {
-                    Value = "",
-                    Text = "All",
-                    Selected = !sponsorshipType.HasValue
-                })
+                .Prepend(new SelectListItem { Value = "", Text = "All", Selected = !sponsorshipType.HasValue })
                 .ToList();
 
-            // Important: send date-only to the view so the <input type="date"> fields populate
             var vm = new AdvertiserBreakdownViewModel
             {
                 StartDate = from,
@@ -594,6 +523,8 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(vm);
         }
+
+
 
         [Route("sponsoredlistinginvoice/advertiser")]
         [HttpGet]

@@ -21,7 +21,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<(IEnumerable<SponsoredListingInvoice> Invoices, int TotalCount)> GetInvoicesForDirectoryEntryAsync(int directoryEntryId, int page, int pageSize);
         Task<bool> HasAnyPaidInvoiceForDirectoryEntryAsync(int directoryEntryId, int excludeSponsoredListingInvoiceId, CancellationToken ct = default);
         Task<(IEnumerable<SponsoredListingInvoice> Invoices, int TotalCount)>
-            GetInvoicesForDirectoryEntryInWindowAsync(
+        GetInvoicesForDirectoryEntryInWindowAsync(
         int directoryEntryId,
         DateTime windowStartUtc,
         DateTime windowEndUtc,
@@ -30,5 +30,14 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         bool useCampaignOverlap,
         int page,
         int pageSize);
+        Task<List<AdvertiserWindowStat>> GetAdvertiserWindowStatsAsync(
+        DateTime windowStartDate,
+        DateTime windowEndDate,
+        SponsorshipType? sponsorshipType = null,
+        bool paidOnly = true);
+        Task<List<AdvertiserWindowSum>> GetAdvertiserInvoiceWindowSumsAsync(
+        DateTime windowStartUtc,
+        DateTime windowEndOpenUtc,
+        SponsorshipType? sponsorshipType = null);
     }
 }
