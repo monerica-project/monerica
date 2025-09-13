@@ -101,9 +101,9 @@
 
             <form method="post" action="~/sponsoredlisting/confirmnowpayments">
                 <hr />
-
+                <h3>Optional</h3>
                 <div class="form-group">
-                    <i>Receive a reminder before your listing expires so you can renew in time.</i>
+                    <p>Receive a reminder before your listing expires so you can renew in time.</p>
                     <label>Email (optional)</label>
                     <input style="width:18%;" name="email" type="email" placeholder="yourname@email.com" autocomplete="off" />
                 </div>
@@ -121,6 +121,7 @@
                            title="Letters and numbers only, 3–12 characters."
                            autocomplete="off" />
                 </div>
+                <hr />
 
                 <input name="rsvId" type="hidden" value="@reservationGuid" />
                 <input type="hidden" name="directoryEntryId" value="@Model.SelectedDirectoryEntry.DirectoryEntryId" />
@@ -128,6 +129,7 @@
 
                 <button class="btn" type="submit">Purchase Listing</button>
             </form>
+     
         }
         else
         {
