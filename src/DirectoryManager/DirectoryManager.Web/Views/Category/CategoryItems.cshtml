@@ -111,7 +111,13 @@
 }
  @await Html.PartialAsync("_SponsoredListingCategoryPartial", categorySponsorModel)
  
-    @foreach (var group in Model.PagedEntries.Items.GroupBy(e => e.SubCategory.Name))
+    @{
+        var grouped = Model.PagedEntries.Items
+            .GroupBy(e => e.SubCategory?.Name ?? "Uncategorized")
+            .OrderBy(g => g.Key, StringComparer.OrdinalIgnoreCase);
+    }
+
+    @foreach (var group in grouped)
     {
         <h2 class="subcat-heading">@group.Key</h2>
         <ul class="blank_list_item">
@@ -119,7 +125,6 @@
             {
                 entryVm.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
 
-                // mark *all* entries in a sponsored sub‐category as sponsored
                 if (Model.SponsoredDirectoryEntryIds.Contains(entryVm.DirectoryEntryId))
                 {
                     entryVm.IsSponsored = true;

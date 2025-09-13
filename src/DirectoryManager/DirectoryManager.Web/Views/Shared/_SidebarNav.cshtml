@@ -14,26 +14,30 @@
     var currentCat = (string?)ViewData["CurrentCategoryKey"] ?? "";
     var currentSub = (string?)ViewData["CurrentSubCategoryKey"] ?? "";
 
-    // Cache/rebuild nav (1 hour)
-    var navModel = await MemoryCache.GetOrCreateAsync(StringConstants.NavMenu, async entry =>
+    // Cache ONLY the static data (cats + subs), not the "current" selection.
+    var cached = await MemoryCache.GetOrCreateAsync<
+        (IReadOnlyList<Category> Categories, Dictionary<int, List<Subcategory>> SubsByCategory)
+    >(StringConstants.NavMenu, async entry =>
     {
         entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
 
-        var cats = await categoryRepo.GetActiveCategoriesAsync();
-        var subs = await subCatRepo.GetAllActiveSubCategoriesAsync();
+        var cats = (await categoryRepo.GetActiveCategoriesAsync()).ToList();
 
+        var subs = await subCatRepo.GetAllActiveSubCategoriesAsync();
         var lookup = subs
             .GroupBy(sc => sc.CategoryId)
             .ToDictionary(g => g.Key, g => g.ToList());
 
-        return new NavigationViewModel
-        {
-            Categories = cats,
-            SubsByCategory = lookup,
-            CurrentCategoryKey = currentCat,
-            CurrentSubCategoryKey = currentSub
-        };
+        return (cats, lookup);
     });
+
+    var navModel = new NavigationViewModel
+    {
+        Categories = cached.Categories ?? new List<Category>(),
+        SubsByCategory = cached.SubsByCategory ?? new Dictionary<int, List<Subcategory>>(),
+        CurrentCategoryKey = currentCat,
+        CurrentSubCategoryKey = currentSub
+    };
 
     // Fetch logo URL once (don’t inline await in an attribute)
     var logoUrl = await cacheService.GetSnippetAsync(SiteConfigSetting.SiteLogoUrl);

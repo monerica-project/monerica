@@ -8,37 +8,46 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 
 @{
-    var directoryEntries = new List<DirectoryManager.Data.Models.DirectoryEntry>();
     var link2Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
     var link3Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
-    var directoryEntry = Model?.DirectoryEntry;
+
+    var hasModel = Model is not null;
+    var dirVm = Model?.DirectoryEntry; // this is a DisplayFormatting VM in your model
+    var hasEntry = dirVm is not null;
+
+    var categoryId = Model?.CategoryId ?? 0;
+    var advertiseHref = Url.Content($"~/sponsoredlisting/selectlisting?categoryId={categoryId}&sponsorshipType={SponsorshipType.CategorySponsor}");
 }
 
-@if (Model != null && directoryEntry != null)
+@if (hasModel && hasEntry)
 {
-    directoryEntries.Add(new DirectoryEntry()
+    var directoryEntries = new List<DirectoryManager.Data.Models.DirectoryEntry>
     {
-        Name = directoryEntry.Name,
-        DirectoryEntryKey = directoryEntry.DirectoryEntryKey,
-        Contact = directoryEntry.Contact,
-        CreateDate = directoryEntry.CreateDate,
-        Description = directoryEntry.Description,
-        DirectoryBadge = directoryEntry.DirectoryBadge,
-        DirectoryEntryId = directoryEntry.DirectoryEntryId,
-        DirectoryStatus = directoryEntry.DirectoryStatus,
-        Link = directoryEntry.Link,
-        Link2 = directoryEntry.Link2,
-        Link2A = directoryEntry.Link2A,
-        Link3 = directoryEntry.Link3,
-        Link3A = directoryEntry.Link3A,
-        LinkA = directoryEntry.LinkA,
-        Location = directoryEntry.Location,
-        Note = directoryEntry.Note,
-        Processor = directoryEntry.Processor,
-        SubCategory = directoryEntry.SubCategory,
-        SubCategoryId = (directoryEntry.SubCategoryId == null) ? 0 : directoryEntry.SubCategoryId.Value,
-        UpdateDate = directoryEntry.UpdateDate
-    });
+        new DirectoryManager.Data.Models.DirectoryEntry
+        {
+            Name = dirVm!.Name,
+            DirectoryEntryKey = dirVm.DirectoryEntryKey,
+            Contact = dirVm.Contact,
+            CreateDate = dirVm.CreateDate,
+            Description = dirVm.Description,
+            DirectoryBadge = dirVm.DirectoryBadge,
+            DirectoryEntryId = dirVm.DirectoryEntryId,
+            DirectoryStatus = dirVm.DirectoryStatus,
+            Link = dirVm.Link,
+            Link2 = dirVm.Link2,
+            Link2A = dirVm.Link2A,
+            Link3 = dirVm.Link3,
+            Link3A = dirVm.Link3A,
+            LinkA = dirVm.LinkA,
+            Location = dirVm.Location,
+            Note = dirVm.Note,
+            Processor = dirVm.Processor,
+            SubCategory = dirVm.SubCategory,
+            SubCategoryId = dirVm.SubCategoryId ?? 0,
+            UpdateDate = dirVm.UpdateDate
+        }
+    };
+
     <div class="sponsored-section" style="margin-bottom:5px;">
         <p><b>Sponsored</b></p>
         <ul class="blank_list_item">
@@ -62,6 +71,6 @@
 else
 {
     <p class="category-sponsored-listing">
-        <a class="app-link" rel="nofollow" href="~/sponsoredlisting/selectlisting?categoryId=@Model.CategoryId&sponsorshipType=@SponsorshipType.CategorySponsor">Advertise here</a>
+        <a class="app-link" rel="nofollow" href="@advertiseHref">Advertise here</a>
     </p>
 }

@@ -84,7 +84,7 @@ namespace DirectoryManager.Web.Controllers
             var paged = await this.directoryEntryRepository
                 .ListEntriesByCategoryAsync(category.CategoryId, page, PageSize);
 
-            // 4) convert toaw view‑models
+            // 4) convert to view-models
             var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
             var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
             var vmItems = ViewModelConverter.ConvertToViewModels(
@@ -94,7 +94,7 @@ namespace DirectoryManager.Web.Controllers
                 link2Name,
                 link3Name);
 
-            // 5) pull _all_ sponsors and collect their entry‑IDs:
+            // 5) pull sponsors and collect their entry IDs (null-safe)
             var mainSponsors = await this.sponsoredListingRepository
                 .GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
             var categorySponsors = await this.sponsoredListingRepository
@@ -104,17 +104,17 @@ namespace DirectoryManager.Web.Controllers
 
             var mainIds = mainSponsors
                 .Where(s => s.DirectoryEntry != null)
-                .Select(s => s.DirectoryEntry.DirectoryEntryId);
+                .Select(s => s.DirectoryEntry!.DirectoryEntryId);
 
             var categoryIds = categorySponsors
-                .Where(s =>
-                    s.DirectoryEntry?.SubCategory?.CategoryId == category.CategoryId)
-                .Select(s => s.DirectoryEntry.DirectoryEntryId);
+                .Where(s => s.DirectoryEntry != null &&
+                            s.DirectoryEntry!.SubCategory?.CategoryId == category.CategoryId)
+                .Select(s => s.DirectoryEntry!.DirectoryEntryId);
 
             var subCatIds = subCatSponsors
-                .Where(s =>
-                    s.DirectoryEntry?.SubCategory?.CategoryId == category.CategoryId)
-                .Select(s => s.DirectoryEntry.DirectoryEntryId);
+                .Where(s => s.DirectoryEntry != null &&
+                            s.DirectoryEntry!.SubCategory?.CategoryId == category.CategoryId)
+                .Select(s => s.DirectoryEntry!.DirectoryEntryId);
 
             var sponsoredDirectoryEntryIds = mainIds
                 .Concat(categoryIds)
@@ -132,7 +132,6 @@ namespace DirectoryManager.Web.Controllers
                 Note = category.Note,
                 MetaDescription = category.MetaDescription,
 
-                // <-- now includes main, category & subcategory sponsors:
                 SponsoredDirectoryEntryIds = sponsoredDirectoryEntryIds,
 
                 PagedEntries = new PagedResult<DirectoryEntryViewModel>
