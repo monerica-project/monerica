@@ -88,15 +88,13 @@
         </p>
     }
 
-    <a class="btn btn-sm btn-secondary"
+    <a 
    href="@Url.Action("DownloadAccountantCsv", "SponsoredListingInvoice", new {
         startDate = Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat),
         endDate   = Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat),
         sponsorshipType = Model.SponsorshipType?.ToString(),
         costEqualsSalesPrice = true
-   })" target="_blank">
-    Download CSV 
-</a>
+   })" target="_blank">Download Accounting CSV</a>
 
 
     <img style="width:100%"
