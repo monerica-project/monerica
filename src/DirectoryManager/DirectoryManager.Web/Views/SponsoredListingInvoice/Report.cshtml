@@ -88,6 +88,17 @@
         </p>
     }
 
+    <a class="btn btn-sm btn-secondary"
+   href="@Url.Action("DownloadAccountantCsv", "SponsoredListingInvoice", new {
+        startDate = Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat),
+        endDate   = Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat),
+        sponsorshipType = Model.SponsorshipType?.ToString(),
+        costEqualsSalesPrice = true
+   })" target="_blank">
+    Download CSV 
+</a>
+
+
     <img style="width:100%"
          src="@Url.Action("monthlyincomebarchart", "sponsoredlistinginvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType })"
          alt="chart" />

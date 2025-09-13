@@ -4,6 +4,7 @@ using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.CompilerServices;
 
 namespace DirectoryManager.Data.Repositories.Implementations
 {
@@ -276,6 +277,58 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return results;
         }
+        public async IAsyncEnumerable<AccountantRow> StreamPaidForAccountantAsync(
+            DateTime startUtc,
+            DateTime endUtc,
+            SponsorshipType? sponsorshipType,
+            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+        {
+            var q = this.context.SponsoredListingInvoices
+                .AsNoTracking()
+                .Where(i => i.PaymentStatus == PaymentStatus.Paid);
+
+            if (sponsorshipType.HasValue)
+                q = q.Where(i => i.SponsorshipType == sponsorshipType.Value);
+
+            // Filter by UpdateDate primarily, but include rows where UpdateDate wasn't set and CreateDate is in range.
+            q = q.Where(i =>
+                (i.UpdateDate >= startUtc && i.UpdateDate <= endUtc) ||
+                (i.UpdateDate == DateTime.MinValue && i.CreateDate >= startUtc && i.CreateDate <= endUtc));
+
+            var rows = q
+                .Select(i => new
+                {
+                    i.PaidAmount,
+                    i.PaidInCurrency,
+                    i.UpdateDate,
+                    i.CreateDate,
+                    i.Amount
+                })
+                .AsAsyncEnumerable()
+                .WithCancellation(ct);
+
+            await foreach (var r in rows)
+            {
+                var paidDate = r.UpdateDate != DateTime.MinValue ? r.UpdateDate : r.CreateDate;
+
+                var description = r.PaidInCurrency switch
+                {
+                    Currency.BTC => "Bitcoin",
+                    Currency.XMR => "Monero",
+                    _ => r.PaidInCurrency.ToString()
+                };
+
+                yield return new AccountantRow
+                {
+                    Quantity = r.PaidAmount,
+                    Description = description,
+                    PaidDateUtc = (DateTime)paidDate,
+                    SalesPrice = r.Amount,
+                    Cost = r.Amount
+                };
+            }
+        }
+
 
         // in SponsoredListingInvoiceRepository
         public async Task<(IEnumerable<SponsoredListingInvoice> Invoices, int TotalCount)>

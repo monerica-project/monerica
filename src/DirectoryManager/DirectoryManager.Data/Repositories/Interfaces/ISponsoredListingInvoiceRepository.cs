@@ -39,5 +39,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         DateTime windowStartUtc,
         DateTime windowEndOpenUtc,
         SponsorshipType? sponsorshipType = null);
+
+        IAsyncEnumerable<AccountantRow> StreamPaidForAccountantAsync(DateTime startUtc, DateTime endUtc, SponsorshipType? sponsorshipType, CancellationToken ct = default);
     }
 }

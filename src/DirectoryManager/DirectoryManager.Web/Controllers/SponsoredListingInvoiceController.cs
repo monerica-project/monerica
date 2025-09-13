@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Models;
@@ -10,6 +11,7 @@ using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Net.Http.Headers;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -458,6 +460,75 @@ namespace DirectoryManager.Web.Controllers
             };
 
             return this.View(vm);
+        }
+
+        [HttpGet("sponsoredlistinginvoice/download-accountant-csv")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> DownloadAccountantCsv(
+        DateTime? startDate,
+        DateTime? endDate,
+        SponsorshipType? sponsorshipType,
+        bool costEqualsSalesPrice = true)
+        {
+            const int defaultYears = 1;
+            var now = DateTime.UtcNow;
+            var from = (startDate ?? now.AddYears(-defaultYears)).Date;
+            var to = (endDate ?? now).Date;
+
+            var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
+            var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
+
+            var fileName = $"Accountant_Crypto_PAID_{from:yyyyMMdd}_to_{to:yyyyMMdd}.csv";
+
+            this.Response.ContentType = "text/csv; charset=utf-8";
+            this.Response.Headers[HeaderNames.ContentDisposition] = $"attachment; filename=\"{fileName}\"";
+            this.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
+            this.Response.Headers.Pragma = "no-cache";
+            this.Response.Headers["X-Download-Options"] = "noopen";
+
+            var utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+            var bom = utf8.GetPreamble();
+            if (bom.Length > 0)
+            {
+                await this.Response.Body.WriteAsync(bom, 0, bom.Length);
+            }
+
+            await using var writer = new StreamWriter(this.Response.Body, utf8, bufferSize: 64 * 1024, leaveOpen: true);
+
+            static string D(DateTime utc) => utc.ToUniversalTime().ToString("MM/dd/yy", CultureInfo.InvariantCulture);
+            static string N8(decimal v) => v.ToString("0.########", CultureInfo.InvariantCulture);
+            static string Money(decimal v) => v.ToString("0.00", CultureInfo.InvariantCulture);
+
+            await writer.WriteLineAsync("Quantity,Description,Sales Date,Purchase Date,Sales Price,Cost");
+
+            try
+            {
+                int batch = 0;
+                await foreach (var r in this.invoiceRepository.StreamPaidForAccountantAsync(startUtc, endUtc, sponsorshipType))
+                {
+                    var sales = r.SalesPrice;
+                    var cost = costEqualsSalesPrice ? r.SalesPrice : 0m;
+
+                    await writer.WriteLineAsync(string.Join(",",
+                        N8(r.Quantity),
+                        r.Description,  // ensure comma-free upstream; otherwise quote here
+                        D(r.PaidDateUtc),
+                        D(r.PaidDateUtc),
+                        Money(sales),
+                        Money(cost)));
+
+                    if (++batch % 200 == 0)
+                    {
+                        await writer.FlushAsync();
+                    }
+                }
+                await writer.FlushAsync();
+            }
+            catch (OperationCanceledException) { /* client canceled */ }
+            catch (IOException) { /* broken pipe */ }
+
+            return new EmptyResult();
         }
 
         [Route("sponsoredlistinginvoice/advertiserbreakdown")]

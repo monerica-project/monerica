@@ -100,7 +100,23 @@ else
 // Additional Middleware and Route Configurations
 app.UseResponseCaching();
 app.UseStaticFiles();
-app.UseMiddleware<ETagMiddleware>();
+
+// Apply ETag only to static paths
+app.UseWhen(
+    ctx =>
+       ctx.Request.Path.StartsWithSegments("/css", StringComparison.OrdinalIgnoreCase) ||
+       ctx.Request.Path.StartsWithSegments("/js", StringComparison.OrdinalIgnoreCase) ||
+       ctx.Request.Path.StartsWithSegments("/img", StringComparison.OrdinalIgnoreCase) ||
+       ctx.Request.Path.StartsWithSegments("/images", StringComparison.OrdinalIgnoreCase) ||
+       ctx.Request.Path.StartsWithSegments("/fonts", StringComparison.OrdinalIgnoreCase),
+    branch => branch.UseMiddleware<ETagMiddleware>());
+
+app.Use(async (ctx, next) =>
+{
+    try { await next(); }
+    catch (OperationCanceledException) { }
+    catch (IOException) { }
+});
 
 // Configure URL rewriting for Production
 if (!app.Environment.IsDevelopment())
