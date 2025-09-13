@@ -1,10 +1,8 @@
-﻿// CacheService.cs
-using System.Collections.Concurrent;
+﻿using System.Collections.Concurrent;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
-using Microsoft.Extensions.DependencyInjection;
 
 public class CacheService : ICacheService
 {
@@ -29,7 +27,9 @@ public class CacheService : ICacheService
 
         // Fast path: cache hit (no DB, no lock)
         if (this.cache.TryGetValue(cacheKey, out string? cached) && cached is not null)
+        {
             return cached;
+        }
 
         // Serialize cache MISS per key to avoid concurrent DbContext usage
         var gate = KeyLocks.GetOrAdd(cacheKey, _ => new SemaphoreSlim(1, 1));
@@ -38,7 +38,9 @@ public class CacheService : ICacheService
         {
             // Double-check after acquiring the lock
             if (this.cache.TryGetValue(cacheKey, out cached) && cached is not null)
+            {
                 return cached;
+            }
 
             // Fresh scope -> fresh repo -> fresh DbContext for THIS call
             using var scope = this.scopeFactory.CreateScope();
@@ -57,6 +59,7 @@ public class CacheService : ICacheService
         finally
         {
             gate.Release();
+
             // Optional cleanup: remove the semaphore when idle
             if (gate.CurrentCount == 1) KeyLocks.TryRemove(cacheKey, out _);
         }
