@@ -189,7 +189,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     i.PaymentStatus == PaymentStatus.Paid &&
                     i.SponsoredListingInvoiceId != excludeSponsoredListingInvoiceId, ct);
 
-
         public async Task<List<AdvertiserWindowStat>> GetAdvertiserWindowStatsAsync(
             DateTime windowStartDate,
             DateTime windowEndDate,
@@ -206,10 +205,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
                            && inv.CampaignStartDate.Date <= to);
 
             if (paidOnly)
+            {
                 q = q.Where(inv => inv.PaymentStatus == PaymentStatus.Paid);
+            }
 
             if (sponsorshipType.HasValue)
+            {
                 q = q.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
 
             // Pull just what we need
             var list = await q
@@ -250,12 +253,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     var overlapTo = campEnd < to ? campEnd : to;
 
                     var overlapDays = (overlapTo - overlapFrom).TotalDays + 1; // inclusive
-                    if (overlapDays <= 0) continue;
+                    if (overlapDays <= 0)
+                    {
+                        continue;
+                    }
 
                     count++;
 
                     var totalCampDays = (campEnd - campStart).TotalDays + 1;
-                    if (totalCampDays <= 0) totalCampDays = 1;
+                    if (totalCampDays <= 0)
+                    {
+                        totalCampDays = 1;
+                    }
 
                     // Use PaidAmount when available; fallback to Amount
                     var baseAmount = inv.PaidAmount > 0m ? inv.PaidAmount : inv.Amount;
@@ -277,6 +286,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return results;
         }
+
         public async IAsyncEnumerable<AccountantRow> StreamPaidForAccountantAsync(
             DateTime startUtc,
             DateTime endUtc,
@@ -288,7 +298,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Where(i => i.PaymentStatus == PaymentStatus.Paid);
 
             if (sponsorshipType.HasValue)
+            {
                 q = q.Where(i => i.SponsorshipType == sponsorshipType.Value);
+            }
 
             // Filter by UpdateDate primarily, but include rows where UpdateDate wasn't set and CreateDate is in range.
             q = q.Where(i =>
@@ -328,7 +340,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 };
             }
         }
-
 
         // in SponsoredListingInvoiceRepository
         public async Task<(IEnumerable<SponsoredListingInvoice> Invoices, int TotalCount)>
@@ -438,7 +449,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     daysPurchased += days;
                 }
 
-                if (daysPurchased <= 0) daysPurchased = 1;
+                if (daysPurchased <= 0)
+                {
+                    daysPurchased = 1;
+                }
 
                 results.Add(new AdvertiserWindowSum
                 {

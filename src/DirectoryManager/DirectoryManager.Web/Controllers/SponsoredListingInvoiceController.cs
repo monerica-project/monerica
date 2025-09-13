@@ -524,6 +524,7 @@ namespace DirectoryManager.Web.Controllers
                         await writer.FlushAsync();
                     }
                 }
+
                 await writer.FlushAsync();
             }
             catch (OperationCanceledException) { /* client canceled */ }

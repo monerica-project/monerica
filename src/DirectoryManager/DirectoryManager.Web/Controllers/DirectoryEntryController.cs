@@ -381,6 +381,8 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> SubcategoryTrends([FromQuery] DateTime? start, [FromQuery] DateTime? end)
         {
             const string unknown = "(Unknown)";
+            const int UnknownSubCatKey = -1; // sentinel for "null" subcategory keys
+
             DateTime to = end ?? DateTime.UtcNow;
             DateTime from = start ?? to.AddYears(-1);
 
@@ -394,8 +396,6 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("SubcategoryTrends", vmEmpty);
             }
 
-            // --- strongly-typed timeline item (avoid anonymous/dynamic) ---
-            // adjust the Subcategory namespace if different in your project
             var byEntry = audits
                 .Select(a => new TimelineItem
                 {
@@ -431,8 +431,9 @@ namespace DirectoryManager.Web.Controllers
                 return (rec.SubCategoryId, scName, IsActive(rec.DirectoryStatus));
             }
 
-            var startCounts = new Dictionary<int?, (string name, int count)>();
-            var endCounts = new Dictionary<int?, (string name, int count)>();
+            // Use non-nullable int keys + sentinel
+            var startCounts = new Dictionary<int, (string name, int count)>();
+            var endCounts = new Dictionary<int, (string name, int count)>();
 
             foreach (var kvp in byEntry)
             {
@@ -441,40 +442,45 @@ namespace DirectoryManager.Web.Controllers
                 var (sid, sname, sactive) = StateAt(from, timeline);
                 if (sactive)
                 {
-                    if (!startCounts.TryGetValue(sid, out var s))
+                    var sKey = sid ?? UnknownSubCatKey;
+                    if (!startCounts.TryGetValue(sKey, out var s))
                     {
-                        startCounts[sid] = (sname, 1);
+                        startCounts[sKey] = (sname, 1);
                     }
                     else
                     {
-                        startCounts[sid] = (s.name, s.count + 1);
+                        startCounts[sKey] = (s.name, s.count + 1);
                     }
                 }
 
                 var (eid, ename, eactive) = StateAt(to, timeline);
                 if (eactive)
                 {
-                    if (!endCounts.TryGetValue(eid, out var e))
+                    var eKey = eid ?? UnknownSubCatKey;
+                    if (!endCounts.TryGetValue(eKey, out var e))
                     {
-                        endCounts[eid] = (ename, 1);
+                        endCounts[eKey] = (ename, 1);
                     }
                     else
                     {
-                        endCounts[eid] = (e.name, e.count + 1);
+                        endCounts[eKey] = (e.name, e.count + 1);
                     }
                 }
             }
 
-            var allIds = new HashSet<int?>(startCounts.Keys.Concat(endCounts.Keys));
+            // Merge keys safely (non-nullable)
+            var allIds = new HashSet<int>(startCounts.Keys.Concat(endCounts.Keys));
+
             var trends = new List<SubcategoryTrendItem>();
-            foreach (var id in allIds)
+            foreach (var key in allIds)
             {
-                var s = startCounts.TryGetValue(id, out var sv) ? sv : (name: unknown, count: 0);
-                var e = endCounts.TryGetValue(id, out var ev) ? ev : (name: s.name, count: 0);
+                var s = startCounts.TryGetValue(key, out var sv) ? sv : (name: unknown, count: 0);
+                var e = endCounts.TryGetValue(key, out var ev) ? ev : (name: s.name, count: 0);
 
                 trends.Add(new SubcategoryTrendItem
                 {
-                    SubCategoryId = id,
+                    // convert sentinel back to nullable for the view model
+                    SubCategoryId = key == UnknownSubCatKey ? (int?)null : key,
                     SubCategoryName = string.IsNullOrWhiteSpace(e.name) ? s.name : e.name,
                     StartCount = s.count,
                     EndCount = e.count
@@ -546,18 +552,15 @@ namespace DirectoryManager.Web.Controllers
                     t => t.Key,
                     t => t.Name);
 
+            // Get/cached active sponsors (typed, null-safe)
             const string sponsorCacheKey = StringConstants.CacheKeyAllActiveSponsors;
-            if (!this.cache.TryGetValue(sponsorCacheKey, out List<SponsoredListing> allSponsors))
+
+            var allSponsors = await this.cache.GetOrCreateAsync(sponsorCacheKey, async entry =>
             {
-                allSponsors = (List<SponsoredListing>?)await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
-                this.cache.Set(
-                    sponsorCacheKey,
-                    allSponsors,
-                    new MemoryCacheEntryOptions
-                    {
-                        AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
-                    });
-            }
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+                var sponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
+                return sponsors?.ToList() ?? new List<SponsoredListing>();
+            }) ?? new List<SponsoredListing>();
 
             var approved = await this.reviewRepository
                 .Query()
