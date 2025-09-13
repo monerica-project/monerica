@@ -52,8 +52,8 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.MainSponsors = mainSponsors;
             this.ViewBag.SubCategorySponsors = subCategorySponsors;
             this.ViewBag.CategorySponsors = categorySponsors;
-            this.ViewBag.Link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
-            this.ViewBag.Link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
+            this.ViewBag.Link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            this.ViewBag.Link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
             this.ViewBag.Status = status;
 
             return this.View();

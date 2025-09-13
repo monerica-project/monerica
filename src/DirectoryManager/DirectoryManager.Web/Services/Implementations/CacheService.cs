@@ -1,56 +1,67 @@
-﻿using DirectoryManager.Data.Enums;
+﻿// CacheService.cs
+using System.Collections.Concurrent;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.Extensions.Caching.Memory;
+using Microsoft.Extensions.DependencyInjection;
 
-namespace DirectoryManager.Web.Services.Implementations
+public class CacheService : ICacheService
 {
-    public class CacheService : ICacheService
+    private const string SnippetCachePrefix = "snippet-";
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> KeyLocks = new ();
+
+    private readonly IMemoryCache cache;
+    private readonly IServiceScopeFactory scopeFactory;
+
+    public CacheService(IMemoryCache cache, IServiceScopeFactory scopeFactory)
     {
-        private const string SnippetCachePrefix = "snippet-";
-        private readonly IContentSnippetRepository contentSnippetRepository;
-        private IMemoryCache memoryCache;
+        this.cache = cache;
+        this.scopeFactory = scopeFactory;
+    }
 
-        public CacheService(
-            IMemoryCache memoryCache,
-            IContentSnippetRepository contentSnippetRepository)
+    public void ClearSnippetCache(SiteConfigSetting snippetType)
+        => this.cache.Remove(BuildCacheKey(snippetType));
+
+    public async Task<string> GetSnippetAsync(SiteConfigSetting snippetType)
+    {
+        var cacheKey = BuildCacheKey(snippetType);
+
+        // Fast path: cache hit (no DB, no lock)
+        if (this.cache.TryGetValue(cacheKey, out string? cached) && cached is not null)
+            return cached;
+
+        // Serialize cache MISS per key to avoid concurrent DbContext usage
+        var gate = KeyLocks.GetOrAdd(cacheKey, _ => new SemaphoreSlim(1, 1));
+        await gate.WaitAsync();
+        try
         {
-            this.memoryCache = memoryCache;
-            this.contentSnippetRepository = contentSnippetRepository;
-        }
+            // Double-check after acquiring the lock
+            if (this.cache.TryGetValue(cacheKey, out cached) && cached is not null)
+                return cached;
 
-        public void ClearSnippetCache(SiteConfigSetting snippetType)
-        {
-            var cacheKey = this.BuildCacheKey(snippetType);
+            // Fresh scope -> fresh repo -> fresh DbContext for THIS call
+            using var scope = this.scopeFactory.CreateScope();
+            var repo = scope.ServiceProvider.GetRequiredService<IContentSnippetRepository>();
 
-            this.memoryCache.Remove(cacheKey);
-        }
+            var model = await repo.GetAsync(snippetType); // consider AsNoTracking() inside repo
+            var content = model?.Content ?? string.Empty;
 
-        public string GetSnippet(SiteConfigSetting snippetType)
-        {
-            var cacheKey = this.BuildCacheKey(snippetType);
-
-            if (this.memoryCache.TryGetValue(cacheKey, out string? maybeSnippet) && maybeSnippet != null)
+            this.cache.Set(cacheKey, content, new MemoryCacheEntryOptions
             {
-                return maybeSnippet;
-            }
-            else
-            {
-                var dbModel = this.contentSnippetRepository.Get(snippetType);
+                AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1)
+            });
 
-                var content = dbModel?.Content ?? string.Empty;
-                if (dbModel != null)
-                {
-                    this.memoryCache.Set(cacheKey, content);
-                }
-
-                return content;
-            }
+            return content;
         }
-
-        private string BuildCacheKey(SiteConfigSetting snippetType)
+        finally
         {
-            return string.Format("{0}{1}", SnippetCachePrefix, snippetType.ToString());
+            gate.Release();
+            // Optional cleanup: remove the semaphore when idle
+            if (gate.CurrentCount == 1) KeyLocks.TryRemove(cacheKey, out _);
         }
     }
+
+    private static string BuildCacheKey(SiteConfigSetting snippetType)
+        => $"{SnippetCachePrefix}{snippetType}";
 }

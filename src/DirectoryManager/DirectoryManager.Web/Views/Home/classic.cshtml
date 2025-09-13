@@ -11,16 +11,16 @@
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 @{
-    ViewData[StringConstants.TitleHeader] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageTitle));
-    ViewData[StringConstants.MetaContent] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageMetaTags));
+    ViewData[StringConstants.TitleHeader] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageTitle));
+    ViewData[StringConstants.MetaContent] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageMetaTags));
 }
 
-    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageDisplayHtml))     
+@Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageDisplayHtml))
 
     @await Html.PartialAsync("_SponsoredListingPartial")
     <hr />
     <p class="intro">
-        @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.TextIntro))
+    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TextIntro))
     </p>
 
     <hr />
@@ -41,7 +41,7 @@
 
         <!-- Links Section -->
         <div class="top-section links-section">
-            @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.TopMenuActionsHtml))
+        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopMenuActionsHtml))
         </div>
     </div>
 
@@ -49,12 +49,12 @@
 
     <hr />
 
-    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.DirectoryLegendHtml))
+    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.DirectoryLegendHtml))
 
     @{
         var featuredEntries = await directoryEntrySelectionRepository.GetEntriesForSelection(DirectoryManager.Data.Enums.EntrySelectionType.Featured);
-        var link2Name = cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
-        var link3Name = cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+        var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
+        var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
     }
 
     @if (featuredEntries != null && featuredEntries.Count() > 0)
@@ -226,8 +226,8 @@
             DateOption            = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
             IsSponsored           = true,
             DisplayAsSponsoredItem= false,
-            Link2Name             = cacheHelper.GetSnippet(SiteConfigSetting.Link2Name),
-            Link3Name             = cacheHelper.GetSnippet(SiteConfigSetting.Link3Name),
+                Link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name),
+                Link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name),
             Link                  = catSponsor.DirectoryEntry.Link,
             Link2                 = catSponsor.DirectoryEntry.Link2,
             Link3                 = catSponsor.DirectoryEntry.Link3,
@@ -267,8 +267,8 @@
                                     normalEntries.ToList(),
                                     DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
                                     DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Normal,
-                                    cacheHelper.GetSnippet(SiteConfigSetting.Link2Name),
-                                    cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)
+            await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name),
+            await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name)
                                 );
     }
 

@@ -31,7 +31,7 @@ public class CountriesController : Controller
     [HttpGet("page/{page:int}")]
     public async Task<IActionResult> All(int page = 1)
     {
-        var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+        var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
         var path = page > 1 ? $"countries/page/{page}" : "countries";
         this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, path);
 
@@ -72,7 +72,7 @@ public class CountriesController : Controller
             return this.NotFound();
         }
 
-        var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+        var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
         var basePath = $"countries/{key}";
         var path = page > 1 ? $"{basePath}/page/{page}" : basePath;
         this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, path);
@@ -80,8 +80,8 @@ public class CountriesController : Controller
         var pagedRaw = await this.entryRepo.ListActiveEntriesByCountryPagedAsync(info.Code, page, PageSize);
 
         // link2/3 labels once
-        var link2 = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
-        var link3 = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
+        var link2 = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
+        var link3 = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
         var vms = ViewModelConverter.ConvertToViewModels(
             pagedRaw.Items.ToList(),

@@ -60,7 +60,7 @@ public class SearchController : Controller
 
         if (hit is not null)
         {
-            var blackListUrl = this.cacheService.GetSnippet(SiteConfigSetting.SearchBlacklistRedirectUrl);
+            var blackListUrl = await this.cacheService.GetSnippetAsync(SiteConfigSetting.SearchBlacklistRedirectUrl);
             return !string.IsNullOrWhiteSpace(blackListUrl)
                 ? this.Redirect(blackListUrl)
                 : this.NotFound();
@@ -68,8 +68,8 @@ public class SearchController : Controller
 
         // normal flow below ...
         var result = await this.entryRepo.SearchAsync(q, page, pageSize);
-        var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
-        var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
+        var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
+        var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
         var vmList = ViewModelConverter.ConvertToViewModels(
             result.Items.ToList(),

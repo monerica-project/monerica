@@ -23,7 +23,7 @@
 }
  
 @{
-    var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
+    var domain = await cacheHelper.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
 
     // Build your breadcrumb list dynamically based on page context
     var breadcrumbs = new List<BreadcrumbItem>
@@ -67,8 +67,8 @@
 }
 
 @{
-    var link2Name = cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
-    var link3Name = cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+        var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
+        var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
     var categorySponsors = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
 
     // find the sponsor for this category (if any)

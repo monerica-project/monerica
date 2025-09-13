@@ -18,7 +18,7 @@
 @{
     ViewData[StringConstants.TitleHeader] = string.Format(
         "{0}: {1}{2}",
-        cacheHelper.GetSnippet(SiteConfigSetting.SiteName),
+        await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName),
         Model.PageTitle,
         Model.CurrentPage > 1 ? $" (Page {Model.CurrentPage})" : ""
     );
@@ -27,7 +27,7 @@
     var subCategoryKey = ViewBag.SubCategoryKey as string;
     var categoryName = ViewBag.CategoryName as string;
     var subCategoryName = ViewBag.SubCategoryName as string;
-    var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
+    var domain = await cacheHelper.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
 
     // Build your breadcrumb list dynamically based on page context
     var breadcrumbs = new List<BreadcrumbItem>
@@ -88,8 +88,8 @@
         // ... your existing code above ...
 
         var subCategorySponsors = await this.sponsoredListingRepository.GetSponsoredListingsForSubCategory(Model.SubCategoryId);
-        var link2Name = cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
-        var link3Name = cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+        var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
+        var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
         var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
             Model.PagedEntries.Items.ToList(),

@@ -23,8 +23,8 @@
         }
 
         // 3) Convert to view-models
-        var link2Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
-        var link3Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+        var link2Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
+        var link3Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
         var vms = ViewModelConverter.ConvertToViewModels(
         entries,
         DateDisplayOption.NotDisplayed,

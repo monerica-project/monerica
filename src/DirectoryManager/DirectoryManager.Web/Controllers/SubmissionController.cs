@@ -205,9 +205,9 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> AuditAync(int entryId)
         {
             var audits = await this.auditRepository.GetAuditsWithSubCategoriesForEntryAsync(entryId);
-            var link2Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
-            var link3Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
-            var canonicalDomain = this.cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var link2Name = await this.cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            var link3Name = await this.cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
+            var canonicalDomain = await this.cacheHelper.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(entryId);
 
             if (directoryEntry == null)
@@ -522,8 +522,8 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task<SubmissionPreviewModel> GetSubmissionPreviewAsync(Submission submission)
         {
-            var link2Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
-            var link3Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+            var link2Name = await this.cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            var link3Name = await this.cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
             if (submission.SubCategoryId != null)
             {

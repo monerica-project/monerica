@@ -1,17 +1,17 @@
 ﻿@{
     Layout = "_BaseLayout";
-    // Your navigation VM should already be in ViewData["NavModel"]
-    var nav = (DirectoryManager.Web.Models.NavigationViewModel)ViewData["NavModel"];
+    var nav = ViewData["NavModel"] as DirectoryManager.Web.Models.NavigationViewModel;
 }
+
 @section ChromeBeforeMain {
-        @Html.Partial("_SidebarNav", nav)
+    @await Html.PartialAsync("_SidebarNav", nav)
+    <!-- or: <partial name="_SidebarNav" model="nav" /> -->
 }
+
 @section ChromeAfterMain {
     <div id="main-content">
         <main class="main">
             @RenderSection("PageContent", required: true)
-         </main>
-
-   
+        </main>
     </div>
 }

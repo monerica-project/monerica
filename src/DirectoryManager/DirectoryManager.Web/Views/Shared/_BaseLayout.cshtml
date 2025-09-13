@@ -18,7 +18,7 @@
         @Html.Raw(ViewData[StringConstants.MetaContent])
     }
     @{
-        var torUrl = cacheHelper.GetSnippet(SiteConfigSetting.FullRootTorUrl);
+        var torUrl = await cacheHelper.GetSnippetAsync(SiteConfigSetting.FullRootTorUrl);
         if (!string.IsNullOrWhiteSpace(torUrl))
         {
             torUrl = DirectoryManager.Web.Helpers.UrlHelper.NormalizeUrl(torUrl);
@@ -39,11 +39,11 @@
     {
         <meta name="robots" content="noindex" />
     }
-    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HeaderHtml))
-    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.CssHeader))
+    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HeaderHtml))
+    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.CssHeader))
     </head>
 <body>
-    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.TopBannerHtml))
+    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopBannerHtml))
 
     @RenderSection("ChromeBeforeMain", required: false)
 
@@ -53,7 +53,7 @@
 
     <footer class="site-footer">  
       <nav class="footer-nav">
-        @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.FooterHtml))
+            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.FooterHtml))
       </nav>
     </footer>
 </body>

@@ -3,7 +3,7 @@
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
  
 @{
-    var root = cacheHelper.GetSnippet(SiteConfigSetting.FullRootUrl);
+    var root = await cacheHelper.GetSnippetAsync(SiteConfigSetting.FullRootUrl);
     var isOnTor = httpContextAccessor.HttpContext?.Request.Host.Host.EndsWith(DirectoryManager.Web.Constants.StringConstants.TorDomain) ?? false;
 
     if (isOnTor || string.IsNullOrWhiteSpace(root))

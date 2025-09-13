@@ -76,7 +76,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             // 2) canonical URL
-            var cd = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var cd = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             this.ViewData[Constants.StringConstants.CanonicalUrl] =
                 UrlBuilder.CombineUrl(cd, categoryKey);
 
@@ -84,9 +84,9 @@ namespace DirectoryManager.Web.Controllers
             var paged = await this.directoryEntryRepository
                 .ListEntriesByCategoryAsync(category.CategoryId, page, PageSize);
 
-            // 4) convert to view‑models
-            var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
-            var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
+            // 4) convert toaw view‑models
+            var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
             var vmItems = ViewModelConverter.ConvertToViewModels(
                 paged.Items.ToList(),
                 DateDisplayOption.NotDisplayed,

@@ -34,8 +34,8 @@ public class RssController : Controller
     [HttpGet("rss/feed.xml")]
     public async Task<IActionResult> FeedXml()
     {
-        var siteName = this.cacheService.GetSnippet(SiteConfigSetting.SiteName);
-        var siteLogoUrl = this.cacheService.GetSnippet(SiteConfigSetting.SiteLogoUrl);
+        var siteName = await this.cacheService.GetSnippetAsync(SiteConfigSetting.SiteName);
+        var siteLogoUrl = await this.cacheService.GetSnippetAsync(SiteConfigSetting.SiteLogoUrl);
         var feedLink = this.Url.Action("FeedXml", "Rss", null, this.Request.Scheme);
 
         if (string.IsNullOrEmpty(feedLink))

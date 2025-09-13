@@ -29,22 +29,22 @@
 </div>
 
 <div class="form-group">
-    <label asp-for="Link2">@cacheHelper.GetSnippet(SiteConfigSetting.Link2Name)</label>
+    <label asp-for="Link2">@await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name)</label>
     <input autocomplete="off" class="input-width" type="text" asp-for="Link2" />
 </div>
 
 <div class="form-group">
-    <label asp-for="Link2A">@cacheHelper.GetSnippet(SiteConfigSetting.Link2Name) (affiliate 2)</label>
+    <label asp-for="Link2A">@await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name) (affiliate 2)</label>
     <input autocomplete="off" class="input-width" type="text" asp-for="Link2A" />
 </div>
 
 <div class="form-group">
-    <label asp-for="Link3">@cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)</label>
+    <label asp-for="Link3">@await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name)</label>
     <input autocomplete="off" class="input-width" type="text" asp-for="Link3" />
 </div>
 
 <div class="form-group">
-    <label asp-for="Link3A">@cacheHelper.GetSnippet(SiteConfigSetting.Link3Name) (affiliate 3)</label>
+    <label asp-for="Link3A">@await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name) (affiliate 3)</label>
     <input autocomplete="off"  class="input-width" type="text" asp-for="Link3A" />
 </div>
 

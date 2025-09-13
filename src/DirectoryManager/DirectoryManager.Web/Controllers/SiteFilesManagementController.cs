@@ -100,7 +100,7 @@ namespace DirectoryManager.Web.Controllers
                         throw new ArgumentNullException($"{nameof(file.FilePath)}");
                     }
 
-                    item.CdnLink = this.ConvertBlobToCdnUrl(file.FilePath);
+                    item.CdnLink = await this.ConvertBlobToCdnUrlAsync(file.FilePath);
                 }
 
                 model.FileItems.Add(item);
@@ -151,9 +151,9 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction("Index");
         }
 
-        private string ConvertBlobToCdnUrl(string filePath)
+        private async Task<string> ConvertBlobToCdnUrlAsync(string filePath)
         {
-            var cdnPrefix = this.cacheService.GetSnippet(SiteConfigSetting.CdnPrefixWithProtocol);
+            var cdnPrefix = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CdnPrefixWithProtocol);
 
             return UrlBuilder.ConvertBlobToCdnUrl(filePath, this.siteFilesRepository.BlobPrefix, cdnPrefix);
         }

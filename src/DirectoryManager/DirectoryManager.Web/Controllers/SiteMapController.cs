@@ -248,7 +248,7 @@ namespace DirectoryManager.Web.Controllers
                 model.SectionPages.Add(categoryPages);
             }
 
-            var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             this.ViewData[Constants.StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "sitemap");
             return this.View("Index", model);
         }

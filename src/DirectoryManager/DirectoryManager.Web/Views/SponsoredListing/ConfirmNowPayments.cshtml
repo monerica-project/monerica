@@ -97,7 +97,7 @@
                 <p>These days will be added to the current sponsored listing.</p>
             }
 
-            @Html.Raw(_cacheHelper.GetSnippet(SiteConfigSetting.NowPaymentsMessageHtml))
+            @Html.Raw(await _cacheHelper.GetSnippetAsync(SiteConfigSetting.NowPaymentsMessageHtml))
 
             <form method="post" action="~/sponsoredlisting/confirmnowpayments">
                 <hr />

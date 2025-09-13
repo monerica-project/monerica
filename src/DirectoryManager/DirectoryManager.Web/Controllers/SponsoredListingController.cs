@@ -561,8 +561,8 @@ namespace DirectoryManager.Web.Controllers
                 this.ViewBag.CategoryId = typeIdForGroup;
             }
 
-            var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
-            var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
+            var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
             var current = await this.sponsoredListingRepository
                 .GetActiveSponsorsByTypeAsync(offer.SponsorshipType)
                 .ConfigureAwait(false);

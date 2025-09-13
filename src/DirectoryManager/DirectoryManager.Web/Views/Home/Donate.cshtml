@@ -11,5 +11,5 @@
 <hr />
 @await Html.PartialAsync("_BackToHome")
 <hr />
-@Html.Raw(cacheHelper.GetSnippet(DirectoryManager.Data.Enums.SiteConfigSetting.DonationHtml))
+    @Html.Raw(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.DonationHtml))
 }

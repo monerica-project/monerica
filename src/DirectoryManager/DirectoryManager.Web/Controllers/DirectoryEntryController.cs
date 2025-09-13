@@ -259,8 +259,8 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> EntryAudits(int entryId)
         {
             var audits = await this.auditRepository.GetAuditsWithSubCategoriesForEntryAsync(entryId);
-            var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
-            var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
+            var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(entryId);
             if (directoryEntry == null)
@@ -506,7 +506,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("{categorykey}/{subcategorykey}/{directoryEntryKey}")]
         public async Task<IActionResult> DirectoryEntryView(string categoryKey, string subCategoryKey, string directoryEntryKey)
         {
-            var canoicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var canoicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canoicalDomain, $"{categoryKey}/{subCategoryKey}/{directoryEntryKey}");
             var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
 
@@ -531,8 +531,8 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewData[StringConstants.MetaDescription] = existingEntry.Description;
 
-            var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
-            var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
+            var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
             var tagEntities = await this.entryTagRepo.GetTagsForEntryAsync(existingEntry.DirectoryEntryId);
             var tagNames = tagEntities

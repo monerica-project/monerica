@@ -26,7 +26,7 @@
     var finalLink = !string.IsNullOrEmpty(Model.LinkA) && !Model.IsSponsored ? Model.LinkA : Model.Link;
     var finalLink2 = !string.IsNullOrEmpty(Model.Link2A) && !Model.IsSponsored ? Model.Link2A : Model.Link2;
     var finalLink3 = !string.IsNullOrEmpty(Model.Link3A) && !Model.IsSponsored ? Model.Link3A : Model.Link3;
-    var domain = cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
+    var domain = await cacheHelper.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
 
     // Build your breadcrumb list dynamically based on page context
     var breadcrumbs = new List<BreadcrumbItem>

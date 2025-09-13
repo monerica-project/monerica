@@ -46,7 +46,7 @@
     <b> Steps for listing:</b>
 </p>
 
-@Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SponsoredListingSteps))
+    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SponsoredListingSteps))
 
 <hr />
 
@@ -56,7 +56,7 @@
 
 <p>
 
-    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.MainSponsoredListingDetails))
+        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.MainSponsoredListingDetails))
 </p>
 
 @if (Model.CanCreateMainListing)
@@ -104,7 +104,7 @@ else
 
 <p><br /><b>Details:</b></p>
 <p>
-    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.CategorySponsoredListingDetails))
+        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.CategorySponsoredListingDetails))
 </p>
 
     @if (Model.UnavailableCategories?.Any() == true)
@@ -167,7 +167,7 @@ else
 <h3 id="subcategory-sponsor-section">@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</h3>
 <p><br /><b>Details:</b></p>
 <p>
-    @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SubcategorySponsoredListingDetails))
+        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SubcategorySponsoredListingDetails))
 </p>
 
     @if (Model.UnavailableSubCatetgories?.Any() == true)

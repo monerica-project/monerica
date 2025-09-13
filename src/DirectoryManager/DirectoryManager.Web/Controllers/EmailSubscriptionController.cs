@@ -44,10 +44,10 @@ namespace DirectoryManager.Web.Controllers
         [Route("newsletter")]
         [Route("subscribe")]
         [HttpGet]
-        public IActionResult Subscribe()
+        public async Task<IActionResult> SubscribeAsync()
         {
             this.ViewBag.NewsletterSummaryHtml =
-                this.cacheService.GetSnippet(DirectoryManager.Data.Enums.SiteConfigSetting.NewsletterSummaryHtml);
+                await this.cacheService.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.NewsletterSummaryHtml);
 
             // supply an empty model so ValidationMessage/ValidationSummary can render cleanly
             return this.View(new EmailSubscribeModel());
@@ -62,7 +62,7 @@ namespace DirectoryManager.Web.Controllers
         {
             // Make sure page content always repopulates when we re-render on error
             this.ViewBag.NewsletterSummaryHtml =
-                this.cacheService.GetSnippet(DirectoryManager.Data.Enums.SiteConfigSetting.NewsletterSummaryHtml);
+                await this.cacheService.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.NewsletterSummaryHtml);
 
             // Determine captcha context key from the form (hidden field in _CaptchaBlock)
             var ctx = (this.Request.Form["CaptchaContext"].ToString() ?? string.Empty).Trim();

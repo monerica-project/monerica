@@ -93,8 +93,8 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
-            var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
+            var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
             var entry = await this.directoryEntryRepository
                                    .GetByIdAsync(invoice.DirectoryEntryId)

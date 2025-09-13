@@ -14,7 +14,7 @@
 <hr />
 @await Html.PartialAsync("_BackToHome")
 <hr />
-@Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SubmissionGuidelinesHtml))
+    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SubmissionGuidelinesHtml))
 
 <hr />
 <p>

@@ -32,33 +32,33 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("/")]
-        public IActionResult Index()
+        public async Task<IActionResult> IndexAsync()
         {
-            var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "");
             return this.View();
         }
 
         [HttpGet("contact")]
-        public IActionResult Contact()
+        public async Task<IActionResult> ContactAsync()
         {
-            var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "contact");
             return this.View();
         }
 
         [HttpGet("faq")]
-        public IActionResult FAQ()
+        public async Task<IActionResult> FAQAsync()
         {
-            var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "faq");
             return this.View();
         }
 
         [HttpGet("donate")]
-        public IActionResult Donate()
+        public async Task<IActionResult> DonateAsync()
         {
-            var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "donate");
             return this.View();
         }
@@ -67,7 +67,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("newest/page/{pageNumber:int}")]
         public async Task<IActionResult> Newest(int pageNumber = 1, int pageSize = IntegerConstants.MaxPageSize)
         {
-            var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             var basePath = "newest";
             var path = pageNumber > 1
                 ? $"{basePath}/page/{pageNumber}"
