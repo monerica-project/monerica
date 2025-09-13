@@ -510,7 +510,8 @@ namespace DirectoryManager.Web.Controllers
                     var sales = r.SalesPrice;
                     var cost = costEqualsSalesPrice ? r.SalesPrice : 0m;
 
-                    await writer.WriteLineAsync(string.Join(",",
+                    await writer.WriteLineAsync(string.Join(
+                        ",",
                         N8(r.Quantity),
                         r.Description,  // ensure comma-free upstream; otherwise quote here
                         D(r.PaidDateUtc),

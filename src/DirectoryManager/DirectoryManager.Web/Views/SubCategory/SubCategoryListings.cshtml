@@ -14,7 +14,6 @@
 @inject ISubcategoryRepository subCatRepo
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 
-
 @{
     ViewData[StringConstants.TitleHeader] = string.Format(
         "{0}: {1}{2}",
@@ -38,14 +37,10 @@
     };
 }
 
-
 @{
     ViewData["CurrentCategoryKey"] = Model.Category.CategoryKey;
     ViewData["CurrentSubCategoryKey"] = Model.SubCategoryKey;
-}
-
-@{
-     Layout = "_LayoutWithNav";
+    Layout = "_LayoutWithNav";
 }
 
   @section PageContent {
@@ -85,8 +80,6 @@
 }
 
     @{
-        // ... your existing code above ...
-
         var subCategorySponsors = await this.sponsoredListingRepository.GetSponsoredListingsForSubCategory(Model.SubCategoryId);
         var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
         var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
@@ -171,10 +164,6 @@
         }
     </ul>
 
-
-
-
-
   @{
     int totalPages = (int)Math.Ceiling(Model.PagedEntries.TotalCount / (double)Model.PageSize);
     int currentPage = Model.CurrentPage;
@@ -203,8 +192,6 @@
         }
     </ul>
 </nav>
-
-
 
 <hr />
 

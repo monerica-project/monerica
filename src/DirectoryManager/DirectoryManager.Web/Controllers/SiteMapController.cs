@@ -209,11 +209,9 @@ namespace DirectoryManager.Web.Controllers
                 latestApprovedReviewByEntry,
                 mostRecentUpdateDate);
 
-
             var xml = siteMapHelper.GenerateXml();
             return this.Content(xml, "text/xml");
         }
-
 
         [Route("sitemap")]
         public async Task<IActionResult> SiteMap()
