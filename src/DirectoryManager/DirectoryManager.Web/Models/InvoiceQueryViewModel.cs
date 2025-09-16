@@ -29,6 +29,10 @@ namespace DirectoryManager.Web.Models
                 .ToList();
         }
 
+        public Currency DisplayCurrency { get; set; } = Currency.USD;
+        public List<SelectListItem> DisplayCurrencyOptions { get; set; } = new ();
+        public decimal TotalInDisplayCurrency { get; set; }
+
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
 

@@ -6,7 +6,6 @@ namespace DirectoryManager.Web.Models.Reports
     {
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
-
         public List<BreakdownRow> MainSponsorBreakdown { get; set; } = [];
         public List<BreakdownRow> SubcategoryBreakdown { get; set; } = [];
         public List<BreakdownRow> CategoryBreakdown { get; set; } = [];
