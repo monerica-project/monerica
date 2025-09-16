@@ -8,6 +8,8 @@ namespace DirectoryManager.Web.Charting
 {
     public class InvoicePlotting
     {
+        private const string Culture = "en-US";
+
         public byte[] CreateMonthlyIncomeBarChart(IEnumerable<SponsoredListingInvoice> invoices, Currency displayCurrency)
         {
             var list = invoices?.ToList() ?? new ();
@@ -58,7 +60,7 @@ namespace DirectoryManager.Web.Charting
                 double y = bars[i].Value;
 
                 string label = displayCurrency == Currency.USD
-                    ? ((decimal)y).ToString("C1", System.Globalization.CultureInfo.CreateSpecificCulture("en-US"))
+                    ? ((decimal)y).ToString("C0", CultureInfo.CreateSpecificCulture(Culture))
                     : $"{(decimal)y:0.######}";
 
                 var txt = plt.Add.Text(label, x, y + yOffset);
@@ -167,7 +169,7 @@ namespace DirectoryManager.Web.Charting
 
             string ValueLabel(decimal v) =>
                 displayCurrency == Currency.USD
-                    ? v.ToString("C3", System.Globalization.CultureInfo.CreateSpecificCulture("en-US"))
+                    ? v.ToString("C", CultureInfo.CreateSpecificCulture(Culture))
                     : (v >= 1m ? v.ToString("0.00")
                        : v >= 0.1m ? v.ToString("0.000")
                        : v >= 0.01m ? v.ToString("0.0000")
@@ -270,7 +272,7 @@ namespace DirectoryManager.Web.Charting
         {
             if (currency == Currency.USD)
             {
-                return v.ToString("C0", CultureInfo.CreateSpecificCulture("en-US"));
+                return v.ToString("C0", CultureInfo.CreateSpecificCulture(Culture));
             }
 
             return $"{v:0.######} {currency}";
