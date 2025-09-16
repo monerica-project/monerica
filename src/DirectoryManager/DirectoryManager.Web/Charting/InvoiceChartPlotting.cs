@@ -1,27 +1,20 @@
 ﻿using System.Globalization;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
-using DirectoryManager.Web.Helpers; // AmountIn / MatchesCurrency
+using DirectoryManager.Web.Helpers;
 using ScottPlot;
 
 namespace DirectoryManager.Web.Charting
 {
     public class InvoicePlotting
     {
-        private static string FormatValue(decimal v, Currency currency)
-        {
-            if (currency == Currency.USD)
-                return v.ToString("C0", CultureInfo.CreateSpecificCulture("en-US"));
-            return $"{v:0.######} {currency}";
-        }
-
-        private static string AxisUnitLabel(Currency currency) =>
-            currency == Currency.USD ? "USD" : currency.ToString();
-
         public byte[] CreateMonthlyIncomeBarChart(IEnumerable<SponsoredListingInvoice> invoices, Currency displayCurrency)
         {
             var list = invoices?.ToList() ?? new ();
-            if (list.Count == 0) return Array.Empty<byte>();
+            if (list.Count == 0)
+            {
+                return Array.Empty<byte>();
+            }
 
             var grouped = list
                 .GroupBy(i => new DateTime(i.CreateDate.Year, i.CreateDate.Month, 1))
@@ -30,7 +23,10 @@ namespace DirectoryManager.Web.Charting
                 .Where(x => x.Total > 0m)
                 .ToList();
 
-            if (grouped.Count == 0) return Array.Empty<byte>();
+            if (grouped.Count == 0)
+            {
+                return Array.Empty<byte>();
+            }
 
             var bars = grouped.Select((d, idx) => new Bar { Position = idx, Value = (double)d.Total }).ToList();
 
@@ -51,7 +47,9 @@ namespace DirectoryManager.Web.Charting
             var lim = plt.Axes.GetLimits();
             double neededTop = Math.Max(lim.Top, maxBar + (yOffset * 1.15));
             if (lim.Bottom != 0 || lim.Top < neededTop)
+            {
                 plt.Axes.SetLimitsY(0, neededTop);
+            }
 
             // compact value labels just above bars
             for (int i = 0; i < bars.Count; i++)
@@ -78,7 +76,10 @@ namespace DirectoryManager.Web.Charting
         public byte[] CreateMonthlyAvgDailyRevenueChart(IEnumerable<SponsoredListingInvoice> invoices, Currency displayCurrency)
         {
             var paid = (invoices ?? Enumerable.Empty<SponsoredListingInvoice>()).ToList();
-            if (!paid.Any()) return Array.Empty<byte>();
+            if (!paid.Any())
+            {
+                return Array.Empty<byte>();
+            }
 
             var minStart = paid.Min(i => i.CampaignStartDate.Date);
             var maxEnd = paid.Max(i => i.CampaignEndDate.Date);
@@ -87,7 +88,9 @@ namespace DirectoryManager.Web.Charting
             for (var m = new DateTime(minStart.Year, minStart.Month, 1);
                  m <= new DateTime(maxEnd.Year, maxEnd.Month, 1);
                  m = m.AddMonths(1))
+            {
                 months.Add(m);
+            }
 
             var data = months.Select(m =>
             {
@@ -97,12 +100,18 @@ namespace DirectoryManager.Web.Charting
                 foreach (var inv in paid)
                 {
                     var amt = inv.AmountIn(displayCurrency);
-                    if (amt <= 0m) continue;
+                    if (amt <= 0m)
+                    {
+                        continue;
+                    }
 
                     var start = inv.CampaignStartDate.Date;
                     var end = inv.CampaignEndDate.Date;
                     var span = (decimal)((end - start).TotalDays + 1);
-                    if (span <= 0) continue;
+                    if (span <= 0)
+                    {
+                        continue;
+                    }
 
                     var ms = m;
                     var me = m.AddMonths(1).AddDays(-1);
@@ -119,7 +128,10 @@ namespace DirectoryManager.Web.Charting
                 return new { Month = m, AvgPerDay = daysInMonth > 0 ? total / daysInMonth : 0m };
             }).ToList();
 
-            if (data.All(d => d.AvgPerDay <= 0m)) return Array.Empty<byte>();
+            if (data.All(d => d.AvgPerDay <= 0m))
+            {
+                return Array.Empty<byte>();
+            }
 
             var now = DateTime.UtcNow;
 
@@ -149,7 +161,9 @@ namespace DirectoryManager.Web.Charting
             var lim = plt.Axes.GetLimits();
             double neededTop = Math.Max(lim.Top, maxBar + Math.Max(yOffset * 1.15, 0.002));
             if (lim.Bottom != 0 || lim.Top < neededTop)
+            {
                 plt.Axes.SetLimitsY(0, neededTop);
+            }
 
             string ValueLabel(decimal v) =>
                 displayCurrency == Currency.USD
@@ -178,7 +192,6 @@ namespace DirectoryManager.Web.Charting
             return plt.GetImageBytes(1200, 600, ImageFormat.Png);
         }
 
-
         public byte[] CreateSubcategoryRevenuePieChart(
             IEnumerable<SponsoredListingInvoice> invoices,
             IDictionary<int, string> categoryNames,
@@ -206,7 +219,10 @@ namespace DirectoryManager.Web.Charting
                 .OrderByDescending(x => x.total)
                 .ToArray();
 
-            if (breakdown.Length == 0) return Array.Empty<byte>();
+            if (breakdown.Length == 0)
+            {
+                return Array.Empty<byte>();
+            }
 
             double grand = (double)breakdown.Sum(x => x.total);
 
@@ -249,6 +265,20 @@ namespace DirectoryManager.Web.Charting
 
             return plt.GetImageBytes(800, 600, ImageFormat.Png);
         }
+
+        private static string FormatValue(decimal v, Currency currency)
+        {
+            if (currency == Currency.USD)
+            {
+                return v.ToString("C0", CultureInfo.CreateSpecificCulture("en-US"));
+            }
+
+            return $"{v:0.######} {currency}";
+        }
+
+        private static string AxisUnitLabel(Currency currency) =>
+            currency == Currency.USD ? "USD" : currency.ToString();
+
         private static void ApplyMonthCategoryTicks(ScottPlot.Plot plt, IReadOnlyList<DateTime> months)
         {
             double[] ticks = Enumerable.Range(0, months.Count).Select(i => (double)i).ToArray();
@@ -266,6 +296,5 @@ namespace DirectoryManager.Web.Charting
             double right = (barCount - 0.5) + rightPad; // ~one extra bar of breathing room
             plt.Axes.SetLimitsX(left, right);
         }
-
     }
 }

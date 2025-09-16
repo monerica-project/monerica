@@ -8,6 +8,7 @@ namespace DirectoryManager.Web.Helpers
         /// <summary>
         /// True if the invoice has any amount expressed in the requested currency.
         /// </summary>
+        /// <returns>if it's the currency</returns>
         public static bool MatchesCurrency(this SponsoredListingInvoice inv, Currency currency) =>
             inv.Currency == currency || inv.PaidInCurrency == currency;
 
@@ -17,10 +18,19 @@ namespace DirectoryManager.Web.Helpers
         /// Else if it equals PaidInCurrency, returns PaidAmount.
         /// Otherwise 0.
         /// </summary>
+        /// <returns>decimnal amount.</returns>
         public static decimal AmountIn(this SponsoredListingInvoice inv, Currency currency)
         {
-            if (inv.Currency == currency) return inv.Amount;
-            if (inv.PaidInCurrency == currency) return inv.PaidAmount;
+            if (inv.Currency == currency)
+            {
+                return inv.Amount;
+            }
+
+            if (inv.PaidInCurrency == currency)
+            {
+                return inv.PaidAmount;
+            }
+
             return 0m;
         }
     }

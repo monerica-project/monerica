@@ -207,7 +207,9 @@ namespace DirectoryManager.Web.Controllers
                            && inv.PaymentStatus == PaymentStatus.Paid);
 
             if (sponsorshipType.HasValue)
+            {
                 filtered = filtered.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
 
             // total in selected currency (generic)
             model.TotalInDisplayCurrency = filtered.Sum(inv => inv.AmountIn(model.DisplayCurrency));
@@ -220,7 +222,6 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(model);
         }
-
 
         [HttpGet("sponsoredlistinginvoice/monthlyincomebarchart")]
         public async Task<IActionResult> MonthlyIncomeBarChart(
@@ -238,7 +239,9 @@ namespace DirectoryManager.Web.Controllers
                            && inv.PaymentStatus == PaymentStatus.Paid);
 
             if (sponsorshipType.HasValue)
+            {
                 filtered = filtered.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
 
             // Only keep invoices that actually carry an amount in the requested currency
             var matches = filtered.Where(inv => inv.MatchesCurrency(currency)).ToList();
@@ -274,7 +277,9 @@ namespace DirectoryManager.Web.Controllers
                            && inv.PaymentStatus == PaymentStatus.Paid);
 
             if (sponsorshipType.HasValue)
+            {
                 filtered = filtered.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
 
             var matches = filtered.Where(inv => inv.MatchesCurrency(currency)).ToList();
 
@@ -317,7 +322,9 @@ namespace DirectoryManager.Web.Controllers
                            && inv.PaymentStatus == PaymentStatus.Paid);
 
             if (sponsorshipType.HasValue)
+            {
                 allPaid = allPaid.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
 
             var matches = allPaid.Where(inv => inv.MatchesCurrency(currency)).ToList();
 
@@ -342,6 +349,7 @@ namespace DirectoryManager.Web.Controllers
 
             return this.File(chartBytes, StringConstants.PngImage);
         }
+
         [Route("sponsoredlistinginvoice/subcategorybreakdown")]
         [HttpGet]
         public async Task<IActionResult> SubcategoryBreakdown(DateTime? startDate, DateTime? endDate)
@@ -523,8 +531,12 @@ namespace DirectoryManager.Web.Controllers
 
                 await writer.FlushAsync();
             }
-            catch (OperationCanceledException) { /* client canceled */ }
-            catch (IOException) { /* broken pipe */ }
+            catch (OperationCanceledException)
+            { /* client canceled */
+            }
+            catch (IOException)
+            { /* broken pipe */
+            }
 
             return new EmptyResult();
         }
@@ -592,8 +604,6 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(vm);
         }
-
-
 
         [Route("sponsoredlistinginvoice/advertiser")]
         [HttpGet]
