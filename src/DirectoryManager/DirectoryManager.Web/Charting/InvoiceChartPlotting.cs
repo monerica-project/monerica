@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
 using ScottPlot;
 
@@ -8,7 +9,7 @@ namespace DirectoryManager.Web.Charting
 {
     public class InvoicePlotting
     {
-        private const string Culture = "en-US";
+        private const string Culture = StringConstants.EnglishUS;
 
         public byte[] CreateMonthlyIncomeBarChart(IEnumerable<SponsoredListingInvoice> invoices, Currency displayCurrency)
         {

@@ -64,7 +64,7 @@
         <strong>Total in @Model.DisplayCurrency:</strong>
         @if (Model.DisplayCurrency == DirectoryManager.Data.Enums.Currency.USD)
         {
-            @Model.TotalInDisplayCurrency.ToString("C", CultureInfo.CreateSpecificCulture("en-US"))
+            @Model.TotalInDisplayCurrency.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS))
         }
         else
         {
