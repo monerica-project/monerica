@@ -36,16 +36,13 @@ namespace DirectoryManager.Web.Charting
             var plt = new Plot();
             plt.Add.Bars(bars);
 
-            // Months are two-line axis ticks (outside the data area)
             ApplyMonthCategoryTicks(plt, grouped.Select(g => g.Month).ToList());
-
-            // More bottom space so the two-line month ticks never touch the plot
             plt.Axes.Margins(left: 0.08, right: 0.08, bottom: 0.30, top: 0.18);
             plt.Axes.AutoScale();
             PadXAxisForBars(plt, bars.Count, rightPad: 1.0);
 
             double maxBar = Math.Max(0, bars.Max(b => b.Value));
-            double yOffset = Math.Max(maxBar * 0.025, 0.001); // closer to the bar tops
+            double yOffset = Math.Max(maxBar * 0.025, 0.001);
 
             var lim = plt.Axes.GetLimits();
             double neededTop = Math.Max(lim.Top, maxBar + (yOffset * 1.15));
@@ -54,16 +51,13 @@ namespace DirectoryManager.Web.Charting
                 plt.Axes.SetLimitsY(0, neededTop);
             }
 
-            // compact value labels just above bars
             for (int i = 0; i < bars.Count; i++)
             {
                 double x = bars[i].Position;
                 double y = bars[i].Value;
-
                 string label = displayCurrency == Currency.USD
                     ? ((decimal)y).ToString("C0", CultureInfo.CreateSpecificCulture(Culture))
                     : $"{(decimal)y:0.######}";
-
                 var txt = plt.Add.Text(label, x, y + yOffset);
                 txt.Alignment = ScottPlot.Alignment.LowerCenter;
                 txt.LabelFontSize = 12;
@@ -76,7 +70,11 @@ namespace DirectoryManager.Web.Charting
             return plt.GetImageBytes(1200, 800, ImageFormat.Png);
         }
 
-        public byte[] CreateMonthlyAvgDailyRevenueChart(IEnumerable<SponsoredListingInvoice> invoices, Currency displayCurrency)
+        public byte[] CreateMonthlyAvgDailyRevenueChart(
+            IEnumerable<SponsoredListingInvoice> invoices,
+            Currency displayCurrency,
+            DateTime rangeStart,
+            DateTime rangeEnd)
         {
             var paid = (invoices ?? Enumerable.Empty<SponsoredListingInvoice>()).ToList();
             if (!paid.Any())
@@ -84,13 +82,11 @@ namespace DirectoryManager.Web.Charting
                 return Array.Empty<byte>();
             }
 
-            var minStart = paid.Min(i => i.CampaignStartDate.Date);
-            var maxEnd = paid.Max(i => i.CampaignEndDate.Date);
+            var firstMonth = new DateTime(rangeStart.Year, rangeStart.Month, 1);
+            var lastMonth = new DateTime(rangeEnd.Year, rangeEnd.Month, 1);
 
             var months = new List<DateTime>();
-            for (var m = new DateTime(minStart.Year, minStart.Month, 1);
-                 m <= new DateTime(maxEnd.Year, maxEnd.Month, 1);
-                 m = m.AddMonths(1))
+            for (var m = firstMonth; m <= lastMonth; m = m.AddMonths(1))
             {
                 months.Add(m);
             }
@@ -98,6 +94,8 @@ namespace DirectoryManager.Web.Charting
             var data = months.Select(m =>
             {
                 int daysInMonth = DateTime.DaysInMonth(m.Year, m.Month);
+                var ms = m;
+                var me = m.AddMonths(1).AddDays(-1);
                 decimal total = 0m;
 
                 foreach (var inv in paid)
@@ -108,24 +106,30 @@ namespace DirectoryManager.Web.Charting
                         continue;
                     }
 
-                    var start = inv.CampaignStartDate.Date;
-                    var end = inv.CampaignEndDate.Date;
-                    var span = (decimal)((end - start).TotalDays + 1);
-                    if (span <= 0)
+                    var s = inv.CampaignStartDate.Date;
+                    var e = inv.CampaignEndDate.Date;
+                    if (e < s)
                     {
                         continue;
                     }
 
-                    var ms = m;
-                    var me = m.AddMonths(1).AddDays(-1);
-                    var os = start > ms ? start : ms;
-                    var oe = end < me ? end : me;
-
-                    if (oe >= os)
+                    // inclusive campaign days (matches your other code)
+                    var spanDays = (decimal)((e - s).TotalDays + 1);
+                    if (spanDays <= 0)
                     {
-                        var overlapDays = (decimal)((oe - os).TotalDays + 1);
-                        total += (amt / span) * overlapDays;
+                        continue;
                     }
+
+                    // overlap with the month
+                    var os = s > ms ? s : ms;
+                    var oe = e < me ? e : me;
+                    if (oe < os)
+                    {
+                        continue;
+                    }
+
+                    var overlapDays = (decimal)((oe - os).TotalDays + 1);
+                    total += (amt / spanDays) * overlapDays;
                 }
 
                 return new { Month = m, AvgPerDay = daysInMonth > 0 ? total / daysInMonth : 0m };
@@ -150,17 +154,13 @@ namespace DirectoryManager.Web.Charting
             var plt = new Plot();
             plt.Add.Bars(bars);
 
-            // Months as two-line ticks outside the plot area
             ApplyMonthCategoryTicks(plt, months);
-
-            // Give the bottom axis extra room for the two-line labels
             plt.Axes.Margins(left: 0.08, right: 0.08, bottom: 0.30, top: 0.18);
             plt.Axes.AutoScale();
             PadXAxisForBars(plt, bars.Count, rightPad: 1.0);
 
             double maxBar = Math.Max(0, bars.Max(b => b.Value));
-            double yOffset = Math.Max(maxBar * 0.025, 0.001); // closer to the bar tops
-
+            double yOffset = Math.Max(maxBar * 0.025, 0.001);
             var lim = plt.Axes.GetLimits();
             double neededTop = Math.Max(lim.Top, maxBar + Math.Max(yOffset * 1.15, 0.002));
             if (lim.Bottom != 0 || lim.Top < neededTop)
@@ -168,20 +168,25 @@ namespace DirectoryManager.Web.Charting
                 plt.Axes.SetLimitsY(0, neededTop);
             }
 
-            string ValueLabel(decimal v) =>
-                displayCurrency == Currency.USD
-                    ? v.ToString("C", CultureInfo.CreateSpecificCulture(Culture))
-                    : (v >= 1m ? v.ToString("0.00")
-                       : v >= 0.1m ? v.ToString("0.000")
-                       : v >= 0.01m ? v.ToString("0.0000")
-                       : v >= 0.001m ? v.ToString("0.00000")
-                       : v.ToString("0.000000").TrimEnd('0').TrimEnd('.'));
+            string ValueLabel(decimal v)
+            {
+                if (displayCurrency == Currency.USD)
+                {
+                    return v.ToString("C", CultureInfo.CreateSpecificCulture(Culture));
+                }
+
+                // Longer format for any non-USD currency (one extra decimal place)
+                return v >= 1m ? v.ToString("0.000")
+                     : v >= 0.1m ? v.ToString("0.0000")
+                     : v >= 0.01m ? v.ToString("0.00000")
+                     : v >= 0.001m ? v.ToString("0.000000")
+                     : v.ToString("0.0000000").TrimEnd('0').TrimEnd('.');
+            }
 
             for (int i = 0; i < bars.Count; i++)
             {
                 double x = bars[i].Position;
                 double y = bars[i].Value;
-
                 var txt = plt.Add.Text(ValueLabel((decimal)y), x, y + yOffset);
                 txt.Alignment = ScottPlot.Alignment.LowerCenter;
                 txt.LabelFontSize = 12;
@@ -193,6 +198,113 @@ namespace DirectoryManager.Web.Charting
             plt.YLabel($"{unit} per day");
 
             return plt.GetImageBytes(1200, 600, ImageFormat.Png);
+        }
+
+        public byte[] CreateMonthlyIncomeBarChart(
+            IEnumerable<SponsoredListingInvoice> invoices,
+            Currency displayCurrency,
+            DateTime rangeStart,
+            DateTime rangeEnd)
+        {
+            var list = (invoices ?? Enumerable.Empty<SponsoredListingInvoice>()).ToList();
+            if (list.Count == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            // Build inclusive month list for [rangeStart, rangeEnd]
+            var firstMonth = new DateTime(rangeStart.Year, rangeStart.Month, 1);
+            var lastMonth = new DateTime(rangeEnd.Year, rangeEnd.Month, 1);
+            var months = new List<DateTime>();
+            for (var m = firstMonth; m <= lastMonth; m = m.AddMonths(1))
+            {
+                months.Add(m);
+            }
+
+            // Accrue each invoice’s amount across overlap days per month
+            var monthlyTotals = new List<decimal>(months.Count);
+            foreach (var m in months)
+            {
+                var ms = m;
+                var me = m.AddMonths(1).AddDays(-1);
+                decimal total = 0m;
+
+                foreach (var inv in list)
+                {
+                    var amt = inv.AmountIn(displayCurrency);
+                    if (amt <= 0m)
+                    {
+                        continue;
+                    }
+
+                    var s = inv.CampaignStartDate.Date;
+                    var e = inv.CampaignEndDate.Date;
+                    if (e < s)
+                    {
+                        continue;
+                    }
+
+                    var spanDays = (decimal)((e - s).TotalDays + 1);
+                    if (spanDays <= 0)
+                    {
+                        continue;
+                    }
+
+                    var os = s > ms ? s : ms;
+                    var oe = e < me ? e : me;
+                    if (oe < os)
+                    {
+                        continue;
+                    }
+
+                    var overlapDays = (decimal)((oe - os).TotalDays + 1);
+                    total += (amt / spanDays) * overlapDays;
+                }
+
+                monthlyTotals.Add(total);
+            }
+
+            // Plot
+            var bars = monthlyTotals.Select((v, i) => new Bar { Position = i, Value = (double)v }).ToList();
+            if (bars.All(b => b.Value == 0))
+            {
+                return Array.Empty<byte>();
+            }
+
+            var plt = new Plot();
+            plt.Add.Bars(bars);
+
+            ApplyMonthCategoryTicks(plt, months);
+            plt.Axes.Margins(left: 0.08, right: 0.08, bottom: 0.30, top: 0.18);
+            plt.Axes.AutoScale();
+            PadXAxisForBars(plt, bars.Count, rightPad: 1.0);
+
+            double maxBar = Math.Max(0, bars.Max(b => b.Value));
+            double yOffset = Math.Max(maxBar * 0.025, 0.001);
+            var lim = plt.Axes.GetLimits();
+            double neededTop = Math.Max(lim.Top, maxBar + (yOffset * 1.15));
+            if (lim.Bottom != 0 || lim.Top < neededTop)
+            {
+                plt.Axes.SetLimitsY(0, neededTop);
+            }
+
+            for (int i = 0; i < bars.Count; i++)
+            {
+                double x = bars[i].Position;
+                double y = bars[i].Value;
+                string label = displayCurrency == Currency.USD
+                    ? ((decimal)y).ToString("C0", CultureInfo.CreateSpecificCulture(Culture))
+                    : $"{(decimal)y:0.######}";
+                var txt = plt.Add.Text(label, x, y + yOffset);
+                txt.Alignment = ScottPlot.Alignment.LowerCenter;
+                txt.LabelFontSize = 12;
+            }
+
+            string unit = displayCurrency == Currency.USD ? "USD" : displayCurrency.ToString();
+            plt.Title($"Monthly Income ({unit})");
+            plt.YLabel($"Total ({unit})");
+
+            return plt.GetImageBytes(1200, 800, ImageFormat.Png);
         }
 
         public byte[] CreateSubcategoryRevenuePieChart(

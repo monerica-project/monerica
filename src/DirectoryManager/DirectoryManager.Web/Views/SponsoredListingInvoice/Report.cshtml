@@ -72,6 +72,28 @@
         }
     </p>
 
+    <p>
+    <strong>Prepaid future services:</strong>
+    @if (Model.PaidThroughDateUtc.HasValue && Model.FutureServiceDaysDistinct > 0)
+    {
+        <span>@Model.PaidThroughDateYmd — </span>
+        @if (Model.DisplayCurrency == DirectoryManager.Data.Enums.Currency.USD)
+        {
+            @Model.FutureRevenueInDisplayCurrency.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS))
+        }
+        else
+        {
+            @Model.FutureRevenueInDisplayCurrency.ToString("0.######") @Model.DisplayCurrency
+        }
+        <span> for @Model.FutureServiceDaysDistinct day(s) remaining</span>
+    }
+    else
+    {
+        <span>none</span>
+    }
+</p>
+
+
     <a 
        href="@Url.Action("DownloadAccountantCsv", "SponsoredListingInvoice", new {
             startDate = Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat),

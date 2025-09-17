@@ -220,33 +220,126 @@ namespace DirectoryManager.Web.Controllers
             model.PaidInCurrency = filtered.Select(inv => inv.PaidInCurrency).FirstOrDefault();
             model.Currency = filtered.Select(inv => inv.Currency).FirstOrDefault();
 
+            // ----- Prepaid FUTURE services summary (as of "now") -----
+            var asOfUtc = DateTime.UtcNow.Date;
+
+            // Start from all PAID invoices (not limited by Start/End UI range)
+            var futurePaid = allInvoices.Where(inv => inv.PaymentStatus == PaymentStatus.Paid);
+            if (sponsorshipType.HasValue)
+            {
+                futurePaid = futurePaid.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
+
+            decimal futureRevenue = 0m;
+            DateTime? paidThrough = null;
+            var intervals = new List<(DateTime S, DateTime E)>();
+
+            foreach (var inv in futurePaid)
+            {
+                var start = inv.CampaignStartDate.Date;
+                var end = inv.CampaignEndDate.Date;
+                if (end < start)
+                {
+                    continue;
+                }
+
+                // only the remaining window (today → end)
+                var os = start < asOfUtc ? asOfUtc : start;
+                var oe = end;
+                if (oe < os)
+                {
+                    continue; // nothing left
+                }
+
+                // collect for DISTINCT day counting
+                intervals.Add((os, oe));
+
+                // pro-rate remaining value in the selected currency
+                var totalDays = (decimal)((end - start).TotalDays + 1); // inclusive
+                if (totalDays > 0m)
+                {
+                    var overlapDays = (decimal)((oe - os).TotalDays + 1); // inclusive
+                    var perDay = inv.AmountIn(model.DisplayCurrency) / totalDays;
+                    futureRevenue += perDay * overlapDays;
+                }
+
+                if (!paidThrough.HasValue || end > paidThrough.Value)
+                {
+                    paidThrough = end;
+                }
+            }
+
+            // merge intervals to count DISTINCT days
+            int CountDistinctDays(List<(DateTime S, DateTime E)> ivals)
+            {
+                if (ivals.Count == 0)
+                {
+                    return 0;
+                }
+
+                ivals.Sort((a, b) => a.S.CompareTo(b.S));
+                var curS = ivals[0].S;
+                var curE = ivals[0].E;
+                long total = 0;
+
+                for (int i = 1; i < ivals.Count; i++)
+                {
+                    var (s, e) = ivals[i];
+                    if (s <= curE.AddDays(1)) // overlap or touching
+                    {
+                        if (e > curE)
+                        {
+                            curE = e;
+                        }
+                    }
+                    else
+                    {
+                        total += (long)(curE - curS).TotalDays + 1;
+                        curS = s;
+                        curE = e;
+                    }
+                }
+
+                total += (long)(curE - curS).TotalDays + 1;
+                return (int)total;
+            }
+
+            model.FutureRevenueInDisplayCurrency = futureRevenue;
+            model.PaidThroughDateUtc = paidThrough;
+            model.FutureServiceDaysDistinct = CountDistinctDays(intervals);
+            model.FutureServiceDaysContinuous =
+                paidThrough.HasValue && paidThrough.Value >= asOfUtc
+                    ? (int)((paidThrough.Value - asOfUtc).TotalDays + 1)
+                    : 0;
+
             return this.View(model);
         }
 
+        // --- Monthly Income (UNCHANGED logic: sum by CreateDate month) ---
         [HttpGet("sponsoredlistinginvoice/monthlyincomebarchart")]
         public async Task<IActionResult> MonthlyIncomeBarChart(
             DateTime startDate,
             DateTime endDate,
             SponsorshipType? sponsorshipType,
-            Currency? displayCurrency) // NEW
+            Currency? displayCurrency)
         {
             var currency = displayCurrency ?? Currency.USD;
 
             var invoices = await this.invoiceRepository.GetAllAsync();
             var filtered = invoices
-                .Where(inv => inv.CreateDate >= startDate
-                           && inv.CreateDate <= endDate
-                           && inv.PaymentStatus == PaymentStatus.Paid);
+                .Where(inv =>
+                    inv.PaymentStatus == PaymentStatus.Paid &&
+                    inv.CreateDate.Date >= startDate.Date &&
+                    inv.CreateDate.Date <= endDate.Date);
 
             if (sponsorshipType.HasValue)
             {
                 filtered = filtered.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
             }
 
-            // Only keep invoices that actually carry an amount in the requested currency
-            var matches = filtered.Where(inv => inv.MatchesCurrency(currency)).ToList();
-
-            if (!matches.Any() || matches.Sum(i => i.AmountIn(currency)) == 0m)
+            // IMPORTANT: do NOT filter by MatchesCurrency — we always use AmountIn()
+            var list = filtered.ToList();
+            if (!list.Any())
             {
                 const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
   <rect width='100%' height='100%' fill='white'/>
@@ -256,34 +349,34 @@ namespace DirectoryManager.Web.Controllers
                 return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
             }
 
-            var imageBytes = new InvoicePlotting().CreateMonthlyIncomeBarChart(matches, currency);
+            var imageBytes = new InvoicePlotting().CreateMonthlyIncomeBarChart(list, currency);
             return this.File(imageBytes, StringConstants.PngImage);
         }
 
-        // --- Monthly Avg Daily Revenue Chart ---
+        // Average Daily Revenue (show future months up to paid-through)
         [HttpGet("sponsoredlistinginvoice/monthlyavgdailyrevenuechart")]
         public async Task<IActionResult> MonthlyAvgDailyRevenueChart(
             DateTime startDate,
             DateTime endDate,
             SponsorshipType? sponsorshipType,
-            Currency? displayCurrency) // NEW
+            Currency? displayCurrency)
         {
             var currency = displayCurrency ?? Currency.USD;
 
-            var invoices = await this.invoiceRepository.GetAllAsync();
-            var filtered = invoices
-                .Where(inv => inv.CreateDate >= startDate
-                           && inv.CreateDate <= endDate
-                           && inv.PaymentStatus == PaymentStatus.Paid);
+            // normalize UI range to month starts
+            var monthStart = new DateTime(startDate.Year, startDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var monthEndUI = new DateTime(endDate.Year, endDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
+            // pull all PAID invoices (not filtered by overlap so future is visible)
+            var invoices = await this.invoiceRepository.GetAllAsync();
+            var paid = invoices.Where(i => i.PaymentStatus == PaymentStatus.Paid);
             if (sponsorshipType.HasValue)
             {
-                filtered = filtered.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+                paid = paid.Where(i => i.SponsorshipType == sponsorshipType.Value);
             }
 
-            var matches = filtered.Where(inv => inv.MatchesCurrency(currency)).ToList();
-
-            if (!matches.Any() || matches.Sum(i => i.AmountIn(currency)) == 0m)
+            var list = paid.ToList();
+            if (!list.Any())
             {
                 const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
   <rect width='100%' height='100%' fill='white'/>
@@ -293,8 +386,15 @@ namespace DirectoryManager.Web.Controllers
                 return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
             }
 
-            var imageBytes = new InvoicePlotting().CreateMonthlyAvgDailyRevenueChart(matches, currency);
-            return this.File(imageBytes, StringConstants.PngImage);
+            // EXTEND to “paid through” so future months appear
+            var paidThrough = list.Max(i => i.CampaignEndDate.Date);
+            var paidThroughMonth = new DateTime(paidThrough.Year, paidThrough.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var monthEnd = paidThroughMonth > monthEndUI ? paidThroughMonth : monthEndUI;
+
+            var bytes = new InvoicePlotting()
+                .CreateMonthlyAvgDailyRevenueChart(list, currency, monthStart, monthEnd);
+
+            return this.File(bytes, StringConstants.PngImage);
         }
 
         // --- Subcategory Revenue Pie ---
