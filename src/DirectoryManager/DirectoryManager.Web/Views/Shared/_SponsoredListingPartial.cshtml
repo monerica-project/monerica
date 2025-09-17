@@ -23,8 +23,8 @@
         }
 
         // 3) Convert to view-models
-        var link2Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
-        var link3Name = _cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+        var link2Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
+        var link3Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
         var vms = ViewModelConverter.ConvertToViewModels(
         entries,
         DateDisplayOption.NotDisplayed,
@@ -68,7 +68,8 @@
               <div class="sponsor-links">
                 @if (!string.IsNullOrEmpty(vm.Link2))
                 {
-                    <a rel="sponsored" href="@vm.Link2" target="_blank">@vm.Link2Name</a>
+                                <text>&nbsp;</text>
+                                <a rel="sponsored" href="@vm.Link2" target="_blank">@vm.Link2Name</a>
                 }
                 @if (!string.IsNullOrEmpty(vm.Link3))
                 {

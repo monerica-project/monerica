@@ -1,15 +1,18 @@
-﻿using System.Text;
+﻿using System.Globalization;
+using System.Text;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Web.Charting;
 using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Models.Reports;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
+using Microsoft.Net.Http.Headers;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -91,8 +94,8 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var link2Name = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
-            var link3Name = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
+            var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
             var entry = await this.directoryEntryRepository
                                    .GetByIdAsync(invoice.DirectoryEntryId)
@@ -155,9 +158,9 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Report(
             DateTime? startDate,
             DateTime? endDate,
-            SponsorshipType? sponsorshipType)
+            SponsorshipType? sponsorshipType,
+            Currency? displayCurrency) // NEW
         {
-            // 1) Normalize your dates
             const int defaultYears = 1;
             var now = DateTime.UtcNow;
             var fromDate = startDate?.Date ?? now.AddYears(-defaultYears).Date;
@@ -167,10 +170,11 @@ namespace DirectoryManager.Web.Controllers
             {
                 StartDate = new DateTime(fromDate.Year, fromDate.Month, fromDate.Day, 0, 0, 0, DateTimeKind.Utc),
                 EndDate = new DateTime(toDate.Year, toDate.Month, toDate.Day, 23, 59, 59, DateTimeKind.Utc),
-                SponsorshipType = sponsorshipType
+                SponsorshipType = sponsorshipType,
+                DisplayCurrency = displayCurrency ?? Currency.USD
             };
 
-            // 2) Build your “All + each enum” dropdown
+            // sponsorship type dropdown (unchanged)
             model.SponsorshipTypeOptions = Enum.GetValues(typeof(SponsorshipType))
                 .Cast<SponsorshipType>()
                 .Where(st => st != SponsorshipType.Unknown)
@@ -180,15 +184,22 @@ namespace DirectoryManager.Web.Controllers
                     Text = st.ToString(),
                     Selected = sponsorshipType.HasValue && sponsorshipType.Value == st
                 })
-                .Prepend(new SelectListItem
+                .Prepend(new SelectListItem { Value = "", Text = "All", Selected = !sponsorshipType.HasValue })
+                .ToList();
+
+            // currency dropdown (generic)
+            model.DisplayCurrencyOptions = Enum.GetValues(typeof(Currency))
+                .Cast<Currency>()
+                .Where(c => c != Currency.Unknown)
+                .Select(c => new SelectListItem
                 {
-                    Value = "",
-                    Text = "All",
-                    Selected = !sponsorshipType.HasValue
+                    Value = c.ToString(),
+                    Text = c.ToString(),
+                    Selected = c == model.DisplayCurrency
                 })
                 .ToList();
 
-            // 3) Fetch & filter the raw invoices
+            // fetch and filter
             var allInvoices = await this.invoiceRepository.GetAllAsync().ConfigureAwait(false);
             var filtered = allInvoices
                 .Where(inv => inv.CreateDate >= model.StartDate
@@ -197,76 +208,30 @@ namespace DirectoryManager.Web.Controllers
 
             if (sponsorshipType.HasValue)
             {
-                filtered = filtered
-                    .Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+                filtered = filtered.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
             }
 
-            // 4) Build a little “result” that mirrors your old repository DTO
-            var result = new
-            {
-                TotalReceivedAmount = filtered.Sum(inv => inv.PaidAmount),
-                TotalAmount = filtered.Sum(inv => inv.Amount),
-                Currency = filtered.Select(inv => inv.Currency)
-                                              .FirstOrDefault(),
-                PaidInCurrency = filtered.Select(inv => inv.PaidInCurrency)
-                                              .FirstOrDefault()
-            };
+            // total in selected currency (generic)
+            model.TotalInDisplayCurrency = filtered.Sum(inv => inv.AmountIn(model.DisplayCurrency));
 
-            // 5) Exactly the assignments you had before:
-            model.TotalPaidAmount = result.TotalReceivedAmount;
-            model.Currency = result.Currency;
-            model.TotalAmount = result.TotalAmount;
-            model.PaidInCurrency = result.PaidInCurrency;
+            // Keep existing fields if other parts of the page still use them (optional)
+            model.TotalPaidAmount = filtered.Sum(inv => inv.PaidAmount);
+            model.TotalAmount = filtered.Sum(inv => inv.Amount);
+            model.PaidInCurrency = filtered.Select(inv => inv.PaidInCurrency).FirstOrDefault();
+            model.Currency = filtered.Select(inv => inv.Currency).FirstOrDefault();
 
             return this.View(model);
         }
 
         [HttpGet("sponsoredlistinginvoice/monthlyincomebarchart")]
-        public async Task<IActionResult> MonthlyIncomeBarChartAsync(
+        public async Task<IActionResult> MonthlyIncomeBarChart(
             DateTime startDate,
             DateTime endDate,
-            SponsorshipType? sponsorshipType)
+            SponsorshipType? sponsorshipType,
+            Currency? displayCurrency) // NEW
         {
-            var invoices = await this.invoiceRepository.GetAllAsync();
+            var currency = displayCurrency ?? Currency.USD;
 
-            var filtered = invoices
-                .Where(inv => inv.CreateDate >= startDate
-                           && inv.CreateDate <= endDate)
-                .Where(inv => inv.PaymentStatus == PaymentStatus.Paid);
-
-            if (sponsorshipType.HasValue)
-            {
-                filtered = filtered
-                    .Where(inv => inv.SponsorshipType == sponsorshipType.Value);
-            }
-
-            if (!filtered.Any())
-            {
-                // Simple SVG fallback — any <img> tag will render this inline
-                const string svg = @"
-<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
-  <rect width='100%' height='100%' fill='white'/>
-  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
-        font-family='sans-serif' font-size='20' fill='black'>
-    No results
-  </text>
-</svg>";
-                byte[] bytes = Encoding.UTF8.GetBytes(svg);
-                return this.File(bytes, "image/svg+xml");
-            }
-
-            var imageBytes = new InvoicePlotting()
-                                 .CreateMonthlyIncomeBarChart(filtered);
-
-            return this.File(imageBytes, StringConstants.PngImage);
-        }
-
-        [HttpGet("sponsoredlistinginvoice/monthlyavgdailyrevenuechart")]
-        public async Task<IActionResult> MonthlyAvgDailyRevenueChartAsync(
-                DateTime startDate,
-                DateTime endDate,
-                SponsorshipType? sponsorshipType)
-        {
             var invoices = await this.invoiceRepository.GetAllAsync();
             var filtered = invoices
                 .Where(inv => inv.CreateDate >= startDate
@@ -278,70 +243,111 @@ namespace DirectoryManager.Web.Controllers
                 filtered = filtered.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
             }
 
-            if (!filtered.Any())
+            // Only keep invoices that actually carry an amount in the requested currency
+            var matches = filtered.Where(inv => inv.MatchesCurrency(currency)).ToList();
+
+            if (!matches.Any() || matches.Sum(i => i.AmountIn(currency)) == 0m)
             {
                 const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
   <rect width='100%' height='100%' fill='white'/>
-  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle' font-family='sans-serif' font-size='20' fill='black'>No results</text>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
+        font-family='sans-serif' font-size='20' fill='black'>No results</text>
 </svg>";
                 return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
             }
 
-            var imageBytes = new InvoicePlotting()
-                                 .CreateMonthlyAvgDailyRevenueChart(filtered);
+            var imageBytes = new InvoicePlotting().CreateMonthlyIncomeBarChart(matches, currency);
             return this.File(imageBytes, StringConstants.PngImage);
         }
 
+        // --- Monthly Avg Daily Revenue Chart ---
+        [HttpGet("sponsoredlistinginvoice/monthlyavgdailyrevenuechart")]
+        public async Task<IActionResult> MonthlyAvgDailyRevenueChart(
+            DateTime startDate,
+            DateTime endDate,
+            SponsorshipType? sponsorshipType,
+            Currency? displayCurrency) // NEW
+        {
+            var currency = displayCurrency ?? Currency.USD;
+
+            var invoices = await this.invoiceRepository.GetAllAsync();
+            var filtered = invoices
+                .Where(inv => inv.CreateDate >= startDate
+                           && inv.CreateDate <= endDate
+                           && inv.PaymentStatus == PaymentStatus.Paid);
+
+            if (sponsorshipType.HasValue)
+            {
+                filtered = filtered.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
+
+            var matches = filtered.Where(inv => inv.MatchesCurrency(currency)).ToList();
+
+            if (!matches.Any() || matches.Sum(i => i.AmountIn(currency)) == 0m)
+            {
+                const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
+  <rect width='100%' height='100%' fill='white'/>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
+        font-family='sans-serif' font-size='20' fill='black'>No results</text>
+</svg>";
+                return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
+            }
+
+            var imageBytes = new InvoicePlotting().CreateMonthlyAvgDailyRevenueChart(matches, currency);
+            return this.File(imageBytes, StringConstants.PngImage);
+        }
+
+        // --- Subcategory Revenue Pie ---
         [AllowAnonymous]
         [HttpGet("sponsoredlistinginvoice/subcategory-revenue-pie")]
         public async Task<IActionResult> SubcategoryRevenuePieChart(
             DateTime? startDate,
             DateTime? endDate,
-            SponsorshipType? sponsorshipType)
+            SponsorshipType? sponsorshipType,
+            Currency? displayCurrency) // NEW
         {
-            // 1) normalize dates (default to last 12 months)
+            var currency = displayCurrency ?? Currency.USD;
+
             const int defaultYears = 1;
             var now = DateTime.UtcNow;
             var from = (startDate ?? now.AddYears(-defaultYears)).Date;
             var to = (endDate ?? now).Date;
+
             var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
             var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
 
-            // 2) fetch & filter paid invoices in range
             var allPaid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
                 .Where(inv => inv.CreateDate >= startUtc
                            && inv.CreateDate <= endUtc
-                           && inv.PaymentStatus == PaymentStatus.Paid)
-                .ToList();
+                           && inv.PaymentStatus == PaymentStatus.Paid);
 
-            // 2a) if user supplied a sponsorshipType, filter by it
             if (sponsorshipType.HasValue)
             {
-                allPaid = allPaid
-                    .Where(inv => inv.SponsorshipType == sponsorshipType.Value)
-                    .ToList();
+                allPaid = allPaid.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
             }
 
-            // 3) load lookup maps
+            var matches = allPaid.Where(inv => inv.MatchesCurrency(currency)).ToList();
+
             var catsList = await this.categoryRepository.GetAllAsync().ConfigureAwait(false);
             var cats = catsList.ToDictionary(c => c.CategoryId, c => c.Name);
 
             var subsList = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync().ConfigureAwait(false);
             var subs = subsList.ToDictionary(s => s.SubCategoryId, s => s.Name);
-
-            // 3a) mapping subcategory → categoryId
             var subToCat = subsList.ToDictionary(s => s.SubCategoryId, s => s.CategoryId);
 
-            // 4) delegate to ScottPlot helper
-            var chartBytes = new InvoicePlotting()
-                .CreateSubcategoryRevenuePieChart(
-                    allPaid,
-                    cats,
-                    subs,
-                    subToCat);
+            var chartBytes = new InvoicePlotting().CreateSubcategoryRevenuePieChart(matches, cats, subs, subToCat, currency);
 
-            // 5) return as PNG
-            return this.File(chartBytes, "image/png");
+            if (chartBytes == null || chartBytes.Length == 0)
+            {
+                const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
+  <rect width='100%' height='100%' fill='white'/>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
+        font-family='sans-serif' font-size='20' fill='black'>No results</text>
+</svg>";
+                return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
+            }
+
+            return this.File(chartBytes, StringConstants.PngImage);
         }
 
         [Route("sponsoredlistinginvoice/subcategorybreakdown")]
@@ -460,6 +466,81 @@ namespace DirectoryManager.Web.Controllers
             return this.View(vm);
         }
 
+        [HttpGet("sponsoredlistinginvoice/download-accountant-csv")]
+        [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
+        [IgnoreAntiforgeryToken]
+        public async Task<IActionResult> DownloadAccountantCsv(
+        DateTime? startDate,
+        DateTime? endDate,
+        SponsorshipType? sponsorshipType,
+        bool costEqualsSalesPrice = true)
+        {
+            const int defaultYears = 1;
+            var now = DateTime.UtcNow;
+            var from = (startDate ?? now.AddYears(-defaultYears)).Date;
+            var to = (endDate ?? now).Date;
+
+            var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
+            var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
+
+            var fileName = $"Accountant_Crypto_PAID_{from:yyyyMMdd}_to_{to:yyyyMMdd}.csv";
+
+            this.Response.ContentType = "text/csv; charset=utf-8";
+            this.Response.Headers[HeaderNames.ContentDisposition] = $"attachment; filename=\"{fileName}\"";
+            this.Response.Headers.CacheControl = "no-store, no-cache, must-revalidate";
+            this.Response.Headers.Pragma = "no-cache";
+            this.Response.Headers["X-Download-Options"] = "noopen";
+
+            var utf8 = new UTF8Encoding(encoderShouldEmitUTF8Identifier: true);
+            var bom = utf8.GetPreamble();
+            if (bom.Length > 0)
+            {
+                await this.Response.Body.WriteAsync(bom, 0, bom.Length);
+            }
+
+            await using var writer = new StreamWriter(this.Response.Body, utf8, bufferSize: 64 * 1024, leaveOpen: true);
+
+            static string D(DateTime utc) => utc.ToUniversalTime().ToString("MM/dd/yy", CultureInfo.InvariantCulture);
+            static string N8(decimal v) => v.ToString("0.########", CultureInfo.InvariantCulture);
+            static string Money(decimal v) => v.ToString("0.00", CultureInfo.InvariantCulture);
+
+            await writer.WriteLineAsync("Quantity,Description,Sales Date,Purchase Date,Sales Price,Cost");
+
+            try
+            {
+                int batch = 0;
+                await foreach (var r in this.invoiceRepository.StreamPaidForAccountantAsync(startUtc, endUtc, sponsorshipType))
+                {
+                    var sales = r.SalesPrice;
+                    var cost = costEqualsSalesPrice ? r.SalesPrice : 0m;
+
+                    await writer.WriteLineAsync(string.Join(
+                        ",",
+                        N8(r.Quantity),
+                        r.Description,  // ensure comma-free upstream; otherwise quote here
+                        D(r.PaidDateUtc),
+                        D(r.PaidDateUtc),
+                        Money(sales),
+                        Money(cost)));
+
+                    if (++batch % 200 == 0)
+                    {
+                        await writer.FlushAsync();
+                    }
+                }
+
+                await writer.FlushAsync();
+            }
+            catch (OperationCanceledException)
+            { /* client canceled */
+            }
+            catch (IOException)
+            { /* broken pipe */
+            }
+
+            return new EmptyResult();
+        }
+
         [Route("sponsoredlistinginvoice/advertiserbreakdown")]
         [HttpGet]
         public async Task<IActionResult> AdvertiserBreakdown(
@@ -467,82 +548,38 @@ namespace DirectoryManager.Web.Controllers
             DateTime? endDate,
             SponsorshipType? sponsorshipType)
         {
+            // Date-only for UI; half-open [start, end) for correctness
             const int defaultYears = 1;
             var now = DateTime.UtcNow;
-            var from = startDate?.Date ?? now.AddYears(-defaultYears).Date;
-            var to = endDate?.Date ?? now.Date;
+            var from = (startDate ?? now.AddYears(-defaultYears)).Date;
+            var to = (endDate ?? now).Date;
 
             var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
-            var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
+            var endOpenUtc = new DateTime(to.Year, to.Month, to.Day, 0, 0, 0, DateTimeKind.Utc).AddDays(1);
 
-            // Get all invoices
-            var allPaid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
-                .Where(inv =>
-                    inv.PaymentStatus == PaymentStatus.Paid &&
-                    inv.CreateDate >= startUtc &&
-                    inv.CreateDate <= endUtc);
+            var stats = await this.invoiceRepository
+                .GetAdvertiserInvoiceWindowSumsAsync(startUtc, endOpenUtc, sponsorshipType)
+                .ConfigureAwait(false);
 
-            if (sponsorshipType.HasValue)
+            var totalRevenue = stats.Sum(s => s.Revenue);
+
+            var rows = stats.Select(s =>
             {
-                allPaid = allPaid.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
-            }
+                var avgPerDay = Math.Round(s.Revenue / Math.Max(1, s.DaysPurchased), 2);
+                var pct = totalRevenue > 0m ? Math.Round(s.Revenue * 100m / totalRevenue, 2) : 0m;
 
-            var paidList = allPaid.ToList();
-
-            var rows = new List<AdvertiserBreakdownRow>();
-            decimal totalRevenue = 0m;
-
-            var grouped = paidList.GroupBy(inv => inv.DirectoryEntryId);
-            foreach (var g in grouped)
-            {
-                decimal advertiserTotal = 0m;
-                double totalActiveDays = 0d;
-                int invoiceCount = 0;
-
-                foreach (var inv in g)
+                return new AdvertiserBreakdownRow
                 {
-                    advertiserTotal += inv.Amount;
-
-                    var start = inv.CampaignStartDate.Date;
-                    var end = inv.CampaignEndDate.Date;
-                    var days = (end - start).TotalDays;
-                    if (days <= 0)
-                    {
-                        days = 1; // Avoid divide-by-zero or bad data
-                    }
-
-                    totalActiveDays += days;
-
-                    invoiceCount++;
-                }
-
-                if (totalActiveDays <= 0)
-                {
-                    totalActiveDays = 1;
-                }
-
-                var avgPerDay = Math.Round(advertiserTotal / (decimal)totalActiveDays, 2);
-                totalRevenue += advertiserTotal;
-
-                var entry = await this.directoryEntryRepository.GetByIdAsync(g.Key);
-                rows.Add(new AdvertiserBreakdownRow
-                {
-                    DirectoryEntryId = g.Key,
-                    DirectoryEntryName = entry?.Name ?? $"(#{g.Key})",
-                    Revenue = advertiserTotal,
-                    Count = invoiceCount,
-                    AveragePerDay = avgPerDay
-                });
-            }
-
-            foreach (var r in rows)
-            {
-                r.Percentage = totalRevenue > 0
-                    ? Math.Round(r.Revenue * 100m / totalRevenue, 2)
-                    : 0m;
-            }
-
-            rows = rows.OrderByDescending(r => r.Revenue).ToList();
+                    DirectoryEntryId = s.DirectoryEntryId,
+                    DirectoryEntryName = s.DirectoryEntryName,
+                    Revenue = s.Revenue,             // sum of Amount
+                    Count = s.Count,               // invoices in window
+                    AveragePerDay = avgPerDay,             // Amount ÷ purchased days
+                    Percentage = pct
+                };
+            })
+            .OrderByDescending(r => r.Revenue)
+            .ToList();
 
             var options = Enum.GetValues(typeof(SponsorshipType))
                 .Cast<SponsorshipType>()
@@ -553,18 +590,13 @@ namespace DirectoryManager.Web.Controllers
                     Text = st.ToString(),
                     Selected = sponsorshipType.HasValue && sponsorshipType.Value == st
                 })
-                .Prepend(new SelectListItem
-                {
-                    Value = "",
-                    Text = "All",
-                    Selected = !sponsorshipType.HasValue
-                })
+                .Prepend(new SelectListItem { Value = "", Text = "All", Selected = !sponsorshipType.HasValue })
                 .ToList();
 
             var vm = new AdvertiserBreakdownViewModel
             {
-                StartDate = startUtc,
-                EndDate = endUtc,
+                StartDate = from,
+                EndDate = to,
                 SponsorshipType = sponsorshipType,
                 SponsorshipTypeOptions = options,
                 Rows = rows
@@ -575,7 +607,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("sponsoredlistinginvoice/advertiser")]
         [HttpGet]
-        public async Task<IActionResult> Advertiser(int directoryEntryId, int page = 1, int pageSize = 25)
+        public async Task<IActionResult> Advertiser(int directoryEntryId, int page = 1, int pageSize = int.MaxValue)
         {
             var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
             if (entry == null)
@@ -583,13 +615,22 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var (invoices, total) = await this.invoiceRepository
-                .GetInvoicesForDirectoryEntryAsync(directoryEntryId, page, pageSize);
-
-            var (allInvoices, _) = await this.invoiceRepository
+            // Pull all invoices for this advertiser (all-time), then filter to PAID and page in-memory
+            var (allInvoicesForEntry, _) = await this.invoiceRepository
                 .GetInvoicesForDirectoryEntryAsync(directoryEntryId, page: 1, pageSize: int.MaxValue);
 
-            var totalPaidAllTime = allInvoices.Sum(i => i.Amount);
+            var paid = allInvoicesForEntry
+                .Where(i => i.PaymentStatus == PaymentStatus.Paid)
+                .OrderByDescending(i => i.CreateDate) // keep your existing sort
+                .ToList();
+
+            var total = paid.Count;
+            var items = paid
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var totalPaidAllTime = paid.Sum(i => i.Amount);
 
             var model = new DirectoryManager.Web.Models.Reports.AdvertiserInvoiceListViewModel
             {
@@ -597,13 +638,12 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryName = entry.Name,
                 Page = page,
                 PageSize = pageSize,
-                TotalCount = total,
+                TotalCount = total,              // total PAID invoices (all-time)
                 TotalPaidAllTime = totalPaidAllTime,
-                Rows = invoices.Select(i =>
+                Rows = items.Select(i =>
                 {
-                    var days = Math.Max(1, (i.CampaignEndDate.Date - i.CampaignStartDate.Date).TotalDays);
+                    var days = Math.Max(1, (i.CampaignEndDate.Date - i.CampaignStartDate.Date).TotalDays + 1);
                     var avg = Math.Round((double)(i.Amount / (decimal)days), 2);
-
                     return new DirectoryManager.Web.Models.Reports.AdvertiserInvoiceRow
                     {
                         SponsoredListingInvoiceId = i.SponsoredListingInvoiceId,

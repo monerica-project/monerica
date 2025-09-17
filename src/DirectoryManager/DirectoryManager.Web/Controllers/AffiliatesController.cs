@@ -44,7 +44,7 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpPost("signup")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Signup(AffiliateSignupInputModel input, CancellationToken ct)
+        public async Task<IActionResult> Signup(AffiliateSignupInputModel? input, CancellationToken ct)
         {
             // CAPTCHA
             var ctx = (this.Request.Form["CaptchaContext"].ToString() ?? string.Empty).Trim();
@@ -61,8 +61,15 @@ namespace DirectoryManager.Web.Controllers
                 return this.View(input);
             }
 
+            // If model binder failed to create the input, bail early with a friendly error
+            if (input is null)
+            {
+                this.ModelState.AddModelError(string.Empty, "Invalid submission. Please try again.");
+                return this.View(new AffiliateSignupInputModel { PayoutCurrency = Currency.Unknown });
+            }
+
             // Normalize / validate referral code
-            var raw = input?.ReferralCode ?? string.Empty;
+            var raw = input.ReferralCode ?? string.Empty;
             var trimmed = raw.Trim();
             var code = trimmed.ToLowerInvariant();
 
@@ -87,13 +94,16 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            if (input.PayoutCurrency == Currency.Unknown)
+            // Work with a local, nullable-safe copy
+            var payoutCurrency = input.PayoutCurrency;
+
+            if (payoutCurrency == Currency.Unknown)
             {
                 this.ModelState.AddModelError(nameof(input.PayoutCurrency), "Please choose a payout currency.");
             }
 
-            var wallet = (input?.WalletAddress ?? string.Empty).Trim();
-            if (input.PayoutCurrency == Currency.XMR)
+            var wallet = (input.WalletAddress ?? string.Empty).Trim();
+            if (payoutCurrency == Currency.XMR)
             {
                 if (!MoneroAddressValidator.IsValid(wallet))
                 {
@@ -121,7 +131,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 ReferralCode = code, // stored lowercase
                 WalletAddress = wallet,
-                PayoutCurrency = input.PayoutCurrency,
+                PayoutCurrency = payoutCurrency,
                 Email = string.IsNullOrWhiteSpace(input.Email) ? null : input.Email.Trim()
             };
 
@@ -136,8 +146,14 @@ namespace DirectoryManager.Web.Controllers
         // POST /affiliates/commissions  (lookup by referral code + wallet)
         [HttpPost("commissions")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Commissions(AffiliateCommissionLookupInputModel input, CancellationToken ct)
+        public async Task<IActionResult> Commissions(AffiliateCommissionLookupInputModel? input, CancellationToken ct)
         {
+            if (input is null)
+            {
+                this.ModelState.AddModelError(string.Empty, "Invalid submission. Please try again.");
+                return this.View(new AffiliateCommissionLookupInputModel());
+            }
+
             if (!this.ModelState.IsValid)
             {
                 return this.View(input);
@@ -154,8 +170,9 @@ namespace DirectoryManager.Web.Controllers
                 return this.View(input);
             }
 
-            // You may already have this; if not, add ListForAffiliateAsync to your commission repo
-            var commissions = await this.commissionRepo.ListForAffiliateAsync(acct.AffiliateAccountId, ct);
+            // Defend against a null repository result
+            var commissions = (await this.commissionRepo.ListForAffiliateAsync(acct.AffiliateAccountId, ct))
+                              ?? Enumerable.Empty<AffiliateCommission>();
 
             var vm = new AffiliateCommissionLookupResultModel
             {

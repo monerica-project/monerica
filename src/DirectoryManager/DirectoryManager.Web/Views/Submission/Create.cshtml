@@ -4,9 +4,6 @@
 @using DirectoryManager.Web.Constants;
 @{
     ViewData[StringConstants.TitleHeader] = "Create Submission";
-}
-
-@{
     Layout = "_CenteredLayout";
 }
 
@@ -17,7 +14,7 @@
 <hr />
 @await Html.PartialAsync("_BackToHome")
 <hr />
-@Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SubmissionGuidelinesHtml))
+    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SubmissionGuidelinesHtml))
 
 <hr />
 <p>
@@ -34,7 +31,6 @@
             @Html.ValidationSummary(false, "", new { @class = "text-danger" })
         </div>
     }
-
 
 <form asp-action="Create" method="post">
     <!-- Use the partial view for the form -->

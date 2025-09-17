@@ -37,7 +37,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("page/{page:int}")]
         public async Task<IActionResult> All(int page = 1)
         {
-            var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             var path = page > 1
                 ? $"tagged/page/{page}"
                 : "tagged";
@@ -77,7 +77,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             // build canonical URL
-            var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             var basePath = $"tagged/{tagSlug}";
             var path = page > 1
                 ? $"{basePath}/page/{page}"
@@ -92,8 +92,8 @@ namespace DirectoryManager.Web.Controllers
                 PageSize);
 
             // grab link-2/3 names just once
-            var link2 = this.cacheService.GetSnippet(SiteConfigSetting.Link2Name);
-            var link3 = this.cacheService.GetSnippet(SiteConfigSetting.Link3Name);
+            var link2 = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            var link3 = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
             // convert all entries in one call
             IReadOnlyList<DirectoryEntryViewModel> vms =

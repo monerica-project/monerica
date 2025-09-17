@@ -1,5 +1,4 @@
-﻿using System;
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net;
 using System.Text;
 using DirectoryManager.Data.Enums;
@@ -334,26 +333,109 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         /// <summary>
         /// Helper method for appending the main link.
         /// </summary>
-        private static void AppendLink(StringBuilder sb, DirectoryEntryViewModel model, string? affiliateLink, bool isScam = false, string? rootUrl = null)
+        private static void AppendLink(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            string? link,
+            bool isScam = false,
+            string? rootUrl = null)
         {
-            string link = model.LinkType == LinkType.ListingPage ? string.Format("{0}{1}", rootUrl ?? string.Empty, model.ItemPath) : affiliateLink ?? model.Link;
+            if (string.IsNullOrWhiteSpace(link))
+            {
+                return;
+            }
+
+            string finalLink = model.LinkType == LinkType.ListingPage
+                ? $"{rootUrl ?? string.Empty}{model.ItemPath}"
+                : link;
+
             string target = model.LinkType == LinkType.Direct ? "target=\"_blank\"" : string.Empty;
-            string name = model.Name;
+            string name = WebUtility.HtmlEncode(model.Name);
+
+            // build rel attribute
+            var relParts = new List<string>();
+            if (isScam)
+            {
+                relParts.Add("nofollow");
+            }
+
+            if (model.IsSponsored)
+            {
+                relParts.Add("sponsored");
+            }
+
+            string relAttr = relParts.Count > 0
+                ? $"rel=\"{string.Join(" ", relParts)}\""
+                : string.Empty;
 
             if (isScam)
             {
-                sb.AppendFormat("<a rel=\"nofollow\" href=\"{0}\" {1}>{2}</a>", link, target, name);
+                sb.AppendFormat("<a {3} href=\"{0}\" {1}>{2}</a>", finalLink, target, name, relAttr);
             }
             else
             {
                 if (model.LinkType == LinkType.ListingPage)
                 {
-                    sb.AppendFormat("<a title=\"Profile: {2}\" href=\"{0}\" {1}>{2}</a>", link, target, name);
+                    sb.AppendFormat("<a {3} title=\"Profile: {2}\" href=\"{0}\" {1}>{2}</a>", finalLink, target, name, relAttr);
                 }
                 else
                 {
-                    sb.AppendFormat("<a title=\"{2}\" href=\"{0}\" {1}>{2}</a>", link, target, name);
+                    sb.AppendFormat("<a {3} title=\"{2}\" href=\"{0}\" {1}>{2}</a>", finalLink, target, name, relAttr);
                 }
+            }
+        }
+
+        private static void AppendLinkWithSeparator(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            string? link,
+            string? affiliateLink,
+            string linkName,
+            bool isScam)
+        {
+            if (string.IsNullOrWhiteSpace(link))
+            {
+                return;
+            }
+
+            sb.Append(" | ");
+
+            var finalUrl = (model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(affiliateLink)
+                ? link
+                : affiliateLink ?? link;
+
+            // build rel attribute
+            var relParts = new List<string>();
+
+            if (isScam)
+            {
+                relParts.Add("nofollow");
+            }
+
+            if (model.IsSponsored)
+            {
+                relParts.Add("sponsored");
+            }
+
+            string relAttr = relParts.Count > 0
+                ? $"rel=\"{string.Join(" ", relParts)}\""
+                : string.Empty;
+
+            if (isScam)
+            {
+                sb.AppendFormat(
+                    "<del><a {2} href=\"{0}\" target=\"_blank\">{1}</a></del>",
+                    finalUrl,
+                    WebUtility.HtmlEncode(linkName),
+                    relAttr);
+            }
+            else
+            {
+                sb.AppendFormat(
+                    "<a {2} href=\"{0}\" target=\"_blank\">{1}</a>",
+                    finalUrl,
+                    WebUtility.HtmlEncode(linkName),
+                    relAttr);
             }
         }
 
@@ -388,52 +470,13 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
                 sb.Append("<img")
                   .Append(" class=\"country-flag\"")
-                  .Append(" src=\"").Append(src).Append("\"")
-                  .Append(" alt=\"Flag of ").Append(countryName).Append("\"")
-                  .Append(" title=\"").Append(countryName).Append("\"")
+                  .Append(" src=\"").Append(src).Append('"')
+                  .Append(" alt=\"Flag of ").Append(countryName).Append('"')
+                  .Append(" title=\"").Append(countryName).Append('"')
                   .Append(" />");
             }
 
             return sb.ToString();
-        }
-
-        /// <summary>
-        /// Helper method to append links with a separator (" | ").
-        /// </summary>
-        private static void AppendLinkWithSeparator(
-            StringBuilder sb,
-            DirectoryEntryViewModel model,
-            string? link,
-            string? affiliateLink,
-            string linkName,
-            bool isScam)
-        {
-            if (string.IsNullOrWhiteSpace(link))
-            {
-                return;
-            }
-
-            sb.Append(" | ");
-
-            // if sponsored and we have a LinkA, use the non-A link; otherwise fall back to A or link
-            var finalUrl = (model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(affiliateLink)
-                ? link
-                : affiliateLink ?? link;
-
-            if (isScam)
-            {
-                sb.AppendFormat(
-                    "<del><a rel=\"nofollow\" href=\"{0}\" target=\"_blank\">{1}</a></del>",
-                    finalUrl,
-                    linkName);
-            }
-            else
-            {
-                sb.AppendFormat(
-                    "<a href=\"{0}\" target=\"_blank\">{1}</a>",
-                    finalUrl,
-                    linkName);
-            }
         }
 
         /// <summary>

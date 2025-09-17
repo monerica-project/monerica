@@ -1,8 +1,8 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using System.Globalization;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Utilities.Helpers;
 using ScottPlot;
-using System.Globalization;
 
 namespace DirectoryManager.Web.Charting
 {
@@ -61,6 +61,7 @@ namespace DirectoryManager.Web.Charting
         /// Active = Admitted, Verified, Questionable, or Scam (same definition as other charts).
         /// Returns PNG bytes (900x700). Returns empty array if no data.
         /// </summary>
+        /// <returns>An array of bytes that are an image.</returns>
         public byte[] CreateActiveCountriesPieChartImage(IEnumerable<DirectoryEntry> entries)
         {
             if (entries is null)
@@ -94,6 +95,7 @@ namespace DirectoryManager.Web.Charting
                 .Select(g =>
                 {
                     string iso = g.Key;
+
                     // Expand to full name (CountryHelper returns iso if unknown)
                     string label = iso == "??" ? "Unknown" : CountryHelper.GetCountryName(iso);
                     return new { Iso = iso, Label = label, Count = g.Count() };

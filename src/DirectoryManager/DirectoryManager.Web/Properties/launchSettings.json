@@ -8,22 +8,32 @@
     }
   },
   "profiles": {
-    "http": {
-      "commandName": "Project",
-      "dotnetRunMessages": true,
+    "RunLikeCLI (https)": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "workingDirectory": "$(ProjectDir)",
+      "commandLineArgs": "run --no-build --urls \"https://localhost:7145;http://localhost:5007\"",
       "launchBrowser": true,
-      "applicationUrl": "http://localhost:5007",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_PREVENTHOSTINGSTARTUP": "true",
+        "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "",
+        "DOTNET_WATCH": "0",
+        "DOTNET_MODIFIABLE_ASSEMBLIES": "none"
       }
     },
-    "https": {
-      "commandName": "Project",
-      "dotnetRunMessages": true,
+    "RunLikeCLI (http)": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "workingDirectory": "$(ProjectDir)",
+      "commandLineArgs": "run --no-build --urls \"http://localhost:5007\"",
       "launchBrowser": true,
-      "applicationUrl": "https://localhost:7145;http://localhost:5007",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_PREVENTHOSTINGSTARTUP": "true",
+        "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "",
+        "DOTNET_WATCH": "0",
+        "DOTNET_MODIFIABLE_ASSEMBLIES": "none"
       }
     },
     "IIS Express": {

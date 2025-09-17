@@ -8,7 +8,7 @@ namespace DirectoryManager.Web.Helpers
         /// <summary>
         /// Returns the HTML entity icon for a DirectoryStatus.
         /// </summary>
-        /// <returns>HTML hex</returns>
+        /// <returns>HTML hex.</returns>
         public static IHtmlContent ToHtmlIcon(this DirectoryStatus status)
         {
             // map statuses to their hex entity

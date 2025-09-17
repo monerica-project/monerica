@@ -1,9 +1,9 @@
 ﻿using System.Text;
 using System.Text.Encodings.Web;
+using DirectoryManager.Utilities.Helpers;
 using HtmlAgilityPack;
 using Microsoft.AspNetCore.Html;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using DirectoryManager.Utilities.Helpers;
 
 namespace DirectoryManager.Web.Helpers
 {
@@ -15,6 +15,7 @@ namespace DirectoryManager.Web.Helpers
         /// - If the source is HTML, preserves tags/structure and avoids cutting inside a word within a text node.
         /// Always returns valid HTML and appends a single ellipsis (… ) when truncated.
         /// </summary>
+        /// <returns>The html string.</returns>
         public static IHtmlContent TruncateHtml(this IHtmlHelper html, string sourceHtml, int maxLength)
         {
             if (string.IsNullOrEmpty(sourceHtml) || maxLength <= 0)
@@ -30,7 +31,7 @@ namespace DirectoryManager.Web.Helpers
             if (!hasElements)
             {
                 string truncated = TextHelper.TruncateAtWord(sourceHtml, maxLength);
-                
+
                 // Encode because this branch is plain text
                 return new HtmlString(HtmlEncoder.Default.Encode(truncated));
             }

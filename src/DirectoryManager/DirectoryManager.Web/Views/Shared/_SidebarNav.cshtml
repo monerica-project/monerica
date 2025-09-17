@@ -11,41 +11,48 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository subCatRepo
 
 @{
-    string currentCat = (string?)ViewData["CurrentCategoryKey"] ?? "";
-    string currentSub = (string?)ViewData["CurrentSubCategoryKey"] ?? "";
-}
+    var currentCat = (string?)ViewData["CurrentCategoryKey"] ?? "";
+    var currentSub = (string?)ViewData["CurrentSubCategoryKey"] ?? "";
 
-
-@{
-    // pull from cache or rebuild once per hour
-    var navModel = await MemoryCache.GetOrCreateAsync(StringConstants.NavMenu, async entry =>
+    // Cache ONLY the static data (cats + subs), not the "current" selection.
+    var cached = await MemoryCache.GetOrCreateAsync<
+        (IReadOnlyList<Category> Categories, Dictionary<int, List<Subcategory>> SubsByCategory)
+    >(StringConstants.NavMenu, async entry =>
     {
         entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
 
-        var cats = await categoryRepo.GetActiveCategoriesAsync();
+        var cats = (await categoryRepo.GetActiveCategoriesAsync()).ToList();
+
         var subs = await subCatRepo.GetAllActiveSubCategoriesAsync();
-        var lookup = subs.GroupBy(sc => sc.CategoryId).ToDictionary(g => g.Key, g => g.ToList());
- 
-        return new NavigationViewModel
-        {
-            Categories = cats,
-            SubsByCategory = lookup,
-            // you’ll set these on each page below:
-            CurrentCategoryKey = currentCat,
-            CurrentSubCategoryKey = currentSub
-        };
+        var lookup = subs
+            .GroupBy(sc => sc.CategoryId)
+            .ToDictionary(g => g.Key, g => g.ToList());
+
+        return (cats, lookup);
     });
 
-    // now push it into ViewData so your layout/nav partial can pick it up
+    var navModel = new NavigationViewModel
+    {
+        Categories = cached.Categories ?? new List<Category>(),
+        SubsByCategory = cached.SubsByCategory ?? new Dictionary<int, List<Subcategory>>(),
+        CurrentCategoryKey = currentCat,
+        CurrentSubCategoryKey = currentSub
+    };
+
+    // Fetch logo URL once (don’t inline await in an attribute)
+    var logoUrl = await cacheService.GetSnippetAsync(SiteConfigSetting.SiteLogoUrl);
+
     ViewData["NavModel"] = navModel;
 }
-
 
 <details class="mobile-nav">
     <summary>Menu</summary>
     <ul>
         @foreach (var cat in navModel.Categories)
         {
+            navModel.SubsByCategory.TryGetValue(cat.CategoryId, out var subList);
+            subList ??= new List<Subcategory>();
+
             <li>
                 <details open="@(cat.CategoryKey == currentCat)">
                     <summary>
@@ -55,7 +62,7 @@
                         </a>
                     </summary>
                     <ul>
-                        @foreach (var sub in navModel.SubsByCategory[cat.CategoryId])
+                        @foreach (var sub in subList)
                         {
                             <li>
                                 <a class="no-app-link @(cat.CategoryKey == currentCat && sub.SubCategoryKey == currentSub ? "active" : "")"
@@ -74,15 +81,16 @@
 <nav class="sidebar">
     <div class="logo-container text-center mb-4">
         <a class="no-app-link" href="@urlResolver.ResolveToRoot("/")">
-            <img src="@cacheService.GetSnippet(SiteConfigSetting.SiteLogoUrl)"
-                 alt="Monerica Logo"
-                 style="height:auto;" />
+            <img src="@logoUrl" alt="Monerica Logo" style="height:auto;" />
         </a>
     </div>
 
     <ul>
         @foreach (var cat in navModel.Categories)
         {
+            navModel.SubsByCategory.TryGetValue(cat.CategoryId, out var subList);
+            subList ??= new List<Subcategory>();
+
             var isCurrentCat = cat.CategoryKey == currentCat;
             var expanderId = $"{cat.CategoryKey}_expander";
 
@@ -92,13 +100,10 @@
                    href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
                     @cat.Name
                 </a>
-                <input type="checkbox"
-                       id="@expanderId"
-                       class="hidden-toggle"
-                       @(isCurrentCat ? "checked" : "") />
+                <input type="checkbox" id="@expanderId" class="hidden-toggle" @(isCurrentCat ? "checked" : "") />
                 <div class="hidden">
                     <ul>
-                        @foreach (var sub in navModel.SubsByCategory[cat.CategoryId])
+                        @foreach (var sub in subList)
                         {
                             <li>
                                 <a class="no-app-link @(isCurrentCat && sub.SubCategoryKey == currentSub ? "active" : "")"

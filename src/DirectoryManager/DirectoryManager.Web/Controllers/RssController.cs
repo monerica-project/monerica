@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
@@ -34,8 +35,8 @@ public class RssController : Controller
     [HttpGet("rss/feed.xml")]
     public async Task<IActionResult> FeedXml()
     {
-        var siteName = this.cacheService.GetSnippet(SiteConfigSetting.SiteName);
-        var siteLogoUrl = this.cacheService.GetSnippet(SiteConfigSetting.SiteLogoUrl);
+        var siteName = await this.cacheService.GetSnippetAsync(SiteConfigSetting.SiteName);
+        var siteLogoUrl = await this.cacheService.GetSnippetAsync(SiteConfigSetting.SiteLogoUrl);
         var feedLink = this.Url.Action("FeedXml", "Rss", null, this.Request.Scheme);
 
         if (string.IsNullOrEmpty(feedLink))
@@ -49,8 +50,9 @@ public class RssController : Controller
         var combinedEntries = newestEntries
             .Select(entry => new DirectoryEntryWrapper { DirectoryEntry = entry, IsSponsored = false })
             .Concat(sponsoredEntries)
-            .GroupBy(wrapper => wrapper.DirectoryEntry.DirectoryEntryId)
-            .Select(group => group.OrderByDescending(wrapper => wrapper.DirectoryEntry.CreateDate).First())
+            .Where(w => w?.DirectoryEntry != null) // safety
+            .GroupBy(wrapper => wrapper!.DirectoryEntry.DirectoryEntryId)
+            .Select(group => group.OrderByDescending(wrapper => wrapper!.DirectoryEntry.CreateDate).First() !)
             .OrderByDescending(wrapper => wrapper.DirectoryEntry.CreateDate)
             .ToList();
 
@@ -64,49 +66,57 @@ public class RssController : Controller
         return this.Content(rssFeed.ToString(), "application/xml");
     }
 
-    private async Task<IEnumerable<DirectoryEntryWrapper>> GetSponsoredEntriesWithRecentDatesAsync()
+    private async Task<IEnumerable<DirectoryEntryWrapper?>> GetSponsoredEntriesWithRecentDatesAsync()
     {
-        var sponsoredListings = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
+        var sponsoredListings = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync()
+                                   ?? Enumerable.Empty<SponsoredListing>();
 
         var tasks = sponsoredListings.Select(async sponsoredListing =>
         {
+            // Skip if the related entry isn't loaded/available
+            var entry = sponsoredListing.DirectoryEntry;
+            if (entry == null)
+            {
+                return (DirectoryEntryWrapper?)null;
+            }
+
             using var scope = this.scopeFactory.CreateScope();
             var invoiceRepo = scope.ServiceProvider.GetRequiredService<ISponsoredListingInvoiceRepository>();
 
-            // Fetch the most recent invoice associated with this listing
+            // Most recent invoice (may be null)
             var invoice = await invoiceRepo.GetByIdAsync(sponsoredListing.SponsoredListingInvoiceId);
-            var invoiceCampaignDate = (invoice == null) ? DateTime.MinValue : invoice.CampaignStartDate;
 
-            var latestDate = new[]
-            {
-                invoice.CreateDate,
-                sponsoredListing.UpdateDate ?? DateTime.MinValue,
-                invoiceCampaignDate
-            }.Max();
+            // Safely pick the most relevant "recent date"
+            var invoiceCreate = invoice?.CreateDate ?? DateTime.MinValue;
+            var invoiceCampaign = invoice?.CampaignStartDate ?? DateTime.MinValue;
+            var sponsoredUpdated = sponsoredListing.UpdateDate ?? DateTime.MinValue;
 
-            // Wrap the DirectoryEntry with correct pubDate
+            var latestDate = new[] { invoiceCreate, sponsoredUpdated, invoiceCampaign }.Max();
+
+            // Wrap with a shallow copy, but with a safe CreateDate
             return new DirectoryEntryWrapper
             {
                 DirectoryEntry = new DirectoryEntry
                 {
-                    DirectoryEntryKey = sponsoredListing.DirectoryEntry.DirectoryEntryKey,
-                    DirectoryEntryId = sponsoredListing.DirectoryEntry.DirectoryEntryId,
-                    Name = sponsoredListing.DirectoryEntry.Name,
-                    Link = sponsoredListing.DirectoryEntry.Link,
-                    LinkA = sponsoredListing.DirectoryEntry.LinkA,
-                    SubCategory = sponsoredListing.DirectoryEntry.SubCategory,
-                    DirectoryStatus = sponsoredListing.DirectoryEntry.DirectoryStatus,
-                    Description = sponsoredListing.DirectoryEntry.Description,
-                    Location = sponsoredListing.DirectoryEntry.Location,
-                    Processor = sponsoredListing.DirectoryEntry.Processor,
-                    Note = sponsoredListing.DirectoryEntry.Note,
-                    Contact = sponsoredListing.DirectoryEntry.Contact,
-                    CreateDate = invoice.CreateDate,
+                    DirectoryEntryKey = entry.DirectoryEntryKey,
+                    DirectoryEntryId = entry.DirectoryEntryId,
+                    Name = entry.Name,
+                    Link = entry.Link,
+                    LinkA = entry.LinkA,
+                    SubCategory = entry.SubCategory,
+                    DirectoryStatus = entry.DirectoryStatus,
+                    Description = entry.Description,
+                    Location = entry.Location,
+                    Processor = entry.Processor,
+                    Note = entry.Note,
+                    Contact = entry.Contact,
+                    CreateDate = latestDate, // <- use latestDate, not invoice.CreateDate
                 },
                 IsSponsored = true
             };
         });
 
-        return await Task.WhenAll(tasks);
+        var results = await Task.WhenAll(tasks);
+        return results.Where(r => r != null) !;
     }
 }

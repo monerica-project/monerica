@@ -62,7 +62,7 @@ NS2/YMNdWztHoUWGKo+fdHNgAgFPWERd2Ac=
         [InlineData(null)]
         [InlineData("")]
         [InlineData("   ")]
-        public void IsValid_NullOrWhitespaceInput_ReturnsFalse(string input)
+        public void IsValid_NullOrWhitespaceInput_ReturnsFalse(string? input)
         {
             Assert.False(PgpKeyValidator.IsValid(input));
         }

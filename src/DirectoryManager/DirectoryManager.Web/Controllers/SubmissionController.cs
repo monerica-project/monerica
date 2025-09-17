@@ -86,7 +86,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost("submit")]
         public async Task<IActionResult> Create(SubmissionRequest model)
         {
-            if (!UrlHelper.IsValidUrl(model.Link))
+            if (!UrlHelper.IsValidUrl(model.Link ?? string.Empty))
             {
                 this.ModelState.AddModelError(nameof(model.Link), "The link is not a valid URL.");
             }
@@ -205,9 +205,9 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> AuditAync(int entryId)
         {
             var audits = await this.auditRepository.GetAuditsWithSubCategoriesForEntryAsync(entryId);
-            var link2Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
-            var link3Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
-            var canonicalDomain = this.cacheHelper.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var link2Name = await this.cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            var link3Name = await this.cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
+            var canonicalDomain = await this.cacheHelper.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(entryId);
 
             if (directoryEntry == null)
@@ -342,7 +342,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     // create new entry
                     await this.CreateDirectoryEntry(model);
-                    var created = await this.directoryEntryRepository.GetByLinkAsync(model.Link.Trim());
+                    var created = await this.directoryEntryRepository.GetByLinkAsync((model.Link ?? string.Empty).Trim());
                     entryId = created?.DirectoryEntryId
                               ?? throw new Exception("Failed to locate newly created entry");
                 }
@@ -455,7 +455,7 @@ namespace DirectoryManager.Web.Controllers
         {
             return new SubmissionRequest()
             {
-                SubCategoryId = (submission.SubCategoryId == null) ? null : submission.SubCategoryId,
+                SubCategoryId = submission.SubCategoryId == null ? null : submission.SubCategoryId,
                 NoteToAdmin = submission.NoteToAdmin,
                 Contact = submission.Contact,
                 Description = submission.Description,
@@ -477,27 +477,32 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task<int?> GetExistingEntryAsync(SubmissionRequest request)
         {
-            var link = request.Link;
-            var existingLink = await this.directoryEntryRepository.GetByLinkAsync(link);
+            var link = request.Link ?? string.Empty;
 
-            if (existingLink != null)
+            if (!string.IsNullOrWhiteSpace(link))
             {
-                return existingLink.DirectoryEntryId;
+                var existingLink = await this.directoryEntryRepository.GetByLinkAsync(link);
+                if (existingLink != null)
+                {
+                    return existingLink.DirectoryEntryId;
+                }
+
+                var linkVariation = link.EndsWith("/") ? link[..^1] : $"{link}/";
+                var existingLinkVariation1 = await this.directoryEntryRepository.GetByLinkAsync(linkVariation);
+                if (existingLinkVariation1 != null)
+                {
+                    return existingLinkVariation1.DirectoryEntryId;
+                }
             }
 
-            var linkVariation = link.EndsWith("/") ? link.Remove(link.Length - 1) : string.Format("{0}/", link);
-            var existingLinkVariation1 = await this.directoryEntryRepository.GetByLinkAsync(linkVariation);
-
-            if (existingLinkVariation1 != null)
+            var name = request.Name ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(name))
             {
-                return existingLinkVariation1.DirectoryEntryId;
-            }
-
-            var existingName = await this.directoryEntryRepository.GetByNameAsync(request.Name);
-
-            if (existingName != null)
-            {
-                return existingName.DirectoryEntryId;
+                var existingName = await this.directoryEntryRepository.GetByNameAsync(name);
+                if (existingName != null)
+                {
+                    return existingName.DirectoryEntryId;
+                }
             }
 
             return null;
@@ -522,13 +527,22 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task<SubmissionPreviewModel> GetSubmissionPreviewAsync(Submission submission)
         {
-            var link2Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
-            var link3Name = this.cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+            var link2Name = await this.cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            var link3Name = await this.cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
             if (submission.SubCategoryId != null)
             {
                 submission.SubCategory = await this.subCategoryRepository.GetByIdAsync(submission.SubCategoryId.Value);
             }
+
+            var tagsList = (submission.Tags?.Split(',', StringSplitOptions.RemoveEmptyEntries) ?? Array.Empty<string>())
+                           .Select(t => t.Trim())
+                           .Where(t => t.Length > 0)
+                           .ToList();
+
+            var subcatName = submission.SubCategory != null
+                ? $"{submission.SubCategory.Category?.Name} > {submission.SubCategory.Name}"
+                : "No Subcategory Assigned";
 
             return new SubmissionPreviewModel
             {
@@ -542,22 +556,22 @@ namespace DirectoryManager.Web.Controllers
                     Name = submission.Name,
                     Contact = submission.Contact,
                     Description = submission.Description,
-                    DirectoryEntryId = (submission.DirectoryEntryId != null) ? submission.DirectoryEntryId.Value : 0,
+                    DirectoryEntryId = submission.DirectoryEntryId ?? 0,
                     DirectoryStatus = (submission.DirectoryStatus == null || submission.DirectoryStatus == DirectoryStatus.Unknown)
-                            ? DirectoryStatus.Admitted :
-                            submission.DirectoryStatus.Value,
+                            ? DirectoryStatus.Admitted
+                            : submission.DirectoryStatus.Value,
                     Link2 = submission.Link2,
                     Link3 = submission.Link3,
                     Location = submission.Location,
                     Note = submission.Note,
                     Processor = submission.Processor,
                     SubCategoryId = submission.SubCategoryId,
-                    Tags = submission?.Tags?.Split(",").ToList(),
-                    CountryCode = submission?.CountryCode
+                    Tags = tagsList,
+                    CountryCode = submission.CountryCode
                 },
                 SubmissionId = submission.SubmissionId,
                 NoteToAdmin = submission.NoteToAdmin,
-                SubcategoryName = $"{submission?.SubCategory?.Category?.Name} > {submission?.SubCategory?.Name}",
+                SubcategoryName = subcatName,
             };
         }
 
@@ -578,7 +592,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("SubmitEdit", model);
             }
 
-            var existingLinkSubmission = await this.submissionRepository.GetByLinkAndStatusAsync(model.Link);
+            var existingLinkSubmission = await this.submissionRepository.GetByLinkAndStatusAsync(model.Link ?? string.Empty);
 
             if (existingLinkSubmission != null)
             {
@@ -601,8 +615,8 @@ namespace DirectoryManager.Web.Controllers
                 }
 
                 submissionModel.DirectoryEntryId = existingDirectoryEntryId;
-                var submission = await this.submissionRepository.CreateAsync(submissionModel);
-                submissionId = submission.SubmissionId;
+                var createdSub = await this.submissionRepository.CreateAsync(submissionModel);
+                submissionId = createdSub.SubmissionId;
             }
             else
             {
@@ -630,7 +644,10 @@ namespace DirectoryManager.Web.Controllers
             // Get the dictionary of countries from the helper.
             var countries = CountryHelper.GetCountries();
 
-            countries = countries.OrderBy(x => x.Value).ToDictionary<string, string>();
+            // Order and materialize into a new dictionary
+            countries = countries
+                .OrderBy(x => x.Value)
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
 
             // Build a list of SelectListItem from the dictionary.
             var list = countries.Select(c => new SelectListItem
@@ -652,7 +669,7 @@ namespace DirectoryManager.Web.Controllers
             if (existingDirectoryEntry != null)
             {
                 // they are submitting a listing that is an override, not an edit, copy the status from the existing listing
-                submissionModel.DirectoryStatus = existingDirectoryEntry?.DirectoryStatus;
+                submissionModel.DirectoryStatus = existingDirectoryEntry.DirectoryStatus;
             }
         }
 
@@ -674,9 +691,9 @@ namespace DirectoryManager.Web.Controllers
             await this.directoryEntryRepository.CreateAsync(
                 new DirectoryEntry
                 {
-                    DirectoryEntryKey = StringHelpers.UrlKey(model.Name),
-                    Name = model.Name.Trim(),
-                    Link = model.Link.Trim(),
+                    DirectoryEntryKey = StringHelpers.UrlKey(model.Name ?? string.Empty),
+                    Name = (model.Name ?? string.Empty).Trim(),
+                    Link = (model.Link ?? string.Empty).Trim(),
                     Link2 = model.Link2?.Trim(),
                     Link3 = model.Link3?.Trim(),
                     Description = model.Description?.Trim(),
@@ -707,9 +724,9 @@ namespace DirectoryManager.Web.Controllers
 
             var existing = await this.directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value) ??
                                     throw new Exception("Submission has a directory entry id, but the entry does not exist.");
-            existing.DirectoryEntryKey = StringHelpers.UrlKey(model.Name).UrlKey();
-            existing.Name = model.Name.Trim();
-            existing.Link = model.Link.Trim();
+            existing.DirectoryEntryKey = StringHelpers.UrlKey(model.Name ?? string.Empty).UrlKey();
+            existing.Name = (model.Name ?? string.Empty).Trim();
+            existing.Link = (model.Link ?? string.Empty).Trim();
             existing.Link2 = model.Link2?.Trim();
             existing.Link3 = model.Link3?.Trim();
             existing.Description = model.Description?.Trim();
@@ -739,24 +756,25 @@ namespace DirectoryManager.Web.Controllers
             var submission = new Submission
             {
                 SubmissionStatus = SubmissionStatus.Preview,
-                Name = model.Name.Trim(),
-                Link = (model.Link == null) ? string.Empty : model.Link.Trim(),
-                Link2 = (model.Link2 == null) ? string.Empty : model.Link2.Trim(),
-                Link3 = (model.Link3 == null) ? string.Empty : model.Link3.Trim(),
-                ProofLink = (model.ProofLink == null) ? string.Empty : model.ProofLink.Trim(),
-                Description = (model.Description == null) ? string.Empty : model.Description.Trim(),
-                Location = (model.Location == null) ? string.Empty : model.Location.Trim(),
-                Processor = (model.Processor == null) ? string.Empty : model.Processor.Trim(),
-                Note = (model.Note == null) ? string.Empty : model.Note.Trim(),
-                Contact = (model.Contact == null) ? string.Empty : model.Contact.Trim(),
-                SuggestedSubCategory = (model.SuggestedSubCategory == null) ? string.Empty : model.SuggestedSubCategory.Trim(),
+                Name = (model.Name ?? string.Empty).Trim(),
+                Link = (model.Link ?? string.Empty).Trim(),
+                Link2 = (model.Link2 ?? string.Empty).Trim(),
+                Link3 = (model.Link3 ?? string.Empty).Trim(),
+                ProofLink = (model.ProofLink ?? string.Empty).Trim(),
+                Description = (model.Description ?? string.Empty).Trim(),
+                Location = (model.Location ?? string.Empty).Trim(),
+                Processor = (model.Processor ?? string.Empty).Trim(),
+                Note = (model.Note ?? string.Empty).Trim(),
+                Contact = (model.Contact ?? string.Empty).Trim(),
+                SuggestedSubCategory = (model.SuggestedSubCategory ?? string.Empty).Trim(),
                 SubCategoryId = (model.SubCategoryId == 0) ? null : model.SubCategoryId,
                 IpAddress = ipAddress,
                 DirectoryEntryId = (model.DirectoryEntryId == 0) ? null : model.DirectoryEntryId,
-                DirectoryStatus = (model.DirectoryStatus == null) ? DirectoryStatus.Unknown : model.DirectoryStatus,
+                DirectoryStatus = model.DirectoryStatus ?? DirectoryStatus.Unknown,
                 NoteToAdmin = model.NoteToAdmin,
                 Tags = model.Tags?.Trim(),
-                CountryCode = model.CountryCode
+                CountryCode = model.CountryCode,
+                PgpKey = (model.PgpKey ?? string.Empty).Trim()
             };
             return submission;
         }

@@ -209,11 +209,9 @@ namespace DirectoryManager.Web.Controllers
                 latestApprovedReviewByEntry,
                 mostRecentUpdateDate);
 
-
             var xml = siteMapHelper.GenerateXml();
             return this.Content(xml, "text/xml");
         }
-
 
         [Route("sitemap")]
         public async Task<IActionResult> SiteMap()
@@ -248,7 +246,7 @@ namespace DirectoryManager.Web.Controllers
                 model.SectionPages.Add(categoryPages);
             }
 
-            var canonicalDomain = this.cacheService.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             this.ViewData[Constants.StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "sitemap");
             return this.View("Index", model);
         }

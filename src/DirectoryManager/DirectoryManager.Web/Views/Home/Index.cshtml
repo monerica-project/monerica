@@ -21,15 +21,10 @@
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 @{
-    ViewData[StringConstants.TitleHeader] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageTitle));
-    ViewData[StringConstants.MetaContent] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageMetaTags));
-}
-@{
+    ViewData[StringConstants.TitleHeader] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageTitle));
+    ViewData[StringConstants.MetaContent] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageMetaTags));
     ViewData["CurrentCategoryKey"]    = null;
     ViewData["CurrentSubCategoryKey"] = null;
-}
-
-@{
     Layout = "_LayoutWithNav";
 }
 
@@ -38,7 +33,6 @@
 }
 
 @{
-     
     // ----- Category sponsors -----
     var catSponsors = await sponsoredListingRepository
         .GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
@@ -74,20 +68,16 @@
         );
 }
 
-
  @section PageContent {
-
-
     <div>
- 
         <!-- Hero and sponsored listing partial (stays full‐width under the fixed sidebar) -->
-        @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageDisplayHtml))
+        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageDisplayHtml))
         @await Html.PartialAsync("_SponsoredListingPartial")
         <hr />
 
         <!-- everything from here down is centered under the hero -->
         <p class="intro">
-            @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.TextIntro))
+            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TextIntro))
         </p>
         <hr />
 
@@ -107,19 +97,19 @@
 
             <!-- Links Section -->
             <div class="top-section links-section">
-                @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.TopMenuActionsHtml))
+                @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopMenuActionsHtml))
             </div>
         </div>
         <hr />
 
-        @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.DirectoryLegendHtml))
+        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.DirectoryLegendHtml))
 
         @* Featured *@
         @{
             var featuredEntries = await directoryEntrySelectionRepository
             .GetEntriesForSelection(EntrySelectionType.Featured);
-            var link2Name = cacheHelper.GetSnippet(SiteConfigSetting.Link2Name);
-            var link3Name = cacheHelper.GetSnippet(SiteConfigSetting.Link3Name);
+            var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
         }
         @if (featuredEntries?.Any() == true)
         {
@@ -258,7 +248,6 @@
             </section>
         </div>
 
-
         @{
             var latestReviews = await reviewRepository.ListLatestApprovedAsync(15);
         }
@@ -284,13 +273,10 @@
                     var reviewDate = (r.UpdateDate ?? r.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
 
                     <li>
-                        <i>@reviewDate</i> <a href="@url"><b>@listingName</b></a> — Rating: @rating — @oneLine
+                        <i>@reviewDate</i> <a href="@url">@listingName</a> — Rating: @rating — @oneLine
                     </li>
                 }
             </ul>
         }
-    
-
     </div>
     }
-

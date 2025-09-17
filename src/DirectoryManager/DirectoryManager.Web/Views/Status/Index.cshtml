@@ -12,8 +12,9 @@
 @model IEnumerable<DirectoryEntry>
 
 @{
-    ViewData[StringConstants.TitleHeader] = $"{Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.SiteName))} - Listings with Status: {ViewBag.Status}";
-    ViewData[StringConstants.MetaContent] = Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.HomePageMetaTags));
+    ViewData[StringConstants.TitleHeader] = $"{Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName))} - Listings with Status: {ViewBag.Status}";
+    ViewData[StringConstants.MetaContent] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageMetaTags));
+    Layout = "_CenteredLayout";
 
     var filteredEntries = ViewBag.FilteredEntries as IEnumerable<DirectoryEntry>;
     var filteredSubcategories = ViewBag.FilteredSubcategories as IEnumerable<Subcategory>;
@@ -23,10 +24,6 @@
     var categorySponsors = ViewBag.CategorySponsors as IEnumerable<SponsoredListing>;
     var link2Name = ViewBag.Link2Name as string;
     var link3Name = ViewBag.Link3Name as string;
-}
-
-@{
-    Layout = "_CenteredLayout";
 }
 
 @section PageContent {
@@ -41,19 +38,18 @@
         <p class="centered-text"><b>Last Update:</b> @directoryEntryRepository.GetLastRevisionDate().ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</p>
     </div>
     <div class="top-container-right-column">
-        @Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.TopMenuActionsHtml))
+            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopMenuActionsHtml))
     </div>
 </div>
 
 <hr />
-@Html.Raw(cacheHelper.GetSnippet(SiteConfigSetting.DirectoryLegendHtml))
+    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.DirectoryLegendHtml))
 <hr />
 
 <!-- Render Main Sponsors -->
 @if (mainSponsors != null && mainSponsors.Any())
 {
     <div>
-        <h2>Main Sponsors</h2>
         @await Html.PartialAsync("_SponsoredListingPartial", mainSponsors)
     </div>
 }
@@ -120,8 +116,8 @@
                 DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
                 IsSponsored = true,
                 DisplayAsSponsoredItem = false,
-                Link2Name = cacheHelper.GetSnippet(SiteConfigSetting.Link2Name),
-                Link3Name = cacheHelper.GetSnippet(SiteConfigSetting.Link3Name),
+                    Link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name),
+                    Link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name),
                 Link = catSponsor.DirectoryEntry.Link,
                 Link2 = catSponsor.DirectoryEntry.Link2,
                 Link3 = catSponsor.DirectoryEntry.Link3,
@@ -159,11 +155,10 @@
                                         normalEntries.ToList(),
                                         DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
                                         DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.Normal,
-                                        cacheHelper.GetSnippet(SiteConfigSetting.Link2Name),
-                                        cacheHelper.GetSnippet(SiteConfigSetting.Link3Name)
+                                           await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name),
+                                           await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name)
                                     );
         }
-
 
 
         foreach (var subCategory in filteredSubcategories.Where(sc => sc.CategoryId == category.CategoryId))

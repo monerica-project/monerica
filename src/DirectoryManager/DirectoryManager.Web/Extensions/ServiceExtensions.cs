@@ -15,6 +15,7 @@ using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using NowPayments.API.Implementations;
@@ -37,94 +38,93 @@ namespace DirectoryManager.Web.Extensions
             services.AddMvc();
             services.AddHttpContextAccessor();
 
-            // Register ApplicationDbContext with DbContextOptions
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
-                  config.GetConnectionString(StringConstants.DefaultConnection),
-                  sqlOptions =>
-                  {
-                        // retry up to 5 times with up to 10s between retries
+                    config.GetConnectionString(StringConstants.DefaultConnection),
+                    sqlOptions =>
+                    {
                         sqlOptions.EnableRetryOnFailure(
-                          maxRetryCount: 5,
-                          maxRetryDelay: TimeSpan.FromSeconds(30),
-                          errorNumbersToAdd: null);
-                  }));
+                            maxRetryCount: 5,
+                            maxRetryDelay: TimeSpan.FromSeconds(30),
+                            errorNumbersToAdd: null);
+                    }));
 
-            // Register all repositories from DatabaseExtensions
+            // Repos
             services.AddDbRepositories();
 
-            // ⬇️ Captcha options + HttpClient + service registration
+            // Captcha + Http
             services.Configure<CaptchaOptions>(config.GetSection("Captcha"));
             services.AddHttpClient();
             services.AddTransient<ICaptchaService, CaptchaService>();
 
-            // Services
+            // 🔧 Lifetimes: CacheService should be Scoped (it uses a repo/DbContext)
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>()
                     .AddScoped<IUrlResolutionService, UrlResolutionService>();
             services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
-            services.AddTransient<ICacheService, CacheService>();
+            services.AddScoped<ICacheService, CacheService>();           // was Transient → Scoped
             services.AddTransient<IPgpService, PgpService>();
             services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
             services.AddScoped<IRssFeedService, RssFeedService>();
             services.AddScoped<IDirectoryEntriesAuditService, DirectoryEntriesAuditService>();
-            services.AddScoped<IEmailService, EmailService>(provider =>
-              {
-                  using var scope = provider.CreateScope();
-                  var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
 
-                  var emailConfig = new SendGridConfig
-                  {
-                      ApiKey = cacheService.GetSnippet(SiteConfigSetting.SendGridApiKey),
-                      SenderEmail = cacheService.GetSnippet(SiteConfigSetting.SendGridSenderEmail),
-                      SenderName = cacheService.GetSnippet(SiteConfigSetting.SendGridSenderName)
-                  };
+            // ✅ EmailService: sync DI factory, block on async at the edge
+            services.AddScoped<IEmailService>(provider =>
+            {
+                var cacheService = provider.GetRequiredService<ICacheService>();
 
-                  var emailSettings = new EmailSettings
-                  {
-                      UnsubscribeUrlFormat = cacheService.GetSnippet(SiteConfigSetting.EmailSettingUnsubscribeUrlFormat),
-                      UnsubscribeEmail = cacheService.GetSnippet(SiteConfigSetting.EmailSettingUnsubscribeEmail),
-                  };
+                var emailConfig = new SendGridConfig
+                {
+                    ApiKey = cacheService.GetSnippetAsync(SiteConfigSetting.SendGridApiKey).GetAwaiter().GetResult(),
+                    SenderEmail = cacheService.GetSnippetAsync(SiteConfigSetting.SendGridSenderEmail).GetAwaiter().GetResult(),
+                    SenderName = cacheService.GetSnippetAsync(SiteConfigSetting.SendGridSenderName).GetAwaiter().GetResult(),
+                };
 
-                  return new EmailService(emailConfig, emailSettings);
-              });
+                var emailSettings = new EmailSettings
+                {
+                    UnsubscribeUrlFormat = cacheService.GetSnippetAsync(SiteConfigSetting.EmailSettingUnsubscribeUrlFormat).GetAwaiter().GetResult(),
+                    UnsubscribeEmail = cacheService.GetSnippetAsync(SiteConfigSetting.EmailSettingUnsubscribeEmail).GetAwaiter().GetResult(),
+                };
+
+                return new EmailService(emailConfig, emailSettings);
+            });
 
             services.AddScoped<IAffiliateAccountRepository, AffiliateAccountRepository>();
             services.AddScoped<IAffiliateCommissionRepository, AffiliateCommissionRepository>();
 
-            // NOWPayments configuration and service registration
+            // ✅ NOWPayments: avoid .Wait() (AggregateException). Use GetAwaiter().GetResult().
             services.AddScoped<INowPaymentsService>(provider =>
             {
                 var configRepo = provider.GetRequiredService<IProcessorConfigRepository>();
-                var processorConfigTask = configRepo.GetByProcessorAsync(PaymentProcessor.NOWPayments);
-                processorConfigTask.Wait();
-                var processorConfig = processorConfigTask.Result ?? throw new Exception("NOWPayments processor config not found");
+                var processorConfig = configRepo.GetByProcessorAsync(PaymentProcessor.NOWPayments)
+                                                .GetAwaiter().GetResult()
+                                        ?? throw new Exception("NOWPayments processor config not found");
 
                 var nowPaymentsConfig = JsonConvert.DeserializeObject<NowPaymentConfigs>(processorConfig.Configuration)
-                                    ?? throw new Exception("NOWPayments config not found");
+                                        ?? throw new Exception("NOWPayments config not found");
 
                 return new NowPaymentsService(nowPaymentsConfig);
             });
 
             services.AddScoped<ISearchBlacklistRepository, SearchBlacklistRepository>();
 
-            // BlobService with Azure Storage configuration
+            // ✅ BlobService singleton with a short-lived scope to access scoped services
             services.AddSingleton<IBlobService>(provider =>
             {
-                return Task.Run(async () =>
-                {
-                    using var scope = provider.CreateScope();
-                    var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
-                    var azureStorageConnection = cacheService.GetSnippet(SiteConfigSetting.AzureStorageConnectionString);
-                    var blobServiceClient = new BlobServiceClient(azureStorageConnection);
+                using var scope = provider.CreateScope();
+                var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
 
-                    return await BlobService.CreateAsync(blobServiceClient);
-                }).GetAwaiter().GetResult();
+                var azureStorageConnection =
+                    cacheService.GetSnippetAsync(SiteConfigSetting.AzureStorageConnectionString)
+                                .GetAwaiter().GetResult();
+
+                var blobServiceClient = new BlobServiceClient(azureStorageConnection);
+
+                // If CreateAsync truly must run before use, block here once.
+                return BlobService.CreateAsync(blobServiceClient).GetAwaiter().GetResult();
             });
 
-            // Route options configuration
             services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
 
-            // Identity configuration
             services.AddIdentity<ApplicationUser, IdentityRole>()
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();

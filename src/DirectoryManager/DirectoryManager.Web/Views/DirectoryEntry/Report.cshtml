@@ -3,9 +3,6 @@
 @using DirectoryManager.Web.Constants;
 @{
     ViewData[StringConstants.TitleHeader] = "Directory Entries - Report";
-}
-
-@{
     Layout = "_CenteredLayout";
 }
 
@@ -20,6 +17,5 @@
 
 <img style="width:100%" src="@Url.Action("SubmissionMonthlyPlotImage", "DirectoryEntry")" alt="Cumulative Totals Pie Chart" />
 
-    <img style="width:100%" src="@Url.Action("CountryPlotImage", "DirectoryEntry")" alt="Cumulative Totals Pie Chart" />
-    
+<img style="width:100%" src="@Url.Action("CountryPlotImage", "DirectoryEntry")" alt="Cumulative Totals Pie Chart" />
 }

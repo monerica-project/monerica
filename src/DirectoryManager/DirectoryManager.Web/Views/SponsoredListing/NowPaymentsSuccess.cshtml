@@ -24,5 +24,5 @@
 
 <br />
 
-@Html.Raw(cacheHelper.GetSnippet(DirectoryManager.Data.Enums.SiteConfigSetting.InvoiceSuccessMessageHtml))
+    @Html.Raw(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.InvoiceSuccessMessageHtml))
 }

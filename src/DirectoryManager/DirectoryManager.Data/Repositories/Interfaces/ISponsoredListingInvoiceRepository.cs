@@ -20,5 +20,26 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         DateTime? GetLastPaidInvoiceUpdateDate();
         Task<(IEnumerable<SponsoredListingInvoice> Invoices, int TotalCount)> GetInvoicesForDirectoryEntryAsync(int directoryEntryId, int page, int pageSize);
         Task<bool> HasAnyPaidInvoiceForDirectoryEntryAsync(int directoryEntryId, int excludeSponsoredListingInvoiceId, CancellationToken ct = default);
+        Task<(IEnumerable<SponsoredListingInvoice> Invoices, int TotalCount)>
+        GetInvoicesForDirectoryEntryInWindowAsync(
+        int directoryEntryId,
+        DateTime windowStartUtc,
+        DateTime windowEndUtc,
+        SponsorshipType? sponsorshipType,
+        bool paidOnly,
+        bool useCampaignOverlap,
+        int page,
+        int pageSize);
+        Task<List<AdvertiserWindowStat>> GetAdvertiserWindowStatsAsync(
+        DateTime windowStartDate,
+        DateTime windowEndDate,
+        SponsorshipType? sponsorshipType = null,
+        bool paidOnly = true);
+        Task<List<AdvertiserWindowSum>> GetAdvertiserInvoiceWindowSumsAsync(
+        DateTime windowStartUtc,
+        DateTime windowEndOpenUtc,
+        SponsorshipType? sponsorshipType = null);
+
+        IAsyncEnumerable<AccountantRow> StreamPaidForAccountantAsync(DateTime startUtc, DateTime endUtc, SponsorshipType? sponsorshipType, CancellationToken ct = default);
     }
 }

@@ -20,13 +20,14 @@ namespace DirectoryManager.Web.Services.Implementations
             this.cache = cacheService;
             this.torSuffix = StringConstants.TorDomain;
 
-            // e.g. your snippet for app.monerica.com (no trailing slash)
-            this.appDomain = this.cache
-                          .GetSnippet(SiteConfigSetting.AppDomain)
-                          ?.TrimEnd('/')
-                        ?? string.Empty;
+            // Block at the constructor boundary (DI factories are sync)
+            var app = this.cache.GetSnippetAsync(SiteConfigSetting.AppDomain)
+                           .GetAwaiter().GetResult();
+            this.appDomain = (app ?? string.Empty).TrimEnd('/');
 
-            this.canonicalDomain = this.cache.GetSnippet(SiteConfigSetting.CanonicalDomain);
+            var cd = this.cache.GetSnippetAsync(SiteConfigSetting.CanonicalDomain)
+                          .GetAwaiter().GetResult();
+            this.canonicalDomain = (cd ?? string.Empty).TrimEnd('/');
         }
 
         public bool IsTor
@@ -47,8 +48,7 @@ namespace DirectoryManager.Web.Services.Implementations
                     return string.Empty;
                 }
 
-                var cd = this.canonicalDomain ?? string.Empty;
-                return cd.TrimEnd('/');
+                return this.canonicalDomain; // already trimmed in ctor
             }
         }
 
@@ -69,28 +69,23 @@ namespace DirectoryManager.Web.Services.Implementations
                 return string.Empty;
             }
 
-            // If they passed an absolute URL, just return it
             if (Uri.TryCreate(path, UriKind.Absolute, out _))
             {
                 return path;
             }
 
-            // Normalize to leading slash
             if (!path.StartsWith("/"))
             {
-                path = string.Concat("/", path);
+                path = "/" + path;
             }
 
-            var host = this.http.HttpContext?.Request.Host.Host ?? string.Empty;
-
-            // If on Tor, keep it relative
             if (this.IsTor || this.IsLocal)
             {
                 return path;
             }
 
-            // Otherwise send to the app subdomain
-            return $"{this.appDomain}{path}";
+            // If appDomain is empty (missing snippet), fall back to relative
+            return string.IsNullOrEmpty(this.appDomain) ? path : $"{this.appDomain}{path}";
         }
 
         public string ResolveToRoot(string path)
@@ -105,26 +100,20 @@ namespace DirectoryManager.Web.Services.Implementations
                 path = "/";
             }
 
-            // If it's already an absolute URL, just return it
             if (Uri.TryCreate(path, UriKind.Absolute, out _))
             {
                 return path;
             }
 
-            // Normalize incoming path: strip all leading/trailing slashes, then add exactly one leading slash
-            path = string.Concat("/", path.Trim('/'));
+            path = "/" + path.Trim('/');
 
-            var host = this.http.HttpContext?.Request.Host.Host ?? string.Empty;
-
-            // On Tor or local, stay relative
             if (this.IsTor || this.IsLocal)
             {
                 return path;
             }
 
-            // Otherwise combine with canonicalDomain, trimming any trailing slash there
-            var cd = this.canonicalDomain?.TrimEnd('/') ?? string.Empty;
-            return string.Concat(cd, path);
+            // If canonicalDomain is empty, fall back to relative
+            return string.IsNullOrEmpty(this.canonicalDomain) ? path : $"{this.canonicalDomain}{path}";
         }
     }
 }

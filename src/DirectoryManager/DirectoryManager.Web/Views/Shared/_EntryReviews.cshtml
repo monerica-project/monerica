@@ -19,8 +19,9 @@
     private const string LinkClass = "multi-line-text";
 
     // Precompiled URL regex: http(s)://... or www....
+    // NOTE: exclude both '<' and '>' so <http://foo> doesn't slurp the closing bracket.
     private static readonly Regex UrlRegex = new(
-        @"(?:(?:https?://)|(?:www\.))[\w\-\.]+(?:\.[a-z]{2,})(?:[^\s<]*)?",
+        @"(?:(?:https?://)|(?:www\.))[\w\-\.]+(?:\.[a-z]{2,})(?:[^\s<>]*)?",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
     // Render body: encode text, auto-link URLs, preserve newlines
@@ -41,7 +42,8 @@
 
             // raw match and any trailing punctuation to exclude from URL
             string raw = m.Value;
-            string trimmed = raw.TrimEnd('.', ',', ';', ')', ']', '}', '!', '?');
+            // Inside RenderBodyWithLinks, replace the existing 'trimmed' line with this:
+            string trimmed = raw.TrimEnd('.', ',', ';', ')', ']', '}', '!', '?', '>', '"', '\'');
             string trailing = raw.Substring(trimmed.Length);
 
             // ensure scheme for www.* links
