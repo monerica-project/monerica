@@ -318,73 +318,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             }
         }
 
-        private static void AppendExternalLinkIcon(StringBuilder sb, DirectoryEntryViewModel model)
-        {
-            var link = model.Link;
-
-            if (!string.IsNullOrWhiteSpace(model.LinkA) && model.IsSponsored == false)
-            {
-                link = model.LinkA;
-            }
-
-            sb.AppendFormat(@" <a target=""_blank"" class=""external-link"" title=""{0}"" href=""{0}""></a> ", link);
-        }
-
-        /// <summary>
-        /// Helper method for appending the main link.
-        /// </summary>
-        private static void AppendLink(
-            StringBuilder sb,
-            DirectoryEntryViewModel model,
-            string? link,
-            bool isScam = false,
-            string? rootUrl = null)
-        {
-            if (string.IsNullOrWhiteSpace(link))
-            {
-                return;
-            }
-
-            string finalLink = model.LinkType == LinkType.ListingPage
-                ? $"{rootUrl ?? string.Empty}{model.ItemPath}"
-                : link;
-
-            string target = model.LinkType == LinkType.Direct ? "target=\"_blank\"" : string.Empty;
-            string name = WebUtility.HtmlEncode(model.Name);
-
-            // build rel attribute
-            var relParts = new List<string>();
-            if (isScam)
-            {
-                relParts.Add("nofollow");
-            }
-
-            if (model.IsSponsored)
-            {
-                relParts.Add("sponsored");
-            }
-
-            string relAttr = relParts.Count > 0
-                ? $"rel=\"{string.Join(" ", relParts)}\""
-                : string.Empty;
-
-            if (isScam)
-            {
-                sb.AppendFormat("<a {3} href=\"{0}\" {1}>{2}</a>", finalLink, target, name, relAttr);
-            }
-            else
-            {
-                if (model.LinkType == LinkType.ListingPage)
-                {
-                    sb.AppendFormat("<a {3} title=\"Profile: {2}\" href=\"{0}\" {1}>{2}</a>", finalLink, target, name, relAttr);
-                }
-                else
-                {
-                    sb.AppendFormat("<a {3} title=\"{2}\" href=\"{0}\" {1}>{2}</a>", finalLink, target, name, relAttr);
-                }
-            }
-        }
-
         private static void AppendLinkWithSeparator(
             StringBuilder sb,
             DirectoryEntryViewModel model,
@@ -479,23 +412,120 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             return sb.ToString();
         }
 
-        /// <summary>
-        /// Helper method to append the link based on the logic.
-        /// </summary>
-        private static void AppendLink(StringBuilder sb, DirectoryEntryViewModel model, string link, bool isSponsored = false, bool isScam = false)
+        private static void AppendLink(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            string link,
+            bool isSponsored = false,
+            bool isScam = false)
         {
-            string finalLink = model.LinkType == LinkType.ListingPage ? model.ItemPath : link;
-            string target = model.LinkType == LinkType.Direct ? "target=\"_blank\"" : string.Empty;
-            string name = model.Name;
+            bool toProfile = model.ItemDisplayType == ItemDisplayType.Featured
+                             || model.LinkType == LinkType.ListingPage;
 
+            string itemPath = string.IsNullOrWhiteSpace(model.ItemPath)
+                ? "/"
+                : (model.ItemPath!.StartsWith("/", StringComparison.Ordinal) ? model.ItemPath : "/" + model.ItemPath);
+
+            string finalHref = toProfile ? itemPath : (link ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(finalHref)) return;
+
+            string target = toProfile ? string.Empty : (model.LinkType == LinkType.Direct ? "target=\"_blank\"" : string.Empty);
+            string name = WebUtility.HtmlEncode(model.Name);
+
+            var relParts = new List<string>();
             if (isScam)
             {
-                sb.AppendFormat("<a rel=\"nofollow\" href=\"{0}\" {1}>{2}</a>", finalLink, target, name);
+                relParts.Add("nofollow");
             }
-            else
+
+            if (model.IsSponsored)
             {
-                sb.AppendFormat("<a href=\"{0}\" {1}>{2}</a>", finalLink, target, name);
+                relParts.Add("sponsored");
             }
+
+            string relAttr = relParts.Count > 0 ? $"rel=\"{string.Join(" ", relParts)}\"" : string.Empty;
+
+            string titleAttr = toProfile ? $"title=\"Profile: {name}\"" : $"title=\"{name}\"";
+
+            sb.AppendFormat(
+                "<a {3} href=\"{0}\" {1} {4}>{2}</a>",
+                finalHref,
+                target,
+                name,
+                relAttr,
+                titleAttr);
+        }
+
+        private static void AppendLink(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            string? link,
+            bool isScam = false,
+            string? rootUrl = null)
+        {
+            // Featured or explicit ListingPage → always link to on-site profile
+            bool toProfile = model.ItemDisplayType == ItemDisplayType.Featured
+                             || model.LinkType == LinkType.ListingPage;
+
+            string itemPath = string.IsNullOrWhiteSpace(model.ItemPath)
+                ? "/"
+                : (model.ItemPath!.StartsWith("/", StringComparison.Ordinal) ? model.ItemPath : "/" + model.ItemPath);
+
+            string domain = (rootUrl ?? string.Empty).TrimEnd('/');
+            string finalHref = toProfile ? $"{domain}{itemPath}" : (link ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(finalHref))
+            {
+                return;
+            }
+
+            string target = toProfile ? string.Empty : (model.LinkType == LinkType.Direct ? "target=\"_blank\"" : string.Empty);
+            string name = WebUtility.HtmlEncode(model.Name);
+
+            var relParts = new List<string>();
+            if (isScam)
+            {
+                relParts.Add("nofollow");
+            }
+
+            if (model.IsSponsored)
+            {
+                relParts.Add("sponsored");
+            }
+
+            string relAttr = relParts.Count > 0 ? $"rel=\"{string.Join(" ", relParts)}\"" : string.Empty;
+
+            string titleAttr = toProfile ? $"title=\"Profile: {name}\"" : $"title=\"{name}\"";
+
+            sb.AppendFormat(
+                "<a {3} href=\"{0}\" {1} {4}>{2}</a>",
+                finalHref,
+                target,
+                name,
+                relAttr,
+                titleAttr);
+        }
+
+        private static string? GetExternalWebsiteUrl(DirectoryEntryViewModel model)
+        {
+            // "Actual link": non-sponsored prefers affiliate (LinkA), else Link
+            if (!model.IsSponsored && !string.IsNullOrWhiteSpace(model.LinkA))
+            {
+                return model.LinkA.Trim();
+            }
+
+            return string.IsNullOrWhiteSpace(model.Link) ? null : model.Link.Trim();
+        }
+
+        private static void AppendExternalLinkIcon(StringBuilder sb, DirectoryEntryViewModel model)
+        {
+            var href = GetExternalWebsiteUrl(model);
+            if (string.IsNullOrWhiteSpace(href))
+            {
+                return;
+            }
+
+            var safe = WebUtility.HtmlEncode(href);
+            sb.AppendFormat(@" <a target=""_blank"" class=""external-link"" title=""{0}"" href=""{0}""></a> ", safe);
         }
     }
 }

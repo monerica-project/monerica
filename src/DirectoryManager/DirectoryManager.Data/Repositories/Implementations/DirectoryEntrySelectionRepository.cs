@@ -15,43 +15,60 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context;
         }
 
+        // Base query: Selection → DirectoryEntry → SubCategory → Category
+        private IQueryable<DirectoryEntrySelection> SelectionBaseQuery()
+        {
+            return this.context.DirectoryEntrySelections
+                .Include(s => s.DirectoryEntry!)
+                    .ThenInclude(de => de.SubCategory!)
+                        .ThenInclude(sc => sc.Category!);
+        }
+
         public async Task<DirectoryEntrySelection> GetByID(int directoryEntrySelectionId)
         {
-            var result = await this.context.DirectoryEntrySelections.FindAsync(directoryEntrySelectionId);
+            var result = await this.SelectionBaseQuery()
+                .FirstOrDefaultAsync(s => s.DirectoryEntrySelectionId == directoryEntrySelectionId)
+                .ConfigureAwait(false);
 
-            return result == null ?
-                throw new InvalidOperationException($"No DirectoryEntrySelection found with ID {directoryEntrySelectionId}") :
-                result;
+            return result == null
+                ? throw new InvalidOperationException($"No DirectoryEntrySelection found with ID {directoryEntrySelectionId}")
+                : result;
         }
 
         public async Task AddToList(DirectoryEntrySelection selection)
         {
             this.context.DirectoryEntrySelections.Add(selection);
-            await this.context.SaveChangesAsync();
+            await this.context.SaveChangesAsync().ConfigureAwait(false);
         }
 
         public async Task DeleteFromList(int directoryEntrySelectionId)
         {
-            var selection = await this.GetByID(directoryEntrySelectionId);
+            var selection = await this.GetByID(directoryEntrySelectionId).ConfigureAwait(false);
             this.context.DirectoryEntrySelections.Remove(selection);
-            await this.context.SaveChangesAsync();
+            await this.context.SaveChangesAsync().ConfigureAwait(false);
         }
 
         public IEnumerable<DirectoryEntrySelection> GetAll()
         {
-            return this.context.DirectoryEntrySelections.Include(de => de.DirectoryEntry).ToList();
+            // If you prefer async, make this Task<IEnumerable<...>> and await ToListAsync.
+            return this.SelectionBaseQuery()
+                .AsNoTracking()
+                .ToList();
         }
 
         public async Task<IEnumerable<DirectoryEntry>> GetEntriesForSelection(EntrySelectionType type)
         {
-            var result = await this.context.DirectoryEntrySelections
-                                 .Where(d => d.EntrySelectionType == type)
-                                 .Select(d => d.DirectoryEntry)
-                                 .Where(d => d != null)
-                                 .Cast<DirectoryEntry>()
-                                 .ToListAsync();
+            // Return DirectoryEntry list WITH SubCategory → Category eagerly loaded.
+            // Use the DirectoryEntries set as the root to ensure Includes are honored.
+            var entries = await this.context.DirectoryEntries
+                .Include(e => e.SubCategory!)
+                    .ThenInclude(sc => sc.Category!)
+                .Where(e => this.context.DirectoryEntrySelections
+                    .Any(s => s.EntrySelectionType == type && s.DirectoryEntryId == e.DirectoryEntryId))
+                .ToListAsync()
+                .ConfigureAwait(false);
 
-            return result;
+            return entries;
         }
 
         public async Task<DateTime> GetMostRecentModifiedDateAsync()
@@ -59,9 +76,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var mostRecentDate = await this.context.DirectoryEntrySelections
                 .Select(d => d.UpdateDate ?? d.CreateDate)
                 .OrderByDescending(date => date)
-                .FirstOrDefaultAsync();
+                .FirstOrDefaultAsync()
+                .ConfigureAwait(false);
 
-            // Return the most recent date or DateTime.MinValue if no entries are found
             return mostRecentDate == default ? DateTime.MinValue : mostRecentDate;
         }
     }
