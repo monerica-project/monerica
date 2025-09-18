@@ -353,7 +353,6 @@ namespace DirectoryManager.Web.Controllers
             int? subCategoryId)
         {
             var currency = displayCurrency ?? Currency.USD;
-
             var invoices = await this.invoiceRepository.GetAllAsync();
 
             var filtered = invoices.Where(inv =>
@@ -362,15 +361,10 @@ namespace DirectoryManager.Web.Controllers
                 inv.CreateDate.Date <= endDate.Date);
 
             if (sponsorshipType.HasValue)
-            {
                 filtered = filtered.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
-            }
 
-            if (subCategoryId.HasValue) // <-- SUBCATEGORY FILTER
-            {
-                filtered = filtered.Where(inv => inv.SubCategoryId.HasValue &&
-                                                 inv.SubCategoryId.Value == subCategoryId.Value);
-            }
+            if (subCategoryId.HasValue)
+                filtered = filtered.Where(inv => inv.SubCategoryId == subCategoryId.Value);
 
             var list = filtered.ToList();
             if (!list.Any())
@@ -383,9 +377,13 @@ namespace DirectoryManager.Web.Controllers
                 return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
             }
 
-            var imageBytes = new InvoicePlotting().CreateMonthlyIncomeBarChart(list, currency);
+            var filterLabel = await this.BuildFilterLabelAsync(sponsorshipType, subCategoryId);
+            var imageBytes = new InvoicePlotting()
+                .CreateMonthlyIncomeBarChart(list, currency, filterLabel); // NEW
+
             return this.File(imageBytes, StringConstants.PngImage);
         }
+
 
         [HttpGet("sponsoredlistinginvoice/monthlyavgdailyrevenuechart")]
         public async Task<IActionResult> MonthlyAvgDailyRevenueChart(
@@ -393,11 +391,10 @@ namespace DirectoryManager.Web.Controllers
             DateTime endDate,
             SponsorshipType? sponsorshipType,
             Currency? displayCurrency,
-            int? subCategoryId) // <-- ADD THIS
+            int? subCategoryId)
         {
             var currency = displayCurrency ?? Currency.USD;
 
-            // normalize UI range to month starts
             var monthStart = new DateTime(startDate.Year, startDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
             var monthEndUI = new DateTime(endDate.Year, endDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
@@ -405,15 +402,10 @@ namespace DirectoryManager.Web.Controllers
             var paid = invoices.Where(i => i.PaymentStatus == PaymentStatus.Paid);
 
             if (sponsorshipType.HasValue)
-            {
                 paid = paid.Where(i => i.SponsorshipType == sponsorshipType.Value);
-            }
 
-            if (subCategoryId.HasValue) // <-- SUBCATEGORY FILTER
-            {
-                paid = paid.Where(i => i.SubCategoryId.HasValue &&
-                                       i.SubCategoryId.Value == subCategoryId.Value);
-            }
+            if (subCategoryId.HasValue)
+                paid = paid.Where(i => i.SubCategoryId == subCategoryId.Value);
 
             var list = paid.ToList();
             if (!list.Any())
@@ -426,16 +418,18 @@ namespace DirectoryManager.Web.Controllers
                 return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
             }
 
-            // IMPORTANT: compute paid-through from the FILTERED list
             var paidThrough = list.Max(i => i.CampaignEndDate.Date);
             var paidThroughMonth = new DateTime(paidThrough.Year, paidThrough.Month, 1, 0, 0, 0, DateTimeKind.Utc);
             var monthEnd = paidThroughMonth > monthEndUI ? paidThroughMonth : monthEndUI;
 
+            var filterLabel = await this.BuildFilterLabelAsync(sponsorshipType, subCategoryId);
+
             var bytes = new InvoicePlotting()
-                .CreateMonthlyAvgDailyRevenueChart(list, currency, monthStart, monthEnd);
+                .CreateMonthlyAvgDailyRevenueChart(list, currency, monthStart, monthEnd, filterLabel); // NEW
 
             return this.File(bytes, StringConstants.PngImage);
         }
+
 
         // --- Subcategory Revenue Pie ---
         [AllowAnonymous]
@@ -801,5 +795,33 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View("AdvertiserInvoices", model);
         }
+
+        private static string FriendlySponsorship(SponsorshipType? st) =>
+    st switch
+    {
+        SponsorshipType.MainSponsor => "Main Sponsor",
+        SponsorshipType.CategorySponsor => "Category Sponsor",
+        SponsorshipType.SubcategorySponsor => "Subcategory Sponsor",
+        null => "All",
+        _ => st?.ToString() ?? "All"
+    };
+
+        private async Task<string> BuildFilterLabelAsync(SponsorshipType? sponsorshipType, int? subCategoryId)
+        {
+            string left = FriendlySponsorship(sponsorshipType);
+
+            if (!subCategoryId.HasValue)
+                return $"{left} : All";
+
+            var sub = (await this.subCategoryRepository.GetAllActiveSubCategoriesAsync().ConfigureAwait(false))
+                        .FirstOrDefault(s => s.SubCategoryId == subCategoryId.Value);
+
+            if (sub is null)
+                return $"{left} : (Unknown {subCategoryId.Value})";
+
+            string right = $"{sub.Category?.Name ?? "Unknown"} > {sub.Name}";
+            return $"{left} : {right}";
+        }
+
     }
 }

@@ -11,7 +11,10 @@ namespace DirectoryManager.Web.Charting
     {
         private const string Culture = StringConstants.EnglishUS;
 
-        public byte[] CreateMonthlyIncomeBarChart(IEnumerable<SponsoredListingInvoice> invoices, Currency displayCurrency)
+        public byte[] CreateMonthlyIncomeBarChart(
+            IEnumerable<SponsoredListingInvoice> invoices,
+            Currency displayCurrency,
+            string? filterLabel = null)
         {
             var list = invoices?.ToList() ?? new ();
             if (list.Count == 0)
@@ -67,6 +70,11 @@ namespace DirectoryManager.Web.Charting
             plt.Title($"Monthly Income ({unit})");
             plt.YLabel($"Total ({unit})");
 
+            plt.Title($"Monthly Income ({unit})");
+            plt.YLabel($"Total ({unit})");
+
+            AddSubtitleBelowTitle(plt, filterLabel);
+
             return plt.GetImageBytes(1200, 800, ImageFormat.Png);
         }
 
@@ -74,7 +82,8 @@ namespace DirectoryManager.Web.Charting
             IEnumerable<SponsoredListingInvoice> invoices,
             Currency displayCurrency,
             DateTime rangeStart,
-            DateTime rangeEnd)
+            DateTime rangeEnd,
+            string? filterLabel = null)
         {
             var paid = (invoices ?? Enumerable.Empty<SponsoredListingInvoice>()).ToList();
             if (!paid.Any())
@@ -197,6 +206,12 @@ namespace DirectoryManager.Web.Charting
             plt.XLabel("Month");
             plt.YLabel($"{unit} per day");
 
+            plt.Title($"Average Daily Revenue ({unit}/day)");
+            plt.XLabel("Month");
+            plt.YLabel($"{unit} per day");
+
+            AddSubtitleBelowTitle(plt, filterLabel);
+
             return plt.GetImageBytes(1200, 600, ImageFormat.Png);
         }
 
@@ -204,7 +219,8 @@ namespace DirectoryManager.Web.Charting
             IEnumerable<SponsoredListingInvoice> invoices,
             Currency displayCurrency,
             DateTime rangeStart,
-            DateTime rangeEnd)
+            DateTime rangeEnd,
+            string? filterLabel = null)
         {
             var list = (invoices ?? Enumerable.Empty<SponsoredListingInvoice>()).ToList();
             if (list.Count == 0)
@@ -303,6 +319,11 @@ namespace DirectoryManager.Web.Charting
             string unit = displayCurrency == Currency.USD ? "USD" : displayCurrency.ToString();
             plt.Title($"Monthly Income ({unit})");
             plt.YLabel($"Total ({unit})");
+
+            plt.Title($"Monthly Income ({unit})");
+            plt.YLabel($"Total ({unit})");
+            
+            AddSubtitleBelowTitle(plt, filterLabel);
 
             return plt.GetImageBytes(1200, 800, ImageFormat.Png);
         }
@@ -411,5 +432,32 @@ namespace DirectoryManager.Web.Charting
             double right = (barCount - 0.5) + rightPad; // ~one extra bar of breathing room
             plt.Axes.SetLimitsX(left, right);
         }
+
+        private static void AddSubtitleBelowTitle(ScottPlot.Plot plt, string? subtitle)
+        {
+            if (string.IsNullOrWhiteSpace(subtitle))
+            {
+                return;
+            }
+
+            // create a little vertical headroom above current top
+            var lim = plt.Axes.GetLimits();
+            double spanY = lim.Top - lim.Bottom;
+            double extra = Math.Max(spanY * 0.12, 1.0); // 12% of span or at least 1 unit
+
+            plt.Axes.SetLimitsY(lim.Bottom, lim.Top + extra);
+
+            // recompute after expanding
+            lim = plt.Axes.GetLimits();
+            double xMid = (lim.Left + lim.Right) / 2.0;
+            double y = lim.Top - (extra * 0.35); // place subtitle inside the new padding
+
+            var t = plt.Add.Text(subtitle, xMid, y);
+            t.Alignment = ScottPlot.Alignment.UpperCenter;
+            t.LabelFontSize = 14;
+            t.Bold = false;
+            t.Color = ScottPlot.Colors.Gray;
+        }
+
     }
 }
