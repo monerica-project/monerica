@@ -160,7 +160,7 @@ namespace DirectoryManager.Web.Controllers
             DateTime? endDate,
             SponsorshipType? sponsorshipType,
             Currency? displayCurrency,
-            int? subCategoryId) // NEW
+            int? subCategoryId)
         {
             const int defaultYears = 1;
             var now = DateTime.UtcNow;
@@ -173,10 +173,10 @@ namespace DirectoryManager.Web.Controllers
                 EndDate = new DateTime(toDate.Year, toDate.Month, toDate.Day, 23, 59, 59, DateTimeKind.Utc),
                 SponsorshipType = sponsorshipType,
                 DisplayCurrency = displayCurrency ?? Currency.USD,
-                SubCategoryId = subCategoryId // NEW
+                SubCategoryId = subCategoryId
             };
 
-            // Sponsorship type dropdown (unchanged)
+            // Sponsorship type dropdown
             model.SponsorshipTypeOptions = Enum.GetValues(typeof(SponsorshipType))
                 .Cast<SponsorshipType>()
                 .Where(st => st != SponsorshipType.Unknown)
@@ -189,7 +189,7 @@ namespace DirectoryManager.Web.Controllers
                 .Prepend(new SelectListItem { Value = "", Text = "All", Selected = !sponsorshipType.HasValue })
                 .ToList();
 
-            // Display currency dropdown (unchanged)
+            // Currency dropdown
             model.DisplayCurrencyOptions = Enum.GetValues(typeof(Currency))
                 .Cast<Currency>()
                 .Where(c => c != Currency.Unknown)
@@ -201,7 +201,7 @@ namespace DirectoryManager.Web.Controllers
                 })
                 .ToList();
 
-            // NEW: Subcategory dropdown
+            // Subcategory dropdown
             var subs = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync().ConfigureAwait(false);
             model.SubCategoryOptions = subs
                 .OrderBy(s => s.Category.Name).ThenBy(s => s.Name)
@@ -231,34 +231,90 @@ namespace DirectoryManager.Web.Controllers
                 filtered = filtered.Where(inv => inv.SubCategoryId == subCategoryId.Value);
             }
 
-            // Totals in selected currency (generic)
+            // Total in selected currency (generic)
             model.TotalInDisplayCurrency = filtered.Sum(inv => inv.AmountIn(model.DisplayCurrency));
 
-            // Keep legacy fields if other parts still use them
+            // Keep legacy fields if needed elsewhere
             model.TotalPaidAmount = filtered.Sum(inv => inv.PaidAmount);
             model.TotalAmount = filtered.Sum(inv => inv.Amount);
             model.PaidInCurrency = filtered.Select(inv => inv.PaidInCurrency).FirstOrDefault();
             model.Currency = filtered.Select(inv => inv.Currency).FirstOrDefault();
 
-            // NEW: Average USD rate when not USD (weighted by filtered invoices in that currency)
-            if (model.DisplayCurrency != Currency.USD)
+            // --- FX lines ---
+            if (model.DisplayCurrency == Currency.USD)
             {
-                var sameCurrency = filtered.Where(i => i.Currency == model.DisplayCurrency).ToList();
-                var totalOriginal = sameCurrency.Sum(i => i.Amount);                 // in native (display) currency units
-                var totalUsd = sameCurrency.Sum(i => i.AmountIn(Currency.USD));      // USD equivalent used in pipeline
+                // Weighted average USD price for XMR (from XMR-denominated invoices in the filter window)
+                var xmrInvoices = filtered.Where(i => i.Currency == Currency.XMR).ToList();
+                var totalXmr = xmrInvoices.Sum(i => i.Amount);                         // XMR units
+                var totalUsdFromXmr = xmrInvoices.Sum(i => i.AmountIn(Currency.USD));  // USD equivalent
 
-                model.AverageUsdPerUnitForDisplayCurrency =
-                    totalOriginal > 0 ? totalUsd / totalOriginal : (decimal?)null;
+                if (totalXmr > 0m && totalUsdFromXmr > 0m)
+                {
+                    model.AverageUsdPerXmr = totalUsdFromXmr / totalXmr;               // $ per 1 XMR
+                    model.ImpliedTotalInXmrAtAvg =
+                        model.AverageUsdPerXmr > 0m
+                            ? model.TotalInDisplayCurrency / model.AverageUsdPerXmr
+                            : (decimal?)null;
+                }
+                else
+                {
+                    model.AverageUsdPerXmr = null;
+                    model.ImpliedTotalInXmrAtAvg = null;
+                }
+
+                model.AverageUsdPerUnitForDisplayCurrency = null; // not shown in USD mode
             }
             else
             {
-                model.AverageUsdPerUnitForDisplayCurrency = null;
+                // Weighted average USD per 1 unit of the selected non-USD currency
+                var sameCurrency = filtered.Where(i => i.Currency == model.DisplayCurrency).ToList();
+                var totalOriginal = sameCurrency.Sum(i => i.Amount);                    // in that currency
+                var totalUsd = sameCurrency.Sum(i => i.AmountIn(Currency.USD));         // USD equivalent
+
+                model.AverageUsdPerUnitForDisplayCurrency =
+                    totalOriginal > 0m ? totalUsd / totalOriginal : (decimal?)null;
+
+                model.AverageUsdPerXmr = null;
+                model.ImpliedTotalInXmrAtAvg = null;
             }
 
-            // ----- Prepaid FUTURE services (apply same filters) -----
-            var asOfUtc = DateTime.UtcNow.Date;
+            // --- FX lines ---
+            if (model.DisplayCurrency == Currency.USD)
+            {
+                // Use ALL filtered invoices: average = (sum USD equivalents) / (sum XMR equivalents)
+                var sumUsd = filtered.Sum(i => i.AmountIn(Currency.USD)); // always defined in your pipeline
+                var sumXmr = filtered.Sum(i => i.AmountIn(Currency.XMR)); // XMR equivalent for each invoice
 
+                if (sumUsd > 0m && sumXmr > 0m)
+                {
+                    model.AverageUsdPerXmr = sumUsd / sumXmr;                // $ per 1 XMR
+                    model.ImpliedTotalInXmrAtAvg = model.TotalInDisplayCurrency / model.AverageUsdPerXmr;
+                }
+                else
+                {
+                    model.AverageUsdPerXmr = null;
+                    model.ImpliedTotalInXmrAtAvg = null;
+                }
+
+                model.AverageUsdPerUnitForDisplayCurrency = null; // not shown in USD mode
+            }
+            else
+            {
+                // For non-USD display currency C, average = (sum USD equivalents) / (sum C equivalents)
+                var sumUsd = filtered.Sum(i => i.AmountIn(Currency.USD));
+                var sumCur = filtered.Sum(i => i.AmountIn(model.DisplayCurrency));
+
+                model.AverageUsdPerUnitForDisplayCurrency =
+                    (sumUsd > 0m && sumCur > 0m) ? sumUsd / sumCur : (decimal?)null;
+
+                model.AverageUsdPerXmr = null;
+                model.ImpliedTotalInXmrAtAvg = null;
+            }
+
+            // ----- Prepaid FUTURE services (apply same higher-level filters) -----
+            var asOfUtc = DateTime.UtcNow.Date;
             var futurePaid = allInvoices.Where(inv => inv.PaymentStatus == PaymentStatus.Paid);
+
             if (sponsorshipType.HasValue)
             {
                 futurePaid = futurePaid.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
@@ -319,12 +375,16 @@ namespace DirectoryManager.Web.Controllers
                 for (int i = 1; i < ivals.Count; i++)
                 {
                     var (s, e) = ivals[i];
-                    if (s <= curE.AddDays(1)) { if (e > curE)
+                    if (s <= curE.AddDays(1))
+                    {
+                        if (e > curE)
                         {
                             curE = e;
                         }
                     }
-                    else { total += (long)(curE - curS).TotalDays + 1;
+                    else
+                    {
+                        total += (long)(curE - curS).TotalDays + 1;
                         curS = s;
                         curE = e;
                     }

@@ -75,5 +75,9 @@ namespace DirectoryManager.Web.Models
         // NEW: Subcategory filter
         public int? SubCategoryId { get; set; }
         public List<SelectListItem> SubCategoryOptions { get; set; } = new ();
+
+        public decimal? AverageUsdPerXmr { get; set; }
+        public decimal? ImpliedTotalInXmrAtAvg { get; set; }
+
     }
 }

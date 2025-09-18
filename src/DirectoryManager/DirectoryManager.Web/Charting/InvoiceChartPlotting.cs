@@ -458,6 +458,5 @@ namespace DirectoryManager.Web.Charting
             t.Bold = false;
             t.Color = ScottPlot.Colors.Gray;
         }
-
     }
 }
