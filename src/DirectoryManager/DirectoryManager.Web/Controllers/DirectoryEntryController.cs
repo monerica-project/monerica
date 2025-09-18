@@ -663,88 +663,81 @@ namespace DirectoryManager.Web.Controllers
             string hex = Regex.Replace(s, @"[^0-9A-Fa-f]", ""); // keep hex only
             return hex.ToUpperInvariant();
         }
+ 
+    private static string BuildLocationHtml(string? locationRaw, string? countryCode, IUrlResolutionService urlResolver)
+    {
+        var location = locationRaw?.Trim();
+        var ccRaw = countryCode?.Trim();
 
-        private static string BuildLocationHtml(string? locationRaw, string? countryCode, IUrlResolutionService urlResolver)
+        // Flag
+        string flagHtml = string.Empty;
+        if (!string.IsNullOrWhiteSpace(ccRaw))
         {
-            var location = locationRaw?.Trim();
-            var ccRaw = countryCode?.Trim();
+            var ccLower = ccRaw.ToLowerInvariant();
+            var countryNameForAlt = CountryHelper.GetCountryName(ccRaw) ?? string.Empty;
+            var altTitle = string.IsNullOrWhiteSpace(countryNameForAlt)
+                ? $"Flag ({ccRaw})"
+                : $"Flag of {countryNameForAlt} ({ccRaw.ToUpperInvariant()})";
 
-            // Prepare flag (show whenever we have a country code)
-            string flagHtml = string.Empty;
-            if (!string.IsNullOrWhiteSpace(ccRaw))
+            flagHtml = $"<img class=\"country-flag me-2 align-text-bottom\" src=\"/images/flags/{ccLower}.png\" alt=\"{WebUtility.HtmlEncode(altTitle)}\" title=\"{WebUtility.HtmlEncode(countryNameForAlt)}\" /> ";
+        }
+
+        // Country link
+        string? countryName = null;
+        string? anchorHtml = null;
+        if (!string.IsNullOrWhiteSpace(ccRaw))
+        {
+            countryName = CountryHelper.GetCountryName(ccRaw);
+            if (!string.IsNullOrWhiteSpace(countryName))
             {
-                var ccLower = ccRaw.ToLowerInvariant();
-                var countryNameForAlt = CountryHelper.GetCountryName(ccRaw) ?? string.Empty;
-                var altTitle = string.IsNullOrWhiteSpace(countryNameForAlt)
-                    ? $"Flag ({ccRaw})"
-                    : $"Flag of {countryNameForAlt} ({ccRaw.ToUpperInvariant()})";
-
-                // margin-right so text doesn’t collide with the flag
-                flagHtml = $"<img class=\"country-flag me-2 align-text-bottom\" src=\"/images/flags/{ccLower}.png\" alt=\"{WebUtility.HtmlEncode(altTitle)}\" title=\"{WebUtility.HtmlEncode(countryNameForAlt)}\" /> ";
-            }
-
-            // Compute country name + link (if available)
-            string? countryName = null;
-            string? anchorHtml = null;
-
-            if (!string.IsNullOrWhiteSpace(ccRaw))
-            {
-                countryName = CountryHelper.GetCountryName(ccRaw);
-                if (!string.IsNullOrWhiteSpace(countryName))
-                {
-                    var slug = StringHelpers.UrlKey(countryName);
-                    var href = urlResolver.ResolveToRoot($"/countries/{slug}");
-                    anchorHtml = $"<a class=\"no-app-link\" href=\"{href}\">{WebUtility.HtmlEncode(countryName)}</a>";
-                }
-            }
-
-            // Nothing else to show
-            if (string.IsNullOrWhiteSpace(location) && string.IsNullOrWhiteSpace(countryName))
-            {
-                return flagHtml; // could be empty if no cc
-            }
-
-            // If we don't have a country name/link, just emit flag + encoded location
-            if (string.IsNullOrWhiteSpace(countryName) || string.IsNullOrWhiteSpace(anchorHtml))
-            {
-                return $"{flagHtml}{WebUtility.HtmlEncode(location ?? string.Empty)}";
-            }
-
-            // Do we already have the country name inside the location string?
-            var idx = !string.IsNullOrWhiteSpace(location)
-                ? location!.IndexOf(countryName!, StringComparison.OrdinalIgnoreCase)
-                : -1;
-
-            if (idx >= 0)
-            {
-                // Replace first occurrence with a link, preserve punctuation (no extra spaces before commas)
-                var before = location!.Substring(0, idx);
-                var after = location!.Substring(idx + countryName!.Length);
-                return $"{flagHtml}{WebUtility.HtmlEncode(before)}{anchorHtml}{WebUtility.HtmlEncode(after)}";
-            }
-            else if (!string.IsNullOrWhiteSpace(location))
-            {
-                // Append ", <linked country>" with exactly one comma+space
-                var left = location!.TrimEnd();
-                if (left.EndsWith(",", StringComparison.Ordinal))
-                {
-                    left += " ";
-                }
-                else
-                {
-                    left = left + ", ";
-                }
-
-                return $"{flagHtml}{WebUtility.HtmlEncode(left)}{anchorHtml}";
-            }
-            else
-            {
-                // No location text; only the linked country (with flag)
-                return $"{flagHtml}{anchorHtml}";
+                var slug = StringHelpers.UrlKey(countryName);
+                var href = urlResolver.ResolveToRoot($"/countries/{slug}");
+                anchorHtml = $"<a class=\"no-app-link\" href=\"{href}\">{WebUtility.HtmlEncode(countryName)}</a>";
             }
         }
 
-        private async Task LoadLists()
+        // Nothing else
+        if (string.IsNullOrWhiteSpace(location) && string.IsNullOrWhiteSpace(countryName))
+            return flagHtml;
+
+        // If missing country/link, just show location
+        if (string.IsNullOrWhiteSpace(countryName) || string.IsNullOrWhiteSpace(anchorHtml))
+            return $"{flagHtml}{WebUtility.HtmlEncode(location ?? string.Empty)}";
+
+        // --- Key change: only replace a TRAILING ", CountryName" ---
+        // Example that should match: "Prague, CZ, Czech Republic"
+        // Example that should NOT match: "Mexico City" (contains "Mexico" as part of city name)
+        if (!string.IsNullOrWhiteSpace(location))
+        {
+            var pattern = @"(?:^|,\s*)(" + Regex.Escape(countryName) + @")\s*$";
+            var match = Regex.Match(location, pattern, RegexOptions.IgnoreCase);
+
+            if (match.Success)
+            {
+                // Everything before the trailing ", CountryName"
+                var before = location.Substring(0, match.Index).TrimEnd();
+
+                // Normalize trailing comma/space
+                if (before.EndsWith(",")) before = before.TrimEnd().TrimEnd(',');
+
+                var left = string.IsNullOrEmpty(before) ? string.Empty : before + ", ";
+
+                return $"{flagHtml}{WebUtility.HtmlEncode(left)}{anchorHtml}";
+            }
+
+            // No trailing country name -> append ", <linked country>"
+            var leftText = location.TrimEnd();
+            if (!leftText.EndsWith(",")) leftText += ", ";
+
+            return $"{flagHtml}{WebUtility.HtmlEncode(leftText)}{anchorHtml}";
+        }
+
+        // No location text; only the linked country
+        return $"{flagHtml}{anchorHtml}";
+    }
+
+
+    private async Task LoadLists()
         {
             await this.LoadSubCategories();
             await this.PopulateCountryDropDownList();

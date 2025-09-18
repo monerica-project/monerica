@@ -159,7 +159,8 @@ namespace DirectoryManager.Web.Controllers
             DateTime? startDate,
             DateTime? endDate,
             SponsorshipType? sponsorshipType,
-            Currency? displayCurrency) // NEW
+            Currency? displayCurrency,
+            int? subCategoryId) // NEW
         {
             const int defaultYears = 1;
             var now = DateTime.UtcNow;
@@ -171,10 +172,11 @@ namespace DirectoryManager.Web.Controllers
                 StartDate = new DateTime(fromDate.Year, fromDate.Month, fromDate.Day, 0, 0, 0, DateTimeKind.Utc),
                 EndDate = new DateTime(toDate.Year, toDate.Month, toDate.Day, 23, 59, 59, DateTimeKind.Utc),
                 SponsorshipType = sponsorshipType,
-                DisplayCurrency = displayCurrency ?? Currency.USD
+                DisplayCurrency = displayCurrency ?? Currency.USD,
+                SubCategoryId = subCategoryId // NEW
             };
 
-            // sponsorship type dropdown (unchanged)
+            // Sponsorship type dropdown (unchanged)
             model.SponsorshipTypeOptions = Enum.GetValues(typeof(SponsorshipType))
                 .Cast<SponsorshipType>()
                 .Where(st => st != SponsorshipType.Unknown)
@@ -187,7 +189,7 @@ namespace DirectoryManager.Web.Controllers
                 .Prepend(new SelectListItem { Value = "", Text = "All", Selected = !sponsorshipType.HasValue })
                 .ToList();
 
-            // currency dropdown (generic)
+            // Display currency dropdown (unchanged)
             model.DisplayCurrencyOptions = Enum.GetValues(typeof(Currency))
                 .Cast<Currency>()
                 .Where(c => c != Currency.Unknown)
@@ -199,35 +201,72 @@ namespace DirectoryManager.Web.Controllers
                 })
                 .ToList();
 
-            // fetch and filter
+            // NEW: Subcategory dropdown
+            var subs = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync().ConfigureAwait(false);
+            model.SubCategoryOptions = subs
+                .OrderBy(s => s.Category.Name).ThenBy(s => s.Name)
+                .Select(s => new SelectListItem
+                {
+                    Value = s.SubCategoryId.ToString(),
+                    Text = $"{s.Category.Name} > {s.Name}",
+                    Selected = subCategoryId.HasValue && s.SubCategoryId == subCategoryId.Value
+                })
+                .Prepend(new SelectListItem { Value = "", Text = "All Subcategories", Selected = !subCategoryId.HasValue })
+                .ToList();
+
+            // Fetch and filter paid invoices in date window
             var allInvoices = await this.invoiceRepository.GetAllAsync().ConfigureAwait(false);
-            var filtered = allInvoices
-                .Where(inv => inv.CreateDate >= model.StartDate
-                           && inv.CreateDate <= model.EndDate
-                           && inv.PaymentStatus == PaymentStatus.Paid);
+            var filtered = allInvoices.Where(inv =>
+                inv.CreateDate >= model.StartDate &&
+                inv.CreateDate <= model.EndDate &&
+                inv.PaymentStatus == PaymentStatus.Paid);
 
             if (sponsorshipType.HasValue)
             {
                 filtered = filtered.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
             }
 
-            // total in selected currency (generic)
+            if (subCategoryId.HasValue)
+            {
+                filtered = filtered.Where(inv => inv.SubCategoryId == subCategoryId.Value);
+            }
+
+            // Totals in selected currency (generic)
             model.TotalInDisplayCurrency = filtered.Sum(inv => inv.AmountIn(model.DisplayCurrency));
 
-            // Keep existing fields if other parts of the page still use them (optional)
+            // Keep legacy fields if other parts still use them
             model.TotalPaidAmount = filtered.Sum(inv => inv.PaidAmount);
             model.TotalAmount = filtered.Sum(inv => inv.Amount);
             model.PaidInCurrency = filtered.Select(inv => inv.PaidInCurrency).FirstOrDefault();
             model.Currency = filtered.Select(inv => inv.Currency).FirstOrDefault();
 
-            // ----- Prepaid FUTURE services summary (as of "now") -----
+            // NEW: Average USD rate when not USD (weighted by filtered invoices in that currency)
+            if (model.DisplayCurrency != Currency.USD)
+            {
+                var sameCurrency = filtered.Where(i => i.Currency == model.DisplayCurrency).ToList();
+                var totalOriginal = sameCurrency.Sum(i => i.Amount);                 // in native (display) currency units
+                var totalUsd = sameCurrency.Sum(i => i.AmountIn(Currency.USD));      // USD equivalent used in pipeline
+
+                model.AverageUsdPerUnitForDisplayCurrency =
+                    totalOriginal > 0 ? totalUsd / totalOriginal : (decimal?)null;
+            }
+            else
+            {
+                model.AverageUsdPerUnitForDisplayCurrency = null;
+            }
+
+            // ----- Prepaid FUTURE services (apply same filters) -----
             var asOfUtc = DateTime.UtcNow.Date;
 
-            // Start from all PAID invoices (not limited by Start/End UI range)
             var futurePaid = allInvoices.Where(inv => inv.PaymentStatus == PaymentStatus.Paid);
             if (sponsorshipType.HasValue)
             {
                 futurePaid = futurePaid.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
+
+            if (subCategoryId.HasValue)
+            {
+                futurePaid = futurePaid.Where(inv => inv.SubCategoryId == subCategoryId.Value);
             }
 
             decimal futureRevenue = 0m;
@@ -243,22 +282,19 @@ namespace DirectoryManager.Web.Controllers
                     continue;
                 }
 
-                // only the remaining window (today → end)
                 var os = start < asOfUtc ? asOfUtc : start;
                 var oe = end;
                 if (oe < os)
                 {
-                    continue; // nothing left
+                    continue;
                 }
 
-                // collect for DISTINCT day counting
                 intervals.Add((os, oe));
 
-                // pro-rate remaining value in the selected currency
-                var totalDays = (decimal)((end - start).TotalDays + 1); // inclusive
+                var totalDays = (decimal)((end - start).TotalDays + 1);
                 if (totalDays > 0m)
                 {
-                    var overlapDays = (decimal)((oe - os).TotalDays + 1); // inclusive
+                    var overlapDays = (decimal)((oe - os).TotalDays + 1);
                     var perDay = inv.AmountIn(model.DisplayCurrency) / totalDays;
                     futureRevenue += perDay * overlapDays;
                 }
@@ -269,8 +305,7 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            // merge intervals to count DISTINCT days
-            int CountDistinctDays(List<(DateTime S, DateTime E)> ivals)
+            static int CountDistinctDays(List<(DateTime S, DateTime E)> ivals)
             {
                 if (ivals.Count == 0)
                 {
@@ -281,25 +316,19 @@ namespace DirectoryManager.Web.Controllers
                 var curS = ivals[0].S;
                 var curE = ivals[0].E;
                 long total = 0;
-
                 for (int i = 1; i < ivals.Count; i++)
                 {
                     var (s, e) = ivals[i];
-                    if (s <= curE.AddDays(1)) // overlap or touching
-                    {
-                        if (e > curE)
+                    if (s <= curE.AddDays(1)) { if (e > curE)
                         {
                             curE = e;
                         }
                     }
-                    else
-                    {
-                        total += (long)(curE - curS).TotalDays + 1;
+                    else { total += (long)(curE - curS).TotalDays + 1;
                         curS = s;
                         curE = e;
                     }
                 }
-
                 total += (long)(curE - curS).TotalDays + 1;
                 return (int)total;
             }
@@ -315,29 +344,34 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
-        // --- Monthly Income (UNCHANGED logic: sum by CreateDate month) ---
         [HttpGet("sponsoredlistinginvoice/monthlyincomebarchart")]
         public async Task<IActionResult> MonthlyIncomeBarChart(
             DateTime startDate,
             DateTime endDate,
             SponsorshipType? sponsorshipType,
-            Currency? displayCurrency)
+            Currency? displayCurrency,
+            int? subCategoryId)
         {
             var currency = displayCurrency ?? Currency.USD;
 
             var invoices = await this.invoiceRepository.GetAllAsync();
-            var filtered = invoices
-                .Where(inv =>
-                    inv.PaymentStatus == PaymentStatus.Paid &&
-                    inv.CreateDate.Date >= startDate.Date &&
-                    inv.CreateDate.Date <= endDate.Date);
+
+            var filtered = invoices.Where(inv =>
+                inv.PaymentStatus == PaymentStatus.Paid &&
+                inv.CreateDate.Date >= startDate.Date &&
+                inv.CreateDate.Date <= endDate.Date);
 
             if (sponsorshipType.HasValue)
             {
                 filtered = filtered.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
             }
 
-            // IMPORTANT: do NOT filter by MatchesCurrency — we always use AmountIn()
+            if (subCategoryId.HasValue) // <-- SUBCATEGORY FILTER
+            {
+                filtered = filtered.Where(inv => inv.SubCategoryId.HasValue &&
+                                                 inv.SubCategoryId.Value == subCategoryId.Value);
+            }
+
             var list = filtered.ToList();
             if (!list.Any())
             {
@@ -353,13 +387,13 @@ namespace DirectoryManager.Web.Controllers
             return this.File(imageBytes, StringConstants.PngImage);
         }
 
-        // Average Daily Revenue (show future months up to paid-through)
         [HttpGet("sponsoredlistinginvoice/monthlyavgdailyrevenuechart")]
         public async Task<IActionResult> MonthlyAvgDailyRevenueChart(
             DateTime startDate,
             DateTime endDate,
             SponsorshipType? sponsorshipType,
-            Currency? displayCurrency)
+            Currency? displayCurrency,
+            int? subCategoryId) // <-- ADD THIS
         {
             var currency = displayCurrency ?? Currency.USD;
 
@@ -367,12 +401,18 @@ namespace DirectoryManager.Web.Controllers
             var monthStart = new DateTime(startDate.Year, startDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
             var monthEndUI = new DateTime(endDate.Year, endDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
 
-            // pull all PAID invoices (not filtered by overlap so future is visible)
             var invoices = await this.invoiceRepository.GetAllAsync();
             var paid = invoices.Where(i => i.PaymentStatus == PaymentStatus.Paid);
+
             if (sponsorshipType.HasValue)
             {
                 paid = paid.Where(i => i.SponsorshipType == sponsorshipType.Value);
+            }
+
+            if (subCategoryId.HasValue) // <-- SUBCATEGORY FILTER
+            {
+                paid = paid.Where(i => i.SubCategoryId.HasValue &&
+                                       i.SubCategoryId.Value == subCategoryId.Value);
             }
 
             var list = paid.ToList();
@@ -386,7 +426,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
             }
 
-            // EXTEND to “paid through” so future months appear
+            // IMPORTANT: compute paid-through from the FILTERED list
             var paidThrough = list.Max(i => i.CampaignEndDate.Date);
             var paidThroughMonth = new DateTime(paidThrough.Year, paidThrough.Month, 1, 0, 0, 0, DateTimeKind.Utc);
             var monthEnd = paidThroughMonth > monthEndUI ? paidThroughMonth : monthEndUI;
@@ -404,7 +444,7 @@ namespace DirectoryManager.Web.Controllers
             DateTime? startDate,
             DateTime? endDate,
             SponsorshipType? sponsorshipType,
-            Currency? displayCurrency) // NEW
+            Currency? displayCurrency)
         {
             var currency = displayCurrency ?? Currency.USD;
 

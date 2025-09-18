@@ -48,6 +48,18 @@
             </div>
         </div>
 
+        <!-- NEW ROW: Subcategory -->
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="SubCategoryId">Subcategory</label>
+                <select id="SubCategoryId"
+                        name="subCategoryId"
+                        class="form-control"
+                        asp-items="Model.SubCategoryOptions">
+                </select>
+            </div>
+        </div>
+
         <button type="submit" class="btn btn-primary">Get Totals</button>
     </form>
 
@@ -72,49 +84,78 @@
         }
     </p>
 
-    <p>
-    <strong>Prepaid future services:</strong>
-    @if (Model.PaidThroughDateUtc.HasValue && Model.FutureServiceDaysDistinct > 0)
+    @* NEW: show average FX when not USD *@
+    @if (Model.DisplayCurrency != DirectoryManager.Data.Enums.Currency.USD
+        && Model.AverageUsdPerUnitForDisplayCurrency.HasValue)
     {
-        <span>@Model.PaidThroughDateYmd — </span>
-        @if (Model.DisplayCurrency == DirectoryManager.Data.Enums.Currency.USD)
+        <p class="text-muted" style="margin-top:-6px;">
+            Avg FX (weighted): 1 @Model.DisplayCurrency ≈
+            @Model.AverageUsdPerUnitForDisplayCurrency.Value.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS)) USD
+        </p>
+    }
+
+    <p>
+        <strong>Prepaid future services:</strong>
+        @if (Model.PaidThroughDateUtc.HasValue && Model.FutureServiceDaysDistinct > 0)
         {
-            @Model.FutureRevenueInDisplayCurrency.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS))
+            <span>@Model.PaidThroughDateYmd — </span>
+            @if (Model.DisplayCurrency == DirectoryManager.Data.Enums.Currency.USD)
+            {
+                @Model.FutureRevenueInDisplayCurrency.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS))
+            }
+            else
+            {
+                @Model.FutureRevenueInDisplayCurrency.ToString("0.######") @Model.DisplayCurrency
+            }
+            <span> for @Model.FutureServiceDaysDistinct day(s) remaining</span>
         }
         else
         {
-            @Model.FutureRevenueInDisplayCurrency.ToString("0.######") @Model.DisplayCurrency
+            <span>none</span>
         }
-        <span> for @Model.FutureServiceDaysDistinct day(s) remaining</span>
-    }
-    else
-    {
-        <span>none</span>
-    }
-</p>
-
+    </p>
 
     <a 
        href="@Url.Action("DownloadAccountantCsv", "SponsoredListingInvoice", new {
             startDate = Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat),
             endDate   = Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat),
             sponsorshipType = Model.SponsorshipType?.ToString(),
+            // optional: if you want CSV to honor subcategory, add it to that action too
+            subCategoryId = Model.SubCategoryId, // NEW (add to action signature to support)
             costEqualsSalesPrice = true
        })" target="_blank">Download Accounting CSV</a>
 
     <img style="width:100%"
-         src="@Url.Action("MonthlyIncomeBarChart", "SponsoredListingInvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType, displayCurrency = Model.DisplayCurrency })"
+         src="@Url.Action("MonthlyIncomeBarChart", "SponsoredListingInvoice", new {
+                startDate = Model.StartDate,
+                endDate = Model.EndDate,
+                sponsorshipType = Model.SponsorshipType,
+                displayCurrency = Model.DisplayCurrency,
+                subCategoryId = Model.SubCategoryId // NEW (add to action signature to support)
+         })"
          alt="Monthly Income Chart (@Model.DisplayCurrency)" />
 
     <br />
 
     <img style="width:100%"
-         src="@Url.Action("MonthlyAvgDailyRevenueChart", "SponsoredListingInvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType, displayCurrency = Model.DisplayCurrency })"
+         src="@Url.Action("MonthlyAvgDailyRevenueChart", "SponsoredListingInvoice", new {
+                startDate = Model.StartDate,
+                endDate = Model.EndDate,
+                sponsorshipType = Model.SponsorshipType,
+                displayCurrency = Model.DisplayCurrency,
+                subCategoryId = Model.SubCategoryId // NEW
+         })"
          alt="Average Daily Revenue per Month (@Model.DisplayCurrency)" />
 
     <br />
 
     <img style="width:100%"
-         src="@Url.Action("SubcategoryRevenuePieChart", "SponsoredListingInvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType, displayCurrency = Model.DisplayCurrency })"
+         src="@Url.Action("SubcategoryRevenuePieChart", "SponsoredListingInvoice", new {
+                startDate = Model.StartDate,
+                endDate = Model.EndDate,
+                sponsorshipType = Model.SponsorshipType,
+                displayCurrency = Model.DisplayCurrency,
+                subCategoryId = Model.SubCategoryId // NEW (optional—pie may be trivial with one subcat)
+         })"
          alt="Subcategory Revenue Pie Chart (@Model.DisplayCurrency)" />
 }

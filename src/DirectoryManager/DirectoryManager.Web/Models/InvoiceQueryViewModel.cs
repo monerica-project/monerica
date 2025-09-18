@@ -68,5 +68,12 @@ namespace DirectoryManager.Web.Models
 
         // Simple continuous days (today → latest end), may overcount if there are gaps
         public int FutureServiceDaysContinuous { get; set; }
+
+        // NEW: Average FX shown when DisplayCurrency != USD
+        public decimal? AverageUsdPerUnitForDisplayCurrency { get; set; }
+
+        // NEW: Subcategory filter
+        public int? SubCategoryId { get; set; }
+        public List<SelectListItem> SubCategoryOptions { get; set; } = new ();
     }
 }
