@@ -17,7 +17,6 @@ public class SearchController : Controller
     private readonly ISponsoredListingRepository sponsoredListingRepository;
     private readonly ISearchBlacklistRepository blacklistRepository;
     private readonly IMemoryCache memoryCache;
-    private readonly IUrlResolutionService urlResolver; // optional but nice
 
     public SearchController(
         IDirectoryEntryRepository entryRepo,
@@ -34,7 +33,6 @@ public class SearchController : Controller
         this.sponsoredListingRepository = sponsoredListingRepository;
         this.blacklistRepository = blacklistRepository;
         this.memoryCache = memoryCache;
-        this.urlResolver = urlResolver;
     }
 
     [HttpGet("search")]
