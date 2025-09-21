@@ -5,7 +5,6 @@
     string startVal = Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
     string endVal = Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
 }
-
 @section PageContent {
 
     <h1>@ViewData["Title"]</h1>
@@ -26,14 +25,12 @@
         </div>
     </form>
 
-
     <p>
         Time Range:
         @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
         –
         @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
     </p>
- 
 
     <div class="card mb-4">
         <div class="card-header">Weekly Searches</div>

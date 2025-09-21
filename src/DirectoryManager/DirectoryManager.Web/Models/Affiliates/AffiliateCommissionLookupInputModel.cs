@@ -1,5 +1,4 @@
-﻿// Web/Models/Affiliates/AffiliateCommissionLookupInputModel.cs
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace DirectoryManager.Web.Models.Affiliates
 {
@@ -8,7 +7,8 @@ namespace DirectoryManager.Web.Models.Affiliates
         [Required]
         public string ReferralCode { get; set; } = string.Empty;
 
-        [Required, MaxLength(256)]
+        [Required]
+        [MaxLength(256)]
         public string WalletAddress { get; set; } = string.Empty;
     }
 }

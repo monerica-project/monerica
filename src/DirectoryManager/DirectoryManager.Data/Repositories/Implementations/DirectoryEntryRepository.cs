@@ -731,7 +731,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             // Group active entries with a non-empty, known ISO2 country code
             var grouped = await this.context.DirectoryEntries
-                .Where(e => 
+                .Where(e =>
                     (e.DirectoryStatus == DirectoryStatus.Verified
                   || e.DirectoryStatus == DirectoryStatus.Admitted
                   || e.DirectoryStatus == DirectoryStatus.Questionable

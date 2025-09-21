@@ -78,6 +78,5 @@ namespace DirectoryManager.Web.Models
 
         public decimal? AverageUsdPerXmr { get; set; }
         public decimal? ImpliedTotalInXmrAtAvg { get; set; }
-
     }
 }

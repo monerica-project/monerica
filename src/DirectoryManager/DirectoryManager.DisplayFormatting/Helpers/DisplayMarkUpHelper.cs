@@ -427,7 +427,10 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 : (model.ItemPath!.StartsWith("/", StringComparison.Ordinal) ? model.ItemPath : "/" + model.ItemPath);
 
             string finalHref = toProfile ? itemPath : (link ?? string.Empty).Trim();
-            if (string.IsNullOrWhiteSpace(finalHref)) return;
+            if (string.IsNullOrWhiteSpace(finalHref))
+            {
+                return;
+            }
 
             string target = toProfile ? string.Empty : (model.LinkType == LinkType.Direct ? "target=\"_blank\"" : string.Empty);
             string name = WebUtility.HtmlEncode(model.Name);

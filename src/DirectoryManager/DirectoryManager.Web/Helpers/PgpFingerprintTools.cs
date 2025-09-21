@@ -80,6 +80,7 @@ public static class PgpFingerprintTools
                 sb.Append(char.ToUpperInvariant(c));
             }
         }
+
         return sb.ToString();
     }
 

@@ -15,15 +15,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context;
         }
 
-        // Base query: Selection → DirectoryEntry → SubCategory → Category
-        private IQueryable<DirectoryEntrySelection> SelectionBaseQuery()
-        {
-            return this.context.DirectoryEntrySelections
-                .Include(s => s.DirectoryEntry!)
-                    .ThenInclude(de => de.SubCategory!)
-                        .ThenInclude(sc => sc.Category!);
-        }
-
         public async Task<DirectoryEntrySelection> GetByID(int directoryEntrySelectionId)
         {
             var result = await this.SelectionBaseQuery()
@@ -80,6 +71,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
 
             return mostRecentDate == default ? DateTime.MinValue : mostRecentDate;
+        }
+
+        private IQueryable<DirectoryEntrySelection> SelectionBaseQuery()
+        {
+            return this.context.DirectoryEntrySelections
+                .Include(s => s.DirectoryEntry!)
+                    .ThenInclude(de => de.SubCategory!)
+                        .ThenInclude(sc => sc.Category!);
         }
     }
 }

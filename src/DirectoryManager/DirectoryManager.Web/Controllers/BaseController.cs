@@ -46,7 +46,7 @@ namespace DirectoryManager.Web.Controllers
                 }
 
                 var url = context.HttpContext.Request.Path.ToString();
-                var userAgent = context.HttpContext.Request.Headers["User-Agent"].ToString();
+                var userAgent = context.HttpContext.Request.Headers[StringConstants.UserAgent].ToString();
 
                 if (ipAddress == null)
                 {
