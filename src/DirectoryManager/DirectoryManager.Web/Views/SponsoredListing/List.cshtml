@@ -1,6 +1,6 @@
 ﻿@using DirectoryManager.Web.Constants;
 @model DirectoryManager.Web.Models.PaginatedListingsViewModel
- 
+
 @{
     ViewData[StringConstants.TitleHeader] = "Sponsored Listings";
 }
@@ -10,75 +10,77 @@
 }
 @section PageContent {
 
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
-@await Html.PartialAsync("_AdminMenu")
+    @await Html.PartialAsync("_AdminMenu")
 
-<div class="table-wrapper">
-    <table class="table">
-    <thead>
-        <tr>
-            <th>Name</th>
-            <th>Type</th>
-            <th>Start Date</th>
-            <th></th>
-            <th>End Date</th>
-            <th>Active</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var listing in Model.Listings)
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Start Date</th>
+                    <th></th>
+                    <th>End Date</th>
+                    <th>Days Left</th>
+                    <th>Active</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var listing in Model.Listings)
+                {
+                    var daysLeft = (listing.EndDate.Date - DateTime.UtcNow.Date).Days; 
+
+                    <tr>
+                        <td>@listing.DirectoryEntryName</td>
+                        <td>@listing.SponsorshipType</td>
+                        <td>@listing.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
+                        <td> - </td>
+                        <td>@listing.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
+                        <td>@daysLeft</td>
+                        <td>
+                            @if (listing.IsActive)
+                            {
+                                <text>&#128994;</text>
+                            }
+                            else
+                            {
+                                <text>&#128308;</text>
+                            }
+                        </td>
+                        <td><a href="@Url.Action("Edit", "SponsoredListing", new { id = listing.Id })">Edit</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div>
+        <!-- Previous Page Link -->
+        <a href="@Url.Action("List", "SponsoredListing", new { page = Math.Max(1, Model.CurrentPage - 1) })"
+           aria-label="Previous" @(Model.CurrentPage == 1 ? "disabled" : "")>
+            &laquo;
+        </a>
+
+        <!-- Page Number Links -->
+        @for (int i = 1; i <= Model.TotalPages; i++)
         {
-            <tr>
-                <td>@listing.DirectoryEntryName</td>
-                <td>@listing.SponsorshipType</td>
-                <td>@listing.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
-                <td> - </td>
-                <td>@listing.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
-                <td> 
-                    @if (listing.IsActive)
-                    {
-                        <text>&#128994;</text>
-                        
-                    }
-                    else
-                    {
-                        <text>&#128308;</text>
-                    }
-
-                </td>
-                <td><a href="@Url.Action("Edit", "SponsoredListing", new { id = listing.Id })">Edit</a></td>
-            </tr>
+            if (i == Model.CurrentPage)
+            {
+                <span class="bold">@i</span>
+            }
+            else
+            {
+                <a href="@Url.Action("List", "SponsoredListing", new { page = i })">@i</a>
+            }
         }
-    </tbody>
-</table>
-</div>
 
-<div>
-    <!-- Previous Page Link -->
-    <a href="@Url.Action("List", "SponsoredListing", new { page = Math.Max(1, Model.CurrentPage - 1) })"
-       aria-label="Previous" @(Model.CurrentPage == 1 ? "disabled" : "")>
-        &laquo;
-    </a>
-
-    <!-- Page Number Links -->
-    @for (int i = 1; i <= Model.TotalPages; i++)
-    {
-        if (i == Model.CurrentPage)
-        {
-            <span class="bold">@i</span>
-        }
-        else
-        {
-            <a href="@Url.Action("List", "SponsoredListing", new { page = i })">@i</a>
-        }
-    }
-
-    <!-- Next Page Link -->
-    <a href="@Url.Action("List", "SponsoredListing", new { page = Math.Min(Model.TotalPages, Model.CurrentPage + 1) })"
-       aria-label="Next" @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")>
-        &raquo;
-    </a>
-</div>
+        <!-- Next Page Link -->
+        <a href="@Url.Action("List", "SponsoredListing", new { page = Math.Min(Model.TotalPages, Model.CurrentPage + 1) })"
+           aria-label="Next" @(Model.CurrentPage == Model.TotalPages ? "disabled" : "")>
+            &raquo;
+        </a>
+    </div>
 }
