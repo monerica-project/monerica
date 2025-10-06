@@ -41,7 +41,9 @@ namespace DirectoryManager.Web.Controllers
 
         [Route("sponsoredlistinginvoice")]
         [HttpGet]
-        public async Task<IActionResult> Index(int page = 1, int pageSize = IntegerConstants.DefaultPageSize)
+        public async Task<IActionResult> Index(
+            int page = 1,
+            int pageSize = IntegerConstants.DefaultPageSize)
         {
             var (invoices, totalItems) = await this.invoiceRepository
                                                .GetPageAsync(page, pageSize)
@@ -243,51 +245,12 @@ namespace DirectoryManager.Web.Controllers
             // --- FX lines ---
             if (model.DisplayCurrency == Currency.USD)
             {
-                // Weighted average USD price for XMR (from XMR-denominated invoices in the filter window)
-                var xmrInvoices = filtered.Where(i => i.Currency == Currency.XMR).ToList();
-                var totalXmr = xmrInvoices.Sum(i => i.Amount);                         // XMR units
-                var totalUsdFromXmr = xmrInvoices.Sum(i => i.AmountIn(Currency.USD));  // USD equivalent
-
-                if (totalXmr > 0m && totalUsdFromXmr > 0m)
-                {
-                    model.AverageUsdPerXmr = totalUsdFromXmr / totalXmr;               // $ per 1 XMR
-                    model.ImpliedTotalInXmrAtAvg =
-                        model.AverageUsdPerXmr > 0m
-                            ? model.TotalInDisplayCurrency / model.AverageUsdPerXmr
-                            : (decimal?)null;
-                }
-                else
-                {
-                    model.AverageUsdPerXmr = null;
-                    model.ImpliedTotalInXmrAtAvg = null;
-                }
-
-                model.AverageUsdPerUnitForDisplayCurrency = null; // not shown in USD mode
-            }
-            else
-            {
-                // Weighted average USD per 1 unit of the selected non-USD currency
-                var sameCurrency = filtered.Where(i => i.Currency == model.DisplayCurrency).ToList();
-                var totalOriginal = sameCurrency.Sum(i => i.Amount);                    // in that currency
-                var totalUsd = sameCurrency.Sum(i => i.AmountIn(Currency.USD));         // USD equivalent
-
-                model.AverageUsdPerUnitForDisplayCurrency =
-                    totalOriginal > 0m ? totalUsd / totalOriginal : (decimal?)null;
-
-                model.AverageUsdPerXmr = null;
-                model.ImpliedTotalInXmrAtAvg = null;
-            }
-
-            // --- FX lines ---
-            if (model.DisplayCurrency == Currency.USD)
-            {
-                // Use ALL filtered invoices: average = (sum USD equivalents) / (sum XMR equivalents)
-                var sumUsd = filtered.Sum(i => i.AmountIn(Currency.USD)); // always defined in your pipeline
-                var sumXmr = filtered.Sum(i => i.AmountIn(Currency.XMR)); // XMR equivalent for each invoice
+                var sumUsd = filtered.Sum(i => i.AmountIn(Currency.USD));
+                var sumXmr = filtered.Sum(i => i.AmountIn(Currency.XMR));
 
                 if (sumUsd > 0m && sumXmr > 0m)
                 {
-                    model.AverageUsdPerXmr = sumUsd / sumXmr;                // $ per 1 XMR
+                    model.AverageUsdPerXmr = sumUsd / sumXmr;
                     model.ImpliedTotalInXmrAtAvg = model.TotalInDisplayCurrency / model.AverageUsdPerXmr;
                 }
                 else
@@ -300,7 +263,6 @@ namespace DirectoryManager.Web.Controllers
             }
             else
             {
-                // For non-USD display currency C, average = (sum USD equivalents) / (sum C equivalents)
                 var sumUsd = filtered.Sum(i => i.AmountIn(Currency.USD));
                 var sumCur = filtered.Sum(i => i.AmountIn(model.DisplayCurrency));
 
@@ -347,10 +309,10 @@ namespace DirectoryManager.Web.Controllers
 
                 intervals.Add((os, oe));
 
-                var totalDays = (decimal)((end - start).TotalDays + 1);
+                var totalDays = (decimal)InclusiveDays(start, end); // FIXED
                 if (totalDays > 0m)
                 {
-                    var overlapDays = (decimal)((oe - os).TotalDays + 1);
+                    var overlapDays = (decimal)OverlapInclusiveDays(start, end, os, oe.AddDays(1));
                     var perDay = inv.AmountIn(model.DisplayCurrency) / totalDays;
                     futureRevenue += perDay * overlapDays;
                 }
@@ -363,10 +325,7 @@ namespace DirectoryManager.Web.Controllers
 
             static int CountDistinctDays(List<(DateTime S, DateTime E)> ivals)
             {
-                if (ivals.Count == 0)
-                {
-                    return 0;
-                }
+                if (ivals.Count == 0) return 0;
 
                 ivals.Sort((a, b) => a.S.CompareTo(b.S));
                 var curS = ivals[0].S;
@@ -384,12 +343,13 @@ namespace DirectoryManager.Web.Controllers
                     }
                     else
                     {
-                        total += (long)(curE - curS).TotalDays + 1;
+                        total += InclusiveDays(curS, curE);
                         curS = s;
                         curE = e;
                     }
                 }
-                total += (long)(curE - curS).TotalDays + 1;
+
+                total += InclusiveDays(curS, curE);
                 return (int)total;
             }
 
@@ -398,7 +358,7 @@ namespace DirectoryManager.Web.Controllers
             model.FutureServiceDaysDistinct = CountDistinctDays(intervals);
             model.FutureServiceDaysContinuous =
                 paidThrough.HasValue && paidThrough.Value >= asOfUtc
-                    ? (int)((paidThrough.Value - asOfUtc).TotalDays + 1)
+                    ? InclusiveDays(asOfUtc, paidThrough.Value)
                     : 0;
 
             return this.View(model);
@@ -421,10 +381,14 @@ namespace DirectoryManager.Web.Controllers
                 inv.CreateDate.Date <= endDate.Date);
 
             if (sponsorshipType.HasValue)
+            {
                 filtered = filtered.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
 
             if (subCategoryId.HasValue)
+            {
                 filtered = filtered.Where(inv => inv.SubCategoryId == subCategoryId.Value);
+            }
 
             var list = filtered.ToList();
             if (!list.Any())
@@ -439,11 +403,10 @@ namespace DirectoryManager.Web.Controllers
 
             var filterLabel = await this.BuildFilterLabelAsync(sponsorshipType, subCategoryId);
             var imageBytes = new InvoicePlotting()
-                .CreateMonthlyIncomeBarChart(list, currency, filterLabel); // NEW
+                .CreateMonthlyIncomeBarChart(list, currency, filterLabel);
 
             return this.File(imageBytes, StringConstants.PngImage);
         }
-
 
         [HttpGet("sponsoredlistinginvoice/monthlyavgdailyrevenuechart")]
         public async Task<IActionResult> MonthlyAvgDailyRevenueChart(
@@ -462,10 +425,14 @@ namespace DirectoryManager.Web.Controllers
             var paid = invoices.Where(i => i.PaymentStatus == PaymentStatus.Paid);
 
             if (sponsorshipType.HasValue)
+            {
                 paid = paid.Where(i => i.SponsorshipType == sponsorshipType.Value);
+            }
 
             if (subCategoryId.HasValue)
+            {
                 paid = paid.Where(i => i.SubCategoryId == subCategoryId.Value);
+            }
 
             var list = paid.ToList();
             if (!list.Any())
@@ -485,11 +452,10 @@ namespace DirectoryManager.Web.Controllers
             var filterLabel = await this.BuildFilterLabelAsync(sponsorshipType, subCategoryId);
 
             var bytes = new InvoicePlotting()
-                .CreateMonthlyAvgDailyRevenueChart(list, currency, monthStart, monthEnd, filterLabel); // NEW
+                .CreateMonthlyAvgDailyRevenueChart(list, currency, monthStart, monthEnd, filterLabel);
 
             return this.File(bytes, StringConstants.PngImage);
         }
-
 
         // --- Subcategory Revenue Pie ---
         [AllowAnonymous]
@@ -711,7 +677,7 @@ namespace DirectoryManager.Web.Controllers
                     await writer.WriteLineAsync(string.Join(
                         ",",
                         N8(r.Quantity),
-                        r.Description,  // ensure comma-free upstream; otherwise quote here
+                        r.Description,
                         D(r.PaidDateUtc),
                         D(r.PaidDateUtc),
                         Money(sales),
@@ -726,11 +692,9 @@ namespace DirectoryManager.Web.Controllers
                 await writer.FlushAsync();
             }
             catch (OperationCanceledException)
-            { /* client canceled */
-            }
+            { /* client canceled */ }
             catch (IOException)
-            { /* broken pipe */
-            }
+            { /* broken pipe */ }
 
             return new EmptyResult();
         }
@@ -742,7 +706,7 @@ namespace DirectoryManager.Web.Controllers
             DateTime? endDate,
             SponsorshipType? sponsorshipType)
         {
-            // Date-only for UI; half-open [start, end) for correctness
+            // Use half-open [start, end) window and inclusive day math for campaigns
             const int defaultYears = 1;
             var now = DateTime.UtcNow;
             var from = (startDate ?? now.AddYears(-defaultYears)).Date;
@@ -751,24 +715,57 @@ namespace DirectoryManager.Web.Controllers
             var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
             var endOpenUtc = new DateTime(to.Year, to.Month, to.Day, 0, 0, 0, DateTimeKind.Utc).AddDays(1);
 
-            var stats = await this.invoiceRepository
-                .GetAdvertiserInvoiceWindowSumsAsync(startUtc, endOpenUtc, sponsorshipType)
-                .ConfigureAwait(false);
+            // Pull paid invoices (all-time), then filter to window + type in-memory
+            var all = await this.invoiceRepository.GetAllAsync().ConfigureAwait(false);
+            var paid = all.Where(i => i.PaymentStatus == PaymentStatus.Paid);
 
-            var totalRevenue = stats.Sum(s => s.Revenue);
-
-            var rows = stats.Select(s =>
+            if (sponsorshipType.HasValue)
             {
-                var avgPerDay = Math.Round(s.Revenue / Math.Max(1, s.DaysPurchased), 2);
-                var pct = totalRevenue > 0m ? Math.Round(s.Revenue * 100m / totalRevenue, 2) : 0m;
+                paid = paid.Where(i => i.SponsorshipType == sponsorshipType.Value);
+            }
+
+            // Revenue in window = sum of Amount for invoices whose CreateDate lands in window (keeps your UI intent)
+            var windowPaid = paid.Where(i => i.CreateDate >= startUtc && i.CreateDate < endOpenUtc).ToList();
+
+            // Group by advertiser, compute revenue and correct overlap days (campaign x window)
+            var grouped = paid.GroupBy(i => new { i.DirectoryEntryId, i.DirectoryEntry.Name })
+                              .Select(g =>
+                              {
+                                  // revenue only for invoices *in window* (as before)
+                                  var revenue = windowPaid.Where(i => i.DirectoryEntryId == g.Key.DirectoryEntryId)
+                                                          .Sum(i => i.Amount);
+
+                                  // overlap days across *all paid* invoices for this advertiser (clipped to the same window)
+                                  var days = g.Sum(i => OverlapInclusiveDays(i.CampaignStartDate, i.CampaignEndDate, startUtc, endOpenUtc));
+
+                                  return new
+                                  {
+                                      g.Key.DirectoryEntryId,
+                                      g.Key.Name,
+                                      Revenue = revenue,
+                                      DaysInWindow = days,
+                                      CountInWindow = windowPaid.Count(i => i.DirectoryEntryId == g.Key.DirectoryEntryId)
+                                  };
+                              })
+
+                              // Keep only advertisers that actually had revenue in the window
+                              .Where(x => x.Revenue > 0m)
+                              .ToList();
+
+            var totalRevenue = grouped.Sum(x => x.Revenue);
+
+            var rows = grouped.Select(x =>
+            {
+                var avgPerDay = x.DaysInWindow > 0 ? Math.Round(x.Revenue / x.DaysInWindow, 2) : x.Revenue; // if 0 days, show revenue (edge)
+                var pct = totalRevenue > 0m ? Math.Round(x.Revenue * 100m / totalRevenue, 2) : 0m;
 
                 return new AdvertiserBreakdownRow
                 {
-                    DirectoryEntryId = s.DirectoryEntryId,
-                    DirectoryEntryName = s.DirectoryEntryName,
-                    Revenue = s.Revenue,             // sum of Amount
-                    Count = s.Count,               // invoices in window
-                    AveragePerDay = avgPerDay,             // Amount ÷ purchased days
+                    DirectoryEntryId = x.DirectoryEntryId,
+                    DirectoryEntryName = x.Name,
+                    Revenue = x.Revenue,
+                    Count = x.CountInWindow,
+                    AveragePerDay = avgPerDay,
                     Percentage = pct
                 };
             })
@@ -815,7 +812,7 @@ namespace DirectoryManager.Web.Controllers
 
             var paid = allInvoicesForEntry
                 .Where(i => i.PaymentStatus == PaymentStatus.Paid)
-                .OrderByDescending(i => i.CreateDate) // keep your existing sort
+                .OrderByDescending(i => i.CreateDate)
                 .ToList();
 
             var total = paid.Count;
@@ -832,12 +829,13 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryName = entry.Name,
                 Page = page,
                 PageSize = pageSize,
-                TotalCount = total,              // total PAID invoices (all-time)
+                TotalCount = total,
                 TotalPaidAllTime = totalPaidAllTime,
                 Rows = items.Select(i =>
                 {
-                    var days = Math.Max(1, (i.CampaignEndDate.Date - i.CampaignStartDate.Date).TotalDays + 1);
-                    var avg = Math.Round((double)(i.Amount / (decimal)days), 2);
+                    var purchasedDays = Math.Max(1.0, (i.CampaignEndDate - i.CampaignStartDate).TotalDays);
+                    var avg = Math.Round((double)(i.Amount / (decimal)purchasedDays), 2);
+
                     return new DirectoryManager.Web.Models.Reports.AdvertiserInvoiceRow
                     {
                         SponsoredListingInvoiceId = i.SponsoredListingInvoiceId,
@@ -856,32 +854,61 @@ namespace DirectoryManager.Web.Controllers
             return this.View("AdvertiserInvoices", model);
         }
 
+        // ---------- DAY-COUNT HELPERS (fix off-by-one) ----------
+        private static int InclusiveDays(DateTime startUtc, DateTime endUtc)
+        {
+            // counts both start and end dates; clamps to >= 0
+            var s = startUtc.Date;
+            var eOpen = endUtc.Date.AddDays(1);
+            var days = (int)(eOpen - s).TotalDays;
+            return Math.Max(0, days);
+        }
+
+        private static int OverlapInclusiveDays(
+            DateTime campaignStartUtc,
+            DateTime campaignEndUtc,
+            DateTime windowStartUtc,
+            DateTime windowEndOpenUtc)
+        {
+            // clip campaign [start, end] (inclusive) to window [winStart, winEnd) (end-exclusive)
+            var s = campaignStartUtc.Date;
+            var eOpen = campaignEndUtc.Date.AddDays(1); // inclusive -> end-open
+            var a = s > windowStartUtc.Date ? s : windowStartUtc.Date;
+            var b = eOpen < windowEndOpenUtc.Date ? eOpen : windowEndOpenUtc.Date;
+
+            var days = (int)(b - a).TotalDays; // already end-exclusive
+            return Math.Max(0, days);
+        }
+
         private static string FriendlySponsorship(SponsorshipType? st) =>
-    st switch
-    {
-        SponsorshipType.MainSponsor => "Main Sponsor",
-        SponsorshipType.CategorySponsor => "Category Sponsor",
-        SponsorshipType.SubcategorySponsor => "Subcategory Sponsor",
-        null => "All",
-        _ => st?.ToString() ?? "All"
-    };
+            st switch
+            {
+                SponsorshipType.MainSponsor => "Main Sponsor",
+                SponsorshipType.CategorySponsor => "Category Sponsor",
+                SponsorshipType.SubcategorySponsor => "Subcategory Sponsor",
+                null => "All",
+                _ => st?.ToString() ?? "All"
+            };
 
         private async Task<string> BuildFilterLabelAsync(SponsorshipType? sponsorshipType, int? subCategoryId)
         {
             string left = FriendlySponsorship(sponsorshipType);
 
             if (!subCategoryId.HasValue)
+            {
                 return $"{left} : All";
+            }
 
             var sub = (await this.subCategoryRepository.GetAllActiveSubCategoriesAsync().ConfigureAwait(false))
                         .FirstOrDefault(s => s.SubCategoryId == subCategoryId.Value);
 
             if (sub is null)
+            {
                 return $"{left} : (Unknown {subCategoryId.Value})";
+            }
 
             string right = $"{sub.Category?.Name ?? "Unknown"} > {sub.Name}";
             return $"{left} : {right}";
         }
-
     }
 }

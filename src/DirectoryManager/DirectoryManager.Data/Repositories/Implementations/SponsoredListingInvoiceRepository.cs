@@ -17,26 +17,38 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
+        // Centralize eager-loading for all places that need DirectoryEntry populated
+        private static IQueryable<SponsoredListingInvoice> WithIncludes(IQueryable<SponsoredListingInvoice> q) =>
+            q.Include(i => i.DirectoryEntry) // ensures DirectoryEntry and its Name are populated
+             .Include(i => i.SponsoredListing);         // optional, but often useful
+
         public async Task<SponsoredListingInvoice?> GetByIdAsync(int sponsoredListingInvoiceId)
         {
-            return await this.context.SponsoredListingInvoices.FindAsync(sponsoredListingInvoiceId);
+            return await WithIncludes(this.context.SponsoredListingInvoices)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i => i.SponsoredListingInvoiceId == sponsoredListingInvoiceId);
         }
 
         public async Task<SponsoredListingInvoice?> GetByInvoiceIdAsync(Guid invoiceId)
         {
-            return await this.context.SponsoredListingInvoices
-                                     .FirstOrDefaultAsync(x => x.InvoiceId == invoiceId);
+            return await WithIncludes(this.context.SponsoredListingInvoices)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.InvoiceId == invoiceId);
         }
 
         public async Task<SponsoredListingInvoice?> GetByReservationGuidAsync(Guid reservationGuid)
         {
-            return await this.context.SponsoredListingInvoices
-                                     .FirstOrDefaultAsync(x => x.ReservationGuid == reservationGuid);
+            return await WithIncludes(this.context.SponsoredListingInvoices)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ReservationGuid == reservationGuid);
         }
 
         public async Task<IEnumerable<SponsoredListingInvoice>> GetAllAsync()
         {
-            return await this.context.SponsoredListingInvoices.ToListAsync();
+            return await WithIncludes(this.context.SponsoredListingInvoices)
+                .AsNoTracking()
+                .OrderByDescending(i => i.CreateDate)
+                .ToListAsync();
         }
 
         public async Task<SponsoredListingInvoice> CreateAsync(SponsoredListingInvoice invoice)
@@ -44,7 +56,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SponsoredListingInvoices.AddAsync(invoice);
             await this.context.SaveChangesAsync();
 
-            return invoice;
+            // Return the freshly created row with includes populated
+            return await this.GetByIdAsync(invoice.SponsoredListingInvoiceId)
+                   ?? invoice;
         }
 
         public async Task<bool> UpdateAsync(SponsoredListingInvoice invoice)
@@ -53,10 +67,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             {
                 this.context.SponsoredListingInvoices.Update(invoice);
                 await this.context.SaveChangesAsync();
-
                 return true;
             }
-            catch (Exception)
+            catch
             {
                 return false;
             }
@@ -64,12 +77,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<(IEnumerable<SponsoredListingInvoice>, int)> GetPageAsync(int page, int pageSize)
         {
-            var totalItems = await this.context.SponsoredListingInvoices.CountAsync();
-            var invoices = await this.context.SponsoredListingInvoices
-                                             .OrderByDescending(i => i.CreateDate)
-                                             .Skip((page - 1) * pageSize)
-                                             .Take(pageSize)
-                                             .ToListAsync();
+            var baseQuery = WithIncludes(this.context.SponsoredListingInvoices).AsNoTracking();
+
+            var totalItems = await baseQuery.CountAsync();
+
+            var invoices = await baseQuery
+                .OrderByDescending(i => i.CreateDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
             return (invoices, totalItems);
         }
@@ -79,22 +95,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
             int pageSize,
             Enums.PaymentStatus paymentStatus)
         {
-            var totalItems = await this.context
-                                       .SponsoredListingInvoices
-                                       .Where(x => x.PaymentStatus == paymentStatus).CountAsync();
-            var invoices = await this.context.SponsoredListingInvoices
-                                             .OrderByDescending(i => i.CreateDate)
-                                             .Where(x => x.PaymentStatus == paymentStatus)
-                                             .Skip((page - 1) * pageSize)
-                                             .Take(pageSize)
-                                             .ToListAsync();
+            var baseQuery = WithIncludes(this.context.SponsoredListingInvoices)
+                .AsNoTracking()
+                .Where(x => x.PaymentStatus == paymentStatus);
+
+            var totalItems = await baseQuery.CountAsync();
+
+            var invoices = await baseQuery
+                .OrderByDescending(i => i.CreateDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
 
             return (invoices, totalItems);
         }
 
         public async Task DeleteAsync(int sponsoredListingInvoiceId)
         {
-            var invoice = await this.GetByIdAsync(sponsoredListingInvoiceId);
+            var invoice = await this.context.SponsoredListingInvoices.FindAsync(sponsoredListingInvoiceId);
             if (invoice != null)
             {
                 this.context.SponsoredListingInvoices.Remove(invoice);
@@ -105,17 +123,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<InvoiceTotalsResult> GetTotalsPaidAsync(DateTime startDate, DateTime endDate)
         {
             var invoices = await this.context.SponsoredListingInvoices
-                                             .Where(i => i.CreateDate >= startDate &&
-                                                         i.CreateDate <= endDate &&
-                                                         i.PaymentStatus == Enums.PaymentStatus.Paid)
-                                             .ToListAsync();
+                .AsNoTracking()
+                .Where(i => i.CreateDate >= startDate &&
+                            i.CreateDate <= endDate &&
+                            i.PaymentStatus == Enums.PaymentStatus.Paid)
+                .ToListAsync();
 
-            if (invoices == null || invoices.Count == 0)
+            if (invoices.Count == 0)
             {
                 return new InvoiceTotalsResult();
             }
 
-            var result = new InvoiceTotalsResult
+            return new InvoiceTotalsResult
             {
                 PaidInCurrency = invoices.First().PaidInCurrency,
                 Currency = invoices.First().Currency,
@@ -124,14 +143,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 TotalReceivedAmount = invoices.Sum(i => i.OutcomeAmount),
                 TotalAmount = invoices.Sum(i => i.Amount)
             };
-
-            return result;
         }
 
         public async Task<SponsoredListingInvoice> GetByInvoiceProcessorIdAsync(string processorInvoiceId)
         {
-            var result = await this.context.SponsoredListingInvoices
-                                     .FirstOrDefaultAsync(x => x.ProcessorInvoiceId == processorInvoiceId);
+            var result = await WithIncludes(this.context.SponsoredListingInvoices)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(x => x.ProcessorInvoiceId == processorInvoiceId);
 
             return result ??
                 throw new InvalidOperationException(
@@ -140,33 +158,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public DateTime? GetLastPaidInvoiceUpdateDate()
         {
-            // Fetch the latest CreateDate and UpdateDate
             var latestCreateDate = this.context.SponsoredListingInvoices
-                                   .Where(e => e != null && e.PaymentStatus == Enums.PaymentStatus.Paid)
+                                   .Where(e => e.PaymentStatus == Enums.PaymentStatus.Paid)
                                    .Max(e => (DateTime?)e.CreateDate);
 
             var latestUpdateDate = this.context.SponsoredListingInvoices
-                                   .Where(e => e != null && e.PaymentStatus == Enums.PaymentStatus.Paid)
+                                   .Where(e => e.PaymentStatus == Enums.PaymentStatus.Paid)
                                    .Max(e => e.UpdateDate) ?? DateTime.MinValue;
 
-            // Return the more recent of the two dates
             return (DateTime)(latestCreateDate > latestUpdateDate ? latestCreateDate : latestUpdateDate);
         }
 
         public async Task<(IEnumerable<SponsoredListingInvoice> Invoices, int TotalCount)>
             GetInvoicesForDirectoryEntryAsync(int directoryEntryId, int page, int pageSize)
         {
-            var baseQuery =
-                from inv in this.context.SponsoredListingInvoices.AsNoTracking()
-                join sl in this.context.SponsoredListings
-                        .AsNoTracking()
-                        .IgnoreQueryFilters() // if a global filter is hiding rows
-                    on inv.SponsoredListingId equals sl.SponsoredListingId
-                    into gj
-                from sl in gj.DefaultIfEmpty()
-                where inv.DirectoryEntryId == directoryEntryId // still filter on invoices
-                orderby inv.CreateDate descending
-                select inv;
+            var baseQuery = WithIncludes(this.context.SponsoredListingInvoices)
+                .AsNoTracking()
+                .Where(inv => inv.DirectoryEntryId == directoryEntryId)
+                .OrderByDescending(inv => inv.CreateDate);
 
             var total = await baseQuery.CountAsync();
 
@@ -195,7 +204,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             SponsorshipType? sponsorshipType = null,
             bool paidOnly = true)
         {
-            // date-only, inclusive window
+            // (kept your existing logic – no need to include DirectoryEntry here,
+            // because names are looked up separately)
             var from = windowStartDate.Date;
             var to = windowEndDate.Date;
 
@@ -214,7 +224,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 q = q.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
             }
 
-            // Pull just what we need
             var list = await q
                 .Select(inv => new
                 {
@@ -229,7 +238,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             var groups = list.GroupBy(i => i.DirectoryEntryId).ToList();
 
-            // One shot lookup for names (avoid N+1)
             var dirEntryIds = groups.Select(g => g.Key).Distinct().ToList();
             var nameLookup = await this.context.DirectoryEntries.AsNoTracking()
                 .Where(de => dirEntryIds.Contains(de.DirectoryEntryId))
@@ -266,7 +274,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         totalCampDays = 1;
                     }
 
-                    // Use PaidAmount when available; fallback to Amount
                     var baseAmount = inv.PaidAmount > 0m ? inv.PaidAmount : inv.Amount;
 
                     var fraction = overlapDays / totalCampDays;
@@ -291,7 +298,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             DateTime startUtc,
             DateTime endUtc,
             SponsorshipType? sponsorshipType,
-            [System.Runtime.CompilerServices.EnumeratorCancellation] CancellationToken ct = default)
+            [EnumeratorCancellation] CancellationToken ct = default)
         {
             var q = this.context.SponsoredListingInvoices
                 .AsNoTracking()
@@ -302,7 +309,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 q = q.Where(i => i.SponsorshipType == sponsorshipType.Value);
             }
 
-            // Filter by UpdateDate primarily, but include rows where UpdateDate wasn't set and CreateDate is in range.
             q = q.Where(i =>
                 (i.UpdateDate >= startUtc && i.UpdateDate <= endUtc) ||
                 (i.UpdateDate == DateTime.MinValue && i.CreateDate >= startUtc && i.CreateDate <= endUtc));
@@ -341,7 +347,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
-        // in SponsoredListingInvoiceRepository
         public async Task<(IEnumerable<SponsoredListingInvoice> Invoices, int TotalCount)>
             GetInvoicesForDirectoryEntryInWindowAsync(
                 int directoryEntryId,
@@ -353,7 +358,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 int page,
                 int pageSize)
         {
-            var q = this.context.SponsoredListingInvoices
+            var q = WithIncludes(this.context.SponsoredListingInvoices)
                 .AsNoTracking()
                 .Where(i => i.DirectoryEntryId == directoryEntryId);
 
@@ -367,7 +372,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 q = q.Where(i => i.SponsorshipType == sponsorshipType.Value);
             }
 
-            // match the breakdown: include invoices whose CAMPAIGN overlaps the window
             if (useCampaignOverlap)
             {
                 q = q.Where(i => i.CampaignEndDate >= windowStartUtc &&
@@ -382,7 +386,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var total = await q.CountAsync();
 
             var items = await q
-                .OrderByDescending(i => i.CreateDate) // keep your current sort
+                .OrderByDescending(i => i.CreateDate)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync();
@@ -395,7 +399,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             DateTime windowEndOpenUtc,
             SponsorshipType? sponsorshipType = null)
         {
-            // Half-open [start, end)
+            // This method returns sums; names are resolved via a one-shot lookup below.
             var q = this.context.SponsoredListingInvoices.AsNoTracking()
                 .Where(i => i.PaymentStatus == PaymentStatus.Paid)
                 .Where(i => i.CreateDate >= windowStartUtc && i.CreateDate < windowEndOpenUtc);
@@ -405,12 +409,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 q = q.Where(i => i.SponsorshipType == sponsorshipType.Value);
             }
 
-            // Pull only what we need to memory (campaign-day math is simpler & safe here)
             var raw = await q
                 .Select(i => new
                 {
                     i.DirectoryEntryId,
-                    i.Amount, // USD (your requirement)
+                    i.Amount,
                     i.CampaignStartDate,
                     i.CampaignEndDate
                 })
@@ -419,7 +422,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             var groups = raw.GroupBy(x => x.DirectoryEntryId);
 
-            // One-shot name lookup to avoid N+1
             var ids = groups.Select(g => g.Key).Distinct().ToList();
             var names = await this.context.DirectoryEntries.AsNoTracking()
                 .Where(de => ids.Contains(de.DirectoryEntryId))
@@ -437,7 +439,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
                 foreach (var i in g)
                 {
-                    // inclusive day count; guard against inverted dates
                     var days = (i.CampaignEndDate.Date - i.CampaignStartDate.Date).Days + 1;
                     if (days <= 0)
                     {
