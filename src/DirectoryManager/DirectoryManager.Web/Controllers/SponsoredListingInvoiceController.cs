@@ -706,7 +706,7 @@ namespace DirectoryManager.Web.Controllers
             DateTime? endDate,
             SponsorshipType? sponsorshipType)
         {
-            // Use half-open [start, end) window and inclusive day math for campaigns
+            // Reporting window: half-open [start, endOpen)
             const int defaultYears = 1;
             var now = DateTime.UtcNow;
             var from = (startDate ?? now.AddYears(-defaultYears)).Date;
@@ -715,7 +715,16 @@ namespace DirectoryManager.Web.Controllers
             var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
             var endOpenUtc = new DateTime(to.Year, to.Month, to.Day, 0, 0, 0, DateTimeKind.Utc).AddDays(1);
 
-            // Pull paid invoices (all-time), then filter to window + type in-memory
+            // Exclusive purchased days (minimum 1)
+            static int ExclusivePurchasedDays(DateTime start, DateTime end)
+            {
+                var s = start.Date;
+                var e = end.Date; // exclusive
+                var d = (int)(e - s).TotalDays;
+                return Math.Max(1, d);
+            }
+
+            // 1) Load invoices; PAID filter + optional sponsorship type
             var all = await this.invoiceRepository.GetAllAsync().ConfigureAwait(false);
             var paid = all.Where(i => i.PaymentStatus == PaymentStatus.Paid);
 
@@ -724,53 +733,51 @@ namespace DirectoryManager.Web.Controllers
                 paid = paid.Where(i => i.SponsorshipType == sponsorshipType.Value);
             }
 
-            // Revenue in window = sum of Amount for invoices whose CreateDate lands in window (keeps your UI intent)
-            var windowPaid = paid.Where(i => i.CreateDate >= startUtc && i.CreateDate < endOpenUtc).ToList();
+            // 2) Keep only invoices whose CreateDate is inside the window (full recognition by invoice)
+            var inWindow = paid.Where(i => i.CreateDate >= startUtc && i.CreateDate < endOpenUtc);
 
-            // Group by advertiser, compute revenue and correct overlap days (campaign x window)
-            var grouped = paid.GroupBy(i => new { i.DirectoryEntryId, i.DirectoryEntry.Name })
-                              .Select(g =>
-                              {
-                                  // revenue only for invoices *in window* (as before)
-                                  var revenue = windowPaid.Where(i => i.DirectoryEntryId == g.Key.DirectoryEntryId)
-                                                          .Sum(i => i.Amount);
+            // 3) Group by advertiser; sum full invoice Amount and sum purchased days (no proration)
+            var grouped = inWindow
+                .GroupBy(i => new { i.DirectoryEntryId, i.DirectoryEntry.Name })
+                .Select(g =>
+                {
+                    var revenue = g.Sum(x => x.Amount);
+                    var daysSum = g.Sum(x => ExclusivePurchasedDays(x.CampaignStartDate, x.CampaignEndDate));
+                    var count = g.Count();
 
-                                  // overlap days across *all paid* invoices for this advertiser (clipped to the same window)
-                                  var days = g.Sum(i => OverlapInclusiveDays(i.CampaignStartDate, i.CampaignEndDate, startUtc, endOpenUtc));
+                    var revenueRounded = Math.Round(revenue, 2, MidpointRounding.AwayFromZero);
+                    var avgPerDay = daysSum > 0
+                        ? Math.Round(revenueRounded / daysSum, 2, MidpointRounding.AwayFromZero)
+                        : 0m;
 
-                                  return new
-                                  {
-                                      g.Key.DirectoryEntryId,
-                                      g.Key.Name,
-                                      Revenue = revenue,
-                                      DaysInWindow = days,
-                                      CountInWindow = windowPaid.Count(i => i.DirectoryEntryId == g.Key.DirectoryEntryId)
-                                  };
-                              })
+                    return new
+                    {
+                        g.Key.DirectoryEntryId,
+                        g.Key.Name,
+                        RevenueRounded = revenueRounded,
+                        AvgPerDay = avgPerDay,
+                        Count = count,
+                        DaysSum = daysSum
+                    };
+                })
+                .OrderByDescending(x => x.RevenueRounded)
+                .ToList();
 
-                              // Keep only advertisers that actually had revenue in the window
-                              .Where(x => x.Revenue > 0m)
-                              .ToList();
-
-            var totalRevenue = grouped.Sum(x => x.Revenue);
+            var totalRevenueRounded = grouped.Sum(x => x.RevenueRounded);
 
             var rows = grouped.Select(x =>
-            {
-                var avgPerDay = x.DaysInWindow > 0 ? Math.Round(x.Revenue / x.DaysInWindow, 2) : x.Revenue; // if 0 days, show revenue (edge)
-                var pct = totalRevenue > 0m ? Math.Round(x.Revenue * 100m / totalRevenue, 2) : 0m;
-
-                return new AdvertiserBreakdownRow
+                new AdvertiserBreakdownRow
                 {
                     DirectoryEntryId = x.DirectoryEntryId,
                     DirectoryEntryName = x.Name,
-                    Revenue = x.Revenue,
-                    Count = x.CountInWindow,
-                    AveragePerDay = avgPerDay,
-                    Percentage = pct
-                };
-            })
-            .OrderByDescending(r => r.Revenue)
-            .ToList();
+                    Revenue = x.RevenueRounded,
+                    Count = x.Count,
+                    AveragePerDay = x.AvgPerDay,
+                    Percentage = totalRevenueRounded > 0m
+                        ? Math.Round(x.RevenueRounded * 100m / totalRevenueRounded, 2, MidpointRounding.AwayFromZero)
+                        : 0m
+                })
+                .ToList();
 
             var options = Enum.GetValues(typeof(SponsorshipType))
                 .Cast<SponsorshipType>()
@@ -796,6 +803,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(vm);
         }
 
+   
         [Route("sponsoredlistinginvoice/advertiser")]
         [HttpGet]
         public async Task<IActionResult> Advertiser(int directoryEntryId, int page = 1, int pageSize = int.MaxValue)
@@ -816,25 +824,32 @@ namespace DirectoryManager.Web.Controllers
                 .ToList();
 
             var total = paid.Count;
+
+            // ---- exclusive day math helper (min 1) ----
+            static int ExclusivePurchasedDays(DateTime start, DateTime end)
+            {
+                var s = start.Date;
+                var e = end.Date; // exclusive
+                var d = (int)(e - s).TotalDays;
+                return Math.Max(1, d);
+            }
+
+            // Totals for summary
+            var totalPurchasedDays = paid.Sum(i => ExclusivePurchasedDays(i.CampaignStartDate, i.CampaignEndDate));
+            var totalPaidAllTime = paid.Sum(i => i.Amount);
+
+            var avgPerDayAllTime = totalPurchasedDays > 0
+                ? Math.Round(totalPaidAllTime / totalPurchasedDays, 2, MidpointRounding.AwayFromZero)
+                : 0m;
+
+            // Page the rows
             var items = paid
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
-                .ToList();
-
-            var totalPaidAllTime = paid.Sum(i => i.Amount);
-
-            var model = new DirectoryManager.Web.Models.Reports.AdvertiserInvoiceListViewModel
-            {
-                DirectoryEntryId = directoryEntryId,
-                DirectoryEntryName = entry.Name,
-                Page = page,
-                PageSize = pageSize,
-                TotalCount = total,
-                TotalPaidAllTime = totalPaidAllTime,
-                Rows = items.Select(i =>
+                .Select(i =>
                 {
-                    var purchasedDays = Math.Max(1.0, (i.CampaignEndDate - i.CampaignStartDate).TotalDays);
-                    var avg = Math.Round((double)(i.Amount / (decimal)purchasedDays), 2);
+                    var days = ExclusivePurchasedDays(i.CampaignStartDate, i.CampaignEndDate);
+                    var avg = Math.Round((double)(i.Amount / (decimal)days), 2, MidpointRounding.AwayFromZero);
 
                     return new DirectoryManager.Web.Models.Reports.AdvertiserInvoiceRow
                     {
@@ -844,14 +859,65 @@ namespace DirectoryManager.Web.Controllers
                         CampaignStartDate = i.CampaignStartDate,
                         CampaignEndDate = i.CampaignEndDate,
                         AvgUsdPerDay = avg,
+                        DaysPurchased = days,
                         SponsorshipType = i.SponsorshipType.ToString(),
                         PaymentStatus = i.PaymentStatus.ToString(),
                         CreateDate = i.CreateDate,
                     };
-                }).ToList()
+                })
+                .ToList();
+
+            var model = new DirectoryManager.Web.Models.Reports.AdvertiserInvoiceListViewModel
+            {
+                DirectoryEntryId = directoryEntryId,
+                DirectoryEntryName = entry.Name,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = total,
+                TotalPaidAllTime = totalPaidAllTime,
+                TotalPurchasedDaysExclusive = totalPurchasedDays,
+                AverageUsdPerDayAllTime = avgPerDayAllTime,
+                Rows = items
             };
 
             return this.View("AdvertiserInvoices", model);
+        }
+
+        // ---- helper for distinct calendar days across intervals (inclusive) ----
+        private static int CountDistinctDays(List<(DateTime S, DateTime E)> ivals)
+        {
+            if (ivals == null || ivals.Count == 0)
+            {
+                return 0;
+            }
+
+            ivals.Sort((a, b) => a.S.CompareTo(b.S));
+
+            var curS = ivals[0].S;
+            var curE = ivals[0].E;
+            long total = 0;
+
+            for (int i = 1; i < ivals.Count; i++)
+            {
+                var (s, e) = ivals[i];
+                // Merge if touching or overlapping (inclusive days)
+                if (s <= curE.AddDays(1))
+                {
+                    if (e > curE)
+                    {
+                        curE = e;
+                    }
+                }
+                else
+                {
+                    total += InclusiveDays(curS, curE);
+                    curS = s;
+                    curE = e;
+                }
+            }
+
+            total += InclusiveDays(curS, curE);
+            return (int)total;
         }
 
         // ---------- DAY-COUNT HELPERS (fix off-by-one) ----------
