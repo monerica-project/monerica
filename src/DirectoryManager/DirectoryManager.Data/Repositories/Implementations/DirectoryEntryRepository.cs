@@ -104,10 +104,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task UpdateAsync(DirectoryEntry entry)
         {
-            if (entry is null)
-            {
-                throw new ArgumentNullException(nameof(entry));
-            }
+            ArgumentNullException.ThrowIfNull(entry);
 
             var existing = await this.context.DirectoryEntries
                 .FirstOrDefaultAsync(e => e.DirectoryEntryId == entry.DirectoryEntryId)
@@ -206,7 +203,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync()
                 .ConfigureAwait(false);
 
-            if (!ids.Any())
+            if (ids.Count == 0)
             {
                 return Array.Empty<DirectoryEntry>();
             }

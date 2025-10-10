@@ -11,6 +11,141 @@ namespace DirectoryManager.Web.Charting
     {
         private const string Culture = StringConstants.EnglishUS;
 
+        public byte[] CreateMonthlyAvgPerListingDailyPriceChart(
+    IEnumerable<SponsoredListingInvoice> invoices,
+    Currency displayCurrency,
+    DateTime rangeStart,
+    DateTime rangeEnd,
+    string? filterLabel = null)
+        {
+            var paid = (invoices ?? Enumerable.Empty<SponsoredListingInvoice>()).ToList();
+            if (!paid.Any())
+                return Array.Empty<byte>();
+
+            // Build inclusive month list for [rangeStart, rangeEnd]
+            var firstMonth = new DateTime(rangeStart.Year, rangeStart.Month, 1);
+            var lastMonth = new DateTime(rangeEnd.Year, rangeEnd.Month, 1);
+
+            var months = new List<DateTime>();
+            for (var m = firstMonth; m <= lastMonth; m = m.AddMonths(1))
+                months.Add(m);
+
+            // Helper: inclusive day count (>=1 for valid ranges)
+            static int InclusiveDays(DateTime start, DateTime end)
+            {
+                var s = start.Date;
+                var eOpen = end.Date.AddDays(1);
+                var days = (int)(eOpen - s).TotalDays;
+                return Math.Max(0, days);
+            }
+
+            // For each month:
+            //   - compute each invoice's per-day rate: amount / total_campaign_days
+            //   - weight by the number of overlap days WITHIN that month
+            //   - Month's metric = (sum(rate * overlapDays)) / (sum(overlapDays))
+            //     i.e., a weighted average of per-day price across all active listing-days
+            var monthData = months.Select(m =>
+            {
+                var ms = m;
+                var me = m.AddMonths(1).AddDays(-1);
+
+                decimal weightedSum = 0m;
+                long weightDays = 0;
+
+                foreach (var inv in paid)
+                {
+                    var amt = inv.AmountIn(displayCurrency);
+                    if (amt <= 0m)
+                        continue;
+
+                    var s = inv.CampaignStartDate.Date;
+                    var e = inv.CampaignEndDate.Date;
+                    if (e < s)
+                        continue;
+
+                    var totalCampaignDays = InclusiveDays(s, e);
+                    if (totalCampaignDays <= 0)
+                        continue;
+
+                    // overlap with this month (inclusive)
+                    var os = s > ms ? s : ms;
+                    var oe = e < me ? e : me;
+                    if (oe < os)
+                        continue;
+
+                    var overlapDays = InclusiveDays(os, oe);
+                    if (overlapDays <= 0)
+                        continue;
+
+                    var perDay = amt / totalCampaignDays; // daily price this listing paid
+                    weightedSum += perDay * overlapDays;
+                    weightDays += overlapDays;
+                }
+
+                decimal avgPerListingPerDay = weightDays > 0 ? (weightedSum / weightDays) : 0m;
+                return new { Month = m, AvgPerListingPerDay = avgPerListingPerDay, SampleListingDays = weightDays };
+            }).ToList();
+
+            if (monthData.All(d => d.AvgPerListingPerDay <= 0m))
+                return Array.Empty<byte>();
+
+            // Bars (you can swap to a line if you prefer)
+            var bars = monthData.Select((d, idx) => new Bar { Position = idx, Value = (double)d.AvgPerListingPerDay }).ToList();
+
+            var plt = new Plot();
+            plt.Add.Bars(bars);
+
+            ApplyMonthCategoryTicks(plt, months);
+            plt.Axes.Margins(left: 0.08, right: 0.08, bottom: 0.30, top: 0.18);
+            plt.Axes.AutoScale();
+            PadXAxisForBars(plt, bars.Count, rightPad: 1.0);
+
+            double maxBar = Math.Max(0, bars.Max(b => b.Value));
+            double yOffset = Math.Max(maxBar * 0.025, 0.001);
+            var lim = plt.Axes.GetLimits();
+            double neededTop = Math.Max(lim.Top, maxBar + Math.Max(yOffset * 1.15, 0.002));
+            if (lim.Bottom != 0 || lim.Top < neededTop)
+                plt.Axes.SetLimitsY(0, neededTop);
+
+            string ValueLabel(decimal v)
+            {
+                if (displayCurrency == Currency.USD)
+                    return v.ToString("C", CultureInfo.CreateSpecificCulture(Culture));
+                // Non-USD: print compact decimals
+                return v >= 1m ? v.ToString("0.000")
+                     : v >= 0.1m ? v.ToString("0.0000")
+                     : v >= 0.01m ? v.ToString("0.00000")
+                     : v >= 0.001m ? v.ToString("0.000000")
+                     : v.ToString("0.0000000").TrimEnd('0').TrimEnd('.');
+            }
+
+            for (int i = 0; i < bars.Count; i++)
+            {
+                double x = bars[i].Position;
+                double y = bars[i].Value;
+                var txt = plt.Add.Text(ValueLabel((decimal)y), x, y + yOffset);
+                txt.Alignment = ScottPlot.Alignment.LowerCenter;
+                txt.LabelFontSize = 12;
+            }
+
+            string unit = displayCurrency == Currency.USD ? "USD" : displayCurrency.ToString();
+            plt.Title($"Avg Daily Price per Listing ({unit}/day)");
+            plt.XLabel("Month");
+            plt.YLabel($"{unit} per listing per day");
+
+            // Show filter + sample size in subtitle for context
+            if (!string.IsNullOrWhiteSpace(filterLabel))
+            {
+                var totalListingDays = monthData.Sum(d => d.SampleListingDays);
+                var subtitle = $"{filterLabel} — Weighted by listing-days (total sample: {totalListingDays:n0})";
+                AddSubtitleBelowTitle(plt, subtitle);
+            }
+
+            return plt.GetImageBytes(1200, 600, ImageFormat.Png);
+        }
+
+
+
         public byte[] CreateMonthlyIncomeBarChart(
             IEnumerable<SponsoredListingInvoice> invoices,
             Currency displayCurrency,

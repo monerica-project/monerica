@@ -20,8 +20,8 @@
     <table class="table">
     <thead>
         <tr>
-            <th>ID</th>
             <th>Email</th>
+            <th>Create Date</th>
             <th>Sponsorship Type</th>
             <th>Type Id</th>
             <th>Reminder Sent</th>
@@ -32,8 +32,8 @@
         @foreach (var notification in Model)
         {
             <tr>
-                <td>@notification.SponsoredListingOpeningNotificationId</td>
                 <td>@notification.Email</td>
+                <td>@notification.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
                 <td>@notification.SponsorshipType</td>
                 <td>@notification.TypeId</td>
                 <td>@notification.IsReminderSent</td>

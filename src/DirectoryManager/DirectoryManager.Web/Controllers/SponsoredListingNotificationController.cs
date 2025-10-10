@@ -2,6 +2,7 @@
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
+using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using Microsoft.AspNetCore.Authorization;
@@ -33,6 +34,9 @@ namespace DirectoryManager.Web.Controllers
             var list = await this.notificationRepository
                                  .GetAllAsync()
                                  .ConfigureAwait(false);
+
+            list = list.OrderByDescending(x => x.CreateDate).ToList();
+
             return this.View(list);
         }
 
@@ -81,6 +85,13 @@ namespace DirectoryManager.Web.Controllers
         [Route("sponsoredlistingnotification/edit/{id}")]
         public async Task<IActionResult> Edit(SponsoredListingOpeningNotification model)
         {
+            // Validate email early
+            var (okEmail, normalizedEmail, emailError) = EmailValidationHelper.Validate(model.Email);
+            if (!okEmail)
+            {
+                this.ModelState.AddModelError("Email", emailError!);
+            }
+
             if (!this.ModelState.IsValid)
             {
                 return this.View(model);
@@ -95,7 +106,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction(nameof(this.List));
             }
 
-            existing.Email = model.Email.Trim();
+            existing.Email = normalizedEmail!;
             existing.SponsorshipType = model.SponsorshipType;
             existing.TypeId = model.TypeId;
             existing.IsReminderSent = model.IsReminderSent;
@@ -108,6 +119,7 @@ namespace DirectoryManager.Web.Controllers
 
             return this.RedirectToAction(nameof(this.List));
         }
+
 
         [Authorize]
         [HttpPost]
@@ -160,13 +172,17 @@ namespace DirectoryManager.Web.Controllers
         [Route("sponsoredlistingnotification/subscribe")]
         public async Task<IActionResult> Subscribe(SubscribeViewModel vm)
         {
-            vm.Email = (vm.Email ?? "").Trim();
+            vm.Email = (vm.Email ?? string.Empty).Trim();
 
-            if (string.IsNullOrWhiteSpace(vm.Email))
+            // Validate email with the shared helper
+            var (okEmail, normalizedEmail, emailError) = EmailValidationHelper.Validate(vm.Email);
+            if (!okEmail)
             {
-                vm.ErrorMessage = "A valid email is required.";
+                vm.ErrorMessage = emailError!;
                 return this.View(vm);
             }
+
+            vm.Email = normalizedEmail!;
 
             if (await this.notificationRepository
                       .ExistsAsync(vm.Email, vm.SponsorshipType, vm.TypeId))
@@ -186,7 +202,6 @@ namespace DirectoryManager.Web.Controllers
             await this.notificationRepository.CreateAsync(notif);
 
             vm.SuccessMessage = "Subscription successful!";
-
             return this.View(vm);
         }
     }

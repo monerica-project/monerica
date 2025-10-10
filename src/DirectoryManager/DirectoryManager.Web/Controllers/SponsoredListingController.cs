@@ -581,11 +581,11 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [Route("sponsoredlisting/confirmnowpayments")]
         public async Task<IActionResult> ConfirmedNowPaymentsAsync(
-           int directoryEntryId,
-           int selectedOfferId,
-           Guid? rsvId = null,
-           string? email = null,
-           string? referralCode = null)
+   int directoryEntryId,
+   int selectedOfferId,
+   Guid? rsvId = null,
+   string? email = null,
+   string? referralCode = null)
         {
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
             if (this.blockedIPRepository.IsBlockedIp(ipAddress))
@@ -615,7 +615,7 @@ namespace DirectoryManager.Web.Controllers
             var group = ReservationGroupHelper.BuildReservationGroupName(sponsoredListingOffer.SponsorshipType, typeIdForGroup);
             int? typeIdForCapacity = sponsoredListingOffer.SponsorshipType == SponsorshipType.MainSponsor ? (int?)null : typeIdForGroup;
 
-            // Reservation/capacity (unchanged)...
+            // Validate/attach reservation or capacity (existing logic)
             if (!await this.TryAttachReservationAsync(rsvId, group))
             {
                 var isActiveSponsor = await this.sponsoredListingRepository
@@ -655,6 +655,45 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
+            string? normalizedEmail = null;
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                var (okEmail, norm, emailError) = EmailValidationHelper.Validate(email);
+                if (!okEmail)
+                {
+                    // Rebuild the same model as the GET action and return the view with an error
+                    if (sponsoredListingOffer.SponsorshipType == SponsorshipType.SubcategorySponsor)
+                    {
+                        this.ViewBag.SubCategoryId = typeIdForGroup;
+                    }
+                    else if (sponsoredListingOffer.SponsorshipType == SponsorshipType.CategorySponsor)
+                    {
+                        this.ViewBag.CategoryId = typeIdForGroup;
+                    }
+
+                    var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
+                    var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
+                    var current = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(sponsoredListingOffer.SponsorshipType);
+
+                    // Preserve referral code normalization for the view
+                    var normalizedRef = ReferralCodeHelper.NormalizeOrNull(referralCode);
+                    this.ViewBag.ReferralCode = normalizedRef ?? string.Empty;
+
+                    // Best-effort: keep reservation context visible in the view if still valid
+                    await this.TryAttachReservationAsync(rsvId, group);
+
+                    var vm = GetConfirmationModel(sponsoredListingOffer, directoryEntry, link2Name, link3Name, current);
+                    vm.CanCreateSponsoredListing = true;
+
+                    this.ModelState.AddModelError("Email", emailError!);
+                    this.ViewBag.PrefillEmail = email;
+                    return this.View("ConfirmNowPayments", vm);
+                }
+
+                normalizedEmail = norm!;
+            }
+
+            // If no email provided, we allow proceeding (it’s optional in your flow)
             this.ViewBag.ReservationGuid = rsvId;
 
             var existingListing = await this.sponsoredListingRepository
@@ -667,10 +706,10 @@ namespace DirectoryManager.Web.Controllers
 
             // normalize/store referral code on the invoice (optional)
             if (DirectoryManager.Utilities.Helpers.ReferralCodeHelper
-                    .TryNormalize(referralCode, out var normalized, out _)
-                && !string.IsNullOrEmpty(normalized))
+                    .TryNormalize(referralCode, out var normalizedRefCode, out _)
+                && !string.IsNullOrEmpty(normalizedRefCode))
             {
-                invoice.ReferralCodeUsed = normalized; // stored lowercased
+                invoice.ReferralCodeUsed = normalizedRefCode; // stored lowercased
             }
 
             var invoiceRequest = this.GetInvoiceRequest(sponsoredListingOffer, invoice);
@@ -682,7 +721,8 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = "Failed to create invoice." });
             }
 
-            SetInvoiceProperties(rsvId, email, invoice, invoiceRequest, invoiceFromProcessor);
+            // Pass normalized email into SetInvoiceProperties (InputHelper.SetEmail will handle null/empty)
+            SetInvoiceProperties(rsvId, normalizedEmail, invoice, invoiceRequest, invoiceFromProcessor);
             await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
 
             if (string.IsNullOrWhiteSpace(invoiceFromProcessor.InvoiceUrl))

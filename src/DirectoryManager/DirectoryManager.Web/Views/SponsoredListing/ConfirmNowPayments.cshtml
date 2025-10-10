@@ -31,6 +31,9 @@
 
     // referral (if controller passed one via ViewBag)
     var prefillReferral = ViewBag.ReferralCode as string ?? string.Empty;
+
+    // NEW: keep email value on failed submit
+    var prefillEmail = ViewBag.PrefillEmail as string ?? string.Empty;
 }
 
 @section PageContent {
@@ -100,12 +103,38 @@
             @Html.Raw(await _cacheHelper.GetSnippetAsync(SiteConfigSetting.NowPaymentsMessageHtml))
 
             <form method="post" action="~/sponsoredlisting/confirmnowpayments">
+                <!-- NEW: show all ModelState errors -->
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="alert alert-danger" role="alert">
+                        <ul style="margin:0; padding-left: 20px;">
+                            @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                            {
+                                <li>@err.ErrorMessage</li>
+                            }
+                        </ul>
+                    </div>
+                    <br />
+                }
+
                 <hr />
                 <h3>Optional</h3>
                 <div class="form-group">
                     <p>Receive a reminder before your listing expires so you can renew in time.</p>
                     <label>Email (optional)</label>
-                    <input style="width:18%;" name="email" type="email" placeholder="yourname@email.com" autocomplete="off" />
+                    <input style="width:18%;"
+                           name="email"
+                           type="email"
+                           value="@prefillEmail"
+                           placeholder="yourname@email.com"
+                           autocomplete="off" />
+                    <!-- NEW: inline message for the Email key -->
+                    @{
+                        if (ViewData.ModelState.TryGetValue("Email", out var emailEntry) && emailEntry.Errors.Count > 0)
+                        {
+                            <div class="text-danger" style="margin-top:6px;">@emailEntry.Errors[0].ErrorMessage</div>
+                        }
+                    }
                 </div>
 
                 <div class="form-group">
@@ -129,7 +158,6 @@
 
                 <button class="btn" type="submit">Purchase Listing</button>
             </form>
-     
         }
         else
         {

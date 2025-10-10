@@ -169,6 +169,7 @@
             costEqualsSalesPrice = true
        })" target="_blank">Download Accounting CSV</a>
 
+    <!-- Monthly Income (total) -->
     <img style="width:100%"
          src="@Url.Action("MonthlyIncomeBarChart", "SponsoredListingInvoice", new {
                 startDate = Model.StartDate,
@@ -182,6 +183,7 @@
 
     <br />
 
+    <!-- Average Daily Revenue across the slot -->
     <img style="width:100%"
          src="@Url.Action("MonthlyAvgDailyRevenueChart", "SponsoredListingInvoice", new {
                 startDate = Model.StartDate,
@@ -192,6 +194,25 @@
                 v = chartV
          })"
          alt="Average Daily Revenue per Month (@Model.DisplayCurrency)" />
+
+    <br />
+
+ 
+    <div class="text-muted" style=" font-size:0.95rem;">
+        Avg daily price <em>per listing</em> (weighted by how many days each listing was active in the month)
+    </div>
+    <br />
+    <img style="width:100%"
+         src="@Url.Action("MonthlyAvgPerListingDailyPriceChart", "SponsoredListingInvoice", new {
+                startDate = Model.StartDate,
+                endDate = Model.EndDate,
+                sponsorshipType = Model.SponsorshipType,
+                displayCurrency = Model.DisplayCurrency,
+                subCategoryId = Model.SubCategoryId,
+                v = chartV
+         })"
+         alt="Average Daily Price per Listing (@Model.DisplayCurrency)" />
+   
 
     <br />
 
