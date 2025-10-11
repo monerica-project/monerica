@@ -37,6 +37,14 @@
         + (ViewBag.SubCategoryId != null ? $"&subCategoryId={ViewBag.SubCategoryId}" : string.Empty)
         + (ViewBag.CategoryId != null ? $"&categoryId={ViewBag.CategoryId}" : string.Empty)
         + (reservationGuid.HasValue ? $"&rsvId={reservationGuid}" : string.Empty));
+
+    // Baseline "market" price is the first rendered row (per-day comparisons)
+    decimal? baselineUsd = offersList.Count > 0 ? offersList[0].USDPrice : (decimal?)null;
+    var usdCulture = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
+
+    decimal? baselinePerDay = (offersList.Count > 0 && offersList[0].Days > 0)
+        ? offersList[0].USDPrice / offersList[0].Days
+        : (decimal?)null;
 }
 
 @section PageContent {
@@ -83,35 +91,69 @@
 
         <div class="form-group">
             <label>Available Options:</label>
+
             @for (var i = 0; i < offersList.Count; i++)
             {
                 var offer = offersList[i];
-                <div class="form-check">
-                    <label class="form-check-label" style="display:flex;align-items:center;">
+
+                // Offer per-day and discount vs baseline per-day
+                decimal? offerPerDay = offer.Days > 0 ? offer.USDPrice / offer.Days : (decimal?)null;
+                decimal? usdDiscountPerDay = (i > 0 && baselinePerDay.HasValue && offerPerDay.HasValue)
+                ? (baselinePerDay.Value - offerPerDay.Value)
+                : (decimal?)null;
+
+                decimal? pctDiscountPerDay = (usdDiscountPerDay.HasValue && baselinePerDay > 0)
+                ? Math.Round((usdDiscountPerDay.Value / baselinePerDay.Value) * 100m, 1)
+                : (decimal?)null;
+
+                <div class="form-check" style="margin-bottom:8px;">
+                    <label class="form-check-label" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
                         <input class="form-check-input"
                                type="radio"
                                name="selectedOfferId"
                                value="@offer.SponsoredListingOfferId"
                                @(i == defaultChoiceIndex ? "checked" : null) />
-                        @offer.Days-Days –
-                        @offer.USDPrice.ToString(
-                        DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
-                                new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure))
-                @Currency.USD
-                @if (showConverted)
-                    {
+
                         <span>
-                            &nbsp;&#8212;&nbsp;
-                            @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
-                            offer.USDPrice,
+                            <b>@offer.Days</b>-Days &ndash;
+                            @offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture) @Currency.USD
+                            @if (i == 0)
+                            {
+                                <span class="badge bg-secondary" style="margin-left:6px;">Market price</span>
+                            }
+                        </span>
+
+                        @* Converted currency (optional) *@
+                        @if (showConverted)
+                        {
+                            <span>
+                                &mdash;
+                                @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
+                                offer.USDPrice,
                                         conversionRate,
                                         conversionResult.selectedCurrency,
                                         true)
                 </span>
                                 }
-                </label>
-            </div>
-        }
+
+                @* Show per-day for clarity *@
+                @if (offerPerDay.HasValue)
+                {
+                    <span style="opacity:.8;">
+                        &mdash; @offerPerDay.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture)/day
+                    </span>
+                }
+
+                @* Discount text (only for rows after the first and only if cheaper per day) *@
+                @if (usdDiscountPerDay.HasValue && usdDiscountPerDay.Value > 0)
+                {
+                    <span class="text-danger" style="margin-left:6px;">
+                        (@usdDiscountPerDay.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture)/day off, @(pctDiscountPerDay)%)
+                    </span>
+                }
+            </label>
+        </div>
+                }
     </div>
 
     @if (offersList.Count > 0)
