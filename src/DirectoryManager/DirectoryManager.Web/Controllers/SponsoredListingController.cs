@@ -788,14 +788,21 @@ namespace DirectoryManager.Web.Controllers
                 return this.Ok();
             }
 
-            // If already Paid, do affiliate and exit
+            // 🔒 Sticky values: preserve exactly what SetInvoiceProperties(...) wrote
+            var stickyPaymentProcessor = invoice.PaymentProcessor;
+            var stickyProcessorInvoiceId = invoice.ProcessorInvoiceId;
+            var stickyInvoiceResponse = invoice.InvoiceResponse;
+            var stickyEmail = invoice.Email;
+            var stickyReservation = invoice.ReservationGuid;
+
+            // If already Paid, do affiliate and exit (no mutation)
             if (invoice.PaymentStatus == PaymentStatus.Paid)
             {
                 await this.TryCreateAffiliateCommissionForInvoiceAsync(invoice);
                 return this.Ok();
             }
 
-            // Treat these as terminal, **including Test** to "return and die"
+            // Treat these as terminal, including Test → return without touching anything
             if (invoice.PaymentStatus is PaymentStatus.Paid
                 or PaymentStatus.Test
                 or PaymentStatus.Expired
@@ -815,11 +822,8 @@ namespace DirectoryManager.Web.Controllers
                 .ParseStringToEnum<NowPayments.API.Enums.PaymentStatus>(ipnMessage.PaymentStatus);
 
             var newStatus = ConvertToInternalStatus(processorStatus);
-
-            // Mutate status only if current is not terminal (which we've already ensured).
             invoice.PaymentStatus = newStatus;
 
-            // ✅ Extend hold only when the *new* status is a hold-extending one
             if (HoldExtendingStatuses.Contains(newStatus))
             {
                 await this.EnsureHoldFromInvoiceAsync(
@@ -834,10 +838,16 @@ namespace DirectoryManager.Web.Controllers
                     .ParseStringToEnum<Currency>(ipnMessage.PayCurrency);
             }
 
-            // Create/extend listing if paid (idempotent; method persists invoice first)
+            // 🔁 Re-apply the sticky values so they cannot be clobbered by the save
+            invoice.PaymentProcessor = stickyPaymentProcessor;
+            invoice.ProcessorInvoiceId = stickyProcessorInvoiceId;
+            invoice.InvoiceResponse = stickyInvoiceResponse;
+            invoice.Email = stickyEmail;
+            invoice.ReservationGuid = stickyReservation;
+
+            // Persist + (if Paid) create/extend listing. This method updates the invoice first thing.
             await this.CreateNewSponsoredListing(invoice);
 
-            // If paid, attempt affiliate commission (idempotent)
             if (invoice.PaymentStatus == PaymentStatus.Paid)
             {
                 await this.TryCreateAffiliateCommissionForInvoiceAsync(invoice);
