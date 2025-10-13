@@ -23,6 +23,13 @@ namespace DirectoryManager.Web.Controllers
 {
     public class SponsoredListingController : BaseController
     {
+        private static readonly PaymentStatus[] HoldExtendingStatuses =
+        {
+            PaymentStatus.InvoiceCreated,
+            PaymentStatus.Pending,
+            PaymentStatus.UnderPayment
+        };
+
         private readonly ISubcategoryRepository subCategoryRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
@@ -781,12 +788,14 @@ namespace DirectoryManager.Web.Controllers
                 return this.Ok();
             }
 
+            // If already Paid, do affiliate and exit
             if (invoice.PaymentStatus == PaymentStatus.Paid)
             {
                 await this.TryCreateAffiliateCommissionForInvoiceAsync(invoice);
                 return this.Ok();
             }
 
+            // Treat these as terminal, **including Test** to "return and die"
             if (invoice.PaymentStatus is PaymentStatus.Paid
                 or PaymentStatus.Test
                 or PaymentStatus.Expired
@@ -797,7 +806,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.Ok();
             }
 
-            // update invoice with gateway info
+            // --- Update invoice with gateway info (non-terminal only) ---
             invoice.PaymentResponse = JsonConvert.SerializeObject(ipnMessage);
             invoice.PaidAmount = ipnMessage.PayAmount;
             invoice.OutcomeAmount = ipnMessage.OutcomeAmount;
@@ -806,9 +815,17 @@ namespace DirectoryManager.Web.Controllers
                 .ParseStringToEnum<NowPayments.API.Enums.PaymentStatus>(ipnMessage.PaymentStatus);
 
             var newStatus = ConvertToInternalStatus(processorStatus);
-            if (invoice.PaymentStatus is not PaymentStatus.Paid and not PaymentStatus.Test)
+
+            // Mutate status only if current is not terminal (which we've already ensured).
+            invoice.PaymentStatus = newStatus;
+
+            // ✅ Extend hold only when the *new* status is a hold-extending one
+            if (HoldExtendingStatuses.Contains(newStatus))
             {
-                invoice.PaymentStatus = newStatus;
+                await this.EnsureHoldFromInvoiceAsync(
+                    invoice,
+                    minimumHold: TimeSpan.FromHours(1),
+                    maxFromNow: TimeSpan.FromHours(2));
             }
 
             if (!string.IsNullOrWhiteSpace(ipnMessage.PayCurrency))
@@ -817,10 +834,10 @@ namespace DirectoryManager.Web.Controllers
                     .ParseStringToEnum<Currency>(ipnMessage.PayCurrency);
             }
 
-            // create/extend listing if paid (idempotent)
+            // Create/extend listing if paid (idempotent; method persists invoice first)
             await this.CreateNewSponsoredListing(invoice);
 
-            // if paid, attempt to create affiliate commission (idempotent via unique index & ExistsForInvoiceAsync)
+            // If paid, attempt affiliate commission (idempotent)
             if (invoice.PaymentStatus == PaymentStatus.Paid)
             {
                 await this.TryCreateAffiliateCommissionForInvoiceAsync(invoice);
@@ -832,10 +849,6 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         [AllowAnonymous]
         [Route("sponsoredlisting/nowpaymentssuccess")]
-        [System.Diagnostics.CodeAnalysis.SuppressMessage(
-    "StyleCop.CSharp.NamingRules",
-    "SA1313:Parameter names should begin with lower-case letter",
-    Justification = "External parameter name.")]
         public async Task<IActionResult> NowPaymentsSuccess([FromQuery] string NP_id)
         {
             var processorInvoice = await this.paymentService.GetPaymentStatusAsync(NP_id);
@@ -1359,6 +1372,34 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return category.Name;
+        }
+
+        /// <summary>
+        /// If the invoice has a reservation, extend that reservation so that at least
+        /// <paramref name="minimumHold"/> remains, but never beyond <paramref name="maxFromNow"/>.
+        /// </summary>
+        private async Task EnsureHoldFromInvoiceAsync(
+            SponsoredListingInvoice invoice,
+            TimeSpan minimumHold,
+            TimeSpan maxFromNow)
+        {
+            if (invoice == null ||
+                invoice.ReservationGuid == Guid.Empty ||
+                !HoldExtendingStatuses.Contains(invoice.PaymentStatus))
+            {
+                return;
+            }
+
+            var target = DateTime.UtcNow.Add(minimumHold);
+            var hardCap = DateTime.UtcNow.Add(maxFromNow);
+            if (target > hardCap)
+            {
+                target = hardCap;
+            }
+
+            await this.sponsoredListingReservationRepository
+                .ExtendExpirationAsync(invoice.ReservationGuid, target)
+                .ConfigureAwait(false);
         }
 
         private PaymentRequest GetInvoiceRequest(

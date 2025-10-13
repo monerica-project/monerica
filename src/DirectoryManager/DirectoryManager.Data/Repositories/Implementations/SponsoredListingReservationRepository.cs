@@ -72,5 +72,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Select(r => (Guid?)r.ReservationGuid)
                 .FirstOrDefaultAsync();
         }
+
+        public async Task<bool> ExtendExpirationAsync(Guid reservationGuid, DateTime newExpirationUtc)
+        {
+            var r = await this.context.SponsoredListingReservations
+                .FirstOrDefaultAsync(x => x.ReservationGuid == reservationGuid);
+
+            if (r == null)
+            {
+                return false;
+            }
+
+            if (newExpirationUtc > r.ExpirationDateTime)
+            {
+                r.ExpirationDateTime = newExpirationUtc;
+                await this.context.SaveChangesAsync();
+            }
+
+            return true;
+        }
     }
 }
