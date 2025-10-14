@@ -94,8 +94,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
-
-
         public async Task<(IEnumerable<SponsoredListingInvoice>, int)> GetPageAsync(int page, int pageSize)
         {
             var baseQuery = WithIncludes(this.context.SponsoredListingInvoices).AsNoTracking();
