@@ -53,19 +53,38 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<SponsoredListingInvoice> CreateAsync(SponsoredListingInvoice invoice)
         {
+            // Insert and persist
             await this.context.SponsoredListingInvoices.AddAsync(invoice);
             await this.context.SaveChangesAsync();
 
-            // Return the freshly created row with includes populated
-            return await this.GetByIdAsync(invoice.SponsoredListingInvoiceId)
-                   ?? invoice;
+            // Re-read the row with includes and AsNoTracking so the caller gets a detached snapshot
+            var snapshot = await WithIncludes(this.context.SponsoredListingInvoices)
+                .AsNoTracking()
+                .FirstOrDefaultAsync(i => i.SponsoredListingInvoiceId == invoice.SponsoredListingInvoiceId);
+
+            // Fallback to the inserted instance if the re-read ever fails
+            return snapshot ?? invoice;
         }
 
         public async Task<bool> UpdateAsync(SponsoredListingInvoice invoice)
         {
             try
             {
-                this.context.SponsoredListingInvoices.Update(invoice);
+                // Load the tracked instance (EF will return the already-tracked one if present)
+                var existing = await this.context.SponsoredListingInvoices
+                    .FirstOrDefaultAsync(i => i.SponsoredListingInvoiceId == invoice.SponsoredListingInvoiceId);
+
+                if (existing == null)
+                {
+                    return false; // nothing to update
+                }
+
+                // Copy only the mutable fields
+                CopyMutableFields(existing, invoice);
+
+                // Optional: keep an audit timestamp if your model has UpdateDate
+                existing.UpdateDate = DateTime.UtcNow;
+
                 await this.context.SaveChangesAsync();
                 return true;
             }
@@ -74,6 +93,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return false;
             }
         }
+
+
 
         public async Task<(IEnumerable<SponsoredListingInvoice>, int)> GetPageAsync(int page, int pageSize)
         {
@@ -466,6 +487,45 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
 
             return results;
+        }
+
+        private static void CopyMutableFields(SponsoredListingInvoice target, SponsoredListingInvoice src)
+        {
+            // ⚠️ Do NOT touch target.SponsoredListingInvoiceId or target.InvoiceId or target.CreateDate here.
+
+            // processor + request/response blobs
+            target.PaymentProcessor = src.PaymentProcessor;
+            target.InvoiceRequest = src.InvoiceRequest;
+            target.InvoiceResponse = src.InvoiceResponse;
+            target.PaymentResponse = src.PaymentResponse;
+            target.ProcessorInvoiceId = src.ProcessorInvoiceId;
+
+            // status + outcome
+            target.PaymentStatus = src.PaymentStatus;
+            target.PaidAmount = src.PaidAmount;
+            target.OutcomeAmount = src.OutcomeAmount;
+            target.PaidInCurrency = src.PaidInCurrency;
+
+            // business data that can change during the flow
+            target.Email = src.Email;
+            target.ReservationGuid = src.ReservationGuid;
+            target.ReferralCodeUsed = src.ReferralCodeUsed;
+            target.SponsoredListingId = src.SponsoredListingId;
+
+            // campaign / pricing (if you allow updating them)
+            target.CampaignStartDate = src.CampaignStartDate;
+            target.CampaignEndDate = src.CampaignEndDate;
+            target.Amount = src.Amount;
+            target.InvoiceDescription = src.InvoiceDescription;
+
+            // scope
+            target.SponsorshipType = src.SponsorshipType;
+            target.SubCategoryId = src.SubCategoryId;
+            target.CategoryId = src.CategoryId;
+            target.DirectoryEntryId = src.DirectoryEntryId;
+
+            // misc
+            target.IpAddress = src.IpAddress;
         }
     }
 }

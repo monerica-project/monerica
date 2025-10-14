@@ -588,11 +588,11 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [Route("sponsoredlisting/confirmnowpayments")]
         public async Task<IActionResult> ConfirmedNowPaymentsAsync(
-   int directoryEntryId,
-   int selectedOfferId,
-   Guid? rsvId = null,
-   string? email = null,
-   string? referralCode = null)
+            int directoryEntryId,
+            int selectedOfferId,
+            Guid? rsvId = null,
+            string? email = null,
+            string? referralCode = null)
         {
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
             if (this.blockedIPRepository.IsBlockedIp(ipAddress))
@@ -788,13 +788,6 @@ namespace DirectoryManager.Web.Controllers
                 return this.Ok();
             }
 
-            // 🔒 Sticky values: preserve exactly what SetInvoiceProperties(...) wrote
-            var stickyPaymentProcessor = invoice.PaymentProcessor;
-            var stickyProcessorInvoiceId = invoice.ProcessorInvoiceId;
-            var stickyInvoiceResponse = invoice.InvoiceResponse;
-            var stickyEmail = invoice.Email;
-            var stickyReservation = invoice.ReservationGuid;
-
             // If already Paid, do affiliate and exit (no mutation)
             if (invoice.PaymentStatus == PaymentStatus.Paid)
             {
@@ -828,8 +821,8 @@ namespace DirectoryManager.Web.Controllers
             {
                 await this.EnsureHoldFromInvoiceAsync(
                     invoice,
-                    minimumHold: TimeSpan.FromHours(1),
-                    maxFromNow: TimeSpan.FromHours(2));
+                    minimumHold: TimeSpan.FromHours(2),
+                    maxFromNow: TimeSpan.FromHours(3));
             }
 
             if (!string.IsNullOrWhiteSpace(ipnMessage.PayCurrency))
@@ -837,13 +830,6 @@ namespace DirectoryManager.Web.Controllers
                 invoice.PaidInCurrency = DirectoryManager.Utilities.Helpers.EnumHelper
                     .ParseStringToEnum<Currency>(ipnMessage.PayCurrency);
             }
-
-            // 🔁 Re-apply the sticky values so they cannot be clobbered by the save
-            invoice.PaymentProcessor = stickyPaymentProcessor;
-            invoice.ProcessorInvoiceId = stickyProcessorInvoiceId;
-            invoice.InvoiceResponse = stickyInvoiceResponse;
-            invoice.Email = stickyEmail;
-            invoice.ReservationGuid = stickyReservation;
 
             // Persist + (if Paid) create/extend listing. This method updates the invoice first thing.
             await this.CreateNewSponsoredListing(invoice);
