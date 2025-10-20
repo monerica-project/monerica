@@ -2,6 +2,7 @@
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
+using DirectoryManager.Utilities.Validation;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Models;
@@ -41,6 +42,11 @@ public class SearchController : Controller
         if (string.IsNullOrWhiteSpace(q))
         {
             return this.BadRequest("No search performed.");
+        }
+
+        if (ScriptValidation.ContainsScriptTag(q))
+        {
+            return this.BadRequest("Invalid search.");
         }
 
         // 🔒 Blacklist check (case-insensitive contains)
