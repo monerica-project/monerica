@@ -250,7 +250,7 @@
         </div>
 
         @{
-            var latestReviews = await reviewRepository.ListLatestApprovedAsync(15);
+            var latestReviews = await reviewRepository.ListLatestApprovedAsync(20);
         }
 
         @if (latestReviews?.Any() == true)
