@@ -209,10 +209,13 @@ namespace DirectoryManager.Web.Controllers
             var typeIdForGroup = sponsorshipType switch
             {
                 SponsorshipType.MainSponsor => 0,
+                // OK to default to 0 here because both operands are nullable
                 SponsorshipType.CategorySponsor => categoryId ?? entry.SubCategory?.CategoryId ?? 0,
+                // DO NOT write "entry.SubCategoryId ?? 0" — SubCategoryId is int (non-null)
                 SponsorshipType.SubcategorySponsor => subCategoryId ?? entry.SubCategoryId,
                 _ => 0,
             };
+
             var group = ReservationGroupHelper.BuildReservationGroupName(sponsorshipType, typeIdForGroup);
             int? typeIdForCapacity = sponsorshipType == SponsorshipType.MainSponsor ? (int?)null : typeIdForGroup;
 
@@ -243,17 +246,23 @@ namespace DirectoryManager.Web.Controllers
 
                 // Create the reservation now (POST → human intent)
                 var expiration = DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes);
+
+                // Build human-readable context for the reservation
+                var details = await this.BuildReservationDetailsAsync(
+                    sponsorshipType,
+                    entry,
+                    subCategoryId ?? entry.SubCategoryId,
+                    categoryId ?? entry.SubCategory?.CategoryId);
+
                 var res = await this.sponsoredListingReservationRepository
-                    .CreateReservationAsync(expiration, group)
+                    .CreateReservationAsync(expiration, group, details)
                     .ConfigureAwait(false);
 
                 rsvId = res.ReservationGuid;
             }
 
             // Move to duration page with the reservation in the URL (if any)
-            return this.RedirectToAction(
-                "SelectDuration",
-                new { directoryEntryId, sponsorshipType, rsvId });
+            return this.RedirectToAction("SelectDuration", new { directoryEntryId, sponsorshipType, rsvId });
         }
 
         [HttpGet]
@@ -440,14 +449,21 @@ namespace DirectoryManager.Web.Controllers
 
                 if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, offer.SponsorshipType))
                 {
-                    // UPDATED: pass type, scoped typeId, group
                     var msg = await this.BuildCheckoutInProcessMessageAsync(offer.SponsorshipType, typeIdForCapacity, reservationGroup);
                     return this.BadRequest(new { Error = msg });
                 }
 
                 var expiration = DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes);
+
+                // NEW: build details and pass it into CreateReservationAsync
+                var details = await this.BuildReservationDetailsAsync(
+                    offer.SponsorshipType,
+                    entry,
+                    entry.SubCategoryId,
+                    entry.SubCategory?.CategoryId);
+
                 var newReservation = await this.sponsoredListingReservationRepository
-                    .CreateReservationAsync(expiration, reservationGroup)
+                    .CreateReservationAsync(expiration, reservationGroup, details)
                     .ConfigureAwait(false);
 
                 rsvId = newReservation.ReservationGuid;
@@ -1179,6 +1195,53 @@ namespace DirectoryManager.Web.Controllers
             };
 
             return this.View(model);
+        }
+
+        private async Task<string> BuildReservationDetailsAsync(
+            SponsorshipType sponsorshipType,
+            DirectoryEntry entry,
+            int? subCategoryId,
+            int? categoryId)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append($"Type={sponsorshipType}; ListingId={entry.DirectoryEntryId}; ListingName=\"{entry.Name}\"");
+
+            if (sponsorshipType == SponsorshipType.SubcategorySponsor)
+            {
+                // subId is INT (non-null). If neither value is present, fall back to 0.
+                int subId = subCategoryId ?? entry.SubCategoryId;
+                string catName = "Unknown Category";
+                string subName = "Unknown Subcategory";
+
+                if (subId > 0)
+                {
+                    var sub = await this.subCategoryRepository.GetByIdAsync(subId).ConfigureAwait(false);
+                    if (sub != null)
+                    {
+                        subName = sub.Name;
+                        var cat = sub.Category ?? await this.categoryRepository.GetByIdAsync(sub.CategoryId).ConfigureAwait(false);
+                        if (cat != null) catName = cat.Name;
+                    }
+                }
+
+                sb.Append($"; SubcategoryId={subId}; Scope=\"{catName} > {subName}\"");
+            }
+            else if (sponsorshipType == SponsorshipType.CategorySponsor)
+            {
+                // catId also ends up non-null (0 fallback if unknown)
+                int catId = categoryId ?? entry.SubCategory?.CategoryId ?? 0;
+                string catName = "Unknown Category";
+
+                if (catId > 0)
+                {
+                    var cat = await this.categoryRepository.GetByIdAsync(catId).ConfigureAwait(false);
+                    if (cat != null) catName = cat.Name;
+                }
+
+                sb.Append($"; CategoryId={catId}; Category=\"{catName}\"");
+            }
+
+            return sb.ToString();
         }
 
         private static int GetMaxSlotsForType(SponsorshipType type)

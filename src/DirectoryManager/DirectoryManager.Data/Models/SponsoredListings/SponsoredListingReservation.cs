@@ -18,5 +18,12 @@ namespace DirectoryManager.Data.Models.SponsoredListings
         /// </summary>
         [MaxLength(100)]
         required public string ReservationGroup { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Human-readable context for the reservation at creation time:
+        /// sponsorship type, scope (category/subcategory), and listing info.
+        /// </summary>
+        [MaxLength(1000)]
+        public string? Details { get; set; }
     }
 }

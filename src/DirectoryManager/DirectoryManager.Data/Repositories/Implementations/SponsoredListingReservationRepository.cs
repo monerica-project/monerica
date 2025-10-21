@@ -32,6 +32,26 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return reservation;
         }
 
+        public async Task<SponsoredListingReservation> CreateReservationAsync(
+            DateTime expirationDateTime,
+            string reservationGroup,
+            string details)
+        {
+            var reservationId = Guid.NewGuid();
+            var reservation = new SponsoredListingReservation
+            {
+                ReservationGuid = reservationId,
+                ExpirationDateTime = expirationDateTime,
+                ReservationGroup = reservationGroup,
+                Details = details
+            };
+
+            this.context.SponsoredListingReservations.Add(reservation);
+            await this.context.SaveChangesAsync();
+
+            return reservation;
+        }
+
         public async Task<SponsoredListingReservation?> GetReservationByGuidAsync(Guid reservationId)
         {
             SponsoredListingReservation? sponsoredListingReservation = await this.context.SponsoredListingReservations

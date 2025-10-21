@@ -417,7 +417,6 @@ namespace DirectoryManager.Web.Controllers
             return this.File(bytes, StringConstants.PngImage);
         }
 
-
         [HttpGet("sponsoredlistinginvoice/monthlyincomebarchart")]
         public async Task<IActionResult> MonthlyIncomeBarChart(
             DateTime startDate,
@@ -857,7 +856,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View(vm);
         }
 
-   
         [Route("sponsoredlistinginvoice/advertiser")]
         [HttpGet]
         public async Task<IActionResult> Advertiser(int directoryEntryId, int page = 1, int pageSize = int.MaxValue)

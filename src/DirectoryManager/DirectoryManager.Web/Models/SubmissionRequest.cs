@@ -30,7 +30,7 @@ namespace DirectoryManager.Web.Models
         public string? Link3 { get; set; }
 
         [MaxLength(500)]
-        [Display(Name = "Proof Link", Prompt = "Link where it shows acceptance on site")]
+        [Display(Name = "Proof Link", Prompt = "Where it shows acceptance on site if NOT on main link")]
         public string? ProofLink { get; set; }
 
         [MaxLength(75)]
