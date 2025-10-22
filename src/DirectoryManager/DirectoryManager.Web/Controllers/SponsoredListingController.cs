@@ -508,7 +508,6 @@ namespace DirectoryManager.Web.Controllers
                 new { directoryEntryId, selectedOfferId, rsvId });
         }
 
-
         [HttpGet]
         [AllowAnonymous]
         [Route("sponsoredlisting/subcategoryselection")]
@@ -553,11 +552,11 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [Route("sponsoredlisting/confirmnowpayments")]
         public async Task<IActionResult> ConfirmedNowPaymentsAsync(
-    int directoryEntryId,
-    int selectedOfferId,
-    Guid? rsvId = null,
-    string? email = null,
-    string? referralCode = null)
+            int directoryEntryId,
+            int selectedOfferId,
+            Guid? rsvId = null,
+            string? email = null,
+            string? referralCode = null)
         {
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
             if (this.blockedIPRepository.IsBlockedIp(ipAddress))
@@ -715,7 +714,6 @@ namespace DirectoryManager.Web.Controllers
             return this.Redirect(invoiceFromProcessor.InvoiceUrl);
         }
 
-
         [HttpGet]
         [AllowAnonymous]
         [Route("sponsoredlisting/confirmnowpayments")]
@@ -810,8 +808,6 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(vm);
         }
-
-
 
         [HttpPost]
         [AllowAnonymous]
