@@ -1,6 +1,4 @@
-﻿using System.Globalization;
-using System.Text;
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Web.Charting;
@@ -13,6 +11,9 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Net.Http.Headers;
+using System;
+using System.Globalization;
+using System.Text;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -24,19 +25,22 @@ namespace DirectoryManager.Web.Controllers
         private readonly ICategoryRepository categoryRepository;
         private readonly ISubcategoryRepository subCategoryRepository;
         private readonly ICacheService cacheService;
+        private readonly IChurnService churnService;
 
         public SponsoredListingInvoiceController(
             ISponsoredListingInvoiceRepository invoiceRepository,
             IDirectoryEntryRepository directoryEntryRepository,
             ICategoryRepository categoryRepository,
             ISubcategoryRepository subCategoryRepository,
-            ICacheService cacheService)
+            ICacheService cacheService,
+            IChurnService churnService)
         {
             this.invoiceRepository = invoiceRepository;
             this.directoryEntryRepository = directoryEntryRepository;
             this.categoryRepository = categoryRepository;
             this.subCategoryRepository = subCategoryRepository;
             this.cacheService = cacheService;
+            this.churnService = churnService ?? throw new ArgumentNullException(nameof(churnService));
         }
 
         [Route("sponsoredlistinginvoice")]
@@ -509,6 +513,123 @@ namespace DirectoryManager.Web.Controllers
 
             return this.File(bytes, StringConstants.PngImage);
         }
+
+        // NEW: Churn report action
+        [Route("sponsoredlistinginvoice/churn")]
+        [HttpGet]
+        public async Task<IActionResult> Churn(
+            DateTime? startDate,
+            DateTime? endDate,
+            SponsorshipType? sponsorshipType,
+            int? subCategoryId,
+            int? categoryId,
+            CancellationToken ct)
+        {
+            // defaults: last year, half-open [start, endOpen)
+            const int defaultYears = 1;
+            var now = DateTime.UtcNow;
+            var from = (startDate ?? now.AddYears(-defaultYears)).Date;
+            var to = (endDate ?? now).Date;
+
+            var windowStartUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
+            var windowEndOpenUtc = new DateTime(to.Year, to.Month, to.Day, 0, 0, 0, DateTimeKind.Utc).AddDays(1);
+
+            // load dropdowns
+            var sponsorshipTypeOptions = Enum.GetValues(typeof(SponsorshipType))
+                .Cast<SponsorshipType>()
+                .Where(st => st != SponsorshipType.Unknown)
+                .Select(st => new SelectListItem
+                {
+                    Value = st.ToString(),
+                    Text = st.ToString(),
+                    Selected = sponsorshipType.HasValue && sponsorshipType.Value == st,
+                })
+                .Prepend(new SelectListItem { Value = string.Empty, Text = "All", Selected = !sponsorshipType.HasValue })
+                .ToList();
+
+            var categories = await this.categoryRepository.GetAllAsync().ConfigureAwait(false);
+            var categoryOptions = categories
+                .OrderBy(c => c.Name)
+                .Select(c => new SelectListItem
+                {
+                    Value = c.CategoryId.ToString(),
+                    Text = c.Name,
+                    Selected = categoryId.HasValue && categoryId.Value == c.CategoryId,
+                })
+                .Prepend(new SelectListItem { Value = string.Empty, Text = "All Categories", Selected = !categoryId.HasValue })
+                .ToList();
+
+            var subcats = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync().ConfigureAwait(false);
+            var subCategoryOptions = subcats
+                .OrderBy(s => s.Category.Name).ThenBy(s => s.Name)
+                .Select(s => new SelectListItem
+                {
+                    Value = s.SubCategoryId.ToString(),
+                    Text = $"{s.Category.Name} > {s.Name}",
+                    Selected = subCategoryId.HasValue && subCategoryId.Value == s.SubCategoryId,
+                })
+                .Prepend(new SelectListItem { Value = string.Empty, Text = "All Subcategories", Selected = !subCategoryId.HasValue })
+                .ToList();
+
+            // compute churn
+            var metrics = await this.churnService.GetChurnForWindowAsync(
+                windowStartUtc,
+                windowEndOpenUtc,
+                sponsorshipType,
+                subCategoryId,
+                categoryId,
+                ct).ConfigureAwait(false);
+
+            // resolve names for activated / churned lists (small N, sequential is fine)
+            var activatedRows = new List<DirectoryManager.Web.Models.Reports.ChurnActorRow>();
+            foreach (var id in metrics.ActivatedDirectoryEntryIds ?? new List<int>())
+            {
+                var de = await this.directoryEntryRepository.GetByIdAsync(id).ConfigureAwait(false);
+                activatedRows.Add(new DirectoryManager.Web.Models.Reports.ChurnActorRow
+                {
+                    DirectoryEntryId = id,
+                    DirectoryEntryName = de?.Name ?? $"(#{id})",
+                });
+            }
+
+            var churnedRows = new List<DirectoryManager.Web.Models.Reports.ChurnActorRow>();
+            foreach (var id in metrics.ChurnedDirectoryEntryIds ?? new List<int>())
+            {
+                var de = await this.directoryEntryRepository.GetByIdAsync(id).ConfigureAwait(false);
+                churnedRows.Add(new DirectoryManager.Web.Models.Reports.ChurnActorRow
+                {
+                    DirectoryEntryId = id,
+                    DirectoryEntryName = de?.Name ?? $"(#{id})",
+                });
+            }
+
+            var vm = new DirectoryManager.Web.Models.Reports.ChurnReportViewModel
+            {
+                WindowStartUtc = windowStartUtc,
+                WindowEndOpenUtc = windowEndOpenUtc,
+                SponsorshipType = sponsorshipType,
+                SubCategoryId = subCategoryId,
+                CategoryId = categoryId,
+
+                SponsorshipTypeOptions = sponsorshipTypeOptions,
+                SubCategoryOptions = subCategoryOptions,
+                CategoryOptions = categoryOptions,
+
+                ActiveAtStart = metrics.ActiveAtStart,
+                ActivatedInWindow = metrics.ActivatedInWindow,
+                ChurnedInWindow = metrics.ChurnedInWindow,
+                ActiveAtEnd = metrics.ActiveAtEnd,
+                UniqueActiveInWindow = metrics.UniqueActiveInWindow,
+                ChurnRate = metrics.ChurnRate,
+
+                Activated = activatedRows,
+                Churned = churnedRows,
+            };
+
+            this.ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Churn Report";
+            return this.View("Churn", vm);
+        }
+
 
         // --- Subcategory Revenue Pie ---
         [AllowAnonymous]

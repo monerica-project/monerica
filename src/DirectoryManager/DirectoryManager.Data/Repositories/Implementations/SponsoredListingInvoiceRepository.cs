@@ -487,6 +487,46 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return results;
         }
 
+        // ------------------------------------------------------------
+        // NEW: Paid invoices overlapping a window (for churn calculation)
+        // ------------------------------------------------------------
+        public async Task<List<SponsoredListingInvoice>> GetPaidInvoicesAsync(
+            DateTime fromUtc,
+            DateTime toUtc,
+            SponsorshipType? type = null,
+            int? subCategoryId = null,
+            int? categoryId = null,
+            CancellationToken ct = default)
+        {
+            // Find any PAID invoice whose campaign window overlaps [fromUtc, toUtc)
+            var q = this.context.SponsoredListingInvoices.AsNoTracking()
+                .Where(i => i.PaymentStatus == PaymentStatus.Paid &&
+                            i.CampaignEndDate >= fromUtc &&
+                            i.CampaignStartDate < toUtc);
+
+            if (type.HasValue)
+                q = q.Where(i => i.SponsorshipType == type.Value);
+
+            if (subCategoryId.HasValue)
+                q = q.Where(i => i.SubCategoryId == subCategoryId.Value);
+
+            if (categoryId.HasValue)
+                q = q.Where(i => i.CategoryId == categoryId.Value);
+
+            // Project minimal fields needed for churn logic
+            return await q
+                .Select(i => new SponsoredListingInvoice
+                {
+                    DirectoryEntryId = i.DirectoryEntryId,
+                    SponsorshipType = i.SponsorshipType,
+                    SubCategoryId = i.SubCategoryId,
+                    CategoryId = i.CategoryId,
+                    CampaignStartDate = i.CampaignStartDate,
+                    CampaignEndDate = i.CampaignEndDate
+                })
+                .ToListAsync(ct);
+        }
+
         private static void CopyMutableFields(SponsoredListingInvoice target, SponsoredListingInvoice src)
         {
             // ⚠️ Do NOT touch target.SponsoredListingInvoiceId or target.InvoiceId or target.CreateDate here.

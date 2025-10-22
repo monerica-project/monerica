@@ -1,0 +1,185 @@
+﻿@model DirectoryManager.Web.Models.Reports.ChurnReportViewModel
+@using DirectoryManager.Web.Constants
+
+@{
+    ViewData[StringConstants.TitleHeader] = ViewData[StringConstants.TitleHeader] ?? "Churn Report";
+    Layout = "_CenteredLayout";
+
+    var startDate = Model.WindowStartUtc.ToUniversalTime().ToString("yyyy-MM-dd");
+    var endDate = Model.WindowEndOpenUtc.AddDays(-1).ToUniversalTime().ToString("yyyy-MM-dd"); // show inclusive end day
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+    @await Html.PartialAsync("_ReportMenu")
+
+    <hr />
+
+    <form method="get" asp-action="Churn" asp-controller="SponsoredListingInvoice" class="form-inline mb-3">
+        <div class="form-row">
+            <div class="form-group mr-3">
+                <label for="startDate" class="mr-2">Start</label>
+                <input type="date" id="startDate" name="startDate" class="form-control" value="@startDate" />
+            </div>
+
+            <div class="form-group mr-3">
+                <label for="endDate" class="mr-2">End</label>
+                <input type="date" id="endDate" name="endDate" class="form-control" value="@endDate" />
+            </div>
+
+            <div class="form-group mr-3">
+                <label for="sponsorshipType" class="mr-2">Type</label>
+                <select id="sponsorshipType" name="sponsorshipType" class="form-control">
+                    @foreach (var opt in Model.SponsorshipTypeOptions)
+                    {
+                        <option value="@opt.Value" selected="@(opt.Selected ? "selected" : null)">@opt.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group mr-3">
+                <label for="categoryId" class="mr-2">Category</label>
+                <select id="categoryId" name="categoryId" class="form-control">
+                    @foreach (var opt in Model.CategoryOptions)
+                    {
+                        <option value="@opt.Value" selected="@(opt.Selected ? "selected" : null)">@opt.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group mr-3">
+                <label for="subCategoryId" class="mr-2">Subcategory</label>
+                <select id="subCategoryId" name="subCategoryId" class="form-control">
+                    @foreach (var opt in Model.SubCategoryOptions)
+                    {
+                        <option value="@opt.Value" selected="@(opt.Selected ? "selected" : null)">@opt.Text</option>
+                    }
+                </select>
+            </div>
+
+            <div class="form-group mr-3">
+                <button type="submit" class="btn btn-primary">Run</button>
+            </div>
+        </div>
+    </form>
+
+    <div class="mb-3">
+        <strong>Window:</strong>
+        @Model.WindowStartUtc.ToUniversalTime().ToString("yyyy-MM-dd")
+        &rarr;
+        @Model.WindowEndOpenUtc.AddDays(-1).ToUniversalTime().ToString("yyyy-MM-dd")
+        <br />
+        <strong>Type:</strong> @(Model.SponsorshipType?.ToString() ?? "All")
+        &nbsp;|&nbsp;
+        <strong>CategoryId:</strong> @(Model.CategoryId?.ToString() ?? "All")
+        &nbsp;|&nbsp;
+        <strong>SubCategoryId:</strong> @(Model.SubCategoryId?.ToString() ?? "All")
+    </div>
+
+
+    <hr />
+
+<!-- Big KPI line -->
+<p class="lead">
+    <strong>Churn rate (Churned ÷ Active @@ start):</strong>
+    @(Model.ActiveAtStart > 0 ? Model.ChurnRate.ToString("P2") : "N/A")
+</p>
+
+<!-- Optional: show retention too -->
+<p>
+    <strong>Retention rate:</strong>
+    @(Model.ActiveAtStart > 0 ? (1 - Model.ChurnRate).ToString("P2") : "N/A")
+</p>
+
+<hr />
+
+
+    <div class="table-responsive">
+        <table class="table table-bordered w-auto">
+            <thead class="thead-light">
+                <tr>
+                    <th>Active @@ start</th>
+                    <th>Activated</th>
+                    <th>Churned</th>
+                    <th>Active @@ end</th>
+                    <th>Unique active in window</th>
+                    <th>Churn rate</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td>@Model.ActiveAtStart</td>
+                    <td>@Model.ActivatedInWindow</td>
+                    <td>@Model.ChurnedInWindow</td>
+                    <td>@Model.ActiveAtEnd</td>
+                    <td>@Model.UniqueActiveInWindow</td>
+                    <td>@(Model.ChurnRate.ToString("P2"))</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <hr />
+
+    <h3>Activated in Window (@Model.ActivatedInWindow)</h3>
+    <div class="table-wrapper">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Advertiser</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Activated != null && Model.Activated.Any())
+            {
+                foreach (var row in Model.Activated.OrderBy(r => r.DirectoryEntryName))
+                {
+                    <tr>
+                        <td>@row.DirectoryEntryName</td>
+                        <td>
+                            <a href="@Url.Action("Advertiser", "SponsoredListingInvoice", new { directoryEntryId = row.DirectoryEntryId })">View invoices</a>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr><td colspan="2"><em>None</em></td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+
+    <h3>Churned in Window (@Model.ChurnedInWindow)</h3>
+    <div class="table-wrapper">
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Advertiser</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+            @if (Model.Churned != null && Model.Churned.Any())
+            {
+                foreach (var row in Model.Churned.OrderBy(r => r.DirectoryEntryName))
+                {
+                    <tr>
+                        <td>@row.DirectoryEntryName</td>
+                        <td>
+                            <a href="@Url.Action("Advertiser", "SponsoredListingInvoice", new { directoryEntryId = row.DirectoryEntryId })">View invoices</a>
+                        </td>
+                    </tr>
+                }
+            }
+            else
+            {
+                <tr><td colspan="2"><em>None</em></td></tr>
+            }
+            </tbody>
+        </table>
+    </div>
+}

@@ -39,7 +39,13 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         DateTime windowStartUtc,
         DateTime windowEndOpenUtc,
         SponsorshipType? sponsorshipType = null);
-
         IAsyncEnumerable<AccountantRow> StreamPaidForAccountantAsync(DateTime startUtc, DateTime endUtc, SponsorshipType? sponsorshipType, CancellationToken ct = default);
+        Task<List<SponsoredListingInvoice>> GetPaidInvoicesAsync(
+            DateTime fromUtc,
+            DateTime toUtc,
+            SponsorshipType? type = null,
+            int? subCategoryId = null,
+            int? categoryId = null,
+            CancellationToken ct = default);
     }
 }
