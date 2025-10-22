@@ -207,7 +207,7 @@ namespace DirectoryManager.Web.Controllers
                 });
             }
 
-            // Compute reservation scope from the current selector (NOT the entry)
+            // Build reservation scope (MainSponsor uses global 0)
             var typeIdForGroup = sponsorshipType switch
             {
                 SponsorshipType.MainSponsor => 0,
@@ -219,28 +219,30 @@ namespace DirectoryManager.Web.Controllers
             var group = ReservationGroupHelper.BuildReservationGroupName(sponsorshipType, typeIdForGroup);
             int? typeIdForCapacity = sponsorshipType == SponsorshipType.MainSponsor ? (int?)null : typeIdForGroup;
 
-            // Existing sponsor? (extension)
+            // Is this an extension?
             var isExtension = await this.sponsoredListingRepository
                 .IsSponsoredListingActive(directoryEntryId, sponsorshipType)
                 .ConfigureAwait(false);
 
-            // Keep token if valid
+            // Carry a posted reservation if valid (no creation here)
             var hasToken = await this.TryAttachReservationAsync(rsvId, group);
 
-            // ✅ Subcategory cap for Main Sponsor (NEW message: capacity-based, no reservation wording)
+            // ---- 1) SUBCATEGORY CAP FIRST (ACTIVE listings only) ----
             if (sponsorshipType == SponsorshipType.MainSponsor && !isExtension)
             {
-                var subId = entry.SubCategoryId;
-                if (!await this.CanPurchaseMainWithinSubcategoryAsync(subId).ConfigureAwait(false))
+                var subId = entry.SubCategoryId; // the subcategory of the listing being selected
+                var activeInSub = await this.GetActiveMainCountForSubcategoryAsync(subId).ConfigureAwait(false);
+
+                if (activeInSub >= MaxMainSponsorsPerSubcategory)
                 {
                     var msg = await this.BuildMainSubcategoryLimitMessageAsync(subId).ConfigureAwait(false);
                     return this.BadRequest(new { Error = msg });
                 }
             }
 
+            // ---- 2) TYPE-WIDE reservation/capacity (NO subcategory wording) ----
             if (!isExtension && !hasToken)
             {
-                // Global capacity BEFORE creating reservation
                 var totalActiveListings = await this.sponsoredListingRepository
                     .GetActiveSponsorsCountAsync(sponsorshipType, typeIdForCapacity)
                     .ConfigureAwait(false);
@@ -251,12 +253,14 @@ namespace DirectoryManager.Web.Controllers
 
                 if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, sponsorshipType))
                 {
+                    // Message will read: "Another checkout for Main Sponsor ...", not tied to any subcategory.
                     var msg = await this.BuildCheckoutInProcessMessageAsync(sponsorshipType, typeIdForCapacity, group);
                     return this.BadRequest(new { Error = msg });
                 }
 
-                // Create reservation
+                // Create the (type-wide) reservation now
                 var expiration = DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes);
+
                 var details = await this.BuildReservationDetailsAsync(
                     sponsorshipType,
                     entry,
@@ -269,18 +273,13 @@ namespace DirectoryManager.Web.Controllers
 
                 rsvId = res.ReservationGuid;
 
-                // Shadow reservation for subcategory (race protection)
-                if (sponsorshipType == SponsorshipType.MainSponsor)
-                {
-                    var subGroup = ReservationGroupHelper.BuildReservationGroupName(SponsorshipType.MainSponsor, entry.SubCategoryId);
-                    await this.sponsoredListingReservationRepository
-                        .CreateReservationAsync(expiration, subGroup, details)
-                        .ConfigureAwait(false);
-                }
+                // IMPORTANT: Do NOT create a subcategory "shadow" reservation here.
             }
 
+            // Continue to duration selection
             return this.RedirectToAction("SelectDuration", new { directoryEntryId, sponsorshipType, rsvId });
         }
+
 
         [HttpGet]
         [AllowAnonymous]
@@ -455,13 +454,26 @@ namespace DirectoryManager.Web.Controllers
             // New purchase must (re)create reservation if needed; extensions do not
             if (!isExtension && !rsvId.HasValue)
             {
-                // ✅ Subcategory cap for Main Sponsor → limit message
+                // ✅ Subcategory cap for Main Sponsor (ACTIVE-only) + same-subcategory live checkout
                 if (offer.SponsorshipType == SponsorshipType.MainSponsor)
                 {
                     var subId = entry.SubCategoryId;
-                    if (!await this.CanPurchaseMainWithinSubcategoryAsync(subId).ConfigureAwait(false))
+
+                    var activeCount = await this.GetActiveMainCountForSubcategoryAsync(subId).ConfigureAwait(false);
+                    if (activeCount >= MaxMainSponsorsPerSubcategory)
                     {
                         var msg = await this.BuildMainSubcategoryLimitMessageAsync(subId).ConfigureAwait(false);
+                        return this.BadRequest(new { Error = msg });
+                    }
+
+                    var subGroup = ReservationGroupHelper.BuildReservationGroupName(SponsorshipType.MainSponsor, subId);
+                    var subReservations = await this.sponsoredListingReservationRepository
+                        .GetActiveReservationsCountAsync(subGroup)
+                        .ConfigureAwait(false);
+
+                    if (subReservations > 0)
+                    {
+                        var msg = await this.BuildCheckoutInProcessMessageForMainSubcategoryAsync(subId).ConfigureAwait(false);
                         return this.BadRequest(new { Error = msg });
                     }
                 }
@@ -739,6 +751,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
 
+            // Build scope (NOTE: MainSponsor uses global group "0")
             var typeIdForGroup = offer.SponsorshipType switch
             {
                 SponsorshipType.MainSponsor => 0,
@@ -749,11 +762,23 @@ namespace DirectoryManager.Web.Controllers
             var group = ReservationGroupHelper.BuildReservationGroupName(offer.SponsorshipType, typeIdForGroup);
             int? typeIdForCapacity = offer.SponsorshipType == SponsorshipType.MainSponsor ? (int?)null : typeIdForGroup;
 
-            // Extension?
+            // Is this an extension?
             var isExtension = await this.sponsoredListingRepository
                 .IsSponsoredListingActive(directoryEntryId, offer.SponsorshipType)
                 .ConfigureAwait(false);
 
+            // ---- 1) Subcategory cap FIRST (ACTIVE listings only) ----
+            if (!isExtension && offer.SponsorshipType == SponsorshipType.MainSponsor)
+            {
+                var activeInSub = await this.GetActiveMainCountForSubcategoryAsync(entry.SubCategoryId).ConfigureAwait(false);
+                if (activeInSub >= MaxMainSponsorsPerSubcategory)
+                {
+                    var msg = await this.BuildMainSubcategoryLimitMessageAsync(entry.SubCategoryId).ConfigureAwait(false);
+                    return this.BadRequest(new { Error = msg });
+                }
+            }
+
+            // ---- 2) Then global reservation/capacity for the TYPE (no subcategory wording) ----
             if (!isExtension)
             {
                 if (!await this.TryAttachReservationAsync(rsvId, group))
@@ -761,29 +786,21 @@ namespace DirectoryManager.Web.Controllers
                     var totalActive = await this.sponsoredListingRepository
                         .GetActiveSponsorsCountAsync(offer.SponsorshipType, typeIdForCapacity)
                         .ConfigureAwait(false);
+
                     var totalReservations = await this.sponsoredListingReservationRepository
                         .GetActiveReservationsCountAsync(group)
                         .ConfigureAwait(false);
 
                     if (!CanPurchaseListing(totalActive, totalReservations, offer.SponsorshipType))
                     {
+                        // This produces "Another checkout for Main Sponsor..." (type-wide), not subcategory.
                         var msg = await this.BuildCheckoutInProcessMessageAsync(offer.SponsorshipType, typeIdForCapacity, group);
                         return this.BadRequest(new { Error = msg });
                     }
                 }
             }
 
-            // ✅ Subcategory cap for Main Sponsor → limit message
-            if (!isExtension && offer.SponsorshipType == SponsorshipType.MainSponsor)
-            {
-                var subId = entry.SubCategoryId;
-                if (!await this.CanPurchaseMainWithinSubcategoryAsync(subId).ConfigureAwait(false))
-                {
-                    var msg = await this.BuildMainSubcategoryLimitMessageAsync(subId).ConfigureAwait(false);
-                    return this.BadRequest(new { Error = msg });
-                }
-            }
-
+            // View context
             if (offer.SponsorshipType == SponsorshipType.SubcategorySponsor)
             {
                 this.ViewBag.SubCategoryId = typeIdForGroup;
@@ -1694,9 +1711,8 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task<bool> CanPurchaseMainWithinSubcategoryAsync(int subCategoryId)
         {
-            var (active, reservations) = await this.GetMainSubcategoryCountsAsync(subCategoryId).ConfigureAwait(false);
-            return (active <= MaxMainSponsorsPerSubcategory) &&
-                   (reservations < (MaxMainSponsorsPerSubcategory - active));
+            var active = await this.GetActiveMainCountForSubcategoryAsync(subCategoryId).ConfigureAwait(false);
+            return active < MaxMainSponsorsPerSubcategory; // allow until we hit 2 active
         }
 
         private async Task<DateTime?> GetNextOpeningUtcForMainSubcategoryAsync(int subCategoryId)
@@ -1944,6 +1960,32 @@ namespace DirectoryManager.Web.Controllers
 
             return scoped.Any() ? scoped.Min(x => (DateTime?)x.CampaignEndDate) : null;
         }
+
+        private async Task<int> GetActiveMainCountForSubcategoryAsync(int subCategoryId)
+        {
+            var allActiveMain = await this.sponsoredListingRepository
+                .GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor)
+                .ConfigureAwait(false);
+
+            var count = 0;
+            foreach (var s in allActiveMain)
+            {
+                int subId = 0;
+                if (s.SubCategoryId.HasValue && s.SubCategoryId.Value > 0)
+                {
+                    subId = s.SubCategoryId.Value;
+                }
+                else if (s.DirectoryEntry != null)
+                {
+                    // fallback to the directory entry’s current subcategory
+                    subId = s.DirectoryEntry.SubCategoryId;
+                }
+
+                if (subId == subCategoryId) count++;
+            }
+            return count;
+        }
+
 
         private async Task TryCreateAffiliateCommissionForInvoiceAsync(SponsoredListingInvoice invoice, CancellationToken ct = default)
         {
