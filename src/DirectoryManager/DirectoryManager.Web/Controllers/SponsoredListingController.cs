@@ -280,7 +280,6 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction("SelectDuration", new { directoryEntryId, sponsorshipType, rsvId });
         }
 
-
         [HttpGet]
         [AllowAnonymous]
         [Route("sponsoredlisting/selectlisting")]

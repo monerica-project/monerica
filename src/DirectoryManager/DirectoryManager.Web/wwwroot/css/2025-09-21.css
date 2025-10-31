@@ -1156,6 +1156,8 @@ a.external-link {
     margin: 0 auto;
 }
 
+.text-muted { font-size: x-small;}
+
 @media (max-width: 768px) {
     #main-content .main {
         max-width: 100%;

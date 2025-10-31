@@ -79,5 +79,6 @@ namespace DirectoryManager.Services.Models.TransferModels
         /// Gets or sets the identifiers of advertisers that activated in the window.
         /// </summary>
         public List<int> ActivatedDirectoryEntryIds { get; set; } = new List<int>();
+        public int GrossChurnInWindow { get; set; }
     }
 }
