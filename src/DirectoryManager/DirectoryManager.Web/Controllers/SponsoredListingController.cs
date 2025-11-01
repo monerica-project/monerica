@@ -561,168 +561,190 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpPost]
         [AllowAnonymous]
-        [Route("sponsoredlisting/confirmnowpayments")]
-        public async Task<IActionResult> ConfirmedNowPaymentsAsync(
-            int directoryEntryId,
-            int selectedOfferId,
-            Guid? rsvId = null,
-            string? email = null,
-            string? referralCode = null)
+        [Route("sponsoredlisting/nowpaymentscallback")]
+        public async Task<IActionResult> NowPaymentsCallBackAsync()
         {
-            var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
-            if (this.blockedIPRepository.IsBlockedIp(ipAddress))
+            // ---- Read raw payload (needed for HMAC) ----
+            string callbackPayload;
+            using (var reader = new StreamReader(this.Request.Body, Encoding.UTF8))
             {
-                return this.NotFound();
+                callbackPayload = await reader.ReadToEndAsync();
             }
 
-            var sponsoredListingOffer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
-            if (sponsoredListingOffer == null)
+            this.logger.LogInformation("NOWPayments IPN received: {Payload}", callbackPayload);
+
+            // ---- Verify signature ----
+            var nowPaymentsSig = this.Request
+                .Headers[NowPayments.API.Constants.StringConstants.HeaderNameAuthCallBack]
+                .FirstOrDefault() ?? string.Empty;
+
+            if (!this.paymentService.IsIpnRequestValid(callbackPayload, nowPaymentsSig, out var sigError))
             {
-                return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
+                this.logger.LogWarning("NOWPayments IPN signature invalid: {Error}", sigError);
+                return this.Ok();
             }
 
-            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
-            if (directoryEntry == null)
+            // ---- Deserialize ----
+            IpnPaymentMessage? ipnMessage = null;
+            try
             {
-                return this.BadRequest(new { Error = StringConstants.DirectoryEntryNotFound });
+                ipnMessage = JsonConvert.DeserializeObject<IpnPaymentMessage>(callbackPayload);
+            }
+            catch (JsonException ex)
+            {
+                this.logger.LogWarning(ex, "NOWPayments IPN deserialize failed.");
+                return this.Ok();
             }
 
-            var typeIdForGroup = sponsoredListingOffer.SponsorshipType switch
+            if (ipnMessage?.PaymentStatus == null)
             {
-                SponsorshipType.MainSponsor => 0,
-                SponsorshipType.CategorySponsor => directoryEntry.SubCategory?.CategoryId ?? 0,
-                SponsorshipType.SubcategorySponsor => directoryEntry.SubCategoryId,
-                _ => 0,
-            };
-            var group = ReservationGroupHelper.BuildReservationGroupName(sponsoredListingOffer.SponsorshipType, typeIdForGroup);
-            int? typeIdForCapacity = sponsoredListingOffer.SponsorshipType == SponsorshipType.MainSponsor ? (int?)null : typeIdForGroup;
+                this.logger.LogWarning("NOWPayments IPN missing PaymentStatus. Payload: {Payload}", callbackPayload);
+                return this.Ok();
+            }
 
-            // Validate/attach reservation or capacity (existing logic)
-            if (!await this.TryAttachReservationAsync(rsvId, group))
+            // =========================================================================================
+            // Association: prefer your OrderId (GUID), fallback to processor invoice_id (string compare)
+            // =========================================================================================
+            SponsoredListingInvoice? invoice = null;
+
+            // Primary key: your GUID OrderId
+            Guid orderGuid;
+            var hasOrderGuid = Guid.TryParse(ipnMessage.OrderId, out orderGuid);
+
+            if (hasOrderGuid)
             {
-                var isActiveSponsor = await this.sponsoredListingRepository
-                    .IsSponsoredListingActive(directoryEntryId, sponsoredListingOffer.SponsorshipType);
+                invoice = await this.sponsoredListingInvoiceRepository.GetByInvoiceIdAsync(orderGuid);
+            }
 
-                var totalActiveListings = await this.sponsoredListingRepository
-                    .GetActiveSponsorsCountAsync(sponsoredListingOffer.SponsorshipType, typeIdForCapacity);
+            // Fallback by processor invoice id (NOWPayments invoice_id) -> compare as string
+            // ipnMessage.InvoiceId may be long?/long; ToString() on Nullable<T> is safe (empty when null)
+            var ipnProcessorId = ipnMessage.InvoiceId.ToString() ?? string.Empty;
+            if (invoice == null && !string.IsNullOrWhiteSpace(ipnProcessorId))
+            {
+                invoice = await this.sponsoredListingInvoiceRepository.GetByProcessorInvoiceIdAsync(ipnProcessorId);
 
-                var totalActiveReservations = await this.sponsoredListingReservationRepository
-                    .GetActiveReservationsCountAsync(group);
-
-                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, sponsoredListingOffer.SponsorshipType) && !isActiveSponsor)
+                // If we found by processor id AND the IPN carries an OrderId that doesn't match the row, ignore.
+                if (invoice != null && hasOrderGuid && invoice.InvoiceId != orderGuid)
                 {
-                    var msg = await this.BuildCheckoutInProcessMessageAsync(sponsoredListingOffer.SponsorshipType, typeIdForCapacity, group);
-                    return this.BadRequest(new { Error = msg });
-                }
-            }
-            else
-            {
-                var existingReservation = await this.sponsoredListingReservationRepository.GetReservationByGuidAsync(rsvId.Value);
-                if (existingReservation == null)
-                {
-                    return this.BadRequest(new { Error = StringConstants.ErrorWithCheckoutProcess });
-                }
-
-                var existingInvoice = await this.sponsoredListingInvoiceRepository.GetByReservationGuidAsync(existingReservation.ReservationGuid);
-                if (existingInvoice != null)
-                {
-                    if (existingInvoice.PaymentStatus == PaymentStatus.Paid)
-                    {
-                        return this.BadRequest(new { Error = StringConstants.InvoiceAlreadyCreated });
-                    }
-
-                    existingInvoice.PaymentStatus = PaymentStatus.Canceled;
-                    existingInvoice.ReservationGuid = Guid.Empty;
-                    await this.sponsoredListingInvoiceRepository.UpdateAsync(existingInvoice);
-                }
-            }
-
-            // Email validation (unchanged)
-            string? normalizedEmail = null;
-            if (!string.IsNullOrWhiteSpace(email))
-            {
-                var (okEmail, norm, emailError) = EmailValidationHelper.Validate(email);
-                if (!okEmail)
-                {
-                    if (sponsoredListingOffer.SponsorshipType == SponsorshipType.SubcategorySponsor)
-                    {
-                        this.ViewBag.SubCategoryId = typeIdForGroup;
-                    }
-                    else if (sponsoredListingOffer.SponsorshipType == SponsorshipType.CategorySponsor)
-                    {
-                        this.ViewBag.CategoryId = typeIdForGroup;
-                    }
-
-                    var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
-                    var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
-                    var current = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(sponsoredListingOffer.SponsorshipType);
-
-                    var normalizedRef = ReferralCodeHelper.NormalizeOrNull(referralCode);
-                    this.ViewBag.ReferralCode = normalizedRef ?? string.Empty;
-
-                    await this.TryAttachReservationAsync(rsvId, group);
-
-                    var vm = GetConfirmationModel(sponsoredListingOffer, directoryEntry, link2Name, link3Name, current);
-                    vm.CanCreateSponsoredListing = true;
-
-                    this.ModelState.AddModelError("Email", emailError!);
-                    this.ViewBag.PrefillEmail = email;
-                    return this.View("ConfirmNowPayments", vm);
-                }
-
-                normalizedEmail = norm!;
-            }
-
-            // ✅ Subcategory cap for Main Sponsor → limit message (only for NEW purchases)
-            var isActiveForScope = await this.sponsoredListingRepository
-                .IsSponsoredListingActive(directoryEntryId, sponsoredListingOffer.SponsorshipType)
-                .ConfigureAwait(false);
-
-            if (!isActiveForScope && sponsoredListingOffer.SponsorshipType == SponsorshipType.MainSponsor)
-            {
-                var subId = directoryEntry.SubCategoryId;
-                if (!await this.CanPurchaseMainWithinSubcategoryAsync(subId).ConfigureAwait(false))
-                {
-                    var msg = await this.BuildMainSubcategoryLimitMessageAsync(subId).ConfigureAwait(false);
-                    return this.BadRequest(new { Error = msg });
+                    this.logger.LogWarning(
+                        "IPN association via processor invoice_id {ProcessorInvoiceId} but OrderId mismatch. IPN:{IpnOrder} DB:{DbOrder}",
+                        ipnProcessorId, ipnMessage.OrderId, invoice.InvoiceId);
+                    return this.Ok();
                 }
             }
 
-            // Proceed: create invoice (unchanged)
-            this.ViewBag.ReservationGuid = rsvId;
-
-            var existingListing = await this.sponsoredListingRepository
-                .GetActiveSponsorAsync(directoryEntryId, sponsoredListingOffer.SponsorshipType);
-
-            var startDate = existingListing?.CampaignEndDate ?? DateTime.UtcNow;
-
-            var invoice = await this.CreateInvoice(directoryEntry, sponsoredListingOffer, startDate, ipAddress);
-
-            if (DirectoryManager.Utilities.Helpers.ReferralCodeHelper
-                    .TryNormalize(referralCode, out var normalizedRefCode, out _)
-                && !string.IsNullOrEmpty(normalizedRefCode))
+            if (invoice == null)
             {
-                invoice.ReferralCodeUsed = normalizedRefCode;
+                this.logger.LogWarning(
+                    "NOWPayments IPN could not associate invoice. OrderId:{OrderId} ProcessorInvoiceId:{ProcessorInvoiceId}",
+                    ipnMessage.OrderId, ipnProcessorId);
+                return this.Ok(); // nothing to update
             }
 
-            var invoiceRequest = this.GetInvoiceRequest(sponsoredListingOffer, invoice);
-            this.paymentService.SetDefaultUrls(invoiceRequest);
-
-            var invoiceFromProcessor = await this.paymentService.CreateInvoice(invoiceRequest);
-            if (invoiceFromProcessor == null || invoiceFromProcessor.Id == null)
+            // -----------------------------------------------------------------------------
+            // Strict dual-key guard: after first bind, require BOTH keys to line up
+            // -----------------------------------------------------------------------------
+            if (hasOrderGuid && invoice.InvoiceId != orderGuid)
             {
-                return this.BadRequest(new { Error = "Failed to create invoice." });
+                this.logger.LogWarning(
+                    "Ignoring IPN: OrderId mismatch. IPN:{IpnOrderId} DB:{DbOrderId}",
+                    ipnMessage.OrderId, invoice.InvoiceId);
+                return this.Ok();
             }
 
-            SetInvoiceProperties(rsvId, normalizedEmail, invoice, invoiceRequest, invoiceFromProcessor);
-            await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
-
-            if (string.IsNullOrWhiteSpace(invoiceFromProcessor.InvoiceUrl))
+            if (!string.IsNullOrWhiteSpace(invoice.ProcessorInvoiceId) &&
+                !string.IsNullOrWhiteSpace(ipnProcessorId) &&
+                !string.Equals(invoice.ProcessorInvoiceId, ipnProcessorId, StringComparison.Ordinal))
             {
-                return this.BadRequest(new { Error = "Failed to get invoice URL." });
+                this.logger.LogWarning(
+                    "Ignoring IPN: processor invoice_id mismatch. OrderId:{OrderId} DB:{DbInvoiceId} IPN:{IpnInvoiceId}",
+                    ipnMessage.OrderId, invoice.ProcessorInvoiceId, ipnProcessorId);
+                return this.Ok();
             }
 
-            return this.Redirect(invoiceFromProcessor.InvoiceUrl);
+            // One-time bind for legacy rows that didn't capture the processor invoice id
+            if (string.IsNullOrWhiteSpace(invoice.ProcessorInvoiceId) && !string.IsNullOrWhiteSpace(ipnProcessorId))
+            {
+                invoice.ProcessorInvoiceId = ipnProcessorId;
+                await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
+            }
+
+            // ========================================================================
+            // Monotonic status updates + audit fields; never regress and respect terminal
+            // ========================================================================
+
+            // Already fully paid? Only try affiliate and exit.
+            if (invoice.PaymentStatus == PaymentStatus.Paid)
+            {
+                await this.TryCreateAffiliateCommissionForInvoiceAsync(invoice);
+                return this.Ok();
+            }
+
+            // Treat these as terminal -> no mutation
+            if (invoice.PaymentStatus is PaymentStatus.Test
+                or PaymentStatus.Expired
+                or PaymentStatus.Failed
+                or PaymentStatus.Refunded
+                or PaymentStatus.Canceled)
+            {
+                return this.Ok();
+            }
+
+            // Update audit fields regardless of status change
+            invoice.PaymentResponse = JsonConvert.SerializeObject(ipnMessage);
+            invoice.PaidAmount = ipnMessage.PayAmount;
+            invoice.OutcomeAmount = ipnMessage.OutcomeAmount;
+
+            if (!string.IsNullOrWhiteSpace(ipnMessage.PayCurrency))
+            {
+                invoice.PaidInCurrency = DirectoryManager.Utilities.Helpers.EnumHelper
+                    .ParseStringToEnum<Currency>(ipnMessage.PayCurrency);
+            }
+
+            // Map external -> internal and enforce forward-only transition
+            var processorStatus = DirectoryManager.Utilities.Helpers.EnumHelper
+                .ParseStringToEnum<NowPayments.API.Enums.PaymentStatus>(ipnMessage.PaymentStatus);
+
+            var proposed = ConvertToInternalStatus(processorStatus);
+            var current = invoice.PaymentStatus;
+
+            if (!IsTerminal(current))
+            {
+                var curRank = StatusRank[current];
+                var nxtRank = StatusRank[proposed];
+
+                if (nxtRank > curRank)
+                {
+                    invoice.PaymentStatus = proposed;
+                }
+                else if (nxtRank < curRank)
+                {
+                    this.logger.LogInformation(
+                        "Ignoring status regression on invoice {OrderId}: {Current} -> {Proposed}",
+                        invoice.InvoiceId, current, proposed);
+                }
+                // else equal -> duplicate; keep as-is
+            }
+
+            // Extend the reservation hold while it's active-but-not-paid
+            if (HoldExtendingStatuses.Contains(invoice.PaymentStatus))
+            {
+                await this.EnsureHoldFromInvoiceAsync(
+                    invoice,
+                    minimumHold: TimeSpan.FromHours(2),
+                    maxFromNow: TimeSpan.FromHours(3));
+            }
+
+            // Persist updates and (if Paid) create/extend listing (this method updates invoice first)
+            await this.CreateNewSponsoredListing(invoice);
+
+            // If now paid, attempt affiliate commission
+            if (invoice.PaymentStatus == PaymentStatus.Paid)
+            {
+                await this.TryCreateAffiliateCommissionForInvoiceAsync(invoice);
+            }
+
+            return this.Ok();
         }
 
         [HttpGet]
@@ -823,108 +845,6 @@ namespace DirectoryManager.Web.Controllers
             vm.CanCreateSponsoredListing = true;
 
             return this.View(vm);
-        }
-
-        [HttpPost]
-        [AllowAnonymous]
-        [Route("sponsoredlisting/nowpaymentscallback")]
-        public async Task<IActionResult> NowPaymentsCallBackAsync()
-        {
-            string callbackPayload;
-            using (var reader = new StreamReader(this.Request.Body, Encoding.UTF8))
-            {
-                callbackPayload = await reader.ReadToEndAsync();
-            }
-
-            this.logger.LogInformation("NOWPayments IPN received: {Payload}", callbackPayload);
-
-            var nowPaymentsSig = this.Request
-                .Headers[NowPayments.API.Constants.StringConstants.HeaderNameAuthCallBack]
-                .FirstOrDefault() ?? string.Empty;
-
-            if (!this.paymentService.IsIpnRequestValid(callbackPayload, nowPaymentsSig, out var sigError))
-            {
-                this.logger.LogWarning("NOWPayments IPN signature invalid: {Error}", sigError);
-                return this.Ok();
-            }
-
-            IpnPaymentMessage? ipnMessage = null;
-            try
-            {
-                ipnMessage = JsonConvert.DeserializeObject<IpnPaymentMessage>(callbackPayload);
-            }
-            catch (JsonException ex)
-            {
-                this.logger.LogWarning(ex, "NOWPayments IPN deserialize failed.");
-                return this.Ok();
-            }
-
-            if (ipnMessage?.OrderId == null || ipnMessage.PaymentStatus == null)
-            {
-                this.logger.LogWarning("NOWPayments IPN missing OrderId or PaymentStatus. Payload: {Payload}", callbackPayload);
-                return this.Ok();
-            }
-
-            var orderId = ipnMessage.OrderId;
-            var invoice = await this.sponsoredListingInvoiceRepository.GetByInvoiceIdAsync(Guid.Parse(orderId));
-            if (invoice == null)
-            {
-                this.logger.LogWarning("NOWPayments IPN for unknown OrderId: {OrderId}", orderId);
-                return this.Ok();
-            }
-
-            // If already Paid, do affiliate and exit (no mutation)
-            if (invoice.PaymentStatus == PaymentStatus.Paid)
-            {
-                await this.TryCreateAffiliateCommissionForInvoiceAsync(invoice);
-                return this.Ok();
-            }
-
-            // Treat these as terminal, including Test → return without touching anything
-            if (invoice.PaymentStatus is PaymentStatus.Paid
-                or PaymentStatus.Test
-                or PaymentStatus.Expired
-                or PaymentStatus.Failed
-                or PaymentStatus.Refunded
-                or PaymentStatus.Canceled)
-            {
-                return this.Ok();
-            }
-
-            // --- Update invoice with gateway info (non-terminal only) ---
-            invoice.PaymentResponse = JsonConvert.SerializeObject(ipnMessage);
-            invoice.PaidAmount = ipnMessage.PayAmount;
-            invoice.OutcomeAmount = ipnMessage.OutcomeAmount;
-
-            var processorStatus = DirectoryManager.Utilities.Helpers.EnumHelper
-                .ParseStringToEnum<NowPayments.API.Enums.PaymentStatus>(ipnMessage.PaymentStatus);
-
-            var newStatus = ConvertToInternalStatus(processorStatus);
-            invoice.PaymentStatus = newStatus;
-
-            if (HoldExtendingStatuses.Contains(newStatus))
-            {
-                await this.EnsureHoldFromInvoiceAsync(
-                    invoice,
-                    minimumHold: TimeSpan.FromHours(2),
-                    maxFromNow: TimeSpan.FromHours(3));
-            }
-
-            if (!string.IsNullOrWhiteSpace(ipnMessage.PayCurrency))
-            {
-                invoice.PaidInCurrency = DirectoryManager.Utilities.Helpers.EnumHelper
-                    .ParseStringToEnum<Currency>(ipnMessage.PayCurrency);
-            }
-
-            // Persist + (if Paid) create/extend listing. This method updates the invoice first thing.
-            await this.CreateNewSponsoredListing(invoice);
-
-            if (invoice.PaymentStatus == PaymentStatus.Paid)
-            {
-                await this.TryCreateAffiliateCommissionForInvoiceAsync(invoice);
-            }
-
-            return this.Ok();
         }
 
         [HttpGet]
@@ -1985,6 +1905,26 @@ namespace DirectoryManager.Web.Controllers
             return count;
         }
 
+        // Add these inside SponsoredListingController (once)
+        private static readonly Dictionary<PaymentStatus, int> StatusRank = new ()
+{
+    { PaymentStatus.Unknown,        0 },
+    { PaymentStatus.InvoiceCreated, 1 }, // "Waiting"
+    { PaymentStatus.UnderPayment,   2 },
+    { PaymentStatus.Pending,        3 }, // Sending/Confirming/Confirmed
+    { PaymentStatus.Paid,           4 },
+
+    // Terminal (failure/test) — treat as highest for "stop further changes"
+    { PaymentStatus.Expired,        5 },
+    { PaymentStatus.Failed,         5 },
+    { PaymentStatus.Refunded,       5 },
+    { PaymentStatus.Canceled,       5 },
+    { PaymentStatus.Test,           5 },
+};
+
+        private static bool IsTerminal(PaymentStatus s) =>
+            s is PaymentStatus.Paid or PaymentStatus.Expired or PaymentStatus.Failed
+              or PaymentStatus.Refunded or PaymentStatus.Canceled or PaymentStatus.Test;
 
         private async Task TryCreateAffiliateCommissionForInvoiceAsync(SponsoredListingInvoice invoice, CancellationToken ct = default)
         {

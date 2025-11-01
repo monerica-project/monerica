@@ -47,5 +47,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
             int? subCategoryId = null,
             int? categoryId = null,
             CancellationToken ct = default);
+        Task<SponsoredListingInvoice?> GetByProcessorInvoiceIdAsync(string value);
     }
 }
