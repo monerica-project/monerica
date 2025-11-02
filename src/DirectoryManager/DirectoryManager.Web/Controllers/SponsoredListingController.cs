@@ -32,6 +32,24 @@ namespace DirectoryManager.Web.Controllers
             PaymentStatus.UnderPayment
         };
 
+        // Add these inside SponsoredListingController (once)
+        private static readonly Dictionary<PaymentStatus, int> StatusRank = new ()
+        {
+            { PaymentStatus.Unknown,        0 },
+            { PaymentStatus.InvoiceCreated, 1 }, // "Waiting"
+            { PaymentStatus.UnderPayment,   2 },
+            { PaymentStatus.Pending,        3 }, // Sending/Confirming/Confirmed
+            { PaymentStatus.Paid,           4 },
+
+            // Terminal (failure/test) — treat as highest for "stop further changes"
+            { PaymentStatus.Expired,        5 },
+            { PaymentStatus.Failed,         5 },
+            { PaymentStatus.Refunded,       5 },
+            { PaymentStatus.Canceled,       5 },
+            { PaymentStatus.Test,           5 },
+        };
+
+
         private readonly ISubcategoryRepository subCategoryRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
@@ -521,6 +539,107 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpGet]
         [AllowAnonymous]
+        [Route("sponsoredlisting/confirmnowpayments")]
+        public async Task<IActionResult> ConfirmNowPaymentsAsync(
+            int directoryEntryId,
+            int selectedOfferId,
+            Guid? rsvId = null,
+            string? referralCode = null)
+        {
+            var offer = await this.sponsoredListingOfferRepository
+                .GetByIdAsync(selectedOfferId)
+                .ConfigureAwait(false);
+            if (offer == null)
+            {
+                return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
+            }
+
+            var entry = await this.directoryEntryRepository
+                .GetByIdAsync(directoryEntryId)
+                .ConfigureAwait(false);
+            if (entry == null)
+            {
+                return this.BadRequest(new { Error = StringConstants.InvalidSelection });
+            }
+
+            // Build scope (NOTE: MainSponsor uses global group "0")
+            var typeIdForGroup = offer.SponsorshipType switch
+            {
+                SponsorshipType.MainSponsor => 0,
+                SponsorshipType.CategorySponsor => entry.SubCategory?.CategoryId ?? 0,
+                SponsorshipType.SubcategorySponsor => entry.SubCategoryId,
+                _ => 0,
+            };
+            var group = ReservationGroupHelper.BuildReservationGroupName(offer.SponsorshipType, typeIdForGroup);
+            int? typeIdForCapacity = offer.SponsorshipType == SponsorshipType.MainSponsor ? (int?)null : typeIdForGroup;
+
+            // Is this an extension?
+            var isExtension = await this.sponsoredListingRepository
+                .IsSponsoredListingActive(directoryEntryId, offer.SponsorshipType)
+                .ConfigureAwait(false);
+
+            // ---- 1) Subcategory cap FIRST (ACTIVE listings only) ----
+            if (!isExtension && offer.SponsorshipType == SponsorshipType.MainSponsor)
+            {
+                var activeInSub = await this.GetActiveMainCountForSubcategoryAsync(entry.SubCategoryId).ConfigureAwait(false);
+                if (activeInSub >= MaxMainSponsorsPerSubcategory)
+                {
+                    var msg = await this.BuildMainSubcategoryLimitMessageAsync(entry.SubCategoryId).ConfigureAwait(false);
+                    return this.BadRequest(new { Error = msg });
+                }
+            }
+
+            // ---- 2) Then global reservation/capacity for the TYPE (no subcategory wording) ----
+            if (!isExtension)
+            {
+                if (!await this.TryAttachReservationAsync(rsvId, group))
+                {
+                    var totalActive = await this.sponsoredListingRepository
+                        .GetActiveSponsorsCountAsync(offer.SponsorshipType, typeIdForCapacity)
+                        .ConfigureAwait(false);
+
+                    var totalReservations = await this.sponsoredListingReservationRepository
+                        .GetActiveReservationsCountAsync(group)
+                        .ConfigureAwait(false);
+
+                    if (!CanPurchaseListing(totalActive, totalReservations, offer.SponsorshipType))
+                    {
+                        // This produces "Another checkout for Main Sponsor..." (type-wide), not subcategory.
+                        var msg = await this.BuildCheckoutInProcessMessageAsync(offer.SponsorshipType, typeIdForCapacity, group);
+                        return this.BadRequest(new { Error = msg });
+                    }
+                }
+            }
+
+            // View context
+            if (offer.SponsorshipType == SponsorshipType.SubcategorySponsor)
+            {
+                this.ViewBag.SubCategoryId = typeIdForGroup;
+            }
+            else if (offer.SponsorshipType == SponsorshipType.CategorySponsor)
+            {
+                this.ViewBag.CategoryId = typeIdForGroup;
+            }
+
+            var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
+            var current = await this.sponsoredListingRepository
+                .GetActiveSponsorsByTypeAsync(offer.SponsorshipType)
+                .ConfigureAwait(false);
+
+            referralCode ??= this.Request.Query["ref"].ToString();
+            var normalizedRef = ReferralCodeHelper.NormalizeOrNull(referralCode);
+            this.ViewBag.ReferralCode = normalizedRef ?? string.Empty;
+
+            var vm = GetConfirmationModel(offer, entry, link2Name, link3Name, current);
+            vm.CanCreateSponsoredListing = true;
+
+            return this.View(vm);
+        }
+
+
+        [HttpGet]
+        [AllowAnonymous]
         [Route("sponsoredlisting/subcategoryselection")]
         public async Task<IActionResult> SubCategorySelection(int subCategoryId, Guid? rsvId = null)
         {
@@ -628,7 +747,9 @@ namespace DirectoryManager.Web.Controllers
                 {
                     this.logger.LogWarning(
                         "IPN association via processor invoice_id {ProcessorInvoiceId} but OrderId mismatch. IPN:{IpnOrder} DB:{DbOrder}",
-                        ipnProcessorId, ipnMessage.OrderId, invoice.InvoiceId);
+                        ipnProcessorId,
+                        ipnMessage.OrderId,
+                        invoice.InvoiceId);
                     return this.Ok();
                 }
             }
@@ -637,7 +758,8 @@ namespace DirectoryManager.Web.Controllers
             {
                 this.logger.LogWarning(
                     "NOWPayments IPN could not associate invoice. OrderId:{OrderId} ProcessorInvoiceId:{ProcessorInvoiceId}",
-                    ipnMessage.OrderId, ipnProcessorId);
+                    ipnMessage.OrderId,
+                    ipnProcessorId);
                 return this.Ok(); // nothing to update
             }
 
@@ -648,7 +770,8 @@ namespace DirectoryManager.Web.Controllers
             {
                 this.logger.LogWarning(
                     "Ignoring IPN: OrderId mismatch. IPN:{IpnOrderId} DB:{DbOrderId}",
-                    ipnMessage.OrderId, invoice.InvoiceId);
+                    ipnMessage.OrderId,
+                    invoice.InvoiceId);
                 return this.Ok();
             }
 
@@ -658,7 +781,9 @@ namespace DirectoryManager.Web.Controllers
             {
                 this.logger.LogWarning(
                     "Ignoring IPN: processor invoice_id mismatch. OrderId:{OrderId} DB:{DbInvoiceId} IPN:{IpnInvoiceId}",
-                    ipnMessage.OrderId, invoice.ProcessorInvoiceId, ipnProcessorId);
+                    ipnMessage.OrderId,
+                    invoice.ProcessorInvoiceId,
+                    ipnProcessorId);
                 return this.Ok();
             }
 
@@ -721,8 +846,11 @@ namespace DirectoryManager.Web.Controllers
                 {
                     this.logger.LogInformation(
                         "Ignoring status regression on invoice {OrderId}: {Current} -> {Proposed}",
-                        invoice.InvoiceId, current, proposed);
+                        invoice.InvoiceId,
+                        current,
+                        proposed);
                 }
+
                 // else equal -> duplicate; keep as-is
             }
 
@@ -747,104 +875,170 @@ namespace DirectoryManager.Web.Controllers
             return this.Ok();
         }
 
-        [HttpGet]
+        [HttpPost]
         [AllowAnonymous]
         [Route("sponsoredlisting/confirmnowpayments")]
-        public async Task<IActionResult> ConfirmNowPaymentsAsync(
-            int directoryEntryId,
-            int selectedOfferId,
-            Guid? rsvId = null,
-            string? referralCode = null)
+        public async Task<IActionResult> ConfirmedNowPaymentsAsync(
+                   int directoryEntryId,
+                   int selectedOfferId,
+                   Guid? rsvId = null,
+                   string? email = null,
+                   string? referralCode = null)
         {
-            var offer = await this.sponsoredListingOfferRepository
-                .GetByIdAsync(selectedOfferId)
-                .ConfigureAwait(false);
-            if (offer == null)
+            var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
+            if (this.blockedIPRepository.IsBlockedIp(ipAddress))
+            {
+                return this.NotFound();
+            }
+
+            var sponsoredListingOffer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
+            if (sponsoredListingOffer == null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
             }
 
-            var entry = await this.directoryEntryRepository
-                .GetByIdAsync(directoryEntryId)
-                .ConfigureAwait(false);
-            if (entry == null)
+            var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
+            if (directoryEntry == null)
             {
-                return this.BadRequest(new { Error = StringConstants.InvalidSelection });
+                return this.BadRequest(new { Error = StringConstants.DirectoryEntryNotFound });
             }
 
-            // Build scope (NOTE: MainSponsor uses global group "0")
-            var typeIdForGroup = offer.SponsorshipType switch
+            var typeIdForGroup = sponsoredListingOffer.SponsorshipType switch
             {
                 SponsorshipType.MainSponsor => 0,
-                SponsorshipType.CategorySponsor => entry.SubCategory?.CategoryId ?? 0,
-                SponsorshipType.SubcategorySponsor => entry.SubCategoryId,
+                SponsorshipType.CategorySponsor => directoryEntry.SubCategory?.CategoryId ?? 0,
+                SponsorshipType.SubcategorySponsor => directoryEntry.SubCategoryId,
                 _ => 0,
             };
-            var group = ReservationGroupHelper.BuildReservationGroupName(offer.SponsorshipType, typeIdForGroup);
-            int? typeIdForCapacity = offer.SponsorshipType == SponsorshipType.MainSponsor ? (int?)null : typeIdForGroup;
+            var group = ReservationGroupHelper.BuildReservationGroupName(sponsoredListingOffer.SponsorshipType, typeIdForGroup);
+            int? typeIdForCapacity = sponsoredListingOffer.SponsorshipType == SponsorshipType.MainSponsor ? (int?)null : typeIdForGroup;
 
-            // Is this an extension?
-            var isExtension = await this.sponsoredListingRepository
-                .IsSponsoredListingActive(directoryEntryId, offer.SponsorshipType)
+            // Validate/attach reservation or capacity (existing logic)
+            if (!await this.TryAttachReservationAsync(rsvId, group))
+            {
+                var isActiveSponsor = await this.sponsoredListingRepository
+                    .IsSponsoredListingActive(directoryEntryId, sponsoredListingOffer.SponsorshipType);
+
+                var totalActiveListings = await this.sponsoredListingRepository
+                    .GetActiveSponsorsCountAsync(sponsoredListingOffer.SponsorshipType, typeIdForCapacity);
+
+                var totalActiveReservations = await this.sponsoredListingReservationRepository
+                    .GetActiveReservationsCountAsync(group);
+
+                if (!CanPurchaseListing(totalActiveListings, totalActiveReservations, sponsoredListingOffer.SponsorshipType) && !isActiveSponsor)
+                {
+                    var msg = await this.BuildCheckoutInProcessMessageAsync(sponsoredListingOffer.SponsorshipType, typeIdForCapacity, group);
+                    return this.BadRequest(new { Error = msg });
+                }
+            }
+            else
+            {
+                var existingReservation = await this.sponsoredListingReservationRepository.GetReservationByGuidAsync(rsvId.Value);
+                if (existingReservation == null)
+                {
+                    return this.BadRequest(new { Error = StringConstants.ErrorWithCheckoutProcess });
+                }
+
+                var existingInvoice = await this.sponsoredListingInvoiceRepository.GetByReservationGuidAsync(existingReservation.ReservationGuid);
+                if (existingInvoice != null)
+                {
+                    if (existingInvoice.PaymentStatus == PaymentStatus.Paid)
+                    {
+                        return this.BadRequest(new { Error = StringConstants.InvoiceAlreadyCreated });
+                    }
+
+                    existingInvoice.PaymentStatus = PaymentStatus.Canceled;
+                    existingInvoice.ReservationGuid = Guid.Empty;
+                    await this.sponsoredListingInvoiceRepository.UpdateAsync(existingInvoice);
+                }
+            }
+
+            // Email validation (unchanged)
+            string? normalizedEmail = null;
+            if (!string.IsNullOrWhiteSpace(email))
+            {
+                var (okEmail, norm, emailError) = EmailValidationHelper.Validate(email);
+                if (!okEmail)
+                {
+                    if (sponsoredListingOffer.SponsorshipType == SponsorshipType.SubcategorySponsor)
+                    {
+                        this.ViewBag.SubCategoryId = typeIdForGroup;
+                    }
+                    else if (sponsoredListingOffer.SponsorshipType == SponsorshipType.CategorySponsor)
+                    {
+                        this.ViewBag.CategoryId = typeIdForGroup;
+                    }
+
+                    var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
+                    var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
+                    var current = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(sponsoredListingOffer.SponsorshipType);
+
+                    var normalizedRef = ReferralCodeHelper.NormalizeOrNull(referralCode);
+                    this.ViewBag.ReferralCode = normalizedRef ?? string.Empty;
+
+                    await this.TryAttachReservationAsync(rsvId, group);
+
+                    var vm = GetConfirmationModel(sponsoredListingOffer, directoryEntry, link2Name, link3Name, current);
+                    vm.CanCreateSponsoredListing = true;
+
+                    this.ModelState.AddModelError("Email", emailError!);
+                    this.ViewBag.PrefillEmail = email;
+                    return this.View("ConfirmNowPayments", vm);
+                }
+
+                normalizedEmail = norm!;
+            }
+
+            // ✅ Subcategory cap for Main Sponsor → limit message (only for NEW purchases)
+            var isActiveForScope = await this.sponsoredListingRepository
+                .IsSponsoredListingActive(directoryEntryId, sponsoredListingOffer.SponsorshipType)
                 .ConfigureAwait(false);
 
-            // ---- 1) Subcategory cap FIRST (ACTIVE listings only) ----
-            if (!isExtension && offer.SponsorshipType == SponsorshipType.MainSponsor)
+            if (!isActiveForScope && sponsoredListingOffer.SponsorshipType == SponsorshipType.MainSponsor)
             {
-                var activeInSub = await this.GetActiveMainCountForSubcategoryAsync(entry.SubCategoryId).ConfigureAwait(false);
-                if (activeInSub >= MaxMainSponsorsPerSubcategory)
+                var subId = directoryEntry.SubCategoryId;
+                if (!await this.CanPurchaseMainWithinSubcategoryAsync(subId).ConfigureAwait(false))
                 {
-                    var msg = await this.BuildMainSubcategoryLimitMessageAsync(entry.SubCategoryId).ConfigureAwait(false);
+                    var msg = await this.BuildMainSubcategoryLimitMessageAsync(subId).ConfigureAwait(false);
                     return this.BadRequest(new { Error = msg });
                 }
             }
 
-            // ---- 2) Then global reservation/capacity for the TYPE (no subcategory wording) ----
-            if (!isExtension)
+            // Proceed: create invoice (unchanged)
+            this.ViewBag.ReservationGuid = rsvId;
+
+            var existingListing = await this.sponsoredListingRepository
+                .GetActiveSponsorAsync(directoryEntryId, sponsoredListingOffer.SponsorshipType);
+
+            var startDate = existingListing?.CampaignEndDate ?? DateTime.UtcNow;
+
+            var invoice = await this.CreateInvoice(directoryEntry, sponsoredListingOffer, startDate, ipAddress);
+
+            if (DirectoryManager.Utilities.Helpers.ReferralCodeHelper
+                    .TryNormalize(referralCode, out var normalizedRefCode, out _)
+                && !string.IsNullOrEmpty(normalizedRefCode))
             {
-                if (!await this.TryAttachReservationAsync(rsvId, group))
-                {
-                    var totalActive = await this.sponsoredListingRepository
-                        .GetActiveSponsorsCountAsync(offer.SponsorshipType, typeIdForCapacity)
-                        .ConfigureAwait(false);
-
-                    var totalReservations = await this.sponsoredListingReservationRepository
-                        .GetActiveReservationsCountAsync(group)
-                        .ConfigureAwait(false);
-
-                    if (!CanPurchaseListing(totalActive, totalReservations, offer.SponsorshipType))
-                    {
-                        // This produces "Another checkout for Main Sponsor..." (type-wide), not subcategory.
-                        var msg = await this.BuildCheckoutInProcessMessageAsync(offer.SponsorshipType, typeIdForCapacity, group);
-                        return this.BadRequest(new { Error = msg });
-                    }
-                }
+                invoice.ReferralCodeUsed = normalizedRefCode;
             }
 
-            // View context
-            if (offer.SponsorshipType == SponsorshipType.SubcategorySponsor)
+            var invoiceRequest = this.GetInvoiceRequest(sponsoredListingOffer, invoice);
+            this.paymentService.SetDefaultUrls(invoiceRequest);
+
+            var invoiceFromProcessor = await this.paymentService.CreateInvoice(invoiceRequest);
+            if (invoiceFromProcessor == null || invoiceFromProcessor.Id == null)
             {
-                this.ViewBag.SubCategoryId = typeIdForGroup;
+                return this.BadRequest(new { Error = "Failed to create invoice." });
             }
-            else if (offer.SponsorshipType == SponsorshipType.CategorySponsor)
+
+            SetInvoiceProperties(rsvId, normalizedEmail, invoice, invoiceRequest, invoiceFromProcessor);
+            await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
+
+            if (string.IsNullOrWhiteSpace(invoiceFromProcessor.InvoiceUrl))
             {
-                this.ViewBag.CategoryId = typeIdForGroup;
+                return this.BadRequest(new { Error = "Failed to get invoice URL." });
             }
 
-            var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
-            var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
-            var current = await this.sponsoredListingRepository
-                .GetActiveSponsorsByTypeAsync(offer.SponsorshipType)
-                .ConfigureAwait(false);
-
-            referralCode ??= this.Request.Query["ref"].ToString();
-            var normalizedRef = ReferralCodeHelper.NormalizeOrNull(referralCode);
-            this.ViewBag.ReferralCode = normalizedRef ?? string.Empty;
-
-            var vm = GetConfirmationModel(offer, entry, link2Name, link3Name, current);
-            vm.CanCreateSponsoredListing = true;
-
-            return this.View(vm);
+            return this.Redirect(invoiceFromProcessor.InvoiceUrl);
         }
 
         [HttpGet]
@@ -1357,6 +1551,10 @@ namespace DirectoryManager.Web.Controllers
 
             throw new InvalidOperationException("SponsorshipType:" + sponsorshipType.ToString());
         }
+
+        private static bool IsTerminal(PaymentStatus s) =>
+            s is PaymentStatus.Paid or PaymentStatus.Expired or PaymentStatus.Failed
+              or PaymentStatus.Refunded or PaymentStatus.Canceled or PaymentStatus.Test;
 
         private static bool CanPurchaseListing(
             int totalActiveListings,
@@ -1904,27 +2102,6 @@ namespace DirectoryManager.Web.Controllers
             }
             return count;
         }
-
-        // Add these inside SponsoredListingController (once)
-        private static readonly Dictionary<PaymentStatus, int> StatusRank = new ()
-{
-    { PaymentStatus.Unknown,        0 },
-    { PaymentStatus.InvoiceCreated, 1 }, // "Waiting"
-    { PaymentStatus.UnderPayment,   2 },
-    { PaymentStatus.Pending,        3 }, // Sending/Confirming/Confirmed
-    { PaymentStatus.Paid,           4 },
-
-    // Terminal (failure/test) — treat as highest for "stop further changes"
-    { PaymentStatus.Expired,        5 },
-    { PaymentStatus.Failed,         5 },
-    { PaymentStatus.Refunded,       5 },
-    { PaymentStatus.Canceled,       5 },
-    { PaymentStatus.Test,           5 },
-};
-
-        private static bool IsTerminal(PaymentStatus s) =>
-            s is PaymentStatus.Paid or PaymentStatus.Expired or PaymentStatus.Failed
-              or PaymentStatus.Refunded or PaymentStatus.Canceled or PaymentStatus.Test;
 
         private async Task TryCreateAffiliateCommissionForInvoiceAsync(SponsoredListingInvoice invoice, CancellationToken ct = default)
         {
