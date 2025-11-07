@@ -110,18 +110,29 @@ namespace DirectoryManager.Web.Controllers
                 model.SubCategoryId == 0)
             {
                 await this.LoadLists();
-
                 return this.View("create", model);
             }
 
-            // Check if the link is already used
-            var link = model.Link.Trim();
-            var existingEntry = await this.directoryEntryRepository.GetByLinkAsync(link);
+            // Check if the link is already used (with/without trailing slash, with/without www, http/https)
+            var link = (model.Link ?? string.Empty).Trim();
+            var variants = LinkVariationHelper.GenerateLinkVariants(link).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
+
+            DirectoryEntry? existingEntry = null;
+            foreach (var candidate in variants)
+            {
+                existingEntry = await this.directoryEntryRepository.GetByLinkAsync(candidate);
+                if (existingEntry != null)
+                {
+                    break;
+                }
+            }
+
             if (existingEntry != null)
             {
                 await this.LoadLists();
-
-                this.ModelState.AddModelError("Link", "The provided link is already used by another entry.");
+                this.ModelState.AddModelError(
+                    "Link",
+                    "The provided link (including www/no-www and trailing slash variations) is already used by another entry.");
                 return this.View("create", model);
             }
 
@@ -144,7 +155,7 @@ namespace DirectoryManager.Web.Controllers
 
             await this.directoryEntryRepository.CreateAsync(model);
 
-            // now process tags
+            // process tags
             if (!string.IsNullOrWhiteSpace(model.Tags))
             {
                 var tagNames = model.Tags
@@ -163,7 +174,6 @@ namespace DirectoryManager.Web.Controllers
             }
 
             this.ClearCachedItems();
-
             return this.RedirectToAction(nameof(this.Index));
         }
 
