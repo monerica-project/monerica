@@ -227,9 +227,7 @@
                 {
                     if (sponsorsBySubcategory.TryGetValue(sub.SubcategoryId, out var entries))
                     {
-                        <span class="subcategory-name">
-                            @Html.Raw(FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name))
-                        </span>
+                        <span class="subcategory-name">@Html.Raw(FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name))</span>
                         <ul class="blank_list_item">
                             @foreach (var e in entries)
                             {
