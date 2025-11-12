@@ -18,7 +18,7 @@ properties {
    # Build
    $BuildConfiguration          = "release"
    $DotNetRunTime               = "win-x64"
-   $DotNetFramework             = "net9.0"
+   $DotNetFramework             = "net10.0"
    $msDeploy                    = "C:\Program Files\IIS\Microsoft Web Deploy V3\msdeploy.exe"    
    
    # Project paths
