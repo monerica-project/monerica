@@ -69,7 +69,6 @@
 }
 
  @section PageContent {
-
     <div>
         <!-- Hero and sponsored listing partial (stays full‐width under the fixed sidebar) -->
         @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageDisplayHtml))
@@ -122,7 +121,7 @@
                     .ConvertToViewModels(
                     featuredEntries.ToList(),
                     DateDisplayOption.NotDisplayed,
-                    ItemDisplayType.Featured, 
+                    ItemDisplayType.Featured,
                     link2Name, link3Name);
                 }
                 @foreach (var vm in vmList)
@@ -227,7 +226,9 @@
                 {
                     if (sponsorsBySubcategory.TryGetValue(sub.SubcategoryId, out var entries))
                     {
-                        <span class="subcategory-name">@Html.Raw(FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name))</span>
+                        <span class="subcategory-name">
+                            @Html.Raw(FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name))
+                        </span>
                         <ul class="blank_list_item">
                             @foreach (var e in entries)
                             {
@@ -248,7 +249,7 @@
         </div>
 
         @{
-            var latestReviews = await reviewRepository.ListLatestApprovedAsync(20);
+            var latestReviews = await reviewRepository.ListLatestApprovedAsync(15);
         }
 
         @if (latestReviews?.Any() == true)

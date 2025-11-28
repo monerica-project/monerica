@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using DirectoryManager.Common.Constants;
 using DirectoryManager.Data.Enums;
 using Microsoft.AspNetCore.Mvc.Rendering;
 
@@ -30,14 +29,6 @@ namespace DirectoryManager.Web.Models
                 .ToList();
         }
 
-        public decimal FutureRevenueInDisplayCurrency { get; set; }
-        public int FutureServiceDays { get; set; }
-        public DateTime? PaidThroughDateUtc { get; set; }
-
-        // Handy formatted string for Razor
-        public string? PaidThroughDateYmd =>
-            this.PaidThroughDateUtc?.ToUniversalTime().ToString(StringConstants.DateFormat);
-
         public Currency DisplayCurrency { get; set; } = Currency.USD;
         public List<SelectListItem> DisplayCurrencyOptions { get; set; } = new ();
         public decimal TotalInDisplayCurrency { get; set; }
@@ -62,21 +53,5 @@ namespace DirectoryManager.Web.Models
         /// Populated with “All” + each enum value (excluding Unknown).
         /// </summary>
         public List<SelectListItem> SponsorshipTypeOptions { get; set; }
-
-        // DISTINCT future service days (union of remaining campaign days)
-        public int FutureServiceDaysDistinct { get; set; }
-
-        // Simple continuous days (today → latest end), may overcount if there are gaps
-        public int FutureServiceDaysContinuous { get; set; }
-
-        // NEW: Average FX shown when DisplayCurrency != USD
-        public decimal? AverageUsdPerUnitForDisplayCurrency { get; set; }
-
-        // NEW: Subcategory filter
-        public int? SubCategoryId { get; set; }
-        public List<SelectListItem> SubCategoryOptions { get; set; } = new ();
-
-        public decimal? AverageUsdPerXmr { get; set; }
-        public decimal? ImpliedTotalInXmrAtAvg { get; set; }
     }
 }

@@ -58,5 +58,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .AsNoTracking()
                 .ToListAsync();
         }
+
     }
 }

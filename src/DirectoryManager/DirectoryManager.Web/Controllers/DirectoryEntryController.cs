@@ -110,29 +110,18 @@ namespace DirectoryManager.Web.Controllers
                 model.SubCategoryId == 0)
             {
                 await this.LoadLists();
+
                 return this.View("create", model);
             }
 
-            // Check if the link is already used (with/without trailing slash, with/without www, http/https)
-            var link = (model.Link ?? string.Empty).Trim();
-            var variants = LinkVariationHelper.GenerateLinkVariants(link).Distinct(StringComparer.OrdinalIgnoreCase).ToList();
-
-            DirectoryEntry? existingEntry = null;
-            foreach (var candidate in variants)
-            {
-                existingEntry = await this.directoryEntryRepository.GetByLinkAsync(candidate);
-                if (existingEntry != null)
-                {
-                    break;
-                }
-            }
-
+            // Check if the link is already used
+            var link = model.Link.Trim();
+            var existingEntry = await this.directoryEntryRepository.GetByLinkAsync(link);
             if (existingEntry != null)
             {
                 await this.LoadLists();
-                this.ModelState.AddModelError(
-                    "Link",
-                    "The provided link (including www/no-www and trailing slash variations) is already used by another entry.");
+
+                this.ModelState.AddModelError("Link", "The provided link is already used by another entry.");
                 return this.View("create", model);
             }
 
@@ -155,7 +144,7 @@ namespace DirectoryManager.Web.Controllers
 
             await this.directoryEntryRepository.CreateAsync(model);
 
-            // process tags
+            // now process tags
             if (!string.IsNullOrWhiteSpace(model.Tags))
             {
                 var tagNames = model.Tags
@@ -174,6 +163,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             this.ClearCachedItems();
+
             return this.RedirectToAction(nameof(this.Index));
         }
 
@@ -679,7 +669,7 @@ namespace DirectoryManager.Web.Controllers
             var location = locationRaw?.Trim();
             var ccRaw = countryCode?.Trim();
 
-            // Flag
+            // Prepare flag (show whenever we have a country code)
             string flagHtml = string.Empty;
             if (!string.IsNullOrWhiteSpace(ccRaw))
             {
@@ -689,12 +679,14 @@ namespace DirectoryManager.Web.Controllers
                     ? $"Flag ({ccRaw})"
                     : $"Flag of {countryNameForAlt} ({ccRaw.ToUpperInvariant()})";
 
+                // margin-right so text doesn’t collide with the flag
                 flagHtml = $"<img class=\"country-flag me-2 align-text-bottom\" src=\"/images/flags/{ccLower}.png\" alt=\"{WebUtility.HtmlEncode(altTitle)}\" title=\"{WebUtility.HtmlEncode(countryNameForAlt)}\" /> ";
             }
 
-            // Country link
+            // Compute country name + link (if available)
             string? countryName = null;
             string? anchorHtml = null;
+
             if (!string.IsNullOrWhiteSpace(ccRaw))
             {
                 countryName = CountryHelper.GetCountryName(ccRaw);
@@ -706,54 +698,50 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            // Nothing else
+            // Nothing else to show
             if (string.IsNullOrWhiteSpace(location) && string.IsNullOrWhiteSpace(countryName))
             {
-                return flagHtml;
+                return flagHtml; // could be empty if no cc
             }
 
-            // If missing country/link, just show location
+            // If we don't have a country name/link, just emit flag + encoded location
             if (string.IsNullOrWhiteSpace(countryName) || string.IsNullOrWhiteSpace(anchorHtml))
             {
                 return $"{flagHtml}{WebUtility.HtmlEncode(location ?? string.Empty)}";
             }
 
-            // --- Key change: only replace a TRAILING ", CountryName" ---
-            // Example that should match: "Prague, CZ, Czech Republic"
-            // Example that should NOT match: "Mexico City" (contains "Mexico" as part of city name)
-            if (!string.IsNullOrWhiteSpace(location))
+            // Do we already have the country name inside the location string?
+            var idx = !string.IsNullOrWhiteSpace(location)
+                ? location!.IndexOf(countryName!, StringComparison.OrdinalIgnoreCase)
+                : -1;
+
+            if (idx >= 0)
             {
-                var pattern = @"(?:^|,\s*)(" + Regex.Escape(countryName) + @")\s*$";
-                var match = Regex.Match(location, pattern, RegexOptions.IgnoreCase);
-
-                if (match.Success)
-                {
-                    // Everything before the trailing ", CountryName"
-                    var before = location.Substring(0, match.Index).TrimEnd();
-
-                    // Normalize trailing comma/space
-                    if (before.EndsWith(","))
-                    {
-                        before = before.TrimEnd().TrimEnd(',');
-                    }
-
-                    string left = string.IsNullOrEmpty(before) ? string.Empty : before + ", ";
-
-                    return $"{flagHtml}{WebUtility.HtmlEncode(left)}{anchorHtml}";
-                }
-
-                // No trailing country name -> append ", <linked country>"
-                var leftText = location.TrimEnd();
-                if (!leftText.EndsWith(","))
-                {
-                    leftText += ", ";
-                }
-
-                return $"{flagHtml}{WebUtility.HtmlEncode(leftText)}{anchorHtml}";
+                // Replace first occurrence with a link, preserve punctuation (no extra spaces before commas)
+                var before = location!.Substring(0, idx);
+                var after = location!.Substring(idx + countryName!.Length);
+                return $"{flagHtml}{WebUtility.HtmlEncode(before)}{anchorHtml}{WebUtility.HtmlEncode(after)}";
             }
+            else if (!string.IsNullOrWhiteSpace(location))
+            {
+                // Append ", <linked country>" with exactly one comma+space
+                var left = location!.TrimEnd();
+                if (left.EndsWith(",", StringComparison.Ordinal))
+                {
+                    left += " ";
+                }
+                else
+                {
+                    left = left + ", ";
+                }
 
-            // No location text; only the linked country
-            return $"{flagHtml}{anchorHtml}";
+                return $"{flagHtml}{WebUtility.HtmlEncode(left)}{anchorHtml}";
+            }
+            else
+            {
+                // No location text; only the linked country (with flag)
+                return $"{flagHtml}{anchorHtml}";
+            }
         }
 
         private async Task LoadLists()

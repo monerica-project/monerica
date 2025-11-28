@@ -5,9 +5,6 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Sponsored Listing Invoice Report";
     Layout = "_CenteredLayout";
-
-    // cache-buster so charts refresh when filters change
-    var chartV = $"{Model.StartDate.Ticks}-{Model.EndDate.Ticks}-{(Model.SponsorshipType?.ToString() ?? "all")}-{(Model.SubCategoryId?.ToString() ?? "all")}-{Model.DisplayCurrency}";
 }
 
 @section PageContent {
@@ -51,18 +48,6 @@
             </div>
         </div>
 
-        <!-- Subcategory filter -->
-        <div class="form-row">
-            <div class="form-group col-md-6">
-                <label for="SubCategoryId">Subcategory</label>
-                <select id="SubCategoryId"
-                        name="subCategoryId"
-                        class="form-control"
-                        asp-items="Model.SubCategoryOptions">
-                </select>
-            </div>
-        </div>
-
         <button type="submit" class="btn btn-primary">Get Totals</button>
     </form>
 
@@ -79,84 +64,11 @@
         <strong>Total in @Model.DisplayCurrency:</strong>
         @if (Model.DisplayCurrency == DirectoryManager.Data.Enums.Currency.USD)
         {
-            @Model.TotalInDisplayCurrency.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS))
+            @Model.TotalInDisplayCurrency.ToString("C", CultureInfo.CreateSpecificCulture("en-US"))
         }
         else
         {
             @Model.TotalInDisplayCurrency.ToString("0.######") @Model.DisplayCurrency
-        }
-    </p>
-
-    <!-- ========= NEW: Always-visible Averages panel ========= -->
-    <div class="alert alert-secondary" style="padding:10px 14px; line-height:1.3;">
-        <strong>Averages</strong>
-        <div style="margin-top:6px;">
-            @* If viewing USD, show average XMR price and implied XMR total *@
-            @if (Model.DisplayCurrency == DirectoryManager.Data.Enums.Currency.USD)
-            {
-                <div>
-                    Avg XMR price (weighted): 
-                    @if (Model.AverageUsdPerXmr.HasValue)
-                    {
-                        @Model.AverageUsdPerXmr.Value.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS))
-                        <span> per 1 XMR</span>
-                    }
-                    else
-                    {
-                        <span class="text-muted">— no XMR-denominated invoices in range</span>
-                    }
-                </div>
-
-                <div>
-                    Implied total at avg price: 
-                    @if (Model.ImpliedTotalInXmrAtAvg.HasValue)
-                    {
-                        @Model.ImpliedTotalInXmrAtAvg.Value.ToString("0.######") <span> XMR</span>
-                    }
-                    else
-                    {
-                        <span class="text-muted">— n/a</span>
-                    }
-                </div>
-            }
-            else
-            {
-                @* If viewing a non-USD currency, show average USD per 1 unit of that currency *@
-                <div>
-                    Avg FX (weighted): 
-                    @if (Model.AverageUsdPerUnitForDisplayCurrency.HasValue)
-                    {
-                        <span>1 @Model.DisplayCurrency ≈ </span>
-                        @Model.AverageUsdPerUnitForDisplayCurrency.Value.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS)) <span> USD</span>
-                    }
-                    else
-                    {
-                        <span class="text-muted">— no invoices in @Model.DisplayCurrency in range</span>
-                    }
-                </div>
-            }
-        </div>
-    </div>
-    <!-- ========= /Averages panel ========= -->
-
-    <p>
-        <strong>Prepaid future services:</strong>
-        @if (Model.PaidThroughDateUtc.HasValue && Model.FutureServiceDaysDistinct > 0)
-        {
-            <span>@Model.PaidThroughDateYmd — </span>
-            @if (Model.DisplayCurrency == DirectoryManager.Data.Enums.Currency.USD)
-            {
-                @Model.FutureRevenueInDisplayCurrency.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS))
-            }
-            else
-            {
-                @Model.FutureRevenueInDisplayCurrency.ToString("0.######") @Model.DisplayCurrency
-            }
-            <span> for @Model.FutureServiceDaysDistinct day(s) remaining</span>
-        }
-        else
-        {
-            <span>none</span>
         }
     </p>
 
@@ -165,59 +77,22 @@
             startDate = Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat),
             endDate   = Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat),
             sponsorshipType = Model.SponsorshipType?.ToString(),
-            subCategoryId = Model.SubCategoryId,
             costEqualsSalesPrice = true
        })" target="_blank">Download Accounting CSV</a>
 
-    <!-- Monthly Income (total) -->
     <img style="width:100%"
-         src="@Url.Action("MonthlyIncomeBarChart", "SponsoredListingInvoice", new {
-                startDate = Model.StartDate,
-                endDate = Model.EndDate,
-                sponsorshipType = Model.SponsorshipType,
-                displayCurrency = Model.DisplayCurrency,
-                subCategoryId = Model.SubCategoryId,
-                v = chartV
-         })"
+         src="@Url.Action("MonthlyIncomeBarChart", "SponsoredListingInvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType, displayCurrency = Model.DisplayCurrency })"
          alt="Monthly Income Chart (@Model.DisplayCurrency)" />
 
     <br />
 
-    <!-- Average Daily Revenue across the slot -->
     <img style="width:100%"
-         src="@Url.Action("MonthlyAvgDailyRevenueChart", "SponsoredListingInvoice", new {
-                startDate = Model.StartDate,
-                endDate = Model.EndDate,
-                sponsorshipType = Model.SponsorshipType,
-                displayCurrency = Model.DisplayCurrency,
-                subCategoryId = Model.SubCategoryId,
-                v = chartV
-         })"
+         src="@Url.Action("MonthlyAvgDailyRevenueChart", "SponsoredListingInvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType, displayCurrency = Model.DisplayCurrency })"
          alt="Average Daily Revenue per Month (@Model.DisplayCurrency)" />
- 
-    <br />
-    <img style="width:100%"
-         src="@Url.Action("MonthlyAvgPerListingDailyPriceChart", "SponsoredListingInvoice", new {
-                startDate = Model.StartDate,
-                endDate = Model.EndDate,
-                sponsorshipType = Model.SponsorshipType,
-                displayCurrency = Model.DisplayCurrency,
-                subCategoryId = Model.SubCategoryId,
-                v = chartV
-         })"
-         alt="Average Daily Price per Listing (@Model.DisplayCurrency)" />
-   
 
     <br />
 
     <img style="width:100%"
-         src="@Url.Action("SubcategoryRevenuePieChart", "SponsoredListingInvoice", new {
-                startDate = Model.StartDate,
-                endDate = Model.EndDate,
-                sponsorshipType = Model.SponsorshipType,
-                displayCurrency = Model.DisplayCurrency,
-                subCategoryId = Model.SubCategoryId,
-                v = chartV
-         })"
+         src="@Url.Action("SubcategoryRevenuePieChart", "SponsoredListingInvoice", new { startDate = Model.StartDate, endDate = Model.EndDate, sponsorshipType = Model.SponsorshipType, displayCurrency = Model.DisplayCurrency })"
          alt="Subcategory Revenue Pie Chart (@Model.DisplayCurrency)" />
 }

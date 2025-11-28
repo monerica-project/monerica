@@ -113,16 +113,9 @@ app.UseWhen(
 
 app.Use(async (ctx, next) =>
 {
-    try
-    {
-        await next();
-    }
-    catch (OperationCanceledException)
-    {
-    }
-    catch (IOException)
-    {
-    }
+    try { await next(); }
+    catch (OperationCanceledException) { }
+    catch (IOException) { }
 });
 
 // Configure URL rewriting for Production
