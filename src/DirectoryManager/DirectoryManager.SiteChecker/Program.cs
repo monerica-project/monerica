@@ -117,28 +117,67 @@ async Task CheckAndSubmitAsync(
 {
     using var scope = rootProvider.CreateScope();
 
-    // each scope gets its own DbContext
     var scopedEntriesRepo = scope.ServiceProvider.GetRequiredService<IDirectoryEntryRepository>();
     var scopedSubmissionRepo = scope.ServiceProvider.GetRequiredService<ISubmissionRepository>();
     var checker = scope.ServiceProvider.GetRequiredService<WebPageChecker>();
 
-    var uri = new Uri(entry.Link);
-    bool isOnline;
-    try
+    // Load full entry so we can read Link + LinkA
+    var dirEntry = await scopedEntriesRepo.GetByIdAsync(entry.DirectoryEntryId);
+    if (dirEntry == null)
     {
-        isOnline = await checker.IsOnlineAsync(uri);
-    }
-    catch
-    {
-        isOnline = false;
+        Console.WriteLine($"Entry {entry.DirectoryEntryId} not found.");
+        return;
     }
 
-    Console.WriteLine($"{entry.Link} is {(isOnline ? "online" : SiteOfflineMessage)}");
+    // Build list of URLs to check (Link + LinkA if present), skip onion/i2p/empty, dedupe
+    var urlsToCheck = new[] { dirEntry.Link, dirEntry.LinkA }
+        .Where(u => !string.IsNullOrWhiteSpace(u))
+        .Where(u => !u.Contains(".onion", StringComparison.OrdinalIgnoreCase) &&
+                    !u.Contains(".i2p", StringComparison.OrdinalIgnoreCase))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToList();
 
-    if (!isOnline)
+    if (urlsToCheck.Count == 0)
     {
-        // load the entry *from this scope’s* repo
-        var dirEntry = await scopedEntriesRepo.GetByIdAsync(entry.DirectoryEntryId);
+        Console.WriteLine($"Entry {dirEntry.DirectoryEntryId} has only onion/i2p or empty URLs. Skipping.");
+        return;
+    }
+
+    // Offline if ANY eligible URL is offline (404/timeout/invalid/etc.)
+    bool anyOffline = false;
+
+    foreach (var url in urlsToCheck)
+    {
+        bool isOnline = false;
+
+        try
+        {
+            if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                isOnline = await checker.IsOnlineAsync(uri);
+            }
+            else
+            {
+                // Invalid URL: treat as offline
+                isOnline = false;
+            }
+        }
+        catch
+        {
+            isOnline = false;
+        }
+
+        Console.WriteLine($"{url} is {(isOnline ? "online" : SiteOfflineMessage)}");
+
+        if (!isOnline)
+        {
+            anyOffline = true;
+            break; // short-circuit on first offline URL
+        }
+    }
+
+    if (anyOffline)
+    {
         await CreateOfflineSubmissionIfNotExists(dirEntry, scopedSubmissionRepo);
     }
 }

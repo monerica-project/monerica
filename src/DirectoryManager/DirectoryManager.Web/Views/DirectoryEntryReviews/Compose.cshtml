@@ -18,27 +18,18 @@
         @Html.AntiForgeryToken()
         <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
         <input type="hidden" asp-for="DirectoryEntryId" />
-
+ 
         <div class="mb-3">
-            <label asp-for="Rating" class="form-label">Rating (1–5)</label><br />
-            <select id="Rating" name="Rating" class="form-select">
-                @{
-                    var current = (int)(Model?.Rating ?? (byte)5);
-                }
-                @for (var i = 1; i <= 5; i++)
-                {
-                    if (i == current)
-                    {
-                        <option value="@i" selected>@i</option>
-                    }
-                    else
-                    {
-                        <option value="@i">@i</option>
-                    }
-                }
-            </select>
-
-            <span asp-validation-for="Rating" class="text-danger"></span>
+        <label asp-for="Rating" class="form-label"></label>
+        <select asp-for="Rating" class="form-select">
+                                    <option value="">— Select a rating —</option>
+                                    <option value="5">5 – Excellent</option>
+                                    <option value="4">4 – Good</option>
+                                    <option value="3">3 – Okay</option>
+                                    <option value="2">2 – Poor</option>
+                                    <option value="1">1 – Bad</option>
+        </select>
+        <span asp-validation-for="Rating" class="text-danger"></span>
         </div>
 
         <div class="mb-3">

@@ -87,26 +87,42 @@
       </div>
     </section>
 
-        <div style="clear:both"></div>
+<div style="clear:both"></div>
 
-        <p class="create-sponsored-listing">
-            @if (DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings > sponsoredListings.Count())
-            {
-                <a class="app-link" href="~/sponsoredlisting/selectlisting?sponsorshipType=@SponsorshipType.MainSponsor">
-                    Advertise here
-                </a>
-                <span>
-                    (@(DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings - sponsoredListings.Count()) available)
-                </span>
-            }
-            else
-            {
-                <a class="app-link" href="~/sponsoredlisting">About sponsored listings</a>
-                <span>
-                    (@(DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings - sponsoredListings.Count()) available)
-                </span>
-            }
-        </p>
+
+    var maxMain = DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings;
+    var activeCount = sponsoredListings.Count();
+    var openings = Math.Max(0, maxMain - activeCount);
+    var displayCount = Math.Min(activeCount, maxMain);
+
+<p class="create-sponsored-listing">
+    @if (openings > 0)
+    {
+        <!-- Status (not a link) -->
+        <span class="status-text">@($"{displayCount}/{maxMain} Active")</span>
+        <span aria-hidden="true"> — </span>
+        <!-- Action (link only) -->
+        <a class="app-link"
+           href="~/sponsoredlisting/selectlisting?sponsorshipType=@SponsorshipType.MainSponsor">
+            Buy sponsored listing
+        </a>
+        <span> (@openings available)</span>
+    }
+    else
+    {
+        <!-- Status (not a link) -->
+        <span class="status-text">@($"{displayCount}/{maxMain} Full")</span>
+        <span aria-hidden="true"> — </span>
+        <!-- Action (link only) -->
+        <a class="app-link"
+           href="~/sponsoredlistingnotification/subscribe?sponsorshipType=@SponsorshipType.MainSponsor"
+           aria-label="Join waitlist for Main Sponsor (currently @displayCount of @maxMain filled)">
+            Join Waitlist
+        </a>
+    }
+</p>
+
+
 }
     else
     {

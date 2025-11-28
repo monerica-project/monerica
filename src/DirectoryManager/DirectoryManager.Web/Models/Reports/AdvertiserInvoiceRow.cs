@@ -13,5 +13,8 @@
         public string SponsorshipType { get; set; } = string.Empty;
         public string PaymentStatus { get; set; } = string.Empty;
         public DateTime CreateDate { get; set; }
+
+        public int DaysPurchased { get; set; }
+
     }
 }

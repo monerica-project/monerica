@@ -47,7 +47,15 @@
                         </div>
                         <div class="col-md-4">
                             <label asp-for="Rating" class="form-label"></label>
-                            <input asp-for="Rating" class="form-control" />
+                            <select asp-for="Rating" class="form-select" aria-describedby="Rating_help">
+                                <option value="">— Select a rating —</option>
+                                <option value="5">5 – Excellent</option>
+                                <option value="4">4 – Good</option>
+                                <option value="3">3 – Okay</option>
+                                <option value="2">2 – Poor</option>
+                                <option value="1">1 – Bad</option>
+                            </select>
+                            <span id="Rating_help" class="form-text">Required.</span>
                             <span asp-validation-for="Rating" class="text-danger"></span>
                         </div>
                         <div class="col-12">

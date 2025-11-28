@@ -1,0 +1,112 @@
+﻿@{
+    Layout = null; // critical: no site layout, pure fragment
+  //  Response.ContentType = "text/html; charset=utf-8";
+}
+
+<style>
+    /* ====== Styles specifically for _SponsoredListingPartial ====== */
+    .sponsors {
+        margin: 0;
+        padding: 8px 0;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+        color: #111;
+    }
+
+        .sponsors .section-title {
+            font-size: 18px;
+            margin: 0 0 10px;
+            font-weight: 700;
+        }
+
+    .sponsors-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 12px;
+    }
+
+    .sponsor-card {
+        border: 1px solid rgba(0,0,0,.12);
+        border-radius: 12px;
+        padding: 12px;
+      
+        box-shadow: 0 1px 2px rgba(0,0,0,.06);
+        transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+    }
+
+        .sponsor-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 18px rgba(0,0,0,.12);
+            border-color: rgba(0,0,0,.22);
+        }
+
+    .sponsor-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+    }
+
+        .sponsor-header .status {
+            display: inline-flex;
+            align-items: center;
+        }
+
+        .sponsor-header .title {
+            font-size: 15px;
+            text-decoration: none;
+            color: #111;
+        }
+
+            .sponsor-header .title:hover {
+                text-decoration: underline;
+            }
+
+    .sponsor-links {
+        font-size: 13px;
+        color: #555;
+        margin-top: 4px;
+    }
+
+        .sponsor-links a {
+            color: #0b57d0;
+            text-decoration: none;
+        }
+
+            .sponsor-links a:hover {
+                text-decoration: underline;
+            }
+
+    .sponsor-desc {
+        font-size: 13px;
+        color: #333;
+        line-height: 1.5;
+        margin: 8px 0 0;
+    }
+
+    .create-sponsored-listing {
+        font-size: 13px;
+        color: #555;
+        margin: 10px 0 0;
+    }
+
+        .create-sponsored-listing .app-link {
+            color: #0b57d0;
+            text-decoration: none;
+        }
+
+            .create-sponsored-listing .app-link:hover {
+                text-decoration: underline;
+            }
+
+    /* Small screens */
+    @@media (max-width: 420px) {
+        .sponsors-grid
+
+    {
+        grid-template-columns: 1fr;
+    }
+
+    }
+</style>
+
+@* Render your existing partial exactly as-is *@
+@await Html.PartialAsync("~/Views/Shared/_SponsoredListingPartial.cshtml")

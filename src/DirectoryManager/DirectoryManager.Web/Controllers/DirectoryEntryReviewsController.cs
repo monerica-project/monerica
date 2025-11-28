@@ -205,7 +205,6 @@ namespace DirectoryManager.Web.Controllers
             var vm = new CreateDirectoryEntryReviewInputModel
             {
                 DirectoryEntryId = state.DirectoryEntryId,
-                Rating = 5
             };
 
             var entry = await this.directoryEntryRepository.GetByIdAsync(state.DirectoryEntryId);
@@ -232,22 +231,19 @@ namespace DirectoryManager.Web.Controllers
 
             if (!this.ModelState.IsValid)
             {
-                // repopulate view data and stay on the same page
                 var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
                 this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
 
-                // ensure hidden id is preserved
                 input.DirectoryEntryId = flow.DirectoryEntryId;
-
                 return this.View("Compose", input);
             }
 
             var entity = new DirectoryEntryReview
             {
                 DirectoryEntryId = flow.DirectoryEntryId,
-                Rating = input.Rating,
+                Rating = input.Rating!.Value,
                 Body = input.Body,
                 CreateDate = DateTime.UtcNow,
                 ModerationStatus = DirectoryManager.Data.Enums.ReviewModerationStatus.Pending,
@@ -255,11 +251,10 @@ namespace DirectoryManager.Web.Controllers
             };
 
             await this.directoryEntryReviewRepository.AddAsync(entity, ct);
-
-            // clear flow and finish
             this.cache.Remove(CacheKey(flowId));
             return this.RedirectToAction(nameof(this.Thanks));
         }
+
 
         // Step 5: thank you
         [HttpGet("thanks")]

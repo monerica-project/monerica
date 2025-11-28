@@ -17,7 +17,7 @@ namespace DirectoryManager.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "9.0.8")
+                .HasAnnotation("ProductVersion", "9.0.10")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -1308,6 +1308,10 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime2");
+
+                    b.Property<string>("Details")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
 
                     b.Property<DateTime>("ExpirationDateTime")
                         .HasColumnType("datetime2");

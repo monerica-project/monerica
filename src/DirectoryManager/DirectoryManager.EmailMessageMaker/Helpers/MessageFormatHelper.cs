@@ -409,8 +409,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
 
                 foreach (var group in groupedSponsors)
                 {
-                    // Display the Category > Subcategory heading
-                    result.AppendLine($"<h2>{group.Key.Category} > {group.Key.SubCategory}</h2>");
+                    result.AppendLine($"<h2>{FormattingHelper.SubcategoryFormatting(group.Key.Category, group.Key.SubCategory)}</h2>");
                     result.AppendLine("<ul>");
 
                     // Display the sponsors under this Subcategory

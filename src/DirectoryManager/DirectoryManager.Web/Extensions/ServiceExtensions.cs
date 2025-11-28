@@ -106,6 +106,7 @@ namespace DirectoryManager.Web.Extensions
             });
 
             services.AddScoped<ISearchBlacklistRepository, SearchBlacklistRepository>();
+            services.AddScoped<IChurnService, ChurnService>();
 
             // ✅ BlobService singleton with a short-lived scope to access scoped services
             services.AddSingleton<IBlobService>(provider =>

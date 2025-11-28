@@ -98,6 +98,12 @@
         <dt>Invoice Response</dt>
         <dd><pre class="payment-response">@Model.InvoiceResponse</pre></dd>
 
+        @if (!string.IsNullOrWhiteSpace(Model.PaymentResponse))
+        {
+            <dt>Payment Response</dt>
+            <dd><pre class="payment-response">@Model.PaymentResponse</pre></dd>
+        }
+
         <dt>Processor Invoice Id</dt>
         <dd>@Model.ProcessorInvoiceId</dd>
 

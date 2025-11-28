@@ -6,10 +6,14 @@
         public string DirectoryEntryName { get; set; } = string.Empty;
 
         public int Page { get; set; }
-        public int PageSize { get; set; } = 25;
+        public int PageSize { get; set; }
         public int TotalCount { get; set; }
 
-        public IList<AdvertiserInvoiceRow> Rows { get; set; } = new List<AdvertiserInvoiceRow>();
         public decimal TotalPaidAllTime { get; set; }
+
+        public int TotalPurchasedDaysExclusive { get; set; }
+        public decimal AverageUsdPerDayAllTime { get; set; }
+
+        public List<AdvertiserInvoiceRow> Rows { get; set; } = new ();
     }
 }

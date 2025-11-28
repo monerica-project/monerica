@@ -10,6 +10,7 @@ namespace DirectoryManager.Web.Models
 
         // Make rating optional; if you want a range, uncomment the Range attribute and set your scale
         [Range(1, 10, ErrorMessage = "Rating must be between {1} and {2}.")]
+        [Required(ErrorMessage = "Please select a rating.")]
         public byte? Rating { get; set; }
 
         [Required]

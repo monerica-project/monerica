@@ -4,7 +4,11 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 {
     public interface ISponsoredListingReservationRepository
     {
-        Task<SponsoredListingReservation> CreateReservationAsync(DateTime expirationDateTime, string reservationGroup);
+        Task<SponsoredListingReservation> CreateReservationAsync(
+            DateTime expirationDateTime,
+            string reservationGroup,
+            string details);
+
         Task<SponsoredListingReservation?> GetReservationByGuidAsync(Guid reservationId);
         Task<int> GetActiveReservationsCountAsync(string reservationGroup);
         Task<DateTime?> GetActiveReservationExpirationAsync(string reservationGroup);
@@ -15,5 +19,12 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// </summary>
         /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task<Guid?> GetAnyActiveReservationGuidAsync(string reservationGroup);
+
+        /// <summary>
+        /// Extends expiration if the new value is later than the current value.
+        /// Returns false if the reservation doesn't exist.
+        /// </summary>
+        /// <returns>It if extended.</returns>
+        Task<bool> ExtendExpirationAsync(Guid reservationGuid, DateTime newExpirationUtc);
     }
 }

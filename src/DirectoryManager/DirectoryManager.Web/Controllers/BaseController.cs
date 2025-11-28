@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -37,9 +38,15 @@ namespace DirectoryManager.Web.Controllers
                     return;
                 }
 
-                var ipAddress = context.HttpContext.Connection.RemoteIpAddress?.ToString();
+                var ipAddress = this.HttpContext.GetRemoteIpIfEnabled();
+
+                if (ipAddress == null)
+                {
+                    return;
+                }
+
                 var url = context.HttpContext.Request.Path.ToString();
-                var userAgent = context.HttpContext.Request.Headers["User-Agent"].ToString();
+                var userAgent = context.HttpContext.Request.Headers[StringConstants.UserAgent].ToString();
 
                 if (ipAddress == null)
                 {

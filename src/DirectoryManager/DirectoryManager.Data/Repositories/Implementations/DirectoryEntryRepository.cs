@@ -104,10 +104,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task UpdateAsync(DirectoryEntry entry)
         {
-            if (entry is null)
-            {
-                throw new ArgumentNullException(nameof(entry));
-            }
+            ArgumentNullException.ThrowIfNull(entry);
 
             var existing = await this.context.DirectoryEntries
                 .FirstOrDefaultAsync(e => e.DirectoryEntryId == entry.DirectoryEntryId)
@@ -206,7 +203,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync()
                 .ConfigureAwait(false);
 
-            if (!ids.Any())
+            if (ids.Count == 0)
             {
                 return Array.Empty<DirectoryEntry>();
             }
@@ -731,7 +728,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             // Group active entries with a non-empty, known ISO2 country code
             var grouped = await this.context.DirectoryEntries
-                .Where(e => 
+                .Where(e =>
                     (e.DirectoryStatus == DirectoryStatus.Verified
                   || e.DirectoryStatus == DirectoryStatus.Admitted
                   || e.DirectoryStatus == DirectoryStatus.Questionable

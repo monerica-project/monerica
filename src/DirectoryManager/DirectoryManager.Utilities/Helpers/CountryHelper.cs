@@ -319,7 +319,7 @@ namespace DirectoryManager.Utilities.Helpers
             // phrase contains a known country name (e.g., "wallets germany")
             foreach (var kv in CountryNamesToCodes)
             {
-                if (t.Contains(kv.Key)) // simple contains; fast and good enough
+                if (t.Contains(kv.Key))
                 {
                     return kv.Value;
                 }

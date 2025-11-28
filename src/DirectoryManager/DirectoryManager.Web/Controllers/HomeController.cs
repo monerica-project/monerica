@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
@@ -15,6 +16,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IRssFeedService rssFeedService;
         private readonly IMemoryCache cache;
         private readonly ICacheService cacheService;
+        private readonly ISponsoredListingRepository sponsoredListingRepository;
 
         public HomeController(
             IDirectoryEntryRepository directoryEntryRepository,
@@ -22,13 +24,15 @@ namespace DirectoryManager.Web.Controllers
             IUserAgentCacheService userAgentCacheService,
             IRssFeedService rssFeedService,
             IMemoryCache cache,
-            ICacheService cacheService)
+            ICacheService cacheService,
+            ISponsoredListingRepository sponsoredListingRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.directoryEntryRepository = directoryEntryRepository;
             this.rssFeedService = rssFeedService;
             this.cache = cache;
             this.cacheService = cacheService;
+            this.sponsoredListingRepository = sponsoredListingRepository;
         }
 
         [HttpGet("/")]
@@ -93,6 +97,19 @@ namespace DirectoryManager.Web.Controllers
             this.cache.Remove(StringConstants.CacheKeySponsoredListings);
 
             return this.View();
+        }
+
+        [HttpGet("/snippets/main-sponsors")]
+        [Produces("text/html")]
+        [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any, NoStore = false)]
+        [AllowAnonymous]
+        public async Task<IActionResult> MainSponsorsAsync()
+        {
+            // If you need CORS for fetch():
+            this.Response.Headers["Access-Control-Allow-Origin"] = "*";
+
+            var sponsors = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
+            return this.PartialView("_MainSponsorsSnippet", sponsors);
         }
     }
 }
