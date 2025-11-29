@@ -471,7 +471,8 @@ namespace DirectoryManager.Web.Controllers
                 Processor = submission.Processor,
                 SuggestedSubCategory = submission.SuggestedSubCategory,
                 Tags = submission.Tags,
-                CountryCode = submission.CountryCode
+                CountryCode = submission.CountryCode,
+                PgpKey = submission.PgpKey,
             };
         }
 
