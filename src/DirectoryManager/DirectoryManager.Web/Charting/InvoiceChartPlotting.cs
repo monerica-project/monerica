@@ -20,7 +20,9 @@ namespace DirectoryManager.Web.Charting
         {
             var paid = (invoices ?? Enumerable.Empty<SponsoredListingInvoice>()).ToList();
             if (!paid.Any())
+            {
                 return Array.Empty<byte>();
+            }
 
             // Build inclusive month list for [rangeStart, rangeEnd]
             var firstMonth = new DateTime(rangeStart.Year, rangeStart.Month, 1);
@@ -28,7 +30,9 @@ namespace DirectoryManager.Web.Charting
 
             var months = new List<DateTime>();
             for (var m = firstMonth; m <= lastMonth; m = m.AddMonths(1))
+            {
                 months.Add(m);
+            }
 
             // Helper: inclusive day count (>=1 for valid ranges)
             static int InclusiveDays(DateTime start, DateTime end)
@@ -56,26 +60,36 @@ namespace DirectoryManager.Web.Charting
                 {
                     var amt = inv.AmountIn(displayCurrency);
                     if (amt <= 0m)
+                    {
                         continue;
+                    }
 
                     var s = inv.CampaignStartDate.Date;
                     var e = inv.CampaignEndDate.Date;
                     if (e < s)
+                    {
                         continue;
+                    }
 
                     var totalCampaignDays = InclusiveDays(s, e);
                     if (totalCampaignDays <= 0)
+                    {
                         continue;
+                    }
 
                     // overlap with this month (inclusive)
                     var os = s > ms ? s : ms;
                     var oe = e < me ? e : me;
                     if (oe < os)
+                    {
                         continue;
+                    }
 
                     var overlapDays = InclusiveDays(os, oe);
                     if (overlapDays <= 0)
+                    {
                         continue;
+                    }
 
                     var perDay = amt / totalCampaignDays; // daily price this listing paid
                     weightedSum += perDay * overlapDays;
@@ -87,7 +101,9 @@ namespace DirectoryManager.Web.Charting
             }).ToList();
 
             if (monthData.All(d => d.AvgPerListingPerDay <= 0m))
+            {
                 return Array.Empty<byte>();
+            }
 
             // Bars (you can swap to a line if you prefer)
             var bars = monthData.Select((d, idx) => new Bar { Position = idx, Value = (double)d.AvgPerListingPerDay }).ToList();
@@ -105,12 +121,17 @@ namespace DirectoryManager.Web.Charting
             var lim = plt.Axes.GetLimits();
             double neededTop = Math.Max(lim.Top, maxBar + Math.Max(yOffset * 1.15, 0.002));
             if (lim.Bottom != 0 || lim.Top < neededTop)
+            {
                 plt.Axes.SetLimitsY(0, neededTop);
+            }
 
             string ValueLabel(decimal v)
             {
                 if (displayCurrency == Currency.USD)
+                {
                     return v.ToString("C", CultureInfo.CreateSpecificCulture(Culture));
+                }
+
                 // Non-USD: print compact decimals
                 return v >= 1m ? v.ToString("0.000")
                      : v >= 0.1m ? v.ToString("0.0000")
@@ -143,8 +164,6 @@ namespace DirectoryManager.Web.Charting
 
             return plt.GetImageBytes(1200, 600, ImageFormat.Png);
         }
-
-
 
         public byte[] CreateMonthlyIncomeBarChart(
             IEnumerable<SponsoredListingInvoice> invoices,
