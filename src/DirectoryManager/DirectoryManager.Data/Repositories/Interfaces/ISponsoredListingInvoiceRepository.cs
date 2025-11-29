@@ -41,5 +41,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         SponsorshipType? sponsorshipType = null);
 
         IAsyncEnumerable<AccountantRow> StreamPaidForAccountantAsync(DateTime startUtc, DateTime endUtc, SponsorshipType? sponsorshipType, CancellationToken ct = default);
+        Task<SponsoredListingInvoice?> GetByProcessorInvoiceIdAsync(string ipnProcessorId);
     }
 }
