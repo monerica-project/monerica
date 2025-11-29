@@ -41,89 +41,87 @@
         Func<DirectoryStatus, IHtmlContent> statusIcon = status => status.ToHtmlIcon();
     }
 
-@if (vms.Any())
-{
-    <section class="sponsors">
-      <h2 class="section-title">Main Sponsors</h2>
-      <div class="sponsors-grid">
-        @foreach(var vm in vms)
-        {
-            // combine desc + note into full HTML
-            var htmlBlob = (vm.Description ?? "") .Trim();
-            if (!string.IsNullOrWhiteSpace(vm.Note))
-            {
-                htmlBlob += " <i>(Note: " + vm.Note.Trim() + ")</i>";
-            }
-
-            <div class="sponsor-card">
-              <!-- Status + Title -->
-              <div class="sponsor-header">
-                <span class="status">@Html.Raw(statusIcon(vm.DirectoryStatus))</span>
-                <a rel="sponsored" href="@(vm.Link)"
-                       target="_blank" 
-                       class="title"><b>@vm.Name</b></a>
-              </div>
-
-              <!-- Tor / Link2 / Link3 -->
-              <div class="sponsor-links">
-                @if (!string.IsNullOrEmpty(vm.Link2))
+    @if (vms.Any())
+    {
+        <section class="sponsors">
+            <h2 class="section-title">Main Sponsors</h2>
+            <div class="sponsors-grid">
+                @foreach (var vm in vms)
                 {
+                    // combine desc + note into full HTML
+                    var htmlBlob = (vm.Description ?? "").Trim();
+                    if (!string.IsNullOrWhiteSpace(vm.Note))
+                    {
+                        htmlBlob += " <i>(Note: " + vm.Note.Trim() + ")</i>";
+                    }
+
+                    <div class="sponsor-card">
+                        <!-- Status + Title -->
+                        <div class="sponsor-header">
+                            <span class="status">@Html.Raw(statusIcon(vm.DirectoryStatus))</span>
+                            <a rel="sponsored" href="@(vm.Link)"
+                               target="_blank"
+                               class="title"><b>@vm.Name</b></a>
+                        </div>
+
+                        <!-- Tor / Link2 / Link3 -->
+                        <div class="sponsor-links">
+                            @if (!string.IsNullOrEmpty(vm.Link2))
+                            {
                                 <text>&nbsp;</text>
                                 <a rel="sponsored" href="@vm.Link2" target="_blank">@vm.Link2Name</a>
-                }
-                @if (!string.IsNullOrEmpty(vm.Link3))
-                {
-                  <text> | </text>
-                    <a rel="sponsored" href="@vm.Link3" target="_blank">@vm.Link3Name</a>
-                }
-              </div>
+                            }
+                            @if (!string.IsNullOrEmpty(vm.Link3))
+                            {
+                                <text> | </text>
+                                <a rel="sponsored" href="@vm.Link3" target="_blank">@vm.Link3Name</a>
+                            }
+                        </div>
 
-              <!-- Truncated HTML-safe description -->
-              <p class="sponsor-desc">
-                @Html.TruncateHtml(htmlBlob, descLimit)
-              </p>
+                        <!-- Truncated HTML-safe description -->
+                        <p class="sponsor-desc">
+                            @Html.TruncateHtml(htmlBlob, descLimit)
+                        </p>
+                    </div>
+                }
             </div>
-        }
-      </div>
-    </section>
+        </section>
 
-<div style="clear:both"></div>
+        <div style="clear:both"></div>
 
 
-    var maxMain = DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings;
-    var activeCount = sponsoredListings.Count();
-    var openings = Math.Max(0, maxMain - activeCount);
-    var displayCount = Math.Min(activeCount, maxMain);
+        var maxMain = DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings;
+        var activeCount = sponsoredListings.Count();
+        var openings = Math.Max(0, maxMain - activeCount);
+        var displayCount = Math.Min(activeCount, maxMain);
 
-<p class="create-sponsored-listing">
-    @if (openings > 0)
-    {
-        <!-- Status (not a link) -->
-        <span class="status-text">@($"{displayCount}/{maxMain} Active")</span>
-        <span aria-hidden="true"> — </span>
-        <!-- Action (link only) -->
-        <a class="app-link"
-           href="~/sponsoredlisting/selectlisting?sponsorshipType=@SponsorshipType.MainSponsor">
-            Buy sponsored listing
-        </a>
-        <span> (@openings available)</span>
+        <p class="create-sponsored-listing">
+            @if (openings > 0)
+            {
+                <!-- Status (not a link) -->
+                <span class="status-text">@($"{displayCount}/{maxMain} Active")</span>
+                <span aria-hidden="true"> — </span>
+                <!-- Action (link only) -->
+                <a class="app-link"
+                   href="~/sponsoredlisting/selectlisting?sponsorshipType=@SponsorshipType.MainSponsor">
+                    Buy sponsored listing
+                </a>
+                <span> (@openings available)</span>
+            }
+            else
+            {
+                <!-- Status (not a link) -->
+                <span class="status-text">@($"{displayCount}/{maxMain} Full")</span>
+                <span aria-hidden="true"> — </span>
+                <!-- Action (link only) -->
+                <a class="app-link"
+                   href="~/sponsoredlistingnotification/subscribe?sponsorshipType=@SponsorshipType.MainSponsor"
+                   aria-label="Join waitlist for Main Sponsor (currently @displayCount of @maxMain filled)">
+                    Join Waitlist
+                </a>
+            }
+        </p>
     }
-    else
-    {
-        <!-- Status (not a link) -->
-        <span class="status-text">@($"{displayCount}/{maxMain} Full")</span>
-        <span aria-hidden="true"> — </span>
-        <!-- Action (link only) -->
-        <a class="app-link"
-           href="~/sponsoredlistingnotification/subscribe?sponsorshipType=@SponsorshipType.MainSponsor"
-           aria-label="Join waitlist for Main Sponsor (currently @displayCount of @maxMain filled)">
-            Join Waitlist
-        </a>
-    }
-</p>
-
-
-}
     else
     {
         <p><a class="app-link" href="~/sponsoredlisting">Advertise here</a></p>
