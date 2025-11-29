@@ -237,7 +237,7 @@ namespace DirectoryManager.Web.Controllers
                 // Create the reservation now (POST → human intent)
                 var expiration = DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes);
                 var res = await this.sponsoredListingReservationRepository
-                    .CreateReservationAsync(expiration, group)
+                    .CreateReservationAsync(expiration, group, directoryEntryId.ToString())
                     .ConfigureAwait(false);
 
                 rsvId = res.ReservationGuid;
@@ -440,7 +440,7 @@ namespace DirectoryManager.Web.Controllers
 
                 var expiration = DateTime.UtcNow.AddMinutes(IntegerConstants.ReservationMinutes);
                 var newReservation = await this.sponsoredListingReservationRepository
-                    .CreateReservationAsync(expiration, reservationGroup)
+                    .CreateReservationAsync(expiration, reservationGroup, directoryEntryId.ToString())
                     .ConfigureAwait(false);
 
                 rsvId = newReservation.ReservationGuid;
