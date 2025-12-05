@@ -18,5 +18,7 @@
         string ResolveToApp(string relativeOrAbsolutePath);
 
         string ResolveToRoot(string relativeOrAbsolutePath);
+
+        string ExtractPathFromFullUrl(string url);
     }
 }

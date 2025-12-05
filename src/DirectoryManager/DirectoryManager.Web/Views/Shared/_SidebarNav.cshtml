@@ -87,7 +87,14 @@
 <nav class="sidebar">
     <div class="logo-container text-center mb-4">
         <a class="no-app-link" href="@urlResolver.ResolveToRoot("/")">
-            <img src="@logoUrl" alt="Monerica Logo" style="height:auto;" />
+            @if (urlResolver.IsTor)
+            {
+                <img src="@urlResolver.ExtractPathFromFullUrl(logoUrl)" alt="Logo" style="height:auto;" />
+            }
+            else
+            {
+                <img src="@logoUrl" alt="Logo" style="height:auto;" />
+            }
         </a>
     </div>
 
