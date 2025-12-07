@@ -32,6 +32,9 @@ namespace DirectoryManager.Data.Models
         public string? ProofLink { get; set; } = string.Empty;
 
         [MaxLength(500)]
+        public string? VideoLink { get; set; } = string.Empty;
+
+        [MaxLength(500)]
         public string? Description { get; set; }
 
         [MaxLength(255)]

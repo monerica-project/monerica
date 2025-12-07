@@ -106,6 +106,11 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(nameof(model.ProofLink), "The proof link is not a valid URL.");
             }
 
+            if (!string.IsNullOrWhiteSpace(model.VideoLink) && !UrlHelper.IsValidUrl(model.VideoLink))
+            {
+                this.ModelState.AddModelError(nameof(model.VideoLink), "The video link is not a valid URL.");
+            }
+
             if (!string.IsNullOrWhiteSpace(model.PgpKey) &&
                 !PgpKeyValidator.IsValid(model.PgpKey))
             {
@@ -440,6 +445,7 @@ namespace DirectoryManager.Web.Controllers
                 Link3 = directoryEntry.Link3 ?? string.Empty,
                 Location = directoryEntry.Location,
                 ProofLink = directoryEntry.ProofLink,
+                VideoLink = directoryEntry.VideoLink,
                 Name = directoryEntry.Name,
                 Note = directoryEntry.Note,
                 Processor = directoryEntry.Processor,
@@ -465,6 +471,7 @@ namespace DirectoryManager.Web.Controllers
                 Link2 = submission.Link2,
                 Link3 = submission.Link3,
                 ProofLink = submission.ProofLink,
+                VideoLink = submission.VideoLink,
                 Location = submission.Location,
                 Name = submission.Name,
                 Note = submission.Note,
@@ -762,6 +769,7 @@ namespace DirectoryManager.Web.Controllers
                 Link2 = (model.Link2 ?? string.Empty).Trim(),
                 Link3 = (model.Link3 ?? string.Empty).Trim(),
                 ProofLink = (model.ProofLink ?? string.Empty).Trim(),
+                VideoLink = (model.VideoLink ?? string.Empty).Trim(),
                 Description = (model.Description ?? string.Empty).Trim(),
                 Location = (model.Location ?? string.Empty).Trim(),
                 Processor = (model.Processor ?? string.Empty).Trim(),
@@ -818,6 +826,7 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.CountryCode = submissionModel.CountryCode;
             existingSubmission.PgpKey = submissionModel.PgpKey;
             existingSubmission.ProofLink = submissionModel.ProofLink;
+            existingSubmission.VideoLink = submissionModel.VideoLink;
 
             await this.submissionRepository.UpdateAsync(existingSubmission);
         }
@@ -862,6 +871,11 @@ namespace DirectoryManager.Web.Controllers
             }
 
             if (existingEntry.ProofLink?.Trim() != model.ProofLink?.Trim())
+            {
+                return true;
+            }
+
+            if (existingEntry.VideoLink?.Trim() != model.VideoLink?.Trim())
             {
                 return true;
             }

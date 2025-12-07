@@ -91,6 +91,11 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("ProofLink", entry.ProofLink, submission.ProofLink);
             }
 
+            if (NotEqualTrimmed(entry.VideoLink, submission.VideoLink))
+            {
+                AddDifference("VideoLink", entry.VideoLink, submission.VideoLink);
+            }
+
             // Compare SubCategory and Category names safely.
             if (entry.SubCategoryId != submission.SubCategoryId)
             {

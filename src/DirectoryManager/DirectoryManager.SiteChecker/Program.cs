@@ -104,6 +104,7 @@ async Task CreateOfflineSubmissionIfNotExists(
         NoteToAdmin = "(automated submission)",
         PgpKey = entry.PgpKey,
         ProofLink = entry.ProofLink,
+        VideoLink = entry.VideoLink,
         Tags = entry.Tags,
     };
 
