@@ -72,9 +72,7 @@
                         {
                             <li>
                                 <a class="no-app-link @(isCurrentCat && sub.SubCategoryKey == currentSub ? "active" : "")"
-                                   href="@urlResolver.ResolveToRoot($"{cat.CategoryKey}/{sub.SubCategoryKey}")">
-                                    @sub.Name
-                                </a>
+                                   href="@urlResolver.ResolveToRoot($"{cat.CategoryKey}/{sub.SubCategoryKey}")">@sub.Name</a>
                             </li>
                         }
                     </ul>
@@ -125,9 +123,7 @@
                         {
                             <li>
                                 <a class="no-app-link @(isCurrentCat && sub.SubCategoryKey == currentSub ? "active" : "")"
-                                   href="@urlResolver.ResolveToRoot($"{cat.CategoryKey}/{sub.SubCategoryKey}")">
-                                    @sub.Name
-                                </a>
+                                   href="@urlResolver.ResolveToRoot($"{cat.CategoryKey}/{sub.SubCategoryKey}")">@sub.Name</a>
                             </li>
                         }
                     </ul>
