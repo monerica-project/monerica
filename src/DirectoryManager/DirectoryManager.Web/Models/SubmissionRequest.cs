@@ -34,7 +34,7 @@ namespace DirectoryManager.Web.Models
         public string? ProofLink { get; set; }
 
         [MaxLength(500)]
-        [Display(Name = "Video Link", Prompt = "Video link nof using the site")]
+        [Display(Name = "Video Link", Prompt = "Video link of using the site")]
         public string? VideoLink { get; set; }
 
         [MaxLength(75)]
