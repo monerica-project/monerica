@@ -31,7 +31,15 @@
         @Html.Raw(ViewBag.Differences)
     }
  
-    <a target="_blank" href="@Model.Link">@Model.Link</a>
+    <span>Link:</span> <a target="_blank" href="@Model.Link">@Model.Link</a>
+
+    @if (!string.IsNullOrEmpty(Model.ProofLink))
+    {
+        <br />
+            <span>Proof Link:</span>
+        <a target="_blank" href="@Model.ProofLink">@Model.ProofLink</a>
+    }
+            
     <br />
     <br />
     <div class="form-group">
