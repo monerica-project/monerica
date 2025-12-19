@@ -61,6 +61,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
+        public async Task<DirectoryEntry?> GetByNameAndSubcategoryAsync(string name, int subcategoryId)
+        {
+            return await this.BaseQuery()
+                .FirstOrDefaultAsync(de => de.Name == name && de.SubCategoryId == subcategoryId)
+                .ConfigureAwait(false);
+        }
+
         public async Task<IEnumerable<DirectoryEntry>> GetAllowableAdvertisers()
         {
             return await this.BaseQuery()

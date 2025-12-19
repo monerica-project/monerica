@@ -116,8 +116,10 @@ namespace DirectoryManager.Web.Controllers
 
             // Check if the link is already used
             var link = model.Link.Trim();
-            var existingEntry = await this.directoryEntryRepository.GetByLinkAsync(link);
-            if (existingEntry != null)
+            var entryName = model.Name.Trim();
+            var existingEntryByLink = await this.directoryEntryRepository.GetByLinkAsync(link);
+
+            if (existingEntryByLink != null)
             {
                 await this.LoadLists();
 
@@ -125,9 +127,19 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("create", model);
             }
 
+            var existingEntryByNameSubcat = await this.directoryEntryRepository.GetByNameAndSubcategoryAsync(entryName, model.SubCategoryId);
+
+            if (existingEntryByNameSubcat != null)
+            {
+                await this.LoadLists();
+
+                this.ModelState.AddModelError("Name", "The provided name is already used by another entry in this subcategory.");
+                return this.View("create", model);
+            }
+
             model.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
             model.Link = link;
-            model.Name = model.Name.Trim();
+            model.Name = entryName;
             model.DirectoryEntryKey = StringHelpers.UrlKey(model.Name);
             model.Description = model.Description?.Trim();
             model.Note = model.Note?.Trim();

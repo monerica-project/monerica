@@ -10,6 +10,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<DirectoryEntry?> GetBySubCategoryAndKeyAsync(int subcategorydId, string directoryEntryKey);
         Task<DirectoryEntry?> GetByLinkAsync(string link);
         Task<DirectoryEntry?> GetByNameAsync(string name);
+        Task<DirectoryEntry?> GetByNameAndSubcategoryAsync(string name, int subcategoryId);
         Task<IEnumerable<DirectoryEntry>> GetAllAsync();
         Task<IEnumerable<DirectoryEntry>> GetAllBySubCategoryIdAsync(int subCategoryId);
         Task<IEnumerable<DirectoryEntry>> GetAllowableAdvertisers();
