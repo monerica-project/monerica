@@ -122,10 +122,12 @@
                     featuredEntries.ToList(),
                     DateDisplayOption.NotDisplayed,
                     ItemDisplayType.Featured,
-                    link2Name, link3Name);
+                    link2Name,
+                    link3Name);
                 }
                 @foreach (var vm in vmList)
                 {
+                    vm.LinkType = LinkType.ListingPage;
                     @await Html.PartialAsync("_DirectoryEntryPartial", vm)
                 }
             </ul>
@@ -151,7 +153,7 @@
                     .ConvertToViewModels(
                     newest.ToList(),
                     DateDisplayOption.DisplayCreateDate,
-                    ItemDisplayType.Featured,
+                    ItemDisplayType.Normal,
                     link2Name, link3Name);
                 }
                 @foreach (var vm in vmList)

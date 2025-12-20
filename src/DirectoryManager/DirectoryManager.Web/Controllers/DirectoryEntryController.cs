@@ -695,8 +695,11 @@ namespace DirectoryManager.Web.Controllers
                     ? $"Flag ({ccRaw})"
                     : $"Flag of {countryNameForAlt} ({ccRaw.ToUpperInvariant()})";
 
-                // margin-right so text doesn’t collide with the flag
-                flagHtml = $"<img class=\"country-flag me-2 align-text-bottom\" src=\"/images/flags/{ccLower}.png\" alt=\"{WebUtility.HtmlEncode(altTitle)}\" title=\"{WebUtility.HtmlEncode(countryNameForAlt)}\" /> ";
+                flagHtml =
+                    $"<img class=\"country-flag me-2 align-text-bottom\" " +
+                    $"src=\"/images/flags/{ccLower}.png\" " +
+                    $"alt=\"{WebUtility.HtmlEncode(altTitle)}\" " +
+                    $"title=\"{WebUtility.HtmlEncode(countryNameForAlt)}\" /> ";
             }
 
             // Compute country name + link (if available)
@@ -726,21 +729,27 @@ namespace DirectoryManager.Web.Controllers
                 return $"{flagHtml}{WebUtility.HtmlEncode(location ?? string.Empty)}";
             }
 
-            // Do we already have the country name inside the location string?
-            var idx = !string.IsNullOrWhiteSpace(location)
-                ? location!.IndexOf(countryName!, StringComparison.OrdinalIgnoreCase)
-                : -1;
+            // If location already ends with the country (standalone), link ONLY that trailing country.
+            // Examples it will match:
+            // "Mexico City, Mexico"
+            // "Mexico"
+            // "Mexico City ,   Mexico"
+            // It will NOT match "Mexico City" (because Mexico isn't at the end).
+            if (!string.IsNullOrWhiteSpace(location))
+            {
+                var pattern = $@"(?i)(?<sep>,\s*|\s*)\b{Regex.Escape(countryName!)}\b\s*$";
+                var match = Regex.Match(location!, pattern);
 
-            if (idx >= 0)
-            {
-                // Replace first occurrence with a link, preserve punctuation (no extra spaces before commas)
-                var before = location!.Substring(0, idx);
-                var after = location!.Substring(idx + countryName!.Length);
-                return $"{flagHtml}{WebUtility.HtmlEncode(before)}{anchorHtml}{WebUtility.HtmlEncode(after)}";
-            }
-            else if (!string.IsNullOrWhiteSpace(location))
-            {
-                // Append ", <linked country>" with exactly one comma+space
+                if (match.Success)
+                {
+                    var start = match.Index;
+                    var before = location!.Substring(0, start);
+                    var sep = match.Groups["sep"].Value; // keep whatever comma/space was there
+
+                    return $"{flagHtml}{WebUtility.HtmlEncode(before)}{WebUtility.HtmlEncode(sep)}{anchorHtml}";
+                }
+
+                // Otherwise append ", <linked country>" (exactly one comma + space)
                 var left = location!.TrimEnd();
                 if (left.EndsWith(",", StringComparison.Ordinal))
                 {
@@ -748,16 +757,14 @@ namespace DirectoryManager.Web.Controllers
                 }
                 else
                 {
-                    left = left + ", ";
+                    left += ", ";
                 }
 
                 return $"{flagHtml}{WebUtility.HtmlEncode(left)}{anchorHtml}";
             }
-            else
-            {
-                // No location text; only the linked country (with flag)
-                return $"{flagHtml}{anchorHtml}";
-            }
+
+            // No location text; only the linked country (with flag)
+            return $"{flagHtml}{anchorHtml}";
         }
 
         private async Task LoadLists()

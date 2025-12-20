@@ -98,8 +98,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 AppendAdditionalLinks(sb, model);
             }
 
-            if (model.ItemDisplayType == ItemDisplayType.Featured ||
-                model.LinkType == LinkType.ListingPage)
+            if (model.LinkType == LinkType.ListingPage)
             {
                 AppendExternalLinkIcon(sb, model);
             }
