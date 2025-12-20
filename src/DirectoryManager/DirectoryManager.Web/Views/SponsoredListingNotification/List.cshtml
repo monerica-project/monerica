@@ -1,48 +1,155 @@
 ﻿@using DirectoryManager.Web.Constants
-@model IEnumerable<DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification>
+@using DirectoryManager.Web.Models
+@model PagedListViewModel<DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification>
 
 @{
     ViewData[StringConstants.TitleHeader] = "Manage Notifications";
-}
-
-@{
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
-@await Html.PartialAsync("_AdminMenu")
+    @await Html.PartialAsync("_AdminMenu")
 
-<h2>Manage Notifications</h2>
+    <h2>Manage Notifications</h2>
 
-<div class="table-wrapper">
-    <table class="table">
-    <thead>
-        <tr>
-            <th>Email</th>
-            <th>Create Date</th>
-            <th>Sponsorship Type</th>
-            <th>Type Id</th>
-            <th>Reminder Sent</th>
-            <th>Actions</th>
-        </tr>
-    </thead>
-    <tbody>
-        @foreach (var notification in Model)
-        {
-            <tr>
-                <td>@notification.Email</td>
-                <td>@notification.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
-                <td>@notification.SponsorshipType</td>
-                <td>@notification.TypeId</td>
-                <td>@notification.IsReminderSent</td>
-                <td>
-                    <a href="@Url.Action("Edit", new { id = notification.SponsoredListingOpeningNotificationId })">Edit</a>
-                </td>
-            </tr>
-        }
-    </tbody>
-</table>
-</div>
+    <div style="margin: 10px 0;">
+        <span>
+            Showing <strong>@Model.FirstItemNumber</strong>-<strong>@Model.LastItemNumber</strong>
+            of <strong>@Model.TotalCount</strong>
+        </span>
+
+        <span style="margin-left: 16px;">
+            Page <strong>@Model.Page</strong> of <strong>@Model.TotalPages</strong>
+        </span>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Email</th>
+                    <th>Create Date</th>
+                    <th>Sponsorship Type</th>
+                    <th>Type Id</th>
+                    <th>Reminder Sent</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (Model.TotalCount == 0)
+                {
+                    <tr>
+                        <td colspan="6">No notifications found.</td>
+                    </tr>
+                }
+                else
+                {
+                    foreach (var notification in Model.Items)
+                    {
+                        <tr>
+                            <td>@notification.Email</td>
+                            <td>@notification.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
+                            <td>@notification.SponsorshipType</td>
+                            <td>@notification.TypeId</td>
+                            <td>@notification.IsReminderSent</td>
+                            <td>
+                                <a href="@Url.Action("Edit", new { id = notification.SponsoredListingOpeningNotificationId })">Edit</a>
+                            </td>
+                        </tr>
+                    }
+                }
+            </tbody>
+        </table>
+    </div>
+
+    @if (Model.TotalPages > 1)
+    {
+        <nav style="margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+            @* Previous *@
+            @if (Model.HasPrevious)
+            {
+                <a href="@Url.Action("List", new { page = Model.Page - 1, pageSize = Model.PageSize })">← Prev</a>
+            }
+            else
+            {
+                <span style="opacity:.5;">← Prev</span>
+            }
+
+            @* Page numbers (windowed) *@
+            @{
+                var window = 3; // pages on each side
+                var start = Math.Max(1, Model.Page - window);
+                var end = Math.Min(Model.TotalPages, Model.Page + window);
+
+                // Ensure at least a small window when near edges
+                if (Model.Page <= window)
+                {
+                    end = Math.Min(Model.TotalPages, 1 + (window * 2));
+                }
+                else if (Model.Page + window > Model.TotalPages)
+                {
+                    start = Math.Max(1, Model.TotalPages - (window * 2));
+                }
+            }
+
+            @if (start > 1)
+            {
+                <a href="@Url.Action("List", new { page = 1, pageSize = Model.PageSize })">1</a>
+                @if (start > 2)
+                {
+                    <span>…</span>
+                }
+            }
+
+            @for (int i = start; i <= end; i++)
+            {
+                if (i == Model.Page)
+                {
+                    <strong style="padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px;">@i</strong>
+                }
+                else
+                {
+                    <a href="@Url.Action("List", new { page = i, pageSize = Model.PageSize })">@i</a>
+                }
+            }
+
+            @if (end < Model.TotalPages)
+            {
+                if (end < Model.TotalPages - 1)
+                {
+                    <span>…</span>
+                }
+                <a href="@Url.Action("List", new { page = Model.TotalPages, pageSize = Model.PageSize })">@Model.TotalPages</a>
+            }
+
+            @* Next *@
+            @if (Model.HasNext)
+            {
+                <a href="@Url.Action("List", new { page = Model.Page + 1, pageSize = Model.PageSize })">Next →</a>
+            }
+            else
+            {
+                <span style="opacity:.5;">Next →</span>
+            }
+
+            @* Page size *@
+            <span style="margin-left: 10px; opacity: .8;">Page size:</span>
+            @{
+                int[] sizes = new[] { 25, 50, 100, 200 };
+            }
+            @foreach (var s in sizes)
+            {
+                if (s == Model.PageSize)
+                {
+                    <strong>@s</strong>
+                }
+                else
+                {
+                    <a href="@Url.Action("List", new { page = 1, pageSize = s })">@s</a>
+                }
+            }
+        </nav>
+    }
 }

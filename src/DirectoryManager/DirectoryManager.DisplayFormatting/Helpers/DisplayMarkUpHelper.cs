@@ -137,7 +137,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             {
                 sb.Append("<li>");
                 sb.AppendFormat(
-                    "<pre>{0} Additions:</pre>",
+                    "<pre>{0}:</pre>",
                     DateTime.ParseExact(group.Date, Common.Constants.StringConstants.DateFormat, CultureInfo.InvariantCulture)
                         .ToString(Common.Constants.StringConstants.DateFormat));
 

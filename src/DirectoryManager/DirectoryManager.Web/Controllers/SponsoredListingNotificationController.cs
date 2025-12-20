@@ -29,15 +29,56 @@ namespace DirectoryManager.Web.Controllers
         [Authorize]
         [HttpGet]
         [Route("sponsoredlistingnotification/list")]
-        public async Task<IActionResult> List()
+        public async Task<IActionResult> List(int page = 1, int pageSize = 50)
         {
-            var list = await this.notificationRepository
+            // hard guards
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            // keep pageSize sane (adjust max as you like)
+            if (pageSize < 5)
+            {
+                pageSize = 5;
+            }
+
+            if (pageSize > 200)
+            {
+                pageSize = 200;
+            }
+
+            var all = await this.notificationRepository
                                  .GetAllAsync()
                                  .ConfigureAwait(false);
 
-            list = list.OrderByDescending(x => x.CreateDate).ToList();
+            var ordered = all
+                .OrderByDescending(x => x.CreateDate)
+                .ToList();
 
-            return this.View(list);
+            var totalCount = ordered.Count;
+
+            // if page is out of range, snap to last page (unless empty)
+            var totalPages = pageSize <= 0 ? 0 : (int)Math.Ceiling(totalCount / (double)pageSize);
+            if (totalPages > 0 && page > totalPages)
+            {
+                page = totalPages;
+            }
+
+            var items = ordered
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToList();
+
+            var vm = new PagedListViewModel<SponsoredListingOpeningNotification>
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                TotalCount = totalCount
+            };
+
+            return this.View(vm);
         }
 
         [Authorize]
