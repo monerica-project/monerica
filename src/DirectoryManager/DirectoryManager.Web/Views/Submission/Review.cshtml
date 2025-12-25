@@ -36,8 +36,15 @@
     @if (!string.IsNullOrEmpty(Model.ProofLink))
     {
         <br />
-            <span>Proof Link:</span>
+        <span>Proof Link:</span>
         <a target="_blank" href="@Model.ProofLink">@Model.ProofLink</a>
+    }
+    
+    @if (!string.IsNullOrEmpty(Model.VideoLink))
+    {
+        <br />
+        <span>Video Link:</span>
+        <a target="_blank" href="@Model.VideoLink">@Model.VideoLink</a>
     }
             
     <br />
