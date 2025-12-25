@@ -127,6 +127,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.Link = entry.Link;
             existing.Link2 = entry.Link2;
             existing.Link3 = entry.Link3;
+            existing.ProofLink = entry.ProofLink;
+            existing.VideoLink = entry.VideoLink;
             existing.DirectoryStatus = entry.DirectoryStatus;
             existing.Description = entry.Description;
             existing.Location = entry.Location;
