@@ -36,7 +36,7 @@
         <dd>@Model.InvoiceId</dd>
 
         <dt>Directory Entry ID</dt>
-            <dd>@Model.DirectoryEntryId (<a href="~/sponsoredlistinginvoice/advertiser?directoryEntryId=@Model.DirectoryEntryId">see all invoices</a>)</dd>
+        <dd> <a href="~/directoryentry/edit/@Model.DirectoryEntryId">@Model.DirectoryEntryId</a> (<a href="~/sponsoredlistinginvoice/advertiser?directoryEntryId=@Model.DirectoryEntryId">see all invoices</a>)</dd>
 
         <dt>Invoice Description</dt>
         <dd>@Model.InvoiceDescription</dd>
