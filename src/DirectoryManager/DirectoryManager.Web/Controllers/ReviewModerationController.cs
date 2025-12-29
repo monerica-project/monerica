@@ -97,7 +97,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("Show", item);
             }
 
-            await this.repo.RejectAsync(id);
+            await this.repo.RejectAsync(id, reason);
             return this.RedirectToAction(nameof(this.Pending));
         }
 

@@ -106,7 +106,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.Set.Where(r => r.ModerationStatus == status).CountAsync(ct);
 
         public async Task SetModerationStatusAsync(
-            int id, ReviewModerationStatus status, CancellationToken ct = default)
+            int id, ReviewModerationStatus status, string reason, CancellationToken ct = default)
         {
             var review = await this.Set.FindAsync(new object[] { id }, ct);
             if (review is null)
@@ -114,6 +114,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return;
             }
 
+            review.RejectionReason = reason;
             review.ModerationStatus = status;
             review.UpdateDate = DateTime.UtcNow;
             await this.context.SaveChangesAsync(ct);
@@ -134,10 +135,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync(ct);
 
         public Task ApproveAsync(int id, CancellationToken ct = default) =>
-            this.SetModerationStatusAsync(id, ReviewModerationStatus.Approved, ct);
+            this.SetModerationStatusAsync(id, ReviewModerationStatus.Approved, string.Empty, ct);
 
-        public Task RejectAsync(int id, CancellationToken ct = default) =>
-            this.SetModerationStatusAsync(id, ReviewModerationStatus.Rejected, ct);
+        public Task RejectAsync(int id, string reason, CancellationToken ct = default) =>
+            this.SetModerationStatusAsync(id, ReviewModerationStatus.Rejected, reason, ct);
 
         public async Task<List<DirectoryEntryReview>> ListForEntryAsync(
             int directoryEntryId, int page = 1, int pageSize = 50, CancellationToken ct = default) =>
