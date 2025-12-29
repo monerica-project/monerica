@@ -1,7 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Migrations;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -513,13 +512,19 @@ namespace DirectoryManager.Data.Repositories.Implementations
                             i.CampaignStartDate < toUtc);
 
             if (type.HasValue)
+            {
                 q = q.Where(i => i.SponsorshipType == type.Value);
+            }
 
             if (subCategoryId.HasValue)
+            {
                 q = q.Where(i => i.SubCategoryId == subCategoryId.Value);
+            }
 
             if (categoryId.HasValue)
+            {
                 q = q.Where(i => i.CategoryId == categoryId.Value);
+            }
 
             // Project minimal fields needed for churn logic
             return await q
@@ -572,6 +577,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             // misc
             target.IpAddress = src.IpAddress;
+            target.IsReminderSent = src.IsReminderSent;
         }
     }
 }
