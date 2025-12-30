@@ -10,6 +10,6 @@
         public const int MinRequiredCategories = 2;
         public const int MaxCategorySponsoredListings = 1;
 
-        public const int MaxMainSponsorsPerSubcategory = 2;
+        public const int MaxMainSponsorsPerSubcategory = 3;
     }
 }
