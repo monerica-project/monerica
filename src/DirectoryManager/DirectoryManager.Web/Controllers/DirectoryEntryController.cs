@@ -114,20 +114,34 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("create", model);
             }
 
-            // Check if the link is already used
-            var link = model.Link.Trim();
-            var entryName = model.Name.Trim();
-            var existingEntryByLink = await this.directoryEntryRepository.GetByLinkAsync(link);
+            // Normalize and check if the link is already used (with or without trailing slash)
+            var rawLink = model.Link?.Trim() ?? string.Empty;
+
+            // canonical: no trailing slash (except for single "/")
+            var linkWithoutSlash = rawLink;
+            while (linkWithoutSlash.Length > 1 && linkWithoutSlash.EndsWith("/"))
+            {
+                linkWithoutSlash = linkWithoutSlash[..^1];
+            }
+
+            var linkWithSlash = linkWithoutSlash + "/";
+
+            // Check both variants
+            var existingEntryByLink =
+                await this.directoryEntryRepository.GetByLinkAsync(linkWithoutSlash) ??
+                await this.directoryEntryRepository.GetByLinkAsync(linkWithSlash);
 
             if (existingEntryByLink != null)
             {
                 await this.LoadLists();
 
-                this.ModelState.AddModelError("Link", "The provided link is already used by another entry.");
+                this.ModelState.AddModelError("Link", "The provided link is already used by another entry (with or without a trailing slash).");
                 return this.View("create", model);
             }
 
-            var existingEntryByNameSubcat = await this.directoryEntryRepository.GetByNameAndSubcategoryAsync(entryName, model.SubCategoryId);
+            var entryName = model.Name.Trim();
+            var existingEntryByNameSubcat =
+                await this.directoryEntryRepository.GetByNameAndSubcategoryAsync(entryName, model.SubCategoryId);
 
             if (existingEntryByNameSubcat != null)
             {
@@ -138,7 +152,9 @@ namespace DirectoryManager.Web.Controllers
             }
 
             model.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
-            model.Link = link;
+
+            // Store canonical link (no trailing slash)
+            model.Link = linkWithoutSlash;
             model.Name = entryName;
             model.DirectoryEntryKey = StringHelpers.UrlKey(model.Name);
             model.Description = model.Description?.Trim();
@@ -170,7 +186,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     var normalizedName = FormattingHelper.NormalizeTagName(name);
                     var tag = await this.tagRepo.GetByKeyAsync(normalizedName.UrlKey())
-                           ?? await this.tagRepo.CreateAsync(normalizedName);
+                               ?? await this.tagRepo.CreateAsync(normalizedName);
                     await this.entryTagRepo.AssignTagAsync(model.DirectoryEntryId, tag.TagId);
                 }
             }
