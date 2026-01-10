@@ -110,6 +110,13 @@
                                 <td><a class="multi-line-text" href="@Model.ProofLink" target="_blank">@Model.ProofLink</a></td>
                             </tr>
                         }
+                        @if (!string.IsNullOrEmpty(Model.VideoLink))
+                        {
+                            <tr>
+                                <th scope="row">Video</th>
+                                <td><a class="multi-line-text" href="@Model.VideoLink" target="_blank">@Model.VideoLink</a></td>
+                            </tr>
+                        }
                         <tr>
                             <th scope="row">Status</th>
                             <td>@Model.DirectoryStatus.ToHtmlIcon() @Model.DirectoryStatus</td>

@@ -61,6 +61,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
+        public async Task<DirectoryEntry?> GetByNameAndSubcategoryAsync(string name, int subcategoryId)
+        {
+            return await this.BaseQuery()
+                .FirstOrDefaultAsync(de => de.Name == name && de.SubCategoryId == subcategoryId)
+                .ConfigureAwait(false);
+        }
+
         public async Task<IEnumerable<DirectoryEntry>> GetAllowableAdvertisers()
         {
             return await this.BaseQuery()
@@ -120,6 +127,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.Link = entry.Link;
             existing.Link2 = entry.Link2;
             existing.Link3 = entry.Link3;
+            existing.ProofLink = entry.ProofLink;
+            existing.VideoLink = entry.VideoLink;
             existing.DirectoryStatus = entry.DirectoryStatus;
             existing.Description = entry.Description;
             existing.Location = entry.Location;
@@ -357,6 +366,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 rootPattern = $"%{rootTerm}%";
             }
 
+            // Compact/normalized term for separator-insensitive matching (no spaces, dots, dashes, underscores)
+            string termCompact = new string(term.Where(char.IsLetterOrDigit).ToArray());
+            string? compactPattern = string.IsNullOrEmpty(termCompact) ? null : $"%{termCompact}%";
+
             // --- URL-awareness: build variants if the query looks like a URL -------------
             static bool LooksLikeUrl(string s) =>
                 s.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
@@ -405,7 +418,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             // ---------------------------------------------------------------------------
 
-            // 1) server-side filter (kept & extended with URL-variant matches)
+            // 1) server-side filter (kept & extended with URL-variant + compact matches)
             var filtered = this.BaseQuery()
                 .Where(e =>
                     e.DirectoryStatus != DirectoryStatus.Removed &&
@@ -414,9 +427,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         // Country (kept)
                         (countryCode != null && e.CountryCode == countryCode)
 
-                        // Name (kept)
+                        // Name (kept + compact)
                         || EF.Functions.Like(e.Name.ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like(e.Name.ToLower(), rootPattern))
+                        || (compactPattern != null &&
+                            EF.Functions.Like(
+                                e.Name.ToLower()
+                                      .Replace("-", "")
+                                      .Replace(".", "")
+                                      .Replace(" ", "")
+                                      .Replace("_", ""),
+                                compactPattern))
 
                         // Description (kept)
                         || EF.Functions.Like((e.Description ?? "").ToLower(), primaryPattern)
@@ -443,15 +464,50 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         || EF.Functions.Like((e.Contact ?? "").ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like((e.Contact ?? "").ToLower(), rootPattern))
 
-                        // Links (kept)
+                        // Links (kept + compact for separator-insensitive matches)
                         || EF.Functions.Like((e.Link ?? "").ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like((e.Link ?? "").ToLower(), rootPattern))
+                        || (compactPattern != null &&
+                            EF.Functions.Like(
+                                (e.Link ?? "").ToLower()
+                                              .Replace("-", "")
+                                              .Replace(".", "")
+                                              .Replace(" ", "")
+                                              .Replace("_", ""),
+                                compactPattern))
+
                         || EF.Functions.Like((e.Link2 ?? "").ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like((e.Link2 ?? "").ToLower(), rootPattern))
+                        || (compactPattern != null &&
+                            EF.Functions.Like(
+                                (e.Link2 ?? "").ToLower()
+                                               .Replace("-", "")
+                                               .Replace(".", "")
+                                               .Replace(" ", "")
+                                               .Replace("_", ""),
+                                compactPattern))
+
                         || EF.Functions.Like((e.Link3 ?? "").ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like((e.Link3 ?? "").ToLower(), rootPattern))
+                        || (compactPattern != null &&
+                            EF.Functions.Like(
+                                (e.Link3 ?? "").ToLower()
+                                               .Replace("-", "")
+                                               .Replace(".", "")
+                                               .Replace(" ", "")
+                                               .Replace("_", ""),
+                                compactPattern))
+
                         || EF.Functions.Like((e.ProofLink ?? "").ToLower(), primaryPattern)
                         || (rootPattern != null && EF.Functions.Like((e.ProofLink ?? "").ToLower(), rootPattern))
+                        || (compactPattern != null &&
+                            EF.Functions.Like(
+                                (e.ProofLink ?? "").ToLower()
+                                                  .Replace("-", "")
+                                                  .Replace(".", "")
+                                                  .Replace(" ", "")
+                                                  .Replace("_", ""),
+                                compactPattern))
 
                         // URL variants (apply to all link-ish fields you store)
                         || (isUrlTerm && (
@@ -473,7 +529,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                EF.Functions.Like((e.ProofLink ?? "").ToLower(), pNoSlash) ||
                                EF.Functions.Like((e.ProofLink ?? "").ToLower(), pWithSlash) ||
                                (pHostOnly != "" && EF.Functions.Like((e.ProofLink ?? "").ToLower(), pHostOnly)) ||
-                               (pNoWww != "" && EF.Functions.Like((e.ProofLink ?? "").ToLower(), pNoWww))))));
+                               (pNoWww != "" && EF.Functions.Like((e.ProofLink ?? "").ToLower(), pNoWww))))
+                    ));
 
             // 2) to memory for scoring (kept)
             var candidates = await filtered.ToListAsync();
@@ -496,12 +553,32 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return count;
             }
 
+            static string NormalizeToken(string? s)
+            {
+                if (string.IsNullOrEmpty(s)) return string.Empty;
+
+                var chars = s.ToLowerInvariant()
+                             .Where(char.IsLetterOrDigit)
+                             .ToArray();
+                return new string(chars);
+            }
+
             const int CountryBoost = 7;
 
-            // 3) scoring (kept & extended with URL variants)
+            // precompute compact term for scoring
+            string termCompactForScore = termCompact; // already lower + letters/digits only
+
+            // 3) scoring (kept & extended with URL variants + compact matches)
             var scored = candidates
                 .Select(e =>
                 {
+                    // compact versions of key fields (for separator-insensitive matches)
+                    string nameNorm = NormalizeToken(e.Name);
+                    string linkNorm = NormalizeToken(e.Link);
+                    string link2Norm = NormalizeToken(e.Link2);
+                    string link3Norm = NormalizeToken(e.Link3);
+                    string proofNorm = NormalizeToken(e.ProofLink);
+
                     int hits =
 
                         // text-ish fields (kept)
@@ -520,6 +597,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         CountOcc(e.Link2, term) + (rootTerm != null ? CountOcc(e.Link2, rootTerm) : 0) +
                         CountOcc(e.Link3, term) + (rootTerm != null ? CountOcc(e.Link3, rootTerm) : 0) +
                         CountOcc(e.ProofLink, term) + (rootTerm != null ? CountOcc(e.ProofLink, rootTerm) : 0) +
+
+                        // compact/separator-insensitive hits (name + URLs)
+                        (!string.IsNullOrEmpty(termCompactForScore)
+                            ? CountOcc(nameNorm, termCompactForScore)
+                              + CountOcc(linkNorm, termCompactForScore)
+                              + CountOcc(link2Norm, termCompactForScore)
+                              + CountOcc(link3Norm, termCompactForScore)
+                              + CountOcc(proofNorm, termCompactForScore)
+                            : 0) +
 
                         // URL variants count hits as well
                         (isUrlTerm

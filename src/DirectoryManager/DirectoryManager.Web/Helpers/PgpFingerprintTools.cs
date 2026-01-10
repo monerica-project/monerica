@@ -10,6 +10,7 @@ public static class PgpFingerprintTools
     /// Return ALL fingerprints found in the armored public key text (primary + subkeys),
     /// as uppercase hex. Also includes common short forms (last 32 and last 16 hex).
     /// </summary>
+    /// <returns>A hashed string.</returns>
     public static HashSet<string> GetAllFingerprints(string? armored)
     {
         var results = new HashSet<string>(StringComparer.Ordinal);

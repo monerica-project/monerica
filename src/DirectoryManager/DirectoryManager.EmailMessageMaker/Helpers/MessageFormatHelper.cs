@@ -1,12 +1,16 @@
 ﻿using System.Text;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
+using DirectoryManager.DisplayFormatting.Enums;
 using DirectoryManager.DisplayFormatting.Helpers;
+using DirectoryManager.DisplayFormatting.Models;
 
 namespace DirectoryManager.EmailMessageMaker.Helpers
 {
     public class MessageFormatHelper
     {
+        private const string RootUrl = "https://monerica.com";
+
         private const string EmailCss = @"
             body {
                 font-family: Arial, sans-serif;
@@ -136,14 +140,28 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
                         result.AppendLine("<ul class=\"blank_list_item\">");
                         foreach (var entry in subCategoryGroup.OrderBy(e => e.Name))
                         {
-                            var displayModel = ViewModelConverter.ConvertToViewModels(
+                            // 1) Build the view model as before
+                            var viewModels = ViewModelConverter.ConvertToViewModels(
                                                 new List<DirectoryEntry> { entry },
-                                                DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
-                                                DisplayFormatting.Enums.ItemDisplayType.Email,
+                                                DateDisplayOption.NotDisplayed,
+                                                ItemDisplayType.Email,
                                                 link2Name,
-                                                link3Name);
+                                                link3Name)
+                                                .ToList();
 
-                            var htmlItem = DisplayMarkUpHelper.GenerateDirectoryEntryHtml(displayModel.First());
+                            var vm = viewModels.First();
+
+                            // 2) Force the email version to use the listing page URL
+                            vm.LinkType = LinkType.ListingPage;
+
+                            // 3) Strip Tor/I2P (Link2/Link3) for email to keep links on monerica.com
+                            vm.Link2 = null;
+                            vm.Link2A = null;
+                            vm.Link3 = null;
+                            vm.Link3A = null;
+
+                            // 4) Generate HTML using the root domain so all links are monerica.com/...
+                            var htmlItem = DisplayMarkUpHelper.GenerateDirectoryEntryHtml(vm, RootUrl);
 
                             result.AppendLine(htmlItem);
                         }
@@ -159,14 +177,14 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
                 result.AppendLine("<p>No new entries this week.</p>");
             }
 
-            // Main Sponsors Section
-            AppendMainSponsors(mainSponsors, result);
+            // Main Sponsors Section (also link to listing pages only)
+            AppendMainSponsors(mainSponsors, result, link2Name, link3Name);
 
             // Category Sponsors Section
-            AppendCategorySponsors(categorySponsors, result);
+            AppendCategorySponsors(categorySponsors, result, link2Name, link3Name);
 
             // Subcategory Sponsors Section
-            AppendSubCategorySponsors(subCategorySponsors, result);
+            AppendSubCategorySponsors(subCategorySponsors, result, link2Name, link3Name);
 
             // Footer
             if (!string.IsNullOrEmpty(footerHtml))
@@ -182,6 +200,8 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
 
             return result.ToString();
         }
+
+        // --- TEXT VERSIONS BELOW ARE UNCHANGED (you can later swap links to listing pages there too) ---
 
         public static string GenerateDirectoryEntryText(IEnumerable<DirectoryEntry> entries)
         {
@@ -335,7 +355,9 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             return sb.ToString();
         }
 
-        private static void AppendMainSponsors(IEnumerable<SponsoredListing> mainSponsors, StringBuilder result)
+        // ------- UPDATED SPONSOR HTML HELPERS (listing page links only) -------
+
+        private static void AppendMainSponsors(IEnumerable<SponsoredListing> mainSponsors, StringBuilder result, string link2Name, string link3Name)
         {
             if (mainSponsors.Any())
             {
@@ -344,44 +366,37 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
                 result.AppendLine("<ul>");
                 foreach (var sponsor in mainSponsors)
                 {
-                    if (sponsor.DirectoryEntry != null)
-                    {
-                        AppendEntry(result, sponsor);
-                    }
+                    AppendEntry(result, sponsor, link2Name, link3Name);
                 }
-
                 result.AppendLine("</ul>");
             }
         }
 
-        private static void AppendCategorySponsors(IEnumerable<SponsoredListing> categorySponsors, StringBuilder result)
+        private static void AppendCategorySponsors(IEnumerable<SponsoredListing> categorySponsors, StringBuilder result, string link2Name, string link3Name)
         {
             if (categorySponsors.Any())
             {
                 result.AppendLine("<hr />");
                 result.AppendLine("<h1>Category Sponsors</h1>");
 
-                // Group sponsors by Category > Subcategory
                 var groupedSponsors = categorySponsors
                     .Where(s => s.DirectoryEntry?.SubCategory?.Category != null)
                     .GroupBy(s => new
                     {
-                        Category = s.DirectoryEntry?.SubCategory?.Category.Name,
-                        SubCategory = s.DirectoryEntry?.SubCategory?.Name
+                        Category = s.DirectoryEntry!.SubCategory!.Category!.Name,
+                        SubCategory = s.DirectoryEntry!.SubCategory!.Name
                     })
                     .OrderBy(g => g.Key.Category)
                     .ThenBy(g => g.Key.SubCategory);
 
                 foreach (var group in groupedSponsors)
                 {
-                    // Display the Category > Subcategory heading
                     result.AppendLine($"<h2>{group.Key.Category}</h2>");
                     result.AppendLine("<ul>");
 
-                    // Display the sponsors under this Subcategory
                     foreach (var sponsor in group)
                     {
-                        AppendEntry(result, sponsor);
+                        AppendEntry(result, sponsor, link2Name, link3Name);
                     }
 
                     result.AppendLine("</ul>");
@@ -389,33 +404,31 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             }
         }
 
-        private static void AppendSubCategorySponsors(IEnumerable<SponsoredListing> subCategorySponsors, StringBuilder result)
+        private static void AppendSubCategorySponsors(IEnumerable<SponsoredListing> subCategorySponsors, StringBuilder result, string link2Name, string link3Name)
         {
             if (subCategorySponsors.Any())
             {
                 result.AppendLine("<hr />");
                 result.AppendLine("<h1>Subcategory Sponsors</h1>");
 
-                // Group sponsors by Category > Subcategory
                 var groupedSponsors = subCategorySponsors
                     .Where(s => s.DirectoryEntry?.SubCategory?.Category != null)
                     .GroupBy(s => new
                     {
-                        Category = s.DirectoryEntry?.SubCategory?.Category.Name,
-                        SubCategory = s.DirectoryEntry?.SubCategory?.Name
+                        Category = s.DirectoryEntry!.SubCategory!.Category!.Name,
+                        SubCategory = s.DirectoryEntry!.SubCategory!.Name
                     })
                     .OrderBy(g => g.Key.Category)
                     .ThenBy(g => g.Key.SubCategory);
 
                 foreach (var group in groupedSponsors)
                 {
-                    result.AppendLine($"<h2>{FormattingHelper.SubcategoryFormatting(group.Key.Category, group.Key.SubCategory)}</h2>");
+                    result.AppendLine($"<h2>{group.Key.Category} &rsaquo; {group.Key.SubCategory}</h2>");
                     result.AppendLine("<ul>");
 
-                    // Display the sponsors under this Subcategory
                     foreach (var sponsor in group)
                     {
-                        AppendEntry(result, sponsor);
+                        AppendEntry(result, sponsor, link2Name, link3Name);
                     }
 
                     result.AppendLine("</ul>");
@@ -423,12 +436,35 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             }
         }
 
-        private static void AppendEntry(StringBuilder result, SponsoredListing sponsor)
+        /// <summary>
+        /// For HTML sponsor sections, render each sponsor via the same ViewModel + DisplayMarkUpHelper
+        /// so they also only link to the listing page.
+        /// </summary>
+        private static void AppendEntry(StringBuilder result, SponsoredListing sponsor, string link2Name, string link3Name)
         {
-            if (sponsor.DirectoryEntry != null)
+            if (sponsor.DirectoryEntry == null)
             {
-                result.AppendLine($"<li><a href='{sponsor.DirectoryEntry.Link}' target='_blank'>{sponsor.DirectoryEntry.Name}</a> - {sponsor.DirectoryEntry.Description}{(string.IsNullOrWhiteSpace(sponsor.DirectoryEntry.Note) ? "" : $" <i>(Note: {sponsor.DirectoryEntry.Note})</i>")}</li>");
+                return;
             }
+
+            var vms = ViewModelConverter.ConvertToViewModels(
+                new List<DirectoryEntry> { sponsor.DirectoryEntry },
+                DateDisplayOption.NotDisplayed,
+                ItemDisplayType.Email,
+                link2Name,
+                link3Name).ToList();
+
+            var vm = vms.First();
+
+            // Force listing-page link & remove Tor/I2P
+            vm.LinkType = LinkType.ListingPage;
+            vm.Link2 = null;
+            vm.Link2A = null;
+            vm.Link3 = null;
+            vm.Link3A = null;
+
+            var htmlItem = DisplayMarkUpHelper.GenerateDirectoryEntryHtml(vm, RootUrl);
+            result.AppendLine(htmlItem);
         }
     }
 }

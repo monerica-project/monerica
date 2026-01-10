@@ -114,20 +114,48 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("create", model);
             }
 
-            // Check if the link is already used
-            var link = model.Link.Trim();
-            var existingEntry = await this.directoryEntryRepository.GetByLinkAsync(link);
-            if (existingEntry != null)
+            // Normalize and check if the link is already used (with or without trailing slash)
+            var rawLink = model.Link?.Trim() ?? string.Empty;
+
+            // canonical: no trailing slash (except for single "/")
+            var linkWithoutSlash = rawLink;
+            while (linkWithoutSlash.Length > 1 && linkWithoutSlash.EndsWith("/"))
+            {
+                linkWithoutSlash = linkWithoutSlash[..^1];
+            }
+
+            var linkWithSlash = linkWithoutSlash + "/";
+
+            // Check both variants
+            var existingEntryByLink =
+                await this.directoryEntryRepository.GetByLinkAsync(linkWithoutSlash) ??
+                await this.directoryEntryRepository.GetByLinkAsync(linkWithSlash);
+
+            if (existingEntryByLink != null)
             {
                 await this.LoadLists();
 
-                this.ModelState.AddModelError("Link", "The provided link is already used by another entry.");
+                this.ModelState.AddModelError("Link", "The provided link is already used by another entry (with or without a trailing slash).");
+                return this.View("create", model);
+            }
+
+            var entryName = model.Name.Trim();
+            var existingEntryByNameSubcat =
+                await this.directoryEntryRepository.GetByNameAndSubcategoryAsync(entryName, model.SubCategoryId);
+
+            if (existingEntryByNameSubcat != null)
+            {
+                await this.LoadLists();
+
+                this.ModelState.AddModelError("Name", "The provided name is already used by another entry in this subcategory.");
                 return this.View("create", model);
             }
 
             model.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
-            model.Link = link;
-            model.Name = model.Name.Trim();
+
+            // Store canonical link (no trailing slash)
+            model.Link = linkWithoutSlash;
+            model.Name = entryName;
             model.DirectoryEntryKey = StringHelpers.UrlKey(model.Name);
             model.Description = model.Description?.Trim();
             model.Note = model.Note?.Trim();
@@ -141,6 +169,7 @@ namespace DirectoryManager.Web.Controllers
             model.Link3A = model.Link3A?.Trim();
             model.PgpKey = model.PgpKey?.Trim();
             model.ProofLink = model.ProofLink?.Trim();
+            model.VideoLink = model.VideoLink?.Trim();
 
             await this.directoryEntryRepository.CreateAsync(model);
 
@@ -157,7 +186,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     var normalizedName = FormattingHelper.NormalizeTagName(name);
                     var tag = await this.tagRepo.GetByKeyAsync(normalizedName.UrlKey())
-                           ?? await this.tagRepo.CreateAsync(normalizedName);
+                               ?? await this.tagRepo.CreateAsync(normalizedName);
                     await this.entryTagRepo.AssignTagAsync(model.DirectoryEntryId, tag.TagId);
                 }
             }
@@ -209,6 +238,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Link3 = entry.Link3?.Trim();
             existingEntry.Link3A = entry.Link3A?.Trim();
             existingEntry.ProofLink = entry.ProofLink?.Trim();
+            existingEntry.VideoLink = entry.VideoLink?.Trim();
             existingEntry.Name = entry.Name.Trim();
             existingEntry.DirectoryEntryKey = StringHelpers.UrlKey(entry.Name);
             existingEntry.Description = entry.Description?.Trim();
@@ -291,7 +321,8 @@ namespace DirectoryManager.Web.Controllers
                 SubCategoryId = directoryEntry.SubCategoryId,
                 CountryCode = directoryEntry.CountryCode,
                 PgpKey = directoryEntry.PgpKey,
-                ProofLink = directoryEntry.ProofLink
+                ProofLink = directoryEntry.ProofLink,
+                VideoLink = directoryEntry.VideoLink,
             };
 
             // Set category and subcategory names for each audit entry
@@ -641,6 +672,7 @@ namespace DirectoryManager.Web.Controllers
                 IsSponsored = isSponsor,
                 PgpKey = existingEntry.PgpKey,
                 ProofLink = existingEntry.ProofLink,
+                VideoLink = existingEntry.VideoLink,
                 FormattedLocation = BuildLocationHtml(existingEntry.Location, existingEntry.CountryCode, this.urlResolver)
             };
 
@@ -679,8 +711,11 @@ namespace DirectoryManager.Web.Controllers
                     ? $"Flag ({ccRaw})"
                     : $"Flag of {countryNameForAlt} ({ccRaw.ToUpperInvariant()})";
 
-                // margin-right so text doesn’t collide with the flag
-                flagHtml = $"<img class=\"country-flag me-2 align-text-bottom\" src=\"/images/flags/{ccLower}.png\" alt=\"{WebUtility.HtmlEncode(altTitle)}\" title=\"{WebUtility.HtmlEncode(countryNameForAlt)}\" /> ";
+                flagHtml =
+                    $"<img class=\"country-flag me-2 align-text-bottom\" " +
+                    $"src=\"/images/flags/{ccLower}.png\" " +
+                    $"alt=\"{WebUtility.HtmlEncode(altTitle)}\" " +
+                    $"title=\"{WebUtility.HtmlEncode(countryNameForAlt)}\" /> ";
             }
 
             // Compute country name + link (if available)
@@ -710,21 +745,27 @@ namespace DirectoryManager.Web.Controllers
                 return $"{flagHtml}{WebUtility.HtmlEncode(location ?? string.Empty)}";
             }
 
-            // Do we already have the country name inside the location string?
-            var idx = !string.IsNullOrWhiteSpace(location)
-                ? location!.IndexOf(countryName!, StringComparison.OrdinalIgnoreCase)
-                : -1;
+            // If location already ends with the country (standalone), link ONLY that trailing country.
+            // Examples it will match:
+            // "Mexico City, Mexico"
+            // "Mexico"
+            // "Mexico City ,   Mexico"
+            // It will NOT match "Mexico City" (because Mexico isn't at the end).
+            if (!string.IsNullOrWhiteSpace(location))
+            {
+                var pattern = $@"(?i)(?<sep>,\s*|\s*)\b{Regex.Escape(countryName!)}\b\s*$";
+                var match = Regex.Match(location!, pattern);
 
-            if (idx >= 0)
-            {
-                // Replace first occurrence with a link, preserve punctuation (no extra spaces before commas)
-                var before = location!.Substring(0, idx);
-                var after = location!.Substring(idx + countryName!.Length);
-                return $"{flagHtml}{WebUtility.HtmlEncode(before)}{anchorHtml}{WebUtility.HtmlEncode(after)}";
-            }
-            else if (!string.IsNullOrWhiteSpace(location))
-            {
-                // Append ", <linked country>" with exactly one comma+space
+                if (match.Success)
+                {
+                    var start = match.Index;
+                    var before = location!.Substring(0, start);
+                    var sep = match.Groups["sep"].Value; // keep whatever comma/space was there
+
+                    return $"{flagHtml}{WebUtility.HtmlEncode(before)}{WebUtility.HtmlEncode(sep)}{anchorHtml}";
+                }
+
+                // Otherwise append ", <linked country>" (exactly one comma + space)
                 var left = location!.TrimEnd();
                 if (left.EndsWith(",", StringComparison.Ordinal))
                 {
@@ -732,16 +773,14 @@ namespace DirectoryManager.Web.Controllers
                 }
                 else
                 {
-                    left = left + ", ";
+                    left += ", ";
                 }
 
                 return $"{flagHtml}{WebUtility.HtmlEncode(left)}{anchorHtml}";
             }
-            else
-            {
-                // No location text; only the linked country (with flag)
-                return $"{flagHtml}{anchorHtml}";
-            }
+
+            // No location text; only the linked country (with flag)
+            return $"{flagHtml}{anchorHtml}";
         }
 
         private async Task LoadLists()

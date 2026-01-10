@@ -389,7 +389,7 @@ namespace DirectoryManager.Web.Controllers
                 lastChangeToSubcategoryItem,
                 lastChangeToSubcategoryAd,
                 mostRecentUpdateDate
-            }.Max().AddHours(1); // slight offset to ensure update pickup
+            }.Max();
 
             // Add base subcategory page
             siteMapHelper.SiteMapItems.Add(new SiteMapItem

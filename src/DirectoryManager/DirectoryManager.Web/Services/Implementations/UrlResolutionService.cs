@@ -115,5 +115,43 @@ namespace DirectoryManager.Web.Services.Implementations
             // If canonicalDomain is empty, fall back to relative
             return string.IsNullOrEmpty(this.canonicalDomain) ? path : $"{this.canonicalDomain}{path}";
         }
+
+        public string ExtractPathFromFullUrl(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                return string.Empty;
+            }
+
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
+            {
+                // Not an absolute URL — treat it as a relative path and normalize
+                return "/" + url.TrimStart('/');
+            }
+
+            // Normalize domains (ctor already trimmed)
+            var domains = new[]
+            {
+                this.appDomain,
+                this.canonicalDomain
+            }
+            .Where(d => !string.IsNullOrEmpty(d))
+            .Select(d => d.Replace("https://", "")
+                         .Replace("http://", "")
+                         .TrimEnd('/'))
+            .ToList();
+
+            var host = uri.Host;
+
+            // If URL matches one of the known domains → return only the path
+            if (domains.Any(d => host.Equals(d, StringComparison.OrdinalIgnoreCase)))
+            {
+                // uri.AbsolutePath ALWAYS starts with "/"
+                return uri.AbsolutePath;
+            }
+
+            // If it's some other domain → return original URL (or choose different behavior)
+            return url;
+        }
     }
 }

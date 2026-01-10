@@ -89,6 +89,9 @@ namespace DirectoryManager.DisplayFormatting.Models
         [MaxLength(500)]
         public string? ProofLink { get; set; }
 
+        [MaxLength(500)]
+        public string? VideoLink { get; set; }
+
         public string? FormattedLocation { get; set; }
     }
 }

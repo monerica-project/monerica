@@ -33,6 +33,10 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Proof Link", Prompt = "Where it shows acceptance on site if NOT on main link")]
         public string? ProofLink { get; set; }
 
+        [MaxLength(500)]
+        [Display(Name = "Video Link", Prompt = "Video link of using the site")]
+        public string? VideoLink { get; set; }
+
         [MaxLength(75)]
         [Display(Name = "Contact", Prompt = "@yourname on Twitter/ GitHub, etc.")]
         public string? Contact { get; set; }

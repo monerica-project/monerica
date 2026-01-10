@@ -31,7 +31,22 @@
         @Html.Raw(ViewBag.Differences)
     }
  
-    <a target="_blank" href="@Model.Link">@Model.Link</a>
+    <span>Link:</span> <a target="_blank" href="@Model.Link">@Model.Link</a>
+
+    @if (!string.IsNullOrEmpty(Model.ProofLink))
+    {
+        <br />
+        <span>Proof Link:</span>
+        <a target="_blank" href="@Model.ProofLink">@Model.ProofLink</a>
+    }
+    
+    @if (!string.IsNullOrEmpty(Model.VideoLink))
+    {
+        <br />
+        <span>Video Link:</span>
+        <a target="_blank" href="@Model.VideoLink">@Model.VideoLink</a>
+    }
+            
     <br />
     <br />
     <div class="form-group">
@@ -126,6 +141,11 @@
         <div class="form-group">
             <label asp-for="ProofLink">Proof Link (where it shows acceptance on site)</label>
             <input class="input-width" asp-for="ProofLink" />
+        </div>
+
+        <div class="form-group">
+            <label asp-for="VideoLink">Video Link (where it shows using site)</label>
+            <input class="input-width" asp-for="VideoLink" />
         </div>
 
     <div class="form-group">

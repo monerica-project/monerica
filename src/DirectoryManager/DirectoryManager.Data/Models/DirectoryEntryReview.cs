@@ -48,6 +48,9 @@ namespace DirectoryManager.Data.Models
         [Column(TypeName = "nvarchar(max)")]
         public string Body { get; set; } = string.Empty;
 
+        [Column(TypeName = "nvarchar(max)")]
+        public string RejectionReason { get; set; } = string.Empty;
+
         // Moderation & lifecycle
         public ReviewModerationStatus ModerationStatus { get; set; } = ReviewModerationStatus.Pending;
 

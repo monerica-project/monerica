@@ -23,7 +23,6 @@ namespace DirectoryManager.Web.Controllers
 {
     public class SponsoredListingController : BaseController
     {
-        private const int MaxMainSponsorsPerSubcategory = 2;
 
         private static readonly PaymentStatus[] HoldExtendingStatuses =
         {
@@ -251,7 +250,7 @@ namespace DirectoryManager.Web.Controllers
                 var subId = entry.SubCategoryId; // the subcategory of the listing being selected
                 var activeInSub = await this.GetActiveMainCountForSubcategoryAsync(subId).ConfigureAwait(false);
 
-                if (activeInSub >= MaxMainSponsorsPerSubcategory)
+                if (activeInSub >= DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsorsPerSubcategory)
                 {
                     var msg = await this.BuildMainSubcategoryLimitMessageAsync(subId).ConfigureAwait(false);
                     return this.BadRequest(new { Error = msg });
@@ -477,7 +476,7 @@ namespace DirectoryManager.Web.Controllers
                     var subId = entry.SubCategoryId;
 
                     var activeCount = await this.GetActiveMainCountForSubcategoryAsync(subId).ConfigureAwait(false);
-                    if (activeCount >= MaxMainSponsorsPerSubcategory)
+                    if (activeCount >= DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsorsPerSubcategory)
                     {
                         var msg = await this.BuildMainSubcategoryLimitMessageAsync(subId).ConfigureAwait(false);
                         return this.BadRequest(new { Error = msg });
@@ -582,7 +581,7 @@ namespace DirectoryManager.Web.Controllers
             if (!isExtension && offer.SponsorshipType == SponsorshipType.MainSponsor)
             {
                 var activeInSub = await this.GetActiveMainCountForSubcategoryAsync(entry.SubCategoryId).ConfigureAwait(false);
-                if (activeInSub >= MaxMainSponsorsPerSubcategory)
+                if (activeInSub >= DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsorsPerSubcategory)
                 {
                     var msg = await this.BuildMainSubcategoryLimitMessageAsync(entry.SubCategoryId).ConfigureAwait(false);
                     return this.BadRequest(new { Error = msg });
@@ -1806,7 +1805,7 @@ namespace DirectoryManager.Web.Controllers
                 : string.Empty;
 
             return $"No ad space available right now for Main Sponsor in {scope}. " +
-                   $"This subcategory is limited to {MaxMainSponsorsPerSubcategory} Main Sponsors and it is full." +
+                   $"This subcategory is limited to {DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsorsPerSubcategory} Main Sponsors and it is full." +
                    nextText;
         }
 
@@ -1829,17 +1828,25 @@ namespace DirectoryManager.Web.Controllers
         private async Task<bool> CanPurchaseMainWithinSubcategoryAsync(int subCategoryId)
         {
             var active = await this.GetActiveMainCountForSubcategoryAsync(subCategoryId).ConfigureAwait(false);
-            return active < MaxMainSponsorsPerSubcategory; // allow until we hit 2 active
+            return active < DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsorsPerSubcategory; // allow until we hit 2 active
         }
 
         private async Task<DateTime?> GetNextOpeningUtcForMainSubcategoryAsync(int subCategoryId)
         {
+            var utcNow = DateTime.UtcNow;
+
             var all = await this.sponsoredListingRepository
                 .GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor)
                 .ConfigureAwait(false);
 
-            var scoped = all.Where(x => x.SubCategoryId == subCategoryId);
-            return scoped.Any() ? scoped.Min(x => (DateTime?)x.CampaignEndDate) : null;
+            var next = all
+                .Where(x => x.SubCategoryId == subCategoryId &&
+                            x.CampaignEndDate > utcNow) // only future openings
+                .OrderBy(x => x.CampaignEndDate) // soonest first
+                .Select(x => (DateTime?)x.CampaignEndDate)
+                .FirstOrDefault();                       // null if none
+
+            return next;
         }
 
         private async Task<string> BuildCheckoutInProcessMessageForMainSubcategoryAsync(int subCategoryId)
@@ -1849,7 +1856,7 @@ namespace DirectoryManager.Web.Controllers
 
             var (active, reservations) = await this.GetMainSubcategoryCountsAsync(subCategoryId).ConfigureAwait(false);
 
-            if (active >= MaxMainSponsorsPerSubcategory)
+            if (active >= DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsorsPerSubcategory)
             {
                 var next = await this.GetNextOpeningUtcForMainSubcategoryAsync(subCategoryId).ConfigureAwait(false);
                 if (next.HasValue)

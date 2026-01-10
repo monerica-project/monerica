@@ -52,6 +52,11 @@ namespace DirectoryManager.Data.Models
         [MaxLength(500)]
         public string? ProofLink { get; set; } = string.Empty;
 
+        /// <summary>
+        /// An optional link that shows a video for the directory entry.
+        /// </summary>
+        public string? VideoLink { get; set; } = string.Empty;
+
         [Required]
         public DirectoryStatus DirectoryStatus { get; set; }
 
@@ -112,7 +117,9 @@ namespace DirectoryManager.Data.Models
                 this.Contact == other.Contact &&
                 this.CountryCode == other.CountryCode &&
                 this.PgpKey == other.PgpKey &&
-                this.SubCategoryId == other.SubCategoryId;
+                this.SubCategoryId == other.SubCategoryId &&
+                this.ProofLink == other.ProofLink &&
+                this.VideoLink == other.VideoLink;
         }
 
         public override int GetHashCode()

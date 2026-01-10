@@ -98,8 +98,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 AppendAdditionalLinks(sb, model);
             }
 
-            if (model.ItemDisplayType == ItemDisplayType.Featured ||
-                model.LinkType == LinkType.ListingPage)
+            if (model.LinkType == LinkType.ListingPage)
             {
                 AppendExternalLinkIcon(sb, model);
             }
@@ -137,7 +136,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             {
                 sb.Append("<li>");
                 sb.AppendFormat(
-                    "<pre>{0} Additions:</pre>",
+                    "<pre>{0}:</pre>",
                     DateTime.ParseExact(group.Date, Common.Constants.StringConstants.DateFormat, CultureInfo.InvariantCulture)
                         .ToString(Common.Constants.StringConstants.DateFormat));
 
