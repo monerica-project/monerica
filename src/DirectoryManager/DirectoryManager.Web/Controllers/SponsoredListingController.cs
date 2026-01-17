@@ -890,6 +890,66 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            // Captcha context
+            var ctx = (this.Request.Form["CaptchaContext"].ToString() ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(ctx))
+            {
+                ctx = "sponsoredlisting-confirmnowpayments";
+            }
+
+            // Validate CAPTCHA
+            var captchaOk = CaptchaTools.Validate(this.HttpContext, ctx, this.Request.Form["Captcha"].ToString(), consume: true);
+            if (!captchaOk)
+            {
+                // Rebuild the same view model like your email-validation failure path does
+                var sponsoredListingOfferFail = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
+                if (sponsoredListingOfferFail == null)
+                {
+                    return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
+                }
+
+                var directoryEntryFail = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
+                if (directoryEntryFail == null)
+                {
+                    return this.BadRequest(new { Error = StringConstants.DirectoryEntryNotFound });
+                }
+
+                var typeIdForGroupFail = sponsoredListingOfferFail.SponsorshipType switch
+                {
+                    SponsorshipType.MainSponsor => 0,
+                    SponsorshipType.CategorySponsor => directoryEntryFail.SubCategory?.CategoryId ?? 0,
+                    SponsorshipType.SubcategorySponsor => directoryEntryFail.SubCategoryId,
+                    _ => 0,
+                };
+
+                if (sponsoredListingOfferFail.SponsorshipType == SponsorshipType.SubcategorySponsor)
+                {
+                    this.ViewBag.SubCategoryId = typeIdForGroupFail;
+                }
+                else if (sponsoredListingOfferFail.SponsorshipType == SponsorshipType.CategorySponsor)
+                {
+                    this.ViewBag.CategoryId = typeIdForGroupFail;
+                }
+
+                var link2NameFail = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
+                var link3NameFail = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
+                var currentFail = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(sponsoredListingOfferFail.SponsorshipType);
+
+                var normalizedRefFail = ReferralCodeHelper.NormalizeOrNull(referralCode);
+                this.ViewBag.ReferralCode = normalizedRefFail ?? string.Empty;
+
+                await this.TryAttachReservationAsync(rsvId, ReservationGroupHelper.BuildReservationGroupName(
+                    sponsoredListingOfferFail.SponsorshipType, typeIdForGroupFail));
+
+                var vmFail = GetConfirmationModel(sponsoredListingOfferFail, directoryEntryFail, link2NameFail, link3NameFail, currentFail);
+                vmFail.CanCreateSponsoredListing = true;
+
+                this.ModelState.AddModelError("Captcha", "Incorrect CAPTCHA. Please try again.");
+                this.ViewBag.PrefillEmail = email;
+
+                return this.View("ConfirmNowPayments", vmFail);
+            }
+
             var sponsoredListingOffer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
             if (sponsoredListingOffer == null)
             {
