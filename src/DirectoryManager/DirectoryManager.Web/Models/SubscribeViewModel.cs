@@ -15,5 +15,6 @@ namespace DirectoryManager.Web.Models
         // Ui feedback
         public string? ErrorMessage { get; set; }
         public string? SuccessMessage { get; set; }
+        public string? Captcha { get; set; }
     }
 }

@@ -4,6 +4,7 @@ using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -102,6 +103,12 @@ namespace DirectoryManager.Web.Controllers
                 var subcat = await this.subcategoryRepository
                                          .GetByIdAsync(notification.TypeId.Value)
                                          .ConfigureAwait(false);
+
+                if (subcat == null)
+                {
+                    return this.View(notification);
+                }
+
                 var cat = await this.categoryRepository
                                       .GetByIdAsync(subcat.CategoryId)
                                       .ConfigureAwait(false);
@@ -114,6 +121,12 @@ namespace DirectoryManager.Web.Controllers
                 var cat = await this.categoryRepository
                                       .GetByIdAsync(notification.TypeId.Value)
                                       .ConfigureAwait(false);
+
+                if (cat == null)
+                {
+                    return this.View(notification);
+                }
+
                 this.TempData[StringConstants.CategoryName] = cat.Name;
             }
 
@@ -213,6 +226,22 @@ namespace DirectoryManager.Web.Controllers
         [Route("sponsoredlistingnotification/subscribe")]
         public async Task<IActionResult> Subscribe(SubscribeViewModel vm)
         {
+            // Captcha context
+            var ctx = (this.Request.Form["CaptchaContext"].ToString() ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(ctx))
+            {
+                ctx = "sponsoredlistingnotification";
+            }
+
+            // Validate CAPTCHA (consume so it can't be replayed)
+            var captchaOk = CaptchaTools.Validate(this.HttpContext, ctx, vm.Captcha, consume: true);
+            if (!captchaOk)
+            {
+                // Keep your existing view-level messaging pattern
+                vm.ErrorMessage = "Incorrect CAPTCHA. Please try again.";
+                return this.View(vm);
+            }
+
             vm.Email = (vm.Email ?? string.Empty).Trim();
 
             // Validate email with the shared helper
@@ -245,5 +274,6 @@ namespace DirectoryManager.Web.Controllers
             vm.SuccessMessage = "Subscription successful!";
             return this.View(vm);
         }
+
     }
 }

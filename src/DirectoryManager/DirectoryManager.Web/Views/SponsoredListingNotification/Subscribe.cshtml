@@ -39,18 +39,28 @@
             </p>
         }
 
-    
-        <form asp-action="Subscribe" method="post">
-        <input type="hidden" asp-for="SponsorshipType" />
-        <input type="hidden" asp-for="TypeId" />
+       <form asp-action="Subscribe" method="post">
+            <input type="hidden" asp-for="SponsorshipType" />
+            <input type="hidden" asp-for="TypeId" />
 
-        <div class="form-group">
-            <label asp-for="Email">Email Address:</label>
-            <input asp-for="Email" class="form-control" style="width:18%;" />
-            <span asp-validation-for="Email" class="text-danger"></span>
-        </div>
+            <div class="form-group">
+                <label asp-for="Email">Email Address:</label>
+                <input asp-for="Email" class="form-control" style="width:18%;" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
 
-        <button type="submit" class="btn  btn-primary">Subscribe</button>
-    </form>
+            <br />
+
+            <div>
+                <!-- Shared, no-JS CAPTCHA block (context = "sponsoredlistingnotification") -->
+                @await Html.PartialAsync("_CaptchaBlock", "sponsoredlistingnotification")
+                <div class="text-danger" style="margin-top:4px;">
+                    @Html.ValidationMessage("Captcha")
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Subscribe</button>
+        </form>
+
 }
 }
