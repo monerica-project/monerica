@@ -1,0 +1,16 @@
+﻿@using DirectoryManager.Web.Constants;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@{
+    ViewData[StringConstants.TitleHeader] = "About";
+}
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<hr />
+@await Html.PartialAsync("_BackToHome")
+<hr />
+    @Html.Raw(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.AboutHtml))
+}

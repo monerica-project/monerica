@@ -1126,6 +1126,7 @@ a.external-link {
         border-radius: 0.16em;
         vertical-align: middle;
         box-sizing: content-box;
+        font-family: Arial;
     }
 
     a.external-link:hover::after {

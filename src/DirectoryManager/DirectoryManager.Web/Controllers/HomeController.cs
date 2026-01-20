@@ -67,6 +67,14 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
+        [HttpGet("about")]
+        public async Task<IActionResult> AboutAsync()
+        {
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
+            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "about");
+            return this.View();
+        }
+
         [HttpGet("newest")]
         [HttpGet("newest/page/{pageNumber:int}")]
         public async Task<IActionResult> Newest(int pageNumber = 1, int pageSize = IntegerConstants.MaxPageSize)

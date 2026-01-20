@@ -44,6 +44,7 @@
         AppDomain = 39,
         TextIntro = 40,
         FAQHtml = 41,
-        SearchBlacklistRedirectUrl = 42
+        SearchBlacklistRedirectUrl = 42,
+        AboutHtml = 43
     }
 }
