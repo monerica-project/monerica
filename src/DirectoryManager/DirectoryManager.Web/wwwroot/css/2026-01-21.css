@@ -1,4 +1,4 @@
-﻿html {
+html {
     overflow-y: scroll;
     scroll-behavior: smooth;
 }
@@ -861,7 +861,7 @@ ul.search-results li.sponsored {
 
     .sidebar a {
         display: block;
-        padding: 0.5rem 1rem;
+        padding: 0.4rem 1rem;
         color: #eee;
         text-decoration: none;
     }
@@ -1126,6 +1126,7 @@ a.external-link {
         border-radius: 0.16em;
         vertical-align: middle;
         box-sizing: content-box;
+        font-family: Arial;
     }
 
     a.external-link:hover::after {
