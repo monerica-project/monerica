@@ -47,6 +47,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
+        public async Task<DirectoryEntry?> GetByKey(string directoryEntryKey)
+        {
+            return await this.BaseQuery()
+                .FirstOrDefaultAsync(de => de.DirectoryEntryKey == directoryEntryKey)
+                .ConfigureAwait(false);
+        }
+
         public async Task<DirectoryEntry?> GetByLinkAsync(string link)
         {
             return await this.BaseQuery()

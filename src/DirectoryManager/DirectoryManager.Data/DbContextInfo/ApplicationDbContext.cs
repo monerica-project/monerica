@@ -95,6 +95,10 @@ namespace DirectoryManager.Data.DbContextInfo
                    .IsUnique();
 
             builder.Entity<DirectoryEntry>()
+                   .HasIndex(e => new { e.DirectoryEntryKey })
+                   .IsUnique();
+
+            builder.Entity<DirectoryEntry>()
                     .HasIndex(e => e.SubCategoryId)
                     .HasDatabaseName("IX_DirectoryEntries_SubCategoryId");
 

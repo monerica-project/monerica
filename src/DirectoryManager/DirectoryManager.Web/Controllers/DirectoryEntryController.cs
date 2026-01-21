@@ -540,26 +540,13 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("{categorykey}/{subcategorykey}/{directoryEntryKey}")]
-        public async Task<IActionResult> DirectoryEntryView(string categoryKey, string subCategoryKey, string directoryEntryKey)
+        [HttpGet("site/{directoryEntryKey}")]
+        public async Task<IActionResult> DirectoryEntryView(string directoryEntryKey)
         {
             var canoicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canoicalDomain, $"{categoryKey}/{subCategoryKey}/{directoryEntryKey}");
-            var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
+            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canoicalDomain, $"site/{directoryEntryKey}");
 
-            if (category == null)
-            {
-                return this.NotFound();
-            }
-
-            var subCategory = await this.subCategoryRepository.GetByCategoryIdAndKeyAsync(category.CategoryId, subCategoryKey);
-
-            if (subCategory == null)
-            {
-                return this.NotFound();
-            }
-
-            var existingEntry = await this.directoryEntryRepository.GetBySubCategoryAndKeyAsync(subCategory.SubCategoryId, directoryEntryKey);
+            var existingEntry = await this.directoryEntryRepository.GetByKey(directoryEntryKey);
 
             if (existingEntry == null || existingEntry.DirectoryStatus == DirectoryStatus.Removed)
             {
@@ -676,10 +663,13 @@ namespace DirectoryManager.Web.Controllers
                 FormattedLocation = BuildLocationHtml(existingEntry.Location, existingEntry.CountryCode, this.urlResolver)
             };
 
+            var subcategory = await this.subCategoryRepository.GetByIdAsync(existingEntry.SubCategoryId);
+            var category = await this.categoryRepository.GetByIdAsync(subcategory.CategoryId);
+
             this.ViewBag.CategoryName = category.Name;
-            this.ViewBag.SubCategoryName = subCategory.Name;
-            this.ViewBag.CategoryKey = categoryKey;
-            this.ViewBag.SubCategoryKey = subCategoryKey;
+            this.ViewBag.SubCategoryName = subcategory.Name;
+            this.ViewBag.CategoryKey = category.CategoryKey;
+            this.ViewBag.SubCategoryKey = subcategory.SubCategoryKey;
 
             return this.View("DirectoryEntryView", model);
         }

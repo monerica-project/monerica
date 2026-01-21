@@ -188,10 +188,8 @@ namespace DirectoryManager.Web.Controllers
                 siteMapHelper.SiteMapItems.Add(new SiteMapItem
                 {
                     Url = string.Format(
-                            "{0}/{1}/{2}/{3}",
+                            "{0}/site/{1}",
                             WebRequestHelper.GetCurrentDomain(this.HttpContext),
-                            entry.SubCategory?.Category.CategoryKey,
-                            entry.SubCategory?.SubCategoryKey,
                             entry.DirectoryEntryKey),
                     Priority = 0.7,
                     ChangeFrequency = ChangeFrequency.Weekly,

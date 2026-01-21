@@ -16,7 +16,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         {
             return directoryEntries.Select(entry => new DirectoryEntryViewModel
             {
-                ItemPath = string.Format("/{0}/{1}/{2}", entry.SubCategory?.Category.CategoryKey, entry.SubCategory?.SubCategoryKey, entry.DirectoryEntryKey),
+                ItemPath = string.Format("/site/{0}", entry.DirectoryEntryKey),
                 DateOption = option,
                 IsSponsored = false,
                 Link2Name = link2Name,
