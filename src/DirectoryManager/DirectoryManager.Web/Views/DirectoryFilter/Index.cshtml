@@ -1,0 +1,327 @@
+﻿@using DirectoryManager.Data.Enums
+@using Microsoft.AspNetCore.WebUtilities
+@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.Web.Models
+@using DirectoryManager.Web.Services.Interfaces
+@inject IUrlResolutionService urlService
+@model DirectoryFilterViewModel
+
+@{
+    Layout = "_CenteredLayout";
+    ViewData["Title"] = "Directory Filter";
+}
+
+@section PageContent {
+
+<h1>@ViewData["Title"]</h1>
+<hr />
+@await Html.PartialAsync("_BackToHome")
+<hr />
+
+<form method="get" class="mb-3">
+
+        <fieldset style="border:1px solid #444; padding:10px; border-radius:8px; margin-bottom:12px;">
+            <legend style="padding:0 8px;">Status</legend>
+
+            @{
+                var selected = new HashSet<DirectoryStatus>(Model.Query.Statuses ?? new());
+
+                var orderedStatuses = new[]
+                {
+                DirectoryStatus.Verified,
+                DirectoryStatus.Admitted,
+                DirectoryStatus.Questionable,
+                DirectoryStatus.Scam
+                };
+            }
+
+            @foreach (var st in orderedStatuses)
+            {
+                <label style="display:inline-block; margin-right:10px;">
+                    @if (selected.Contains(st))
+                    {
+                        <input type="checkbox" name="Statuses" value="@st" checked="checked" />
+                    }
+                    else
+                    {
+                        <input type="checkbox" name="Statuses" value="@st" />
+                    }
+                    @st
+                </label>
+            }
+        </fieldset>
+
+
+    <fieldset style="border:1px solid #444; padding:10px; border-radius:8px; margin-bottom:12px;">
+        <legend style="padding:0 8px;">Location / Links</legend>
+
+        <label style="display:block; margin-bottom:8px;">
+            Country:
+            <select name="Country">
+                @if (string.IsNullOrWhiteSpace(Model.Query.Country))
+                {
+                    <option value="" selected="selected">All</option>
+                }
+                else
+                {
+                    <option value="">All</option>
+                }
+
+                @foreach (var c in Model.CountryOptions)
+                {
+                    if (string.Equals(Model.Query.Country, c.Code, StringComparison.OrdinalIgnoreCase))
+                    {
+                        <option value="@c.Code" selected="selected">@c.Name (@c.Code)</option>
+                    }
+                    else
+                    {
+                        <option value="@c.Code">@c.Name (@c.Code)</option>
+                    }
+                }
+            </select>
+        </label>
+
+        <label style="margin-right:14px;">
+            @if (Model.Query.HasVideo)
+            {
+                <input type="checkbox" name="HasVideo" value="true" checked="checked" />
+            }
+            else
+            {
+                <input type="checkbox" name="HasVideo" value="true" />
+            }
+            Has Video
+        </label>
+
+        <label style="margin-right:14px;">
+            @if (Model.Query.HasTor)
+            {
+                <input type="checkbox" name="HasTor" value="true" checked="checked" />
+            }
+            else
+            {
+                <input type="checkbox" name="HasTor" value="true" />
+            }
+            Has Tor (.onion)
+        </label>
+
+        <label style="margin-right:14px;">
+            @if (Model.Query.HasI2p)
+            {
+                <input type="checkbox" name="HasI2p" value="true" checked="checked" />
+            }
+            else
+            {
+                <input type="checkbox" name="HasI2p" value="true" />
+            }
+            Has I2P (.i2p)
+        </label>
+    </fieldset>
+
+    <fieldset style="border:1px solid #444; padding:10px; border-radius:8px; margin-bottom:12px;">
+        <legend style="padding:0 8px;">Category</legend>
+
+        <label style="display:block; margin-bottom:8px;">
+            Categorization:
+            <select name="CategoryId">
+                @if (!Model.Query.CategoryId.HasValue || Model.Query.CategoryId.Value <= 0)
+                {
+                    <option value="" selected="selected">All</option>
+                }
+                else
+                {
+                    <option value="">All</option>
+                }
+
+                @foreach (var cat in Model.CategoryOptions)
+                {
+                    if (Model.Query.CategoryId == cat.Id)
+                    {
+                        <option value="@cat.Id" selected="selected">@cat.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@cat.Id">@cat.Name</option>
+                    }
+                }
+            </select>
+        </label>
+
+        @if (Model.Query.CategoryId.HasValue && Model.Query.CategoryId.Value > 0)
+        {
+            <label style="display:block; margin-bottom:8px;">
+                Subcategory:
+                <select name="SubCategoryId">
+                    @if (!Model.Query.SubCategoryId.HasValue || Model.Query.SubCategoryId.Value <= 0)
+                    {
+                        <option value="" selected="selected">All</option>
+                    }
+                    else
+                    {
+                        <option value="">All</option>
+                    }
+
+                    @foreach (var sc in Model.SubCategoryOptions)
+                    {
+                        if (Model.Query.SubCategoryId == sc.Id)
+                        {
+                            <option value="@sc.Id" selected="selected">@sc.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@sc.Id">@sc.Name</option>
+                        }
+                    }
+                </select>
+            </label>
+        }
+    </fieldset>
+
+    <fieldset style="border:1px solid #444; padding:10px; border-radius:8px; margin-bottom:12px;">
+        <legend style="padding:0 8px;">Sort</legend>
+
+        <label>
+            Sort by:
+            <select name="Sort">
+                @{
+                    var sort = Model.Query.Sort;
+                }
+
+                @if (sort == DirectoryFilterSort.Newest)
+                {
+                    <option value="Newest" selected="selected">Newest</option>
+                }
+                else
+                {
+                    <option value="Newest">Newest</option>
+                }
+
+                @if (sort == DirectoryFilterSort.Oldest)
+                {
+                    <option value="Oldest" selected="selected">Oldest</option>
+                }
+                else
+                {
+                    <option value="Oldest">Oldest</option>
+                }
+
+                @if (sort == DirectoryFilterSort.HighestRating)
+                {
+                    <option value="HighestRating" selected="selected">Highest rating</option>
+                }
+                else
+                {
+                    <option value="HighestRating">Highest rating</option>
+                }
+
+                @if (sort == DirectoryFilterSort.LowestRating)
+                {
+                    <option value="LowestRating" selected="selected">Lowest rating</option>
+                }
+                else
+                {
+                    <option value="LowestRating">Lowest rating</option>
+                }
+            </select>
+        </label>
+    </fieldset>
+
+    <input type="hidden" name="Page" value="1" />
+    <input type="hidden" name="PageSize" value="10" />
+
+    <button type="submit" class="btn btn-primary" style="padding:6px 12px;">Apply filters</button>
+</form>
+
+@if (!Model.Entries.Any())
+{
+    <p>No results found.</p>
+}
+else
+{
+    <p><i>Showing @Model.Entries.Count of @Model.TotalCount results.</i></p>
+
+    <ul class="search-results">
+        @foreach (var e in Model.Entries)
+        {
+            @Html.Raw(DisplayMarkUpHelper.GenerateSearchResultHtml(e, urlService.BaseUrl))
+        }
+    </ul>
+     
+
+
+    int totalPages = (int)Math.Ceiling(Model.TotalCount / (double)Model.Query.PageSize);
+    int currentPage = Model.Query.Page < 1 ? 1 : Model.Query.Page;
+
+    // Build base query dict from current request, excluding Page + Statuses (multi-value)
+    var current = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+    foreach (var kv in Context.Request.Query)
+    {
+        if (string.Equals(kv.Key, "Page", StringComparison.OrdinalIgnoreCase))
+            continue;
+
+        if (string.Equals(kv.Key, "Statuses", StringComparison.OrdinalIgnoreCase))
+            continue;
+
+        current[kv.Key] = kv.Value.ToString();
+    }
+
+    string BuildUrlForPage(int page)
+    {
+        var url = Url.Action("Index", "DirectoryFilter") ?? "/filter";
+
+        // Single-value params
+        var qs = new Dictionary<string, string?>(current)
+        {
+            ["Page"] = page.ToString(),
+            ["PageSize"] = Model.Query.PageSize.ToString()
+        };
+
+        var tmp = QueryHelpers.AddQueryString(url, qs);
+
+        // Multi-value Statuses
+        if (Model.Query.Statuses is { Count: > 0 })
+        {
+            foreach (var st in Model.Query.Statuses)
+            {
+                tmp = QueryHelpers.AddQueryString(tmp, "Statuses", st.ToString());
+            }
+        }
+
+        return tmp;
+    }
+
+    bool hasPrev = currentPage > 1;
+    bool hasNext = currentPage < totalPages;
+
+    string prevUrl = hasPrev ? BuildUrlForPage(currentPage - 1) : "#";
+    string nextUrl = hasNext ? BuildUrlForPage(currentPage + 1) : "#";
+
+
+<nav aria-label="Directory pagination">
+    <ul class="pagination">
+        <li class="page-item @(hasPrev ? "" : "disabled")">
+            <a class="page-link" href="@(hasPrev ? prevUrl : "#")" aria-label="Previous" tabindex="@(hasPrev ? "0" : "-1")">
+                &laquo; Previous
+            </a>
+        </li>
+
+        <li class="page-item disabled">
+            <span class="page-link">
+                Page @currentPage of @totalPages
+            </span>
+        </li>
+
+        <li class="page-item @(hasNext ? "" : "disabled")">
+            <a class="page-link" href="@(hasNext ? nextUrl : "#")" aria-label="Next" tabindex="@(hasNext ? "0" : "-1")">
+                Next &raquo;
+            </a>
+        </li>
+    </ul>
+</nav>
+
+}
+
+<hr />
+@await Html.PartialAsync("_SponsoredListingPartial")
+
+}

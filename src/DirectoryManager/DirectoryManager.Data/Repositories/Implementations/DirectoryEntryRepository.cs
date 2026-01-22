@@ -892,6 +892,213 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return new PagedResult<DirectoryEntry> { TotalCount = total, Items = items };
         }
 
+        public async Task<List<IdNameOption>> ListCategoryOptionsAsync()
+        {
+            // Derive categories from entries (no separate CategoryRepository required)
+            var cats = await this.BaseQuery()
+                .AsNoTracking()
+                .Where(e => e.SubCategory != null && e.SubCategory.Category != null)
+                .Select(e => new { e.SubCategory!.Category!.CategoryId, e.SubCategory.Category.Name })
+                .Distinct()
+                .OrderBy(x => x.Name)
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            return cats.Select(x => new IdNameOption { Id = x.CategoryId, Name = x.Name }).ToList();
+        }
+
+        public async Task<List<IdNameOption>> ListSubCategoryOptionsAsync(int categoryId)
+        {
+            var subs = await this.BaseQuery()
+                .AsNoTracking()
+                .Where(e => e.SubCategory != null && e.SubCategory.CategoryId == categoryId)
+                .Select(e => new { e.SubCategory!.SubCategoryId, e.SubCategory.Name })
+                .Distinct()
+                .OrderBy(x => x.Name)
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            return subs.Select(x => new IdNameOption { Id = x.SubCategoryId, Name = x.Name }).ToList();
+        }
+
+
+        public async Task<PagedResult<DirectoryEntry>> FilterAsync(DirectoryFilterQuery q)
+        {
+            q ??= new DirectoryFilterQuery();
+
+            int page = q.Page < 1 ? 1 : q.Page;
+            int pageSize = q.PageSize < 1 ? 10 : q.PageSize;
+
+            // Default statuses: Admitted + Verified
+            var statuses = (q.Statuses is { Count: > 0 })
+                ? q.Statuses.Distinct().ToList()
+                : new List<DirectoryStatus> { DirectoryStatus.Admitted, DirectoryStatus.Verified };
+
+            // IMPORTANT: start from DirectoryEntries WITHOUT Includes (prevents duplicate rows during paging)
+            var baseQ = this.context.DirectoryEntries.AsNoTracking().AsQueryable();
+
+            // Status filter
+            baseQ = baseQ.Where(e => statuses.Contains(e.DirectoryStatus));
+
+            // Country filter
+            if (!string.IsNullOrWhiteSpace(q.Country))
+            {
+                var code = q.Country.Trim().ToUpperInvariant();
+                baseQ = baseQ.Where(e => e.CountryCode != null && e.CountryCode.ToUpper() == code);
+            }
+
+            // Has Video
+            if (q.HasVideo)
+            {
+                baseQ = baseQ.Where(e => !string.IsNullOrWhiteSpace(e.VideoLink));
+            }
+
+            // Has Tor (.onion)
+            if (q.HasTor)
+            {
+                const string onionExtension = ".onion";
+                baseQ = baseQ.Where(e =>
+                    (e.Link ?? "").Contains(onionExtension) ||
+                    (e.Link2 ?? "").Contains(onionExtension) ||
+                    (e.Link3 ?? "").Contains(onionExtension) ||
+                    (e.ProofLink ?? "").Contains(onionExtension));
+            }
+
+            // Has i2p (.i2p)
+            if (q.HasI2p)
+            {
+                const string i2pExtension = ".i2p";
+                baseQ = baseQ.Where(e =>
+                    (e.Link ?? "").Contains(i2pExtension) ||
+                    (e.Link2 ?? "").Contains(i2pExtension) ||
+                    (e.Link3 ?? "").Contains(i2pExtension) ||
+                    (e.ProofLink ?? "").Contains(i2pExtension));
+            }
+
+            // Category/Subcategory (navigation filter is fine WITHOUT Include)
+            if (q.CategoryId is > 0)
+            {
+                int catId = q.CategoryId.Value;
+                baseQ = baseQ.Where(e => e.SubCategory != null && e.SubCategory.CategoryId == catId);
+
+                if (q.SubCategoryId is > 0)
+                {
+                    int subId = q.SubCategoryId.Value;
+                    baseQ = baseQ.Where(e => e.SubCategoryId == subId);
+                }
+            }
+
+            // -------- Sorting + paging (phase 1: get IDs) ----------
+            // NOTE: For rating sorts, we only include entries that have >= 1 APPROVED rating.
+            IQueryable<int> pageIdsQ;
+
+            if (q.Sort == DirectoryFilterSort.Newest)
+            {
+                pageIdsQ = baseQ
+                    .OrderByDescending(e => e.CreateDate)
+                    .ThenByDescending(e => e.DirectoryEntryId)
+                    .Select(e => e.DirectoryEntryId);
+            }
+            else if (q.Sort == DirectoryFilterSort.Oldest)
+            {
+                pageIdsQ = baseQ
+                    .OrderBy(e => e.CreateDate)
+                    .ThenBy(e => e.DirectoryEntryId)
+                    .Select(e => e.DirectoryEntryId);
+            }
+            else
+            {
+                // Rating sorts: REVIEWED ONLY (Approved + Rating.HasValue)
+                var approvedRatings = this.context.DirectoryEntryReviews
+                    .AsNoTracking()
+                    .Where(r => r.ModerationStatus == ReviewModerationStatus.Approved && r.Rating.HasValue);
+
+                var ratedAgg =
+                    from e in baseQ
+                    join r in approvedRatings on e.DirectoryEntryId equals r.DirectoryEntryId
+                    group r by new { e.DirectoryEntryId, e.CreateDate } into g
+                    select new
+                    {
+                        DirectoryEntryId = g.Key.DirectoryEntryId,
+                        CreateDate = g.Key.CreateDate,
+                        AvgRating = g.Average(x => x.Rating!.Value), // int avg -> double-ish in SQL
+                        ReviewCount = g.Count()
+                    };
+
+                if (q.Sort == DirectoryFilterSort.HighestRating)
+                {
+                    pageIdsQ = ratedAgg
+                        .OrderByDescending(x => x.AvgRating)        // higher avg first
+                        .ThenByDescending(x => x.ReviewCount)       // more reviews wins among same avg
+                        .ThenByDescending(x => x.CreateDate)
+                        .ThenByDescending(x => x.DirectoryEntryId)
+                        .Select(x => x.DirectoryEntryId);
+                }
+                else
+                {
+                    // LowestRating
+                    pageIdsQ = ratedAgg
+                        .OrderBy(x => x.AvgRating)                  // lower avg first
+                        .ThenByDescending(x => x.ReviewCount)       // 2×1★ beats 1×1★
+                        .ThenBy(x => x.CreateDate)
+                        .ThenBy(x => x.DirectoryEntryId)
+                        .Select(x => x.DirectoryEntryId);
+                }
+            }
+
+            // Total count:
+            // - For Newest/Oldest: count all filtered entries
+            // - For Rating sorts: count only entries that have ratings (because we exclude unrated)
+            int total;
+            if (q.Sort is DirectoryFilterSort.HighestRating or DirectoryFilterSort.LowestRating)
+            {
+                // Count rating-eligible entries (reviewed only), using the same join logic:
+                var approvedRatings = this.context.DirectoryEntryReviews
+                    .AsNoTracking()
+                    .Where(r => r.ModerationStatus == ReviewModerationStatus.Approved && r.Rating.HasValue);
+
+                total = await (from e in baseQ
+                               join r in approvedRatings on e.DirectoryEntryId equals r.DirectoryEntryId
+                               select e.DirectoryEntryId)
+                    .Distinct()
+                    .CountAsync()
+                    .ConfigureAwait(false);
+            }
+            else
+            {
+                total = await baseQ.CountAsync().ConfigureAwait(false);
+            }
+
+            var pageIds = await pageIdsQ
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            if (pageIds.Count == 0)
+            {
+                return new PagedResult<DirectoryEntry> { TotalCount = total, Items = new List<DirectoryEntry>() };
+            }
+
+            // -------- Phase 2: load full entities with Includes ----------
+            var items = await this.BaseQuery()
+                .AsNoTracking()
+                .Where(e => pageIds.Contains(e.DirectoryEntryId))
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            // Re-apply the correct order in memory to match the ID order
+            var order = pageIds.Select((id, idx) => new { id, idx }).ToDictionary(x => x.id, x => x.idx);
+            items = items.OrderBy(e => order[e.DirectoryEntryId]).ToList();
+
+            return new PagedResult<DirectoryEntry>
+            {
+                TotalCount = total,
+                Items = items
+            };
+        }
+
+
         /// <summary>
         /// Base query including SubCategory→Category and EntryTags→Tag.
         /// </summary>
