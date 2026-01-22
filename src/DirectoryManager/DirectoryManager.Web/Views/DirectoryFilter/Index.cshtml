@@ -228,8 +228,17 @@
 
     <input type="hidden" name="Page" value="1" />
     <input type="hidden" name="PageSize" value="10" />
- 
-    <button type="submit" class="btn btn-primary" style="padding:6px 12px;">Apply filters</button>
+        <div style="display:flex; align-items:center; gap:10px; margin-top:6px;">
+            <button type="submit" class="btn btn-primary" style="padding:6px 12px;">
+                Apply Filters
+            </button>
+
+            <a class="no-app-link"
+               href="@(Url.Action("Index", "DirectoryFilter") ?? "/filter")?Page=1&PageSize=10"
+               style="font-size:12px; opacity:.75; text-decoration:none;">
+                Clear
+            </a>
+        </div>
         <br />
 </form>
 
@@ -248,8 +257,6 @@ else
         }
     </ul>
      
-
-
     int totalPages = (int)Math.Ceiling(Model.TotalCount / (double)Model.Query.PageSize);
     int currentPage = Model.Query.Page < 1 ? 1 : Model.Query.Page;
 
