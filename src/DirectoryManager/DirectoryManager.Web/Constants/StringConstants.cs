@@ -42,5 +42,6 @@
         public const string NavMenu = "NavModel";
         public const string CacheKeySearchBlacklistTerms = "blacklistterms";
         public const string UserAgent = "User-Agent";
+        public const string ActiveCountriesCacheName = "DirectoryFilter:CountryOptions:Active";
     }
 }

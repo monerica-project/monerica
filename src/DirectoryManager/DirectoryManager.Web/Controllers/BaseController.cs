@@ -79,6 +79,8 @@ namespace DirectoryManager.Web.Controllers
             this.cache.Remove(StringConstants.CacheKeySponsoredListings);
             this.cache.Remove(StringConstants.CacheKeyAllActiveSponsors);
             this.cache.Remove(StringConstants.NavMenu);
+            this.cache.Remove(StringConstants.ActiveCountriesCacheName);
+
         }
     }
 }

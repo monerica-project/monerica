@@ -14,15 +14,18 @@ public class DirectoryFilterController : Controller
     private readonly IDirectoryEntryRepository entryRepo;
     private readonly ICacheService cacheService;
     private readonly ISponsoredListingRepository sponsoredListingRepository;
+    private readonly IMemoryCache memoryCache;
 
     public DirectoryFilterController(
         IDirectoryEntryRepository entryRepo,
         ICacheService cacheService,
-        ISponsoredListingRepository sponsoredListingRepository)
+        ISponsoredListingRepository sponsoredListingRepository,
+        IMemoryCache memoryCache)
     {
         this.entryRepo = entryRepo;
         this.cacheService = cacheService;
         this.sponsoredListingRepository = sponsoredListingRepository;
+        this.memoryCache = memoryCache;
     }
 
     [HttpGet("filter")]
@@ -61,14 +64,33 @@ public class DirectoryFilterController : Controller
         {
             item.IsSponsored = allSponsors.Any(x => x.DirectoryEntryId == item.DirectoryEntryId);
         }
+
         vmList = vmList.Where(e => e.IsSponsored).Concat(vmList.Where(e => !e.IsSponsored)).ToList();
 
         // Options
-        var countries = DirectoryManager.Utilities.Helpers.CountryHelper.GetCountries(); // ISO2 -> name
-        var countryOptions = countries
-            .OrderBy(kvp => kvp.Value)
-            .Select(kvp => (Code: kvp.Key, Name: kvp.Value))
-            .ToList();
+        var countryOptions = await this.memoryCache.GetOrCreateAsync(
+            StringConstants.ActiveCountriesCacheName,
+            async entry =>
+            {
+                // Cache settings
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6);
+                entry.SlidingExpiration = TimeSpan.FromHours(1);
+
+                // 1) Fetch only codes that exist in DB
+                var existingCodes = await this.entryRepo.ListActiveCountryCodesAsync();
+
+                // 2) Map code -> full name from your helper dictionary
+                var allCountries = DirectoryManager.Utilities.Helpers.CountryHelper.GetCountries(); // ISO2 -> name
+
+                // 3) Only keep codes that exist and are recognized by helper
+                var filtered = existingCodes
+                    .Where(code => allCountries.ContainsKey(code))
+                    .Select(code => (Code: code, Name: allCountries[code]))
+                    .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                return filtered;
+            });
 
         var categories = await this.entryRepo.ListCategoryOptionsAsync();
         var subcats = (q.CategoryId.HasValue && q.CategoryId.Value > 0)

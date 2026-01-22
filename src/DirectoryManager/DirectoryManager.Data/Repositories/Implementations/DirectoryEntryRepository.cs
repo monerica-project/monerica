@@ -1098,6 +1098,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
             };
         }
 
+        public async Task<List<string>> ListActiveCountryCodesAsync(CancellationToken ct = default)
+        {
+            // “Active” here mirrors your other “active” logic:
+            // Verified/Admitted/Questionable/Scam only (exclude Removed/Unknown).
+            return await this.context.DirectoryEntries
+                .AsNoTracking()
+                .Where(e =>
+                    (e.DirectoryStatus == DirectoryStatus.Verified
+                  || e.DirectoryStatus == DirectoryStatus.Admitted
+                  || e.DirectoryStatus == DirectoryStatus.Questionable
+                  || e.DirectoryStatus == DirectoryStatus.Scam)
+                    && !string.IsNullOrWhiteSpace(e.CountryCode))
+                .Select(e => e.CountryCode!.Trim().ToUpper())
+                .Distinct()
+                .OrderBy(code => code)
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+        }
 
         /// <summary>
         /// Base query including SubCategory→Category and EntryTags→Tag.
