@@ -119,10 +119,10 @@
     </fieldset>
 
     <fieldset style="border:1px solid #444; padding:10px; border-radius:8px; margin-bottom:12px;">
-        <legend style="padding:0 8px;">Category</legend>
+            <legend style="padding:0 8px;">Categorization</legend>
 
         <label style="display:block; margin-bottom:8px;">
-            Categorization:
+            Category:
             <select name="CategoryId">
                 @if (!Model.Query.CategoryId.HasValue || Model.Query.CategoryId.Value <= 0)
                 {
@@ -228,8 +228,9 @@
 
     <input type="hidden" name="Page" value="1" />
     <input type="hidden" name="PageSize" value="10" />
-
+ 
     <button type="submit" class="btn btn-primary" style="padding:6px 12px;">Apply filters</button>
+        <br />
 </form>
 
 @if (!Model.Entries.Any())
