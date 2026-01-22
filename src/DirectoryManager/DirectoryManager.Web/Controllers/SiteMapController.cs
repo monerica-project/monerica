@@ -146,30 +146,6 @@ namespace DirectoryManager.Web.Controllers
 
             foreach (var entry in allActiveEntries.Where(x => x.DirectoryStatus != DirectoryStatus.Removed))
             {
-                var baseLastMod = new[]
-                {
-                    entry.CreateDate,
-                    entry.UpdateDate ?? entry.CreateDate,
-                    mostRecentUpdateDate
-                }.Max();
-
-                var reviewLastMod = latestApprovedReviewByEntry.TryGetValue(entry.DirectoryEntryId, out var rdt)
-                    ? rdt
-                    : DateTime.MinValue;
-
-                var directoryItemLastMod = new[] { baseLastMod, reviewLastMod }.Max();
-
-                siteMapHelper.SiteMapItems.Add(new SiteMapItem
-                {
-                    Url = $"{domain}/{entry.SubCategory?.Category.CategoryKey}/{entry.SubCategory?.SubCategoryKey}/{entry.DirectoryEntryKey}",
-                    Priority = 0.7,
-                    ChangeFrequency = ChangeFrequency.Weekly,
-                    LastMod = directoryItemLastMod
-                });
-            }
-
-            foreach (var entry in allActiveEntries.Where(x => x.DirectoryStatus != DirectoryStatus.Removed))
-            {
                 // Base last-mod (existing logic)
                 var baseLastMod = new[]
                 {
