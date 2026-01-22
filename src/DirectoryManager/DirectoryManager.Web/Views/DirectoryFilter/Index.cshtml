@@ -242,6 +242,19 @@
         <br />
 </form>
 
+    @* Sponsor block (only when filtering by category OR subcategory) *@
+    @if (Model.SubcategorySponsorModel != null)
+    {
+        @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", Model.SubcategorySponsorModel)
+    }
+    else if (Model.CategorySponsorModel != null)
+    {
+        @await Html.PartialAsync("_SponsoredListingCategoryPartial", Model.CategorySponsorModel)
+    }
+
+    <hr />
+
+
 @if (!Model.Entries.Any())
 {
     <p>No results found.</p>

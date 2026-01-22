@@ -19,5 +19,8 @@ namespace DirectoryManager.Web.Models
 
         // For status checkbox list
         public List<DirectoryManager.Data.Enums.DirectoryStatus> AllStatuses { get; set; } = new ();
+
+        public CategorySponsorModel? CategorySponsorModel { get; set; }
+        public SubcategorySponsorModel? SubcategorySponsorModel { get; set; }
     }
 }
