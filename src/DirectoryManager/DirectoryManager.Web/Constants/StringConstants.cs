@@ -43,5 +43,7 @@
         public const string CacheKeySearchBlacklistTerms = "blacklistterms";
         public const string UserAgent = "User-Agent";
         public const string ActiveCountriesCacheName = "DirectoryFilter:CountryOptions:Active";
+        public const string ActiveCategoriesCacheName = "ActiveCategoriesCacheName";
+        public const string ActiveSubcategoriesByCategoryCachePrefix = "ActiveSubcategoriesByCategoryCachePrefix";
     }
 }
