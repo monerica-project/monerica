@@ -3,33 +3,36 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
 @inject IUrlResolutionService urlResolver
+
 @{
+    // Fetch logo URL
     var rawUrl = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteLogoUrl);
 
-    // Default to raw value if parsing fails
+    // 🚫 No logo? Stop here.
+    if (string.IsNullOrWhiteSpace(rawUrl))
+    {
+        return;
+    }
+
+    // Strip domain if absolute
     string logoPath = rawUrl;
-
-    if (!string.IsNullOrWhiteSpace(rawUrl) &&
-        Uri.TryCreate(rawUrl, UriKind.Absolute, out var uri))
+    if (Uri.TryCreate(rawUrl, UriKind.Absolute, out var uri))
     {
-        logoPath = uri.PathAndQuery; // strips scheme + domain
+        logoPath = uri.PathAndQuery;
     }
-}
- 
-@{
+
     var root = await cacheHelper.GetSnippetAsync(SiteConfigSetting.FullRootUrl);
-    var isOnTor = httpContextAccessor.HttpContext?.Request.Host.Host.EndsWith(DirectoryManager.Web.Constants.StringConstants.TorDomain) ?? false;
+    var isOnTor =
+        httpContextAccessor.HttpContext?.Request.Host.Host
+            .EndsWith(DirectoryManager.Web.Constants.StringConstants.TorDomain) ?? false;
 
-    if (isOnTor || string.IsNullOrWhiteSpace(root) || urlResolver.IsLocal)
-    {
-        <a class="no-app-link" href="~/"><img src="@logoPath"
-                 alt="Logo"
-                 class="site-logo-top-right" /></a>
-    }
-    else
-    {
-        <a class="no-app-link" href="@root"><img src="@logoPath"
-                 alt="Logo"
-                 class="site-logo-top-right" /></a>
-    }
+    var href = (isOnTor || string.IsNullOrWhiteSpace(root) || urlResolver.IsLocal)
+        ? Url.Content("~/")
+        : root;
 }
+
+<a class="no-app-link" href="@href">
+    <img src="@logoPath"
+         alt="Logo"
+         class="site-logo-top-right" />
+</a>
