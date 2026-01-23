@@ -11,6 +11,7 @@ using Microsoft.Extensions.Caching.Memory;
 public class DirectoryFilterController : Controller
 {
     private readonly IDirectoryEntryRepository entryRepo;
+    private readonly IDirectoryEntryReviewRepository entryReviewsRepo;
     private readonly ICategoryRepository categoryRepo;
     private readonly ISubcategoryRepository subcategoryRepo;
     private readonly ICacheService cacheService;
@@ -19,6 +20,7 @@ public class DirectoryFilterController : Controller
 
     public DirectoryFilterController(
         IDirectoryEntryRepository entryRepo,
+        IDirectoryEntryReviewRepository entryReviewsRepo,
         ICategoryRepository categoryRepo,
         ISubcategoryRepository subcategoryRepo,
         ICacheService cacheService,
@@ -26,6 +28,7 @@ public class DirectoryFilterController : Controller
         IMemoryCache memoryCache)
     {
         this.entryRepo = entryRepo;
+        this.entryReviewsRepo = entryReviewsRepo;
         this.categoryRepo = categoryRepo;
         this.subcategoryRepo = subcategoryRepo;
         this.cacheService = cacheService;
@@ -70,7 +73,7 @@ public class DirectoryFilterController : Controller
         // Fetch rating summaries for ONLY the entries on this page
         var ids = vmList.Select(x => x.DirectoryEntryId).Distinct().ToList();
 
-        var ratingMap = await this.entryRepo.GetRatingSummariesAsync(ids);
+        var ratingMap = await this.entryReviewsRepo.GetRatingSummariesAsync(ids);
 
         // Apply onto view models (optional fields)
         foreach (var item in vmList)

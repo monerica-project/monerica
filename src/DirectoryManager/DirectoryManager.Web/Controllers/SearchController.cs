@@ -1,5 +1,4 @@
-﻿using DirectoryManager.Data.DbContextInfo;
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -9,37 +8,35 @@ using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 public class SearchController : Controller
 {
     private readonly IDirectoryEntryRepository entryRepo;
+    private readonly IDirectoryEntryReviewRepository reviewRepo; // ✅ use repository for ratings
     private readonly ICacheService cacheService;
     private readonly ISearchLogRepository searchLogRepository;
     private readonly ISponsoredListingRepository sponsoredListingRepository;
     private readonly ISearchBlacklistRepository blacklistRepository;
     private readonly IMemoryCache memoryCache;
 
-    // ✅ add this so we can query ratings efficiently
-    private readonly IApplicationDbContext context;
-
     public SearchController(
         IDirectoryEntryRepository entryRepo,
+        IDirectoryEntryReviewRepository reviewRepo,
         ICacheService cacheService,
         ISearchLogRepository searchLogRepository,
         ISponsoredListingRepository sponsoredListingRepository,
         ISearchBlacklistRepository blacklistRepository,
         IMemoryCache memoryCache,
-        IApplicationDbContext context)
+        IUrlResolutionService urlResolver) // keep if you need it elsewhere; not used here
     {
         this.entryRepo = entryRepo;
+        this.reviewRepo = reviewRepo;
         this.cacheService = cacheService;
         this.searchLogRepository = searchLogRepository;
         this.sponsoredListingRepository = sponsoredListingRepository;
         this.blacklistRepository = blacklistRepository;
         this.memoryCache = memoryCache;
-        this.context = context;
     }
 
     [HttpGet("search")]
@@ -107,41 +104,25 @@ public class SearchController : Controller
             item.IsSponsored = sponsorIds.Contains(item.DirectoryEntryId);
         }
 
-        // ✅ Ratings for the CURRENT PAGE (approved + has value)
+        // ✅ Ratings for the CURRENT PAGE (approved + has value) via repository
         var pageIds = vmList.Select(v => v.DirectoryEntryId).Distinct().ToList();
 
         if (pageIds.Count > 0)
         {
-            var ratingAgg = await this.context.DirectoryEntryReviews
-                .AsNoTracking()
-                .Where(r =>
-                    pageIds.Contains(r.DirectoryEntryId) &&
-                    r.ModerationStatus == ReviewModerationStatus.Approved &&
-                    r.Rating.HasValue)
-                .GroupBy(r => r.DirectoryEntryId)
-                .Select(g => new
-                {
-                    DirectoryEntryId = g.Key,
-                    Avg = g.Average(x => (double)x.Rating!.Value),
-                    Cnt = g.Count()
-                })
-                .ToListAsync()
-                .ConfigureAwait(false);
-
-            var map = ratingAgg.ToDictionary(x => x.DirectoryEntryId, x => (x.Avg, x.Cnt));
+            var ratingMap = await this.reviewRepo.GetRatingSummariesAsync(pageIds);
 
             foreach (var vm in vmList)
             {
-                if (map.TryGetValue(vm.DirectoryEntryId, out var agg))
+                if (ratingMap.TryGetValue(vm.DirectoryEntryId, out var rs) && rs.ReviewCount > 0)
                 {
-                    vm.AverageRating = agg.Avg;     // e.g. 4.8
-                    vm.ReviewCount = agg.Cnt;       // e.g. 4
+                    vm.AverageRating = rs.AvgRating;     // e.g. 4.8
+                    vm.ReviewCount = rs.ReviewCount;     // e.g. 4
                 }
                 else
                 {
                     // no approved ratings
                     vm.AverageRating = null;
-                    vm.ReviewCount = null;
+                    vm.ReviewCount = null; // or 0 if you prefer non-null
                 }
             }
         }

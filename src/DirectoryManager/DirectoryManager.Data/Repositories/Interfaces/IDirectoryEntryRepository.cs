@@ -58,7 +58,5 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<List<IdNameOption>> ListSubCategoryOptionsAsync(int categoryId);
 
         Task<List<string>> ListActiveCountryCodesAsync(CancellationToken ct = default);
-
-        Task<Dictionary<int, RatingSummaryDto>> GetRatingSummariesAsync(IReadOnlyCollection<int> directoryEntryIds);
     }
 }

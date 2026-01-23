@@ -1,7 +1,7 @@
-﻿// DirectoryManager.Data/Repositories/Implementations/DirectoryEntryReviewRepository.cs
-using DirectoryManager.Data.DbContextInfo;
+﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -162,6 +162,32 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
 
             return await q.AverageAsync(ct);
+        }
+
+        public async Task<Dictionary<int, RatingSummaryDto>> GetRatingSummariesAsync(IReadOnlyCollection<int> directoryEntryIds)
+        {
+            if (directoryEntryIds == null || directoryEntryIds.Count == 0)
+            {
+                return new Dictionary<int, RatingSummaryDto>();
+            }
+
+            var rows = await this.context.DirectoryEntryReviews
+                .AsNoTracking()
+                .Where(r =>
+                    directoryEntryIds.Contains(r.DirectoryEntryId) &&
+                    r.ModerationStatus == ReviewModerationStatus.Approved &&
+                    r.Rating.HasValue)
+                .GroupBy(r => r.DirectoryEntryId)
+                .Select(g => new RatingSummaryDto
+                {
+                    DirectoryEntryId = g.Key,
+                    ReviewCount = g.Count(),
+                    AvgRating = g.Average(x => (double)x.Rating!.Value)
+                })
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            return rows.ToDictionary(x => x.DirectoryEntryId, x => x);
         }
 
         public async Task<Dictionary<int, DateTime>> GetLatestApprovedReviewDatesByEntryAsync(CancellationToken ct = default)
