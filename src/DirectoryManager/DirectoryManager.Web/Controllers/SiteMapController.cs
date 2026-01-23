@@ -9,7 +9,6 @@ using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
@@ -73,12 +72,13 @@ namespace DirectoryManager.Web.Controllers
             var nextAdExpiration = await this.sponsoredListingRepository.GetNextExpirationDateAsync();
             var sponsoredListings = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
             var lastSponsorExpiration = await this.sponsoredListingRepository.GetLastSponsorExpirationDateAsync();
+
             var mostRecentUpdateDate = this.GetLatestUpdateDate(
-                                                lastDirectoryEntryDate,
-                                                lastContentSnippetUpdate,
-                                                lastPaidInvoiceUpdate,
-                                                nextAdExpiration,
-                                                lastSponsorExpiration);
+                lastDirectoryEntryDate,
+                lastContentSnippetUpdate,
+                lastPaidInvoiceUpdate,
+                nextAdExpiration,
+                lastSponsorExpiration);
 
             // Get the last modification date for any sponsored listing
             var lastSponsoredListingChange = await this.sponsoredListingRepository.GetLastChangeDateForMainSponsorAsync();
@@ -104,13 +104,11 @@ namespace DirectoryManager.Web.Controllers
             await this.AddTags(mostRecentUpdateDate, siteMapHelper, domain);
 
             // Root
-            siteMapHelper.SiteMapItems.Add(new SiteMapItem
-            {
-                Url = WebRequestHelper.GetCurrentDomain(this.HttpContext),
-                Priority = 1.0,
-                ChangeFrequency = ChangeFrequency.Daily,
-                LastMod = mostRecentUpdateDate
-            });
+            siteMapHelper.AddUrl(
+                WebRequestHelper.GetCurrentDomain(this.HttpContext),
+                mostRecentUpdateDate,
+                ChangeFrequency.Daily,
+                1.0);
 
             await this.AddNewestPagesListAsync(mostRecentUpdateDate, siteMapHelper);
             await this.AddPagesAsync(mostRecentUpdateDate, siteMapHelper);
@@ -162,16 +160,14 @@ namespace DirectoryManager.Web.Controllers
 
                 var directoryItemLastMod = new[] { baseLastMod, reviewLastMod }.Max();
 
-                siteMapHelper.SiteMapItems.Add(new SiteMapItem
-                {
-                    Url = string.Format(
-                            "{0}{1}",
-                            WebRequestHelper.GetCurrentDomain(this.HttpContext),
-                            FormattingHelper.ListingPath(entry.DirectoryEntryKey)),
-                    Priority = 0.7,
-                    ChangeFrequency = ChangeFrequency.Weekly,
-                    LastMod = directoryItemLastMod
-                });
+                siteMapHelper.AddUrl(
+                    string.Format(
+                        "{0}{1}",
+                        WebRequestHelper.GetCurrentDomain(this.HttpContext),
+                        FormattingHelper.ListingPath(entry.DirectoryEntryKey)),
+                    directoryItemLastMod,
+                    ChangeFrequency.Weekly,
+                    0.7);
             }
 
             // Add /countries and per-country pages to the sitemap
@@ -239,25 +235,23 @@ namespace DirectoryManager.Web.Controllers
                         ? $"{domain}/tagged/{tag.Slug}"
                         : $"{domain}/tagged/{tag.Slug}/page/{i}";
 
-                    siteMapHelper.SiteMapItems.Add(new SiteMapItem
-                    {
-                        Url = url,
-                        Priority = i == 1 ? 0.5 : 0.3,
-                        ChangeFrequency = ChangeFrequency.Weekly,
-                        LastMod = tag.LastModified > mostRecentUpdateDate
-                                    ? tag.LastModified
-                                    : mostRecentUpdateDate
-                    });
+                    var lastMod = tag.LastModified > mostRecentUpdateDate
+                        ? tag.LastModified
+                        : mostRecentUpdateDate;
+
+                    siteMapHelper.AddUrl(
+                        url,
+                        lastMod,
+                        ChangeFrequency.Weekly,
+                        i == 1 ? 0.5 : 0.3);
                 }
             }
 
-            siteMapHelper.SiteMapItems.Add(new SiteMapItem
-            {
-                Url = string.Format("{0}/tagged", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                Priority = 0.3,
-                ChangeFrequency = ChangeFrequency.Monthly,
-                LastMod = mostRecentUpdateDate
-            });
+            siteMapHelper.AddUrl(
+                string.Format("{0}/tagged", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                mostRecentUpdateDate,
+                ChangeFrequency.Monthly,
+                0.3);
         }
 
         private async Task AddCategoryPages(
@@ -286,9 +280,9 @@ namespace DirectoryManager.Web.Controllers
             DateTime mostRecentSubcategoryDate = subCategories
                 .Select(sub => new[]
                 {
-            allSubcategoriesLastModified.TryGetValue(sub.SubCategoryId, out var subMod) ? subMod : DateTime.MinValue,
-            allSubCategoriesItemsLastModified.TryGetValue(sub.SubCategoryId, out var itemMod) ? itemMod : DateTime.MinValue,
-            allSubCategoryAds.TryGetValue(sub.SubCategoryId, out var adMod) ? adMod : DateTime.MinValue
+                    allSubcategoriesLastModified.TryGetValue(sub.SubCategoryId, out var subMod) ? subMod : DateTime.MinValue,
+                    allSubCategoriesItemsLastModified.TryGetValue(sub.SubCategoryId, out var itemMod) ? itemMod : DateTime.MinValue,
+                    allSubCategoryAds.TryGetValue(sub.SubCategoryId, out var adMod) ? adMod : DateTime.MinValue
                 }.Max())
                 .DefaultIfEmpty(DateTime.MinValue)
                 .Max();
@@ -305,13 +299,11 @@ namespace DirectoryManager.Web.Controllers
                 mostRecentUpdateDate
             }.Max();
 
-            siteMapHelper.SiteMapItems.Add(new SiteMapItem
-            {
-                Url = $"{domain}/{category.CategoryKey}",
-                Priority = 0.6,
-                ChangeFrequency = ChangeFrequency.Weekly,
-                LastMod = lastChangeForCategoryOrSubcategory
-            });
+            siteMapHelper.AddUrl(
+                $"{domain}/{category.CategoryKey}",
+                lastChangeForCategoryOrSubcategory,
+                ChangeFrequency.Weekly,
+                0.6);
 
             foreach (var subCategory in subCategories)
             {
@@ -366,16 +358,14 @@ namespace DirectoryManager.Web.Controllers
                 mostRecentUpdateDate
             }.Max();
 
-            // Add base subcategory page
-            siteMapHelper.SiteMapItems.Add(new SiteMapItem
-            {
-                Url = $"{domain}/{category.CategoryKey}/{subCategory.SubCategoryKey}",
-                Priority = 0.5,
-                ChangeFrequency = ChangeFrequency.Weekly,
-                LastMod = lastModified
-            });
+            // Base subcategory page
+            siteMapHelper.AddUrl(
+                $"{domain}/{category.CategoryKey}/{subCategory.SubCategoryKey}",
+                lastModified,
+                ChangeFrequency.Weekly,
+                0.5);
 
-            // Add paginated subcategory pages
+            // Paginated subcategory pages
             if (!subcategoryEntryCounts.TryGetValue(subCategoryId, out var entryCount))
             {
                 return;
@@ -386,13 +376,11 @@ namespace DirectoryManager.Web.Controllers
 
             for (int i = 2; i <= totalPages; i++)
             {
-                siteMapHelper.SiteMapItems.Add(new SiteMapItem
-                {
-                    Url = $"{domain}/{category.CategoryKey}/{subCategory.SubCategoryKey}/page/{i}",
-                    Priority = 0.3,
-                    ChangeFrequency = ChangeFrequency.Weekly,
-                    LastMod = lastModified
-                });
+                siteMapHelper.AddUrl(
+                    $"{domain}/{category.CategoryKey}/{subCategory.SubCategoryKey}/page/{i}",
+                    lastModified,
+                    ChangeFrequency.Weekly,
+                    0.3);
             }
         }
 
@@ -410,13 +398,7 @@ namespace DirectoryManager.Web.Controllers
                     ? $"{domain}/newest"
                     : $"{domain}/newest/page/{i}";
 
-                siteMapHelper.SiteMapItems.Add(new SiteMapItem
-                {
-                    Url = url,
-                    Priority = 0.4,
-                    ChangeFrequency = ChangeFrequency.Daily,
-                    LastMod = date
-                });
+                siteMapHelper.AddUrl(url, date, ChangeFrequency.Daily, 0.4);
             }
         }
 
@@ -447,13 +429,7 @@ namespace DirectoryManager.Web.Controllers
                         ? $"{domain}/{category.CategoryKey}"
                         : $"{domain}/{category.CategoryKey}/page/{i}";
 
-                    siteMapHelper.SiteMapItems.Add(new SiteMapItem
-                    {
-                        Url = url,
-                        Priority = 0.4,
-                        ChangeFrequency = ChangeFrequency.Weekly,
-                        LastMod = date
-                    });
+                    siteMapHelper.AddUrl(url, date, ChangeFrequency.Weekly, 0.4);
                 }
             }
         }
@@ -468,13 +444,11 @@ namespace DirectoryManager.Web.Controllers
                     .Where(d => d.HasValue)
                     .Max() ?? date;
 
-                siteMapHelper.SiteMapItems.Add(new SiteMapItem
-                {
-                    Url = string.Format("{0}/contact", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                    Priority = 0.8,
-                    ChangeFrequency = ChangeFrequency.Monthly,
-                    LastMod = contactHtmlLastModified
-                });
+                siteMapHelper.AddUrl(
+                    string.Format("{0}/contact", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                    contactHtmlLastModified,
+                    ChangeFrequency.Monthly,
+                    0.8);
             }
 
             var donationHtmlConfig = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.DonationHtml);
@@ -485,62 +459,48 @@ namespace DirectoryManager.Web.Controllers
                     .Where(d => d != null)
                     .Max() ?? date;
 
-                siteMapHelper.SiteMapItems.Add(new SiteMapItem
-                {
-                    Url = string.Format("{0}/donate", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                    Priority = 0.2,
-                    ChangeFrequency = ChangeFrequency.Monthly,
-                    LastMod = donationHtmlLastModified
-                });
+                siteMapHelper.AddUrl(
+                    string.Format("{0}/donate", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                    donationHtmlLastModified,
+                    ChangeFrequency.Monthly,
+                    0.2);
             }
 
-            siteMapHelper.SiteMapItems.Add(new SiteMapItem
-            {
-                Url = string.Format("{0}/sitemap", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                Priority = 0.3,
-                ChangeFrequency = ChangeFrequency.Daily,
-                LastMod = date
-            });
+            siteMapHelper.AddUrl(
+                string.Format("{0}/sitemap", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                date,
+                ChangeFrequency.Daily,
+                0.3);
 
-            siteMapHelper.SiteMapItems.Add(new SiteMapItem
-            {
-                Url = string.Format("{0}/status/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), DirectoryStatus.Verified.ToString().ToLower()),
-                Priority = 0.3,
-                ChangeFrequency = ChangeFrequency.Weekly,
-                LastMod = date
-            });
+            siteMapHelper.AddUrl(
+                string.Format("{0}/status/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), DirectoryStatus.Verified.ToString().ToLower()),
+                date,
+                ChangeFrequency.Weekly,
+                0.3);
 
-            siteMapHelper.SiteMapItems.Add(new SiteMapItem
-            {
-                Url = string.Format("{0}/status/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), DirectoryStatus.Scam.ToString().ToLower()),
-                Priority = 0.3,
-                ChangeFrequency = ChangeFrequency.Weekly,
-                LastMod = date
-            });
+            siteMapHelper.AddUrl(
+                string.Format("{0}/status/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), DirectoryStatus.Scam.ToString().ToLower()),
+                date,
+                ChangeFrequency.Weekly,
+                0.3);
 
-            siteMapHelper.SiteMapItems.Add(new SiteMapItem
-            {
-                Url = string.Format("{0}/status/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), DirectoryStatus.Questionable.ToString().ToLower()),
-                Priority = 0.3,
-                ChangeFrequency = ChangeFrequency.Weekly,
-                LastMod = date
-            });
+            siteMapHelper.AddUrl(
+                string.Format("{0}/status/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), DirectoryStatus.Questionable.ToString().ToLower()),
+                date,
+                ChangeFrequency.Weekly,
+                0.3);
 
-            siteMapHelper.SiteMapItems.Add(new SiteMapItem
-            {
-                Url = string.Format("{0}/faq", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                Priority = 0.3,
-                ChangeFrequency = ChangeFrequency.Weekly,
-                LastMod = date
-            });
+            siteMapHelper.AddUrl(
+                string.Format("{0}/faq", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                date,
+                ChangeFrequency.Weekly,
+                0.3);
 
-            siteMapHelper.SiteMapItems.Add(new SiteMapItem
-            {
-                Url = string.Format("{0}/rss/feed.xml", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                Priority = 0.9,
-                ChangeFrequency = ChangeFrequency.Daily,
-                LastMod = date
-            });
+            siteMapHelper.AddUrl(
+                string.Format("{0}/rss/feed.xml", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                date,
+                ChangeFrequency.Daily,
+                0.9);
         }
 
         private void AddCountriesToSitemap(
@@ -577,7 +537,6 @@ namespace DirectoryManager.Web.Controllers
                 return;
             }
 
-            // Group by country (we’ll use siteWideLastMod for all sitemap items)
             var byCountry = activeWithCountry
                 .GroupBy(x => x.Code)
                 .Select(g =>
@@ -598,7 +557,7 @@ namespace DirectoryManager.Web.Controllers
                 .OrderBy(x => x.Name)
                 .ToList();
 
-            // -------- /countries (index) + pagination --------
+            // /countries index + pagination
             int countriesPageSize = IntegerConstants.MaxPageSize;
             int countriesTotal = byCountry.Count;
             int countriesPages = (int)Math.Ceiling(countriesTotal / (double)countriesPageSize);
@@ -609,17 +568,15 @@ namespace DirectoryManager.Web.Controllers
                     ? $"{domain}/countries"
                     : $"{domain}/countries/page/{page}";
 
-                siteMapHelper.SiteMapItems.Add(new SiteMapItem
-                {
-                    Url = url,
-                    Priority = page == 1 ? 0.3 : 0.2,
-                    ChangeFrequency = ChangeFrequency.Monthly,
-                    LastMod = siteWideLastMod
-                });
+                siteMapHelper.AddUrl(
+                    url,
+                    siteWideLastMod,
+                    ChangeFrequency.Monthly,
+                    page == 1 ? 0.3 : 0.2);
             }
 
-            // -------- /countries/{slug} + pagination --------
-            int countryEntriesPageSize = IntegerConstants.DefaultPageSize; // match listing page size
+            // /countries/{slug} + pagination
+            int countryEntriesPageSize = IntegerConstants.DefaultPageSize;
 
             foreach (var c in byCountry)
             {
@@ -630,25 +587,19 @@ namespace DirectoryManager.Web.Controllers
 
                 int pages = (int)Math.Ceiling(c.Count / (double)countryEntriesPageSize);
 
-                // page 1
-                siteMapHelper.SiteMapItems.Add(new SiteMapItem
-                {
-                    Url = $"{domain}/countries/{c.Slug}",
-                    Priority = 0.5,
-                    ChangeFrequency = ChangeFrequency.Weekly,
-                    LastMod = siteWideLastMod
-                });
+                siteMapHelper.AddUrl(
+                    $"{domain}/countries/{c.Slug}",
+                    siteWideLastMod,
+                    ChangeFrequency.Weekly,
+                    0.5);
 
-                // pages 2..N
                 for (int i = 2; i <= pages; i++)
                 {
-                    siteMapHelper.SiteMapItems.Add(new SiteMapItem
-                    {
-                        Url = $"{domain}/countries/{c.Slug}/page/{i}",
-                        Priority = 0.3,
-                        ChangeFrequency = ChangeFrequency.Weekly,
-                        LastMod = siteWideLastMod
-                    });
+                    siteMapHelper.AddUrl(
+                        $"{domain}/countries/{c.Slug}/page/{i}",
+                        siteWideLastMod,
+                        ChangeFrequency.Weekly,
+                        0.3);
                 }
             }
         }
@@ -658,12 +609,10 @@ namespace DirectoryManager.Web.Controllers
             var domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
             int pageSize = IntegerConstants.MaxPageSize;
 
-            // Get the paged result, which includes the total count
             var pagedResult = await this.tagRepository.ListTagsWithCountsPagedAsync(1, int.MaxValue).ConfigureAwait(false);
 
-            // Use the total count of active tags for pagination
             int totalTags = pagedResult.TotalCount;
-            int totalPages = (totalTags + pageSize - 1) / pageSize; // Calculate total pages
+            int totalPages = (totalTags + pageSize - 1) / pageSize;
 
             for (int page = 1; page <= totalPages; page++)
             {
@@ -671,13 +620,11 @@ namespace DirectoryManager.Web.Controllers
                     ? $"{domain}/tagged"
                     : $"{domain}/tagged/page/{page}";
 
-                siteMapHelper.SiteMapItems.Add(new SiteMapItem
-                {
-                    Url = url,
-                    Priority = page == 1 ? 0.3 : 0.2,
-                    ChangeFrequency = ChangeFrequency.Monthly,
-                    LastMod = date
-                });
+                siteMapHelper.AddUrl(
+                    url,
+                    date,
+                    ChangeFrequency.Monthly,
+                    page == 1 ? 0.3 : 0.2);
             }
         }
 
