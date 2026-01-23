@@ -1183,6 +1183,56 @@ a.external-link {
     font-size: x-small;
 }
 
+
+.rating-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin-left: 8px;
+    white-space: nowrap;
+}
+
+/* star block */
+.stars {
+    position: relative;
+    display: inline-block;
+    font-size: 16px;
+    line-height: 1;
+    letter-spacing: 2px; /* adjust to match your look */
+    vertical-align: middle;
+    color: #666; /* empty star color */
+    font-family: inherit; /* match site font */
+}
+
+    /* base (empty) */
+    .stars::before {
+        content: "★★★★★";
+    }
+
+/* fill container (clips gold stars) */
+.stars-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    overflow: hidden;
+    white-space: nowrap;
+    color: #ff6600; /* filled star color */
+}
+
+    /* filled stars text */
+    .stars-fill::before {
+        content: "★★★★★";
+    }
+
+.rating-text {
+    font-weight: 600;
+    opacity: .9;
+    font-size: 16px; /* keep aligned with stars */
+    line-height: 1;
+}
+
+
 @media (max-width: 768px) {
     #main-content .main {
         max-width: 100%;

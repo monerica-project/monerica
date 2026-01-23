@@ -1117,6 +1117,32 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
+        public async Task<Dictionary<int, RatingSummaryDto>> GetRatingSummariesAsync(IReadOnlyCollection<int> directoryEntryIds)
+        {
+            if (directoryEntryIds == null || directoryEntryIds.Count == 0)
+            {
+                return new Dictionary<int, RatingSummaryDto>();
+            }
+
+            var rows = await this.context.DirectoryEntryReviews
+                .AsNoTracking()
+                .Where(r =>
+                    directoryEntryIds.Contains(r.DirectoryEntryId) &&
+                    r.ModerationStatus == ReviewModerationStatus.Approved &&
+                    r.Rating.HasValue)
+                .GroupBy(r => r.DirectoryEntryId)
+                .Select(g => new RatingSummaryDto
+                {
+                    DirectoryEntryId = g.Key,
+                    ReviewCount = g.Count(),
+                    AvgRating = g.Average(x => (double)x.Rating!.Value)
+                })
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            return rows.ToDictionary(x => x.DirectoryEntryId, x => x);
+        }
+
         /// <summary>
         /// Base query including SubCategory→Category and EntryTags→Tag.
         /// </summary>

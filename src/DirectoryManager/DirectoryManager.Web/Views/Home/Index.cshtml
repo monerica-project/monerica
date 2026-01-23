@@ -271,7 +271,7 @@
                     var rating = r.Rating.HasValue ? $"{r.Rating.Value}/5" : "—";
                     var oneLine = TextHelper.TruncateAtWord((r.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
 
-                    var url = UrlResolver.ResolveToRoot($"/site/{e.DirectoryEntryKey}");
+                    var url = UrlResolver.ResolveToRoot(FormattingHelper.ListingPath(e.DirectoryEntryKey));
                     var reviewDate = (r.UpdateDate ?? r.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
 
                     <li>

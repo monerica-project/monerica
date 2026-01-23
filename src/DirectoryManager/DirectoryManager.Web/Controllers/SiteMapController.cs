@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Enums;
@@ -164,9 +165,9 @@ namespace DirectoryManager.Web.Controllers
                 siteMapHelper.SiteMapItems.Add(new SiteMapItem
                 {
                     Url = string.Format(
-                            "{0}/site/{1}",
+                            "{0}{1}",
                             WebRequestHelper.GetCurrentDomain(this.HttpContext),
-                            entry.DirectoryEntryKey),
+                            FormattingHelper.ListingPath(entry.DirectoryEntryKey)),
                     Priority = 0.7,
                     ChangeFrequency = ChangeFrequency.Weekly,
                     LastMod = directoryItemLastMod

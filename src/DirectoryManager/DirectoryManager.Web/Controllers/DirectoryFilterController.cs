@@ -67,6 +67,26 @@ public class DirectoryFilterController : Controller
             link2Name,
             link3Name);
 
+        // Fetch rating summaries for ONLY the entries on this page
+        var ids = vmList.Select(x => x.DirectoryEntryId).Distinct().ToList();
+
+        var ratingMap = await this.entryRepo.GetRatingSummariesAsync(ids);
+
+        // Apply onto view models (optional fields)
+        foreach (var item in vmList)
+        {
+            if (ratingMap.TryGetValue(item.DirectoryEntryId, out var rs) && rs.ReviewCount > 0)
+            {
+                item.AverageRating = rs.AvgRating;
+                item.ReviewCount = rs.ReviewCount;
+            }
+            else
+            {
+                item.AverageRating = null;
+                item.ReviewCount = 0;
+            }
+        }
+
         // Sponsor pinning
         var allSponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
         var sponsorIds = new HashSet<int>(allSponsors.Select(s => s.DirectoryEntryId));

@@ -52,7 +52,7 @@ namespace DirectoryManager.Web.Services.Implementations
             }
         }
 
-        private bool IsLocal
+        public bool IsLocal
         {
             get
             {

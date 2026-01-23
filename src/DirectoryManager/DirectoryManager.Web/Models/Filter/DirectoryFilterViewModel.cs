@@ -1,7 +1,5 @@
-﻿// DirectoryManager.Web/Models/DirectoryFilterViewModel.cs
-using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models;
 using DirectoryManager.DisplayFormatting.Models;
-using DirectoryManager.Web.Models;
 
 namespace DirectoryManager.Web.Models
 {

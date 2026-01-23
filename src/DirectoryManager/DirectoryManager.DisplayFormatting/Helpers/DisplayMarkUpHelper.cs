@@ -235,6 +235,12 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                     direct);
             }
 
+            if (model.AverageRating.HasValue && model.ReviewCount > 0)
+            {
+                sb.Append("&nbsp;");
+                AppendRatingStars(sb, model.AverageRating.Value, model.ReviewCount.Value);
+            }
+
             sb.Append("</p>");
 
             // 2) Link2 / Link3 (e.g. Tor | I2P)
@@ -327,6 +333,28 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             }
 
             sb.AppendFormat(@" <a target=""_blank"" class=""external-link"" title=""{0}"" href=""{0}""></a> ", link);
+        }
+
+        private static void AppendRatingStars(StringBuilder sb, double avg, int count)
+        {
+            const int totalStars = 5;
+            double percent = Math.Clamp(avg / totalStars * 100, 0, 100);
+
+            sb.Append("<span class=\"rating-wrapper\" aria-label=\"");
+            sb.Append($"{avg:0.0} out of 5 stars from {count} reviews\">");
+
+            sb.Append("<span class=\"stars\">");
+            sb.Append("<span class=\"stars-fill\" style=\"width:");
+            sb.Append(percent.ToString("0.##", CultureInfo.InvariantCulture));
+            sb.Append("%\"></span>");
+            sb.Append("</span>");
+
+            sb.AppendFormat(
+                "<span class=\"rating-text\"> {0:0.0}/5 ({1})</span>",
+                avg,
+                count);
+
+            sb.Append("</span>");
         }
 
         /// <summary>

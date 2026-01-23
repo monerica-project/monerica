@@ -34,7 +34,7 @@
         new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
         new BreadcrumbItem { Position = 2, Name = @categoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}") },
         new BreadcrumbItem { Position = 3, Name = @subCategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}")  },
-        new BreadcrumbItem { Position = 4, Name = Model.Name, Url = UrlHelper.MakeFullUrl(domain,$"/site/{@Model.DirectoryEntryKey}")  }
+        new BreadcrumbItem { Position = 4, Name = Model.Name, Url = UrlHelper.MakeFullUrl(domain, DirectoryManager.DisplayFormatting.Helpers.FormattingHelper.ListingPath(@Model.DirectoryEntryKey))  }
     };
 }
 

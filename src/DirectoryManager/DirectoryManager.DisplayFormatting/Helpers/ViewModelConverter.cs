@@ -1,7 +1,6 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.DisplayFormatting.Enums;
 using DirectoryManager.DisplayFormatting.Models;
-using Microsoft.EntityFrameworkCore.Metadata.Internal;
 
 namespace DirectoryManager.DisplayFormatting.Helpers
 {
@@ -16,7 +15,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         {
             return directoryEntries.Select(entry => new DirectoryEntryViewModel
             {
-                ItemPath = string.Format("/site/{0}", entry.DirectoryEntryKey),
+                ItemPath = FormattingHelper.ListingPath(entry.DirectoryEntryKey),
                 DateOption = option,
                 IsSponsored = false,
                 Link2Name = link2Name,

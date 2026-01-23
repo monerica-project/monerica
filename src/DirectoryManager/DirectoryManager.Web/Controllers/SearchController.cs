@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -8,6 +9,7 @@ using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 public class SearchController : Controller
@@ -19,6 +21,9 @@ public class SearchController : Controller
     private readonly ISearchBlacklistRepository blacklistRepository;
     private readonly IMemoryCache memoryCache;
 
+    // ✅ add this so we can query ratings efficiently
+    private readonly IApplicationDbContext context;
+
     public SearchController(
         IDirectoryEntryRepository entryRepo,
         ICacheService cacheService,
@@ -26,7 +31,7 @@ public class SearchController : Controller
         ISponsoredListingRepository sponsoredListingRepository,
         ISearchBlacklistRepository blacklistRepository,
         IMemoryCache memoryCache,
-        IUrlResolutionService urlResolver)
+        IApplicationDbContext context)
     {
         this.entryRepo = entryRepo;
         this.cacheService = cacheService;
@@ -34,6 +39,7 @@ public class SearchController : Controller
         this.sponsoredListingRepository = sponsoredListingRepository;
         this.blacklistRepository = blacklistRepository;
         this.memoryCache = memoryCache;
+        this.context = context;
     }
 
     [HttpGet("search")]
@@ -49,12 +55,12 @@ public class SearchController : Controller
             return this.BadRequest("Invalid search.");
         }
 
-        // 🔒 Blacklist check (case-insensitive contains)
+        // 🔒 Blacklist check (case-insensitive word-boundary match)
         var qNorm = q.Trim().ToLowerInvariant();
         var black = (await this.GetBlackTermsAsync())
-                    .Where(t => !string.IsNullOrWhiteSpace(t))
-                    .Select(t => t.Trim().ToLowerInvariant())
-                    .ToArray();
+            .Where(t => !string.IsNullOrWhiteSpace(t))
+            .Select(t => t.Trim().ToLowerInvariant())
+            .ToArray();
 
         string? hit = black.FirstOrDefault(term =>
             System.Text.RegularExpressions.Regex.IsMatch(
@@ -71,7 +77,11 @@ public class SearchController : Controller
         }
 
         // normal flow below ...
+        if (page < 1) page = 1;
+        if (pageSize < 1) pageSize = 10;
+
         var result = await this.entryRepo.SearchAsync(q, page, pageSize);
+
         var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
         var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
@@ -88,15 +98,58 @@ public class SearchController : Controller
             IpAddress = this.HttpContext.GetRemoteIpIfEnabled()
         });
 
+        // Sponsor pinning
         var allSponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
+        var sponsorIds = new HashSet<int>(allSponsors.Select(s => s.DirectoryEntryId));
+
         foreach (var item in vmList)
         {
-            item.IsSponsored = allSponsors.Any(x => x.DirectoryEntryId == item.DirectoryEntryId);
+            item.IsSponsored = sponsorIds.Contains(item.DirectoryEntryId);
         }
 
+        // ✅ Ratings for the CURRENT PAGE (approved + has value)
+        var pageIds = vmList.Select(v => v.DirectoryEntryId).Distinct().ToList();
+
+        if (pageIds.Count > 0)
+        {
+            var ratingAgg = await this.context.DirectoryEntryReviews
+                .AsNoTracking()
+                .Where(r =>
+                    pageIds.Contains(r.DirectoryEntryId) &&
+                    r.ModerationStatus == ReviewModerationStatus.Approved &&
+                    r.Rating.HasValue)
+                .GroupBy(r => r.DirectoryEntryId)
+                .Select(g => new
+                {
+                    DirectoryEntryId = g.Key,
+                    Avg = g.Average(x => (double)x.Rating!.Value),
+                    Cnt = g.Count()
+                })
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            var map = ratingAgg.ToDictionary(x => x.DirectoryEntryId, x => (x.Avg, x.Cnt));
+
+            foreach (var vm in vmList)
+            {
+                if (map.TryGetValue(vm.DirectoryEntryId, out var agg))
+                {
+                    vm.AverageRating = agg.Avg;     // e.g. 4.8
+                    vm.ReviewCount = agg.Cnt;       // e.g. 4
+                }
+                else
+                {
+                    // no approved ratings
+                    vm.AverageRating = null;
+                    vm.ReviewCount = null;
+                }
+            }
+        }
+
+        // show sponsors first (keep rating order within each group)
         vmList = vmList.Where(e => e.IsSponsored).Concat(vmList.Where(e => !e.IsSponsored)).ToList();
 
-        var vm = new SearchViewModel
+        var vmOut = new SearchViewModel
         {
             Query = q,
             Page = page,
@@ -105,7 +158,7 @@ public class SearchController : Controller
             Entries = vmList
         };
 
-        return this.View(vm);
+        return this.View(vmOut);
     }
 
     private async Task<HashSet<string>> GetBlackTermsAsync()
@@ -121,7 +174,9 @@ public class SearchController : Controller
             .Select(t => t.Trim().ToLowerInvariant()));
 
         _ = this.memoryCache.Set(
-            StringConstants.CacheKeySearchBlacklistTerms, norm, new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6) });
+            StringConstants.CacheKeySearchBlacklistTerms,
+            norm,
+            new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6) });
 
         return norm;
     }

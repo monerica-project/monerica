@@ -20,5 +20,7 @@
         string ResolveToRoot(string relativeOrAbsolutePath);
 
         string ExtractPathFromFullUrl(string url);
+
+        bool IsLocal { get; }
     }
 }
