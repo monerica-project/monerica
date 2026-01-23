@@ -1,4 +1,5 @@
 ﻿@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Models
 @using DirectoryManager.Web.Services.Interfaces
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheService
@@ -7,11 +8,11 @@
 @{
     @if (!Model.Entries.Any())
     {
-        ViewData["Title"] = $"No results found.";
+        ViewData[StringConstants.TitleHeader] = $"No results found.";
     }
     else
     {
-        ViewData["Title"] = $"Search results for \"{Model.Query}\"";
+        ViewData[StringConstants.TitleHeader] = $"Search results for \"{Model.Query}\"";
     }
    
 }
@@ -21,8 +22,10 @@
 }
 
 @section PageContent {
-@await Html.PartialAsync("_SiteLogo")
-<h1>@ViewData["Title"]</h1>
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
 
 <hr />
 @await Html.PartialAsync("_BackToHome")

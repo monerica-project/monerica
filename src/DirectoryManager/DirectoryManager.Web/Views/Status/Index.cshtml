@@ -28,9 +28,12 @@
 
 @section PageContent {
 
-<h1>Listings with Status: @ViewBag.Status</h1>
-
 @await Html.PartialAsync("_BackToHome")
+
+    <div class="page-header-bar">
+        <h1 class="page-title">Listings with Status: @ViewBag.Status</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
 <hr />
 
 <div class="top-container">
