@@ -11,6 +11,7 @@
 }
 
 @section PageContent {
+    @await Html.PartialAsync("_SiteLogo")
     <h1>Tagged “@Model.Tag.Name”</h1>
     <hr />
     @await Html.PartialAsync("_BackToHome")
