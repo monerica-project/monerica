@@ -65,6 +65,64 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
         }
 
+        public async Task<bool> UpdateAsync(int tagId, string name)
+        {
+            var tag = await this.context.Tags.FindAsync(tagId);
+            if (tag is null)
+            {
+                return false;
+            }
+
+            name = (name ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return false;
+            }
+
+            // If you need uniqueness enforcement, do it here (optional):
+            // var newKey = name.UrlKey();
+            // bool exists = await this.context.Tags.AsNoTracking().AnyAsync(t => t.TagId != tagId && t.Key == newKey);
+            // if (exists) return false;
+
+            tag.Name = name;
+            tag.Key = name.UrlKey();
+            tag.UpdateDate = DateTime.UtcNow;
+
+            await this.context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<PagedResult<Tag>> ListAllPagedAsync(int page, int pageSize)
+        {
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 100;
+            }
+
+            var query = this.context.Tags
+                .AsNoTracking()
+                .OrderBy(t => t.Name);
+
+            var total = await query.CountAsync().ConfigureAwait(false);
+
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            return new PagedResult<Tag>
+            {
+                TotalCount = total,
+                Items = items
+            };
+        }
+
         public async Task<IReadOnlyList<TagWithLastModified>> ListActiveTagsWithLastModifiedAsync()
         {
             var query = this.context.DirectoryEntryTags

@@ -23,5 +23,9 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<PagedResult<TagCount>> ListTagsWithCountsPagedAsync(int page, int pageSize);
         Task<int> CountAllTagsAsync();
         public Task<List<TagSitemapInfo>> ListTagsWithSitemapInfoAsync();
+
+        Task<bool> UpdateAsync(int tagId, string name);
+
+        Task<PagedResult<Tag>> ListAllPagedAsync(int page, int pageSize);
     }
 }

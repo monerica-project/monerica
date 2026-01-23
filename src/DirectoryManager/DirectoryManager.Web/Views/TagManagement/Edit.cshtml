@@ -1,0 +1,25 @@
+﻿@using DirectoryManager.Web.Models
+@model TagEditViewModel
+
+@{
+    ViewData["Title"] = "Edit Tag";
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+<h1>@ViewData["Title"]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+<form method="post" asp-action="Edit" asp-route-id="@Model.TagId">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="TagId" value="@Model.TagId" />
+
+    <label style="display:block; margin-bottom:10px;">
+        Name:
+        <input type="text" name="Name" value="@Model.Name" style="width:320px;" />
+        @Html.ValidationMessage("Name")
+    </label>
+
+    <button type="submit" class="btn btn-primary">Save</button>
+    <a class="no-app-link" href="@Url.Action("Index")" style="margin-left:10px;">Cancel</a>
+</form>
+}
