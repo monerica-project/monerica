@@ -75,10 +75,14 @@ namespace DirectoryManager.Web.Controllers
                 }
 
                 model = GetSubmissionCreateModel(submission);
+
+                // ✅ pre-check based on persisted CSV
+                model.SelectedTagIdsCsv = submission.SelectedTagIdsCsv;
+                model.SelectedTagIds = ParseCsvIds(submission.SelectedTagIdsCsv);
             }
 
             await this.LoadDropDowns();
-
+            await this.LoadAllTagsForCheckboxesAsync();
             return this.View(model);
         }
 
@@ -128,15 +132,31 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction("Success", "Submission");
             }
 
+            // ✅ persist checkbox selections into CSV (no JS required)
+            model.SelectedTagIds = model.SelectedTagIds
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            model.SelectedTagIdsCsv = model.SelectedTagIds.Count == 0
+                ? null
+                : string.Join(",", model.SelectedTagIds);
+
+            // ✅ log selections (optional)
+            if (model.SelectedTagIds.Count > 0)
+            {
+                System.Diagnostics.Debug.WriteLine(
+                    $"Submission selected tag ids: {model.SelectedTagIdsCsv}");
+            }
+
             if (this.ModelState.IsValid)
             {
                 return await this.CreateSubmission(model);
             }
-            else
-            {
-                await this.LoadDropDowns();
-                return this.View("SubmitEdit", model);
-            }
+
+            await this.LoadDropDowns();
+            await this.LoadAllTagsForCheckboxesAsync(); // ✅ needed when returning view
+            return this.View("SubmitEdit", model);
         }
 
         [AllowAnonymous]
@@ -155,31 +175,26 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
-        // SubmissionController.cs
         [AllowAnonymous]
         [HttpGet("submission/submitedit/{id}")]
         public async Task<IActionResult> SubmitEdit(int id)
         {
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(id);
-            if (directoryEntry == null)
-            {
-                return this.NotFound();
-            }
+            if (directoryEntry == null) return this.NotFound();
 
-            // load existing tags for this entry
             var entryTags = await this.entryTagRepo.GetTagsForEntryAsync(id);
-            var tagCsv = string.Join(
-                ", ",
-                entryTags
-                  .OrderBy(et => et.Name, StringComparer.OrdinalIgnoreCase)
-                  .Select(et => et.Name));
 
-            // map into your submission request VM
             var model = GetSubmissionRequestModel(directoryEntry);
-            model.Tags = tagCsv;
+            model.Tags = string.Join(", ",
+                entryTags.OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase).Select(t => t.Name));
+
+            // ✅ pre-check existing tag ids
+            model.SelectedTagIds = entryTags.Select(t => t.TagId).Distinct().ToList();
+            model.SelectedTagIdsCsv = string.Join(",", model.SelectedTagIds);
 
             await this.SetSelectSubCategoryViewBag();
             await this.LoadDropDowns();
+            await this.LoadAllTagsForCheckboxesAsync();
 
             return this.View("SubmitEdit", model);
         }
@@ -271,36 +286,71 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            // If this is an edit of an existing entry, load its category/subcategory and tags
+            // ✅ load all tags for checkbox list
+            // after you load submission
+            var allTags = await this.tagRepo.ListAllAsync();
+            this.ViewBag.AllTags = allTags
+                .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(t => new TagOptionVm { TagId = t.TagId, Name = t.Name })
+                .ToList();
+
+            // selected from submission csv
+            var selectedIds = (submission.SelectedTagIdsCsv ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Select(x => int.TryParse(x, out var id2) ? id2 : 0)
+                .Where(x => x > 0)
+                .Distinct()
+                .ToHashSet();
+
+            // optional fallback: if none selected yet AND editing existing entry, pre-check current listing tags
+            if (selectedIds.Count == 0 && submission.DirectoryEntryId.HasValue)
+            {
+                var current = await this.entryTagRepo.GetTagsForEntryAsync(submission.DirectoryEntryId.Value);
+                selectedIds = current.Select(t => t.TagId).ToHashSet();
+            }
+
+            this.ViewBag.SelectedTagIds = selectedIds;
+
+            // ✅ compute selected tag names (for differences display)
+            // (from ALL tags + selectedIds so we don't need extra DB queries)
+            var selectedTagNames = allTags
+                .Where(t => selectedIds.Contains(t.TagId))
+                .Select(t => t.Name)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
+            // Existing diff logic (unchanged)
             if (submission.DirectoryEntryId.HasValue)
             {
-                // Ensure SubCategory nav prop is populated
                 if (submission.SubCategory == null && submission.SubCategoryId.HasValue)
                 {
                     submission.SubCategory = await this.subCategoryRepository
                         .GetByIdAsync(submission.SubCategoryId.Value);
                 }
 
-                // Load current entry from DB
                 var existing = await this.directoryEntryRepository
                     .GetByIdAsync(submission.DirectoryEntryId.Value);
 
                 if (existing != null)
                 {
-                    // 1) load its current tags
-                    var existingTags = await this.entryTagRepo
-                        .GetTagsForEntryAsync(existing.DirectoryEntryId);
+                    // ✅ existing/current entry tag names
+                    var existingTags = await this.entryTagRepo.GetTagsForEntryAsync(existing.DirectoryEntryId);
 
-                    // 2) set submission.Tags so the UI shows them
-                    existing.Tags = string.Join(
-                        ", ",
-                        existingTags
-                            .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
-                            .Select(t => t.Name));
+                    var existingTagNames = existingTags
+                        .Select(t => t.Name)
+                        .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
+                        .ToList();
 
-                    // 3) compute the diff
-                    this.ViewBag.Differences = ModelComparisonHelpers
-                        .CompareEntries(existing, submission);
+                    // (optional) keep this if you still want the old string for display elsewhere
+                    existing.Tags = string.Join(", ", existingTagNames);
+
+                    // ✅ pass both sets into the helper for tag diff output
+                    this.ViewBag.Differences = ModelComparisonHelpers.CompareEntries(
+                        existing,
+                        submission,
+                        entryTagNames: existingTagNames,
+                        selectedTagNames: selectedTagNames);
                 }
             }
 
@@ -313,10 +363,18 @@ namespace DirectoryManager.Web.Controllers
         [Authorize]
         [HttpPost("submission/{id}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Review(int id, Submission model)
+        public async Task<IActionResult> Review(int id, Submission model, int[] SelectedTagIds)
         {
             if (!this.ModelState.IsValid)
             {
+                // re-hydrate checkbox list for re-render
+                var allTags = await this.tagRepo.ListAllAsync();
+                this.ViewBag.AllTags = allTags
+                    .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+                    .Select(t => new TagOptionVm { TagId = t.TagId, Name = t.Name })
+                    .ToList();
+
+                this.ViewBag.SelectedTagIds = (SelectedTagIds ?? Array.Empty<int>()).Where(x => x > 0).ToHashSet();
                 return this.View(model);
             }
 
@@ -325,16 +383,26 @@ namespace DirectoryManager.Web.Controllers
                 throw new Exception($"Invalid directory status: {model.DirectoryStatus}");
             }
 
-            // 1) load the submission
             var submission = await this.submissionRepository.GetByIdAsync(id);
             if (submission == null)
             {
                 return this.NotFound();
             }
 
-            // 2) if we’re moving from Pending → Approved, create/update the DirectoryEntry
+            // ✅ typed tags are suggestions only (do NOT apply to listing)
+            submission.Tags = model.Tags?.Trim();
+
+            // ✅ checkbox tags are the real tags (persist to submission too, for audit/traceability)
+            var selected = (SelectedTagIds ?? Array.Empty<int>())
+                .Where(x => x > 0)
+                .Distinct()
+                .ToArray();
+
+            submission.SelectedTagIdsCsv = selected.Length == 0 ? null : string.Join(",", selected);
+
+            // ✅ If Pending -> Approved, create/update entry and APPLY checkbox tags to listing
             if (submission.SubmissionStatus == SubmissionStatus.Pending
-             && model.SubmissionStatus == SubmissionStatus.Approved)
+                && model.SubmissionStatus == SubmissionStatus.Approved)
             {
                 if (model.SubCategoryId == null || model.SubCategoryId == 0)
                 {
@@ -345,51 +413,43 @@ namespace DirectoryManager.Web.Controllers
 
                 if (model.DirectoryEntryId == null)
                 {
-                    // create new entry
                     await this.CreateDirectoryEntry(model);
                     var created = await this.directoryEntryRepository.GetByLinkAsync((model.Link ?? string.Empty).Trim());
                     entryId = created?.DirectoryEntryId
-                              ?? throw new Exception("Failed to locate newly created entry");
+                        ?? throw new Exception("Failed to locate newly created entry");
                 }
                 else
                 {
-                    // update existing
                     await this.UpdateDirectoryEntry(model);
                     entryId = model.DirectoryEntryId.Value;
                 }
 
-                // 3) parse & assign tags if any were supplied
-                if (!string.IsNullOrWhiteSpace(model.Tags))
+                // -----------------------------
+                // ✅ SYNC TAGS ON LISTING (checkboxes only)
+                // -----------------------------
+                var existingTags = await this.entryTagRepo.GetTagsForEntryAsync(entryId);
+                var existingIds = existingTags.Select(t => t.TagId).ToHashSet();
+
+                var selectedIds = selected.ToHashSet();
+
+                // remove tags that are no longer selected
+                foreach (var oldId in existingIds.Except(selectedIds))
                 {
-                    // remove old tags
-                    var oldTags = await this.entryTagRepo.GetTagsForEntryAsync(entryId);
-                    foreach (var t in oldTags)
-                    {
-                        await this.entryTagRepo.RemoveTagAsync(entryId, t.TagId);
-                    }
+                    await this.entryTagRepo.RemoveTagAsync(entryId, oldId);
+                }
 
-                    // split, normalize, up to 7 distinct tags
-                    var names = model.Tags
-                        .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                        .Select(t => t.Trim())
-                        .Where(t => t.Length > 0)
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .Take(7);
-
-                    foreach (var name in names)
-                    {
-                        var tag = await this.tagRepo.GetByKeyAsync(name.UrlKey()) ?? await this.tagRepo.CreateAsync(name);
-                        await this.entryTagRepo.AssignTagAsync(entryId, tag.TagId);
-                    }
+                // add newly selected tags
+                foreach (var newId in selectedIds.Except(existingIds))
+                {
+                    await this.entryTagRepo.AssignTagAsync(entryId, newId);
                 }
 
                 this.ClearCachedItems();
             }
 
-            // 4) store the admin’s final status & tags on the submission record
+            // store admin status + country etc
             submission.SubmissionStatus = model.SubmissionStatus;
             submission.CountryCode = model.CountryCode;
-            submission.Tags = model.Tags?.Trim();
 
             await this.submissionRepository.UpdateAsync(submission);
 
@@ -783,7 +843,8 @@ namespace DirectoryManager.Web.Controllers
                 NoteToAdmin = model.NoteToAdmin,
                 Tags = model.Tags?.Trim(),
                 CountryCode = model.CountryCode,
-                PgpKey = (model.PgpKey ?? string.Empty).Trim()
+                PgpKey = (model.PgpKey ?? string.Empty).Trim(),
+                SelectedTagIdsCsv = model.SelectedTagIdsCsv,
             };
             return submission;
         }
@@ -827,8 +888,34 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.PgpKey = submissionModel.PgpKey;
             existingSubmission.ProofLink = submissionModel.ProofLink;
             existingSubmission.VideoLink = submissionModel.VideoLink;
+            existingSubmission.SelectedTagIdsCsv = submissionModel.SelectedTagIdsCsv;
 
             await this.submissionRepository.UpdateAsync(existingSubmission);
+        }
+
+        private async Task LoadAllTagsForCheckboxesAsync()
+        {
+            var tags = await this.tagRepo.ListAllAsync();
+            this.ViewBag.AllTags = tags
+                .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(t => new { t.TagId, t.Name })
+                .ToList();
+        }
+
+        private static List<int> ParseCsvIds(string? csv)
+        {
+            if (string.IsNullOrWhiteSpace(csv))
+            {
+                return new List<int>();
+            }
+
+            return csv.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => x.Trim())
+                .Select(x => int.TryParse(x, out var id) ? id : (int?)null)
+                .Where(x => x.HasValue && x.Value > 0)
+                .Select(x => x!.Value)
+                .Distinct()
+                .ToList();
         }
 
         private async Task<bool> HasChangesAsync(SubmissionRequest model)
@@ -920,12 +1007,38 @@ namespace DirectoryManager.Web.Controllers
                 return true;
             }
 
-            if (existingEntry.Tags != model.Tags)
+            // ✅ Do NOT compare model.Tags (free-text suggestions) to existingEntry tags anymore.
+            // if (existingEntry.Tags != model.Tags) return true;
+
+            // ✅ Compare selected checkbox tag IDs to entry's current tag IDs
+            var selectedIds = ParseIdsCsv(model.SelectedTagIdsCsv);
+
+            // current tags on the entry
+            var existingTags = await this.entryTagRepo.GetTagsForEntryAsync(existingEntry.DirectoryEntryId);
+            var existingIds = existingTags.Select(t => t.TagId).ToHashSet();
+
+            // normalize + compare sets
+            if (!existingIds.SetEquals(selectedIds))
             {
                 return true;
             }
 
             return false;
+        }
+
+        private static HashSet<int> ParseIdsCsv(string? csv)
+        {
+            if (string.IsNullOrWhiteSpace(csv))
+            {
+                return new HashSet<int>();
+            }
+
+            return csv.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Select(s => int.TryParse(s, out var id) ? id : 0)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToHashSet();
         }
     }
 }

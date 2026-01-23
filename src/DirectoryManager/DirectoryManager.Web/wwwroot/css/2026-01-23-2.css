@@ -1277,6 +1277,33 @@ a.external-link {
     opacity: 0.9;
 }
 
+.tag-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 10px;
+    margin: 8px 0 0 0;
+}
+
+.tag-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 2px 8px;
+    border: 1px solid #555;
+    border-radius: 999px;
+    line-height: 1.2;
+    cursor: pointer;
+    user-select: none;
+    white-space: nowrap;
+}
+
+    .tag-pill input {
+        margin: 0;
+    }
+
+
+ 
+
 @media (max-width: 768px) {
     .site-logo-top-right {
         height: 32px;

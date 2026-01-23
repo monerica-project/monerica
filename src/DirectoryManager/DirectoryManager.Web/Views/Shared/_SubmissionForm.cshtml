@@ -111,6 +111,35 @@
     <textarea class="input-width" asp-for="PgpKey"></textarea>
 </div>
 
+
+@{
+    var allTags = ViewBag.AllTags as IEnumerable<dynamic>;
+}
+
+@if (allTags != null && allTags.Any())
+{
+    <hr />
+    <h4 style="margin-bottom:8px;">Select existing tags (optional)</h4>
+
+    <div class="tag-grid">
+        @foreach (var t in allTags)
+        {
+            var id = (int)t.TagId;
+            var isChecked = Model.SelectedTagIds != null && Model.SelectedTagIds.Contains(id);
+
+            <label class="tag-chip">
+                <input type="checkbox"
+                       name="SelectedTagIds"
+                       value="@id"
+                       @(isChecked ? "checked" : "") />
+                <span>@t.Name</span>
+            </label>
+        }
+    </div>
+
+ 
+}
+
 <div class="form-group">
     <label asp-for="Tags">Tags (comma-separated)</label>
     <input maxlength="100" asp-for="Tags" class="form-control  input-width" />

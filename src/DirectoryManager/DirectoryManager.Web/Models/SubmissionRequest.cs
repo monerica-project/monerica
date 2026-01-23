@@ -80,5 +80,10 @@ namespace DirectoryManager.Web.Models
         [MaxLength(255)]
         [Display(Name = "Tags", Prompt = "comma-separated, e.g. vpn, privacy")]
         public string? Tags { get; set; }
+
+        public List<int> SelectedTagIds { get; set; } = new ();
+
+        [MaxLength(2000)]
+        public string? SelectedTagIdsCsv { get; set; }
     }
 }
