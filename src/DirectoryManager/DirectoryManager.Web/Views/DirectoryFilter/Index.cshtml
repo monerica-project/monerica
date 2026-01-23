@@ -12,8 +12,9 @@
 }
 
 @section PageContent {
+@await Html.PartialAsync("_SiteLogo")
 
-<h1>@ViewData["Title"]</h1>
+ <h1>@ViewData["Title"]</h1>
 <hr />
 @await Html.PartialAsync("_BackToHome")
 <hr />

@@ -3,11 +3,12 @@
 @using DirectoryManager.Web.Constants
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Get Notified For Next Sponsored Listing Opening";
+    ViewData[StringConstants.TitleHeader] = "Join Sponsored Listing Waitlist";
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
+    @await Html.PartialAsync("_SiteLogo")
 
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 <hr />
