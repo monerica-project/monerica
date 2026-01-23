@@ -6,8 +6,10 @@
 }
 
 @section PageContent {
-    @await Html.PartialAsync("_SiteLogo")
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
     <hr />
 
     @if (Model == null || !Model.Any())

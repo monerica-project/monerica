@@ -1,4 +1,5 @@
 ﻿@using DirectoryManager.Utilities
+@using DirectoryManager.Web.Constants
 @model DirectoryManager.Web.Models.CountryListViewModel
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 
@@ -6,12 +7,14 @@
     Layout = "_CenteredLayout";
     int totalPages = (int)Math.Ceiling(Model.PagedCountries.TotalCount / (double)Model.PageSize);
     string pageSuffix = Model.CurrentPage > 1 ? $" – Page {Model.CurrentPage}" : "";
-    ViewData["Title"] = $"Countries{pageSuffix}";
+    ViewData[StringConstants.TitleHeader] = $"Countries{pageSuffix}";
 }
 
 @section PageContent {
-    @await Html.PartialAsync("_SiteLogo")
-    <h1>Countries</h1>
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
 
     <hr />
     @await Html.PartialAsync("_BackToHome")

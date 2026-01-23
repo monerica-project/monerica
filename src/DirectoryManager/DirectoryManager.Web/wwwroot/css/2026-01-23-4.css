@@ -1302,7 +1302,40 @@ a.external-link {
     }
 
 
- 
+.page-header-bar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.page-title {
+    margin: 0;
+    line-height: 1.05;
+    flex: 1 1 auto;
+    min-width: 0; /* important for wrapping in flex */
+}
+
+.site-logo-link {
+    flex: 0 0 auto;
+    display: inline-block;
+}
+
+.site-logo {
+    display: block;
+    height: auto;
+    max-width: 120px; /* desktop */
+}
+
+@media (max-width: 600px) {
+    .site-logo {
+        max-width: 78px;
+    }
+}
+
+.orange-text {
+    color: #ff6600
+}
 
 @media (max-width: 768px) {
     .site-logo-top-right {
