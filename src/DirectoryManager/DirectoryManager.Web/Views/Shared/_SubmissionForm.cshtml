@@ -111,7 +111,6 @@
     <textarea class="input-width" asp-for="PgpKey"></textarea>
 </div>
 
-
 @{
     var allTags = ViewBag.AllTags as IEnumerable<dynamic>;
 }
@@ -136,12 +135,10 @@
             </label>
         }
     </div>
-
- 
 }
 
 <div class="form-group">
-    <label asp-for="Tags">Tags (comma-separated)</label>
+    <label asp-for="Tags">Suggested Tags (if choice not provided) <i>comma-separated</i></label>
     <input maxlength="100" asp-for="Tags" class="form-control  input-width" />
     <span asp-validation-for="Tags" class="text-danger"></span>
 </div>
