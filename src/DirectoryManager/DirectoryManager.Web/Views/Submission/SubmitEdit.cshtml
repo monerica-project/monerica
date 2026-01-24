@@ -15,7 +15,7 @@
 
 @section PageContent {
     <div class="page-header-bar">
-        <h1 class="page-title">Listings with Status: @ViewBag.Status</h1>
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader] </h1>
         @await Html.PartialAsync("_SiteLogo")
     </div>
 <hr />
