@@ -27,5 +27,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<bool> UpdateAsync(int tagId, string name);
 
         Task<PagedResult<Tag>> ListAllPagedAsync(int page, int pageSize);
+
+        Task<IReadOnlyList<TagCount>> ListTagsForCategoryAsync(int categoryId);
     }
 }

@@ -6,6 +6,7 @@ using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
 using Microsoft.EntityFrameworkCore;
+using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace DirectoryManager.Data.Repositories.Implementations
 {
@@ -921,7 +922,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return subs.Select(x => new IdNameOption { Id = x.SubCategoryId, Name = x.Name }).ToList();
         }
 
-
         public async Task<PagedResult<DirectoryEntry>> FilterAsync(DirectoryFilterQuery q)
         {
             q ??= new DirectoryFilterQuery();
@@ -985,6 +985,25 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 {
                     int subId = q.SubCategoryId.Value;
                     baseQ = baseQ.Where(e => e.SubCategoryId == subId);
+                }
+            }
+
+            if (q.TagIds is { Count: > 0 })
+            {
+                var tagIds = q.TagIds
+                    .Where(x => x > 0)
+                    .Distinct()
+                    .ToList();
+
+                if (tagIds.Count > 0)
+                {
+                    // Entry must include ALL selected tags
+                    baseQ = baseQ.Where(e =>
+                        e.EntryTags
+                         .Where(et => tagIds.Contains(et.TagId))
+                         .Select(et => et.TagId)
+                         .Distinct()
+                         .Count() == tagIds.Count);
                 }
             }
 

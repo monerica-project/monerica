@@ -10,6 +10,12 @@ using Microsoft.Extensions.Caching.Memory;
 
 public class DirectoryFilterController : Controller
 {
+    private const int PageSize = 10;
+
+    // cache durations (same everywhere)
+    private static readonly TimeSpan CacheAbsolute = TimeSpan.FromHours(6);
+    private static readonly TimeSpan CacheSliding = TimeSpan.FromHours(1);
+
     private readonly IDirectoryEntryRepository entryRepo;
     private readonly IDirectoryEntryReviewRepository entryReviewsRepo;
     private readonly ICategoryRepository categoryRepo;
@@ -17,12 +23,14 @@ public class DirectoryFilterController : Controller
     private readonly ICacheService cacheService;
     private readonly ISponsoredListingRepository sponsoredListingRepository;
     private readonly IMemoryCache memoryCache;
+    private readonly ITagRepository tagRepo;
 
     public DirectoryFilterController(
         IDirectoryEntryRepository entryRepo,
         IDirectoryEntryReviewRepository entryReviewsRepo,
         ICategoryRepository categoryRepo,
         ISubcategoryRepository subcategoryRepo,
+        ITagRepository tagRepo,
         ICacheService cacheService,
         ISponsoredListingRepository sponsoredListingRepository,
         IMemoryCache memoryCache)
@@ -31,6 +39,7 @@ public class DirectoryFilterController : Controller
         this.entryReviewsRepo = entryReviewsRepo;
         this.categoryRepo = categoryRepo;
         this.subcategoryRepo = subcategoryRepo;
+        this.tagRepo = tagRepo;
         this.cacheService = cacheService;
         this.sponsoredListingRepository = sponsoredListingRepository;
         this.memoryCache = memoryCache;
@@ -41,8 +50,58 @@ public class DirectoryFilterController : Controller
     {
         q ??= new DirectoryFilterQuery();
 
-        // enforce 10 per page
-        q.PageSize = 10;
+        NormalizeQuery(q);
+
+        // wipe / sanitize tag filters if they don't match the selected category
+        await this.SanitizeTagIdsForCategoryAsync(q);
+
+        // core results
+        var result = await this.entryRepo.FilterAsync(q);
+
+        // link labels (used in both view models + sponsor models)
+        var (link2Name, link3Name) = await this.GetLinkLabelsAsync();
+
+        // convert result items into VMs
+        var vmList = ConvertItemsToViewModels(result, link2Name, link3Name);
+
+        // rating summaries for this page only
+        await this.ApplyRatingsAsync(vmList);
+
+        // sponsor pinning + order sponsors first
+        vmList = await this.ApplySponsorsAndOrderAsync(vmList);
+
+        // dropdown options
+        var countryOptions = await this.GetCountryOptionsAsync();
+        var categoryOptions = await this.GetCategoryOptionsAsync();
+        var categoryTagOptions = await this.GetCategoryTagOptionsAsync(q.CategoryId);
+        var subCategoryOptions = await this.GetSubCategoryOptionsAsync(q.CategoryId);
+
+        // sponsor block models for the filter page
+        var (categorySponsorModel, subcategorySponsorModel) =
+            await this.GetSponsorModelsAsync(q, link2Name, link3Name);
+
+        var vm = BuildViewModel(
+            q,
+            result.TotalCount,
+            vmList,
+            countryOptions,
+            categoryOptions,
+            subCategoryOptions,
+            categoryTagOptions,
+            categorySponsorModel,
+            subcategorySponsorModel);
+
+        this.ViewData[StringConstants.TitleHeader] = "Directory Filter";
+        return this.View(vm);
+    }
+
+    // -------------------------
+    // Query normalization
+    // -------------------------
+    private static void NormalizeQuery(DirectoryFilterQuery q)
+    {
+        q.PageSize = PageSize;
+
         if (q.Page < 1)
         {
             q.Page = 1;
@@ -57,26 +116,45 @@ public class DirectoryFilterController : Controller
                 DirectoryStatus.Verified
             };
         }
+    }
 
-        var result = await this.entryRepo.FilterAsync(q);
-
+    // -------------------------
+    // Snippets
+    // -------------------------
+    private async Task<(string link2Name, string link3Name)> GetLinkLabelsAsync()
+    {
         var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
         var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
+        return (link2Name, link3Name);
+    }
 
-        var vmList = ViewModelConverter.ConvertToViewModels(
+    // -------------------------
+    // View model conversion
+    // -------------------------
+    private static List<DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel> ConvertItemsToViewModels(
+        PagedResult<DirectoryEntry> result,
+        string link2Name,
+        string link3Name)
+    {
+        return ViewModelConverter.ConvertToViewModels(
             result.Items.ToList(),
             DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
             DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.SearchResult,
             link2Name,
             link3Name);
+    }
 
+    // -------------------------
+    // Ratings
+    // -------------------------
+    private async Task ApplyRatingsAsync(List<DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel> items)
+    {
         // Fetch rating summaries for ONLY the entries on this page
-        var ids = vmList.Select(x => x.DirectoryEntryId).Distinct().ToList();
-
+        var ids = items.Select(x => x.DirectoryEntryId).Distinct().ToList();
         var ratingMap = await this.entryReviewsRepo.GetRatingSummariesAsync(ids);
 
         // Apply onto view models (optional fields)
-        foreach (var item in vmList)
+        foreach (var item in items)
         {
             if (ratingMap.TryGetValue(item.DirectoryEntryId, out var rs) && rs.ReviewCount > 0)
             {
@@ -89,28 +167,36 @@ public class DirectoryFilterController : Controller
                 item.ReviewCount = 0;
             }
         }
+    }
 
-        // Sponsor pinning
+    // -------------------------
+    // Sponsors (pin + order)
+    // -------------------------
+    private async Task<List<DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel>> ApplySponsorsAndOrderAsync(
+        List<DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel> items)
+    {
         var allSponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
         var sponsorIds = new HashSet<int>(allSponsors.Select(s => s.DirectoryEntryId));
 
-        foreach (var item in vmList)
+        foreach (var item in items)
         {
             item.IsSponsored = sponsorIds.Contains(item.DirectoryEntryId);
         }
 
-        // show sponsors first
-        vmList = vmList.Where(e => e.IsSponsored).Concat(vmList.Where(e => !e.IsSponsored)).ToList();
+        // show sponsors first (keep exact behavior)
+        return items.Where(e => e.IsSponsored).Concat(items.Where(e => !e.IsSponsored)).ToList();
+    }
 
-        // -------------------------
-        // Options: Countries (cached)
-        // -------------------------
-        var countryOptions = await this.memoryCache.GetOrCreateAsync(
+    // -------------------------
+    // Options: Countries (cached)
+    // -------------------------
+    private async Task<List<(string Code, string Name)>> GetCountryOptionsAsync()
+    {
+        return await this.memoryCache.GetOrCreateAsync(
             StringConstants.ActiveCountriesCacheName,
             async cacheEntry =>
             {
-                cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6);
-                cacheEntry.SlidingExpiration = TimeSpan.FromHours(1);
+                SetCachePolicy(cacheEntry);
 
                 // 1) Fetch only codes that exist in DB
                 var existingCodes = await this.entryRepo.ListActiveCountryCodesAsync();
@@ -125,16 +211,18 @@ public class DirectoryFilterController : Controller
                     .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
                     .ToList();
             }) ?? new List<(string Code, string Name)>();
+    }
 
-        // -------------------------
-        // Options: Active Categories (cached)
-        // -------------------------
-        var categoryOptions = await this.memoryCache.GetOrCreateAsync(
+    // -------------------------
+    // Options: Categories (cached)
+    // -------------------------
+    private async Task<List<IdNameOption>> GetCategoryOptionsAsync()
+    {
+        return await this.memoryCache.GetOrCreateAsync(
             StringConstants.ActiveCategoriesCacheName,
             async cacheEntry =>
             {
-                cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6);
-                cacheEntry.SlidingExpiration = TimeSpan.FromHours(1);
+                SetCachePolicy(cacheEntry);
 
                 var activeCategories = await this.categoryRepo.GetActiveCategoriesAsync();
 
@@ -143,38 +231,73 @@ public class DirectoryFilterController : Controller
                     .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
                     .ToList();
             }) ?? new List<IdNameOption>();
+    }
 
-        // -------------------------
-        // Options: Active Subcategories for selected category (cached per categoryId)
-        // -------------------------
-        var subCategoryOptions = new List<IdNameOption>();
-
-        if (q.CategoryId is > 0)
+    // -------------------------
+    // Options: Tags in selected category (cached per categoryId)
+    // -------------------------
+    private async Task<List<IdNameOption>> GetCategoryTagOptionsAsync(int? categoryId)
+    {
+        if (!(categoryId is > 0))
         {
-            int catId = q.CategoryId.Value;
-            string subcatCacheKey = StringConstants.ActiveSubcategoriesByCategoryCachePrefix + catId;
-
-            subCategoryOptions = await this.memoryCache.GetOrCreateAsync(
-                subcatCacheKey,
-                async cacheEntry =>
-                {
-                    cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6);
-                    cacheEntry.SlidingExpiration = TimeSpan.FromHours(1);
-
-                    var activeSubcats = await this.subcategoryRepo.GetActiveSubcategoriesAsync(catId);
-
-                    return activeSubcats
-                        .Select(sc => new IdNameOption { Id = sc.SubCategoryId, Name = sc.Name })
-                        .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
-                        .ToList();
-                }) ?? new List<IdNameOption>();
+            return new List<IdNameOption>();
         }
 
-        // -------------------------
-        // Sponsor block for filter page:
-        // - if SubCategoryId selected => subcategory sponsor
-        // - else if CategoryId selected => category sponsor
-        // -------------------------
+        int catId = categoryId.Value;
+        string tagCacheKey = StringConstants.ActiveTagsByCategoryCachePrefix + catId;
+
+        return await this.memoryCache.GetOrCreateAsync(
+            tagCacheKey,
+            async cacheEntry =>
+            {
+                SetCachePolicy(cacheEntry);
+
+                var tags = await this.tagRepo.ListTagsForCategoryAsync(catId);
+
+                // Just ID + name for display
+                return tags
+                    .Select(t => new IdNameOption { Id = t.TagId, Name = t.Name })
+                    .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }) ?? new List<IdNameOption>();
+    }
+
+    // -------------------------
+    // Options: Subcategories for selected category (cached per categoryId)
+    // -------------------------
+    private async Task<List<IdNameOption>> GetSubCategoryOptionsAsync(int? categoryId)
+    {
+        if (!(categoryId is > 0))
+        {
+            return new List<IdNameOption>();
+        }
+
+        int catId = categoryId.Value;
+        string subcatCacheKey = StringConstants.ActiveSubcategoriesByCategoryCachePrefix + catId;
+
+        return await this.memoryCache.GetOrCreateAsync(
+            subcatCacheKey,
+            async cacheEntry =>
+            {
+                SetCachePolicy(cacheEntry);
+
+                var activeSubcats = await this.subcategoryRepo.GetActiveSubcategoriesAsync(catId);
+
+                return activeSubcats
+                    .Select(sc => new IdNameOption { Id = sc.SubCategoryId, Name = sc.Name })
+                    .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }) ?? new List<IdNameOption>();
+    }
+
+    // -------------------------
+    // Sponsor models for filter page (exact same logic, just extracted)
+    // -------------------------
+    private async Task<(CategorySponsorModel? category, SubcategorySponsorModel? subcategory)> GetSponsorModelsAsync(
+        DirectoryFilterQuery q,
+        string link2Name,
+        string link3Name)
+    {
         CategorySponsorModel? categorySponsorModel = null;
         SubcategorySponsorModel? subcategorySponsorModel = null;
 
@@ -193,33 +316,7 @@ public class DirectoryFilterController : Controller
                 SubCategoryId = subId,
                 TotalActiveSubCategoryListings = totalActiveInSub,
                 DirectoryEntry = (subSponsor?.DirectoryEntry != null)
-                    ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
-                    {
-                        DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
-                        LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage,
-
-                        CreateDate = subSponsor.DirectoryEntry.CreateDate,
-                        UpdateDate = subSponsor.DirectoryEntry.UpdateDate,
-
-                        Link = subSponsor.DirectoryEntry.Link,
-                        Link2 = subSponsor.DirectoryEntry.Link2,
-                        Link3 = subSponsor.DirectoryEntry.Link3,
-                        Link2Name = link2Name,
-                        Link3Name = link3Name,
-
-                        Name = subSponsor.DirectoryEntry.Name,
-                        Contact = subSponsor.DirectoryEntry.Contact,
-                        Description = subSponsor.DirectoryEntry.Description,
-                        DirectoryEntryId = subSponsor.DirectoryEntry.DirectoryEntryId,
-                        DirectoryStatus = subSponsor.DirectoryEntry.DirectoryStatus,
-                        Location = subSponsor.DirectoryEntry.Location,
-                        Note = subSponsor.DirectoryEntry.Note,
-                        Processor = subSponsor.DirectoryEntry.Processor,
-                        SubCategoryId = subSponsor.DirectoryEntry.SubCategoryId,
-
-                        IsSponsored = true,
-                        DisplayAsSponsoredItem = false
-                    }
+                    ? BuildSponsorEntryVm(subSponsor.DirectoryEntry, link2Name, link3Name)
                     : null
             };
         }
@@ -241,51 +338,86 @@ public class DirectoryFilterController : Controller
                 CategoryId = catId,
                 TotalActiveCategoryListings = totalActiveInCat,
                 DirectoryEntry = (catSponsor?.DirectoryEntry != null)
-                    ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
-                    {
-                        DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
-                        LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage,
-
-                        CreateDate = catSponsor.DirectoryEntry.CreateDate,
-                        UpdateDate = catSponsor.DirectoryEntry.UpdateDate,
-
-                        Link = catSponsor.DirectoryEntry.Link,
-                        Link2 = catSponsor.DirectoryEntry.Link2,
-                        Link3 = catSponsor.DirectoryEntry.Link3,
-                        Link2Name = link2Name,
-                        Link3Name = link3Name,
-
-                        Name = catSponsor.DirectoryEntry.Name,
-                        Contact = catSponsor.DirectoryEntry.Contact,
-                        Description = catSponsor.DirectoryEntry.Description,
-                        DirectoryEntryId = catSponsor.DirectoryEntry.DirectoryEntryId,
-                        DirectoryStatus = catSponsor.DirectoryEntry.DirectoryStatus,
-                        Location = catSponsor.DirectoryEntry.Location,
-                        Note = catSponsor.DirectoryEntry.Note,
-                        Processor = catSponsor.DirectoryEntry.Processor,
-                        SubCategoryId = catSponsor.DirectoryEntry.SubCategoryId,
-
-                        IsSponsored = true,
-                        DisplayAsSponsoredItem = false
-                    }
+                    ? BuildSponsorEntryVm(catSponsor.DirectoryEntry, link2Name, link3Name)
                     : null
             };
         }
 
-        var vm = new DirectoryFilterViewModel
+        return (categorySponsorModel, subcategorySponsorModel);
+    }
+
+    private static DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel BuildSponsorEntryVm(
+        DirectoryEntry e,
+        string link2Name,
+        string link3Name)
+    {
+        return new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
+        {
+            DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+            LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage,
+
+            CreateDate = e.CreateDate,
+            UpdateDate = e.UpdateDate,
+
+            Link = e.Link,
+            Link2 = e.Link2,
+            Link3 = e.Link3,
+            Link2Name = link2Name,
+            Link3Name = link3Name,
+
+            Name = e.Name,
+            Contact = e.Contact,
+            Description = e.Description,
+            DirectoryEntryId = e.DirectoryEntryId,
+            DirectoryStatus = e.DirectoryStatus,
+            Location = e.Location,
+            Note = e.Note,
+            Processor = e.Processor,
+            SubCategoryId = e.SubCategoryId,
+
+            IsSponsored = true,
+            DisplayAsSponsoredItem = false
+        };
+    }
+
+    // -------------------------
+    // Cache helper
+    // -------------------------
+    private static void SetCachePolicy(ICacheEntry cacheEntry)
+    {
+        cacheEntry.AbsoluteExpirationRelativeToNow = CacheAbsolute;
+        cacheEntry.SlidingExpiration = CacheSliding;
+    }
+
+    // -------------------------
+    // View model creation
+    // -------------------------
+    private static DirectoryFilterViewModel BuildViewModel(
+        DirectoryFilterQuery q,
+        int totalCount,
+        List<DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel> entries,
+        List<(string Code, string Name)> countryOptions,
+        List<IdNameOption> categoryOptions,
+        List<IdNameOption> subCategoryOptions,
+        List<IdNameOption> categoryTagOptions,
+        CategorySponsorModel? categorySponsorModel,
+        SubcategorySponsorModel? subcategorySponsorModel)
+    {
+        return new DirectoryFilterViewModel
         {
             Query = q,
-            TotalCount = result.TotalCount,
-            Entries = vmList,
+            TotalCount = totalCount,
+            Entries = entries,
 
             CountryOptions = countryOptions,
             CategoryOptions = categoryOptions,
             SubCategoryOptions = subCategoryOptions,
 
+            CategoryTagOptions = categoryTagOptions,
+
             CategorySponsorModel = categorySponsorModel,
             SubcategorySponsorModel = subcategorySponsorModel,
 
-            // Only these 4 in this order
             AllStatuses = new List<DirectoryStatus>
             {
                 DirectoryStatus.Verified,
@@ -294,8 +426,46 @@ public class DirectoryFilterController : Controller
                 DirectoryStatus.Scam
             }
         };
+    }
 
-        this.ViewData["Title"] = "Directory Filter";
-        return this.View(vm);
+    // -------------------------
+    // Tag sanitizer (exact same logic)
+    // -------------------------
+    private async Task SanitizeTagIdsForCategoryAsync(DirectoryFilterQuery q)
+    {
+        if (!(q.CategoryId is > 0))
+        {
+            q.TagIds = new List<int>();
+            return;
+        }
+
+        if (q.TagIds is null || q.TagIds.Count == 0)
+        {
+            return;
+        }
+
+        int catId = q.CategoryId.Value;
+        string idCacheKey = StringConstants.ActiveTagIdsByCategoryCachePrefix + catId;
+
+        var allowedIds = await this.memoryCache.GetOrCreateAsync(
+            idCacheKey,
+            async cacheEntry =>
+            {
+                SetCachePolicy(cacheEntry);
+
+                var tags = await this.tagRepo.ListTagsForCategoryAsync(catId);
+                return tags.Select(t => t.TagId).ToHashSet();
+            }) ?? new HashSet<int>();
+
+        var cleaned = q.TagIds
+            .Where(id => id > 0 && allowedIds.Contains(id))
+            .Distinct()
+            .ToList();
+
+        if (cleaned.Count != q.TagIds.Count)
+        {
+            q.TagIds = cleaned;
+            q.Page = 1;
+        }
     }
 }

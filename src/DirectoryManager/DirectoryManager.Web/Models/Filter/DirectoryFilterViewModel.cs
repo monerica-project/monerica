@@ -20,5 +20,7 @@ namespace DirectoryManager.Web.Models
 
         public CategorySponsorModel? CategorySponsorModel { get; set; }
         public SubcategorySponsorModel? SubcategorySponsorModel { get; set; }
+
+        public List<IdNameOption> CategoryTagOptions { get; set; } = new ();
     }
 }

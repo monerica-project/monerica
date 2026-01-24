@@ -179,6 +179,42 @@
                 </select>
             </label>
         }
+
+            @if (Model.Query.CategoryId.HasValue && Model.Query.CategoryId.Value > 0)
+            {
+                var selectedTagIds = new HashSet<int>(Model.Query.TagIds ?? new List<int>());
+
+                <div style="margin-top:10px;">
+                    <label style="display:block; margin-bottom:6px;">
+                        Tags (in this category):
+                    </label>
+
+                    @if (Model.CategoryTagOptions == null || Model.CategoryTagOptions.Count == 0)
+                    {
+                        <div style="font-size:12px; opacity:.75;">
+                            <i>No tags found for this category.</i>
+                        </div>
+                    }
+                    else
+                    {
+                        <div style="border:1px solid #333; padding:10px; border-radius:8px;">
+                            @foreach (var t in Model.CategoryTagOptions)
+                            {
+                                var isChecked = selectedTagIds.Contains(t.Id);
+
+                                <label style="display:inline-flex; align-items:center; gap:6px; margin-right:14px; margin-bottom:8px;">
+                                    <input type="checkbox"
+                                           name="TagIds"
+                                           value="@t.Id"
+                                           @(isChecked ? "checked" : "") />
+                                    <span>@t.Name</span>
+                                </label>
+                            }
+                        </div>
+                    }
+                </div>
+            }
+
     </fieldset>
 
     <fieldset style="border:1px solid #444; padding:10px; border-radius:8px; margin-bottom:12px;">
@@ -279,16 +315,20 @@ else
 
     // Build base query dict from current request, excluding Page + Statuses (multi-value)
     var current = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
-    foreach (var kv in Context.Request.Query)
-    {
-        if (string.Equals(kv.Key, "Page", StringComparison.OrdinalIgnoreCase))
-            continue;
+        foreach (var kv in Context.Request.Query)
+        {
+            if (string.Equals(kv.Key, "Page", StringComparison.OrdinalIgnoreCase))
+                continue;
 
-        if (string.Equals(kv.Key, "Statuses", StringComparison.OrdinalIgnoreCase))
-            continue;
+            if (string.Equals(kv.Key, "Statuses", StringComparison.OrdinalIgnoreCase))
+                continue;
 
-        current[kv.Key] = kv.Value.ToString();
-    }
+            if (string.Equals(kv.Key, "TagIds", StringComparison.OrdinalIgnoreCase))
+                continue;
+
+            current[kv.Key] = kv.Value.ToString();
+        }
+
 
     string BuildUrlForPage(int page)
     {
@@ -303,14 +343,23 @@ else
 
         var tmp = QueryHelpers.AddQueryString(url, qs);
 
-        // Multi-value Statuses
-        if (Model.Query.Statuses is { Count: > 0 })
-        {
-            foreach (var st in Model.Query.Statuses)
+            // Multi-value Statuses
+            if (Model.Query.Statuses is { Count: > 0 })
             {
-                tmp = QueryHelpers.AddQueryString(tmp, "Statuses", st.ToString());
+                foreach (var st in Model.Query.Statuses)
+                {
+                    tmp = QueryHelpers.AddQueryString(tmp, "Statuses", st.ToString());
+                }
             }
-        }
+
+            // Multi-value TagIds
+            if (Model.Query.TagIds is { Count: > 0 })
+            {
+                foreach (var tid in Model.Query.TagIds)
+                {
+                    tmp = QueryHelpers.AddQueryString(tmp, "TagIds", tid.ToString());
+                }
+            }
 
         return tmp;
     }
