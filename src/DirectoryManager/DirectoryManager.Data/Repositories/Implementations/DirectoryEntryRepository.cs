@@ -630,15 +630,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             var scored = ScoreSearchCandidates(
                     candidates,
-                    normalized.Term,
-                    normalized.RootTerm,
-                    normalized.CountryCode,
-                    normalized.IsUrlTerm,
-                    normalized.NoSlash,
-                    normalized.WithSlash,
-                    normalized.HostOnly,
-                    normalized.HostNoWww,
-                    normalized.TermCompact)
+                    normalized.term,
+                    normalized.rootTerm,
+                    normalized.countryCode,
+                    normalized.isUrlTerm,
+                    normalized.noSlash,
+                    normalized.withSlash,
+                    normalized.hostOnly,
+                    normalized.hostNoWww,
+                    normalized.termCompact)
                 .ToList();
 
             // 4) paging (same as before)
@@ -652,23 +652,175 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return new PagedResult<DirectoryEntry> { TotalCount = total, Items = items };
         }
 
+        public async Task<PagedResult<DirectoryEntry>> FilterAsync(DirectoryFilterQuery q)
+        {
+            q ??= new DirectoryFilterQuery();
+
+            int page = q.Page < 1 ? 1 : q.Page;
+            int pageSize = q.PageSize < 1 ? 10 : q.PageSize;
+
+            var statuses = GetStatusesOrDefault(q);
+            var baseQ = this.BuildFilterBaseQuery(q, statuses);
+
+            // -------- Sorting + paging (phase 1: get IDs) ----------
+            var pageIdsQ = this.BuildFilterPageIdsQuery(baseQ, q.Sort);
+
+            int total = await this.GetFilterTotalAsync(baseQ, q.Sort).ConfigureAwait(false);
+
+            var pageIds = await pageIdsQ
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            if (pageIds.Count == 0)
+            {
+                return new PagedResult<DirectoryEntry> { TotalCount = total, Items = new List<DirectoryEntry>() };
+            }
+
+            // -------- Phase 2: load full entities with Includes ----------
+            var items = await this.LoadEntriesByIdsPreservingOrderAsync(pageIds).ConfigureAwait(false);
+
+            return new PagedResult<DirectoryEntry>
+            {
+                TotalCount = total,
+                Items = items
+            };
+        }
+
+        private IQueryable<DirectoryEntry> BuildSearchServerSideQuery(SearchTermInfo n)
+        {
+            // 1) server-side filter (kept & extended with URL-variant + compact matches)
+            return this.BaseQuery()
+                .Where(e =>
+                    e.DirectoryStatus != DirectoryStatus.Removed &&
+                    (
+                        // Country (kept)
+                        (n.countryCode != null && e.CountryCode == n.countryCode)
+
+                        // Name (kept + compact)
+                        || EF.Functions.Like(e.Name.ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.Like(e.Name.ToLower(), n.rootPattern))
+                        || (n.compactPattern != null &&
+                            EF.Functions.Like(
+                                e.Name.ToLower()
+                                      .Replace("-", "")
+                                      .Replace(".", "")
+                                      .Replace(" ", "")
+                                      .Replace("_", ""),
+                                n.compactPattern))
+
+                        // Description (kept)
+                        || EF.Functions.Like((e.Description ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.Like((e.Description ?? "").ToLower(), n.rootPattern))
+
+                        // Subcategory / Category (kept)
+                        || EF.Functions.Like(e.SubCategory!.Name.ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.Like(e.SubCategory.Name.ToLower(), n.rootPattern))
+                        || EF.Functions.Like(e.SubCategory.Category!.Name.ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.Like(e.SubCategory.Category.Name.ToLower(), n.rootPattern))
+
+                        // Tags (kept)
+                        || e.EntryTags.Any(et =>
+                            EF.Functions.Like(et.Tag.Name.ToLower(), n.primaryPattern) ||
+                            (n.rootPattern != null && EF.Functions.Like(et.Tag.Name.ToLower(), n.rootPattern)))
+
+                        // Note, Processor, Location, Contact (kept)
+                        || EF.Functions.Like((e.Note ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.Like((e.Note ?? "").ToLower(), n.rootPattern))
+                        || EF.Functions.Like((e.Processor ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.Like((e.Processor ?? "").ToLower(), n.rootPattern))
+                        || EF.Functions.Like((e.Location ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.Like((e.Location ?? "").ToLower(), n.rootPattern))
+                        || EF.Functions.Like((e.Contact ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.Like((e.Contact ?? "").ToLower(), n.rootPattern))
+
+                        // Links (kept + compact for separator-insensitive matches)
+                        || EF.Functions.Like((e.Link ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.Like((e.Link ?? "").ToLower(), n.rootPattern))
+                        || (n.compactPattern != null &&
+                            EF.Functions.Like(
+                                (e.Link ?? "").ToLower()
+                                              .Replace("-", "")
+                                              .Replace(".", "")
+                                              .Replace(" ", "")
+                                              .Replace("_", ""),
+                                n.compactPattern))
+
+                        || EF.Functions.Like((e.Link2 ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.Like((e.Link2 ?? "").ToLower(), n.rootPattern))
+                        || (n.compactPattern != null &&
+                            EF.Functions.Like(
+                                (e.Link2 ?? "").ToLower()
+                                               .Replace("-", "")
+                                               .Replace(".", "")
+                                               .Replace(" ", "")
+                                               .Replace("_", ""),
+                                n.compactPattern))
+
+                        || EF.Functions.Like((e.Link3 ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.Like((e.Link3 ?? "").ToLower(), n.rootPattern))
+                        || (n.compactPattern != null &&
+                            EF.Functions.Like(
+                                (e.Link3 ?? "").ToLower()
+                                               .Replace("-", "")
+                                               .Replace(".", "")
+                                               .Replace(" ", "")
+                                               .Replace("_", ""),
+                                n.compactPattern))
+
+                        || EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.rootPattern))
+                        || (n.compactPattern != null &&
+                            EF.Functions.Like(
+                                (e.ProofLink ?? "").ToLower()
+                                                  .Replace("-", "")
+                                                  .Replace(".", "")
+                                                  .Replace(" ", "")
+                                                  .Replace("_", ""),
+                                n.compactPattern))
+
+                        // URL variants (kept)
+                        || (n.isUrlTerm && (
+                               EF.Functions.Like((e.Link ?? "").ToLower(), n.pNoSlash) ||
+                               EF.Functions.Like((e.Link ?? "").ToLower(), n.pWithSlash) ||
+                               (n.pHostOnly != "" && EF.Functions.Like((e.Link ?? "").ToLower(), n.pHostOnly)) ||
+                               (n.pNoWww != "" && EF.Functions.Like((e.Link ?? "").ToLower(), n.pNoWww)) ||
+
+                               EF.Functions.Like((e.Link2 ?? "").ToLower(), n.pNoSlash) ||
+                               EF.Functions.Like((e.Link2 ?? "").ToLower(), n.pWithSlash) ||
+                               (n.pHostOnly != "" && EF.Functions.Like((e.Link2 ?? "").ToLower(), n.pHostOnly)) ||
+                               (n.pNoWww != "" && EF.Functions.Like((e.Link2 ?? "").ToLower(), n.pNoWww)) ||
+
+                               EF.Functions.Like((e.Link3 ?? "").ToLower(), n.pNoSlash) ||
+                               EF.Functions.Like((e.Link3 ?? "").ToLower(), n.pWithSlash) ||
+                               (n.pHostOnly != "" && EF.Functions.Like((e.Link3 ?? "").ToLower(), n.pHostOnly)) ||
+                               (n.pNoWww != "" && EF.Functions.Like((e.Link3 ?? "").ToLower(), n.pNoWww)) ||
+
+                               EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.pNoSlash) ||
+                               EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.pWithSlash) ||
+                               (n.pHostOnly != "" && EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.pHostOnly)) ||
+                               (n.pNoWww != "" && EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.pNoWww))))
+                    ));
+        }
+
         private sealed record SearchTermInfo(
-            string Term,
-            string? CountryCode,
-            string? RootTerm,
-            string PrimaryPattern,
-            string? RootPattern,
-            string TermCompact,
-            string? CompactPattern,
-            bool IsUrlTerm,
-            string NoSlash,
-            string WithSlash,
-            string HostOnly,
-            string HostNoWww,
-            string PNoSlash,
-            string PWithSlash,
-            string PHostOnly,
-            string PNoWww);
+            string term,
+            string? countryCode,
+            string? rootTerm,
+            string primaryPattern,
+            string? rootPattern,
+            string termCompact,
+            string? compactPattern,
+            bool isUrlTerm,
+            string noSlash,
+            string withSlash,
+            string hostOnly,
+            string hostNoWww,
+            string pNoSlash,
+            string pWithSlash,
+            string pHostOnly,
+            string pNoWww);
 
         private static SearchTermInfo NormalizeSearchTerm(string term)
         {
@@ -738,138 +890,22 @@ namespace DirectoryManager.Data.Repositories.Implementations
             string pNoWww = string.IsNullOrEmpty(hostNoWww) ? "" : $"%{hostNoWww}%";
 
             return new SearchTermInfo(
-                Term: term,
-                CountryCode: countryCode,
-                RootTerm: rootTerm,
-                PrimaryPattern: primaryPattern,
-                RootPattern: rootPattern,
-                TermCompact: termCompact,
-                CompactPattern: compactPattern,
-                IsUrlTerm: isUrlTerm,
-                NoSlash: noSlash,
-                WithSlash: withSlash,
-                HostOnly: hostOnly,
-                HostNoWww: hostNoWww,
-                PNoSlash: pNoSlash,
-                PWithSlash: pWithSlash,
-                PHostOnly: pHostOnly,
-                PNoWww: pNoWww);
-        }
-
-        private IQueryable<DirectoryEntry> BuildSearchServerSideQuery(SearchTermInfo n)
-        {
-            // 1) server-side filter (kept & extended with URL-variant + compact matches)
-            return this.BaseQuery()
-                .Where(e =>
-                    e.DirectoryStatus != DirectoryStatus.Removed &&
-                    (
-                        // Country (kept)
-                        (n.CountryCode != null && e.CountryCode == n.CountryCode)
-
-                        // Name (kept + compact)
-                        || EF.Functions.Like(e.Name.ToLower(), n.PrimaryPattern)
-                        || (n.RootPattern != null && EF.Functions.Like(e.Name.ToLower(), n.RootPattern))
-                        || (n.CompactPattern != null &&
-                            EF.Functions.Like(
-                                e.Name.ToLower()
-                                      .Replace("-", "")
-                                      .Replace(".", "")
-                                      .Replace(" ", "")
-                                      .Replace("_", ""),
-                                n.CompactPattern))
-
-                        // Description (kept)
-                        || EF.Functions.Like((e.Description ?? "").ToLower(), n.PrimaryPattern)
-                        || (n.RootPattern != null && EF.Functions.Like((e.Description ?? "").ToLower(), n.RootPattern))
-
-                        // Subcategory / Category (kept)
-                        || EF.Functions.Like(e.SubCategory!.Name.ToLower(), n.PrimaryPattern)
-                        || (n.RootPattern != null && EF.Functions.Like(e.SubCategory.Name.ToLower(), n.RootPattern))
-                        || EF.Functions.Like(e.SubCategory.Category!.Name.ToLower(), n.PrimaryPattern)
-                        || (n.RootPattern != null && EF.Functions.Like(e.SubCategory.Category.Name.ToLower(), n.RootPattern))
-
-                        // Tags (kept)
-                        || e.EntryTags.Any(et =>
-                            EF.Functions.Like(et.Tag.Name.ToLower(), n.PrimaryPattern) ||
-                            (n.RootPattern != null && EF.Functions.Like(et.Tag.Name.ToLower(), n.RootPattern)))
-
-                        // Note, Processor, Location, Contact (kept)
-                        || EF.Functions.Like((e.Note ?? "").ToLower(), n.PrimaryPattern)
-                        || (n.RootPattern != null && EF.Functions.Like((e.Note ?? "").ToLower(), n.RootPattern))
-                        || EF.Functions.Like((e.Processor ?? "").ToLower(), n.PrimaryPattern)
-                        || (n.RootPattern != null && EF.Functions.Like((e.Processor ?? "").ToLower(), n.RootPattern))
-                        || EF.Functions.Like((e.Location ?? "").ToLower(), n.PrimaryPattern)
-                        || (n.RootPattern != null && EF.Functions.Like((e.Location ?? "").ToLower(), n.RootPattern))
-                        || EF.Functions.Like((e.Contact ?? "").ToLower(), n.PrimaryPattern)
-                        || (n.RootPattern != null && EF.Functions.Like((e.Contact ?? "").ToLower(), n.RootPattern))
-
-                        // Links (kept + compact for separator-insensitive matches)
-                        || EF.Functions.Like((e.Link ?? "").ToLower(), n.PrimaryPattern)
-                        || (n.RootPattern != null && EF.Functions.Like((e.Link ?? "").ToLower(), n.RootPattern))
-                        || (n.CompactPattern != null &&
-                            EF.Functions.Like(
-                                (e.Link ?? "").ToLower()
-                                              .Replace("-", "")
-                                              .Replace(".", "")
-                                              .Replace(" ", "")
-                                              .Replace("_", ""),
-                                n.CompactPattern))
-
-                        || EF.Functions.Like((e.Link2 ?? "").ToLower(), n.PrimaryPattern)
-                        || (n.RootPattern != null && EF.Functions.Like((e.Link2 ?? "").ToLower(), n.RootPattern))
-                        || (n.CompactPattern != null &&
-                            EF.Functions.Like(
-                                (e.Link2 ?? "").ToLower()
-                                               .Replace("-", "")
-                                               .Replace(".", "")
-                                               .Replace(" ", "")
-                                               .Replace("_", ""),
-                                n.CompactPattern))
-
-                        || EF.Functions.Like((e.Link3 ?? "").ToLower(), n.PrimaryPattern)
-                        || (n.RootPattern != null && EF.Functions.Like((e.Link3 ?? "").ToLower(), n.RootPattern))
-                        || (n.CompactPattern != null &&
-                            EF.Functions.Like(
-                                (e.Link3 ?? "").ToLower()
-                                               .Replace("-", "")
-                                               .Replace(".", "")
-                                               .Replace(" ", "")
-                                               .Replace("_", ""),
-                                n.CompactPattern))
-
-                        || EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.PrimaryPattern)
-                        || (n.RootPattern != null && EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.RootPattern))
-                        || (n.CompactPattern != null &&
-                            EF.Functions.Like(
-                                (e.ProofLink ?? "").ToLower()
-                                                  .Replace("-", "")
-                                                  .Replace(".", "")
-                                                  .Replace(" ", "")
-                                                  .Replace("_", ""),
-                                n.CompactPattern))
-
-                        // URL variants (kept)
-                        || (n.IsUrlTerm && (
-                               EF.Functions.Like((e.Link ?? "").ToLower(), n.PNoSlash) ||
-                               EF.Functions.Like((e.Link ?? "").ToLower(), n.PWithSlash) ||
-                               (n.PHostOnly != "" && EF.Functions.Like((e.Link ?? "").ToLower(), n.PHostOnly)) ||
-                               (n.PNoWww != "" && EF.Functions.Like((e.Link ?? "").ToLower(), n.PNoWww)) ||
-
-                               EF.Functions.Like((e.Link2 ?? "").ToLower(), n.PNoSlash) ||
-                               EF.Functions.Like((e.Link2 ?? "").ToLower(), n.PWithSlash) ||
-                               (n.PHostOnly != "" && EF.Functions.Like((e.Link2 ?? "").ToLower(), n.PHostOnly)) ||
-                               (n.PNoWww != "" && EF.Functions.Like((e.Link2 ?? "").ToLower(), n.PNoWww)) ||
-
-                               EF.Functions.Like((e.Link3 ?? "").ToLower(), n.PNoSlash) ||
-                               EF.Functions.Like((e.Link3 ?? "").ToLower(), n.PWithSlash) ||
-                               (n.PHostOnly != "" && EF.Functions.Like((e.Link3 ?? "").ToLower(), n.PHostOnly)) ||
-                               (n.PNoWww != "" && EF.Functions.Like((e.Link3 ?? "").ToLower(), n.PNoWww)) ||
-
-                               EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.PNoSlash) ||
-                               EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.PWithSlash) ||
-                               (n.PHostOnly != "" && EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.PHostOnly)) ||
-                               (n.PNoWww != "" && EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.PNoWww))))
-                    ));
+                term: term,
+                countryCode: countryCode,
+                rootTerm: rootTerm,
+                primaryPattern: primaryPattern,
+                rootPattern: rootPattern,
+                termCompact: termCompact,
+                compactPattern: compactPattern,
+                isUrlTerm: isUrlTerm,
+                noSlash: noSlash,
+                withSlash: withSlash,
+                hostOnly: hostOnly,
+                hostNoWww: hostNoWww,
+                pNoSlash: pNoSlash,
+                pWithSlash: pWithSlash,
+                pHostOnly: pHostOnly,
+                pNoWww: pNoWww);
         }
 
         private static IEnumerable<(DirectoryEntry Entry, int Score, int Hits, int Weight, bool CountryMatch)> ScoreSearchCandidates(
@@ -991,42 +1027,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ThenByDescending(x => x.Score);
         }
 
-        public async Task<PagedResult<DirectoryEntry>> FilterAsync(DirectoryFilterQuery q)
-        {
-            q ??= new DirectoryFilterQuery();
-
-            int page = q.Page < 1 ? 1 : q.Page;
-            int pageSize = q.PageSize < 1 ? 10 : q.PageSize;
-
-            var statuses = GetStatusesOrDefault(q);
-            var baseQ = this.BuildFilterBaseQuery(q, statuses);
-
-            // -------- Sorting + paging (phase 1: get IDs) ----------
-            var pageIdsQ = this.BuildFilterPageIdsQuery(baseQ, q.Sort);
-
-            int total = await this.GetFilterTotalAsync(baseQ, q.Sort).ConfigureAwait(false);
-
-            var pageIds = await pageIdsQ
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
-                .ToListAsync()
-                .ConfigureAwait(false);
-
-            if (pageIds.Count == 0)
-            {
-                return new PagedResult<DirectoryEntry> { TotalCount = total, Items = new List<DirectoryEntry>() };
-            }
-
-            // -------- Phase 2: load full entities with Includes ----------
-            var items = await this.LoadEntriesByIdsPreservingOrderAsync(pageIds).ConfigureAwait(false);
-
-            return new PagedResult<DirectoryEntry>
-            {
-                TotalCount = total,
-                Items = items
-            };
-        }
-
         private static List<DirectoryStatus> GetStatusesOrDefault(DirectoryFilterQuery q)
         {
             // Default statuses: Admitted + Verified (kept)
@@ -1035,6 +1035,51 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 : new List<DirectoryStatus> { DirectoryStatus.Admitted, DirectoryStatus.Verified };
         }
 
+        private static void ApplyTagFilter(ref IQueryable<DirectoryEntry> baseQ, DirectoryFilterQuery q)
+        {
+            if (q.TagIds is not { Count: > 0 })
+            {
+                return;
+            }
+
+            var tagIds = q.TagIds
+                .Where(x => x > 0)
+                .Distinct()
+                .ToList();
+
+            if (tagIds.Count == 0)
+            {
+                return;
+            }
+
+            baseQ = baseQ.Where(e =>
+                e.EntryTags
+                 .Where(et => tagIds.Contains(et.TagId))
+                 .Select(et => et.TagId)
+                 .Distinct()
+                 .Count() == tagIds.Count);
+        }
+
+        private IQueryable<RatedAggRow> BuildRatedAggregate(IQueryable<DirectoryEntry> baseQ)
+        {
+            var approvedRatings = this.context.DirectoryEntryReviews
+                .AsNoTracking()
+                .Where(r => r.ModerationStatus == ReviewModerationStatus.Approved && r.Rating.HasValue);
+
+            // IMPORTANT: no ToList/AsEnumerable here
+            return
+                from e in baseQ
+                join r in approvedRatings on e.DirectoryEntryId equals r.DirectoryEntryId
+                group r by new { e.DirectoryEntryId, e.CreateDate } into g
+                select new RatedAggRow
+                {
+                    DirectoryEntryId = g.Key.DirectoryEntryId,
+                    CreateDate = g.Key.CreateDate,
+                    AvgRating = g.Average(x => x.Rating!.Value),
+                    ReviewCount = g.Count()
+                };
+        }
+        
         private IQueryable<DirectoryEntry> BuildFilterBaseQuery(DirectoryFilterQuery q, List<DirectoryStatus> statuses)
         {
             // IMPORTANT: start from DirectoryEntries WITHOUT Includes (kept)
@@ -1095,51 +1140,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             ApplyTagFilter(ref baseQ, q);
 
             return baseQ;
-        }
-
-        private static void ApplyTagFilter(ref IQueryable<DirectoryEntry> baseQ, DirectoryFilterQuery q)
-        {
-            if (q.TagIds is not { Count: > 0 })
-            {
-                return;
-            }
-
-            var tagIds = q.TagIds
-                .Where(x => x > 0)
-                .Distinct()
-                .ToList();
-
-            if (tagIds.Count == 0)
-            {
-                return;
-            }
-
-            baseQ = baseQ.Where(e =>
-                e.EntryTags
-                 .Where(et => tagIds.Contains(et.TagId))
-                 .Select(et => et.TagId)
-                 .Distinct()
-                 .Count() == tagIds.Count);
-        }
-
-        private IQueryable<RatedAggRow> BuildRatedAggregate(IQueryable<DirectoryEntry> baseQ)
-        {
-            var approvedRatings = this.context.DirectoryEntryReviews
-                .AsNoTracking()
-                .Where(r => r.ModerationStatus == ReviewModerationStatus.Approved && r.Rating.HasValue);
-
-            // IMPORTANT: no ToList/AsEnumerable here
-            return
-                from e in baseQ
-                join r in approvedRatings on e.DirectoryEntryId equals r.DirectoryEntryId
-                group r by new { e.DirectoryEntryId, e.CreateDate } into g
-                select new RatedAggRow
-                {
-                    DirectoryEntryId = g.Key.DirectoryEntryId,
-                    CreateDate = g.Key.CreateDate,
-                    AvgRating = g.Average(x => x.Rating!.Value),
-                    ReviewCount = g.Count()
-                };
         }
 
         // 3) Your page-id query builder (kept logic)
