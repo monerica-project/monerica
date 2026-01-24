@@ -97,8 +97,17 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Create()
         {
             await this.LoadLists();
+            await this.LoadTagCheckboxesAsync(new HashSet<int>());
 
-            return this.View();
+            // return an empty vm so the partial has the correct model
+            var vm = new DirectoryEntryEditViewModel
+            {
+                DirectoryStatus = DirectoryStatus.Unknown,
+                SubCategoryId = 0,
+                SelectedTagIds = new List<int>()
+            };
+
+            return this.View(vm);
         }
 
         [Route("directoryentry/create")]
@@ -136,14 +145,14 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var entryName = (vm.Name ?? string.Empty).Trim();
-            var existingEntryByNameSubcat =
-                await this.directoryEntryRepository.GetByNameAndSubcategoryAsync(entryName, vm.SubCategoryId);
+            var existingEntryByName =
+                await this.directoryEntryRepository.GetByNameAsync(entryName);
 
-            if (existingEntryByNameSubcat != null)
+            if (existingEntryByName != null)
             {
                 await this.LoadLists();
                 await this.LoadTagCheckboxesAsync(NormalizeSelectedIds(vm.SelectedTagIds));
-                this.ModelState.AddModelError("Name", "The provided name is already used by another entry in this subcategory.");
+                this.ModelState.AddModelError("Name", "The provided name is already used by another entry.");
                 return this.View("create", vm);
             }
 
@@ -252,7 +261,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View(vm);
         }
 
-
         [Route("directoryentry/edit/{id}")]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -335,7 +343,6 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Index));
         }
 
-
         [HttpGet]
         [Route("directoryentry/entryaudits/{entryId}")]
         public async Task<IActionResult> EntryAudits(int entryId)
@@ -393,7 +400,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(audits);
         }
 
-        [HttpGet("directoryentry/delete")]
+        [HttpGet("directoryentry/delete/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
             await this.directoryEntryRepository.DeleteAsync(id);
@@ -725,6 +732,13 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View("DirectoryEntryView", model);
         }
+        private static HashSet<int> NormalizeSelectedIds(IEnumerable<int>? ids)
+        {
+            return (ids ?? Enumerable.Empty<int>())
+                .Where(x => x > 0)
+                .Distinct()
+                .ToHashSet();
+        }
 
         // Normalize any fingerprint (strip spaces/separators, upper-case)
         private static string NormalizeFp(string? s)
@@ -878,14 +892,6 @@ namespace DirectoryManager.Web.Controllers
                 .ToList();
 
             this.ViewBag.SelectedTagIds = selectedIds ?? new HashSet<int>();
-        }
-
-        private static HashSet<int> NormalizeSelectedIds(IEnumerable<int>? ids)
-        {
-            return (ids ?? Enumerable.Empty<int>())
-                .Where(x => x > 0)
-                .Distinct()
-                .ToHashSet();
         }
 
         private sealed class TimelineItem
