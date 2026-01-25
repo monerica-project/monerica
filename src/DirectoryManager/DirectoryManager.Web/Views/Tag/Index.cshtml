@@ -40,16 +40,19 @@
             <ul class="pagination">
                 @for (int p = 1; p <= totalPages; p++)
                 {
-                    string rawPath = $"/tagged/{Model.Tag.Key}" + (p > 1 ? $"?page={p}" : "");
-                    string href = p == 1
-                        ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
-                        : UrlResolver.ResolveToApp(rawPath);
+                    // Page 1 = /tagged/{key}
+                    // Page 2+ = /tagged/{key}/page/2
+                    string rawPath = p == 1
+                    ? $"/tagged/{Model.Tag.Key}"
+                    : $"/tagged/{Model.Tag.Key}/page/{p}";
 
-                    string linkClass = p == 1 ? "no-app-link" : "no-app-link";
+                    // Keep it root (non-app link)
+                    string href = UrlResolver.ResolveToRoot(rawPath);
+
                     string activeClass = p == Model.CurrentPage ? "active" : "";
 
                     <li class="page-item @activeClass">
-                        <a class="page-link @linkClass" href="@href">@p</a>
+                        <a class="page-link no-app-link" href="@href">@p</a>
                     </li>
                 }
             </ul>
