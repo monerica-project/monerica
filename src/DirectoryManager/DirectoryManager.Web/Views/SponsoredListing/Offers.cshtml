@@ -1,4 +1,5 @@
 ﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Helpers
 @using DirectoryManager.Web.Models
 @using Microsoft.Extensions.Caching.Memory
@@ -8,7 +9,7 @@
 @inject IMemoryCache memoryCache
 
 @{
-    ViewData["Title"] = "Sponsored Listing Offers";
+    ViewData[StringConstants.TitleHeader] = "Sponsored Listing Offers";
     Layout = "_CenteredLayout";
 
     var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(httpContextAccessor, memoryCache, nowPaymentsService);
@@ -16,8 +17,10 @@
 }
 
 @section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
         @await Html.PartialAsync("_SiteLogo")
-    <h1>@ViewData["Title"]</h1>
+    </div>
     <hr />
     @await Html.PartialAsync("_BackToHome")
     <hr />
