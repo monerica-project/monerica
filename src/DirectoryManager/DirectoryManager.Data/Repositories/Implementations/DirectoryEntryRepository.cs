@@ -1230,7 +1230,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToList();
         }
 
-
         public async Task<List<string>> ListActiveCountryCodesAsync(CancellationToken ct = default)
         {
             // “Active” here mirrors your other “active” logic:

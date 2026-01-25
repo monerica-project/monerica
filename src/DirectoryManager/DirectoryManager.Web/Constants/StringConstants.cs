@@ -42,11 +42,11 @@
         public const string NavMenu = "NavModel";
         public const string CacheKeySearchBlacklistTerms = "blacklistterms";
         public const string UserAgent = "User-Agent";
+        public const string DirectoryFilterCachePrefix = "DirectoryFilter:";
         public const string ActiveCountriesCacheName = "DirectoryFilter:CountryOptions:Active";
         public const string ActiveCategoriesCacheName = "ActiveCategoriesCacheName";
         public const string ActiveSubcategoriesByCategoryCachePrefix = "ActiveSubcategoriesByCategoryCachePrefix_";
         public const string ActiveTagsByCategoryCachePrefix = "ActiveTagsByCategoryCachePrefix_";
         public const string ActiveTagIdsByCategoryCachePrefix = "active-tag-ids-by-category-";
-
     }
 }
