@@ -3,6 +3,7 @@ using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -15,6 +16,9 @@ public class DirectoryFilterController : Controller
     // cache durations (same everywhere)
     private static readonly TimeSpan CacheAbsolute = TimeSpan.FromHours(6);
     private static readonly TimeSpan CacheSliding = TimeSpan.FromHours(1);
+
+    // Prefixes for grouped invalidation (must match what you expire in BaseController)
+
 
     private readonly IDirectoryEntryRepository entryRepo;
     private readonly IDirectoryEntryReviewRepository entryReviewsRepo;
@@ -149,11 +153,9 @@ public class DirectoryFilterController : Controller
     // -------------------------
     private async Task ApplyRatingsAsync(List<DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel> items)
     {
-        // Fetch rating summaries for ONLY the entries on this page
         var ids = items.Select(x => x.DirectoryEntryId).Distinct().ToList();
         var ratingMap = await this.entryReviewsRepo.GetRatingSummariesAsync(ids);
 
-        // Apply onto view models (optional fields)
         foreach (var item in items)
         {
             if (ratingMap.TryGetValue(item.DirectoryEntryId, out var rs) && rs.ReviewCount > 0)
@@ -183,7 +185,6 @@ public class DirectoryFilterController : Controller
             item.IsSponsored = sponsorIds.Contains(item.DirectoryEntryId);
         }
 
-        // show sponsors first (keep exact behavior)
         return items.Where(e => e.IsSponsored).Concat(items.Where(e => !e.IsSponsored)).ToList();
     }
 
@@ -196,15 +197,11 @@ public class DirectoryFilterController : Controller
             StringConstants.ActiveCountriesCacheName,
             async cacheEntry =>
             {
-                SetCachePolicy(cacheEntry);
+                SetCachePolicy(cacheEntry, StringConstants.PrefixDirectoryFilter);
 
-                // 1) Fetch only codes that exist in DB
                 var existingCodes = await this.entryRepo.ListActiveCountryCodesAsync();
-
-                // 2) Map code -> full name from helper dictionary
                 var allCountries = DirectoryManager.Utilities.Helpers.CountryHelper.GetCountries(); // ISO2 -> name
 
-                // 3) Keep only codes that exist + are recognized by helper
                 return existingCodes
                     .Where(code => allCountries.ContainsKey(code))
                     .Select(code => (Code: code, Name: allCountries[code]))
@@ -222,7 +219,7 @@ public class DirectoryFilterController : Controller
             StringConstants.ActiveCategoriesCacheName,
             async cacheEntry =>
             {
-                SetCachePolicy(cacheEntry);
+                SetCachePolicy(cacheEntry, StringConstants.PrefixActiveCategories);
 
                 var activeCategories = await this.categoryRepo.GetActiveCategoriesAsync();
 
@@ -250,11 +247,10 @@ public class DirectoryFilterController : Controller
             tagCacheKey,
             async cacheEntry =>
             {
-                SetCachePolicy(cacheEntry);
+                SetCachePolicy(cacheEntry, StringConstants.PrefixActiveTagsByCat);
 
                 var tags = await this.tagRepo.ListTagsForCategoryAsync(catId);
 
-                // Just ID + name for display
                 return tags
                     .Select(t => new IdNameOption { Id = t.TagId, Name = t.Name })
                     .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
@@ -279,7 +275,7 @@ public class DirectoryFilterController : Controller
             subcatCacheKey,
             async cacheEntry =>
             {
-                SetCachePolicy(cacheEntry);
+                SetCachePolicy(cacheEntry, StringConstants.PrefixActiveSubcats);
 
                 var activeSubcats = await this.subcategoryRepo.GetActiveSubcategoriesAsync(catId);
 
@@ -308,7 +304,6 @@ public class DirectoryFilterController : Controller
             var subCategorySponsors = await this.sponsoredListingRepository.GetSponsoredListingsForSubCategory(subId);
             var subSponsor = subCategorySponsors.FirstOrDefault();
 
-            // drives CTA inside the partial
             int totalActiveInSub = await this.entryRepo.CountBySubcategoryAsync(subId);
 
             subcategorySponsorModel = new SubcategorySponsorModel
@@ -330,7 +325,6 @@ public class DirectoryFilterController : Controller
                 (s.CategoryId.HasValue && s.CategoryId.Value == catId) ||
                 (s.DirectoryEntry?.SubCategory?.CategoryId == catId));
 
-            // drives CTA inside the partial
             int totalActiveInCat = await this.entryRepo.CountByCategoryAsync(catId);
 
             categorySponsorModel = new CategorySponsorModel
@@ -381,12 +375,15 @@ public class DirectoryFilterController : Controller
     }
 
     // -------------------------
-    // Cache helper
+    // Cache helper (NOW adds prefix invalidation token)
     // -------------------------
-    private static void SetCachePolicy(ICacheEntry cacheEntry)
+    private static void SetCachePolicy(ICacheEntry cacheEntry, string prefix)
     {
         cacheEntry.AbsoluteExpirationRelativeToNow = CacheAbsolute;
         cacheEntry.SlidingExpiration = CacheSliding;
+
+        // NEW: attach to prefix token so BaseController can expire by prefix
+        cacheEntry.AddExpirationToken(CachePrefixManager.GetToken(prefix));
     }
 
     // -------------------------
@@ -451,7 +448,7 @@ public class DirectoryFilterController : Controller
             idCacheKey,
             async cacheEntry =>
             {
-                SetCachePolicy(cacheEntry);
+                SetCachePolicy(cacheEntry, StringConstants.PrefixActiveTagIdsByCat);
 
                 var tags = await this.tagRepo.ListTagsForCategoryAsync(catId);
                 return tags.Select(t => t.TagId).ToHashSet();
