@@ -460,10 +460,10 @@ namespace DirectoryManager.Web.Controllers
                     .Max() ?? date;
 
                 siteMapHelper.AddUrl(
-                    string.Format("{0}/contact", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                    string.Format("{0}/about", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
                     aboutHtmlLastModified,
                     ChangeFrequency.Monthly,
-                    0.8);
+                    0.6);
             }
 
             var donationHtmlConfig = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.DonationHtml);
