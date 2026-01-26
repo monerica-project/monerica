@@ -1,6 +1,4 @@
-﻿using System.Linq;
-using System.Threading.Tasks;
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

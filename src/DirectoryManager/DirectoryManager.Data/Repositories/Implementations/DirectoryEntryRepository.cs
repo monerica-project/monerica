@@ -652,6 +652,25 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return new PagedResult<DirectoryEntry> { TotalCount = total, Items = items };
         }
 
+        public async Task<List<string>> ListActiveCountryCodesAsync(CancellationToken ct = default)
+        {
+            // “Active” here mirrors your other “active” logic:
+            // Verified/Admitted/Questionable/Scam only (exclude Removed/Unknown).
+            return await this.context.DirectoryEntries
+                .AsNoTracking()
+                .Where(e =>
+                    (e.DirectoryStatus == DirectoryStatus.Verified
+                  || e.DirectoryStatus == DirectoryStatus.Admitted
+                  || e.DirectoryStatus == DirectoryStatus.Questionable
+                  || e.DirectoryStatus == DirectoryStatus.Scam)
+                    && !string.IsNullOrWhiteSpace(e.CountryCode))
+                .Select(e => e.CountryCode!.Trim().ToUpper())
+                .Distinct()
+                .OrderBy(code => code)
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+        }
+
         public async Task<PagedResult<DirectoryEntry>> FilterAsync(DirectoryFilterQuery q)
         {
             q ??= new DirectoryFilterQuery();
@@ -695,6 +714,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Where(e =>
                     e.DirectoryStatus != DirectoryStatus.Removed &&
                     (
+
                         // Country (kept)
                         (n.countryCode != null && e.CountryCode == n.countryCode)
 
@@ -800,8 +820,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.pNoSlash) ||
                                EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.pWithSlash) ||
                                (n.pHostOnly != "" && EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.pHostOnly)) ||
-                               (n.pNoWww != "" && EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.pNoWww))))
-                    ));
+                               (n.pNoWww != "" && EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.pNoWww))))));
         }
 
         private sealed record SearchTermInfo(
@@ -940,7 +959,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             static string NormalizeToken(string? s)
             {
-                if (string.IsNullOrEmpty(s)) return string.Empty;
+                if (string.IsNullOrEmpty(s))
+                {
+                    return string.Empty;
+                }
 
                 var chars = s.ToLowerInvariant()
                              .Where(char.IsLetterOrDigit)
@@ -964,6 +986,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     string proofNorm = NormalizeToken(e.ProofLink);
 
                     int hits =
+
                         // text-ish fields (kept)
                         CountOcc(e.Name, term) + (rootTerm != null ? CountOcc(e.Name, rootTerm) : 0) +
                         CountOcc(e.Description, term) + (rootTerm != null ? CountOcc(e.Description, rootTerm) : 0) +
@@ -1079,7 +1102,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     ReviewCount = g.Count()
                 };
         }
-        
+
         private IQueryable<DirectoryEntry> BuildFilterBaseQuery(DirectoryFilterQuery q, List<DirectoryStatus> statuses)
         {
             // IMPORTANT: start from DirectoryEntries WITHOUT Includes (kept)
@@ -1228,25 +1251,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return items
                 .OrderBy(e => order[e.DirectoryEntryId])
                 .ToList();
-        }
-
-        public async Task<List<string>> ListActiveCountryCodesAsync(CancellationToken ct = default)
-        {
-            // “Active” here mirrors your other “active” logic:
-            // Verified/Admitted/Questionable/Scam only (exclude Removed/Unknown).
-            return await this.context.DirectoryEntries
-                .AsNoTracking()
-                .Where(e =>
-                    (e.DirectoryStatus == DirectoryStatus.Verified
-                  || e.DirectoryStatus == DirectoryStatus.Admitted
-                  || e.DirectoryStatus == DirectoryStatus.Questionable
-                  || e.DirectoryStatus == DirectoryStatus.Scam)
-                    && !string.IsNullOrWhiteSpace(e.CountryCode))
-                .Select(e => e.CountryCode!.Trim().ToUpper())
-                .Distinct()
-                .OrderBy(code => code)
-                .ToListAsync(ct)
-                .ConfigureAwait(false);
         }
 
         /// <summary>

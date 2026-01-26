@@ -15,6 +15,5 @@
         public DateTime CreateDate { get; set; }
 
         public int DaysPurchased { get; set; }
-
     }
 }

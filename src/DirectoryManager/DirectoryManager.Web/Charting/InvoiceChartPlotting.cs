@@ -609,8 +609,6 @@ namespace DirectoryManager.Web.Charting
             var t = plt.Add.Text(subtitle, xMid, y);
             t.Alignment = ScottPlot.Alignment.UpperCenter;
             t.LabelFontSize = 14;
-            t.Bold = false;
-            t.Color = ScottPlot.Colors.Gray;
         }
     }
 }

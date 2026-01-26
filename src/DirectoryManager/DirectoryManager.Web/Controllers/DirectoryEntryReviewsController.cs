@@ -255,7 +255,6 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Thanks));
         }
 
-
         // Step 5: thank you
         [HttpGet("thanks")]
         public IActionResult Thanks() => this.View();

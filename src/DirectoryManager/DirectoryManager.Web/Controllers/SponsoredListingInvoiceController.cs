@@ -329,7 +329,10 @@ namespace DirectoryManager.Web.Controllers
 
             static int CountDistinctDays(List<(DateTime S, DateTime E)> ivals)
             {
-                if (ivals.Count == 0) return 0;
+                if (ivals.Count == 0)
+                {
+                    return 0;
+                }
 
                 ivals.Sort((a, b) => a.S.CompareTo(b.S));
                 var curS = ivals[0].S;

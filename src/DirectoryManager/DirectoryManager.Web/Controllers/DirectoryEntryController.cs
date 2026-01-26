@@ -732,6 +732,7 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View("DirectoryEntryView", model);
         }
+
         private static HashSet<int> NormalizeSelectedIds(IEnumerable<int>? ids)
         {
             return (ids ?? Enumerable.Empty<int>())

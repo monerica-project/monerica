@@ -174,7 +174,6 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.List));
         }
 
-
         [Authorize]
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -274,6 +273,5 @@ namespace DirectoryManager.Web.Controllers
             vm.SuccessMessage = "Subscription successful!";
             return this.View(vm);
         }
-
     }
 }

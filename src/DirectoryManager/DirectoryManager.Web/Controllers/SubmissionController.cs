@@ -363,7 +363,7 @@ namespace DirectoryManager.Web.Controllers
         [Authorize]
         [HttpPost("submission/{id}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Review(int id, Submission model, int[] SelectedTagIds)
+        public async Task<IActionResult> Review(int id, Submission model, int[] electedTagIds)
         {
             if (!this.ModelState.IsValid)
             {
@@ -374,7 +374,7 @@ namespace DirectoryManager.Web.Controllers
                     .Select(t => new TagOptionVm { TagId = t.TagId, Name = t.Name })
                     .ToList();
 
-                this.ViewBag.SelectedTagIds = (SelectedTagIds ?? Array.Empty<int>()).Where(x => x > 0).ToHashSet();
+                this.ViewBag.SelectedTagIds = (electedTagIds ?? Array.Empty<int>()).Where(x => x > 0).ToHashSet();
                 return this.View(model);
             }
 
@@ -393,7 +393,7 @@ namespace DirectoryManager.Web.Controllers
             submission.Tags = model.Tags?.Trim();
 
             // ✅ checkbox tags are the real tags (persist to submission too, for audit/traceability)
-            var selected = (SelectedTagIds ?? Array.Empty<int>())
+            var selected = (electedTagIds ?? Array.Empty<int>())
                 .Where(x => x > 0)
                 .Distinct()
                 .ToArray();

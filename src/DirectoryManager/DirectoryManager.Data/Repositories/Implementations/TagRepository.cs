@@ -79,11 +79,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return false;
             }
 
-            // If you need uniqueness enforcement, do it here (optional):
-            // var newKey = name.UrlKey();
-            // bool exists = await this.context.Tags.AsNoTracking().AnyAsync(t => t.TagId != tagId && t.Key == newKey);
-            // if (exists) return false;
-
             tag.Name = name;
             tag.Key = name.UrlKey();
             tag.UpdateDate = DateTime.UtcNow;

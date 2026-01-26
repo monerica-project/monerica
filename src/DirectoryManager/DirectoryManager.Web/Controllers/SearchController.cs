@@ -73,9 +73,15 @@ public class SearchController : Controller
                 : this.NotFound();
         }
 
-        // normal flow below ...
-        if (page < 1) page = 1;
-        if (pageSize < 1) pageSize = 10;
+        if (page < 1)
+        {
+            page = 1;
+        }
+
+        if (pageSize < 1)
+        {
+            pageSize = 10;
+        }
 
         var result = await this.entryRepo.SearchAsync(q, page, pageSize);
 

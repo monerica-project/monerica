@@ -17,9 +17,6 @@ public class DirectoryFilterController : Controller
     private static readonly TimeSpan CacheAbsolute = TimeSpan.FromHours(6);
     private static readonly TimeSpan CacheSliding = TimeSpan.FromHours(1);
 
-    // Prefixes for grouped invalidation (must match what you expire in BaseController)
-
-
     private readonly IDirectoryEntryRepository entryRepo;
     private readonly IDirectoryEntryReviewRepository entryReviewsRepo;
     private readonly ICategoryRepository categoryRepo;

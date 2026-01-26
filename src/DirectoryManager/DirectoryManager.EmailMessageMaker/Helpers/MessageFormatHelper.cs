@@ -201,8 +201,6 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             return result.ToString();
         }
 
-        // --- TEXT VERSIONS BELOW ARE UNCHANGED (you can later swap links to listing pages there too) ---
-
         public static string GenerateDirectoryEntryText(IEnumerable<DirectoryEntry> entries)
         {
             var result = new StringBuilder();
@@ -355,8 +353,6 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             return sb.ToString();
         }
 
-        // ------- UPDATED SPONSOR HTML HELPERS (listing page links only) -------
-
         private static void AppendMainSponsors(IEnumerable<SponsoredListing> mainSponsors, StringBuilder result, string link2Name, string link3Name)
         {
             if (mainSponsors.Any())
@@ -368,6 +364,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
                 {
                     AppendEntry(result, sponsor, link2Name, link3Name);
                 }
+
                 result.AppendLine("</ul>");
             }
         }

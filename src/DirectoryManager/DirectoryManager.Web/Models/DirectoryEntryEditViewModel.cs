@@ -13,10 +13,12 @@ namespace DirectoryManager.Web.Models
         [Required]
         public int SubCategoryId { get; set; }
 
-        [Required, MaxLength(65)]
+        [Required]
+        [MaxLength(65)]
         public string Name { get; set; } = string.Empty;
 
-        [Required, MaxLength(500)]
+        [Required]
+        [MaxLength(500)]
         public string Link { get; set; } = string.Empty;
 
         public string? LinkA { get; set; }
