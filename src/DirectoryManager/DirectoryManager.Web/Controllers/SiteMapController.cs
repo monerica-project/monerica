@@ -451,6 +451,21 @@ namespace DirectoryManager.Web.Controllers
                     0.8);
             }
 
+            var aboutHtmlConfig = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.AboutHtml);
+
+            if (aboutHtmlConfig != null && !string.IsNullOrWhiteSpace(aboutHtmlConfig.Content))
+            {
+                var aboutHtmlLastModified = new[] { aboutHtmlConfig?.UpdateDate, aboutHtmlConfig?.CreateDate, date }
+                    .Where(d => d.HasValue)
+                    .Max() ?? date;
+
+                siteMapHelper.AddUrl(
+                    string.Format("{0}/contact", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                    aboutHtmlLastModified,
+                    ChangeFrequency.Monthly,
+                    0.8);
+            }
+
             var donationHtmlConfig = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.DonationHtml);
 
             if (donationHtmlConfig != null && !string.IsNullOrWhiteSpace(donationHtmlConfig.Content))
