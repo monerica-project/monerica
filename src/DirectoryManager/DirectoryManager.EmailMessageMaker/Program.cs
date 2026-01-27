@@ -75,6 +75,7 @@ public class Program
         var link2Name = contentSnippetRepository.GetValue(SiteConfigSetting.Link2Name);
         var link3Name = contentSnippetRepository.GetValue(SiteConfigSetting.Link3Name);
         var siteName = contentSnippetRepository.GetValue(SiteConfigSetting.SiteName);
+        var rootUrl = contentSnippetRepository.GetValue(SiteConfigSetting.FullRootUrl);
 
         // Generate the final email HTML
         var emailHtml = MessageFormatHelper.GenerateHtmlEmail(
@@ -82,6 +83,7 @@ public class Program
             mainSponsors,
             categorySponsors,
             subCategorySponsors,
+            rootUrl,
             siteName,
             emailSettingUnsubscribeFooterHtml,
             link2Name,

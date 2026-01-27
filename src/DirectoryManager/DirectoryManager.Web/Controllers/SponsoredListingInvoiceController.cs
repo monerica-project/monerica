@@ -1,4 +1,6 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using System.Globalization;
+using System.Text;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Web.Charting;
@@ -11,9 +13,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Net.Http.Headers;
-using System;
-using System.Globalization;
-using System.Text;
 
 namespace DirectoryManager.Web.Controllers
 {

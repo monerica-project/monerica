@@ -12,11 +12,11 @@ namespace DirectoryManager.Web.Charting
         private const string Culture = StringConstants.EnglishUS;
 
         public byte[] CreateMonthlyAvgPerListingDailyPriceChart(
-    IEnumerable<SponsoredListingInvoice> invoices,
-    Currency displayCurrency,
-    DateTime rangeStart,
-    DateTime rangeEnd,
-    string? filterLabel = null)
+            IEnumerable<SponsoredListingInvoice> invoices,
+            Currency displayCurrency,
+            DateTime rangeStart,
+            DateTime rangeEnd,
+            string? filterLabel = null)
         {
             var paid = (invoices ?? Enumerable.Empty<SponsoredListingInvoice>()).ToList();
             if (!paid.Any())
