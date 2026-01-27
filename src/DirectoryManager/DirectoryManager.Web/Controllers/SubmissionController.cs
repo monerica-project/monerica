@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Migrations;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -363,18 +364,18 @@ namespace DirectoryManager.Web.Controllers
         [Authorize]
         [HttpPost("submission/{id}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Review(int id, Submission model, int[] electedTagIds)
+        public async Task<IActionResult> Review(int id, Submission model, int[] selectedTagIds)
         {
             if (!this.ModelState.IsValid)
             {
-                // re-hydrate checkbox list for re-render
-                var allTags = await this.tagRepo.ListAllAsync();
-                this.ViewBag.AllTags = allTags
-                    .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
-                    .Select(t => new TagOptionVm { TagId = t.TagId, Name = t.Name })
-                    .ToList();
+                await this.LoadDropDowns();
+                await this.SetSelectSubCategoryViewBag();
+                await this.LoadAllTagsForCheckboxesAsync();
 
-                this.ViewBag.SelectedTagIds = (electedTagIds ?? Array.Empty<int>()).Where(x => x > 0).ToHashSet();
+                this.ViewBag.SelectedTagIds = (selectedTagIds ?? Array.Empty<int>())
+                    .Where(x => x > 0)
+                    .ToHashSet();
+
                 return this.View(model);
             }
 
@@ -389,18 +390,17 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            // ✅ typed tags are suggestions only (do NOT apply to listing)
+            // typed tags are suggestions only
             submission.Tags = model.Tags?.Trim();
 
-            // ✅ checkbox tags are the real tags (persist to submission too, for audit/traceability)
-            var selected = (electedTagIds ?? Array.Empty<int>())
+            // checkbox tags = real tags
+            var selected = (selectedTagIds ?? Array.Empty<int>())
                 .Where(x => x > 0)
                 .Distinct()
                 .ToArray();
 
             submission.SelectedTagIdsCsv = selected.Length == 0 ? null : string.Join(",", selected);
 
-            // ✅ If Pending -> Approved, create/update entry and APPLY checkbox tags to listing
             if (submission.SubmissionStatus == SubmissionStatus.Pending
                 && model.SubmissionStatus == SubmissionStatus.Approved)
             {
@@ -424,21 +424,16 @@ namespace DirectoryManager.Web.Controllers
                     entryId = model.DirectoryEntryId.Value;
                 }
 
-                // -----------------------------
-                // ✅ SYNC TAGS ON LISTING (checkboxes only)
-                // -----------------------------
+                // SYNC TAGS ON LISTING (checkboxes only)
                 var existingTags = await this.entryTagRepo.GetTagsForEntryAsync(entryId);
                 var existingIds = existingTags.Select(t => t.TagId).ToHashSet();
-
                 var selectedIds = selected.ToHashSet();
 
-                // remove tags that are no longer selected
                 foreach (var oldId in existingIds.Except(selectedIds))
                 {
                     await this.entryTagRepo.RemoveTagAsync(entryId, oldId);
                 }
 
-                // add newly selected tags
                 foreach (var newId in selectedIds.Except(existingIds))
                 {
                     await this.entryTagRepo.AssignTagAsync(entryId, newId);
@@ -447,7 +442,6 @@ namespace DirectoryManager.Web.Controllers
                 this.ClearCachedItems();
             }
 
-            // store admin status + country etc
             submission.SubmissionStatus = model.SubmissionStatus;
             submission.CountryCode = model.CountryCode;
 
@@ -455,6 +449,7 @@ namespace DirectoryManager.Web.Controllers
 
             return this.RedirectToAction(nameof(this.Index));
         }
+
 
         [Authorize]
         [HttpGet("submission/delete/{id}")]
@@ -898,7 +893,7 @@ namespace DirectoryManager.Web.Controllers
             var tags = await this.tagRepo.ListAllAsync();
             this.ViewBag.AllTags = tags
                 .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
-                .Select(t => new { t.TagId, t.Name })
+                .Select(t => new TagOptionVm { TagId = t.TagId, Name = t.Name })
                 .ToList();
         }
 
