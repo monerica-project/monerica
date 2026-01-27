@@ -13,6 +13,6 @@
         public const int DefaultRemoteHttpsPort = 443;
         public const int DefaultDebuggingHttpPort = 5007;
         public const int DefaultDebuggingHttpsPort = 7145;
-        public const int UnverifiedMinimumDaysListedBeforeAdvertising = 30;
+        public const int UnverifiedMinimumDaysListedBeforeAdvertising = 90;
     }
 }
