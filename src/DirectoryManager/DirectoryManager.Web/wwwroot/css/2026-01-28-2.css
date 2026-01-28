@@ -738,13 +738,44 @@ p.intro {
 .btn-info:hover {
     background-color: #000386
 }
-.btn-primary.search-btn,
+
+.review-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 16px;
+    border-radius: 9999px; /* fully rounded pill */
+
+    font-size: 14px;
+    font-weight: 600;
+    line-height: 1.2;
+    background-color: #0d6efd; /* bootstrap primary blue */
+    color: #ffffff;
+    border: none;
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color 0.15s ease, box-shadow 0.15s ease, transform 0.05s ease;
+}
+
+    .review-btn:hover,
+    .review-btn:focus {
+        background-color: #0b5ed7;
+        box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
+        text-decoration: none;
+    }
+    .review-btn:active {
+        transform: translateY(1px);
+    }
+
+
+ 
+.search-btn,
 .btn-info.search-btn {
     min-height: 25px;
 }
 
 
-.search-btn {
+ .search-btn {
     font-size: 14px;
     font-weight: 600;
     line-height: 1.2;
