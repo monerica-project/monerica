@@ -90,16 +90,13 @@
         var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
         var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
-        var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
-            Model.PagedEntries.Items.ToList(),
-            DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
-            DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.SubcategorySponsor,
-            link2Name,
-            link3Name);
+        // ✅ now comes from controller (already includes AverageRating + ReviewCount)
+        var viewModelList = Model.EntryViewModels
+            ?? new List<DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel>();
 
-        // keep this: it drives the "Advertise here" CTA when no subcategory sponsor
         var subCategorySponsor = subCategorySponsors.FirstOrDefault();
         var activeEntries = await directoryEntryRepository.GetActiveEntriesBySubcategoryAsync(Model.SubCategoryId);
+
         var subCategorySponsorModel = new DirectoryManager.Web.Models.SubcategorySponsorModel
         {
             SubCategoryId = Model.SubCategoryId,

@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Models;
+using DirectoryManager.DisplayFormatting.Models;
 
 namespace DirectoryManager.Web.Models
 {
@@ -19,5 +20,6 @@ namespace DirectoryManager.Web.Models
         public PagedResult<DirectoryEntry> PagedEntries { get; set; }
         public int CurrentPage { get; set; }
         public int PageSize { get; set; }
+        public List<DirectoryEntryViewModel> EntryViewModels { get; set; } = new ();
     }
 }

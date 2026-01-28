@@ -119,6 +119,8 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 sb.AppendFormat(" <i>(Note: {0})</i> ", model.Note); // Assuming it's safe HTML
             }
 
+            AppendInlineReviewSummary(sb, model);
+
             sb.Append("</p>");
 
             sb.Append("</li>");
@@ -469,6 +471,25 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                     WebUtility.HtmlEncode(linkName),
                     relAttr);
             }
+        }
+
+        private static void AppendInlineReviewSummary(StringBuilder sb, DirectoryEntryViewModel model)
+        {
+            // supports both int and int? ReviewCount
+            var count = model.ReviewCount ?? 0;
+
+            if (!model.AverageRating.HasValue || count <= 0)
+            {
+                return;
+            }
+
+            // format: Review: 2.5/5 (2)
+            sb.Append(" - ");
+            sb.Append("Review: ");
+            sb.Append(model.AverageRating.Value.ToString("0.0", CultureInfo.InvariantCulture));
+            sb.Append("/5 (");
+            sb.Append(count.ToString(CultureInfo.InvariantCulture));
+            sb.Append(")");
         }
 
         /// <summary>
