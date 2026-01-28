@@ -325,6 +325,11 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
         private static void AppendExternalLinkIcon(StringBuilder sb, DirectoryEntryViewModel model)
         {
+            if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Scam)
+            {
+                return;
+            }
+
             var link = model.Link;
 
             if (!string.IsNullOrWhiteSpace(model.LinkA) && model.IsSponsored == false)

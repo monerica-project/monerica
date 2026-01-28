@@ -1,4 +1,5 @@
 ﻿@using DirectoryManager.Utilities
+@using DirectoryManager.Web.Constants
 @model DirectoryManager.Web.Models.TaggedEntriesViewModel
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 
@@ -7,7 +8,7 @@
 
     int totalPages = (int)Math.Ceiling(Model.PagedEntries.TotalCount / (double)Model.PageSize);
     string pageSuffix = Model.CurrentPage > 1 ? $" – Page {Model.CurrentPage}" : "";
-    ViewData["Title"] = $"Tagged: {Model.Tag.Name}{pageSuffix}";
+    ViewData[StringConstants.TitleHeader] = $"Tagged: {Model.Tag.Name}{pageSuffix}";
 }
 
 @section PageContent {

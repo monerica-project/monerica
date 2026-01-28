@@ -602,69 +602,128 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("site/{directoryEntryKey}")]
         public async Task<IActionResult> DirectoryEntryView(string directoryEntryKey)
         {
-            var canoicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canoicalDomain, $"site/{directoryEntryKey}");
+            await this.SetCanonicalAsync(directoryEntryKey);
 
-            var existingEntry = await this.directoryEntryRepository.GetByKey(directoryEntryKey);
-
-            if (existingEntry == null || existingEntry.DirectoryStatus == DirectoryStatus.Removed)
+            var entry = await this.GetEntryOr404Async(directoryEntryKey);
+            if (entry == null)
             {
                 return this.NotFound();
             }
 
-            this.ViewData[StringConstants.MetaDescription] = existingEntry.Description;
+            this.SetMetaDescription(entry);
 
+            var (link2Name, link3Name) = await this.GetLinkLabelsAsync();
+            var (tagNames, tagDict) = await this.GetTagsAsync(entry.DirectoryEntryId);
+
+            var sponsors = await this.GetAllSponsorsCachedAsync();
+            bool isSponsor = sponsors.Any(s => s.DirectoryEntryId == entry.DirectoryEntryId);
+
+            var reviewsVm = await this.BuildReviewsVmAsync(entry);
+            this.ViewBag.ReviewsVm = reviewsVm;
+
+            var model = this.BuildDirectoryEntryViewModel(entry, link2Name, link3Name, tagNames, tagDict, isSponsor);
+
+            await this.SetCategoryContextViewBagAsync(entry.SubCategoryId);
+
+            return this.View("DirectoryEntryView", model);
+        }
+
+        private async Task SetCanonicalAsync(string directoryEntryKey)
+        {
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
+            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, $"site/{directoryEntryKey}");
+        }
+
+        private async Task<DirectoryEntry?> GetEntryOr404Async(string directoryEntryKey)
+        {
+            var existingEntry = await this.directoryEntryRepository.GetByKey(directoryEntryKey);
+
+            if (existingEntry == null || existingEntry.DirectoryStatus == DirectoryStatus.Removed)
+            {
+                return null;
+            }
+
+            return existingEntry;
+        }
+
+        private void SetMetaDescription(DirectoryEntry entry)
+        {
+            this.ViewData[StringConstants.MetaDescription] = entry.Description;
+        }
+
+        private async Task<(string link2Name, string link3Name)> GetLinkLabelsAsync()
+        {
             var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
             var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
+            return (link2Name, link3Name);
+        }
 
-            var tagEntities = await this.entryTagRepo.GetTagsForEntryAsync(existingEntry.DirectoryEntryId);
+        private async Task<(List<string> tagNames, Dictionary<string, string> tagDictionary)> GetTagsAsync(int directoryEntryId)
+        {
+            // IDs from junction
+            var entryTagIds = (await this.entryTagRepo.GetTagsForEntryAsync(directoryEntryId))
+                .Select(t => t.TagId)
+                .Distinct()
+                .ToHashSet();
+
+            if (entryTagIds.Count == 0)
+            {
+                return (new List<string>(), new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+            }
+
+            // Keys/names from Tags table
+            var allTags = await this.tagRepo.ListAllAsync();
+
+            var tagEntities = allTags
+                .Where(t => entryTagIds.Contains(t.TagId))
+                .ToList();
+
             var tagNames = tagEntities
                 .Select(t => t.Name)
-                .OrderBy(n => n)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
             var tagDictionary = tagEntities
-                .OrderBy(t => t.Name)
+                .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(
                     t => t.Key,
-                    t => t.Name);
+                    t => t.Name,
+                    StringComparer.OrdinalIgnoreCase);
 
-            // Get/cached active sponsors (typed, null-safe)
+            return (tagNames, tagDictionary);
+        }
+
+        private async Task<List<SponsoredListing>> GetAllSponsorsCachedAsync()
+        {
             const string sponsorCacheKey = StringConstants.CacheKeyAllActiveSponsors;
 
-            var allSponsors = await this.cache.GetOrCreateAsync(sponsorCacheKey, async entry =>
+            return await this.cache.GetOrCreateAsync(sponsorCacheKey, async cacheEntry =>
             {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+                cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+
                 var sponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
                 return sponsors?.ToList() ?? new List<SponsoredListing>();
             }) ?? new List<SponsoredListing>();
+        }
 
+        private async Task<EntryReviewsBlockViewModel> BuildReviewsVmAsync(DirectoryEntry entry)
+        {
             var approved = await this.reviewRepository
                 .Query()
-                .Where(r => r.DirectoryEntryId == existingEntry.DirectoryEntryId
+                .Where(r => r.DirectoryEntryId == entry.DirectoryEntryId
                          && r.ModerationStatus == ReviewModerationStatus.Approved)
                 .OrderByDescending(r => r.UpdateDate ?? r.CreateDate)
                 .ToListAsync();
 
-            double? average = null;
-            var rated = approved.Where(r => r.Rating.HasValue).ToList();
-            if (rated.Count > 0)
+            double? average = ComputeAverageRating(approved);
+
+            // Owner fingerprint matching
+            var entryFps = PgpFingerprintTools.GetAllFingerprints(entry.PgpKey);
+
+            return new EntryReviewsBlockViewModel
             {
-                average = rated.Average(r => (double)r.Rating!.Value);
-            }
-
-            // Try to get a normalized fingerprint from the entry's PGP key text
-            string? entryFp = PgpFingerprintTools.GetFingerprintFromArmored(existingEntry.PgpKey);
-            string entryFpNorm = NormalizeFp(entryFp);
-
-            // collect ALL fingerprints from the entry's armored key (primary + subkeys)
-            var entryFps = PgpFingerprintTools.GetAllFingerprints(existingEntry.PgpKey); // HashSet<string> (UPPER hex, includes short forms)
-
-            // ... build reviews VM
-            var reviewsVm = new EntryReviewsBlockViewModel
-            {
-                DirectoryEntryId = existingEntry.DirectoryEntryId,
-                DirectoryEntryName = existingEntry.Name,
+                DirectoryEntryId = entry.DirectoryEntryId,
+                DirectoryEntryName = entry.Name,
                 AverageRating = average,
                 ReviewCount = approved.Count,
                 Reviews = approved.Select(r =>
@@ -677,61 +736,87 @@ namespace DirectoryManager.Web.Controllers
                         Rating = r.Rating,
                         Body = r.Body,
                         AuthorFingerprint = r.AuthorFingerprint,
-                        AuthorDisplay = isOwner ? existingEntry.Name : r.AuthorFingerprint,
+                        AuthorDisplay = isOwner ? entry.Name : r.AuthorFingerprint,
                         CreateDate = r.CreateDate
                     };
                 }).ToList()
             };
+        }
 
-            this.ViewBag.ReviewsVm = reviewsVm;
-
-            // flag if this entry is a sponsor
-            bool isSponsor = allSponsors == null ? false : allSponsors.Any(s => s.DirectoryEntryId == existingEntry.DirectoryEntryId);
-
-            var model = new DirectoryEntryViewModel
+        private static double? ComputeAverageRating(List<DirectoryEntryReview> approved)
+        {
+            var rated = approved.Where(r => r.Rating.HasValue).ToList();
+            if (rated.Count == 0)
             {
-                DirectoryEntryId = existingEntry.DirectoryEntryId,
-                Name = existingEntry.Name,
-                DirectoryEntryKey = existingEntry.DirectoryEntryKey,
-                Link = existingEntry.Link,
-                LinkA = existingEntry.LinkA,
-                Link2 = existingEntry.Link2,
-                Link2A = existingEntry.Link2A,
-                Link3 = existingEntry.Link3,
-                Link3A = existingEntry.Link3A,
-                DirectoryStatus = existingEntry.DirectoryStatus,
-                DirectoryBadge = existingEntry.DirectoryBadge,
-                Description = existingEntry.Description,
-                Location = existingEntry.Location,
-                Processor = existingEntry.Processor,
-                Note = existingEntry.Note,
-                Contact = existingEntry.Contact,
-                SubCategory = existingEntry.SubCategory,
-                SubCategoryId = existingEntry.SubCategoryId,
-                UpdateDate = existingEntry.UpdateDate,
-                CreateDate = existingEntry.CreateDate,
+                return null;
+            }
+
+            return rated.Average(r => (double)r.Rating!.Value);
+        }
+
+        private DirectoryEntryViewModel BuildDirectoryEntryViewModel(
+            DirectoryEntry entry,
+            string link2Name,
+            string link3Name,
+            List<string> tagNames,
+            Dictionary<string, string> tagDictionary,
+            bool isSponsor)
+        {
+            return new DirectoryEntryViewModel
+            {
+                DirectoryEntryId = entry.DirectoryEntryId,
+                Name = entry.Name,
+                DirectoryEntryKey = entry.DirectoryEntryKey,
+
+                Link = entry.Link,
+                LinkA = entry.LinkA,
+                Link2 = entry.Link2,
+                Link2A = entry.Link2A,
+                Link3 = entry.Link3,
+                Link3A = entry.Link3A,
+
+                DirectoryStatus = entry.DirectoryStatus,
+                DirectoryBadge = entry.DirectoryBadge,
+                Description = entry.Description,
+                Location = entry.Location,
+                Processor = entry.Processor,
+                Note = entry.Note,
+                Contact = entry.Contact,
+
+                SubCategory = entry.SubCategory,
+                SubCategoryId = entry.SubCategoryId,
+
+                UpdateDate = entry.UpdateDate,
+                CreateDate = entry.CreateDate,
+
                 Link2Name = link2Name,
                 Link3Name = link3Name,
+
                 Tags = tagNames,
                 TagsAndKeys = tagDictionary,
-                CountryCode = existingEntry.CountryCode,
-                IsSponsored = isSponsor,
-                PgpKey = existingEntry.PgpKey,
-                ProofLink = existingEntry.ProofLink,
-                VideoLink = existingEntry.VideoLink,
-                FormattedLocation = BuildLocationHtml(existingEntry.Location, existingEntry.CountryCode, this.urlResolver)
-            };
 
-            var subcategory = await this.subCategoryRepository.GetByIdAsync(existingEntry.SubCategoryId);
+                CountryCode = entry.CountryCode,
+                IsSponsored = isSponsor,
+
+                PgpKey = entry.PgpKey,
+                ProofLink = entry.ProofLink,
+                VideoLink = entry.VideoLink,
+
+                FormattedLocation = BuildLocationHtml(entry.Location, entry.CountryCode, this.urlResolver)
+            };
+        }
+
+        private async Task SetCategoryContextViewBagAsync(int subCategoryId)
+        {
+            var subcategory = await this.subCategoryRepository.GetByIdAsync(subCategoryId);
             var category = await this.categoryRepository.GetByIdAsync(subcategory.CategoryId);
 
             this.ViewBag.CategoryName = category.Name;
             this.ViewBag.SubCategoryName = subcategory.Name;
             this.ViewBag.CategoryKey = category.CategoryKey;
             this.ViewBag.SubCategoryKey = subcategory.SubCategoryKey;
-
-            return this.View("DirectoryEntryView", model);
         }
+
 
         private static HashSet<int> NormalizeSelectedIds(IEnumerable<int>? ids)
         {
