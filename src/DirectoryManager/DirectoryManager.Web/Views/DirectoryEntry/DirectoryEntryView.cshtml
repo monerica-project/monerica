@@ -254,8 +254,7 @@
                     var key = tags[i].Key;     // slug / url-key
                     var name = tags[i].Value;  // display name
 
-                    <a class="no-app-link" href="~/tagged/@key">@name</a>
-                    @(i < tags.Count - 1 ? ", " : "")
+                    <a class="no-app-link" href="~/tagged/@key">@name</a>@(i < tags.Count - 1 ? ", " : "")
                 }
             </div>
         }

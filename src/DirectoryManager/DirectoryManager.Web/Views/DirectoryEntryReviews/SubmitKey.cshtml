@@ -11,6 +11,9 @@
     <div asp-validation-summary="All" class="text-danger"></div>
 
     <form asp-action="SubmitKeyPost" asp-controller="DirectoryEntryReviews" method="post">
+        <p>
+            Download: <a href="https://apps.kde.org/kleopatra/" target="_blank">Kleopatra</a> then: File > New Open PGP Key Pair
+        </p>
         @Html.AntiForgeryToken()
         <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
 
