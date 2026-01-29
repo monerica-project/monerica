@@ -255,9 +255,10 @@ ul.newest_items li ul li p.small-font {
     cursor: pointer;
 }
 
-    .btn-sm {
-        height: 20px; padding: 10px;
-    }
+.btn-sm {
+    height: 20px !important;
+    padding: 10px !important;
+}
 
     .btn:hover,
     .btn:focus {

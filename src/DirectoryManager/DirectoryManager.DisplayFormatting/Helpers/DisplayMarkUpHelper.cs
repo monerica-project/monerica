@@ -119,7 +119,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 sb.AppendFormat(" <i>(Note: {0})</i> ", model.Note); // Assuming it's safe HTML
             }
 
-            //AppendInlineReviewSummary(sb, model);
             AppendInlineStarRating(sb, model);
 
             sb.Append("</p>");
