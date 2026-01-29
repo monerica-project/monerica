@@ -4,23 +4,15 @@
 @using System.Net
 @using System.Text.Json
 @using DirectoryManager.Data.Models
+@using System.Globalization
 @model DirectoryManager.Web.Models.EntryReviewsBlockViewModel
 @inject IUrlResolutionService Urls
 
 @functions {
-    // ★ helper
-    public static string Stars(byte? rating)
-    {
-        if (rating is null || rating.Value < 1) return "☆☆☆☆☆";
-        var n = Math.Min(5, Math.Max(1, (int)rating.Value));
-        return new string('★', n) + new string('☆', 5 - n);
-    }
-
     // CSS class so long links wrap onto multiple lines
     private const string LinkClass = "multi-line-text";
 
     // Precompiled URL regex: http(s)://... or www....
-    // NOTE: exclude both '<' and '>' so <http://foo> doesn't slurp the closing bracket.
     private static readonly Regex UrlRegex = new(
         @"(?:(?:https?://)|(?:www\.))[\w\-\.]+(?:\.[a-z]{2,})(?:[^\s<>]*)?",
         RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
@@ -36,22 +28,18 @@
 
         foreach (Match m in UrlRegex.Matches(text))
         {
-            // encode text before the link (preserve newlines)
             string before = WebUtility.HtmlEncode(text.Substring(last, m.Index - last))
                                       .Replace("\r\n", "\n").Replace("\n", "<br/>");
             sb.Append(before);
 
-            // raw match and any trailing punctuation to exclude from URL
             string raw = m.Value;
             string trimmed = raw.TrimEnd('.', ',', ';', ')', ']', '}', '!', '?', '>', '"', '\'');
             string trailing = raw.Substring(trimmed.Length);
 
-            // ensure scheme for www.* links
             string href = trimmed.StartsWith("www.", StringComparison.OrdinalIgnoreCase)
                 ? $"https://{trimmed}"
                 : trimmed;
 
-            // Safe attributes and visible text
             string hrefAttr = WebUtility.HtmlEncode(href);
             string visible = WebUtility.HtmlEncode(trimmed);
 
@@ -63,7 +51,6 @@
             last = m.Index + m.Length;
         }
 
-        // Tail after last match
         string tail = WebUtility.HtmlEncode(text.Substring(last))
                                 .Replace("\r\n", "\n").Replace("\n", "<br/>");
         sb.Append(tail);
@@ -80,6 +67,40 @@
             ? list
             : new List<DirectoryEntryReviewComment>();
     }
+
+    // ✅ Same star-fill markup used elsewhere (rating-wrapper/stars/stars-fill/rating-text)
+    public static IHtmlContent RenderStars(double? avg, int? count)
+    {
+        if (!avg.HasValue || !count.HasValue || count.Value <= 0)
+        {
+            return new HtmlString(string.Empty);
+        }
+
+        const int totalStars = 5;
+        double percent = Math.Clamp(avg.Value / totalStars * 100.0, 0.0, 100.0);
+
+        var sb = new System.Text.StringBuilder();
+
+        sb.Append("<span class=\"rating-wrapper\" aria-label=\"");
+        sb.Append(WebUtility.HtmlEncode($"{avg.Value:0.0} out of 5 stars from {count.Value} reviews"));
+        sb.Append("\">");
+
+        sb.Append("<span class=\"stars\">");
+        sb.Append("<span class=\"stars-fill\" style=\"width:");
+        sb.Append(percent.ToString("0.##", CultureInfo.InvariantCulture));
+        sb.Append("%\"></span>");
+        sb.Append("</span>");
+
+        sb.Append("<span class=\"rating-text\"> ");
+        sb.Append(avg.Value.ToString("0.0", CultureInfo.InvariantCulture));
+        sb.Append("/5 (");
+        sb.Append(count.Value.ToString(CultureInfo.InvariantCulture));
+        sb.Append(")</span>");
+
+        sb.Append("</span>");
+
+        return new HtmlString(sb.ToString());
+    }
 }
 
 @{
@@ -94,8 +115,7 @@
     {
         <p>
             <strong>Average rating:</strong>
-            @(Model.AverageRating?.ToString("0.0") ?? "-") / 5
-            <span class="text-muted">(@Model.ReviewCount @(Model.ReviewCount == 1 ? "review" : "reviews"))</span>
+            @Html.Raw(RenderStars(Model.AverageRating, Model.ReviewCount).ToString())
         </p>
 
         <ul class="list-unstyled">
@@ -103,10 +123,23 @@
             {
                 var replies = GetReplies(Model.RepliesByReviewId, r.DirectoryEntryReviewId);
 
+                // review-level avg/count for consistent visual style:
+                // you only have a single rating here, so avg = rating, count = 1
+                double? reviewAvg = r.Rating.HasValue ? (double?)r.Rating.Value : null;
+                int? reviewCount = r.Rating.HasValue ? 1 : (int?)null;
+
                 <li class="mb-4 pb-3 border-bottom" itemscope itemtype="https://schema.org/Review">
+
                     <div class="d-flex align-items-center">
-                        <span class="me-2" aria-label="rating">@Stars(r.Rating)</span>
-                        <small class="text-muted">@((r.Rating ?? 0))/5</small>
+                        @if (reviewAvg.HasValue)
+                        {
+                            @Html.Raw(RenderStars(reviewAvg, reviewCount).ToString())
+                            <small class="text-muted ms-2">@((r.Rating ?? 0))/5</small>
+                        }
+                        else
+                        {
+                            <small class="text-muted">No rating</small>
+                        }
 
                         <!-- reviewRating microdata -->
                         <span itemprop="reviewRating" itemscope itemtype="https://schema.org/Rating">
@@ -129,13 +162,16 @@
                         </span>
 
                         <small class="text-muted ms-2">•</small>
+
                         <!-- datePublished microdata -->
-                        <time class="text-muted ms-2" itemprop="datePublished" datetime="@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)">
+                        <time class="text-muted ms-2"
+                              itemprop="datePublished"
+                              datetime="@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)">
                             @r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
                         </time>
                     </div>
 
-                    <!-- ✅ Reply CTA (starts reply flow for this review) -->
+                    <!-- ✅ Reply CTA -->
                     <div class="mt-3">
                         <form action="@Urls.ResolveToApp("/directory-entry-review-replies/begin")"
                               method="post"
@@ -166,7 +202,8 @@
                                                 Author: @(string.IsNullOrWhiteSpace(c.DisplayName) ? c.AuthorFingerprint : c.DisplayName)
                                             </small>
                                             <small class="text-muted ms-2">•</small>
-                                            <time class="text-muted ms-2" datetime="@((c.UpdateDate ?? c.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))">
+                                            <time class="text-muted ms-2"
+                                                  datetime="@((c.UpdateDate ?? c.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))">
                                                 @((c.UpdateDate ?? c.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))
                                             </time>
                                         </div>
@@ -179,8 +216,7 @@
             }
         </ul>
 
-        @* JSON-LD: AggregateRating + individual Review objects referencing this page as itemReviewed
-           NOTE: replies are NOT included here (they are comments, not reviews). *@
+        @* JSON-LD *@
         {
             var graph = new List<object>();
 
