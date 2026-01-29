@@ -134,7 +134,17 @@
                         {
                             <tr>
                                 <th scope="row">@Model.Link2Name</th>
-                                <td><a class="multi-line-text" href="@finalLink2" target="_blank">@Model.Link2</a></td>
+                              
+                                <td>
+                                    @if (isScam)
+                                    {
+                                        <span class="multi-line-text">@Model.Link2</span>
+                                    }
+                                    else
+                                    {
+                               <a class="multi-line-text" href="@finalLink2" target="_blank">@Model.Link2</a> 
+                                    }
+                                </td>
                             </tr>
                         }
 
@@ -142,8 +152,17 @@
                         {
                             <tr>
                                 <th scope="row">@Model.Link3Name</th>
-                                @* ✅ FIX: Link3 row must use finalLink3, not finalLink2 *@
-                                <td><a class="multi-line-text" href="@finalLink3" target="_blank">@Model.Link3</a></td>
+                              
+                                <td>
+                                    @if (isScam)
+                                    {
+                                        <span class="multi-line-text">@Model.Link3</span>
+                                    }
+                                    else
+                                    {
+                                        <a class="multi-line-text" href="@finalLink3" target="_blank">@Model.Link3</a>
+                                    }
+                                </td>
                             </tr>
                         }
 
