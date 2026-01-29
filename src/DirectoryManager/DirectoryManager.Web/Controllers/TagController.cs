@@ -1,5 +1,4 @@
 ﻿using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Migrations;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Enums;
@@ -11,6 +10,7 @@ using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -18,18 +18,31 @@ namespace DirectoryManager.Web.Controllers
     public class TagController : Controller
     {
         private const int PageSize = Constants.IntegerConstants.MaxPageSize;
+
         private readonly ITagRepository tagRepo;
         private readonly IDirectoryEntryTagRepository entryTagRepo;
         private readonly ICacheService cacheService;
 
+        // ✅ add these
+        private readonly ISponsoredListingRepository sponsoredListingRepository;
+        private readonly IDirectoryEntryReviewRepository entryReviewsRepo;
+        private readonly IMemoryCache cache;
+
         public TagController(
             ITagRepository tagRepo,
             IDirectoryEntryTagRepository entryTagRepo,
-            ICacheService cacheService)
+            ICacheService cacheService,
+            ISponsoredListingRepository sponsoredListingRepository,
+            IDirectoryEntryReviewRepository entryReviewsRepo,
+            IMemoryCache cache)
         {
             this.tagRepo = tagRepo ?? throw new ArgumentNullException(nameof(tagRepo));
             this.entryTagRepo = entryTagRepo ?? throw new ArgumentNullException(nameof(entryTagRepo));
-            this.cacheService = cacheService;
+            this.cacheService = cacheService ?? throw new ArgumentNullException(nameof(cacheService));
+
+            this.sponsoredListingRepository = sponsoredListingRepository ?? throw new ArgumentNullException(nameof(sponsoredListingRepository));
+            this.entryReviewsRepo = entryReviewsRepo ?? throw new ArgumentNullException(nameof(entryReviewsRepo));
+            this.cache = cache ?? throw new ArgumentNullException(nameof(cache));
         }
 
         [AllowAnonymous]
@@ -38,11 +51,8 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> All(int page = 1)
         {
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            var path = page > 1
-                ? $"tagged/page/{page}"
-                : "tagged";
+            var path = page > 1 ? $"tagged/page/{page}" : "tagged";
 
-            // set the full canonical URL
             this.ViewData[StringConstants.CanonicalUrl] =
                 UrlBuilder.CombineUrl(canonicalDomain, path);
 
@@ -61,6 +71,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View("AllTags", vm);
         }
 
+        [AllowAnonymous]
         [HttpGet("{tagSlug}")]
         [HttpGet("{tagSlug}/page/{page:int}")]
         public async Task<IActionResult> Index(string tagSlug, int page = 1)
@@ -76,14 +87,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            // build canonical URL
-            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            var basePath = $"tagged/{tagSlug}";
-            var path = page > 1
-                ? $"{basePath}/page/{page}"
-                : basePath;
-            this.ViewData[StringConstants.CanonicalUrl] =
-                UrlBuilder.CombineUrl(canonicalDomain, path);
+            await this.SetCanonicalAsync(tagSlug, page);
 
             // get the paged raw entries
             var paged = await this.entryTagRepo.ListEntriesForTagPagedAsync(
@@ -95,28 +99,111 @@ namespace DirectoryManager.Web.Controllers
             var link2 = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
             var link3 = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
-            // convert all entries in one call
-            IReadOnlyList<DirectoryEntryViewModel> vms =
-                ViewModelConverter.ConvertToViewModels(
-                    paged.Items.ToList(),
-                    DateDisplayOption.NotDisplayed,
-                    ItemDisplayType.Normal,
-                    link2,
-                    link3);
+            var items = ViewModelConverter.ConvertToViewModels(
+                paged.Items.ToList(),
+                DateDisplayOption.NotDisplayed,
+                ItemDisplayType.Normal,
+                link2,
+                link3);
 
-            var vm = new TaggedEntriesViewModel
+            // ✅ ensure tag lists behave like other directory lists
+            foreach (var vm in items)
+            {
+                vm.LinkType = LinkType.ListingPage;
+            }
+
+            // ✅ sponsor highlight ids (cached)
+            var sponsoredIds = await this.GetAllSponsoredEntryIdsAsync();
+
+            // ✅ apply sponsor flags
+            ApplySponsorFlags(items, sponsoredIds);
+
+            // ✅ apply ratings (avg + count)
+            await this.ApplyRatingsAsync(items);
+
+            var vmOut = new TaggedEntriesViewModel
             {
                 Tag = tag,
                 PagedEntries = new PagedResult<DirectoryEntryViewModel>
                 {
-                    Items = vms,
+                    Items = items,
                     TotalCount = paged.TotalCount
                 },
                 CurrentPage = page,
                 PageSize = PageSize
             };
 
-            return this.View(vm);
+            return this.View(vmOut);
+        }
+
+        // -------------------------
+        // Helpers
+        // -------------------------
+
+        private async Task SetCanonicalAsync(string tagSlug, int page)
+        {
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
+            var basePath = $"tagged/{tagSlug}";
+            var path = page > 1 ? $"{basePath}/page/{page}" : basePath;
+
+            this.ViewData[StringConstants.CanonicalUrl] =
+                UrlBuilder.CombineUrl(canonicalDomain, path);
+        }
+
+        private async Task<HashSet<int>> GetAllSponsoredEntryIdsAsync()
+        {
+            // Cache so Tag pages don’t hammer the DB
+            const string cacheKey = StringConstants.CacheKeyAllActiveSponsors;
+
+            var allSponsors = await this.cache.GetOrCreateAsync(cacheKey, async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+
+                var sponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
+                return sponsors?.ToList() ?? new List<DirectoryManager.Data.Models.SponsoredListings.SponsoredListing>();
+            }) ?? new List<DirectoryManager.Data.Models.SponsoredListings.SponsoredListing>();
+
+            return allSponsors
+                .Select(s => s.DirectoryEntryId)
+                .Distinct()
+                .ToHashSet();
+        }
+
+        private static void ApplySponsorFlags(IReadOnlyList<DirectoryEntryViewModel> items, HashSet<int> sponsoredIds)
+        {
+            foreach (var item in items)
+            {
+                if (sponsoredIds.Contains(item.DirectoryEntryId))
+                {
+                    item.IsSponsored = true;
+                    item.DisplayAsSponsoredItem = true;
+                }
+            }
+        }
+
+        private async Task ApplyRatingsAsync(IReadOnlyList<DirectoryEntryViewModel> items)
+        {
+            var ids = items.Select(x => x.DirectoryEntryId).Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                return;
+            }
+
+            var ratingMap = await this.entryReviewsRepo.GetRatingSummariesAsync(ids);
+
+            foreach (var item in items)
+            {
+                if (ratingMap.TryGetValue(item.DirectoryEntryId, out var rs) && rs.ReviewCount > 0)
+                {
+                    item.AverageRating = rs.AvgRating;
+                    item.ReviewCount = rs.ReviewCount;
+                }
+                else
+                {
+                    item.AverageRating = null;
+                    item.ReviewCount = 0;
+                }
+            }
         }
     }
 }

@@ -10,6 +10,7 @@ using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 [Route("countries")]
 public class CountriesController : Controller
@@ -19,10 +20,24 @@ public class CountriesController : Controller
     private readonly IDirectoryEntryRepository entryRepo;
     private readonly ICacheService cacheService;
 
-    public CountriesController(IDirectoryEntryRepository entryRepo, ICacheService cacheService)
+    // ✅ add these
+    private readonly ISponsoredListingRepository sponsoredListingRepository;
+    private readonly IDirectoryEntryReviewRepository entryReviewsRepo;
+    private readonly IMemoryCache cache;
+
+    public CountriesController(
+        IDirectoryEntryRepository entryRepo,
+        ICacheService cacheService,
+        ISponsoredListingRepository sponsoredListingRepository,
+        IDirectoryEntryReviewRepository entryReviewsRepo,
+        IMemoryCache cache)
     {
         this.entryRepo = entryRepo;
         this.cacheService = cacheService;
+
+        this.sponsoredListingRepository = sponsoredListingRepository;
+        this.entryReviewsRepo = entryReviewsRepo;
+        this.cache = cache;
     }
 
     // /countries  and  /countries/page/{page}
@@ -36,7 +51,6 @@ public class CountriesController : Controller
         this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, path);
 
         var paged = await this.entryRepo.ListActiveCountriesWithCountsPagedAsync(page, PageSize);
-
         paged.Items = paged.Items.OrderBy(x => x.Name).ToList();
 
         var vm = new CountryListViewModel
@@ -63,8 +77,8 @@ public class CountriesController : Controller
         // Resolve slug -> ISO code & canonical name
         var bySlug = CountryHelper.GetCountries()
             .ToDictionary(
-            kv => StringHelpers.UrlKey(kv.Value),
-            kv => new { Code = kv.Key, Name = kv.Value });
+                kv => StringHelpers.UrlKey(kv.Value),
+                kv => new { Code = kv.Key, Name = kv.Value });
 
         var key = countrySlug.Trim().ToLowerInvariant();
         if (!bySlug.TryGetValue(key, out var info))
@@ -83,12 +97,25 @@ public class CountriesController : Controller
         var link2 = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
         var link3 = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
-        var vms = ViewModelConverter.ConvertToViewModels(
+        var items = ViewModelConverter.ConvertToViewModels(
             pagedRaw.Items.ToList(),
             DateDisplayOption.NotDisplayed,
             ItemDisplayType.Normal,
             link2,
             link3);
+
+        // ✅ match other list pages (important for your markup helper behavior)
+        foreach (var vmItem in items)
+        {
+            vmItem.LinkType = LinkType.ListingPage;
+        }
+
+        // ✅ sponsors (cached) + apply flags
+        var sponsoredIds = await this.GetAllSponsoredEntryIdsAsync();
+        ApplySponsorFlags(items, sponsoredIds);
+
+        // ✅ reviews (avg + count)
+        await this.ApplyRatingsAsync(items);
 
         var vm = new CountryEntriesViewModel
         {
@@ -97,7 +124,7 @@ public class CountriesController : Controller
             CountryKey = key,
             PagedEntries = new PagedResult<DirectoryEntryViewModel>
             {
-                Items = vms,
+                Items = items,
                 TotalCount = pagedRaw.TotalCount
             },
             CurrentPage = page,
@@ -105,5 +132,64 @@ public class CountriesController : Controller
         };
 
         return this.View("CountryEntries", vm);
+    }
+
+    // -------------------------
+    // Helpers (same pattern as Category/Tag)
+    // -------------------------
+
+    private async Task<HashSet<int>> GetAllSponsoredEntryIdsAsync()
+    {
+        const string cacheKey = StringConstants.CacheKeyAllActiveSponsors;
+
+        var allSponsors = await this.cache.GetOrCreateAsync(cacheKey, async entry =>
+        {
+            entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+
+            var sponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
+            return sponsors?.ToList() ?? new List<DirectoryManager.Data.Models.SponsoredListings.SponsoredListing>();
+        }) ?? new List<DirectoryManager.Data.Models.SponsoredListings.SponsoredListing>();
+
+        return allSponsors
+            .Select(s => s.DirectoryEntryId)
+            .Distinct()
+            .ToHashSet();
+    }
+
+    private static void ApplySponsorFlags(IReadOnlyList<DirectoryEntryViewModel> items, HashSet<int> sponsoredIds)
+    {
+        foreach (var item in items)
+        {
+            if (sponsoredIds.Contains(item.DirectoryEntryId))
+            {
+                item.IsSponsored = true;
+                item.DisplayAsSponsoredItem = true;
+            }
+        }
+    }
+
+    private async Task ApplyRatingsAsync(IReadOnlyList<DirectoryEntryViewModel> items)
+    {
+        var ids = items.Select(x => x.DirectoryEntryId).Distinct().ToList();
+        if (ids.Count == 0)
+        {
+            return;
+        }
+
+        var ratingMap = await this.entryReviewsRepo.GetRatingSummariesAsync(ids);
+
+        foreach (var item in items)
+        {
+            if (ratingMap.TryGetValue(item.DirectoryEntryId, out var rs) && rs.ReviewCount > 0)
+            {
+                item.AverageRating = rs.AvgRating;
+                item.ReviewCount = rs.ReviewCount;
+            }
+            else
+            {
+                item.AverageRating = null;
+                item.ReviewCount = 0;
+            }
+        }
     }
 }
