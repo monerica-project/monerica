@@ -17,7 +17,9 @@
 
 @await Html.PartialAsync("_AdminMenu")
 
-<a href="@Url.Action("EntryAudits", "DirectoryEntry", new { entryId = Model.DirectoryEntryId })">View History</a>
+    <a href="@Url.Action("EntryAudits", "DirectoryEntry", new { entryId = Model.DirectoryEntryId })">View History</a>
+     |
+    <a href="@DirectoryManager.DisplayFormatting.Helpers.FormattingHelper.ListingPath(Model.DirectoryEntryKey)" target="_blank">View Listing</a>
 
 <br />
 <a target="_blank" href="@Model.Link">@Model.Link</a>

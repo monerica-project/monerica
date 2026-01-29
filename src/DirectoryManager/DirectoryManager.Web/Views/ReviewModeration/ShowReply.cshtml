@@ -26,7 +26,10 @@
         <dd class="col-sm-9">@Model.ModerationStatus</dd>
 
         <dt class="col-sm-3">Review Id</dt>
-        <dd class="col-sm-9">@Model.DirectoryEntryReviewId</dd>
+        <dd class="col-sm-9">
+            <a asp-action="Show"
+               asp-route-id="@Model.DirectoryEntryReviewId">@Model.DirectoryEntryReviewId</a>
+        </dd>
 
         <dt class="col-sm-3">Parent Comment Id</dt>
         <dd class="col-sm-9">@(Model.ParentCommentId?.ToString() ?? "-")</dd>

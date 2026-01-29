@@ -43,5 +43,6 @@ namespace DirectoryManager.Web.Models
         // If you want “create/edit ONLY with checkboxes”, just remove this field & UI.
         [MaxLength(200)]
         public string? NewTagsCsv { get; set; }
+        public string DirectoryEntryKey { get; set; } = string.Empty;
     }
 }

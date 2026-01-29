@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
@@ -21,65 +22,88 @@ namespace DirectoryManager.Web.Controllers
             this.commentRepo = commentRepo;
         }
 
+        // Default route = Pending queue, but everything lives on the combined All page.
+        // GET /admin/reviews
         [HttpGet("")]
-        public async Task<IActionResult> Pending(int page = 1, int pageSize = 50)
+        public IActionResult Pending(int page = 1, int pageSize = 50)
         {
-            var pendingReviews = await this.repo.ListByStatusAsync(ReviewModerationStatus.Pending, page, pageSize);
-            var pendingReviewsTotal = await this.repo.CountByStatusAsync(ReviewModerationStatus.Pending);
-
-            var pendingReplies = await this.commentRepo.ListByStatusAsync(ReviewModerationStatus.Pending, page, pageSize);
-            var pendingRepliesTotal = await this.commentRepo.CountByStatusAsync(ReviewModerationStatus.Pending);
-
-            this.ViewBag.ReviewTotal = pendingReviewsTotal;
-            this.ViewBag.ReplyTotal = pendingRepliesTotal;
-
-            this.ViewBag.Page = page;
-            this.ViewBag.PageSize = pageSize;
-
-            var vm = new DirectoryManager.Web.Models.ReviewModerationQueueViewModel
+            return this.RedirectToAction(nameof(this.All), new
             {
-                PendingReviews = pendingReviews,
-                PendingReplies = pendingReplies
-            };
-
-            return this.View("Pending", vm);
+                status = ReviewModerationStatus.Pending,
+                reviewPage = page,
+                reviewPageSize = pageSize,
+                replyPage = page,
+                replyPageSize = pageSize
+            });
         }
 
         // GET /admin/reviews/all?status=Approved|Rejected|Pending (optional)
+        // Supports paging each table independently:
+        //   reviewPage, reviewPageSize, replyPage, replyPageSize
         [HttpGet("all")]
-        public async Task<IActionResult> All(ReviewModerationStatus? status = null, int page = 1, int pageSize = 50)
+        public async Task<IActionResult> All(
+            ReviewModerationStatus? status = null,
+            int reviewPage = 1, int reviewPageSize = 50,
+            int replyPage = 1, int replyPageSize = 50,
+            CancellationToken ct = default)
         {
-            IReadOnlyList<DirectoryEntryReview> items;
-            int total;
+            IReadOnlyList<DirectoryEntryReview> reviews;
+            int reviewsTotal;
 
             if (status.HasValue)
             {
-                items = await this.repo.ListByStatusAsync(status.Value, page, pageSize);
-                total = await this.repo.CountByStatusAsync(status.Value);
+                reviews = await this.repo.ListByStatusAsync(status.Value, reviewPage, reviewPageSize);
+                reviewsTotal = await this.repo.CountByStatusAsync(status.Value);
             }
             else
             {
-                items = await this.repo.ListAsync(page, pageSize);
-                total = await this.repo.CountAsync();
+                reviews = await this.repo.ListAsync(reviewPage, reviewPageSize);
+                reviewsTotal = await this.repo.CountAsync();
             }
 
-            this.ViewBag.Total = total;
-            this.ViewBag.Page = page;
-            this.ViewBag.PageSize = pageSize;
-            this.ViewBag.Status = status;
+            IReadOnlyList<DirectoryEntryReviewComment> replies;
+            int repliesTotal;
 
-            return this.View("All", items);
+            if (status.HasValue)
+            {
+                replies = await this.commentRepo.ListByStatusAsync(status.Value, replyPage, replyPageSize, ct);
+                repliesTotal = await this.commentRepo.CountByStatusAsync(status.Value, ct);
+            }
+            else
+            {
+                // NOTE: requires these methods in comment repo:
+                //   Task<List<DirectoryEntryReviewComment>> ListAsync(int page, int pageSize, CancellationToken ct)
+                //   Task<int> CountAsync(CancellationToken ct)
+                replies = await this.commentRepo.ListAsync(replyPage, replyPageSize, ct);
+                repliesTotal = await this.commentRepo.CountAsync(ct);
+            }
+
+            var vm = new ReviewModerationDashboardViewModel
+            {
+                Status = status,
+
+                Reviews = reviews,
+                ReviewsTotal = reviewsTotal,
+                ReviewsPage = reviewPage,
+                ReviewsPageSize = reviewPageSize,
+
+                Replies = replies,
+                RepliesTotal = repliesTotal,
+                RepliesPage = replyPage,
+                RepliesPageSize = replyPageSize
+            };
+
+            return this.View("All", vm);
         }
+
+        // -------- Reviews --------
 
         // GET /admin/reviews/123
         [HttpGet("{id:int}")]
-        public async Task<IActionResult> Show(int id)
+        public async Task<IActionResult> Show(int id, CancellationToken ct = default)
         {
-            var item = await this.repo.GetByIdAsync(id);
-            if (item is null)
-            {
-                return this.NotFound();
-            }
+            var item = await this.repo.GetByIdAsync(id, ct);
+            if (item is null) return this.NotFound();
 
             return this.View("Show", item);
         }
@@ -87,99 +111,85 @@ namespace DirectoryManager.Web.Controllers
         // POST /admin/reviews/123/approve
         [HttpPost("{id:int}/approve")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Approve(int id)
+        public async Task<IActionResult> Approve(int id, CancellationToken ct = default)
         {
-            await this.repo.ApproveAsync(id);
+            await this.repo.ApproveAsync(id, ct);
             return this.RedirectToAction(nameof(this.Pending));
         }
-
-        // GET /admin/reviews/replies/123
-        [HttpGet("replies/{id:int}")]
-        public async Task<IActionResult> ShowReply(int id, CancellationToken ct)
-        {
-            var item = await this.commentRepo.GetByIdAsync(id, ct);
-            if (item is null)
-            {
-                return this.NotFound();
-            }
-
-            return this.View("ShowReply", item); // ✅ IMPORTANT
-        }
-
-        // GET /admin/reviews/reply/123
-        [HttpGet("reply/{id:int}")]
-        public async Task<IActionResult> ShowReply(int id)
-        {
-            var item = await this.commentRepo.GetByIdAsync(id);
-            if (item is null) return this.NotFound();
-            return this.View("ShowReply", item);
-        }
-
-        // POST /admin/reviews/reply/123/approve
-        [HttpPost("reply/{id:int}/approve")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> ApproveReply(int id)
-        {
-            await this.commentRepo.ApproveAsync(id);
-            return this.RedirectToAction(nameof(this.Pending));
-        }
-
-        // POST /admin/reviews/reply/123/reject
-        [HttpPost("reply/{id:int}/reject")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> RejectReply(int id, [FromForm] string? reason)
-        {
-            if (string.IsNullOrWhiteSpace(reason))
-            {
-                var item = await this.commentRepo.GetByIdAsync(id);
-                if (item is null) return this.NotFound();
-
-                this.ModelState.AddModelError("reason", "A rejection reason is required.");
-                return this.View("ShowReply", item);
-            }
-
-            await this.commentRepo.RejectAsync(id, reason);
-            return this.RedirectToAction(nameof(this.Pending));
-        }
-
-        // POST /admin/reviews/reply/123/delete
-        [HttpPost("reply/{id:int}/delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteReply(int id)
-        {
-            await this.commentRepo.DeleteAsync(id);
-            return this.RedirectToAction(nameof(this.Pending));
-        }
-
 
         // POST /admin/reviews/123/reject
         [HttpPost("{id:int}/reject")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Reject(int id, [FromForm] string? reason)
+        public async Task<IActionResult> Reject(int id, [FromForm] string? reason, CancellationToken ct = default)
         {
-            // Reason isn’t stored in the model but we can require it to avoid accidental rejects.
             if (string.IsNullOrWhiteSpace(reason))
             {
-                var item = await this.repo.GetByIdAsync(id);
-                if (item is null)
-                {
-                    return this.NotFound();
-                }
+                var item = await this.repo.GetByIdAsync(id, ct);
+                if (item is null) return this.NotFound();
 
                 this.ModelState.AddModelError("reason", "A rejection reason is required.");
                 return this.View("Show", item);
             }
 
-            await this.repo.RejectAsync(id, reason);
+            await this.repo.RejectAsync(id, reason, ct);
             return this.RedirectToAction(nameof(this.Pending));
         }
 
         // POST /admin/reviews/123/delete
         [HttpPost("{id:int}/delete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, CancellationToken ct = default)
         {
-            await this.repo.DeleteAsync(id);
+            await this.repo.DeleteAsync(id, ct);
+            return this.RedirectToAction(nameof(this.Pending));
+        }
+
+        // -------- Comments / Replies (DirectoryEntryReviewComment) --------
+
+        // GET /admin/reviews/reply/123
+        // (Single canonical route; don’t duplicate ShowReply endpoints)
+        [HttpGet("reply/{id:int}")]
+        public async Task<IActionResult> ShowReply(int id, CancellationToken ct = default)
+        {
+            var item = await this.commentRepo.GetByIdAsync(id, ct);
+            if (item is null) return this.NotFound();
+
+            return this.View("ShowReply", item);
+        }
+
+        // POST /admin/reviews/reply/123/approve
+        [HttpPost("reply/{id:int}/approve")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> ApproveReply(int id, CancellationToken ct = default)
+        {
+            await this.commentRepo.ApproveAsync(id, ct);
+            return this.RedirectToAction(nameof(this.Pending));
+        }
+
+        // POST /admin/reviews/reply/123/reject
+        [HttpPost("reply/{id:int}/reject")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> RejectReply(int id, [FromForm] string? reason, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(reason))
+            {
+                var item = await this.commentRepo.GetByIdAsync(id, ct);
+                if (item is null) return this.NotFound();
+
+                this.ModelState.AddModelError("reason", "A rejection reason is required.");
+                return this.View("ShowReply", item);
+            }
+
+            await this.commentRepo.RejectAsync(id, reason, ct);
+            return this.RedirectToAction(nameof(this.Pending));
+        }
+
+        // POST /admin/reviews/reply/123/delete
+        [HttpPost("reply/{id:int}/delete")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteReply(int id, CancellationToken ct = default)
+        {
+            await this.commentRepo.DeleteAsync(id, ct);
             return this.RedirectToAction(nameof(this.Pending));
         }
     }

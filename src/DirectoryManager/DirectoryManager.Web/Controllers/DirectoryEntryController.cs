@@ -240,6 +240,7 @@ namespace DirectoryManager.Web.Controllers
 
             var vm = new DirectoryEntryEditViewModel
             {
+                DirectoryEntryKey = entry.DirectoryEntryKey,
                 DirectoryEntryId = entry.DirectoryEntryId,
                 DirectoryStatus = entry.DirectoryStatus,
                 SubCategoryId = entry.SubCategoryId,

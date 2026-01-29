@@ -20,9 +20,16 @@ namespace DirectoryManager.Data.Repositories.Interfaces
             int id, CancellationToken ct = default);
 
         // ---------------------------
+        // Global list + counts (needed for moderation dashboard)
+        // ---------------------------
+        Task<List<DirectoryEntryReviewComment>> ListAsync(
+            int page = 1, int pageSize = 50, CancellationToken ct = default);
+
+        Task<int> CountAsync(CancellationToken ct = default);
+
+        // ---------------------------
         // Listing helpers
         // ---------------------------
-
         Task<List<DirectoryEntryReviewComment>> ListApprovedForReviewAsync(
             int directoryEntryReviewId, CancellationToken ct = default);
 
@@ -41,7 +48,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         // ---------------------------
         // Moderation helpers
         // ---------------------------
-
         Task SetModerationStatusAsync(
             int id, ReviewModerationStatus status, string reason, CancellationToken ct = default);
 
