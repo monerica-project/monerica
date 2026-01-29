@@ -119,7 +119,8 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 sb.AppendFormat(" <i>(Note: {0})</i> ", model.Note); // Assuming it's safe HTML
             }
 
-            AppendInlineReviewSummary(sb, model);
+            //AppendInlineReviewSummary(sb, model);
+            AppendInlineStarRating(sb, model);
 
             sb.Append("</p>");
 
@@ -340,6 +341,19 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             }
 
             sb.AppendFormat(@" <a target=""_blank"" class=""external-link"" title=""{0}"" href=""{0}""></a> ", link);
+        }
+
+        private static void AppendInlineStarRating(StringBuilder sb, DirectoryEntryViewModel model)
+        {
+            var count = model.ReviewCount ?? 0;
+
+            if (!model.AverageRating.HasValue || count <= 0)
+            {
+                return;
+            }
+
+            sb.Append("&nbsp;");
+            AppendRatingStars(sb, model.AverageRating.Value, count);
         }
 
         private static void AppendRatingStars(StringBuilder sb, double avg, int count)

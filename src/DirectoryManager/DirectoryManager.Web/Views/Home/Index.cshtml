@@ -23,7 +23,7 @@
 @{
     ViewData[StringConstants.TitleHeader] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageTitle));
     ViewData[StringConstants.MetaContent] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageMetaTags));
-    ViewData["CurrentCategoryKey"]    = null;
+    ViewData["CurrentCategoryKey"] = null;
     ViewData["CurrentSubCategoryKey"] = null;
     Layout = "_LayoutWithNav";
 }
@@ -39,8 +39,8 @@
 
     // ----- Subcategory sponsors -----
     var subSponsors = await sponsoredListingRepository
-        .GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor); // ← make sure you have this
- 
+        .GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor);
+
     var sponsorsBySubcategory = subSponsors
         .Where(s => s.DirectoryEntry?.SubCategoryId != null)
         .GroupBy(s => s.DirectoryEntry.SubCategoryId)
@@ -54,35 +54,44 @@
     // build a quick lookup from SubCategoryId → Subcategory (so we can get CategoryId cheaply)
     var subById = subs.ToDictionary(sc => sc.SubcategoryId, sc => sc);
 
-    // now group your category‐level sponsors by CategoryId
+    // now group your category-level sponsors by CategoryId
     var sponsorsByCategory = catSponsors
-        // only keep ones whose DirectoryEntry & SubCategoryId we know about
         .Where(s => s.DirectoryEntry != null
                     && subById.ContainsKey(s.DirectoryEntry.SubCategoryId))
-        // group by the sub’s CategoryId
         .GroupBy(s => subById[s.DirectoryEntry.SubCategoryId].CategoryId)
-        // materialize into a Dictionary<CategoryId, List<DirectoryEntry>>
         .ToDictionary(
             g => g.Key,
             g => g.Select(s => s.DirectoryEntry!).ToList()
         );
 }
 
- @section PageContent {
+@{
+    // ✅ Pull rating summaries for sponsor entries (category + subcategory) in ONE repo call
+    var sponsorEntryIds = sponsorsByCategory.Values.SelectMany(x => x)
+        .Concat(sponsorsBySubcategory.Values.SelectMany(x => x))
+        .Where(e => e != null)
+        .Select(e => e.DirectoryEntryId)
+        .Distinct()
+        .ToList();
+
+    // ID -> RatingSummaryDto (whatever your dto fields are)
+    var sponsorRatings = sponsorEntryIds.Count == 0
+        ? new Dictionary<int, DirectoryManager.Data.Models.TransferModels.RatingSummaryDto>()
+        : await reviewRepository.GetRatingSummariesAsync(sponsorEntryIds);
+}
+
+@section PageContent {
     <div>
-        <!-- Hero and sponsored listing partial (stays full‐width under the fixed sidebar) -->
         @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageDisplayHtml))
         @await Html.PartialAsync("_SponsoredListingPartial")
         <hr />
 
-        <!-- everything from here down is centered under the hero -->
         <p class="intro">
             @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TextIntro))
         </p>
         <hr />
 
         <div class="top-container">
-            <!-- Update Section -->
             <div class="top-section update-section">
                 <p class="centered-text">
                     <strong>Last Update:</strong>
@@ -90,12 +99,10 @@
                 </p>
             </div>
 
-            <!-- Search Section -->
             <div class="top-section search-section">
                 @await Html.PartialAsync("_SearchForm")
             </div>
 
-            <!-- Links Section -->
             <div class="top-section links-section">
                 @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopMenuActionsHtml))
             </div>
@@ -108,6 +115,7 @@
         @{
             var featuredEntries = await directoryEntrySelectionRepository
             .GetEntriesForSelection(EntrySelectionType.Featured);
+
             var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
             var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
         }
@@ -117,8 +125,7 @@
             <p><b>Featured</b></p>
             <ul class="blank_list_item">
                 @{
-                    var vmList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter
-                    .ConvertToViewModels(
+                    var vmList = ViewModelConverter.ConvertToViewModels(
                     featuredEntries.ToList(),
                     DateDisplayOption.NotDisplayed,
                     ItemDisplayType.Featured,
@@ -149,8 +156,7 @@
             </i>
             <ul class="blank_list_item">
                 @{
-                    var vmList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter
-                    .ConvertToViewModels(
+                    var vmList = ViewModelConverter.ConvertToViewModels(
                     newest.ToList(),
                     DateDisplayOption.DisplayCreateDate,
                     ItemDisplayType.Normal,
@@ -178,8 +184,7 @@
             <p><b>Newest Revisions</b></p>
             <ul class="blank_list_item">
                 @{
-                    var vmList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter
-                    .ConvertToViewModels(
+                    var vmList = ViewModelConverter.ConvertToViewModels(
                     revisions.ToList(),
                     DateDisplayOption.DisplayUpdateDate,
                     ItemDisplayType.NewestRevions,
@@ -213,7 +218,17 @@
                                 ItemDisplayType.CategorySponsor,
                                 link2Name, link3Name)
                                 .First();
+
                                 vm.IsSponsored = true;
+
+                                // ✅ Set rating/count for sponsor (uses your DTO)
+                                if (sponsorRatings != null && sponsorRatings.TryGetValue(e.DirectoryEntryId, out var rs))
+                                {
+                                    // Adjust names here if your DTO differs (examples: AvgRating/AverageRating, ReviewCount/Count)
+                                    vm.AverageRating = rs.AvgRating;
+                                    vm.ReviewCount = rs.ReviewCount;
+                                }
+
                                 @await Html.PartialAsync("_DirectoryEntryPartial", vm)
                             }
                         </ul>
@@ -241,7 +256,17 @@
                                 ItemDisplayType.SubcategorySponsor,
                                 link2Name, link3Name)
                                 .First();
+
                                 vm.IsSponsored = true;
+
+                                // ✅ Set rating/count for sponsor (uses your DTO)
+                                if (sponsorRatings != null && sponsorRatings.TryGetValue(e.DirectoryEntryId, out var rs))
+                                {
+                                    // Adjust names here if your DTO differs
+                                    vm.AverageRating = rs.AvgRating;
+                                    vm.ReviewCount = rs.ReviewCount;
+                                }
+
                                 @await Html.PartialAsync("_DirectoryEntryPartial", vm)
                             }
                         </ul>
@@ -264,7 +289,7 @@
                     var e = r.DirectoryEntry;
                     if (e == null || e.SubCategory == null || e.SubCategory.Category == null)
                     {
-                        continue; // can’t build a /cat/sub/entry URL
+                        continue;
                     }
 
                     var listingName = e.Name ?? "Listing";
@@ -281,4 +306,4 @@
             </ul>
         }
     </div>
-    }
+}
