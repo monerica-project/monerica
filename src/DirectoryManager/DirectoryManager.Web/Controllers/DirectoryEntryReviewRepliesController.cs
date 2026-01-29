@@ -73,7 +73,9 @@ namespace DirectoryManager.Web.Controllers
             // ✅ tell the shared view where to POST
             this.ViewBag.PostController = "DirectoryEntryReviewReplies";
             this.ViewBag.PostAction = "CaptchaPost";
-            this.ViewBag.CaptchaPurpose = "review"; // matches your _CaptchaBlock usage
+
+            // ✅ IMPORTANT: this is a REPLY flow (drives title + captcha block)
+            this.ViewBag.CaptchaPurpose = "reply";
 
             // ✅ reuse the existing Captcha view file
             return this.View("~/Views/DirectoryEntryReviews/Captcha.cshtml");
@@ -91,17 +93,23 @@ namespace DirectoryManager.Web.Controllers
             if (!this.captcha.IsValid(this.Request))
             {
                 this.ModelState.AddModelError(string.Empty, "Captcha failed. Please try again.");
+
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.DirectoryEntryReviewId = state.DirectoryEntryReviewId;
+
+                // ✅ keep post routing on re-render
                 this.ViewBag.PostController = "DirectoryEntryReviewReplies";
                 this.ViewBag.PostAction = "CaptchaPost";
-                this.ViewBag.CaptchaPurpose = "review";
-                return this.View("~/Views/DirectoryEntryReviews/Captcha.cshtml");
 
+                // ✅ IMPORTANT: keep it as REPLY on re-render
+                this.ViewBag.CaptchaPurpose = "reply";
+
+                return this.View("~/Views/DirectoryEntryReviews/Captcha.cshtml");
             }
 
             state.CaptchaOk = true;
             this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
+
             return this.RedirectToAction(nameof(this.SubmitKey), new { flowId });
         }
 
@@ -298,8 +306,5 @@ namespace DirectoryManager.Web.Controllers
 
         private bool TryGetFlow(Guid flowId, out ReviewReplyFlowState state) =>
             this.cache.TryGetValue(CacheKey(flowId), out state) && state.ExpiresUtc > DateTime.UtcNow;
-
-
-
     }
 }

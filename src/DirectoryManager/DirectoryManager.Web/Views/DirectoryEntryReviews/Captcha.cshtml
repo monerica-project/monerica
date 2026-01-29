@@ -1,6 +1,12 @@
 ﻿@using DirectoryManager.Web.Constants
 @{
-    ViewData[StringConstants.TitleHeader] = "Leave a Review – CAPTCHA";
+    var purpose = (ViewBag.CaptchaPurpose as string)?.ToLowerInvariant();
+
+    ViewData[StringConstants.TitleHeader] =
+        purpose == "reply"
+            ? "Reply to Review – CAPTCHA"
+            : "Leave a Review – CAPTCHA";
+
     Layout = "_CenteredLayout";
 }
 
@@ -16,9 +22,12 @@
         @Html.AntiForgeryToken()
         <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
 
-        @await Html.PartialAsync("_CaptchaBlock", (string)(ViewBag.CaptchaPurpose ?? "review"))
+        @await Html.PartialAsync(
+                "_CaptchaBlock",
+        (string)(ViewBag.CaptchaPurpose ?? "review")
+        )
 
-        <br />
-        <button type="submit" class="btn btn-primary">Continue</button>
-    </form>
+    <br />
+    <button type="submit" class="btn btn-primary">Continue</button>
+</form>
 }

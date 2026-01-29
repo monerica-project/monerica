@@ -49,7 +49,6 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Captcha), new { flowId });
         }
 
-        // Step 1: captcha (GET shows form, POST validates)
         [HttpGet("captcha")]
         public IActionResult Captcha(Guid flowId)
         {
@@ -60,6 +59,10 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.FlowId = flowId;
             this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+
+            // ✅ IMPORTANT: tells the view what this flow is
+            this.ViewBag.CaptchaPurpose = "review";
+
             return this.View();
         }
 
@@ -77,6 +80,10 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(string.Empty, "Captcha failed. Please try again.");
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+
+                // ✅ IMPORTANT: keep purpose on re-render
+                this.ViewBag.CaptchaPurpose = "review";
+
                 return this.View("Captcha");
             }
 
