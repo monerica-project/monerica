@@ -1,10 +1,11 @@
-﻿using System.Reflection;
-using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.BaseModels;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.SponsoredListings;
 using Microsoft.EntityFrameworkCore;
+using System.Reflection;
+using System.Reflection.Emit;
 
 namespace DirectoryManager.Data.DbContextInfo
 {
@@ -45,7 +46,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<SearchLog> SearchLogs { get; set; }
         public DbSet<ReviewerKey> ReviewerKeys { get; set; }
         public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
-
+        public DbSet<DirectoryEntryReviewComment> DirectoryEntryReviewComments { get; set; } = null!;
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
         public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
@@ -309,6 +310,19 @@ namespace DirectoryManager.Data.DbContextInfo
                 rk.Property(x => x.Alias)
                   .HasMaxLength(64);
             });
+
+            builder.Entity<DirectoryEntryReviewComment>()
+                .HasOne(x => x.DirectoryEntryReview)
+                .WithMany(r => r.Comments)
+                .HasForeignKey(x => x.DirectoryEntryReviewId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<DirectoryEntryReviewComment>()
+                .HasOne(x => x.ParentComment)
+                .WithMany(x => x.Children)
+                .HasForeignKey(x => x.ParentCommentId)
+                .OnDelete(DeleteBehavior.Restrict);
+
 
             // DirectoryEntryReview (no FK to ReviewerKey; uses AuthorFingerprint)
             builder.Entity<DirectoryEntryReview>(r =>

@@ -16,6 +16,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly ISubmissionRepository submissionRepository;
         private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
+        private readonly IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository;
         private readonly SignInManager<ApplicationUser> signInManager;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IAffiliateCommissionRepository affiliateCommissionRepository;
@@ -26,6 +27,7 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryRepository directoryEntryRepository,
             ISubmissionRepository submissionRepository,
             IDirectoryEntryReviewRepository directoryEntryReviewRepository,
+            IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IAffiliateCommissionRepository affiliateCommissionRepository,
@@ -37,6 +39,7 @@ namespace DirectoryManager.Web.Controllers
             this.directoryEntryRepository = directoryEntryRepository;
             this.submissionRepository = submissionRepository;
             this.directoryEntryReviewRepository = directoryEntryReviewRepository;
+            this.directoryEntryReviewCommentRepository = directoryEntryReviewCommentRepository;
             this.affiliateCommissionRepository = affiliateCommissionRepository;
         }
 
@@ -53,7 +56,6 @@ namespace DirectoryManager.Web.Controllers
         {
             if (string.IsNullOrEmpty(username) || string.IsNullOrEmpty(password))
             {
-                // Add an error message and return to the login page.
                 this.ModelState.AddModelError("", "Username and password are required.");
                 return this.View();
             }
@@ -64,29 +66,45 @@ namespace DirectoryManager.Web.Controllers
             {
                 return this.RedirectToAction("Home", "Account");
             }
-            else
-            {
-                // Add an error message and return to the login page.
-                this.ModelState.AddModelError("", "Invalid login attempt.");
-                return this.View();
-            }
+
+            this.ModelState.AddModelError("", "Invalid login attempt.");
+            return this.View();
         }
 
         [Route("account/home")]
         [Authorize]
         public async Task<IActionResult> HomeAsync()
         {
-            var totalPendingSubmissions = await this.submissionRepository.GetByStatus(Data.Enums.SubmissionStatus.Pending);
+            var totalPendingSubmissions =
+                await this.submissionRepository.GetByStatus(Data.Enums.SubmissionStatus.Pending);
 
-            var totalPendingReviews = await this.directoryEntryReviewRepository
+            // Pending reviews
+            var pendingReviews = await this.directoryEntryReviewRepository
                 .Query()
                 .Where(r => r.ModerationStatus == ReviewModerationStatus.Pending)
                 .CountAsync();
 
-            var pendingAffiliateCommissions = await this.affiliateCommissionRepository.CountByStatusAsync(CommissionPayoutStatus.Pending);
+            // Pending replies/comments
+            var pendingReviewComments = await this.directoryEntryReviewCommentRepository
+                .Query()
+                .Where(c => c.ModerationStatus == ReviewModerationStatus.Pending)
+                .CountAsync();
+
+            // Combined total for your dashboard badge
+            var totalPendingReviewItems = pendingReviews + pendingReviewComments;
+
+            var pendingAffiliateCommissions =
+                await this.affiliateCommissionRepository.CountByStatusAsync(CommissionPayoutStatus.Pending);
 
             this.ViewBag.TotalPendingSubmissions = totalPendingSubmissions;
-            this.ViewBag.TotalPendingReviews = totalPendingReviews;
+
+            // ✅ keep your existing name, but now includes BOTH
+            this.ViewBag.TotalPendingReviews = totalPendingReviewItems;
+
+            // ✅ optional breakdown (use if you want)
+            this.ViewBag.TotalPendingReviewReviews = pendingReviews;
+            this.ViewBag.TotalPendingReviewComments = pendingReviewComments;
+
             this.ViewBag.PendingAffiliateCommissions = pendingAffiliateCommissions;
 
             return this.View();

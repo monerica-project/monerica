@@ -3,6 +3,7 @@
 @using System.Text.RegularExpressions
 @using System.Net
 @using System.Text.Json
+@using DirectoryManager.Data.Models
 @model DirectoryManager.Web.Models.EntryReviewsBlockViewModel
 @inject IUrlResolutionService Urls
 
@@ -42,7 +43,6 @@
 
             // raw match and any trailing punctuation to exclude from URL
             string raw = m.Value;
-            // Inside RenderBodyWithLinks, replace the existing 'trimmed' line with this:
             string trimmed = raw.TrimEnd('.', ',', ';', ')', ']', '}', '!', '?', '>', '"', '\'');
             string trailing = raw.Substring(trimmed.Length);
 
@@ -70,6 +70,16 @@
 
         return new HtmlString(sb.ToString());
     }
+
+    // helper to resolve replies safely
+    public static List<DirectoryEntryReviewComment> GetReplies(
+        Dictionary<int, List<DirectoryEntryReviewComment>>? dict, int reviewId)
+    {
+        if (dict == null) return new List<DirectoryEntryReviewComment>();
+        return dict.TryGetValue(reviewId, out var list) && list != null
+            ? list
+            : new List<DirectoryEntryReviewComment>();
+    }
 }
 
 @{
@@ -91,6 +101,8 @@
         <ul class="list-unstyled">
             @foreach (var r in Model.Reviews)
             {
+                var replies = GetReplies(Model.RepliesByReviewId, r.DirectoryEntryReviewId);
+
                 <li class="mb-4 pb-3 border-bottom" itemscope itemtype="https://schema.org/Review">
                     <div class="d-flex align-items-center">
                         <span class="me-2" aria-label="rating">@Stars(r.Rating)</span>
@@ -112,8 +124,7 @@
                         <!-- author microdata -->
                         <span itemprop="author" itemscope itemtype="https://schema.org/Person">
                             <small class="text-muted multi-line-text">
-                                Author:
-                                @(string.IsNullOrWhiteSpace(r.AuthorDisplay) ? r.AuthorFingerprint : r.AuthorDisplay)
+                                Author: @(string.IsNullOrWhiteSpace(r.DisplayName) ? r.AuthorFingerprint : r.DisplayName)
                             </small>
                         </span>
 
@@ -123,11 +134,53 @@
                             @r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
                         </time>
                     </div>
+
+                    <!-- ✅ Reply CTA (starts reply flow for this review) -->
+                    <div class="mt-3">
+                        <form action="@Urls.ResolveToApp("/directory-entry-review-replies/begin")"
+                              method="post"
+                              class="d-inline"
+                              rel="nofollow">
+                            <input type="hidden" name="directoryEntryReviewId" value="@r.DirectoryEntryReviewId" />
+                            <input type="text" name="website" value="" style="display:none" tabindex="-1" autocomplete="off" />
+                            <button class="btn review-btn btn-sm btn-outline-secondary" type="submit">Reply</button>
+                        </form>
+                    </div>
+
+                    <!-- ✅ Threaded replies -->
+                    @if (replies.Any())
+                    {
+                        <div class="mt-3 ps-3 border-start">
+                            <div class="text-muted mb-2"><small><strong>Replies</strong></small></div>
+
+                            <ul class="list-unstyled mb-0">
+                                @foreach (var c in replies)
+                                {
+                                    <li class="mb-3">
+                                        <div class="mt-1">
+                                            @RenderBodyWithLinks(c.Body)
+                                        </div>
+
+                                        <div class="mt-2">
+                                            <small class="text-muted multi-line-text">
+                                                Author: @(string.IsNullOrWhiteSpace(c.DisplayName) ? c.AuthorFingerprint : c.DisplayName)
+                                            </small>
+                                            <small class="text-muted ms-2">•</small>
+                                            <time class="text-muted ms-2" datetime="@((c.UpdateDate ?? c.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))">
+                                                @((c.UpdateDate ?? c.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))
+                                            </time>
+                                        </div>
+                                    </li>
+                                }
+                            </ul>
+                        </div>
+                    }
                 </li>
             }
         </ul>
 
-        @* JSON-LD: AggregateRating + individual Review objects referencing this page as itemReviewed *@
+        @* JSON-LD: AggregateRating + individual Review objects referencing this page as itemReviewed
+           NOTE: replies are NOT included here (they are comments, not reviews). *@
         {
             var graph = new List<object>();
 
@@ -146,7 +199,7 @@
 
             foreach (var r in Model.Reviews)
             {
-                var authorText = !string.IsNullOrWhiteSpace(r.AuthorDisplay) ? r.AuthorDisplay : r.AuthorFingerprint;
+                var authorText = r.AuthorFingerprint;
 
                 graph.Add(new
                 {
@@ -164,7 +217,6 @@
                     reviewBody = r.Body ?? string.Empty
                 });
             }
-
 
             var jsonLd = JsonSerializer.Serialize(new
             {
@@ -185,6 +237,5 @@
     <form action="@Urls.ResolveToApp("/directory-entry-reviews/begin")" method="post" class="d-inline" rel="nofollow">
         <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
         <button class="btn review-btn" type="submit">Leave a review</button>
-
     </form>
 </div>

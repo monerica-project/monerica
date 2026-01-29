@@ -1,6 +1,4 @@
-﻿using System.Net;
-using System.Text.RegularExpressions;
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -19,6 +17,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using System.Net;
+using System.Reflection.PortableExecutable;
+using System.Text.RegularExpressions;
+using DirectoryEntry = DirectoryManager.Data.Models.DirectoryEntry;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -38,6 +40,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryReviewRepository reviewRepository;
         private readonly ISubmissionRepository submissionRepository;
         private readonly IUrlResolutionService urlResolver;
+        private readonly IDirectoryEntryReviewCommentRepository reviewCommentRepository;
 
         public DirectoryEntryController(
             UserManager<ApplicationUser> userManager,
@@ -54,7 +57,8 @@ namespace DirectoryManager.Web.Controllers
             IMemoryCache cache,
             IDirectoryEntryReviewRepository reviewRepository,
             ISubmissionRepository submissionRepository,
-            IUrlResolutionService urlResolver)
+            IUrlResolutionService urlResolver,
+            IDirectoryEntryReviewCommentRepository reviewCommentRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -70,6 +74,7 @@ namespace DirectoryManager.Web.Controllers
             this.reviewRepository = reviewRepository;
             this.submissionRepository = submissionRepository;
             this.urlResolver = urlResolver;
+            this.reviewCommentRepository = reviewCommentRepository;
         }
 
         [Route("directoryentry/index")]
@@ -600,7 +605,7 @@ namespace DirectoryManager.Web.Controllers
 
         [AllowAnonymous]
         [HttpGet("site/{directoryEntryKey}")]
-        public async Task<IActionResult> DirectoryEntryView(string directoryEntryKey)
+        public async Task<IActionResult> DirectoryEntryView(string directoryEntryKey, CancellationToken ct)
         {
             await this.SetCanonicalAsync(directoryEntryKey);
 
@@ -618,7 +623,36 @@ namespace DirectoryManager.Web.Controllers
             var sponsors = await this.GetAllSponsorsCachedAsync();
             bool isSponsor = sponsors.Any(s => s.DirectoryEntryId == entry.DirectoryEntryId);
 
-            var reviewsVm = await this.BuildReviewsVmAsync(entry);
+            // Reviews (approved)
+            var reviews = await this.reviewRepository
+                .ListApprovedForEntryAsync(entry.DirectoryEntryId, page: 1, pageSize: 50, ct);
+
+            // Review ids
+            var reviewIds = reviews.Select(r => r.DirectoryEntryReviewId).ToList();
+
+            // Replies (approved) - MUST come from the comment repo (not review repo)
+            var allReplies = await this.reviewCommentRepository.Query()
+                .Where(c =>
+                    reviewIds.Contains(c.DirectoryEntryReviewId) &&
+                    c.ModerationStatus == DirectoryManager.Data.Enums.ReviewModerationStatus.Approved)
+                .OrderBy(c => c.CreateDate)
+                .ToListAsync(ct);
+
+            // Lookup by review
+            var repliesLookup = allReplies
+                .GroupBy(x => x.DirectoryEntryReviewId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            // VM
+            var reviewsVm = new EntryReviewsBlockViewModel
+            {
+                DirectoryEntryId = entry.DirectoryEntryId,
+                Reviews = reviews,
+                ReviewCount = reviews.Count,
+                AverageRating = await this.reviewRepository.AverageRatingForEntryApprovedAsync(entry.DirectoryEntryId, ct),
+                RepliesByReviewId = repliesLookup
+            };
+
             this.ViewBag.ReviewsVm = reviewsVm;
 
             var model = this.BuildDirectoryEntryViewModel(entry, link2Name, link3Name, tagNames, tagDict, isSponsor);
@@ -723,7 +757,6 @@ namespace DirectoryManager.Web.Controllers
             return new EntryReviewsBlockViewModel
             {
                 DirectoryEntryId = entry.DirectoryEntryId,
-                DirectoryEntryName = entry.Name,
                 AverageRating = average,
                 ReviewCount = approved.Count,
                 Reviews = approved.Select(r =>
@@ -731,16 +764,22 @@ namespace DirectoryManager.Web.Controllers
                     string reviewNorm = PgpFingerprintTools.Normalize(r.AuthorFingerprint);
                     bool isOwner = entryFps.Any(fp => PgpFingerprintTools.Matches(reviewNorm, fp));
 
-                    return new EntryReviewItem
+                    return new DirectoryEntryReview
                     {
+                        DirectoryEntryReviewId = r.DirectoryEntryReviewId,
+                        DirectoryEntryId = r.DirectoryEntryId,
                         Rating = r.Rating,
                         Body = r.Body,
                         AuthorFingerprint = r.AuthorFingerprint,
-                        AuthorDisplay = isOwner ? entry.Name : r.AuthorFingerprint,
-                        CreateDate = r.CreateDate
+                        DisplayName = isOwner ? entry.Name : r.AuthorFingerprint,
+                        ModerationStatus = r.ModerationStatus,
+                        RejectionReason = r.RejectionReason,
+                        CreateDate = r.CreateDate,
+                        UpdateDate = r.UpdateDate
                     };
                 }).ToList()
             };
+
         }
 
         private static double? ComputeAverageRating(List<DirectoryEntryReview> approved)

@@ -1,0 +1,17 @@
+﻿@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Thank You";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+    <hr />
+    <p>Thanks for your review! It has been queued for moderation and won’t be visible until approved.</p>
+
+    @await Html.PartialAsync("_BackToHome")
+
+}

@@ -38,6 +38,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<SearchLog> SearchLogs { get; set; }
         public DbSet<ReviewerKey> ReviewerKeys { get; set; }
         public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
+        DbSet<DirectoryEntryReviewComment> DirectoryEntryReviewComments { get; }
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
         public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }

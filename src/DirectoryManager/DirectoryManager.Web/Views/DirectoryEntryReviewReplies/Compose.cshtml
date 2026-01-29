@@ -1,0 +1,34 @@
+﻿@model DirectoryManager.Web.Models.CreateDirectoryEntryReviewReplyInputModel
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Reply – Compose";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    <p><b>Listing:</b> @ViewBag.DirectoryEntryName</p>
+    <p><b>Verified PGP fingerprint:</b> @ViewBag.PgpFingerprint</p>
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <form asp-action="ComposePost" asp-controller="DirectoryEntryReviewReplies" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+        <input type="hidden" asp-for="DirectoryEntryReviewId" />
+        <input type="hidden" asp-for="ParentCommentId" />
+
+        <div class="mb-3">
+            <label asp-for="Body" class="form-label">Your Reply</label>
+            <br />
+            <textarea asp-for="Body" class="form-control" rows="6"></textarea>
+            <span asp-validation-for="Body" class="text-danger"></span>
+        </div>
+
+        <p class="text-muted"><i>Replies are moderated before appearing publicly.</i></p>
+
+        <button type="submit" class="btn btn-success">Submit Reply</button>
+    </form>
+}
