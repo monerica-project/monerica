@@ -9,6 +9,7 @@ using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
@@ -28,6 +29,9 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryTagRepository entryTagRepository;
         private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
 
+        // ✅ NEW: comments/replies repo
+        private readonly IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository;
+
         public SiteMapController(
             ICacheService cacheService,
             IMemoryCache memoryCache,
@@ -40,7 +44,8 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntrySelectionRepository directoryEntrySelectionRepository,
             ITagRepository tagRepository,
             IDirectoryEntryTagRepository entryTagRepository,
-            IDirectoryEntryReviewRepository directoryEntryReviewRepository)
+            IDirectoryEntryReviewRepository directoryEntryReviewRepository,
+            IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository)
         {
             this.cacheService = cacheService;
             this.memoryCache = memoryCache;
@@ -54,6 +59,8 @@ namespace DirectoryManager.Web.Controllers
             this.tagRepository = tagRepository;
             this.entryTagRepository = entryTagRepository;
             this.directoryEntryReviewRepository = directoryEntryReviewRepository;
+
+            this.directoryEntryReviewCommentRepository = directoryEntryReviewCommentRepository;
         }
 
         [Route("sitemap_index.xml")]
@@ -61,6 +68,7 @@ namespace DirectoryManager.Web.Controllers
         {
             return this.RedirectPermanent("~/sitemap.xml");
         }
+
 
         [Route("sitemap.xml")]
         public async Task<IActionResult> IndexAsync()
@@ -80,8 +88,10 @@ namespace DirectoryManager.Web.Controllers
                 nextAdExpiration,
                 lastSponsorExpiration);
 
-            // Get the last modification date for any sponsored listing
+            // Sponsored listings last change
             var lastSponsoredListingChange = await this.sponsoredListingRepository.GetLastChangeDateForMainSponsorAsync();
+
+            // ✅ Latest APPROVED review date per entry (existing)
             var latestApprovedReviewByEntry =
                 await this.directoryEntryReviewRepository.GetLatestApprovedReviewDatesByEntryAsync();
 
@@ -91,6 +101,31 @@ namespace DirectoryManager.Web.Controllers
                 if (latestApprovedReviewDate > mostRecentUpdateDate)
                 {
                     mostRecentUpdateDate = latestApprovedReviewDate;
+                }
+            }
+
+            var latestApprovedReplyByEntry = await
+                (from c in this.directoryEntryReviewCommentRepository.Query()
+                 join r in this.directoryEntryReviewRepository.Query()
+                     on c.DirectoryEntryReviewId equals r.DirectoryEntryReviewId
+                 where c.ModerationStatus == ReviewModerationStatus.Approved
+                       && r.ModerationStatus == ReviewModerationStatus.Approved
+                 select new
+                 {
+                     r.DirectoryEntryId,
+                     Dt = c.UpdateDate ?? c.CreateDate
+                 })
+                .GroupBy(x => x.DirectoryEntryId)
+                .Select(g => new { EntryId = g.Key, Last = g.Max(x => x.Dt) })
+                .AsNoTracking()
+                .ToDictionaryAsync(x => x.EntryId, x => x.Last, CancellationToken.None);
+
+            if (latestApprovedReplyByEntry.Count > 0)
+            {
+                var latestApprovedReplyDate = latestApprovedReplyByEntry.Values.Max();
+                if (latestApprovedReplyDate > mostRecentUpdateDate)
+                {
+                    mostRecentUpdateDate = latestApprovedReplyDate;
                 }
             }
 
@@ -153,12 +188,19 @@ namespace DirectoryManager.Web.Controllers
                     mostRecentUpdateDate
                 }.Max();
 
-                // If there is an approved review newer than the entry's own dates, use it
-                var reviewLastMod = latestApprovedReviewByEntry.TryGetValue(entry.DirectoryEntryId, out var rdt)
+                // Approved review last-mod (existing)
+                var reviewLastMod = (latestApprovedReviewByEntry != null
+                                     && latestApprovedReviewByEntry.TryGetValue(entry.DirectoryEntryId, out var rdt))
                     ? rdt
                     : DateTime.MinValue;
 
-                var directoryItemLastMod = new[] { baseLastMod, reviewLastMod }.Max();
+                // ✅ NEW: Approved reply/comment last-mod
+                var replyLastMod = latestApprovedReplyByEntry.TryGetValue(entry.DirectoryEntryId, out var cdt)
+                    ? cdt
+                    : DateTime.MinValue;
+
+                // ✅ final last-mod for listing = max(entry/review/reply/site-wide)
+                var directoryItemLastMod = new[] { baseLastMod, reviewLastMod, replyLastMod }.Max();
 
                 siteMapHelper.AddUrl(
                     string.Format(
@@ -170,7 +212,8 @@ namespace DirectoryManager.Web.Controllers
                     0.7);
             }
 
-            // Add /countries and per-country pages to the sitemap
+            // Countries pages use siteWideLastMod; you can keep it global,
+            // or (optional) enhance later to per-country max of listing lastmods.
             this.AddCountriesToSitemap(
                 siteMapHelper,
                 domain,
@@ -181,6 +224,9 @@ namespace DirectoryManager.Web.Controllers
             var xml = siteMapHelper.GenerateXml();
             return this.Content(xml, "text/xml");
         }
+
+ 
+
 
         [Route("sitemap")]
         public async Task<IActionResult> SiteMap()
