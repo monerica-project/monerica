@@ -16,4 +16,9 @@
 @await Html.PartialAsync("_BackToHome")
 <hr />
     @Html.Raw(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.ContactHtml))
+    <hr />
+<pre class="pgp-key">
+@Html.Raw(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.PgpKey))
+</pre>
+
 }

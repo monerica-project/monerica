@@ -74,6 +74,13 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
+        [HttpGet("pgp")]
+        public async Task<IActionResult> PgpAsync()
+        {
+            var pgpKey = await this.cacheService.GetSnippetAsync(SiteConfigSetting.PgpKey);
+            return this.Content(pgpKey);
+        }
+
         [HttpGet("newest")]
         [HttpGet("newest/page/{pageNumber:int}")]
         public async Task<IActionResult> Newest(int pageNumber = 1, int pageSize = IntegerConstants.MaxPageSize)

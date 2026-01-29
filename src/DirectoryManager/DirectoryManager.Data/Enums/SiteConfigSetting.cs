@@ -45,6 +45,7 @@
         TextIntro = 40,
         FAQHtml = 41,
         SearchBlacklistRedirectUrl = 42,
-        AboutHtml = 43
+        AboutHtml = 43,
+        PgpKey = 44
     }
 }
