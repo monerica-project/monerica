@@ -7,6 +7,8 @@
 @section PageContent {
     <h1>@ViewData[StringConstants.TitleHeader]</h1>
     <hr />
+    @await Html.PartialAsync("_PgpMessage")
+    <hr />
 
     <div asp-validation-summary="All" class="text-danger"></div>
 
