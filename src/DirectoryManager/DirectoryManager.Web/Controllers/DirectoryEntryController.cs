@@ -628,6 +628,8 @@ namespace DirectoryManager.Web.Controllers
             var reviews = await this.reviewRepository
                 .ListApprovedForEntryAsync(entry.DirectoryEntryId, page: 1, pageSize: 50, ct);
 
+            this.ApplyOwnerDisplayNames(entry, reviews);
+
             // Review ids
             var reviewIds = reviews.Select(r => r.DirectoryEntryReviewId).ToList();
 
@@ -638,6 +640,8 @@ namespace DirectoryManager.Web.Controllers
                     c.ModerationStatus == DirectoryManager.Data.Enums.ReviewModerationStatus.Approved)
                 .OrderBy(c => c.CreateDate)
                 .ToListAsync(ct);
+
+            this.ApplyOwnerDisplayNamesToReplies(entry, allReplies);
 
             // Lookup by review
             var repliesLookup = allReplies
@@ -679,6 +683,73 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return existingEntry;
+        }
+
+        private void ApplyOwnerDisplayNamesToReplies(DirectoryEntry entry, List<DirectoryEntryReviewComment> replies)
+        {
+            if (replies == null || replies.Count == 0)
+            {
+                return;
+            }
+
+            // If entry has no PGP key, we can’t match.
+            if (string.IsNullOrWhiteSpace(entry.PgpKey))
+            {
+                foreach (var c in replies)
+                {
+                    c.DisplayName = string.IsNullOrWhiteSpace(c.DisplayName) ? null : c.DisplayName;
+                }
+                return;
+            }
+
+            // Collect ALL fingerprints from the armored key (primary + subkeys)
+            var entryFps = PgpFingerprintTools.GetAllFingerprints(entry.PgpKey); // HashSet<string>
+
+            foreach (var c in replies)
+            {
+                // Normalize author fingerprint from reply comment
+                var replyNorm = PgpFingerprintTools.Normalize(c.AuthorFingerprint);
+
+                // Match against any fingerprint from entry key
+                bool isOwner = entryFps.Any(fp => PgpFingerprintTools.Matches(replyNorm, fp));
+
+                // ✅ If owner, show entry.Name; otherwise clear so view falls back to fingerprint
+                c.DisplayName = isOwner ? entry.Name : null;
+            }
+        }
+
+        private void ApplyOwnerDisplayNames(DirectoryEntry entry, List<DirectoryEntryReview> reviews)
+        {
+            if (reviews == null || reviews.Count == 0)
+            {
+                return;
+            }
+
+            // If entry has no PGP key, we can’t match.
+            if (string.IsNullOrWhiteSpace(entry.PgpKey))
+            {
+                foreach (var r in reviews)
+                {
+                    r.DisplayName = string.IsNullOrWhiteSpace(r.DisplayName) ? null : r.DisplayName;
+                }
+
+                return;
+            }
+
+            // Collect ALL fingerprints from the armored key (primary + subkeys)
+            var entryFps = PgpFingerprintTools.GetAllFingerprints(entry.PgpKey); // HashSet<string>
+
+            foreach (var r in reviews)
+            {
+                // Normalize author fingerprint from review
+                var reviewNorm = PgpFingerprintTools.Normalize(r.AuthorFingerprint);
+
+                // Match against any fingerprint from entry key
+                bool isOwner = entryFps.Any(fp => PgpFingerprintTools.Matches(reviewNorm, fp));
+
+                // ✅ If owner, show entry.Name; otherwise clear/leave DisplayName so view falls back to fingerprint
+                r.DisplayName = isOwner ? entry.Name : null;
+            }
         }
 
         private void SetMetaDescription(DirectoryEntry entry)
