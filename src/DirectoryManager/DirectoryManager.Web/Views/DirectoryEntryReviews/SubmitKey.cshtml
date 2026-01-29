@@ -12,8 +12,9 @@
 
     <form asp-action="SubmitKeyPost" asp-controller="DirectoryEntryReviews" method="post">
         <p>
-            <b>Q: How do I get a PGP Public key to post a review?</b> <span>A: Download: <a href="https://apps.kde.org/kleopatra/" target="_blank">Kleopatra</a> then: File > New Open PGP Key Pair.</span>
+            <b>Q: How do I get a PGP public key to post a review?</b> <span>A: Download: <a href="https://apps.kde.org/kleopatra/" target="_blank">Kleopatra</a> then: File > New Open PGP Key Pair.</span>
         </p>
+        <hr />
         @Html.AntiForgeryToken()
         <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
 
