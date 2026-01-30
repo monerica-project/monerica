@@ -23,15 +23,15 @@
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 @functions {
-    private static IHtmlContent RenderInlineRatingStars_NoCount(double avg)
+    private static IHtmlContent RenderInlineRatingStars_NoCount(double value)
     {
         const int totalStars = 5;
-        double percent = Math.Clamp(avg / totalStars * 100, 0, 100);
+        double percent = Math.Clamp(value / totalStars * 100, 0, 100);
 
         var sb = new System.Text.StringBuilder();
 
         sb.Append("<span class=\"rating-wrapper\" aria-label=\"");
-        sb.Append($"{avg:0.0} out of 5 stars\">");
+        sb.Append($"{value:0} out of 5 stars\">");
 
         sb.Append("<span class=\"stars\">");
         sb.Append("<span class=\"stars-fill\" style=\"width:");
@@ -41,8 +41,8 @@
 
         // ✅ rating text WITHOUT review count
         sb.AppendFormat(
-            "<span class=\"rating-text\"> {0:0.0}/5</span>",
-            avg);
+            "<span class=\"rating-text\"> {0:0}/5</span>",
+            value);
 
         sb.Append("</span>");
 
