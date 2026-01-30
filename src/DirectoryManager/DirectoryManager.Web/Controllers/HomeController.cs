@@ -37,31 +37,27 @@ namespace DirectoryManager.Web.Controllers
             this.cache = cache;
             this.cacheService = cacheService;
             this.sponsoredListingRepository = sponsoredListingRepository;
-
-            // ✅ add these
             this.reviewRepository = reviewRepository;
             this.commentRepository = commentRepository;
         }
-
 
         [HttpGet("/")]
         public async Task<IActionResult> IndexAsync()
         {
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "");
+            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, string.Empty);
 
             // ✅ Load homepage “Latest Reviews” + “Latest Comments”
             var latestReviews = await this.reviewRepository.ListLatestApprovedAsync(15);
 
             // NOTE: method name may differ in your repo — see note below
-            var latestComments = await this.commentRepository.ListLatestApprovedAsync(15);
+            var latestComments = await this.commentRepository.ListLatestApprovedAsync(10);
 
             this.ViewBag.LatestReviews = latestReviews;
             this.ViewBag.LatestComments = latestComments;
 
             return this.View();
         }
-
 
         [HttpGet("contact")]
         public async Task<IActionResult> ContactAsync()

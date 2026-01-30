@@ -12,8 +12,7 @@
     <div asp-validation-summary="All" class="text-danger"></div>
 
     <form asp-action="SubmitKeyPost" asp-controller="DirectoryEntryReviews" method="post">
-
-        <hr />
+ 
         @Html.AntiForgeryToken()
         <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
 
