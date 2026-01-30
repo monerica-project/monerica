@@ -56,5 +56,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         Task RejectAsync(
             int id, string reason, CancellationToken ct = default);
+
+        Task<IReadOnlyList<DirectoryEntryReviewComment>> ListLatestApprovedAsync(int take);
     }
 }

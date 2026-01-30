@@ -20,6 +20,32 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<DirectoryEntryReviewComment?> GetByIdAsync(int id, CancellationToken ct = default)
             => await this.Set.FindAsync(new object[] { id }, ct);
 
+        public async Task<IReadOnlyList<DirectoryEntryReviewComment>> ListLatestApprovedAsync(int take)
+        {
+            // Safety
+            if (take <= 0)
+            {
+                return Array.Empty<DirectoryEntryReviewComment>();
+            }
+
+            // NOTE:
+            // - Adjust the "Approved" predicate below to match your actual schema.
+            // - The Include() chain is so the homepage can show:
+            //   comment -> review -> entry -> subcategory -> category (and not lazy-load)
+            return await this.context.DirectoryEntryReviewComments
+                .AsNoTracking()
+                .Where(c =>
+                    c.DirectoryEntryReview != null &&
+                    c.DirectoryEntryReview.ModerationStatus == ReviewModerationStatus.Approved)
+                .Include(c => c.DirectoryEntryReview)
+                    .ThenInclude(r => r.DirectoryEntry)
+                        .ThenInclude(e => e.SubCategory)
+                            .ThenInclude(sc => sc.Category)
+                .OrderByDescending(c => c.UpdateDate ?? c.CreateDate)
+                .Take(take)
+                .ToListAsync();
+        }
+
         public async Task AddAsync(DirectoryEntryReviewComment entity, CancellationToken ct = default)
         {
             entity.CreateDate = DateTime.UtcNow;

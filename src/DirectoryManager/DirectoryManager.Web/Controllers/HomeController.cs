@@ -17,6 +17,9 @@ namespace DirectoryManager.Web.Controllers
         private readonly ICacheService cacheService;
         private readonly ISponsoredListingRepository sponsoredListingRepository;
 
+        private readonly IDirectoryEntryReviewRepository reviewRepository;
+        private readonly IDirectoryEntryReviewCommentRepository commentRepository;
+
         public HomeController(
             IDirectoryEntryRepository directoryEntryRepository,
             ITrafficLogRepository trafficLogRepository,
@@ -24,7 +27,9 @@ namespace DirectoryManager.Web.Controllers
             IRssFeedService rssFeedService,
             IMemoryCache cache,
             ICacheService cacheService,
-            ISponsoredListingRepository sponsoredListingRepository)
+            ISponsoredListingRepository sponsoredListingRepository,
+            IDirectoryEntryReviewRepository reviewRepository,
+            IDirectoryEntryReviewCommentRepository commentRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.directoryEntryRepository = directoryEntryRepository;
@@ -32,15 +37,31 @@ namespace DirectoryManager.Web.Controllers
             this.cache = cache;
             this.cacheService = cacheService;
             this.sponsoredListingRepository = sponsoredListingRepository;
+
+            // ✅ add these
+            this.reviewRepository = reviewRepository;
+            this.commentRepository = commentRepository;
         }
+
 
         [HttpGet("/")]
         public async Task<IActionResult> IndexAsync()
         {
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "");
+
+            // ✅ Load homepage “Latest Reviews” + “Latest Comments”
+            var latestReviews = await this.reviewRepository.ListLatestApprovedAsync(15);
+
+            // NOTE: method name may differ in your repo — see note below
+            var latestComments = await this.commentRepository.ListLatestApprovedAsync(15);
+
+            this.ViewBag.LatestReviews = latestReviews;
+            this.ViewBag.LatestComments = latestComments;
+
             return this.View();
         }
+
 
         [HttpGet("contact")]
         public async Task<IActionResult> ContactAsync()
