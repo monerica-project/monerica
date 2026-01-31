@@ -628,6 +628,12 @@ namespace DirectoryManager.Web.Controllers
             var reviews = await this.reviewRepository
                 .ListApprovedForEntryAsync(entry.DirectoryEntryId, page: 1, pageSize: 50, ct);
 
+            // ✅ Force oldest-first display (stable ordering)
+            reviews = (reviews ?? new List<DirectoryEntryReview>())
+                .OrderBy(r => r.CreateDate)
+                .ThenBy(r => r.DirectoryEntryReviewId)
+                .ToList();
+
             this.ApplyOwnerDisplayNames(entry, reviews);
 
             // Review ids
@@ -810,59 +816,6 @@ namespace DirectoryManager.Web.Controllers
                 var sponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
                 return sponsors?.ToList() ?? new List<SponsoredListing>();
             }) ?? new List<SponsoredListing>();
-        }
-
-        private async Task<EntryReviewsBlockViewModel> BuildReviewsVmAsync(DirectoryEntry entry)
-        {
-            var approved = await this.reviewRepository
-                .Query()
-                .Where(r => r.DirectoryEntryId == entry.DirectoryEntryId
-                         && r.ModerationStatus == ReviewModerationStatus.Approved)
-                .OrderByDescending(r => r.UpdateDate ?? r.CreateDate)
-                .ToListAsync();
-
-            double? average = ComputeAverageRating(approved);
-
-            // Owner fingerprint matching
-            var entryFps = PgpFingerprintTools.GetAllFingerprints(entry.PgpKey);
-
-            return new EntryReviewsBlockViewModel
-            {
-                DirectoryEntryId = entry.DirectoryEntryId,
-                AverageRating = average,
-                ReviewCount = approved.Count,
-                Reviews = approved.Select(r =>
-                {
-                    string reviewNorm = PgpFingerprintTools.Normalize(r.AuthorFingerprint);
-                    bool isOwner = entryFps.Any(fp => PgpFingerprintTools.Matches(reviewNorm, fp));
-
-                    return new DirectoryEntryReview
-                    {
-                        DirectoryEntryReviewId = r.DirectoryEntryReviewId,
-                        DirectoryEntryId = r.DirectoryEntryId,
-                        Rating = r.Rating,
-                        Body = r.Body,
-                        AuthorFingerprint = r.AuthorFingerprint,
-                        DisplayName = isOwner ? entry.Name : r.AuthorFingerprint,
-                        ModerationStatus = r.ModerationStatus,
-                        RejectionReason = r.RejectionReason,
-                        CreateDate = r.CreateDate,
-                        UpdateDate = r.UpdateDate
-                    };
-                }).ToList()
-            };
-
-        }
-
-        private static double? ComputeAverageRating(List<DirectoryEntryReview> approved)
-        {
-            var rated = approved.Where(r => r.Rating.HasValue).ToList();
-            if (rated.Count == 0)
-            {
-                return null;
-            }
-
-            return rated.Average(r => (double)r.Rating!.Value);
         }
 
         private DirectoryEntryViewModel BuildDirectoryEntryViewModel(
