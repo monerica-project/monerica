@@ -50,5 +50,13 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<Dictionary<int, int>> GetSubcategoryEntryCountsAsync();
         Task<PagedResult<CountryWithCount>> ListActiveCountriesWithCountsPagedAsync(int page, int pageSize);
         Task<PagedResult<DirectoryEntry>> ListActiveEntriesByCountryPagedAsync(string countryCode, int page, int pageSize);
+        Task<DirectoryEntry?> GetByKey(string directoryEntryKey);
+
+        Task<PagedResult<DirectoryEntry>> FilterAsync(DirectoryFilterQuery q);
+
+        Task<List<IdNameOption>> ListCategoryOptionsAsync();
+        Task<List<IdNameOption>> ListSubCategoryOptionsAsync(int categoryId);
+
+        Task<List<string>> ListActiveCountryCodesAsync(CancellationToken ct = default);
     }
 }

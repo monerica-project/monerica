@@ -2,6 +2,7 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Models
 @{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
     ViewData[StringConstants.TitleHeader] = "Edit Submission";
@@ -13,12 +14,14 @@
     Layout = "_CenteredLayout";
 }
 
+ 
 @section PageContent {
 <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 
 <form asp-action="Review" asp-route-id="@Model.SubmissionId" method="post">
+
 
     @if (Model.DirectoryEntryId  != null)
     {
@@ -148,11 +151,43 @@
             <input class="input-width" asp-for="VideoLink" />
         </div>
 
-    <div class="form-group">
-        <label asp-for="Tags">Tags (comma-separated)</label>
-        <input asp-for="Tags" class="form-control input-width" />
-        <span asp-validation-for="Tags" class="text-danger"></span>
-    </div>
+
+        @{
+            var allTags = ViewBag.AllTags as List<TagOptionVm> ?? new List<TagOptionVm>();
+            var selectedIds = ViewBag.SelectedTagIds as HashSet<int> ?? new HashSet<int>();
+        }
+
+        @if (allTags.Count > 0)
+        {
+            <div class="form-group">
+ 
+            <h3>Existing Tags (selected by user / editable)</h3>
+
+            <div class="tag-grid">
+                @foreach (var t in allTags)
+                {
+                    var isChecked = selectedIds.Contains(t.TagId);
+
+                    <label class="tag-pill">
+                        <input type="checkbox"
+                               name="selectedTagIds"
+                               value="@t.TagId"
+                               @(isChecked ? "checked" : "") />
+                        <span>@t.Name</span>
+                    </label>
+                }
+            </div>
+
+            </div>
+ 
+        }
+
+        <div class="form-group">
+            <label asp-for="Tags">Tag suggestions (not applied automatically)</label>
+            <input asp-for="Tags" class="form-control input-width" />
+            <span asp-validation-for="Tags" class="text-danger"></span>
+            <p class="small-font"><i>Suggestions only. Use the checkbox list above to apply real tags.</i></p>
+        </div>
 
 
     <hr />

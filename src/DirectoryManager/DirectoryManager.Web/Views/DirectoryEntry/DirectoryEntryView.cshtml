@@ -13,7 +13,7 @@
 @inject IUrlResolutionService Urls
 
 @{
-    ViewData["Title"] = Model.Name;
+    ViewData[StringConstants.TitleHeader] = Model.Name;
     var categoryKey = ViewBag.CategoryKey as string;
     var subCategoryKey = ViewBag.SubCategoryKey as string;
     var categoryName = ViewBag.CategoryName as string;
@@ -22,10 +22,15 @@
     ViewData["CurrentCategoryKey"] = categoryKey;
     ViewData["CurrentSubCategoryKey"] = subCategoryKey;
 
+    // ✅ scam flag
+    var isScam = Model.DirectoryStatus == DirectoryStatus.Scam;
+
     // Determine which links to use based on the availability of "A" versions
+    // NOTE: For scams, we will NOT use these for outbound website linking (we show plain text Model.Link instead)
     var finalLink = !string.IsNullOrEmpty(Model.LinkA) && !Model.IsSponsored ? Model.LinkA : Model.Link;
     var finalLink2 = !string.IsNullOrEmpty(Model.Link2A) && !Model.IsSponsored ? Model.Link2A : Model.Link2;
     var finalLink3 = !string.IsNullOrEmpty(Model.Link3A) && !Model.IsSponsored ? Model.Link3A : Model.Link3;
+
     var domain = await cacheHelper.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
 
     // Build your breadcrumb list dynamically based on page context
@@ -34,7 +39,7 @@
         new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
         new BreadcrumbItem { Position = 2, Name = @categoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}") },
         new BreadcrumbItem { Position = 3, Name = @subCategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}")  },
-        new BreadcrumbItem { Position = 4, Name = Model.Name, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}/{@Model.DirectoryEntryKey}")  }
+        new BreadcrumbItem { Position = 4, Name = Model.Name, Url = UrlHelper.MakeFullUrl(domain, DirectoryManager.DisplayFormatting.Helpers.FormattingHelper.ListingPath(@Model.DirectoryEntryKey))  }
     };
 }
 
@@ -44,7 +49,32 @@
 
 @section PageContent {
     <div class="top-section search-section search-top-align">
-        @await Html.PartialAsync("_SearchForm")
+        @{
+            // If you already have these IDs in ViewBag, use them
+            int? categoryId = ViewBag.CategoryId as int?;
+            int? subCategoryId = ViewBag.SubCategoryId as int?;
+
+            // Build the filter URL only when you have a category/subcategory context
+            string? filterUrl = null;
+            if (categoryId.HasValue && categoryId.Value > 0)
+            {
+                filterUrl = Url.Action("Index", "DirectoryFilter", new
+                {
+                    CategoryId = categoryId,
+                    SubCategoryId = subCategoryId,
+                    Page = 1,
+                    PageSize = 10
+                });
+            }
+
+            var searchVm = new DirectoryManager.Web.Models.SearchFormViewModel
+            {
+                FilterCategoryId = categoryId,
+                FilterSubCategoryId = subCategoryId
+            };
+        }
+
+        @await Html.PartialAsync("_SearchForm", searchVm)
     </div>
 
     <div class="directory-entry-details container py-4">
@@ -66,7 +96,7 @@
                 </li>
             </ol>
         </nav>
-   
+
         @{
             var sponsoredClass = Model.IsSponsored ? "sponsor-card" : "";
         }
@@ -81,28 +111,61 @@
                                 <div class="@sponsoredClass">@Model.Name</div>
                             </td>
                         </tr>
-                        @if (!string.IsNullOrEmpty(finalLink))
+
+                        @* ✅ WEBSITE: if scam -> plain text of Model.Link (not LinkA). else -> clickable using finalLink *@
+                        @if (!string.IsNullOrWhiteSpace(Model.Link))
                         {
                             <tr>
                                 <th scope="row">Website</th>
-                                <td><a class="multi-line-text" href="@finalLink" target="_blank">@Model.Link</a></td>
+                                <td>
+                                    @if (isScam)
+                                    {
+                                        <span class="multi-line-text">@Model.Link</span>
+                                    }
+                                    else
+                                    {
+                                        <a class="multi-line-text" href="@finalLink" target="_blank">@Model.Link</a>
+                                    }
+                                </td>
                             </tr>
                         }
+
                         @if (!string.IsNullOrEmpty(finalLink2))
                         {
                             <tr>
                                 <th scope="row">@Model.Link2Name</th>
-                                <td><a class="multi-line-text" href="@finalLink2" target="_blank">@Model.Link2</a></td>
+                              
+                                <td>
+                                    @if (isScam)
+                                    {
+                                        <span class="multi-line-text">@Model.Link2</span>
+                                    }
+                                    else
+                                    {
+                               <a class="multi-line-text" href="@finalLink2" target="_blank">@Model.Link2</a> 
+                                    }
+                                </td>
                             </tr>
-                         
                         }
+
                         @if (!string.IsNullOrEmpty(finalLink3))
                         {
                             <tr>
                                 <th scope="row">@Model.Link3Name</th>
-                                <td><a class="multi-line-text" href="@finalLink2" target="_blank">@Model.Link3</a></td>
+                              
+                                <td>
+                                    @if (isScam)
+                                    {
+                                        <span class="multi-line-text">@Model.Link3</span>
+                                    }
+                                    else
+                                    {
+                                        <a class="multi-line-text" href="@finalLink3" target="_blank">@Model.Link3</a>
+                                    }
+                                </td>
                             </tr>
                         }
+
                         @if (!string.IsNullOrEmpty(Model.ProofLink))
                         {
                             <tr>
@@ -133,7 +196,7 @@
                             <tr>
                                 <th scope="row">Location</th>
                                 <td>
-                                   @Html.Raw(Model.FormattedLocation)
+                                    @Html.Raw(Model.FormattedLocation)
                                 </td>
                             </tr>
                         }
@@ -161,7 +224,8 @@
             </div>
         </div>
 
-        @if (!string.IsNullOrEmpty(finalLink))
+        @* ✅ Button removed for scams *@
+        @if (!isScam && !string.IsNullOrWhiteSpace(finalLink))
         {
             <br />
             <a href="@finalLink" class="btn btn-primary" target="_blank">Visit Website</a>
@@ -188,8 +252,8 @@
 
         @if (!string.IsNullOrEmpty(Model.PgpKey))
         {
-<br />
-<h4>PGP Key</h4>
+            <br />
+            <h4>PGP Key</h4>
 <pre class="pgp-key">
 @Model.PgpKey
 </pre>
@@ -206,11 +270,10 @@
                 }
                 @for (int i = 0; i < tags.Count; i++)
                 {
-                    var key = tags[i].Key;    // slug / url‐key
+                    var key = tags[i].Key;     // slug / url-key
                     var name = tags[i].Value;  // display name
-                    var slug = key.Replace(" ", "-").ToLowerInvariant();
 
-                    <a class="no-app-link" href="~/tagged/@slug">@name</a>@(i < tags.Count - 1 ? ", " : "")
+                    <a class="no-app-link" href="~/tagged/@key">@name</a>@(i < tags.Count - 1 ? ", " : "")
                 }
             </div>
         }
@@ -220,7 +283,6 @@
 
     </div>
 
-
-<hr />
-@await Html.PartialAsync("_SponsoredListingPartial")
+    <hr />
+    @await Html.PartialAsync("_SponsoredListingPartial")
 }

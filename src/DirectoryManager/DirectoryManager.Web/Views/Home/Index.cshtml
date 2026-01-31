@@ -4,6 +4,9 @@
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.Web.Models
+@using DirectoryManager.Utilities.Helpers
+@using Microsoft.AspNetCore.Html
+
 @model DirectoryManager.Data.Models.Category
 
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepository
@@ -16,14 +19,43 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository subCatRepo
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository reviewRepository
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
-@using DirectoryManager.Utilities.Helpers
 
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@functions {
+    private static IHtmlContent RenderInlineRatingStars_NoCount(double value)
+    {
+        const int totalStars = 5;
+        double percent = Math.Clamp(value / totalStars * 100, 0, 100);
+
+        var sb = new System.Text.StringBuilder();
+
+        sb.Append("<span class=\"rating-wrapper\" aria-label=\"");
+        sb.Append($"{value:0} out of 5 stars\">");
+
+        sb.Append("<span class=\"stars\">");
+        sb.Append("<span class=\"stars-fill\" style=\"width:");
+        sb.Append(percent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
+        sb.Append("%\"></span>");
+        sb.Append("</span>");
+
+        // ✅ rating text WITHOUT review count
+        sb.AppendFormat(
+            "<span class=\"rating-text\"> {0:0}/5</span>",
+            value);
+
+        sb.Append("</span>");
+
+        return new HtmlString(sb.ToString());
+    }
+}
+
+
 
 @{
     ViewData[StringConstants.TitleHeader] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageTitle));
     ViewData[StringConstants.MetaContent] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageMetaTags));
-    ViewData["CurrentCategoryKey"]    = null;
+    ViewData["CurrentCategoryKey"] = null;
     ViewData["CurrentSubCategoryKey"] = null;
     Layout = "_LayoutWithNav";
 }
@@ -39,8 +71,8 @@
 
     // ----- Subcategory sponsors -----
     var subSponsors = await sponsoredListingRepository
-        .GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor); // ← make sure you have this
- 
+        .GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor);
+
     var sponsorsBySubcategory = subSponsors
         .Where(s => s.DirectoryEntry?.SubCategoryId != null)
         .GroupBy(s => s.DirectoryEntry.SubCategoryId)
@@ -54,35 +86,43 @@
     // build a quick lookup from SubCategoryId → Subcategory (so we can get CategoryId cheaply)
     var subById = subs.ToDictionary(sc => sc.SubcategoryId, sc => sc);
 
-    // now group your category‐level sponsors by CategoryId
+    // now group your category-level sponsors by CategoryId
     var sponsorsByCategory = catSponsors
-        // only keep ones whose DirectoryEntry & SubCategoryId we know about
         .Where(s => s.DirectoryEntry != null
                     && subById.ContainsKey(s.DirectoryEntry.SubCategoryId))
-        // group by the sub’s CategoryId
         .GroupBy(s => subById[s.DirectoryEntry.SubCategoryId].CategoryId)
-        // materialize into a Dictionary<CategoryId, List<DirectoryEntry>>
         .ToDictionary(
             g => g.Key,
             g => g.Select(s => s.DirectoryEntry!).ToList()
         );
 }
 
- @section PageContent {
+@{
+    // ✅ Pull rating summaries for sponsor entries (category + subcategory) in ONE repo call
+    var sponsorEntryIds = sponsorsByCategory.Values.SelectMany(x => x)
+        .Concat(sponsorsBySubcategory.Values.SelectMany(x => x))
+        .Where(e => e != null)
+        .Select(e => e.DirectoryEntryId)
+        .Distinct()
+        .ToList();
+
+    var sponsorRatings = sponsorEntryIds.Count == 0
+        ? new Dictionary<int, DirectoryManager.Data.Models.TransferModels.RatingSummaryDto>()
+        : await reviewRepository.GetRatingSummariesAsync(sponsorEntryIds);
+}
+
+@section PageContent {
     <div>
-        <!-- Hero and sponsored listing partial (stays full‐width under the fixed sidebar) -->
         @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageDisplayHtml))
         @await Html.PartialAsync("_SponsoredListingPartial")
         <hr />
 
-        <!-- everything from here down is centered under the hero -->
         <p class="intro">
             @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TextIntro))
         </p>
         <hr />
 
         <div class="top-container">
-            <!-- Update Section -->
             <div class="top-section update-section">
                 <p class="centered-text">
                     <strong>Last Update:</strong>
@@ -90,12 +130,10 @@
                 </p>
             </div>
 
-            <!-- Search Section -->
             <div class="top-section search-section">
                 @await Html.PartialAsync("_SearchForm")
             </div>
 
-            <!-- Links Section -->
             <div class="top-section links-section">
                 @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopMenuActionsHtml))
             </div>
@@ -107,7 +145,8 @@
         @* Featured *@
         @{
             var featuredEntries = await directoryEntrySelectionRepository
-            .GetEntriesForSelection(EntrySelectionType.Featured);
+                .GetEntriesForSelection(EntrySelectionType.Featured);
+
             var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
             var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
         }
@@ -117,13 +156,12 @@
             <p><b>Featured</b></p>
             <ul class="blank_list_item">
                 @{
-                    var vmList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter
-                    .ConvertToViewModels(
-                    featuredEntries.ToList(),
-                    DateDisplayOption.NotDisplayed,
-                    ItemDisplayType.Featured,
-                    link2Name,
-                    link3Name);
+                    var vmList = ViewModelConverter.ConvertToViewModels(
+                        featuredEntries.ToList(),
+                        DateDisplayOption.NotDisplayed,
+                        ItemDisplayType.Featured,
+                        link2Name,
+                        link3Name);
                 }
                 @foreach (var vm in vmList)
                 {
@@ -149,12 +187,11 @@
             </i>
             <ul class="blank_list_item">
                 @{
-                    var vmList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter
-                    .ConvertToViewModels(
-                    newest.ToList(),
-                    DateDisplayOption.DisplayCreateDate,
-                    ItemDisplayType.Normal,
-                    link2Name, link3Name);
+                    var vmList = ViewModelConverter.ConvertToViewModels(
+                        newest.ToList(),
+                        DateDisplayOption.DisplayCreateDate,
+                        ItemDisplayType.Normal,
+                        link2Name, link3Name);
                 }
                 @foreach (var vm in vmList)
                 {
@@ -178,12 +215,11 @@
             <p><b>Newest Revisions</b></p>
             <ul class="blank_list_item">
                 @{
-                    var vmList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter
-                    .ConvertToViewModels(
-                    revisions.ToList(),
-                    DateDisplayOption.DisplayUpdateDate,
-                    ItemDisplayType.NewestRevions,
-                    link2Name, link3Name);
+                    var vmList = ViewModelConverter.ConvertToViewModels(
+                        revisions.ToList(),
+                        DateDisplayOption.DisplayUpdateDate,
+                        ItemDisplayType.NewestRevions,
+                        link2Name, link3Name);
                 }
                 @foreach (var vm in vmList)
                 {
@@ -207,13 +243,21 @@
                             @foreach (var e in entries)
                             {
                                 var vm = ViewModelConverter
-                                .ConvertToViewModels(
-                                new List<DirectoryEntry> { e },
-                                DateDisplayOption.NotDisplayed,
-                                ItemDisplayType.CategorySponsor,
-                                link2Name, link3Name)
-                                .First();
+                                    .ConvertToViewModels(
+                                        new List<DirectoryEntry> { e },
+                                        DateDisplayOption.NotDisplayed,
+                                        ItemDisplayType.CategorySponsor,
+                                        link2Name, link3Name)
+                                    .First();
+
                                 vm.IsSponsored = true;
+
+                                if (sponsorRatings != null && sponsorRatings.TryGetValue(e.DirectoryEntryId, out var rs))
+                                {
+                                    vm.AverageRating = rs.AvgRating;
+                                    vm.ReviewCount = rs.ReviewCount;
+                                }
+
                                 @await Html.PartialAsync("_DirectoryEntryPartial", vm)
                             }
                         </ul>
@@ -235,13 +279,21 @@
                             @foreach (var e in entries)
                             {
                                 var vm = ViewModelConverter
-                                .ConvertToViewModels(
-                                new List<DirectoryEntry> { e },
-                                DateDisplayOption.NotDisplayed,
-                                ItemDisplayType.SubcategorySponsor,
-                                link2Name, link3Name)
-                                .First();
+                                    .ConvertToViewModels(
+                                        new List<DirectoryEntry> { e },
+                                        DateDisplayOption.NotDisplayed,
+                                        ItemDisplayType.SubcategorySponsor,
+                                        link2Name, link3Name)
+                                    .First();
+
                                 vm.IsSponsored = true;
+
+                                if (sponsorRatings != null && sponsorRatings.TryGetValue(e.DirectoryEntryId, out var rs))
+                                {
+                                    vm.AverageRating = rs.AvgRating;
+                                    vm.ReviewCount = rs.ReviewCount;
+                                }
+
                                 @await Html.PartialAsync("_DirectoryEntryPartial", vm)
                             }
                         </ul>
@@ -250,8 +302,13 @@
             </section>
         </div>
 
+        @* ✅ Latest Reviews *@
         @{
             var latestReviews = await reviewRepository.ListLatestApprovedAsync(15);
+
+            // Controller should set this:
+            // ViewBag.LatestComments = await commentRepository.ListLatestApprovedAsync(15);
+            var latestComments = ViewBag.LatestComments as IEnumerable<DirectoryEntryReviewComment>;
         }
 
         @if (latestReviews?.Any() == true)
@@ -264,21 +321,57 @@
                     var e = r.DirectoryEntry;
                     if (e == null || e.SubCategory == null || e.SubCategory.Category == null)
                     {
-                        continue; // can’t build a /cat/sub/entry URL
+                        continue;
                     }
 
                     var listingName = e.Name ?? "Listing";
-                    var rating = r.Rating.HasValue ? $"{r.Rating.Value}/5" : "—";
                     var oneLine = TextHelper.TruncateAtWord((r.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
 
-                    var url = UrlResolver.ResolveToRoot($"/{e.SubCategory.Category.CategoryKey}/{e.SubCategory.SubCategoryKey}/{e.DirectoryEntryKey}");
+                    var url = UrlResolver.ResolveToRoot(FormattingHelper.ListingPath(e.DirectoryEntryKey));
                     var reviewDate = (r.UpdateDate ?? r.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
 
                     <li>
-                        <i>@reviewDate</i> <a href="@url">@listingName</a> — Rating: @rating — @oneLine
+                        <i>@reviewDate</i>
+                        <a href="@url">@listingName</a>
+                        @if (r.Rating.HasValue && r.Rating.Value > 0)
+                        {
+                            // ✅ Uses same CSS classes/structure as DisplayMarkUpHelper
+                            @: — @RenderInlineRatingStars_NoCount(r.Rating.Value)
+                        }
+                        — @oneLine
                     </li>
                 }
             </ul>
+
+            @* ✅ Latest Comments (NO stars; link only to listing like reviews) *@
+            @if (latestComments?.Any() == true)
+            {
+                <p><b>Latest Replies</b></p>
+                <ul class="blank_list_item">
+                    @foreach (var c in latestComments)
+                    {
+                        var review = c.DirectoryEntryReview;
+                        var entry = review?.DirectoryEntry;
+
+                        if (review == null || entry == null || entry.SubCategory == null || entry.SubCategory.Category == null)
+                        {
+                            continue;
+                        }
+
+                        var listingName = entry.Name ?? "Listing";
+                        var listingUrl = UrlResolver.ResolveToRoot(FormattingHelper.ListingPath(entry.DirectoryEntryKey));
+                        var commentDate = (c.UpdateDate ?? c.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
+
+                        var snippet = TextHelper.TruncateAtWord((c.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
+
+                        <li>
+                            <i>@commentDate</i>
+                            <a href="@listingUrl">@listingName</a>
+                            — @snippet
+                        </li>
+                    }
+                </ul>
+            }
         }
     </div>
-    }
+}

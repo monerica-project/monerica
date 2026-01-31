@@ -1,6 +1,4 @@
-﻿using System.Net;
-using System.Text.RegularExpressions;
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -19,6 +17,10 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using System.Net;
+using System.Reflection.PortableExecutable;
+using System.Text.RegularExpressions;
+using DirectoryEntry = DirectoryManager.Data.Models.DirectoryEntry;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -38,6 +40,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryReviewRepository reviewRepository;
         private readonly ISubmissionRepository submissionRepository;
         private readonly IUrlResolutionService urlResolver;
+        private readonly IDirectoryEntryReviewCommentRepository reviewCommentRepository;
 
         public DirectoryEntryController(
             UserManager<ApplicationUser> userManager,
@@ -54,7 +57,8 @@ namespace DirectoryManager.Web.Controllers
             IMemoryCache cache,
             IDirectoryEntryReviewRepository reviewRepository,
             ISubmissionRepository submissionRepository,
-            IUrlResolutionService urlResolver)
+            IUrlResolutionService urlResolver,
+            IDirectoryEntryReviewCommentRepository reviewCommentRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -70,6 +74,7 @@ namespace DirectoryManager.Web.Controllers
             this.reviewRepository = reviewRepository;
             this.submissionRepository = submissionRepository;
             this.urlResolver = urlResolver;
+            this.reviewCommentRepository = reviewCommentRepository;
         }
 
         [Route("directoryentry/index")]
@@ -97,36 +102,41 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Create()
         {
             await this.LoadLists();
+            await this.LoadTagCheckboxesAsync(new HashSet<int>());
 
-            return this.View();
+            // return an empty vm so the partial has the correct model
+            var vm = new DirectoryEntryEditViewModel
+            {
+                DirectoryStatus = DirectoryStatus.Unknown,
+                SubCategoryId = 0,
+                SelectedTagIds = new List<int>()
+            };
+
+            return this.View(vm);
         }
 
         [Route("directoryentry/create")]
         [HttpPost]
-        public async Task<IActionResult> Create(DirectoryEntry model)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Create(DirectoryEntryEditViewModel vm)
         {
-            if (!this.ModelState.IsValid ||
-                model.DirectoryStatus == DirectoryStatus.Unknown ||
-                model.SubCategoryId == 0)
+            if (!this.ModelState.IsValid || vm.DirectoryStatus == DirectoryStatus.Unknown || vm.SubCategoryId == 0)
             {
                 await this.LoadLists();
-
-                return this.View("create", model);
+                await this.LoadTagCheckboxesAsync(NormalizeSelectedIds(vm.SelectedTagIds));
+                return this.View("create", vm);
             }
 
-            // Normalize and check if the link is already used (with or without trailing slash)
-            var rawLink = model.Link?.Trim() ?? string.Empty;
+            // normalize/check links exactly like you do now
+            var rawLink = vm.Link?.Trim() ?? string.Empty;
 
-            // canonical: no trailing slash (except for single "/")
             var linkWithoutSlash = rawLink;
             while (linkWithoutSlash.Length > 1 && linkWithoutSlash.EndsWith("/"))
             {
                 linkWithoutSlash = linkWithoutSlash[..^1];
             }
-
             var linkWithSlash = linkWithoutSlash + "/";
 
-            // Check both variants
             var existingEntryByLink =
                 await this.directoryEntryRepository.GetByLinkAsync(linkWithoutSlash) ??
                 await this.directoryEntryRepository.GetByLinkAsync(linkWithSlash);
@@ -134,65 +144,78 @@ namespace DirectoryManager.Web.Controllers
             if (existingEntryByLink != null)
             {
                 await this.LoadLists();
-
+                await this.LoadTagCheckboxesAsync(NormalizeSelectedIds(vm.SelectedTagIds));
                 this.ModelState.AddModelError("Link", "The provided link is already used by another entry (with or without a trailing slash).");
-                return this.View("create", model);
+                return this.View("create", vm);
             }
 
-            var entryName = model.Name.Trim();
-            var existingEntryByNameSubcat =
-                await this.directoryEntryRepository.GetByNameAndSubcategoryAsync(entryName, model.SubCategoryId);
+            var entryName = (vm.Name ?? string.Empty).Trim();
+            var existingEntryByName =
+                await this.directoryEntryRepository.GetByNameAsync(entryName);
 
-            if (existingEntryByNameSubcat != null)
+            if (existingEntryByName != null)
             {
                 await this.LoadLists();
-
-                this.ModelState.AddModelError("Name", "The provided name is already used by another entry in this subcategory.");
-                return this.View("create", model);
+                await this.LoadTagCheckboxesAsync(NormalizeSelectedIds(vm.SelectedTagIds));
+                this.ModelState.AddModelError("Name", "The provided name is already used by another entry.");
+                return this.View("create", vm);
             }
 
-            model.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
+            var model = new DirectoryEntry
+            {
+                CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty,
+                SubCategoryId = vm.SubCategoryId,
+                DirectoryStatus = vm.DirectoryStatus,
 
-            // Store canonical link (no trailing slash)
-            model.Link = linkWithoutSlash;
-            model.Name = entryName;
-            model.DirectoryEntryKey = StringHelpers.UrlKey(model.Name);
-            model.Description = model.Description?.Trim();
-            model.Note = model.Note?.Trim();
-            model.Contact = model.Contact?.Trim();
-            model.Location = model.Location?.Trim();
-            model.Processor = model.Processor?.Trim();
-            model.LinkA = model.LinkA?.Trim();
-            model.Link2 = model.Link2?.Trim();
-            model.Link2A = model.Link2A?.Trim();
-            model.Link3 = model.Link3?.Trim();
-            model.Link3A = model.Link3A?.Trim();
-            model.PgpKey = model.PgpKey?.Trim();
-            model.ProofLink = model.ProofLink?.Trim();
-            model.VideoLink = model.VideoLink?.Trim();
+                Link = linkWithoutSlash,
+                Name = entryName,
+                DirectoryEntryKey = StringHelpers.UrlKey(entryName),
+
+                Description = vm.Description?.Trim(),
+                Note = vm.Note?.Trim(),
+                Contact = vm.Contact?.Trim(),
+                Location = vm.Location?.Trim(),
+                Processor = vm.Processor?.Trim(),
+                LinkA = vm.LinkA?.Trim(),
+                Link2 = vm.Link2?.Trim(),
+                Link2A = vm.Link2A?.Trim(),
+                Link3 = vm.Link3?.Trim(),
+                Link3A = vm.Link3A?.Trim(),
+                PgpKey = vm.PgpKey?.Trim(),
+                ProofLink = vm.ProofLink?.Trim(),
+                VideoLink = vm.VideoLink?.Trim(),
+                CountryCode = vm.CountryCode
+            };
 
             await this.directoryEntryRepository.CreateAsync(model);
 
-            // now process tags
-            if (!string.IsNullOrWhiteSpace(model.Tags))
+            // ✅ Persist checked tags (existing tags)
+            var selectedIds = NormalizeSelectedIds(vm.SelectedTagIds);
+            foreach (var tagId in selectedIds)
             {
-                var tagNames = model.Tags
+                await this.entryTagRepo.AssignTagAsync(model.DirectoryEntryId, tagId);
+            }
+
+            // ✅ Optional: create+assign new typed tags
+            if (!string.IsNullOrWhiteSpace(vm.NewTagsCsv))
+            {
+                var newNames = vm.NewTagsCsv
                     .Split(',', StringSplitOptions.RemoveEmptyEntries)
                     .Select(t => t.Trim())
                     .Where(t => t.Length > 0)
                     .Distinct(StringComparer.OrdinalIgnoreCase);
 
-                foreach (var name in tagNames)
+                foreach (var name in newNames)
                 {
                     var normalizedName = FormattingHelper.NormalizeTagName(name);
                     var tag = await this.tagRepo.GetByKeyAsync(normalizedName.UrlKey())
-                               ?? await this.tagRepo.CreateAsync(normalizedName);
+                              ?? await this.tagRepo.CreateAsync(normalizedName);
+
                     await this.entryTagRepo.AssignTagAsync(model.DirectoryEntryId, tag.TagId);
                 }
             }
 
             this.ClearCachedItems();
-
             return this.RedirectToAction(nameof(this.Index));
         }
 
@@ -207,80 +230,122 @@ namespace DirectoryManager.Web.Controllers
             }
 
             await this.LoadSubCategories();
+            await this.PopulateCountryDropDownList(entry.CountryCode);
 
-            var tags = await this.entryTagRepo.GetTagsForEntryAsync(id);
-            entry.Tags = string.Join(", ", tags
-                                         .OrderBy(t => t.Name)
-                                         .Select(t => t.Name));
+            // current tags for pre-check
+            var currentTags = await this.entryTagRepo.GetTagsForEntryAsync(id);
+            var selectedIds = currentTags.Select(t => t.TagId).ToHashSet();
 
-            await this.PopulateCountryDropDownList();
+            await this.LoadTagCheckboxesAsync(selectedIds);
 
-            return this.View(entry);  // Pass the entry model for editing
+            var vm = new DirectoryEntryEditViewModel
+            {
+                DirectoryEntryKey = entry.DirectoryEntryKey,
+                DirectoryEntryId = entry.DirectoryEntryId,
+                DirectoryStatus = entry.DirectoryStatus,
+                SubCategoryId = entry.SubCategoryId,
+                Name = entry.Name,
+                Link = entry.Link,
+                LinkA = entry.LinkA,
+                Link2 = entry.Link2,
+                Link2A = entry.Link2A,
+                Link3 = entry.Link3,
+                Link3A = entry.Link3A,
+                ProofLink = entry.ProofLink,
+                VideoLink = entry.VideoLink,
+                Location = entry.Location,
+                CountryCode = entry.CountryCode,
+                Processor = entry.Processor,
+                Contact = entry.Contact,
+                Description = entry.Description,
+                Note = entry.Note,
+                PgpKey = entry.PgpKey,
+
+                SelectedTagIds = selectedIds.ToList()
+            };
+
+            return this.View(vm);
         }
 
         [Route("directoryentry/edit/{id}")]
         [HttpPost]
-        public async Task<IActionResult> Edit(int id, DirectoryEntry entry)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, DirectoryEntryEditViewModel vm)
         {
             var existingEntry = await this.directoryEntryRepository.GetByIdAsync(id);
-
             if (existingEntry == null)
             {
                 return this.NotFound();
             }
 
+            if (!this.ModelState.IsValid || vm.DirectoryStatus == DirectoryStatus.Unknown || vm.SubCategoryId == 0)
+            {
+                await this.LoadSubCategories();
+                await this.PopulateCountryDropDownList(vm.CountryCode);
+                await this.LoadTagCheckboxesAsync(NormalizeSelectedIds(vm.SelectedTagIds));
+                return this.View(vm);
+            }
+
             existingEntry.UpdatedByUserId = this.userManager.GetUserId(this.User);
-            existingEntry.SubCategoryId = entry.SubCategoryId;
-            existingEntry.Link = entry.Link.Trim();
-            existingEntry.LinkA = entry.LinkA?.Trim();
-            existingEntry.Link2 = entry.Link2?.Trim();
-            existingEntry.Link2A = entry.Link2A?.Trim();
-            existingEntry.Link3 = entry.Link3?.Trim();
-            existingEntry.Link3A = entry.Link3A?.Trim();
-            existingEntry.ProofLink = entry.ProofLink?.Trim();
-            existingEntry.VideoLink = entry.VideoLink?.Trim();
-            existingEntry.Name = entry.Name.Trim();
-            existingEntry.DirectoryEntryKey = StringHelpers.UrlKey(entry.Name);
-            existingEntry.Description = entry.Description?.Trim();
-            existingEntry.Note = entry.Note?.Trim();
-            existingEntry.DirectoryStatus = entry.DirectoryStatus;
-            existingEntry.Contact = entry.Contact?.Trim();
-            existingEntry.Location = entry.Location?.Trim();
-            existingEntry.Processor = entry.Processor?.Trim();
-            existingEntry.CountryCode = entry.CountryCode;
-            existingEntry.PgpKey = entry.PgpKey?.Trim();
+            existingEntry.SubCategoryId = vm.SubCategoryId;
+            existingEntry.Link = (vm.Link ?? string.Empty).Trim();
+            existingEntry.LinkA = vm.LinkA?.Trim();
+            existingEntry.Link2 = vm.Link2?.Trim();
+            existingEntry.Link2A = vm.Link2A?.Trim();
+            existingEntry.Link3 = vm.Link3?.Trim();
+            existingEntry.Link3A = vm.Link3A?.Trim();
+            existingEntry.ProofLink = vm.ProofLink?.Trim();
+            existingEntry.VideoLink = vm.VideoLink?.Trim();
+            existingEntry.Name = (vm.Name ?? string.Empty).Trim();
+            existingEntry.DirectoryEntryKey = StringHelpers.UrlKey(existingEntry.Name);
+            existingEntry.Description = vm.Description?.Trim();
+            existingEntry.Note = vm.Note?.Trim();
+            existingEntry.DirectoryStatus = vm.DirectoryStatus;
+            existingEntry.Contact = vm.Contact?.Trim();
+            existingEntry.Location = vm.Location?.Trim();
+            existingEntry.Processor = vm.Processor?.Trim();
+            existingEntry.CountryCode = vm.CountryCode;
+            existingEntry.PgpKey = vm.PgpKey?.Trim();
 
             await this.directoryEntryRepository.UpdateAsync(existingEntry);
 
-            // Re-sync tags: remove all, then add back from comma list
-            var newTagNames = (entry.Tags ?? "")
-                .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(t => t.Trim())
-                .Where(t => t.Length > 0)
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            // ✅ Re-sync tags by IDs (checkboxes)
+            var newSelected = NormalizeSelectedIds(vm.SelectedTagIds);
+            var current = await this.entryTagRepo.GetTagsForEntryAsync(id);
+            var currentIds = current.Select(t => t.TagId).ToHashSet();
 
-            // 1) remove any tags not in the new list
-            var currentTags = await this.entryTagRepo.GetTagsForEntryAsync(id);
-            foreach (var tag in currentTags)
+            // remove unchecked
+            foreach (var tagId in currentIds.Where(x => !newSelected.Contains(x)))
             {
-                if (!newTagNames.Contains(tag.Name, StringComparer.OrdinalIgnoreCase))
+                await this.entryTagRepo.RemoveTagAsync(id, tagId);
+            }
+
+            // add newly checked
+            foreach (var tagId in newSelected.Where(x => !currentIds.Contains(x)))
+            {
+                await this.entryTagRepo.AssignTagAsync(id, tagId);
+            }
+
+            // ✅ Optional: create+assign new typed tags
+            if (!string.IsNullOrWhiteSpace(vm.NewTagsCsv))
+            {
+                var newNames = vm.NewTagsCsv
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(t => t.Trim())
+                    .Where(t => t.Length > 0)
+                    .Distinct(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var name in newNames)
                 {
-                    await this.entryTagRepo.RemoveTagAsync(id, tag.TagId);
+                    var normalizedName = FormattingHelper.NormalizeTagName(name);
+                    var tag = await this.tagRepo.GetByKeyAsync(normalizedName.UrlKey())
+                              ?? await this.tagRepo.CreateAsync(normalizedName);
+
+                    await this.entryTagRepo.AssignTagAsync(id, tag.TagId);
                 }
             }
 
-            // 2) add any new tags
-            foreach (var name in newTagNames)
-            {
-                var normalizedName = FormattingHelper.NormalizeTagName(name);
-                var tag = await this.tagRepo.GetByKeyAsync(normalizedName.UrlKey())
-                       ?? await this.tagRepo.CreateAsync(normalizedName);
-                await this.entryTagRepo.AssignTagAsync(id, tag.TagId);
-            }
-
             this.ClearCachedItems();
-
             return this.RedirectToAction(nameof(this.Index));
         }
 
@@ -341,7 +406,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(audits);
         }
 
-        [HttpGet("directoryentry/delete")]
+        [HttpGet("directoryentry/delete/{id}")]
         public async Task<IActionResult> Delete(int id)
         {
             await this.directoryEntryRepository.DeleteAsync(id);
@@ -540,85 +605,230 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [AllowAnonymous]
-        [HttpGet("{categorykey}/{subcategorykey}/{directoryEntryKey}")]
-        public async Task<IActionResult> DirectoryEntryView(string categoryKey, string subCategoryKey, string directoryEntryKey)
+        [HttpGet("site/{directoryEntryKey}")]
+        public async Task<IActionResult> DirectoryEntryView(string directoryEntryKey, CancellationToken ct)
         {
-            var canoicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canoicalDomain, $"{categoryKey}/{subCategoryKey}/{directoryEntryKey}");
-            var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
+            await this.SetCanonicalAsync(directoryEntryKey);
 
-            if (category == null)
+            var entry = await this.GetEntryOr404Async(directoryEntryKey);
+            if (entry == null)
             {
                 return this.NotFound();
             }
 
-            var subCategory = await this.subCategoryRepository.GetByCategoryIdAndKeyAsync(category.CategoryId, subCategoryKey);
+            this.SetMetaDescription(entry);
 
-            if (subCategory == null)
+            var (link2Name, link3Name) = await this.GetLinkLabelsAsync();
+            var (tagNames, tagDict) = await this.GetTagsAsync(entry.DirectoryEntryId);
+
+            var sponsors = await this.GetAllSponsorsCachedAsync();
+            bool isSponsor = sponsors.Any(s => s.DirectoryEntryId == entry.DirectoryEntryId);
+
+            // Reviews (approved)
+            var reviews = await this.reviewRepository
+                .ListApprovedForEntryAsync(entry.DirectoryEntryId, page: 1, pageSize: 50, ct);
+
+            this.ApplyOwnerDisplayNames(entry, reviews);
+
+            // Review ids
+            var reviewIds = reviews.Select(r => r.DirectoryEntryReviewId).ToList();
+
+            // Replies (approved) - MUST come from the comment repo (not review repo)
+            var allReplies = await this.reviewCommentRepository.Query()
+                .Where(c =>
+                    reviewIds.Contains(c.DirectoryEntryReviewId) &&
+                    c.ModerationStatus == DirectoryManager.Data.Enums.ReviewModerationStatus.Approved)
+                .OrderBy(c => c.CreateDate)
+                .ToListAsync(ct);
+
+            this.ApplyOwnerDisplayNamesToReplies(entry, allReplies);
+
+            // Lookup by review
+            var repliesLookup = allReplies
+                .GroupBy(x => x.DirectoryEntryReviewId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            // VM
+            var reviewsVm = new EntryReviewsBlockViewModel
             {
-                return this.NotFound();
-            }
+                DirectoryEntryId = entry.DirectoryEntryId,
+                Reviews = reviews,
+                ReviewCount = reviews.Count,
+                AverageRating = await this.reviewRepository.AverageRatingForEntryApprovedAsync(entry.DirectoryEntryId, ct),
+                RepliesByReviewId = repliesLookup
+            };
 
-            var existingEntry = await this.directoryEntryRepository.GetBySubCategoryAndKeyAsync(subCategory.SubCategoryId, directoryEntryKey);
+            this.ViewBag.ReviewsVm = reviewsVm;
+
+            var model = this.BuildDirectoryEntryViewModel(entry, link2Name, link3Name, tagNames, tagDict, isSponsor);
+
+            await this.SetCategoryContextViewBagAsync(entry.SubCategoryId);
+
+            return this.View("DirectoryEntryView", model);
+        }
+
+        private async Task SetCanonicalAsync(string directoryEntryKey)
+        {
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
+            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, $"site/{directoryEntryKey}");
+        }
+
+        private async Task<DirectoryEntry?> GetEntryOr404Async(string directoryEntryKey)
+        {
+            var existingEntry = await this.directoryEntryRepository.GetByKey(directoryEntryKey);
 
             if (existingEntry == null || existingEntry.DirectoryStatus == DirectoryStatus.Removed)
             {
-                return this.NotFound();
+                return null;
             }
 
-            this.ViewData[StringConstants.MetaDescription] = existingEntry.Description;
+            return existingEntry;
+        }
 
+        private void ApplyOwnerDisplayNamesToReplies(DirectoryEntry entry, List<DirectoryEntryReviewComment> replies)
+        {
+            if (replies == null || replies.Count == 0)
+            {
+                return;
+            }
+
+            // If entry has no PGP key, we can’t match.
+            if (string.IsNullOrWhiteSpace(entry.PgpKey))
+            {
+                foreach (var c in replies)
+                {
+                    c.DisplayName = string.IsNullOrWhiteSpace(c.DisplayName) ? null : c.DisplayName;
+                }
+                return;
+            }
+
+            // Collect ALL fingerprints from the armored key (primary + subkeys)
+            var entryFps = PgpFingerprintTools.GetAllFingerprints(entry.PgpKey); // HashSet<string>
+
+            foreach (var c in replies)
+            {
+                // Normalize author fingerprint from reply comment
+                var replyNorm = PgpFingerprintTools.Normalize(c.AuthorFingerprint);
+
+                // Match against any fingerprint from entry key
+                bool isOwner = entryFps.Any(fp => PgpFingerprintTools.Matches(replyNorm, fp));
+
+                // ✅ If owner, show entry.Name; otherwise clear so view falls back to fingerprint
+                c.DisplayName = isOwner ? entry.Name : null;
+            }
+        }
+
+        private void ApplyOwnerDisplayNames(DirectoryEntry entry, List<DirectoryEntryReview> reviews)
+        {
+            if (reviews == null || reviews.Count == 0)
+            {
+                return;
+            }
+
+            // If entry has no PGP key, we can’t match.
+            if (string.IsNullOrWhiteSpace(entry.PgpKey))
+            {
+                foreach (var r in reviews)
+                {
+                    r.DisplayName = string.IsNullOrWhiteSpace(r.DisplayName) ? null : r.DisplayName;
+                }
+
+                return;
+            }
+
+            // Collect ALL fingerprints from the armored key (primary + subkeys)
+            var entryFps = PgpFingerprintTools.GetAllFingerprints(entry.PgpKey); // HashSet<string>
+
+            foreach (var r in reviews)
+            {
+                // Normalize author fingerprint from review
+                var reviewNorm = PgpFingerprintTools.Normalize(r.AuthorFingerprint);
+
+                // Match against any fingerprint from entry key
+                bool isOwner = entryFps.Any(fp => PgpFingerprintTools.Matches(reviewNorm, fp));
+
+                // ✅ If owner, show entry.Name; otherwise clear/leave DisplayName so view falls back to fingerprint
+                r.DisplayName = isOwner ? entry.Name : null;
+            }
+        }
+
+        private void SetMetaDescription(DirectoryEntry entry)
+        {
+            this.ViewData[StringConstants.MetaDescription] = entry.Description;
+        }
+
+        private async Task<(string link2Name, string link3Name)> GetLinkLabelsAsync()
+        {
             var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
             var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
+            return (link2Name, link3Name);
+        }
 
-            var tagEntities = await this.entryTagRepo.GetTagsForEntryAsync(existingEntry.DirectoryEntryId);
+        private async Task<(List<string> tagNames, Dictionary<string, string> tagDictionary)> GetTagsAsync(int directoryEntryId)
+        {
+            // IDs from junction
+            var entryTagIds = (await this.entryTagRepo.GetTagsForEntryAsync(directoryEntryId))
+                .Select(t => t.TagId)
+                .Distinct()
+                .ToHashSet();
+
+            if (entryTagIds.Count == 0)
+            {
+                return (new List<string>(), new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase));
+            }
+
+            // Keys/names from Tags table
+            var allTags = await this.tagRepo.ListAllAsync();
+
+            var tagEntities = allTags
+                .Where(t => entryTagIds.Contains(t.TagId))
+                .ToList();
+
             var tagNames = tagEntities
                 .Select(t => t.Name)
-                .OrderBy(n => n)
+                .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
             var tagDictionary = tagEntities
-                .OrderBy(t => t.Name)
+                .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(
                     t => t.Key,
-                    t => t.Name);
+                    t => t.Name,
+                    StringComparer.OrdinalIgnoreCase);
 
-            // Get/cached active sponsors (typed, null-safe)
+            return (tagNames, tagDictionary);
+        }
+
+        private async Task<List<SponsoredListing>> GetAllSponsorsCachedAsync()
+        {
             const string sponsorCacheKey = StringConstants.CacheKeyAllActiveSponsors;
 
-            var allSponsors = await this.cache.GetOrCreateAsync(sponsorCacheKey, async entry =>
+            return await this.cache.GetOrCreateAsync(sponsorCacheKey, async cacheEntry =>
             {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+                cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+
                 var sponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
                 return sponsors?.ToList() ?? new List<SponsoredListing>();
             }) ?? new List<SponsoredListing>();
+        }
 
+        private async Task<EntryReviewsBlockViewModel> BuildReviewsVmAsync(DirectoryEntry entry)
+        {
             var approved = await this.reviewRepository
                 .Query()
-                .Where(r => r.DirectoryEntryId == existingEntry.DirectoryEntryId
+                .Where(r => r.DirectoryEntryId == entry.DirectoryEntryId
                          && r.ModerationStatus == ReviewModerationStatus.Approved)
                 .OrderByDescending(r => r.UpdateDate ?? r.CreateDate)
                 .ToListAsync();
 
-            double? average = null;
-            var rated = approved.Where(r => r.Rating.HasValue).ToList();
-            if (rated.Count > 0)
+            double? average = ComputeAverageRating(approved);
+
+            // Owner fingerprint matching
+            var entryFps = PgpFingerprintTools.GetAllFingerprints(entry.PgpKey);
+
+            return new EntryReviewsBlockViewModel
             {
-                average = rated.Average(r => (double)r.Rating!.Value);
-            }
-
-            // Try to get a normalized fingerprint from the entry's PGP key text
-            string? entryFp = PgpFingerprintTools.GetFingerprintFromArmored(existingEntry.PgpKey);
-            string entryFpNorm = NormalizeFp(entryFp);
-
-            // collect ALL fingerprints from the entry's armored key (primary + subkeys)
-            var entryFps = PgpFingerprintTools.GetAllFingerprints(existingEntry.PgpKey); // HashSet<string> (UPPER hex, includes short forms)
-
-            // ... build reviews VM
-            var reviewsVm = new EntryReviewsBlockViewModel
-            {
-                DirectoryEntryId = existingEntry.DirectoryEntryId,
-                DirectoryEntryName = existingEntry.Name,
+                DirectoryEntryId = entry.DirectoryEntryId,
                 AverageRating = average,
                 ReviewCount = approved.Count,
                 Reviews = approved.Select(r =>
@@ -626,62 +836,105 @@ namespace DirectoryManager.Web.Controllers
                     string reviewNorm = PgpFingerprintTools.Normalize(r.AuthorFingerprint);
                     bool isOwner = entryFps.Any(fp => PgpFingerprintTools.Matches(reviewNorm, fp));
 
-                    return new EntryReviewItem
+                    return new DirectoryEntryReview
                     {
+                        DirectoryEntryReviewId = r.DirectoryEntryReviewId,
+                        DirectoryEntryId = r.DirectoryEntryId,
                         Rating = r.Rating,
                         Body = r.Body,
                         AuthorFingerprint = r.AuthorFingerprint,
-                        AuthorDisplay = isOwner ? existingEntry.Name : r.AuthorFingerprint,
-                        CreateDate = r.CreateDate
+                        DisplayName = isOwner ? entry.Name : r.AuthorFingerprint,
+                        ModerationStatus = r.ModerationStatus,
+                        RejectionReason = r.RejectionReason,
+                        CreateDate = r.CreateDate,
+                        UpdateDate = r.UpdateDate
                     };
                 }).ToList()
             };
 
-            this.ViewBag.ReviewsVm = reviewsVm;
+        }
 
-            // flag if this entry is a sponsor
-            bool isSponsor = allSponsors == null ? false : allSponsors.Any(s => s.DirectoryEntryId == existingEntry.DirectoryEntryId);
-
-            var model = new DirectoryEntryViewModel
+        private static double? ComputeAverageRating(List<DirectoryEntryReview> approved)
+        {
+            var rated = approved.Where(r => r.Rating.HasValue).ToList();
+            if (rated.Count == 0)
             {
-                DirectoryEntryId = existingEntry.DirectoryEntryId,
-                Name = existingEntry.Name,
-                DirectoryEntryKey = existingEntry.DirectoryEntryKey,
-                Link = existingEntry.Link,
-                LinkA = existingEntry.LinkA,
-                Link2 = existingEntry.Link2,
-                Link2A = existingEntry.Link2A,
-                Link3 = existingEntry.Link3,
-                Link3A = existingEntry.Link3A,
-                DirectoryStatus = existingEntry.DirectoryStatus,
-                DirectoryBadge = existingEntry.DirectoryBadge,
-                Description = existingEntry.Description,
-                Location = existingEntry.Location,
-                Processor = existingEntry.Processor,
-                Note = existingEntry.Note,
-                Contact = existingEntry.Contact,
-                SubCategory = existingEntry.SubCategory,
-                SubCategoryId = existingEntry.SubCategoryId,
-                UpdateDate = existingEntry.UpdateDate,
-                CreateDate = existingEntry.CreateDate,
+                return null;
+            }
+
+            return rated.Average(r => (double)r.Rating!.Value);
+        }
+
+        private DirectoryEntryViewModel BuildDirectoryEntryViewModel(
+            DirectoryEntry entry,
+            string link2Name,
+            string link3Name,
+            List<string> tagNames,
+            Dictionary<string, string> tagDictionary,
+            bool isSponsor)
+        {
+            return new DirectoryEntryViewModel
+            {
+                DirectoryEntryId = entry.DirectoryEntryId,
+                Name = entry.Name,
+                DirectoryEntryKey = entry.DirectoryEntryKey,
+
+                Link = entry.Link,
+                LinkA = entry.LinkA,
+                Link2 = entry.Link2,
+                Link2A = entry.Link2A,
+                Link3 = entry.Link3,
+                Link3A = entry.Link3A,
+
+                DirectoryStatus = entry.DirectoryStatus,
+                DirectoryBadge = entry.DirectoryBadge,
+                Description = entry.Description,
+                Location = entry.Location,
+                Processor = entry.Processor,
+                Note = entry.Note,
+                Contact = entry.Contact,
+
+                SubCategory = entry.SubCategory,
+                SubCategoryId = entry.SubCategoryId,
+
+                UpdateDate = entry.UpdateDate,
+                CreateDate = entry.CreateDate,
+
                 Link2Name = link2Name,
                 Link3Name = link3Name,
+
                 Tags = tagNames,
                 TagsAndKeys = tagDictionary,
-                CountryCode = existingEntry.CountryCode,
+
+                CountryCode = entry.CountryCode,
                 IsSponsored = isSponsor,
-                PgpKey = existingEntry.PgpKey,
-                ProofLink = existingEntry.ProofLink,
-                VideoLink = existingEntry.VideoLink,
-                FormattedLocation = BuildLocationHtml(existingEntry.Location, existingEntry.CountryCode, this.urlResolver)
+
+                PgpKey = entry.PgpKey,
+                ProofLink = entry.ProofLink,
+                VideoLink = entry.VideoLink,
+
+                FormattedLocation = BuildLocationHtml(entry.Location, entry.CountryCode, this.urlResolver)
             };
+        }
+
+        private async Task SetCategoryContextViewBagAsync(int subCategoryId)
+        {
+            var subcategory = await this.subCategoryRepository.GetByIdAsync(subCategoryId);
+            var category = await this.categoryRepository.GetByIdAsync(subcategory.CategoryId);
 
             this.ViewBag.CategoryName = category.Name;
-            this.ViewBag.SubCategoryName = subCategory.Name;
-            this.ViewBag.CategoryKey = categoryKey;
-            this.ViewBag.SubCategoryKey = subCategoryKey;
+            this.ViewBag.SubCategoryName = subcategory.Name;
+            this.ViewBag.CategoryKey = category.CategoryKey;
+            this.ViewBag.SubCategoryKey = subcategory.SubCategoryKey;
+        }
 
-            return this.View("DirectoryEntryView", model);
+
+        private static HashSet<int> NormalizeSelectedIds(IEnumerable<int>? ids)
+        {
+            return (ids ?? Enumerable.Empty<int>())
+                .Where(x => x > 0)
+                .Distinct()
+                .ToHashSet();
         }
 
         // Normalize any fingerprint (strip spaces/separators, upper-case)
@@ -824,6 +1077,18 @@ namespace DirectoryManager.Web.Controllers
             subCategories.Insert(0, new { SubcategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
 
             this.ViewBag.SubCategories = subCategories;
+        }
+
+        private async Task LoadTagCheckboxesAsync(HashSet<int>? selectedIds = null)
+        {
+            var allTags = await this.tagRepo.ListAllAsync();
+
+            this.ViewBag.AllTags = allTags
+                .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(t => new TagOptionVm { TagId = t.TagId, Name = t.Name })
+                .ToList();
+
+            this.ViewBag.SelectedTagIds = selectedIds ?? new HashSet<int>();
         }
 
         private sealed class TimelineItem

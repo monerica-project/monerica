@@ -1,0 +1,23 @@
+﻿@model DirectoryManager.Data.Models.Tag
+
+@{
+    ViewData["Title"] = "Delete Tag";
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+<h1>@ViewData["Title"]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+<p>Are you sure you want to delete this tag?</p>
+
+<ul>
+    <li><b>Name:</b> @Model.Name</li>
+    <li><b>Key:</b> <code>@Model.Key</code></li>
+</ul>
+
+<form method="post" asp-action="DeleteConfirmed" asp-route-id="@Model.TagId">
+    @Html.AntiForgeryToken()
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a class="no-app-link" href="@Url.Action("Index")" style="margin-left:10px;">Cancel</a>
+</form>
+}

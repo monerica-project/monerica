@@ -2,6 +2,7 @@
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Extensions;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Filters;
@@ -75,6 +76,12 @@ namespace DirectoryManager.Web.Controllers
 
         protected void ClearCachedItems()
         {
+            CachePrefixManager.ExpirePrefix(StringConstants.DirectoryFilterCachePrefix);
+            CachePrefixManager.ExpirePrefix(StringConstants.ActiveSubcategoriesByCategoryCachePrefix);
+            CachePrefixManager.ExpirePrefix(StringConstants.ActiveTagsByCategoryCachePrefix);
+            CachePrefixManager.ExpirePrefix(StringConstants.ActiveTagIdsByCategoryCachePrefix);
+            CachePrefixManager.ExpirePrefix(StringConstants.CacheKeyPrefixConversion);
+
             this.cache.Remove(StringConstants.CacheKeyEntries);
             this.cache.Remove(StringConstants.CacheKeySponsoredListings);
             this.cache.Remove(StringConstants.CacheKeyAllActiveSponsors);

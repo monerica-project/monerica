@@ -1,0 +1,96 @@
+﻿@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Enums
+
+@model DirectoryEntryReviewComment
+
+@{
+    Layout = "_CenteredLayout";
+    ViewData[StringConstants.TitleHeader] = $"Reply #{Model.DirectoryEntryReviewCommentId}";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            @Html.ValidationSummary(excludePropertyErrors: true, message: "Please fix the errors below.")
+        </div>
+    }
+
+    <dl class="row">
+        <dt class="col-sm-3">Status</dt>
+        <dd class="col-sm-9">@Model.ModerationStatus</dd>
+
+        <dt class="col-sm-3">Review Id</dt>
+        <dd class="col-sm-9">
+            <a asp-action="Show"
+               asp-route-id="@Model.DirectoryEntryReviewId">@Model.DirectoryEntryReviewId</a>
+        </dd>
+
+        <dt class="col-sm-3">Parent Comment Id</dt>
+        <dd class="col-sm-9">@(Model.ParentCommentId?.ToString() ?? "-")</dd>
+
+        <dt class="col-sm-3">Author Fingerprint</dt>
+        <dd class="col-sm-9"><code>@Model.AuthorFingerprint</code></dd>
+
+        <dt class="col-sm-3">Created (UTC)</dt>
+        <dd class="col-sm-9">@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</dd>
+
+        <dt class="col-sm-3">Updated (UTC)</dt>
+        <dd class="col-sm-9">@((Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)) ?? "-")</dd>
+
+        <dt class="col-sm-3">Body</dt>
+        <dd class="col-sm-9"><pre style="white-space:pre-wrap;">@Model.Body</pre></dd>
+    </dl>
+
+    <div class="mt-3">
+        <a asp-action="PendingReplies">Back to Pending Replies</a> |
+        <a asp-action="AllReplies">Back to All Replies</a>
+    </div>
+
+    <hr />
+
+    <div class="mt-3">
+        @if (Model.ModerationStatus != ReviewModerationStatus.Approved)
+        {
+            <form asp-action="ApproveReply"
+                  asp-route-id="@Model.DirectoryEntryReviewCommentId"
+                  method="post"
+                  class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit">Approve</button>
+            </form>
+        }
+
+        <form asp-action="RejectReply"
+              asp-route-id="@Model.DirectoryEntryReviewCommentId"
+              method="post"
+              class="mt-3">
+            @Html.AntiForgeryToken()
+
+            <div class="mb-2">
+                <label for="reason" class="form-label">Rejection reason (required to reject)</label>
+                <br />
+                <textarea id="reason" name="reason" class="form-control" rows="3">@ViewBag.RejectionReason</textarea>
+                @Html.ValidationMessage("reason", new { @class = "text-danger" })
+            </div>
+
+            <button type="submit">Reject</button>
+        </form>
+
+        <form asp-action="DeleteReply"
+              asp-route-id="@Model.DirectoryEntryReviewCommentId"
+              method="post"
+              class="mt-3">
+            @Html.AntiForgeryToken()
+            <button type="submit"
+                    onclick="return confirm('Delete this reply permanently?');">
+                Delete
+            </button>
+        </form>
+    </div>
+}

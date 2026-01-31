@@ -1,4 +1,4 @@
-﻿@model DirectoryManager.Data.Models.DirectoryEntry
+﻿@model DirectoryManager.Web.Models.DirectoryEntryEditViewModel
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.Web.Constants;
@@ -94,9 +94,43 @@
     <textarea rows="4" class="input-width" asp-for="PgpKey"></textarea>
 </div>
 
+@{
+    var allTags = ViewBag.AllTags as List<DirectoryManager.Web.Models.TagOptionVm>
+                 ?? new List<DirectoryManager.Web.Models.TagOptionVm>();
+
+    var selected = ViewBag.SelectedTagIds as HashSet<int> ?? new HashSet<int>();
+}
+ 
+
 <div class="form-group">
-    <label asp-for="Tags">Tags (comma-separated)</label>
-    <input asp-for="Tags" class="input-width form-control"
+    <label><b>Tags (existing)</b></label>
+
+    @if (allTags.Count == 0)
+    {
+        <p><i>No tags exist yet.</i></p>
+    }
+    else
+    {
+        <div class="tag-grid">
+            @foreach (var t in allTags)
+            {
+                var isChecked = selected.Contains(t.TagId) || (Model.SelectedTagIds?.Contains(t.TagId) ?? false);
+
+                <label class="tag-pill">
+                    <input type="checkbox"
+                           name="SelectedTagIds"
+                           value="@t.TagId"
+                           @(isChecked ? "checked" : "") />
+                    <span>@t.Name</span>
+                </label>
+            }
+        </div>
+    }
+</div>
+
+<div class="form-group">
+    <label asp-for="NewTagsCsv">New Tags (optional, comma-separated)</label>
+    <input asp-for="NewTagsCsv" class="input-width form-control"
            placeholder="e.g. privacy, wallet, exchange" />
-    <span asp-validation-for="Tags" class="text-danger"></span>
+    <span asp-validation-for="NewTagsCsv" class="text-danger"></span>
 </div>

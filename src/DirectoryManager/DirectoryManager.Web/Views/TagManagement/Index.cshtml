@@ -1,0 +1,90 @@
+﻿@using DirectoryManager.Data.Models
+@using Microsoft.AspNetCore.WebUtilities
+@model DirectoryManager.Web.Models.TagManagementIndexViewModel
+
+@{
+    ViewData["Title"] = "Manage Tags";
+    Layout = "_CenteredLayout";
+
+    var totalCount = Model.PagedTags?.TotalCount ?? 0;
+    var tags = Model.PagedTags?.Items ?? new List<Tag>();
+    var totalPages = (int)Math.Ceiling(totalCount / (double)Model.PageSize);
+    var currentPage = Model.CurrentPage < 1 ? 1 : Model.CurrentPage;
+
+    string PageUrl(int p) => QueryHelpers.AddQueryString(Url.Action("Index") ?? "/manage/tags",
+        new Dictionary<string, string?> { ["page"] = p.ToString() });
+}
+
+@section PageContent {
+    <h1>@ViewData["Title"]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+
+    @if (TempData["TagMessage"] is string msg && !string.IsNullOrWhiteSpace(msg))
+    {
+        <p><i>@msg</i></p>
+    }
+
+    <p>
+        <a class="btn btn-primary" href="@Url.Action("Create")">New Tag</a>
+    </p>
+
+    @if (tags.Count == 0)
+    {
+        <p>No tags found.</p>
+    }
+    else
+    {
+        <p><i>Showing @tags.Count of @totalCount tags.</i></p>
+
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Key</th>
+                    <th style="width:160px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in tags)
+                {
+                    <tr>
+                        <td>@t.Name</td>
+                        <td><code>@t.Key</code></td>
+                        <td>
+                            <a class="no-app-link" href="@Url.Action("Edit", new { id = t.TagId })">Edit</a>
+                            &nbsp;|&nbsp;
+                            <a class="no-app-link" href="@Url.Action("Delete", new { id = t.TagId })">Delete</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+
+        if (totalPages > 1)
+        {
+            var hasPrev = currentPage > 1;
+            var hasNext = currentPage < totalPages;
+
+            <nav aria-label="Tag pagination">
+                <ul class="pagination">
+                    <li class="page-item @(hasPrev ? "" : "disabled")">
+                        <a class="page-link" href="@(hasPrev? PageUrl(currentPage - 1) : "#")" tabindex="@(hasPrev ? "0" : "-1")">
+                            &laquo; Previous
+                        </a>
+                    </li>
+
+                    <li class="page-item disabled">
+                        <span class="page-link">Page @currentPage of @totalPages</span>
+                    </li>
+
+                    <li class="page-item @(hasNext ? "" : "disabled")">
+                        <a class="page-link" href="@(hasNext? PageUrl(currentPage + 1) : "#")" tabindex="@(hasNext ? "0" : "-1")">
+                            Next &raquo;
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        }
+    }
+}

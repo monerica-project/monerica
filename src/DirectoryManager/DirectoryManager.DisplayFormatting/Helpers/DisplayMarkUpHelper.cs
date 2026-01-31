@@ -119,8 +119,10 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 sb.AppendFormat(" <i>(Note: {0})</i> ", model.Note); // Assuming it's safe HTML
             }
 
-            sb.Append("</p>");
+            // ✅ stars + "x.x/5" + clickable "(count)" -> profile#reviews
+            AppendInlineStarRating(sb, model, rootUrl);
 
+            sb.Append("</p>");
             sb.Append("</li>");
 
             return sb.ToString();
@@ -200,9 +202,12 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             // 1) Name → profile link, and “Website” link inline
             var name = WebUtility.HtmlEncode(model.Name);
 
-            // model.ItemPath should be something like "/category/subcategory/entrykey"
+            // model.ItemPath should be something like "/site/entrykey" (or similar)
             var profRelative = model.ItemPath.StartsWith("/") ? model.ItemPath : "/" + model.ItemPath;
-            var profUrl = $"{domain}{profRelative}";
+            var profUrl = string.IsNullOrEmpty(domain) ? profRelative : $"{domain}{profRelative}";
+
+            // ✅ link ONLY the (count) to #reviews
+            var reviewsUrl = $"{profUrl}#reviews";
 
             sb.Append("<p>");
 
@@ -233,6 +238,13 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 sb.AppendFormat(
                     "<a href=\"{0}\" target=\"_blank\">Website</a>",
                     direct);
+            }
+
+            // ✅ Stars show: stars + "x.x/5" + clickable "(count)" -> profile#reviews
+            if (model.AverageRating.HasValue && model.ReviewCount.HasValue && model.ReviewCount.Value > 0)
+            {
+                sb.Append("&nbsp;");
+                AppendRatingStars(sb, model.AverageRating.Value, model.ReviewCount.Value, reviewsUrl);
             }
 
             sb.Append("</p>");
@@ -270,7 +282,8 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 var subUrl = $"{domain}/{catKey}/{subKey}";
 
                 sb.AppendFormat(
-                    "<p><a class=\"no-app-link\" href=\"{0}\">{1}</a> &rsaquo; <a class=\"no-app-link\" href=\"{2}\">{3}</a></p>", catUrl, catName, subUrl, subName);
+                    "<p><a class=\"no-app-link\" href=\"{0}\">{1}</a> &rsaquo; <a class=\"no-app-link\" href=\"{2}\">{3}</a></p>",
+                    catUrl, catName, subUrl, subName);
             }
 
             // 4) Description & Note
@@ -319,6 +332,11 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
         private static void AppendExternalLinkIcon(StringBuilder sb, DirectoryEntryViewModel model)
         {
+            if (model.DirectoryStatus == Data.Enums.DirectoryStatus.Scam)
+            {
+                return;
+            }
+
             var link = model.Link;
 
             if (!string.IsNullOrWhiteSpace(model.LinkA) && model.IsSponsored == false)
@@ -327,6 +345,82 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             }
 
             sb.AppendFormat(@" <a target=""_blank"" class=""external-link"" title=""{0}"" href=""{0}""></a> ", link);
+        }
+
+        /// <summary>
+        /// Stars should display as: stars x.x/5 (count)
+        /// where ONLY (count) is a link to the internal profile #reviews.
+        ///
+        /// rootUrl:
+        /// - null/empty => relative "/site/xyz#reviews"
+        /// - fully-qualified => "https://domain/site/xyz#reviews"
+        /// </summary>
+        private static void AppendInlineStarRating(StringBuilder sb, DirectoryEntryViewModel model, string? rootUrl = null)
+        {
+            var count = model.ReviewCount ?? 0;
+
+            if (!model.AverageRating.HasValue || count <= 0)
+            {
+                return;
+            }
+
+            string? reviewsUrl = null;
+
+            // We need an internal profile path (ItemPath) to build /site/...#reviews
+            if (!string.IsNullOrWhiteSpace(model.ItemPath))
+            {
+                var baseUrl = (rootUrl ?? string.Empty).TrimEnd('/');
+                var path = model.ItemPath.StartsWith("/") ? model.ItemPath : "/" + model.ItemPath;
+
+                // If baseUrl is empty, this becomes "/site/xyz#reviews" (relative)
+                // If baseUrl is set, this becomes "https://domain/site/xyz#reviews"
+                reviewsUrl = string.IsNullOrEmpty(baseUrl)
+                    ? $"{path}#reviews"
+                    : $"{baseUrl}{path}#reviews";
+            }
+
+            sb.Append("&nbsp;");
+            AppendRatingStars(sb, model.AverageRating.Value, count, reviewsUrl);
+        }
+
+        // ✅ NEW overload that can link only the (count) to #reviews
+        private static void AppendRatingStars(StringBuilder sb, double avg, int count, string? reviewsUrl)
+        {
+            const int totalStars = 5;
+            double percent = Math.Clamp(avg / totalStars * 100, 0, 100);
+
+            sb.Append("<span class=\"rating-wrapper\" aria-label=\"");
+            sb.Append($"{avg:0.0} out of 5 stars from {count} reviews\">");
+
+            sb.Append("<span class=\"stars\">");
+            sb.Append("<span class=\"stars-fill\" style=\"width:");
+            sb.Append(percent.ToString("0.##", CultureInfo.InvariantCulture));
+            sb.Append("%\"></span>");
+            sb.Append("</span>");
+
+            // x.x/5 (NOT a link)
+            sb.AppendFormat(
+                CultureInfo.InvariantCulture,
+                "<span class=\"rating-text\"> {0:0.0}/5 </span>",
+                avg);
+
+            // (count) linked only if we have a URL
+            if (!string.IsNullOrWhiteSpace(reviewsUrl))
+            {
+                sb.Append("<a class=\"no-app-link rating-count-link\" href=\"");
+                sb.Append(WebUtility.HtmlEncode(reviewsUrl));
+                sb.Append("\">(");
+                sb.Append(count.ToString(CultureInfo.InvariantCulture));
+                sb.Append(")</a>");
+            }
+            else
+            {
+                sb.Append("<span class=\"rating-count\">(");
+                sb.Append(count.ToString(CultureInfo.InvariantCulture));
+                sb.Append(")</span>");
+            }
+
+            sb.Append("</span>");
         }
 
         /// <summary>
@@ -480,6 +574,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
         /// <summary>
         /// Helper method to append the link based on the logic.
+        /// (Kept for compatibility with older code paths.)
         /// </summary>
         private static void AppendLink(StringBuilder sb, DirectoryEntryViewModel model, string link, bool isSponsored = false, bool isScam = false)
         {

@@ -17,7 +17,7 @@ namespace DirectoryManager.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.1")
+                .HasAnnotation("ProductVersion", "10.0.2")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
@@ -460,6 +460,9 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasKey("DirectoryEntryId");
 
+                    b.HasIndex("DirectoryEntryKey")
+                        .IsUnique();
+
                     b.HasIndex("Link")
                         .IsUnique();
 
@@ -564,6 +567,66 @@ namespace DirectoryManager.Data.Migrations
                     b.HasIndex("DirectoryEntryId", "ModerationStatus");
 
                     b.ToTable("DirectoryEntryReviews", (string)null);
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryReviewComment", b =>
+                {
+                    b.Property<int>("DirectoryEntryReviewCommentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DirectoryEntryReviewCommentId"));
+
+                    b.Property<string>("AuthorFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.Property<int?>("DirectoryEntryReviewCommentId1")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DirectoryEntryReviewId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ModerationStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ParentCommentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(800)
+                        .HasColumnType("nvarchar(800)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.HasKey("DirectoryEntryReviewCommentId");
+
+                    b.HasIndex("DirectoryEntryReviewCommentId1");
+
+                    b.HasIndex("DirectoryEntryReviewId");
+
+                    b.HasIndex("ParentCommentId");
+
+                    b.ToTable("DirectoryEntryReviewComments");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntrySelection", b =>
@@ -1480,6 +1543,10 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
+                    b.Property<string>("SelectedTagIdsCsv")
+                        .HasMaxLength(2000)
+                        .HasColumnType("nvarchar(2000)");
+
                     b.Property<int?>("SubCategoryId")
                         .HasColumnType("int");
 
@@ -1694,7 +1761,7 @@ namespace DirectoryManager.Data.Migrations
 
                     b.ToTable("AspNetUserRoles", (string)null);
 
-                    b.HasDiscriminator().HasValue("IdentityUserRole<string>");
+                    b.HasDiscriminator<string>("Discriminator").HasValue("IdentityUserRole<string>");
 
                     b.UseTphMappingStrategy();
                 });
@@ -1773,6 +1840,28 @@ namespace DirectoryManager.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("DirectoryEntry");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryReviewComment", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntryReviewComment", null)
+                        .WithMany("Comments")
+                        .HasForeignKey("DirectoryEntryReviewCommentId1");
+
+                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntryReview", "DirectoryEntryReview")
+                        .WithMany("Comments")
+                        .HasForeignKey("DirectoryEntryReviewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntryReviewComment", "ParentComment")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentCommentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DirectoryEntryReview");
+
+                    b.Navigation("ParentComment");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntrySelection", b =>
@@ -1992,6 +2081,18 @@ namespace DirectoryManager.Data.Migrations
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntry", b =>
                 {
                     b.Navigation("EntryTags");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryReview", b =>
+                {
+                    b.Navigation("Comments");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryReviewComment", b =>
+                {
+                    b.Navigation("Children");
+
+                    b.Navigation("Comments");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.Emails.EmailCampaign", b =>

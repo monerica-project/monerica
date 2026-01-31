@@ -1,0 +1,35 @@
+﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Services.Interfaces
+@inject ICacheService cacheHelper
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
+@inject IUrlResolutionService urlResolver
+
+@{
+    var rawUrl = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteLogoUrl);
+
+    if (string.IsNullOrWhiteSpace(rawUrl))
+    {
+        return;
+    }
+
+    // Strip domain if absolute
+    string logoPath = rawUrl.Trim();
+    if (Uri.TryCreate(logoPath, UriKind.Absolute, out var uri))
+    {
+        logoPath = uri.PathAndQuery; // "/images/monerica-logo.png"
+    }
+
+    var root = await cacheHelper.GetSnippetAsync(SiteConfigSetting.FullRootUrl);
+
+    var host = httpContextAccessor.HttpContext?.Request?.Host.Host ?? "";
+    var isOnTor = host.EndsWith(DirectoryManager.Web.Constants.StringConstants.TorDomain, StringComparison.OrdinalIgnoreCase);
+
+    var href = (isOnTor || string.IsNullOrWhiteSpace(root) || urlResolver.IsLocal)
+        ? Url.Content("~/")
+        : root;
+}
+
+<a class="site-logo-link no-app-link" href="@href" aria-label="Home">
+    <img src="@logoPath" alt="Logo" class="site-logo" />
+</a>

@@ -5,6 +5,11 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 {
     public class FormattingHelper
     {
+        public static string ListingPath(string directoryEntryKey)
+        {
+            return string.Format("/site/{0}", directoryEntryKey);
+        }
+
         public static string SubcategoryFormatting(string? categoryName, string? subcategoryName)
         {
             if (string.IsNullOrWhiteSpace(categoryName) && string.IsNullOrWhiteSpace(subcategoryName))

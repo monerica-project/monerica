@@ -41,7 +41,14 @@ namespace DirectoryManager.FileStorage.Repositories.Implementations
                 return directory;
             }
 
-            await foreach (var page in container.GetBlobsByHierarchyAsync(prefix: prefix, delimiter: "/").AsPages())
+            await foreach (var page in container
+                .GetBlobsByHierarchyAsync(
+                    BlobTraits.None,
+                    BlobStates.None,
+                    prefix,
+                    "/",
+                    CancellationToken.None)
+                .AsPages())
             {
                 foreach (var item in page.Values)
                 {
@@ -252,7 +259,12 @@ namespace DirectoryManager.FileStorage.Repositories.Implementations
                 return new List<BlobItem>();
             }
 
-            var resultSegment = container.GetBlobsAsync(prefix: prefix);
+            var resultSegment = container.GetBlobsAsync(
+                BlobTraits.None,
+                BlobStates.None,
+                prefix,
+                CancellationToken.None);
+
             var allInDir = new List<BlobItem>();
             await foreach (var blobItem in resultSegment)
             {

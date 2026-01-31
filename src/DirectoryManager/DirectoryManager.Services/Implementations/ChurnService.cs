@@ -1,10 +1,4 @@
-﻿// ChurnService.cs
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
-using DirectoryManager.Data.DbContextInfo;
+﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Services.Models.TransferModels;
@@ -169,9 +163,20 @@ namespace DirectoryManager.Web.Services.Implementations
                 bool isActiveAtEnd = intervals.Any(iv => ContainsDay(iv.start, iv.end, endDayInclusive));
                 bool anyOverlap = intervals.Any(iv => Overlaps(iv.start, iv.end, startDay, endDayInclusive));
 
-                if (isActiveAtStart) startCohort.Add(advertiserId);
-                if (isActiveAtEnd) endCohort.Add(advertiserId);
-                if (anyOverlap) uniqueActive++;
+                if (isActiveAtStart)
+                {
+                    startCohort.Add(advertiserId);
+                }
+
+                if (isActiveAtEnd)
+                {
+                    endCohort.Add(advertiserId);
+                }
+
+                if (anyOverlap)
+                {
+                    uniqueActive++;
+                }
 
                 // Activated inside the window = first ever start within [start, endOpen)
                 if (!isActiveAtStart && firstStart >= startDay && firstStart < endOpenDay)
@@ -207,6 +212,7 @@ namespace DirectoryManager.Web.Services.Implementations
 
                 ActiveAtStart = activeAtStart,
                 ActivatedInWindow = activatedIds.Count,
+
                 // IMPORTANT: this is now start-cohort churn count (not gross)
                 ChurnedInWindow = churnedStartCohort.Count,
                 ActiveAtEnd = activeAtEnd,
@@ -219,7 +225,6 @@ namespace DirectoryManager.Web.Services.Implementations
                 ChurnedDirectoryEntryIds = churnedStartCohort.ToList(),
             };
         }
-
 
         /// <inheritdoc/>
         public Task<ChurnMetrics> GetMonthlyChurnAsync(

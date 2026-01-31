@@ -1,12 +1,14 @@
 ﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Services.Interfaces
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
+@inject IUrlResolutionService urlResolver
  
 @{
     var root = await cacheHelper.GetSnippetAsync(SiteConfigSetting.FullRootUrl);
     var isOnTor = httpContextAccessor.HttpContext?.Request.Host.Host.EndsWith(DirectoryManager.Web.Constants.StringConstants.TorDomain) ?? false;
 
-    if (isOnTor || string.IsNullOrWhiteSpace(root))
+    if (isOnTor || string.IsNullOrWhiteSpace(root) || urlResolver.IsLocal)
     {
         <a class="no-app-link" href="~/">back to home</a>
     }else

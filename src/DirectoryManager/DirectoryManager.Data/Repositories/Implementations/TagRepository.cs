@@ -1,5 +1,4 @@
-﻿using DirectoryManager.Data.Constants;
-using DirectoryManager.Data.DbContextInfo;
+﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
@@ -63,6 +62,82 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 this.context.Tags.Remove(tag);
                 await this.context.SaveChangesAsync();
             }
+        }
+
+        public async Task<bool> UpdateAsync(int tagId, string name)
+        {
+            var tag = await this.context.Tags.FindAsync(tagId);
+            if (tag is null)
+            {
+                return false;
+            }
+
+            name = (name ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return false;
+            }
+
+            tag.Name = name;
+            tag.Key = name.UrlKey();
+            tag.UpdateDate = DateTime.UtcNow;
+
+            await this.context.SaveChangesAsync();
+            return true;
+        }
+
+        public async Task<IReadOnlyList<TagCount>> ListTagsForCategoryAsync(int categoryId)
+        {
+            // Tags that are actually used by entries in a given category
+            // (only excluding Removed; keep consistent with other tag counting logic)
+            var query = this.context.DirectoryEntryTags
+                .AsNoTracking()
+                .Where(et =>
+                    et.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed &&
+                    et.DirectoryEntry.SubCategory != null &&
+                    et.DirectoryEntry.SubCategory.CategoryId == categoryId)
+                .GroupBy(et => new { et.TagId, et.Tag.Name, et.Tag.Key })
+                .Select(g => new TagCount
+                {
+                    TagId = g.Key.TagId,
+                    Name = g.Key.Name,
+                    Key = g.Key.Key,
+                    Count = g.Count()
+                })
+                .OrderBy(x => x.Name);
+
+            return await query.ToListAsync().ConfigureAwait(false);
+        }
+
+        public async Task<PagedResult<Tag>> ListAllPagedAsync(int page, int pageSize)
+        {
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 100;
+            }
+
+            var query = this.context.Tags
+                .AsNoTracking()
+                .OrderBy(t => t.Name);
+
+            var total = await query.CountAsync().ConfigureAwait(false);
+
+            var items = await query
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            return new PagedResult<Tag>
+            {
+                TotalCount = total,
+                Items = items
+            };
         }
 
         public async Task<IReadOnlyList<TagWithLastModified>> ListActiveTagsWithLastModifiedAsync()

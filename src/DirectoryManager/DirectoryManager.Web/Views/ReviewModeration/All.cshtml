@@ -1,105 +1,224 @@
 ﻿@using DirectoryManager.Web.Constants
 @using DirectoryManager.Data.Models
 @using DirectoryManager.Data.Enums
-@model IReadOnlyList<DirectoryManager.Data.Models.DirectoryEntryReview>
+@model DirectoryManager.Web.Models.ReviewModerationDashboardViewModel
 
 @{
     Layout = "_CenteredLayout";
-    var status = ViewBag.Status as ReviewModerationStatus?;
-    var title = status.HasValue ? $"All Reviews ({status})" : "All Reviews";
+
+    var status = Model.Status;
+    var title = status.HasValue ? $"All Moderation ({status})" : "All Moderation";
     ViewData[StringConstants.TitleHeader] = title;
+
+    int ReviewsLastPage() => Math.Max(1, (int)Math.Ceiling(Model.ReviewsTotal / (double)Model.ReviewsPageSize));
+    int RepliesLastPage() => Math.Max(1, (int)Math.Ceiling(Model.RepliesTotal / (double)Model.RepliesPageSize));
+
+    static string Kind(DirectoryEntryReviewComment c) => c.ParentCommentId.HasValue ? "Reply" : "Comment";
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
     @await Html.PartialAsync("_AdminMenu")
 
-<p>
-    <a asp-action="Pending">Pending Queue</a> |
-    <a asp-action="All" asp-route-status="Approved">Approved</a> |
-    <a asp-action="All" asp-route-status="Rejected">Rejected</a> |
-    <a asp-action="All">All</a>
-</p>
+    <p class="mb-3">
+        <a asp-action="All" asp-route-status="Pending">Pending</a> |
+        <a asp-action="All" asp-route-status="Approved">Approved</a> |
+        <a asp-action="All" asp-route-status="Rejected">Rejected</a> |
+        <a asp-action="All">All</a>
+    </p>
 
-@if (!Model.Any())
-{
-    <p><i>No reviews found.</i></p>
-}
-else
-{
-    <div class="table-wrapper">
- 
-    <table class="table table-striped table-sm">
-        <thead>
-            <tr>
-                <th>Id</th>
-                <th>Status</th>
-                <th>Entry</th>
-                <th>Rating</th>
-                <th>Title</th>
-                <th>Created (UTC)</th>
-                <th>Fingerprint</th>
-                <th>Excerpt</th>
-                <th style="width: 220px;">Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-        @foreach (var r in Model)
-        {
-            <tr>
-                <td>@r.DirectoryEntryReviewId</td>
-                <td>@r.ModerationStatus</td>
-                <td>@r.DirectoryEntryId</td>
-                <td>@(r.Rating?.ToString() ?? "-")</td>
-                <td>@(string.IsNullOrWhiteSpace(r.Title) ? "-" : r.Title)</td>
-                <td>@r.CreateDate.ToString("yyyy-MM-dd HH:mm")</td>
-                <td><code>@r.AuthorFingerprint</code></td>
-                <td>@(string.IsNullOrWhiteSpace(r.Body) ? "-" : (r.Body.Length > 80 ? r.Body[..80] + "…" : r.Body))</td>
-                <td>
-                    <a  
-                       asp-action="Show"
-                       asp-route-id="@r.DirectoryEntryReviewId">View</a>
+    <p class="text-muted mb-0">
+        <small>
+            <strong>Legend:</strong> Comment = Parent is blank. Reply = Parent has an id.
+        </small>
+    </p>
 
-                    @if (r.ModerationStatus != ReviewModerationStatus.Approved)
+    <hr class="my-4" />
+
+    <h2 class="h4 mb-2">Reviews</h2>
+    <p class="text-muted">Total: @Model.ReviewsTotal</p>
+
+    @if (!Model.Reviews.Any())
+    {
+        <p><i>No reviews found.</i></p>
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table class="table table-striped table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Status</th>
+                        <th>Entry</th>
+                        <th>Rating</th>
+                        <th>Title</th>
+                        <th>Created (UTC)</th>
+                        <th>Fingerprint</th>
+                        <th>Excerpt</th>
+                        <th style="width: 220px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Reviews)
                     {
-                        <form asp-action="Approve"
-                              asp-route-id="@r.DirectoryEntryReviewId"
-                              method="post"
-                              style="display:inline-block;margin-left:.25rem;">
-                            @Html.AntiForgeryToken()
-                            <button type="submit">Approve</button>
-                        </form>
+                        <tr>
+                            <td>@r.DirectoryEntryReviewId</td>
+                            <td>@r.ModerationStatus</td>
+                            <td>@r.DirectoryEntryId</td>
+                            <td>@(r.Rating?.ToString() ?? "-")</td>
+                            <td>@(string.IsNullOrWhiteSpace(r.Title) ? "-" : r.Title)</td>
+                            <td>@r.CreateDate.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td><code>@r.AuthorFingerprint</code></td>
+                            <td>@(string.IsNullOrWhiteSpace(r.Body) ? "-" : (r.Body.Length > 80 ? r.Body[..80] + "…" : r.Body))</td>
+                            <td>
+                                <a asp-action="Show" asp-route-id="@r.DirectoryEntryReviewId">View</a>
+
+                                @if (r.ModerationStatus != ReviewModerationStatus.Approved)
+                                {
+                                    <form asp-action="Approve"
+                                          asp-route-id="@r.DirectoryEntryReviewId"
+                                          method="post"
+                                          class="d-inline ms-1">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit">Approve</button>
+                                    </form>
+                                }
+
+                                <a asp-action="Show"
+                                   asp-route-id="@r.DirectoryEntryReviewId"
+                                   class="ms-1">Reject/Delete…</a>
+                            </td>
+                        </tr>
                     }
-
-                    <a 
-                       asp-action="Show"
-                       asp-route-id="@r.DirectoryEntryReviewId"
-                       style="margin-left:.25rem;">Reject/Delete…</a>
-                </td>
-            </tr>
-        }
-        </tbody>
-    </table>
-    </div>
-}
-
-@if (ViewBag.Total is int total && ViewBag.Page is int pageNumber && ViewBag.PageSize is int pageSize)
-{
-    var last = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
-    <div class="mt-3">
-            <span>Page @pageNumber of @last (@total total)</span>
-        <div>
-            @if (pageNumber > 1)
-            {
-                <a asp-action="All" asp-route-status="@(status?.ToString())" asp-route-page="@(pageNumber - 1)" asp-route-pageSize="@pageSize">Prev</a>
-                @: |
-            }
-            @if (pageNumber < last)
-            {
-                <a asp-action="All" asp-route-status="@(status?.ToString())" asp-route-page="@(pageNumber + 1)" asp-route-pageSize="@pageSize">Next</a>
-            }
+                </tbody>
+            </table>
         </div>
-    </div>
-}
-}
+
+        var reviewsLast = ReviewsLastPage();
+
+        <div class="mt-3">
+            <span>Page @Model.ReviewsPage of @reviewsLast (@Model.ReviewsTotal total)</span>
+            <div>
+                @if (Model.ReviewsPage > 1)
+                {
+                    <a asp-action="All"
+                       asp-route-status="@(status?.ToString())"
+                       asp-route-reviewPage="@(Model.ReviewsPage - 1)"
+                       asp-route-reviewPageSize="@Model.ReviewsPageSize"
+                       asp-route-replyPage="@Model.RepliesPage"
+                       asp-route-replyPageSize="@Model.RepliesPageSize">Prev</a>
+                    @: |
+                }
+                @if (Model.ReviewsPage < reviewsLast)
+                {
+                    <a asp-action="All"
+                       asp-route-status="@(status?.ToString())"
+                       asp-route-reviewPage="@(Model.ReviewsPage + 1)"
+                       asp-route-reviewPageSize="@Model.ReviewsPageSize"
+                       asp-route-replyPage="@Model.RepliesPage"
+                       asp-route-replyPageSize="@Model.RepliesPageSize">Next</a>
+                }
+            </div>
+        </div>
+    }
+
+    <hr class="my-4" />
+
+    <h2 class="h4 mb-2">Comments & Replies</h2>
+    <p class="text-muted">Total: @Model.RepliesTotal</p>
+
+    @if (!Model.Replies.Any())
+    {
+        <p><i>No comments/replies found.</i></p>
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table class="table table-striped table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Status</th>
+                        <th>Type</th>
+                        <th>Review Id</th>
+                        <th>Parent</th>
+                        <th>Created (UTC)</th>
+                        <th>Updated (UTC)</th>
+                        <th>Fingerprint</th>
+                        <th>Excerpt</th>
+                        <th style="width:240px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model.Replies)
+                    {
+                        <tr>
+                            <td>@c.DirectoryEntryReviewCommentId</td>
+                            <td>@c.ModerationStatus</td>
+                            <td>
+                                <span class="badge @(c.ParentCommentId.HasValue ? "bg-secondary" : "bg-info")">
+                                    @Kind(c)
+                                </span>
+                            </td>
+                            <td>@c.DirectoryEntryReviewId</td>
+                            <td>@(c.ParentCommentId?.ToString() ?? "-")</td>
+                            <td>@c.CreateDate.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@((c.UpdateDate?.ToString("yyyy-MM-dd HH:mm")) ?? "-")</td>
+                            <td><code>@c.AuthorFingerprint</code></td>
+                            <td>@(string.IsNullOrWhiteSpace(c.Body) ? "-" : (c.Body.Length > 80 ? c.Body[..80] + "…" : c.Body))</td>
+                            <td>
+                                <a asp-action="ShowReply" asp-route-id="@c.DirectoryEntryReviewCommentId">View</a>
+
+                                @if (c.ModerationStatus != ReviewModerationStatus.Approved)
+                                {
+                                    <form asp-action="ApproveReply"
+                                          asp-route-id="@c.DirectoryEntryReviewCommentId"
+                                          method="post"
+                                          class="d-inline ms-1">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit">Approve</button>
+                                    </form>
+                                }
+
+                                <a asp-action="ShowReply"
+                                   asp-route-id="@c.DirectoryEntryReviewCommentId"
+                                   class="ms-1">Reject/Delete…</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        var repliesLast = RepliesLastPage();
+
+        <div class="mt-3">
+            <span>Page @Model.RepliesPage of @repliesLast (@Model.RepliesTotal total)</span>
+            <div>
+                @if (Model.RepliesPage > 1)
+                {
+                    <a asp-action="All"
+                       asp-route-status="@(status?.ToString())"
+                       asp-route-reviewPage="@Model.ReviewsPage"
+                       asp-route-reviewPageSize="@Model.ReviewsPageSize"
+                       asp-route-replyPage="@(Model.RepliesPage - 1)"
+                       asp-route-replyPageSize="@Model.RepliesPageSize">Prev</a>
+                    @: |
+                }
+                @if (Model.RepliesPage < repliesLast)
+                {
+                    <a asp-action="All"
+                       asp-route-status="@(status?.ToString())"
+                       asp-route-reviewPage="@Model.ReviewsPage"
+                       asp-route-reviewPageSize="@Model.ReviewsPageSize"
+                       asp-route-replyPage="@(Model.RepliesPage + 1)"
+                       asp-route-replyPageSize="@Model.RepliesPageSize">Next</a>
+                }
+            </div>
+        </div>
+    }
+
+}=

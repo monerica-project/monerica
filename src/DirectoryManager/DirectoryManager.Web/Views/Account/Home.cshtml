@@ -1,5 +1,6 @@
 ﻿@model DirectoryManager.Web.Models.LoginViewModel
 @using DirectoryManager.Web.Constants;
+
 @{
     ViewData[StringConstants.TitleHeader] = "Admin home";
     Layout = "_CenteredLayout";
@@ -7,14 +8,13 @@
 
 @section PageContent {
 
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
- 
-<hr />
+    <hr />
 
-<i>Signed in as: </i> @User?.Identity?.Name
+    <i>Signed in as: </i> @User?.Identity?.Name
 
-<hr />
+    <hr />
 
     <h3>User Submission</h3>
     <ul>
@@ -26,7 +26,6 @@
         </li>
     </ul>
 
-        
     <ul>
         <li>
             Affiliates
@@ -41,157 +40,164 @@
         </li>
     </ul>
 
-
-<h3>Listing Management</h3>
-<ul>
-    <li>
-        Categories
-        <ul>
-            <li>
-                <a href="~/category/create">Create category</a>
-            </li>
-            <li>
-                <a href="~/category/index">Categories</a>
-            </li>
-        </ul>
-    </li>
-    <li>
-        Sub Categories
-        <ul>
-            <li>
-                <a href="~/subcategory/create">Create subcategory</a>
-            </li>
-            <li>
-                <a href="~/subcategory/index">Sub categories</a>
-            </li>
-        </ul>
-    </li>
-    <li>
-        Directory Entries
-        <ul>
-            <li>
-                <a href="~/directoryentry/create">Create directory entry</a>
-            </li>
-
-            <li>
-                <a href="~/directoryentry/index">Directory entries (all)</a>
-            </li>
-            <li>
-                <a href="~/account/edit">Edit from page</a>
-            </li>
- 
-            <li>
-                Reports
-                <ul>
-                    <li>
-                        <a href="~/directoryentry/report">Active entries report</a>
-                    </li>
-                    <li>
-                            <a href="~/directoryentry/subcategory-trends">Subcategory report</a>
-                    </li>
-                
-</ul>
+    <h3>Listing Management</h3>
+    <ul>
+        <li>
+            Categories
+            <ul>
+                <li>
+                    <a href="~/category/create">Create category</a>
                 </li>
-          
-        </ul>
-    </li>
+                <li>
+                    <a href="~/category/index">Categories</a>
+                </li>
+            </ul>
+        </li>
 
         <li>
-        Search
-        <ul>
- 
+            Sub Categories
+            <ul>
+                <li>
+                    <a href="~/subcategory/create">Create subcategory</a>
+                </li>
+                <li>
+                    <a href="~/subcategory/index">Sub categories</a>
+                </li>
+            </ul>
+        </li>
+
+        <li>
+            Tags
+            <ul>
+                <li>
+                    <a href="~/manage/tags/create">Create tag</a>
+                </li>
+                <li>
+                    <a href="~/manage/tags">Manage tags (all)</a>
+                </li>
+            </ul>
+        </li>
+
+        <li>
+            Directory Entries
+            <ul>
+                <li>
+                    <a href="~/directoryentry/create">Create directory entry</a>
+                </li>
+
+                <li>
+                    <a href="~/directoryentry/index">Directory entries (all)</a>
+                </li>
+
+                <li>
+                    <a href="~/account/edit">Edit from page</a>
+                </li>
+
+                <li>
+                    Reports
+                    <ul>
+                        <li>
+                            <a href="~/directoryentry/report">Active entries report</a>
+                        </li>
+                        <li>
+                            <a href="~/directoryentry/subcategory-trends">Subcategory report</a>
+                        </li>
+                    </ul>
+                </li>
+            </ul>
+        </li>
+
+        <li>
+            Search
+            <ul>
                 <li>
                     <a href="~/admin/blacklist">Search blacklist</a>
                 </li>
-            <li>
-                Reports
-                <ul>
-                   
-                    <li>
-                        <a href="~/searchlog/report">Search logs</a>
-                    </li>
-</ul>
+                <li>
+                    Reports
+                    <ul>
+                        <li>
+                            <a href="~/searchlog/report">Search logs</a>
+                        </li>
+                    </ul>
                 </li>
-          
-        </ul>
-    </li>
+            </ul>
+        </li>
+    </ul>
 
+    <h3>Email Management</h3>
+    <ul>
+        <li>
+            <a href="~/account/emailcampaignmanagement">Email campaigns</a>
+        </li>
+        <li>
+            <a href="~/account/emailmessagemanagement">Email messages</a>
+        </li>
+        <li>
+            <a href="~/account/emailsubscriptionmanagement">Email subscriptions</a>
+        </li>
+        <li>
+            <a href="~/email/sentrecords">Send records</a>
+        </li>
+        <li>
+            <a href="~/sponsoredlistingnotification/list">Sponsored listing notification</a>
+        </li>
+        <li>
+            <a href="~/email/testemail">Test email</a>
+        </li>
+        <li>
+            <a href="~/account/emailsubscriptionmanagement/upload">Upload</a>
+        </li>
+    </ul>
 
-</ul>
+    <h3>Site Management</h3>
+    <ul>
+        <li>
+            <a href="~/blockedips/index">Blocked IP management</a>
+        </li>
+        <li>
+            <a href="~/contentsnippetmanagement">Content snippets</a>
+        </li>
+        <li>
+            <a href="~/directoryentryselection/index">Directory entry selections <i>(featured listings)</i></a>
+        </li>
+        <li>
+            <a href="~/processorconfig/index">Processor configs</a>
+        </li>
+        <li>
+            <a href="~/sitefilesmanagement">Site file management</a>
+        </li>
+    </ul>
 
-<h3>Email Management</h3>
+    <h3>Sponsored Listing Management</h3>
+    <ul>
+        <li>
+            <a href="~/sponsoredlistingoffer/index">Sponsored listing offers</a>
+        </li>
+        <li>
+            <a href="~/sponsoredlisting/list">Sponsored listings</a>
+        </li>
+        <li>
+            <a href="~/sponsoredlistinginvoice">Sponsored listings invoices</a>
+        </li>
+    </ul>
 
-<ul>
-    <li>
-        <a href="~/account/emailcampaignmanagement">Email campaigns</a>
-    </li>
-    <li>
-        <a href="~/account/emailmessagemanagement">Email messages</a>
-    </li>
-    <li>
-        <a href="~/account/emailsubscriptionmanagement">Email subscriptions</a>
-    </li>
-    <li>
-        <a href="~/email/sentrecords">Send records</a>
-    </li>
-    <li>
-        <a href="~/sponsoredlistingnotification/list">Sponsored listing notification</a>
-    </li>
-    <li>
-        <a href="~/email/testemail">Test email</a>
-    </li>
-    <li>
-        <a href="~/account/emailsubscriptionmanagement/upload">Upload</a>
-    </li>
-</ul>
+    <h3>Site Statistics</h3>
+    <ul>
+        <li>
+            <a href="~/TrafficReport/index">Traffic report</a>
+        </li>
+    </ul>
 
-<h3>Site Management</h3>
-<ul>
-    <li>
-        <a href="~/blockedips/index">Blocked IP management</a>
-    </li>
-    <li>
-        <a href="~/contentsnippetmanagement">Content snippets</a>
-    </li>
-    <li>
-        <a href="~/directoryentryselection/index">Directory entry selections <i>(featured listings)</i></a>
-    </li>
-    <li>
-        <a href="~/processorconfig/index">Processor configs</a>
-    </li>
-    <li>
-        <a href="~/sitefilesmanagement">Site file management</a>
-    </li>
-</ul>
+    <h3>Account Management</h3>
+    <ul>
+        <li>
+            <a href="~/account/changepassword">Change password</a>
+        </li>
+    </ul>
 
-<h3>Sponsored Listing Management</h3>
-<ul>
-    <li>
-        <a href="~/sponsoredlistingoffer/index">Sponsored listing offers</a>
-    </li>
-    <li>
-        <a href="~/sponsoredlisting/list">Sponsored listings</a>
-    </li>
-    <li>
-        <a href="~/sponsoredlistinginvoice">Sponsored listings invoices</a>
-    </li>
-</ul>
+    <hr />
 
-<h3>Site Statistics</h3>
-<ul>
-    <li>
-        <a href="~/TrafficReport/index">Traffic report</a>
-    </li>
-</ul>
+    <a href="~/account/logout">logout</a> | @await Html.PartialAsync("_BackToHome")
 
-<h3>Account Management</h3>
-<ul>
-    <li>
-        <a href="~/account/changepassword">Change password</a>
-    </li>
-</ul>
-
-<hr />
-
-<a href="~/account/logout">logout</a> | @await Html.PartialAsync("_BackToHome")
 }

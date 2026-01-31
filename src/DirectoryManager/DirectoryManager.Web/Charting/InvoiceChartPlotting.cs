@@ -12,11 +12,11 @@ namespace DirectoryManager.Web.Charting
         private const string Culture = StringConstants.EnglishUS;
 
         public byte[] CreateMonthlyAvgPerListingDailyPriceChart(
-    IEnumerable<SponsoredListingInvoice> invoices,
-    Currency displayCurrency,
-    DateTime rangeStart,
-    DateTime rangeEnd,
-    string? filterLabel = null)
+            IEnumerable<SponsoredListingInvoice> invoices,
+            Currency displayCurrency,
+            DateTime rangeStart,
+            DateTime rangeEnd,
+            string? filterLabel = null)
         {
             var paid = (invoices ?? Enumerable.Empty<SponsoredListingInvoice>()).ToList();
             if (!paid.Any())
@@ -609,8 +609,6 @@ namespace DirectoryManager.Web.Charting
             var t = plt.Add.Text(subtitle, xMid, y);
             t.Alignment = ScottPlot.Alignment.UpperCenter;
             t.LabelFontSize = 14;
-            t.Bold = false;
-            t.Color = ScottPlot.Colors.Gray;
         }
     }
 }

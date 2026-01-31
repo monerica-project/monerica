@@ -9,8 +9,6 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
 {
     public class MessageFormatHelper
     {
-        private const string RootUrl = "https://monerica.com";
-
         private const string EmailCss = @"
             body {
                 font-family: Arial, sans-serif;
@@ -88,6 +86,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             IEnumerable<SponsoredListing> mainSponsors,
             IEnumerable<SponsoredListing> categorySponsors,
             IEnumerable<SponsoredListing> subCategorySponsors,
+            string rootUrl = "",
             string siteName = "",
             string footerHtml = "",
             string link2Name = "",
@@ -110,7 +109,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
 
             if (string.IsNullOrWhiteSpace(siteName))
             {
-                result.AppendLine($"<h1>Directory Updates</h1>");
+                result.AppendLine("<h1>Directory Updates</h1>");
             }
             else
             {
@@ -161,7 +160,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
                             vm.Link3A = null;
 
                             // 4) Generate HTML using the root domain so all links are monerica.com/...
-                            var htmlItem = DisplayMarkUpHelper.GenerateDirectoryEntryHtml(vm, RootUrl);
+                            var htmlItem = DisplayMarkUpHelper.GenerateDirectoryEntryHtml(vm, rootUrl);
 
                             result.AppendLine(htmlItem);
                         }
@@ -178,13 +177,13 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             }
 
             // Main Sponsors Section (also link to listing pages only)
-            AppendMainSponsors(mainSponsors, result, link2Name, link3Name);
+            AppendMainSponsors(mainSponsors, result, rootUrl, link2Name, link3Name);
 
             // Category Sponsors Section
-            AppendCategorySponsors(categorySponsors, result, link2Name, link3Name);
+            AppendCategorySponsors(categorySponsors, result, rootUrl, link2Name, link3Name);
 
             // Subcategory Sponsors Section
-            AppendSubCategorySponsors(subCategorySponsors, result, link2Name, link3Name);
+            AppendSubCategorySponsors(subCategorySponsors, result, rootUrl, link2Name, link3Name);
 
             // Footer
             if (!string.IsNullOrEmpty(footerHtml))
@@ -200,8 +199,6 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
 
             return result.ToString();
         }
-
-        // --- TEXT VERSIONS BELOW ARE UNCHANGED (you can later swap links to listing pages there too) ---
 
         public static string GenerateDirectoryEntryText(IEnumerable<DirectoryEntry> entries)
         {
@@ -355,24 +352,34 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             return sb.ToString();
         }
 
-        // ------- UPDATED SPONSOR HTML HELPERS (listing page links only) -------
-
-        private static void AppendMainSponsors(IEnumerable<SponsoredListing> mainSponsors, StringBuilder result, string link2Name, string link3Name)
+        private static void AppendMainSponsors(
+            IEnumerable<SponsoredListing> mainSponsors,
+            StringBuilder result,
+            string rootUrl,
+            string link2Name,
+            string link3Name)
         {
             if (mainSponsors.Any())
             {
                 result.AppendLine("<hr />");
                 result.AppendLine("<h1>Main Sponsors</h1>");
                 result.AppendLine("<ul>");
+
                 foreach (var sponsor in mainSponsors)
                 {
-                    AppendEntry(result, sponsor, link2Name, link3Name);
+                    AppendEntry(result, sponsor, rootUrl, link2Name, link3Name);
                 }
+
                 result.AppendLine("</ul>");
             }
         }
 
-        private static void AppendCategorySponsors(IEnumerable<SponsoredListing> categorySponsors, StringBuilder result, string link2Name, string link3Name)
+        private static void AppendCategorySponsors(
+            IEnumerable<SponsoredListing> categorySponsors,
+            StringBuilder result,
+            string rootUrl,
+            string link2Name,
+            string link3Name)
         {
             if (categorySponsors.Any())
             {
@@ -396,7 +403,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
 
                     foreach (var sponsor in group)
                     {
-                        AppendEntry(result, sponsor, link2Name, link3Name);
+                        AppendEntry(result, sponsor, rootUrl, link2Name, link3Name);
                     }
 
                     result.AppendLine("</ul>");
@@ -404,7 +411,12 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             }
         }
 
-        private static void AppendSubCategorySponsors(IEnumerable<SponsoredListing> subCategorySponsors, StringBuilder result, string link2Name, string link3Name)
+        private static void AppendSubCategorySponsors(
+            IEnumerable<SponsoredListing> subCategorySponsors,
+            StringBuilder result,
+            string rootUrl,
+            string link2Name,
+            string link3Name)
         {
             if (subCategorySponsors.Any())
             {
@@ -428,7 +440,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
 
                     foreach (var sponsor in group)
                     {
-                        AppendEntry(result, sponsor, link2Name, link3Name);
+                        AppendEntry(result, sponsor, rootUrl, link2Name, link3Name);
                     }
 
                     result.AppendLine("</ul>");
@@ -440,7 +452,12 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
         /// For HTML sponsor sections, render each sponsor via the same ViewModel + DisplayMarkUpHelper
         /// so they also only link to the listing page.
         /// </summary>
-        private static void AppendEntry(StringBuilder result, SponsoredListing sponsor, string link2Name, string link3Name)
+        private static void AppendEntry(
+            StringBuilder result,
+            SponsoredListing sponsor,
+            string rootUrl,
+            string link2Name,
+            string link3Name)
         {
             if (sponsor.DirectoryEntry == null)
             {
@@ -463,7 +480,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             vm.Link3 = null;
             vm.Link3A = null;
 
-            var htmlItem = DisplayMarkUpHelper.GenerateDirectoryEntryHtml(vm, RootUrl);
+            var htmlItem = DisplayMarkUpHelper.GenerateDirectoryEntryHtml(vm, rootUrl);
             result.AppendLine(htmlItem);
         }
     }

@@ -10,8 +10,11 @@
 }
 
 @section PageContent {
-    <h1>@Model.CountryName</h1>
-
+    <div class="page-header-bar">
+        <h1 class="page-title">@Model.CountryName</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+  
     <hr />
     @await Html.PartialAsync("_BackToHome")
     <hr />

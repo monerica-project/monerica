@@ -38,8 +38,11 @@
  @section PageContent {
 
     <div class="top-section search-section search-top-align">
-        @await Html.PartialAsync("_SearchForm")
-    </div>
+        @await Html.PartialAsync("_SearchForm", new DirectoryManager.Web.Models.SearchFormViewModel
+        {
+            FilterCategoryId = Model.CategoryId
+        })
+</div>
 
 <h1>@Model.CategoryName</h1>
 

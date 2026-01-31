@@ -93,5 +93,15 @@ namespace DirectoryManager.DisplayFormatting.Models
         public string? VideoLink { get; set; }
 
         public string? FormattedLocation { get; set; }
+
+        /// <summary>
+        /// Average rating (Approved reviews only). Null if no ratings.
+        /// </summary>
+        public double? AverageRating { get; set; }
+
+        /// <summary>
+        /// Count of Approved reviews that have a rating value.
+        /// </summary>
+        public int? ReviewCount { get; set; }
     }
 }

@@ -69,5 +69,7 @@ namespace DirectoryManager.Data.Models
         // Concurrency
         [Timestamp]
         public byte[]? RowVersion { get; set; }
+
+        public ICollection<DirectoryEntryReviewComment> Comments { get; set; } = new List<DirectoryEntryReviewComment>();
     }
 }

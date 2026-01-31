@@ -1,7 +1,10 @@
-﻿using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.DisplayFormatting.Enums;
 using DirectoryManager.DisplayFormatting.Helpers;
+using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
@@ -23,6 +26,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly IContentSnippetRepository contentSnippetRepository;
         private readonly IMemoryCache cache;
+        private readonly IDirectoryEntryReviewRepository reviewRepository;
 
         public SubCategoryController(
             UserManager<ApplicationUser> userManager,
@@ -32,7 +36,8 @@ namespace DirectoryManager.Web.Controllers
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IContentSnippetRepository contentSnippetRepository,
-            IMemoryCache cache)
+            IMemoryCache cache,
+            IDirectoryEntryReviewRepository reviewRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -41,7 +46,9 @@ namespace DirectoryManager.Web.Controllers
             this.directoryEntryRepository = directoryEntryRepository;
             this.contentSnippetRepository = contentSnippetRepository;
             this.cache = cache;
+            this.reviewRepository = reviewRepository;
         }
+
 
         [Route("subcategory/index")]
         [HttpGet]
@@ -147,10 +154,7 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [HttpGet("{categoryKey}/{subCategoryKey}")]
         [HttpGet("{categoryKey}/{subCategoryKey}/page/{page}")]
-        public async Task<IActionResult> SubCategoryListings(
-            string categoryKey,
-            string subCategoryKey,
-            int page = 1)
+        public async Task<IActionResult> SubCategoryListings(string categoryKey, string subCategoryKey, int page = 1)
         {
             const int PageSize = IntegerConstants.MediumPageSize;
 
@@ -160,22 +164,29 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var subCategory = await this.subcategoryRepository
-                .GetByCategoryIdAndKeyAsync(category.CategoryId, subCategoryKey);
-            if (subCategory == null)
-            {
-                return this.NotFound();
-            }
+            var subCategory = await this.subcategoryRepository.GetByCategoryIdAndKeyAsync(category.CategoryId, subCategoryKey);
+            if (subCategory == null) return this.NotFound();
 
-            // fetch paged entries instead of all
-            var paged = await this.directoryEntryRepository
-                .GetActiveEntriesBySubcategoryPagedAsync(
-                    subCategory.SubCategoryId, page, PageSize);
+            var paged = await this.directoryEntryRepository.GetActiveEntriesBySubcategoryPagedAsync(
+                subCategory.SubCategoryId, page, PageSize);
 
             this.ViewBag.CategoryKey = category.CategoryKey;
             this.ViewBag.SubCategoryKey = subCategory.SubCategoryKey;
             this.ViewBag.CategoryName = category.Name;
             this.ViewBag.SubCategoryName = subCategory.Name;
+
+            var link2Name = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.Link2Name);
+            var link3Name = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.Link3Name);
+
+            var viewModelList = ViewModelConverter.ConvertToViewModels(
+                paged.Items.ToList(),
+                DateDisplayOption.NotDisplayed,
+                ItemDisplayType.SubcategorySponsor,
+                link2Name.Content,
+                link3Name.Content);
+
+            // ✅ add rating summary fields
+            await this.ApplyRatingsAsync(viewModelList);
 
             var vm = new CategorySubCategoriesViewModel
             {
@@ -190,23 +201,44 @@ namespace DirectoryManager.Web.Controllers
                 SubcategoryName = subCategory.Name,
                 SubCategoryKey = subCategory.SubCategoryKey,
                 Category = category,
+
+                // keep your existing paged for counts + pagination
                 PagedEntries = paged,
                 CurrentPage = page,
-                PageSize = PageSize
+                PageSize = PageSize,
+
+                // ✅ new: VMs that include AverageRating/ReviewCount
+                EntryViewModels = viewModelList
             };
 
             this.SetCannonicalUrl();
             return this.View("SubCategoryListings", vm);
         }
 
-        [Route("subcategory/delete")]
-        public async Task<IActionResult> Delete(int id)
+        private async Task ApplyRatingsAsync(List<DirectoryEntryViewModel> items)
         {
-            await this.subcategoryRepository.DeleteAsync(id);
+            var ids = items.Select(x => x.DirectoryEntryId).Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                return;
+            }
 
-            this.ClearCachedItems();
+            // You already used "GetRatingSummariesAsync(ids)" pattern earlier
+            var ratingMap = await this.reviewRepository.GetRatingSummariesAsync(ids);
 
-            return this.RedirectToAction(nameof(this.Index));
+            foreach (var item in items)
+            {
+                if (ratingMap.TryGetValue(item.DirectoryEntryId, out var rs) && rs.ReviewCount > 0)
+                {
+                    item.AverageRating = rs.AvgRating;
+                    item.ReviewCount = rs.ReviewCount;
+                }
+                else
+                {
+                    item.AverageRating = null;
+                    item.ReviewCount = 0;
+                }
+            }
         }
 
         private void SetCannonicalUrl()

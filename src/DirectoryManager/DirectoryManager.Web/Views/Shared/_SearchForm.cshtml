@@ -1,10 +1,13 @@
 ﻿@using DirectoryManager.Web.Services.Interfaces
+@using DirectoryManager.Web.Models
 @inject IUrlResolutionService Urls
+@model SearchFormViewModel
 
 <div class="text-center mb-3">
     <form method="get"
           action="@Urls.ResolveToApp("/search")"
-          class="form-inline">
+          class="form-inline search-form">
+
         <input type="search"
                name="q"
                class="form-control mr-2"
@@ -12,8 +15,39 @@
                aria-label="Search"
                placeholder="Search directory..."
                autocomplete="off" />
-        <button type="submit" class="btn btn-primary" style="padding:5px;">
+
+        <button type="submit"
+                class="btn btn-primary search-btn">
             Search
         </button>
-    </form>
+
+        @if (Model?.FilterCategoryId is > 0)
+        {
+            var routeVals = new Dictionary<string, object?>
+            {
+                ["CategoryId"] = Model.FilterCategoryId,
+                ["Page"] = 1,
+                ["PageSize"] = 10
+            };
+
+            if (Model.FilterSubCategoryId is > 0)
+            {
+                routeVals["SubCategoryId"] = Model.FilterSubCategoryId;
+            }
+
+            var filterUrl = @Urls.ResolveToApp(Url.Action("Index", "DirectoryFilter", routeVals) ?? "/filter");
+
+            <a href="@filterUrl"
+               class="btn btn-info search-btn">
+                Filter
+            </a>
+        }
+            else
+            {
+            <a href="@Urls.ResolveToApp("/filter")"
+               class="btn btn-info search-btn">
+                Filter
+            </a>
+            }
+        </form>
 </div>

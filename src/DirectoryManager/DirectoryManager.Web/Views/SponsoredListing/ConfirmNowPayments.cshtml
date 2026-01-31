@@ -123,6 +123,17 @@
                 </div>
                 <hr />
 
+                <div>
+                    <!-- Shared, no-JS CAPTCHA block (context = "sponsoredlisting-confirmnowpayments") -->
+                    @await Html.PartialAsync("_CaptchaBlock", "sponsoredlisting-confirmnowpayments")
+                    <div class="text-danger" style="margin-top:4px;">
+                        @Html.ValidationMessage("Captcha")
+                    </div>
+                </div>
+
+                <hr />
+
+
                 <input name="rsvId" type="hidden" value="@reservationGuid" />
                 <input type="hidden" name="directoryEntryId" value="@Model.SelectedDirectoryEntry.DirectoryEntryId" />
                 <input type="hidden" name="selectedOfferId" value="@Model.Offer.SponsoredListingOfferId" />

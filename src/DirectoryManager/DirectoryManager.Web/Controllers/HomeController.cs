@@ -1,5 +1,4 @@
 ﻿using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
@@ -18,6 +17,9 @@ namespace DirectoryManager.Web.Controllers
         private readonly ICacheService cacheService;
         private readonly ISponsoredListingRepository sponsoredListingRepository;
 
+        private readonly IDirectoryEntryReviewRepository reviewRepository;
+        private readonly IDirectoryEntryReviewCommentRepository commentRepository;
+
         public HomeController(
             IDirectoryEntryRepository directoryEntryRepository,
             ITrafficLogRepository trafficLogRepository,
@@ -25,7 +27,9 @@ namespace DirectoryManager.Web.Controllers
             IRssFeedService rssFeedService,
             IMemoryCache cache,
             ICacheService cacheService,
-            ISponsoredListingRepository sponsoredListingRepository)
+            ISponsoredListingRepository sponsoredListingRepository,
+            IDirectoryEntryReviewRepository reviewRepository,
+            IDirectoryEntryReviewCommentRepository commentRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.directoryEntryRepository = directoryEntryRepository;
@@ -33,13 +37,25 @@ namespace DirectoryManager.Web.Controllers
             this.cache = cache;
             this.cacheService = cacheService;
             this.sponsoredListingRepository = sponsoredListingRepository;
+            this.reviewRepository = reviewRepository;
+            this.commentRepository = commentRepository;
         }
 
         [HttpGet("/")]
         public async Task<IActionResult> IndexAsync()
         {
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "");
+            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, string.Empty);
+
+            // ✅ Load homepage “Latest Reviews” + “Latest Comments”
+            var latestReviews = await this.reviewRepository.ListLatestApprovedAsync(15);
+
+            // NOTE: method name may differ in your repo — see note below
+            var latestComments = await this.commentRepository.ListLatestApprovedAsync(10);
+
+            this.ViewBag.LatestReviews = latestReviews;
+            this.ViewBag.LatestComments = latestComments;
+
             return this.View();
         }
 
@@ -65,6 +81,21 @@ namespace DirectoryManager.Web.Controllers
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "donate");
             return this.View();
+        }
+
+        [HttpGet("about")]
+        public async Task<IActionResult> AboutAsync()
+        {
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
+            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "about");
+            return this.View();
+        }
+
+        [HttpGet("pgp")]
+        public async Task<IActionResult> PgpAsync()
+        {
+            var pgpKey = await this.cacheService.GetSnippetAsync(SiteConfigSetting.PgpKey);
+            return this.Content(pgpKey);
         }
 
         [HttpGet("newest")]

@@ -66,6 +66,7 @@ namespace DirectoryManager.Web.Extensions
             services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
             services.AddScoped<IRssFeedService, RssFeedService>();
             services.AddScoped<IDirectoryEntriesAuditService, DirectoryEntriesAuditService>();
+            services.AddScoped<IDirectoryEntryReviewCommentRepository, DirectoryEntryReviewCommentRepository>();
 
             // ✅ EmailService: sync DI factory, block on async at the edge
             services.AddScoped<IEmailService>(provider =>

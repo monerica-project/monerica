@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
+
 namespace DirectoryManager.Web.Controllers
 {
     [Authorize]
@@ -20,31 +21,31 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ICategoryRepository categoryRepository;
-        private readonly ISubcategoryRepository subCategoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly ISponsoredListingRepository sponsoredListingRepository;
         private readonly ICacheService cacheService;
         private readonly IMemoryCache cache;
+        private readonly IDirectoryEntryReviewRepository entryReviewsRepo;
 
         public CategoryController(
             UserManager<ApplicationUser> userManager,
             ICategoryRepository categoryRepository,
-            ISubcategoryRepository subCategoryRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IDirectoryEntryRepository directoryEntryRepository,
             ISponsoredListingRepository sponsoredListingRepository,
             ICacheService cacheService,
-            IMemoryCache cache)
+            IMemoryCache cache,
+            IDirectoryEntryReviewRepository entryReviewsRepo)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
             this.categoryRepository = categoryRepository;
-            this.subCategoryRepository = subCategoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
             this.sponsoredListingRepository = sponsoredListingRepository;
             this.cacheService = cacheService;
             this.cache = cache;
+            this.entryReviewsRepo = entryReviewsRepo;
         }
 
         [Route("category/index")]
@@ -93,6 +94,9 @@ namespace DirectoryManager.Web.Controllers
                 ItemDisplayType.Normal,
                 link2Name,
                 link3Name);
+
+            // ✅ ratings for items on this page
+            await this.ApplyRatingsAsync(vmItems);
 
             // 5) pull sponsors and collect their entry IDs (null-safe)
             var mainSponsors = await this.sponsoredListingRepository
@@ -146,6 +150,7 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View("CategoryItems", vm);
         }
+
 
         [Route("category/create")]
         [HttpPost]
@@ -220,5 +225,31 @@ namespace DirectoryManager.Web.Controllers
             existingCategory.Note = newCategory.Note?.Trim();
             existingCategory.MetaDescription = newCategory.MetaDescription?.Trim();
         }
+
+        private async Task ApplyRatingsAsync(List<DirectoryEntryViewModel> items)
+        {
+            var ids = items.Select(x => x.DirectoryEntryId).Distinct().ToList();
+            if (ids.Count == 0)
+            {
+                return;
+            }
+
+            var ratingMap = await this.entryReviewsRepo.GetRatingSummariesAsync(ids);
+
+            foreach (var item in items)
+            {
+                if (ratingMap.TryGetValue(item.DirectoryEntryId, out var rs) && rs.ReviewCount > 0)
+                {
+                    item.AverageRating = rs.AvgRating;
+                    item.ReviewCount = rs.ReviewCount;
+                }
+                else
+                {
+                    item.AverageRating = null;
+                    item.ReviewCount = 0;
+                }
+            }
+        }
+
     }
 }

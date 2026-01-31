@@ -1,18 +1,57 @@
-﻿@using DirectoryManager.Web.Constants
+﻿@using System.Globalization
+@using DirectoryManager.Web.Constants
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.DisplayFormatting.Helpers
 @using DirectoryManager.DisplayFormatting.Enums
 @using DirectoryManager.Web.Helpers
 @using Microsoft.AspNetCore.Html
+
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository reviewRepository
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
+
+@functions {
+    // Uses the same star markup/classes as DisplayMarkUpHelper.AppendRatingStars
+    // Makes ONLY the (count) clickable -> /site/{key}#reviews
+    private static IHtmlContent RenderRatingStarsWithLinkedCount(double avg, int count, string reviewsUrl)
+    {
+        const int totalStars = 5;
+        double percent = Math.Clamp(avg / totalStars * 100, 0, 100);
+
+        var sb = new System.Text.StringBuilder();
+
+        sb.Append("<span class=\"rating-wrapper\" aria-label=\"");
+        sb.Append($"{avg:0.0} out of 5 stars from {count} reviews\">");
+
+        sb.Append("<span class=\"stars\">");
+        sb.Append("<span class=\"stars-fill\" style=\"width:");
+        sb.Append(percent.ToString("0.##", CultureInfo.InvariantCulture));
+        sb.Append("%\"></span>");
+        sb.Append("</span>");
+
+        // Rating number (not a link)
+        sb.AppendFormat(CultureInfo.InvariantCulture, "<span class=\"rating-text\"> {0:0.0}/5 </span>", avg);
+
+        // Review count ONLY is a link
+        sb.Append("<a class=\"no-app-link rating-count-link\" href=\"");
+        sb.Append(System.Net.WebUtility.HtmlEncode(reviewsUrl));
+        sb.Append("\">");
+        sb.Append("(");
+        sb.Append(count.ToString(CultureInfo.InvariantCulture));
+        sb.Append(")</a>");
+
+        sb.Append("</span>");
+
+        return new HtmlString(sb.ToString());
+    }
+}
 
 <cache-content cache-key="@StringConstants.CacheKeySponsoredListings">
     @{
         // 1) Fetch active MainSponsor listings
         var sponsoredListings = await sponsoredListingRepository
-        .GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
+            .GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
 
         // 2) Load their directory entries
         var entries = new List<DirectoryManager.Data.Models.DirectoryEntry>();
@@ -25,22 +64,29 @@
         // 3) Convert to view-models
         var link2Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
         var link3Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
+
         var vms = ViewModelConverter.ConvertToViewModels(
-        entries,
-        DateDisplayOption.NotDisplayed,
-        ItemDisplayType.SubcategorySponsor,
-        link2Name,
-        link3Name
+            entries,
+            DateDisplayOption.NotDisplayed,
+            ItemDisplayType.SubcategorySponsor,
+            link2Name,
+            link3Name
         );
 
-        // 4) Truncation limit (tweak as you like)
+        // 3b) Pull rating summaries for sponsor entries (ONE call)
+        var entryIds = entries.Select(x => x.DirectoryEntryId).Distinct().ToList();
+        var ratingSummaries = entryIds.Count == 0
+            ? new Dictionary<int, DirectoryManager.Data.Models.TransferModels.RatingSummaryDto>()
+            : await reviewRepository.GetRatingSummariesAsync(entryIds);
+
+        // 4) Truncation limit
         const int descLimit = 165;
 
         // 5) Helper to get status icon
-        // Map DirectoryStatus → HTML entity string
         Func<DirectoryStatus, IHtmlContent> statusIcon = status => status.ToHtmlIcon();
     }
 
+ 
     @if (vms.Any())
     {
         <section class="sponsors">
@@ -55,28 +101,55 @@
                         htmlBlob += " <i>(Note: " + vm.Note.Trim() + ")</i>";
                     }
 
+                    // rating summary lookup
+                    double? avg = null;
+                    int? count = null;
+                    if (ratingSummaries != null && ratingSummaries.TryGetValue(vm.DirectoryEntryId, out var rs))
+                    {
+                        avg = rs.AvgRating;
+                        count = rs.ReviewCount;
+                    }
+
+                    bool hasRating = avg.HasValue && count.HasValue && count.Value > 0;
+                    bool hasLinks = !string.IsNullOrWhiteSpace(vm.Link2) || !string.IsNullOrWhiteSpace(vm.Link3);
+
+                    // /site/sitename#reviews
+                    var reviewsUrl = $"/site/{vm.DirectoryEntryKey}#reviews";
+
                     <div class="sponsor-card">
                         <!-- Status + Title -->
                         <div class="sponsor-header">
                             <span class="status">@Html.Raw(statusIcon(vm.DirectoryStatus))</span>
-                            <a rel="sponsored" href="@(vm.Link)"
+                            <a rel="sponsored"
+                               href="@(vm.Link)"
                                target="_blank"
                                class="title"><b>@vm.Name</b></a>
                         </div>
 
-                        <!-- Tor / Link2 / Link3 -->
-                        <div class="sponsor-links">
-                            @if (!string.IsNullOrEmpty(vm.Link2))
-                            {
-                                <text>&nbsp;</text>
-                                <a rel="sponsored" href="@vm.Link2" target="_blank">@vm.Link2Name</a>
-                            }
-                            @if (!string.IsNullOrEmpty(vm.Link3))
-                            {
-                                <text> | </text>
-                                <a rel="sponsored" href="@vm.Link3" target="_blank">@vm.Link3Name</a>
-                            }
-                        </div>
+                        @* One row under name: rating on left, Tor/I2P centered to the right *@
+                        @if (hasRating || hasLinks)
+                        {
+                            <div class="sponsor-meta-row">
+                                <div class="sponsor-rating">
+                                    @if (hasRating)
+                                    {
+                                        @RenderRatingStarsWithLinkedCount(avg!.Value, count!.Value, reviewsUrl)
+                                    }
+                                </div>
+
+                                <div class="sponsor-links-center">
+                                    @if (!string.IsNullOrWhiteSpace(vm.Link2))
+                                    {
+                                        <a rel="sponsored" href="@vm.Link2" target="_blank">@vm.Link2Name</a>
+                                    }
+                                    @if (!string.IsNullOrWhiteSpace(vm.Link3))
+                                    {
+                                        <text> | </text>
+                                        <a rel="sponsored" href="@vm.Link3" target="_blank">@vm.Link3Name</a>
+                                    }
+                                </div>
+                            </div>
+                        }
 
                         <!-- Truncated HTML-safe description -->
                         <p class="sponsor-desc">
@@ -87,21 +160,20 @@
             </div>
         </section>
 
-<div style="clear:both"></div>
+        <div style="clear:both"></div>
 
-
-        var maxMain = DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings;
-        var activeCount = sponsoredListings.Count();
-        var openings = Math.Max(0, maxMain - activeCount);
-        var displayCount = Math.Min(activeCount, maxMain);
+        
+            var maxMain = DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings;
+            var activeCount = sponsoredListings.Count();
+            var openings = Math.Max(0, maxMain - activeCount);
+            var displayCount = Math.Min(activeCount, maxMain);
+        
 
         <p class="create-sponsored-listing">
             @if (openings > 0)
             {
-                <!-- Status (not a link) -->
                 <span class="status-text">@($"{displayCount}/{maxMain} Active")</span>
                 <span aria-hidden="true"> — </span>
-                <!-- Action (link only) -->
                 <a class="app-link"
                    href="~/sponsoredlisting/selectlisting?sponsorshipType=@SponsorshipType.MainSponsor">
                     Buy sponsored listing
@@ -110,10 +182,8 @@
             }
             else
             {
-                <!-- Status (not a link) -->
                 <span class="status-text">@($"{displayCount}/{maxMain} Full")</span>
                 <span aria-hidden="true"> — </span>
-                <!-- Action (link only) -->
                 <a class="app-link"
                    href="~/sponsoredlistingnotification/subscribe?sponsorshipType=@SponsorshipType.MainSponsor"
                    aria-label="Join waitlist for Main Sponsor (currently @displayCount of @maxMain filled)">

@@ -27,6 +27,7 @@
 @BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
 
 @section PageContent {
+    @await Html.PartialAsync("_SiteLogo")
     <h1>Sitemap: @StringConstants.AllCategories</h1>
     <hr />
 

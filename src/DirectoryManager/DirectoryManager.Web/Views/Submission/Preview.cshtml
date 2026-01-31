@@ -9,7 +9,10 @@
 }
 @section PageContent {
 
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader] </h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
 <hr />
 <div class="submission-guidelines">
     <p><b class="text-danger">NOT SUBMITTED YET!</b></p>

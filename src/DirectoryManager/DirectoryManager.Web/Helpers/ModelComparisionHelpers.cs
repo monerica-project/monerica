@@ -4,7 +4,11 @@ namespace DirectoryManager.Web.Helpers
 {
     internal static class ModelComparisonHelpers
     {
-        public static string CompareEntries(DirectoryEntry entry, Submission submission)
+        public static string CompareEntries(
+             DirectoryEntry entry,
+             Submission submission,
+             IReadOnlyList<string>? entryTagNames = null,
+             IReadOnlyList<string>? selectedTagNames = null)
         {
             if (entry == null || submission == null)
             {
@@ -104,14 +108,43 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("Subcategory", entrySubCategory, submissionSubCategory);
             }
 
-            if (entry.Tags != submission.Tags)
-            {
-                AddDifference("Tags", entry.Tags, submission.Tags);
-            }
-
             if (entry.DirectoryStatus != submission.DirectoryStatus)
             {
                 AddDifference("Directory Status", entry.DirectoryStatus, submission.DirectoryStatus);
+            }
+
+            // -----------------------------
+            // ✅ Tags: compare checkbox selections vs current entry tags
+            // -----------------------------
+            var entrySet = new HashSet<string>(
+                (entryTagNames ?? Array.Empty<string>())
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => x.Trim()),
+                StringComparer.OrdinalIgnoreCase);
+
+            var selectedSet = new HashSet<string>(
+                (selectedTagNames ?? Array.Empty<string>())
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Select(x => x.Trim()),
+                StringComparer.OrdinalIgnoreCase);
+
+            if (!entrySet.SetEquals(selectedSet))
+            {
+                var added = selectedSet.Except(entrySet, StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+                var removed = entrySet.Except(selectedSet, StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
+
+                string entryTagsDisplay = entrySet.Count == 0 ? "<i>(none)</i>" : string.Join(", ", entrySet.OrderBy(x => x));
+                string selectedTagsDisplay = selectedSet.Count == 0 ? "<i>(none)</i>" : string.Join(", ", selectedSet.OrderBy(x => x));
+
+                string addedDisplay = added.Count == 0 ? "<i>(none)</i>" : string.Join(", ", added);
+                string removedDisplay = removed.Count == 0 ? "<i>(none)</i>" : string.Join(", ", removed);
+
+                differences.Add(
+                    "<p><strong>Tags:</strong><br>" +
+                    $"<em>Entry:</em><br> {entryTagsDisplay}<br>" +
+                    $"<em>User selected:</em><br> {selectedTagsDisplay}<br>" +
+                    $"<em>Added:</em><br> {addedDisplay}<br>" +
+                    $"<em>Removed:</em><br> {removedDisplay}</p>");
             }
 
             return differences.Count > 0

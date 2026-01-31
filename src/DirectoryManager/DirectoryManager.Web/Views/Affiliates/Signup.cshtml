@@ -6,7 +6,10 @@
     Layout = "_CenteredLayout";
 }
 @section PageContent {
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
     <hr />
     <div asp-validation-summary="All" class="text-danger"></div>
 
