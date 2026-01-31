@@ -2,21 +2,27 @@
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
     [Authorize]
     [Route("admin/reviews")]
-    public class ReviewModerationController : Controller
+    public class ReviewModerationController : BaseController
     {
         private readonly IDirectoryEntryReviewRepository repo;
         private readonly IDirectoryEntryReviewCommentRepository commentRepo;
 
         public ReviewModerationController(
-            IDirectoryEntryReviewRepository repo,
-            IDirectoryEntryReviewCommentRepository commentRepo)
+             IDirectoryEntryReviewRepository repo,
+             IDirectoryEntryReviewCommentRepository commentRepo,
+             ITrafficLogRepository trafficLogRepository,
+             IUserAgentCacheService userAgentCacheService,
+             IMemoryCache cache)
+            : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.repo = repo;
             this.commentRepo = commentRepo;
@@ -43,8 +49,10 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("all")]
         public async Task<IActionResult> All(
             ReviewModerationStatus? status = null,
-            int reviewPage = 1, int reviewPageSize = 50,
-            int replyPage = 1, int replyPageSize = 50,
+            int reviewPage = 1,
+            int reviewPageSize = 50,
+            int replyPage = 1,
+            int replyPageSize = 50,
             CancellationToken ct = default)
         {
             IReadOnlyList<DirectoryEntryReview> reviews;
@@ -103,7 +111,10 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Show(int id, CancellationToken ct = default)
         {
             var item = await this.repo.GetByIdAsync(id, ct);
-            if (item is null) return this.NotFound();
+            if (item is null)
+            {
+                return this.NotFound();
+            }
 
             return this.View("Show", item);
         }
@@ -114,6 +125,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Approve(int id, CancellationToken ct = default)
         {
             await this.repo.ApproveAsync(id, ct);
+            this.ClearCachedItems();
             return this.RedirectToAction(nameof(this.Pending));
         }
 
@@ -125,13 +137,17 @@ namespace DirectoryManager.Web.Controllers
             if (string.IsNullOrWhiteSpace(reason))
             {
                 var item = await this.repo.GetByIdAsync(id, ct);
-                if (item is null) return this.NotFound();
+                if (item is null)
+                {
+                    return this.NotFound();
+                }
 
                 this.ModelState.AddModelError("reason", "A rejection reason is required.");
                 return this.View("Show", item);
             }
 
             await this.repo.RejectAsync(id, reason, ct);
+            this.ClearCachedItems();
             return this.RedirectToAction(nameof(this.Pending));
         }
 
@@ -141,6 +157,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Delete(int id, CancellationToken ct = default)
         {
             await this.repo.DeleteAsync(id, ct);
+            this.ClearCachedItems();
             return this.RedirectToAction(nameof(this.Pending));
         }
 
@@ -152,7 +169,10 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> ShowReply(int id, CancellationToken ct = default)
         {
             var item = await this.commentRepo.GetByIdAsync(id, ct);
-            if (item is null) return this.NotFound();
+            if (item is null)
+            {
+                return this.NotFound();
+            }
 
             return this.View("ShowReply", item);
         }
@@ -163,6 +183,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> ApproveReply(int id, CancellationToken ct = default)
         {
             await this.commentRepo.ApproveAsync(id, ct);
+            this.ClearCachedItems();
             return this.RedirectToAction(nameof(this.Pending));
         }
 
@@ -190,6 +211,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> DeleteReply(int id, CancellationToken ct = default)
         {
             await this.commentRepo.DeleteAsync(id, ct);
+            this.ClearCachedItems();
             return this.RedirectToAction(nameof(this.Pending));
         }
     }
