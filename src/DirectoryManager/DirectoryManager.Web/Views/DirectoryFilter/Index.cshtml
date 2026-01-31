@@ -262,6 +262,24 @@
                 {
                     <option value="LowestRating">Lowest rating</option>
                 }
+                @if (sort == DirectoryFilterSort.NameAsc)
+                {
+                    <option value="NameAsc" selected="selected">Name (A–Z)</option>
+                }
+                else
+                {
+                    <option value="NameAsc">Name (A–Z)</option>
+                }
+
+                @if (sort == DirectoryFilterSort.NameDesc)
+                {
+                    <option value="NameDesc" selected="selected">Name (Z–A)</option>
+                }
+                else
+                {
+                    <option value="NameDesc">Name (Z–A)</option>
+                }
+
             </select>
         </label>
     </fieldset>

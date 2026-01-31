@@ -6,7 +6,6 @@ using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
 using Microsoft.EntityFrameworkCore;
-using static Microsoft.EntityFrameworkCore.DbLoggerCategory;
 
 namespace DirectoryManager.Data.Repositories.Implementations
 {
@@ -1181,6 +1180,22 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return baseQ
                     .OrderBy(e => e.CreateDate)
                     .ThenBy(e => e.DirectoryEntryId)
+                    .Select(e => e.DirectoryEntryId);
+            }
+
+            if (sort == DirectoryFilterSort.NameAsc)
+            {
+                return baseQ
+                    .OrderBy(e => e.Name.ToLower())
+                    .ThenBy(e => e.DirectoryEntryId)
+                    .Select(e => e.DirectoryEntryId);
+            }
+
+            if (sort == DirectoryFilterSort.NameDesc)
+            {
+                return baseQ
+                    .OrderByDescending(e => e.Name.ToLower())
+                    .ThenByDescending(e => e.DirectoryEntryId)
                     .Select(e => e.DirectoryEntryId);
             }
 
