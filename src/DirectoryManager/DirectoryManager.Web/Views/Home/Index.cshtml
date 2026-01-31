@@ -6,6 +6,9 @@
 @using DirectoryManager.Web.Models
 @using DirectoryManager.Utilities.Helpers
 @using Microsoft.AspNetCore.Html
+@using Microsoft.AspNetCore.Http
+@using DirectoryManager.Web.Services.Interfaces
+@using System.Net
 
 @model DirectoryManager.Data.Models.Category
 
@@ -19,11 +22,13 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository subCatRepo
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository reviewRepository
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+@inject IHttpContextAccessor httpContextAccessor
+@inject IUrlResolutionService urlResolver
 
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 @functions {
-    private static IHtmlContent RenderInlineRatingStars_NoCount(double value)
+    private static IHtmlContent RenderInlineRatingStars_NoCount_LinkToReview(double value, string reviewAnchorUrl)
     {
         const int totalStars = 5;
         double percent = Math.Clamp(value / totalStars * 100, 0, 100);
@@ -39,10 +44,12 @@
         sb.Append("%\"></span>");
         sb.Append("</span>");
 
-        // ✅ rating text WITHOUT review count
-        sb.AppendFormat(
-            "<span class=\"rating-text\"> {0:0}/5</span>",
-            value);
+        // ✅ Link ONLY the "x/5" text to #review-ID
+        sb.Append("<a class=\"rating-text\" href=\"");
+        sb.Append(WebUtility.HtmlEncode(reviewAnchorUrl));
+        sb.Append("\"> ");
+        sb.Append(value.ToString("0", System.Globalization.CultureInfo.InvariantCulture));
+        sb.Append("/5</a>");
 
         sb.Append("</span>");
 
@@ -50,14 +57,38 @@
     }
 }
 
-
-
 @{
     ViewData[StringConstants.TitleHeader] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageTitle));
     ViewData[StringConstants.MetaContent] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageMetaTags));
     ViewData["CurrentCategoryKey"] = null;
     ViewData["CurrentSubCategoryKey"] = null;
     Layout = "_LayoutWithNav";
+}
+
+@{
+    // ✅ Decide whether we should emit fully-qualified URLs
+    var root = await cacheHelper.GetSnippetAsync(SiteConfigSetting.FullRootUrl);
+    var isOnTor = httpContextAccessor.HttpContext?.Request.Host.Host.EndsWith(DirectoryManager.Web.Constants.StringConstants.TorDomain) ?? false;
+    var useRelative = isOnTor || string.IsNullOrWhiteSpace(root) || urlResolver.IsLocal;
+
+    string BuildListingUrlWithAnchor(string entryKey, string anchor)
+    {
+        // base path (relative): "/site/xyz"
+        var rel = FormattingHelper.ListingPath(entryKey);
+
+        // ensure it starts with "/"
+        if (!rel.StartsWith("/")) rel = "/" + rel;
+
+        // add anchor
+        var withAnchor = $"{rel}#{anchor}";
+
+        // Tor/local => keep relative
+        if (useRelative) return withAnchor;
+
+        // Otherwise fully-qualified
+        var baseUrl = root.TrimEnd('/');
+        return $"{baseUrl}{withAnchor}";
+    }
 }
 
 @{
@@ -145,7 +176,7 @@
         @* Featured *@
         @{
             var featuredEntries = await directoryEntrySelectionRepository
-                .GetEntriesForSelection(EntrySelectionType.Featured);
+            .GetEntriesForSelection(EntrySelectionType.Featured);
 
             var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
             var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
@@ -157,11 +188,11 @@
             <ul class="blank_list_item">
                 @{
                     var vmList = ViewModelConverter.ConvertToViewModels(
-                        featuredEntries.ToList(),
-                        DateDisplayOption.NotDisplayed,
-                        ItemDisplayType.Featured,
-                        link2Name,
-                        link3Name);
+                    featuredEntries.ToList(),
+                    DateDisplayOption.NotDisplayed,
+                    ItemDisplayType.Featured,
+                    link2Name,
+                    link3Name);
                 }
                 @foreach (var vm in vmList)
                 {
@@ -188,10 +219,10 @@
             <ul class="blank_list_item">
                 @{
                     var vmList = ViewModelConverter.ConvertToViewModels(
-                        newest.ToList(),
-                        DateDisplayOption.DisplayCreateDate,
-                        ItemDisplayType.Normal,
-                        link2Name, link3Name);
+                    newest.ToList(),
+                    DateDisplayOption.DisplayCreateDate,
+                    ItemDisplayType.Normal,
+                    link2Name, link3Name);
                 }
                 @foreach (var vm in vmList)
                 {
@@ -216,10 +247,10 @@
             <ul class="blank_list_item">
                 @{
                     var vmList = ViewModelConverter.ConvertToViewModels(
-                        revisions.ToList(),
-                        DateDisplayOption.DisplayUpdateDate,
-                        ItemDisplayType.NewestRevions,
-                        link2Name, link3Name);
+                    revisions.ToList(),
+                    DateDisplayOption.DisplayUpdateDate,
+                    ItemDisplayType.NewestRevions,
+                    link2Name, link3Name);
                 }
                 @foreach (var vm in vmList)
                 {
@@ -243,12 +274,12 @@
                             @foreach (var e in entries)
                             {
                                 var vm = ViewModelConverter
-                                    .ConvertToViewModels(
-                                        new List<DirectoryEntry> { e },
-                                        DateDisplayOption.NotDisplayed,
-                                        ItemDisplayType.CategorySponsor,
-                                        link2Name, link3Name)
-                                    .First();
+                                .ConvertToViewModels(
+                                new List<DirectoryEntry> { e },
+                                DateDisplayOption.NotDisplayed,
+                                ItemDisplayType.CategorySponsor,
+                                link2Name, link3Name)
+                                .First();
 
                                 vm.IsSponsored = true;
 
@@ -279,12 +310,12 @@
                             @foreach (var e in entries)
                             {
                                 var vm = ViewModelConverter
-                                    .ConvertToViewModels(
-                                        new List<DirectoryEntry> { e },
-                                        DateDisplayOption.NotDisplayed,
-                                        ItemDisplayType.SubcategorySponsor,
-                                        link2Name, link3Name)
-                                    .First();
+                                .ConvertToViewModels(
+                                new List<DirectoryEntry> { e },
+                                DateDisplayOption.NotDisplayed,
+                                ItemDisplayType.SubcategorySponsor,
+                                link2Name, link3Name)
+                                .First();
 
                                 vm.IsSponsored = true;
 
@@ -327,23 +358,27 @@
                     var listingName = e.Name ?? "Listing";
                     var oneLine = TextHelper.TruncateAtWord((r.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
 
-                    var url = UrlResolver.ResolveToRoot(FormattingHelper.ListingPath(e.DirectoryEntryKey));
+                    // ✅ Listing base URL (no anchor)
+                    var listingUrl = UrlResolver.ResolveToRoot(FormattingHelper.ListingPath(e.DirectoryEntryKey));
+
+                    // ✅ Review deep-link
+                    var reviewAnchorUrl = BuildListingUrlWithAnchor(e.DirectoryEntryKey, $"review-{r.DirectoryEntryReviewId}");
+
                     var reviewDate = (r.UpdateDate ?? r.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
 
                     <li>
                         <i>@reviewDate</i>
-                        <a href="@url">@listingName</a>
+                        <a href="@listingUrl">@listingName</a>
                         @if (r.Rating.HasValue && r.Rating.Value > 0)
                         {
-                            // ✅ Uses same CSS classes/structure as DisplayMarkUpHelper
-                            @: — @RenderInlineRatingStars_NoCount(r.Rating.Value)
+                            @: — @RenderInlineRatingStars_NoCount_LinkToReview(r.Rating.Value, reviewAnchorUrl)
                         }
                         — @oneLine
                     </li>
                 }
             </ul>
 
-            @* ✅ Latest Comments (NO stars; link only to listing like reviews) *@
+            @* ✅ Latest Replies *@
             @if (latestComments?.Any() == true)
             {
                 <p><b>Latest Replies</b></p>
@@ -359,14 +394,16 @@
                         }
 
                         var listingName = entry.Name ?? "Listing";
-                        var listingUrl = UrlResolver.ResolveToRoot(FormattingHelper.ListingPath(entry.DirectoryEntryKey));
-                        var commentDate = (c.UpdateDate ?? c.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
 
+                        // ✅ Comment deep-link
+                        var commentAnchorUrl = BuildListingUrlWithAnchor(entry.DirectoryEntryKey, $"review-comment-{c.DirectoryEntryReviewCommentId}");
+
+                        var commentDate = (c.UpdateDate ?? c.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
                         var snippet = TextHelper.TruncateAtWord((c.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
 
                         <li>
                             <i>@commentDate</i>
-                            <a href="@listingUrl">@listingName</a>
+                            <a href="@commentAnchorUrl">@listingName</a>
                             — @snippet
                         </li>
                     }

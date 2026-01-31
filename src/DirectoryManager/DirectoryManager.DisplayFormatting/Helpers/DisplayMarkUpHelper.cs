@@ -407,7 +407,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             // (count) linked only if we have a URL
             if (!string.IsNullOrWhiteSpace(reviewsUrl))
             {
-                sb.Append("<a class=\"no-app-link rating-count-link\" href=\"");
+                sb.Append("<a class=\"rating-count-link\" href=\"");
                 sb.Append(WebUtility.HtmlEncode(reviewsUrl));
                 sb.Append("\">(");
                 sb.Append(count.ToString(CultureInfo.InvariantCulture));
