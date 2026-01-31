@@ -1,6 +1,24 @@
-﻿@using DirectoryManager.Web.Enums;
-@using DirectoryManager.Web.Constants;
+﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Enums
+@using DirectoryManager.Web.Constants
+
 @model DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
+
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 
-@Html.Raw(DirectoryManager.DisplayFormatting.Helpers.DisplayMarkUpHelper.GenerateDirectoryEntryHtml(Model, UrlResolver.BaseUrl))
+@{
+    // Use fully-qualified root only when NOT Tor, NOT local, and root exists
+    var root = await cacheHelper.GetSnippetAsync(SiteConfigSetting.FullRootUrl);
+    var isOnTor = httpContextAccessor.HttpContext?.Request.Host.Host
+        .EndsWith(DirectoryManager.Web.Constants.StringConstants.TorDomain) ?? false;
+
+    // null/empty rootUrl -> helper will generate relative "/site/xyz#reviews"
+    // fully-qualified rootUrl -> helper will generate "https://domain/site/xyz#reviews"
+    var rootUrlToUse = (isOnTor || UrlResolver.IsLocal || string.IsNullOrWhiteSpace(root))
+        ? null
+        : root;
+}
+
+@Html.Raw(DirectoryManager.DisplayFormatting.Helpers.DisplayMarkUpHelper.GenerateDirectoryEntryHtml(Model, rootUrlToUse))
