@@ -13,6 +13,7 @@
 @inject ICategoryRepository categoryRepo
 @inject ISubcategoryRepository subCatRepo
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository directoryEntryReviewRepository
 
 @{
     ViewData[StringConstants.TitleHeader] = string.Format(
@@ -90,12 +91,26 @@
         var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
         var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
-        // ✅ now comes from controller (already includes AverageRating + ReviewCount)
         var viewModelList = Model.EntryViewModels
             ?? new List<DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel>();
 
         var subCategorySponsor = subCategorySponsors.FirstOrDefault();
         var activeEntries = await directoryEntryRepository.GetActiveEntriesBySubcategoryAsync(Model.SubCategoryId);
+
+        // ✅ Pull rating summary for subcategory sponsor (AvgRating + ReviewCount)
+        DirectoryManager.Data.Models.TransferModels.RatingSummaryDto? sponsorRating = null;
+
+        if (subCategorySponsor?.DirectoryEntry != null)
+        {
+            var sponsorId = subCategorySponsor.DirectoryEntry.DirectoryEntryId;
+
+            var ratingDict = await directoryEntryReviewRepository.GetRatingSummariesAsync(new[] { sponsorId });
+
+            if (ratingDict.TryGetValue(sponsorId, out var dto))
+            {
+                sponsorRating = dto;
+            }
+        }
 
         var subCategorySponsorModel = new DirectoryManager.Web.Models.SubcategorySponsorModel
         {
@@ -105,28 +120,53 @@
                 ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
                 {
                     DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+
                     Link = subCategorySponsor.DirectoryEntry.Link,
+                    LinkA = subCategorySponsor.DirectoryEntry.LinkA,
+
                     Name = subCategorySponsor.DirectoryEntry.Name,
                     Contact = subCategorySponsor.DirectoryEntry.Contact,
                     Description = subCategorySponsor.DirectoryEntry.Description,
                     DirectoryEntryId = subCategorySponsor.DirectoryEntry.DirectoryEntryId,
+                    DirectoryEntryKey = subCategorySponsor.DirectoryEntry.DirectoryEntryKey,
                     DirectoryStatus = subCategorySponsor.DirectoryEntry.DirectoryStatus,
+
                     Link2 = subCategorySponsor.DirectoryEntry.Link2,
+                    Link2A = subCategorySponsor.DirectoryEntry.Link2A,
                     Link3 = subCategorySponsor.DirectoryEntry.Link3,
+                    Link3A = subCategorySponsor.DirectoryEntry.Link3A,
+
                     Location = subCategorySponsor.DirectoryEntry.Location,
                     Note = subCategorySponsor.DirectoryEntry.Note,
                     Processor = subCategorySponsor.DirectoryEntry.Processor,
                     SubCategoryId = subCategorySponsor.DirectoryEntry.SubCategoryId,
+
                     CreateDate = subCategorySponsor.DirectoryEntry.CreateDate,
                     UpdateDate = subCategorySponsor.DirectoryEntry.UpdateDate,
+
                     LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage,
                     IsSponsored = true,
+                    DisplayAsSponsoredItem = false,
+
                     Link2Name = link2Name,
-                    Link3Name = link3Name
+                    Link3Name = link3Name,
+
+                    // ✅ needed if rating count links to #reviews
+                    ItemPath = "/site/" + subCategorySponsor.DirectoryEntry.DirectoryEntryKey,
+
+                    // ✅ ratings from RatingSummaryDto
+                    AverageRating = (sponsorRating != null && sponsorRating.ReviewCount > 0)
+                        ? sponsorRating.AvgRating
+                        : null,
+
+                    ReviewCount = (sponsorRating != null && sponsorRating.ReviewCount > 0)
+                        ? sponsorRating.ReviewCount
+                        : null
                 }
                 : null
         };
     }
+
 
     @* THIS must stay to keep the CTA *@
     @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", subCategorySponsorModel)

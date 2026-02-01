@@ -1219,7 +1219,7 @@ a.external-link {
 }
 
 .text-muted {
-    font-size: x-small;
+    font-size: small;
 }
 
 .rating-wrapper {
@@ -1559,7 +1559,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px;}
 }
 
     .reply-item:not(:last-child) {
-        border-bottom: 1px solid rgba(160, 170, 180, 0.20);
+        border-bottom: 1px solid rgba(160, 170, 180, 0.50);
     }
 
 .reply-body {
