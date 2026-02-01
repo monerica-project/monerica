@@ -255,9 +255,10 @@ ul.newest_items li ul li p.small-font {
     cursor: pointer;
 }
 
-    .btn-sm {
-        height: 20px; padding: 10px;
-    }
+.btn-sm {
+    height: 20px !important;
+    padding: 10px !important;
+}
 
     .btn:hover,
     .btn:focus {
@@ -672,7 +673,7 @@ p.intro {
     line-height: 1.4;
 }
 
-.sponsor-card a {
+.sponsor-card a b {
     font-size: 20px;
 }
 
@@ -1400,4 +1401,154 @@ a.external-link {
             margin: 0 !important;
             padding: 1rem !important;
         }
+}
+
+
+/* Rating on left, Tor/I2P centered in remaining space to the right edge */
+.sponsor-meta-row {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    align-items: center;
+    margin-top: 6px;
+    margin-bottom: 0;
+    gap: 10px;
+}
+
+/* Nudge stars slightly right */
+.sponsor-rating {
+    padding-left: 6px;
+    white-space: nowrap;
+    line-height: 1;
+}
+
+/* Tor/I2P centered between rating block and right border */
+.sponsor-links-center {
+    text-align: left;
+    white-space: nowrap;
+    margin: 0;
+}
+
+    .sponsor-links-center a {
+        font-size: 0.85em
+    }
+
+/* Make numbers smaller to free horizontal room */
+.sponsor-rating .rating-text,
+.sponsor-rating .rating-count-link {
+    font-size: 0.85em;
+}
+
+/* Only (count) is a link */
+.rating-count-link {
+    text-decoration: none;
+    margin-left: 2px;
+    font-size: 0.85em;
+}
+
+    .rating-count-link:hover {
+        text-decoration: underline;
+    }
+
+ul.list-unstyled { margin-left: 15px;}
+
+.list-unstyled li {
+    list-style: none;
+    padding-bottom: 15px;
+}
+
+/* Overall wrapper: left summary + right distribution */
+.rating-summary {
+    display: grid;
+    grid-template-columns: 140px 1fr; /* left block, right bars */
+    gap: 18px;
+    align-items: center;
+    max-width: 820px;
+    margin: 6px 0 14px 0;
+}
+
+/* Left summary */
+.rs-left {
+    text-align: left;
+}
+
+.rs-avg {
+    font-size: 48px; /* big number like reference */
+    line-height: 1;
+    font-weight: 700;
+    color: #d7dde3;
+    margin: 0;
+}
+
+.rs-stars {
+    margin-top: 6px;
+}
+
+.rs-count {
+    margin-top: 6px;
+    font-size: 16px;
+    color: #9fb0c2;
+}
+
+/* Right distribution */
+.rs-right {
+}
+
+/* tighter rows */
+.rating-row {
+    display: grid;
+    grid-template-columns: 18px 1fr 44px; /* star | bar | % */
+    gap: 10px;
+    align-items: center;
+    margin: 4px 0;
+}
+
+.rating-num {
+    font-size: 14px;
+    font-weight: 600;
+    color: #cfd6dd;
+    line-height: 1;
+    text-align: right;
+}
+
+.rating-track {
+    height: 10px;
+    width: 100%;
+    background: rgba(255,255,255,0.14);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.rating-fill {
+    height: 100%;
+    width: 0%;
+    background: #ff6600;
+    border-radius: 999px;
+}
+
+.rating-pct {
+    font-size: 14px;
+    color: #9fb0c2;
+    text-align: right;
+    line-height: 1;
+}
+
+/* Optional: make this whole thing more compact on mobile */
+@media (max-width: 520px) {
+    .rating-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .rs-left {
+        display: flex;
+        align-items: center;
+        gap: 14px;
+    }
+
+    .rs-avg {
+        font-size: 44px;
+    }
+
+    .rs-count {
+        margin-top: 0;
+    }
 }

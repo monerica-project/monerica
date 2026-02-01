@@ -51,6 +51,29 @@
         return new HtmlString(sb.ToString());
     }
 
+    public static IHtmlContent RenderAggregateStars(double? avg, int? count, bool starsOnly = false)
+    {
+        if (!avg.HasValue || !count.HasValue || count.Value <= 0)
+            return HtmlString.Empty;
+
+        const int totalStars = 5;
+        double percent = Math.Clamp(avg.Value / totalStars * 100, 0, 100);
+
+        if (starsOnly)
+        {
+            return new HtmlString($@"
+<span class=""rating-wrapper"" aria-label=""{avg:0.0} out of 5 stars from {count} reviews"">
+  <span class=""stars""><span class=""stars-fill"" style=""width:{percent:0.##}%""></span></span>
+</span>");
+        }
+
+        return new HtmlString($@"
+<span class=""rating-wrapper"" aria-label=""{avg:0.0} out of 5 stars from {count} reviews"">
+  <span class=""stars""><span class=""stars-fill"" style=""width:{percent:0.##}%""></span></span>
+  <span class=""rating-text""> {avg:0.0}/5 ({count})</span>
+</span>");
+    }
+
     public static List<DirectoryEntryReviewComment> GetReplies(
         Dictionary<int, List<DirectoryEntryReviewComment>>? dict, int reviewId)
     {
@@ -86,21 +109,89 @@
 </span>");
     }
 }
+ 
 
 @{
     var pageUrl = ViewData[DirectoryManager.Web.Constants.StringConstants.CanonicalUrl];
+
+    // Rating distribution (1–5)
+    int totalReviews = Model?.Reviews?.Count ?? 0;
+
+    int c5 = Model?.Reviews?.Count(x => (x.Rating ?? 0) == 5) ?? 0;
+    int c4 = Model?.Reviews?.Count(x => (x.Rating ?? 0) == 4) ?? 0;
+    int c3 = Model?.Reviews?.Count(x => (x.Rating ?? 0) == 3) ?? 0;
+    int c2 = Model?.Reviews?.Count(x => (x.Rating ?? 0) == 2) ?? 0;
+    int c1 = Model?.Reviews?.Count(x => (x.Rating ?? 0) == 1) ?? 0;
+
+    double P(int count) => totalReviews <= 0 ? 0 : (count * 100.0 / totalReviews);
 }
+ 
+
 
 <div class="reviews-block mt-4">
-    <h3 id="reviews" class="mb-3">Reviews</h3>
+    <h3 id="reviews" class="mb-3">Reviews</h3> 
 
     @if (Model.ReviewCount > 0)
     {
-        <p>
-            <strong>Average rating:</strong>
-            @Html.Raw(RenderAggregateStars(Model.AverageRating, Model.ReviewCount))
-        </p>
+        <div class="rating-summary" aria-label="Review summary">
+            <!-- Left: Big average + stars + total count -->
+            <div class="rs-left">
+                <div class="rs-avg">@Model.AverageRating.Value.ToString("0.0")</div>
 
+                <div class="rs-stars">
+                    @Html.Raw(RenderAggregateStars(Model.AverageRating, Model.ReviewCount, true))
+                </div>
+
+                <div class="rs-count">@Model.ReviewCount rating@(Model.ReviewCount == 1 ? "" : "s")</div>
+            </div>
+
+            <!-- Right: Distribution bars -->
+            <div class="rs-right" aria-label="Rating distribution">
+                <div class="rating-row">
+                    <div class="rating-num">5</div>
+                    <div class="rating-track">
+                        <div class="rating-fill" style="width:@P(c5).ToString("0.##", CultureInfo.InvariantCulture)%"></div>
+                    </div>
+                    <div class="rating-pct">@Math.Round(P(c5))%</div>
+                </div>
+
+                <div class="rating-row">
+                    <div class="rating-num">4</div>
+                    <div class="rating-track">
+                        <div class="rating-fill" style="width:@P(c4).ToString("0.##", CultureInfo.InvariantCulture)%"></div>
+                    </div>
+                    <div class="rating-pct">@Math.Round(P(c4))%</div>
+                </div>
+
+                <div class="rating-row">
+                    <div class="rating-num">3</div>
+                    <div class="rating-track">
+                        <div class="rating-fill" style="width:@P(c3).ToString("0.##", CultureInfo.InvariantCulture)%"></div>
+                    </div>
+                    <div class="rating-pct">@Math.Round(P(c3))%</div>
+                </div>
+
+                <div class="rating-row">
+                    <div class="rating-num">2</div>
+                    <div class="rating-track">
+                        <div class="rating-fill" style="width:@P(c2).ToString("0.##", CultureInfo.InvariantCulture)%"></div>
+                    </div>
+                    <div class="rating-pct">@Math.Round(P(c2))%</div>
+                </div>
+
+                <div class="rating-row">
+                    <div class="rating-num">1</div>
+                    <div class="rating-track">
+                        <div class="rating-fill" style="width:@P(c1).ToString("0.##", CultureInfo.InvariantCulture)%"></div>
+                    </div>
+                    <div class="rating-pct">@Math.Round(P(c1))%</div>
+                </div>
+            </div>
+        </div>
+    }
+
+    @if (Model.ReviewCount > 0)
+    {
         <ul class="list-unstyled">
             @foreach (var r in Model.Reviews)
             {

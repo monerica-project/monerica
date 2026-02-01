@@ -251,7 +251,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 DirectoryEntryId = flow.DirectoryEntryId,
                 Rating = input.Rating!.Value,
-                Body = input.Body,
+                Body = input.Body.Trim(),
                 CreateDate = DateTime.UtcNow,
                 ModerationStatus = DirectoryManager.Data.Enums.ReviewModerationStatus.Pending,
                 AuthorFingerprint = flow.PgpFingerprint
@@ -305,7 +305,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 DirectoryEntryId = input.DirectoryEntryId,
                 Rating = input.Rating,
-                Body = input.Body,
+                Body = input.Body.Trim(),
                 CreateDate = DateTime.UtcNow
             };
 

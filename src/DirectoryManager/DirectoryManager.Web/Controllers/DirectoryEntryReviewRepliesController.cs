@@ -273,7 +273,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 DirectoryEntryReviewId = state.DirectoryEntryReviewId,
                 ParentCommentId = input.ParentCommentId,
-                Body = input.Body,
+                Body = input.Body.Trim(),
                 ModerationStatus = ReviewModerationStatus.Pending,
                 AuthorFingerprint = state.PgpFingerprint!,
                 CreateDate = DateTime.UtcNow
