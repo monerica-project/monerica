@@ -1552,3 +1552,21 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px;}
         margin-top: 0;
     }
 }
+
+/* Reply items: subtle separation like your screenshot request */
+.reply-item {
+    padding: 10px 0;
+}
+
+    .reply-item:not(:last-child) {
+        border-bottom: 1px solid rgba(160, 170, 180, 0.20);
+    }
+
+.reply-body {
+    margin-top: 2px;
+}
+
+.reply-meta {
+    margin-top: 8px;
+}
+  

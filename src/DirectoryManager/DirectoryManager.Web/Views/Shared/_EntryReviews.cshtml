@@ -126,8 +126,6 @@
     double P(int count) => totalReviews <= 0 ? 0 : (count * 100.0 / totalReviews);
 }
  
-
-
 <div class="reviews-block mt-4">
     <h3 id="reviews" class="mb-3">Reviews</h3> 
 
@@ -248,12 +246,12 @@
                             <ul class="list-unstyled mb-0">
                                 @foreach (var c in replies)
                                 {
-                                    <li id="review-comment-@c.DirectoryEntryReviewCommentId" class="mb-3">
-                                        <div class="mt-1">
+                                    <li id="review-comment-@c.DirectoryEntryReviewCommentId" class="reply-item">
+                                        <div class="reply-body">
                                             @RenderBodyWithLinks(c.Body)
                                         </div>
 
-                                        <div class="mt-2">
+                                        <div class="reply-meta">
                                             <small class="text-muted multi-line-text">
                                                 Author: @(string.IsNullOrWhiteSpace(c.DisplayName) ? c.AuthorFingerprint : c.DisplayName)
                                             </small>
@@ -266,6 +264,7 @@
                                     </li>
                                 }
                             </ul>
+
                         </div>
                     }
                 </li>
