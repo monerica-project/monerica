@@ -5,6 +5,7 @@
 @using DirectoryManager.Web.Models
 @using DirectoryManager.Web.Services.Interfaces
 @inject IUrlResolutionService urlService
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository reviewRepo
 @model DirectoryFilterViewModel
 
 @{
@@ -301,11 +302,45 @@
 </form>
 
     @* Sponsor block (only when filtering by category OR subcategory) *@
-    @if (Model.SubcategorySponsorModel != null)
+    @{
+        // Collect sponsor entry ids that will be rendered here
+        var sponsorIds = new List<int>();
+
+        var subVm = Model?.SubcategorySponsorModel?.DirectoryEntry;
+        if (subVm != null && subVm.DirectoryEntryId > 0)
+            sponsorIds.Add(subVm.DirectoryEntryId);
+
+        var catVm = Model?.CategorySponsorModel?.DirectoryEntry;
+        if (catVm != null && catVm.DirectoryEntryId > 0)
+            sponsorIds.Add(catVm.DirectoryEntryId);
+
+        Dictionary<int, DirectoryManager.Data.Models.TransferModels.RatingSummaryDto> sponsorRatings
+            = new();
+
+        if (sponsorIds.Count > 0)
+        {
+            sponsorRatings = await reviewRepo.GetRatingSummariesAsync(sponsorIds);
+        }
+
+        // Apply summaries into the DisplayFormatting VMs (these are the ones _DirectoryEntryPartial reads)
+        if (subVm != null && sponsorRatings.TryGetValue(subVm.DirectoryEntryId, out var subSum))
+        {
+            subVm.AverageRating = subSum.ReviewCount > 0 ? subSum.AvgRating : null;
+            subVm.ReviewCount = subSum.ReviewCount > 0 ? subSum.ReviewCount : null;
+        }
+
+        if (catVm != null && sponsorRatings.TryGetValue(catVm.DirectoryEntryId, out var catSum))
+        {
+            catVm.AverageRating = catSum.ReviewCount > 0 ? catSum.AvgRating : null;
+            catVm.ReviewCount = catSum.ReviewCount > 0 ? catSum.ReviewCount : null;
+        }
+    }
+
+    @if (Model?.SubcategorySponsorModel != null)
     {
         @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", Model.SubcategorySponsorModel)
     }
-    else if (Model.CategorySponsorModel != null)
+    else if (Model?.CategorySponsorModel != null)
     {
         @await Html.PartialAsync("_SponsoredListingCategoryPartial", Model.CategorySponsorModel)
     }
