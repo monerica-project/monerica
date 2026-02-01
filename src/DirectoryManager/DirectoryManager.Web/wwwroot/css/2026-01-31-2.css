@@ -1449,7 +1449,7 @@ a.external-link {
         text-decoration: underline;
     }
 
-ul.list-unstyled { margin-left: 15px;}
+ul.list-unstyled { padding-left: 0; margin-left: 15px;}
 
 .list-unstyled li {
     list-style: none;
