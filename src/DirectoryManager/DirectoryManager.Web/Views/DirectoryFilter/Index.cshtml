@@ -303,36 +303,66 @@
 
     @* Sponsor block (only when filtering by category OR subcategory) *@
     @{
-        // Collect sponsor entry ids that will be rendered here
+        // --- helpers (local) ---
+        string BuildItemPath(DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel vm)
+        {
+            // IMPORTANT: match your real profile route
+            // If your site uses "/site/{key}" keep this.
+            return "/site/" + vm.DirectoryEntryKey;
+        }
+
+        void EnsureSponsorReviewLinking(DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel? vm)
+        {
+            if (vm == null) return;
+
+            // ensure the sponsor uses listing page behavior so "name" and "(count)" point to the profile
+            vm.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
+
+            // ItemPath is required for the (count) -> #reviews link
+            if (string.IsNullOrWhiteSpace(vm.ItemPath))
+            {
+                vm.ItemPath = BuildItemPath(vm);
+            }
+        }
+
+        // Collect sponsor ids
         var sponsorIds = new List<int>();
 
         var subVm = Model?.SubcategorySponsorModel?.DirectoryEntry;
-        if (subVm != null && subVm.DirectoryEntryId > 0)
-            sponsorIds.Add(subVm.DirectoryEntryId);
-
         var catVm = Model?.CategorySponsorModel?.DirectoryEntry;
-        if (catVm != null && catVm.DirectoryEntryId > 0)
-            sponsorIds.Add(catVm.DirectoryEntryId);
 
-        Dictionary<int, DirectoryManager.Data.Models.TransferModels.RatingSummaryDto> sponsorRatings
-            = new();
+        if (subVm != null && subVm.DirectoryEntryId > 0) sponsorIds.Add(subVm.DirectoryEntryId);
+        if (catVm != null && catVm.DirectoryEntryId > 0) sponsorIds.Add(catVm.DirectoryEntryId);
+
+        // Load rating summaries in one call
+        Dictionary<int, DirectoryManager.Data.Models.TransferModels.RatingSummaryDto> sponsorRatings = new();
 
         if (sponsorIds.Count > 0)
         {
             sponsorRatings = await reviewRepo.GetRatingSummariesAsync(sponsorIds);
         }
 
-        // Apply summaries into the DisplayFormatting VMs (these are the ones _DirectoryEntryPartial reads)
-        if (subVm != null && sponsorRatings.TryGetValue(subVm.DirectoryEntryId, out var subSum))
+        // Apply rating + ensure review links work
+        if (subVm != null)
         {
-            subVm.AverageRating = subSum.ReviewCount > 0 ? subSum.AvgRating : null;
-            subVm.ReviewCount = subSum.ReviewCount > 0 ? subSum.ReviewCount : null;
+            if (sponsorRatings.TryGetValue(subVm.DirectoryEntryId, out var sum))
+            {
+                subVm.AverageRating = sum.ReviewCount > 0 ? sum.AvgRating : null;
+                subVm.ReviewCount = sum.ReviewCount > 0 ? sum.ReviewCount : null;
+            }
+
+            EnsureSponsorReviewLinking(subVm);
         }
 
-        if (catVm != null && sponsorRatings.TryGetValue(catVm.DirectoryEntryId, out var catSum))
+        if (catVm != null)
         {
-            catVm.AverageRating = catSum.ReviewCount > 0 ? catSum.AvgRating : null;
-            catVm.ReviewCount = catSum.ReviewCount > 0 ? catSum.ReviewCount : null;
+            if (sponsorRatings.TryGetValue(catVm.DirectoryEntryId, out var sum))
+            {
+                catVm.AverageRating = sum.ReviewCount > 0 ? sum.AvgRating : null;
+                catVm.ReviewCount = sum.ReviewCount > 0 ? sum.ReviewCount : null;
+            }
+
+            EnsureSponsorReviewLinking(catVm);
         }
     }
 

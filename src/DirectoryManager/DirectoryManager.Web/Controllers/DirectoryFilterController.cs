@@ -342,30 +342,57 @@ public class DirectoryFilterController : Controller
         string link2Name,
         string link3Name)
     {
+        // IMPORTANT: match your real route
+        // If your profile route is different, change this one line.
+        string itemPath = DirectoryManager.DisplayFormatting.Helpers.FormattingHelper.ListingPath(e.DirectoryEntryKey);
+
         return new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
         {
             DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
-            LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage,
 
+            // Sponsors on filter page should link to profile so (count) -> #reviews works
+            LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage,
+            ItemPath = itemPath,
+
+            // ✅ needed for /site/{key}
+            DirectoryEntryKey = e.DirectoryEntryKey,
+
+            // dates
             CreateDate = e.CreateDate,
             UpdateDate = e.UpdateDate,
 
+            // links (+ affiliate variants if your partial expects them)
             Link = e.Link,
+            LinkA = e.LinkA,
+
             Link2 = e.Link2,
+            Link2A = e.Link2A,
+
             Link3 = e.Link3,
+            Link3A = e.Link3A,
+
             Link2Name = link2Name,
             Link3Name = link3Name,
 
+            // main fields
             Name = e.Name,
             Contact = e.Contact,
             Description = e.Description,
+
             DirectoryEntryId = e.DirectoryEntryId,
             DirectoryStatus = e.DirectoryStatus,
+            DirectoryBadge = e.DirectoryBadge,
+
+            CountryCode = e.CountryCode,
             Location = e.Location,
             Note = e.Note,
             Processor = e.Processor,
+
+            // keep SubCategory if you want breadcrumbs etc in some render modes
+            SubCategory = e.SubCategory,
             SubCategoryId = e.SubCategoryId,
 
+            // sponsor flags
             IsSponsored = true,
             DisplayAsSponsoredItem = false
         };
