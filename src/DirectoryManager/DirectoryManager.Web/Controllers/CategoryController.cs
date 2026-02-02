@@ -13,7 +13,6 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
-
 namespace DirectoryManager.Web.Controllers
 {
     [Authorize]
@@ -151,7 +150,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View("CategoryItems", vm);
         }
 
-
         [Route("category/create")]
         [HttpPost]
         public async Task<IActionResult> Create(Category category)
@@ -250,6 +248,5 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
         }
-
     }
 }
