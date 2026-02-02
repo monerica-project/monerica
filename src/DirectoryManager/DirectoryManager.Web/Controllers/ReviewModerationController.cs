@@ -195,7 +195,10 @@ namespace DirectoryManager.Web.Controllers
             if (string.IsNullOrWhiteSpace(reason))
             {
                 var item = await this.commentRepo.GetByIdAsync(id, ct);
-                if (item is null) return this.NotFound();
+                if (item is null)
+                {
+                    return this.NotFound();
+                }
 
                 this.ModelState.AddModelError("reason", "A rejection reason is required.");
                 return this.View("ShowReply", item);

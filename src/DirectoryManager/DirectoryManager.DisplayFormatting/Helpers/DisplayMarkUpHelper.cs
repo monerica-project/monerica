@@ -14,7 +14,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         // ----------------------------
         // Public API
         // ----------------------------
-
         public static string GenerateDirectoryEntryHtml(DirectoryEntryViewModel model, string? rootUrl = null)
         {
             var sb = new StringBuilder();
@@ -63,36 +62,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             return sb.ToString();
         }
 
-        private static void AppendOptionalDescriptionAndNote(
-            StringBuilder sb,
-            DirectoryEntryViewModel model,
-            bool suppressLeadingBreak)
-        {
-            bool hasText =
-                !string.IsNullOrWhiteSpace(model.Description) ||
-                !string.IsNullOrWhiteSpace(model.Note);
-
-            if (model.IsSponsored && hasText && !suppressLeadingBreak)
-            {
-                sb.Append("<br />");
-            }
-
-            if (!string.IsNullOrWhiteSpace(model.Description))
-            {
-                if (!model.IsSponsored)
-                {
-                    sb.Append(" · ");
-                }
-
-                sb.Append(model.Description);
-            }
-
-            if (!string.IsNullOrWhiteSpace(model.Note))
-            {
-                sb.AppendFormat(" <i>(Note: {0})</i> ", model.Note);
-            }
-        }
-
         public static string GenerateGroupedDirectoryEntryHtml(IEnumerable<GroupedDirectoryEntry> groupedEntries)
         {
             var sb = new StringBuilder();
@@ -107,6 +76,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 {
                     AppendGroupedEntry(sb, entry);
                 }
+
                 sb.Append("</ul>");
 
                 sb.Append("</li>");
@@ -158,6 +128,36 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         // ----------------------------
         // DirectoryEntryHtml helpers
         // ----------------------------
+        private static void AppendOptionalDescriptionAndNote(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            bool suppressLeadingBreak)
+        {
+            bool hasText =
+                !string.IsNullOrWhiteSpace(model.Description) ||
+                !string.IsNullOrWhiteSpace(model.Note);
+
+            if (model.IsSponsored && hasText && !suppressLeadingBreak)
+            {
+                sb.Append("<br />");
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Description))
+            {
+                if (!model.IsSponsored)
+                {
+                    sb.Append(" · ");
+                }
+
+                sb.Append(model.Description);
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Note))
+            {
+                sb.AppendFormat(" <i>(Note: {0})</i> ", model.Note);
+            }
+        }
+
         private static void AppendGroupedDateHeader(StringBuilder sb, GroupedDirectoryEntry group)
         {
             sb.Append("<li>");
@@ -210,12 +210,14 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         {
             if (model.DateOption == DateDisplayOption.DisplayCreateDate)
             {
-                sb.AppendFormat("<i>{0}</i> ",
+                sb.AppendFormat(
+                    "<i>{0}</i> ",
                     model.CreateDate.ToString(Common.Constants.StringConstants.DateFormat));
             }
             else if (model.DateOption == DateDisplayOption.DisplayUpdateDate)
             {
-                sb.AppendFormat("<i>{0}</i> ",
+                sb.AppendFormat(
+                    "<i>{0}</i> ",
                     (model.UpdateDate ?? model.CreateDate).ToString(Common.Constants.StringConstants.DateFormat));
             }
         }
@@ -308,15 +310,18 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 sb.Append(BuildFlagImgTag(model.CountryCode, rootUrl));
             }
         }
- 
+
         // ----------------------------
         // SearchResult helpers
         // ----------------------------
-
         private static string BuildProfileUrl(string domain, string? itemPath)
         {
             var path = (itemPath ?? string.Empty).Trim();
-            if (!path.StartsWith("/")) path = "/" + path;
+            if (!path.StartsWith("/"))
+            {
+                path = "/" + path;
+            }
+
             return string.IsNullOrEmpty(domain) ? path : $"{domain}{path}";
         }
 
@@ -394,7 +399,10 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
         private static void AppendCategoryBreadcrumbLine(StringBuilder sb, DirectoryEntryViewModel model, string domain)
         {
-            if (model.SubCategory == null) return;
+            if (model.SubCategory == null)
+            {
+                return;
+            }
 
             string catKey = WebUtility.HtmlEncode(model.SubCategory.Category.CategoryKey);
             string subKey = WebUtility.HtmlEncode(model.SubCategory.SubCategoryKey);
@@ -429,7 +437,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         // ----------------------------
         // Shared helpers (status, stars, links, flags)
         // ----------------------------
-
         private static void AppendGroupedStatusLabel(StringBuilder sb, DirectoryStatus status)
         {
             if (status == DirectoryStatus.Scam)
@@ -609,20 +616,29 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             if (isScam)
             {
-                sb.AppendFormat("<a {3} href=\"{0}\" {1}>{2}</a>",
+                sb.AppendFormat(
+                    "<a {3} href=\"{0}\" {1}>{2}</a>",
                     WebUtility.HtmlEncode(finalLink), target, name, relAttr);
             }
             else
             {
                 if (lt == LinkType.ListingPage)
                 {
-                    sb.AppendFormat("<a {3} title=\"Profile: {2}\" href=\"{0}\" {1}>{2}</a>",
-                        WebUtility.HtmlEncode(finalLink), target, name, relAttr);
+                    sb.AppendFormat(
+                        "<a {3} title=\"Profile: {2}\" href=\"{0}\" {1}>{2}</a>",
+                        WebUtility.HtmlEncode(finalLink),
+                        target,
+                        name,
+                        relAttr);
                 }
                 else
                 {
-                    sb.AppendFormat("<a {3} title=\"{2}\" href=\"{0}\" {1}>{2}</a>",
-                        WebUtility.HtmlEncode(finalLink), target, name, relAttr);
+                    sb.AppendFormat(
+                        "<a {3} title=\"{2}\" href=\"{0}\" {1}>{2}</a>",
+                        WebUtility.HtmlEncode(finalLink),
+                        target,
+                        name,
+                        relAttr);
                 }
             }
         }
