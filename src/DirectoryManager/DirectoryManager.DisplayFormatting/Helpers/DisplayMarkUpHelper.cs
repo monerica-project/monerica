@@ -30,15 +30,67 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             AppendDirectoryEntryLinksBlock(sb, model, rootUrl, effectiveLinkType);
 
             AppendOptionalFlag(sb, model, rootUrl);
-            AppendOptionalDescriptionAndNote(sb, model);
 
-            // stars + "x.x/5" + clickable "(count)" -> profile#reviews
-            AppendInlineStarRating(sb, model, rootUrl);
+            // Category/Subcategory sponsor block (not the normal sponsored list item)
+            bool isSponsorBlock = model.IsSponsored && !model.DisplayAsSponsoredItem;
+
+            if (isSponsorBlock)
+            {
+                // name/links already written above
+
+                // ⭐ stars next
+                AppendInlineStarRating(sb, model, rootUrl);
+
+                // ✅ always force new line after stars for sponsor blocks
+                if ((model.AverageRating ?? 0) > 0 && (model.ReviewCount ?? 0) > 0)
+                {
+                    sb.Append("<br />");
+                }
+
+                // description / note after stars
+                AppendOptionalDescriptionAndNote(sb, model, suppressLeadingBreak: true);
+            }
+            else
+            {
+                // default behavior unchanged
+                AppendOptionalDescriptionAndNote(sb, model, suppressLeadingBreak: false);
+                AppendInlineStarRating(sb, model, rootUrl);
+            }
 
             sb.Append("</p>");
             sb.Append("</li>");
 
             return sb.ToString();
+        }
+
+        private static void AppendOptionalDescriptionAndNote(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            bool suppressLeadingBreak)
+        {
+            bool hasText =
+                !string.IsNullOrWhiteSpace(model.Description) ||
+                !string.IsNullOrWhiteSpace(model.Note);
+
+            if (model.IsSponsored && hasText && !suppressLeadingBreak)
+            {
+                sb.Append("<br />");
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Description))
+            {
+                if (!model.IsSponsored)
+                {
+                    sb.Append(" · ");
+                }
+
+                sb.Append(model.Description);
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Note))
+            {
+                sb.AppendFormat(" <i>(Note: {0})</i> ", model.Note);
+            }
         }
 
         public static string GenerateGroupedDirectoryEntryHtml(IEnumerable<GroupedDirectoryEntry> groupedEntries)
@@ -256,20 +308,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 sb.Append(BuildFlagImgTag(model.CountryCode, rootUrl));
             }
         }
-
-        private static void AppendOptionalDescriptionAndNote(StringBuilder sb, DirectoryEntryViewModel model)
-        {
-            if (!string.IsNullOrWhiteSpace(model.Description))
-            {
-                sb.Append("&nbsp; ");
-                sb.Append(model.Description); // assumes safe HTML upstream
-            }
-
-            if (!string.IsNullOrWhiteSpace(model.Note))
-            {
-                sb.AppendFormat(" <i>(Note: {0})</i> ", model.Note); // assumes safe HTML upstream
-            }
-        }
  
         // ----------------------------
         // SearchResult helpers
@@ -331,7 +369,10 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
         private static void AppendInlineLink(StringBuilder sb, string label, string url, ref bool wroteAny)
         {
-            if (wroteAny) sb.Append(" | ");
+            if (wroteAny)
+            {
+                sb.Append(" | ");
+            }
 
             sb.Append("<a href=\"");
             sb.Append(WebUtility.HtmlEncode(url));
@@ -447,6 +488,12 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             string? reviewsUrl = BuildReviewsUrl(rootUrl, model.ItemPath);
             sb.Append("&nbsp;");
+
+            if (model.IsSponsored)
+            {
+                sb.Append("<br />");
+            }
+
             AppendRatingStars(sb, model.AverageRating.Value, count, reviewsUrl);
         }
 
