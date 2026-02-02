@@ -1,4 +1,6 @@
-﻿using System.Security.Cryptography;
+﻿using System.Linq;
+using System.Security.Cryptography;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
@@ -17,19 +19,24 @@ namespace DirectoryManager.Web.Controllers
         private readonly IPgpService pgp;
         private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly ISearchBlacklistRepository searchBlacklistRepo;
+
+        private const string BlacklistCacheKey = "review:blacklist-terms";
 
         public DirectoryEntryReviewsController(
             IDirectoryEntryReviewRepository repo,
             IMemoryCache cache,
             ICaptchaService captcha,
             IPgpService pgp,
-            IDirectoryEntryRepository directoryEntryRepository)
+            IDirectoryEntryRepository directoryEntryRepository,
+            ISearchBlacklistRepository searchBlacklistRepo)
         {
             this.directoryEntryReviewRepository = repo;
             this.cache = cache;
             this.captcha = captcha;
             this.pgp = pgp;
             this.directoryEntryRepository = directoryEntryRepository;
+            this.searchBlacklistRepo = searchBlacklistRepo;
         }
 
         [HttpGet("begin")]
@@ -60,7 +67,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.FlowId = flowId;
             this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
 
-            // ✅ IMPORTANT: tells the view what this flow is
+            // tells the view what this flow is
             this.ViewBag.CaptchaPurpose = "review";
 
             return this.View();
@@ -81,7 +88,7 @@ namespace DirectoryManager.Web.Controllers
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
 
-                // ✅ IMPORTANT: keep purpose on re-render
+                // keep purpose on re-render
                 this.ViewBag.CaptchaPurpose = "review";
 
                 return this.View("Captcha");
@@ -128,10 +135,10 @@ namespace DirectoryManager.Web.Controllers
             var fp = this.pgp.GetFingerprint(pgpArmored);
             if (string.IsNullOrWhiteSpace(fp))
             {
-               this.ModelState.AddModelError(string.Empty, "Invalid PGP public key.");
-               this.ViewBag.FlowId = flowId;
-               this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
-               return this.View("SubmitKey");
+                this.ModelState.AddModelError(string.Empty, "Invalid PGP public key.");
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+                return this.View("SubmitKey");
             }
 
             // Generate 6-digit code and encrypt it to their key
@@ -247,17 +254,36 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("Compose", input);
             }
 
+            // --- NEW: blacklist -> auto approve unless it contains a blacklist term ---
+            var terms = await this.GetBlacklistTermsCachedAsync(ct);
+
+            // check body (add more fields if you want)
+            var combined = input.Body ?? string.Empty;
+            bool needsManualReview = ContainsBlacklistTerm(combined, terms);
+
             var entity = new DirectoryEntryReview
             {
                 DirectoryEntryId = flow.DirectoryEntryId,
                 Rating = input.Rating!.Value,
-                Body = input.Body.Trim(),
+                Body = (input.Body ?? string.Empty).Trim(),
                 CreateDate = DateTime.UtcNow,
-                ModerationStatus = DirectoryManager.Data.Enums.ReviewModerationStatus.Pending,
-                AuthorFingerprint = flow.PgpFingerprint
+
+                // auto-approve unless it hits blacklist
+                ModerationStatus = needsManualReview ? ReviewModerationStatus.Pending : ReviewModerationStatus.Approved,
+
+                // fingerprint from flow
+                AuthorFingerprint = flow.PgpFingerprint,
+
+                // mark as automated creator
+                CreatedByUserId = "automated"
             };
 
+
             await this.directoryEntryReviewRepository.AddAsync(entity, ct);
+
+            // show different thank-you messaging
+            this.TempData["ReviewNeedsManualReview"] = needsManualReview ? "1" : "0";
+
             this.cache.Remove(CacheKey(flowId));
             return this.RedirectToAction(nameof(this.Thanks));
         }
@@ -305,8 +331,11 @@ namespace DirectoryManager.Web.Controllers
             {
                 DirectoryEntryId = input.DirectoryEntryId,
                 Rating = input.Rating,
-                Body = input.Body.Trim(),
-                CreateDate = DateTime.UtcNow
+                Body = (input.Body ?? string.Empty).Trim(),
+                CreateDate = DateTime.UtcNow,
+
+                // (admin create path) keep your existing behavior, or change if you want
+                ModerationStatus = ReviewModerationStatus.Pending
             };
 
             try
@@ -343,7 +372,6 @@ namespace DirectoryManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, DirectoryEntryReview model)
         {
-            // replace DirectoryEntryReviewId with your PK if named differently
             var pk = model.DirectoryEntryReviewId;
             if (id != pk)
             {
@@ -402,6 +430,49 @@ namespace DirectoryManager.Web.Controllers
         private bool TryGetFlow(Guid flowId, out ReviewFlowState state)
         {
             return this.cache.TryGetValue(CacheKey(flowId), out state) && state.ExpiresUtc > DateTime.UtcNow;
+        }
+
+        private async Task<IReadOnlyList<string>> GetBlacklistTermsCachedAsync(CancellationToken ct)
+        {
+            return await this.cache.GetOrCreateAsync<IReadOnlyList<string>>(
+                BlacklistCacheKey,
+                async entry =>
+                {
+                    entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+
+                    var terms = await this.searchBlacklistRepo.GetAllTermsAsync()
+                                ?? Array.Empty<string>();
+
+                    return terms
+                        .Where(t => !string.IsNullOrWhiteSpace(t))
+                        .Select(t => t.Trim())
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList(); // List<string> implements IReadOnlyList<string>
+                })
+                ?? Array.Empty<string>();
+        }
+
+        private static bool ContainsBlacklistTerm(string text, IReadOnlyList<string> terms)
+        {
+            if (string.IsNullOrWhiteSpace(text) || terms == null || terms.Count == 0)
+            {
+                return false;
+            }
+
+            var haystack = text.ToLowerInvariant();
+
+            foreach (var raw in terms)
+            {
+                var term = (raw ?? string.Empty).Trim();
+                if (term.Length == 0) continue;
+
+                if (haystack.Contains(term.ToLowerInvariant()))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
     }
 }

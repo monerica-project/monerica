@@ -18,6 +18,9 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryReviewRepository reviewRepo;
         private readonly IDirectoryEntryReviewCommentRepository commentRepo;
         private readonly IDirectoryEntryRepository entryRepo;
+        private readonly ISearchBlacklistRepository searchBlacklistRepo;
+
+        private const string BlacklistCacheKey = "review:blacklist-terms";
 
         public DirectoryEntryReviewRepliesController(
             IMemoryCache cache,
@@ -25,7 +28,8 @@ namespace DirectoryManager.Web.Controllers
             IPgpService pgp,
             IDirectoryEntryReviewRepository reviewRepo,
             IDirectoryEntryReviewCommentRepository commentRepo,
-            IDirectoryEntryRepository entryRepo)
+            IDirectoryEntryRepository entryRepo,
+            ISearchBlacklistRepository searchBlacklistRepo)
         {
             this.cache = cache;
             this.captcha = captcha;
@@ -33,6 +37,7 @@ namespace DirectoryManager.Web.Controllers
             this.reviewRepo = reviewRepo;
             this.commentRepo = commentRepo;
             this.entryRepo = entryRepo;
+            this.searchBlacklistRepo = searchBlacklistRepo;
         }
 
         // POST-only begin (from review list)
@@ -70,14 +75,14 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.FlowId = flowId;
             this.ViewBag.DirectoryEntryReviewId = state.DirectoryEntryReviewId;
 
-            // ✅ tell the shared view where to POST
+            // tell the shared view where to POST
             this.ViewBag.PostController = "DirectoryEntryReviewReplies";
             this.ViewBag.PostAction = "CaptchaPost";
 
-            // ✅ IMPORTANT: this is a REPLY flow (drives title + captcha block)
+            // IMPORTANT: this is a REPLY flow (drives title + captcha block)
             this.ViewBag.CaptchaPurpose = "reply";
 
-            // ✅ reuse the existing Captcha view file
+            // reuse the existing Captcha view file
             return this.View("~/Views/DirectoryEntryReviews/Captcha.cshtml");
         }
 
@@ -97,11 +102,11 @@ namespace DirectoryManager.Web.Controllers
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.DirectoryEntryReviewId = state.DirectoryEntryReviewId;
 
-                // ✅ keep post routing on re-render
+                // keep post routing on re-render
                 this.ViewBag.PostController = "DirectoryEntryReviewReplies";
                 this.ViewBag.PostAction = "CaptchaPost";
 
-                // ✅ IMPORTANT: keep it as REPLY on re-render
+                // keep it as REPLY on re-render
                 this.ViewBag.CaptchaPurpose = "reply";
 
                 return this.View("~/Views/DirectoryEntryReviews/Captcha.cshtml");
@@ -269,18 +274,34 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("Compose", input);
             }
 
+            // NEW: blacklist -> auto approve unless it contains a blacklist term
+            var terms = await this.GetBlacklistTermsCachedAsync(ct);
+            var combined = input.Body ?? string.Empty;
+            bool needsManualReview = ContainsBlacklistTerm(combined, terms);
+
             var entity = new DirectoryEntryReviewComment
             {
                 DirectoryEntryReviewId = state.DirectoryEntryReviewId,
                 ParentCommentId = input.ParentCommentId,
-                Body = input.Body.Trim(),
-                ModerationStatus = ReviewModerationStatus.Pending,
+                Body = (input.Body ?? string.Empty).Trim(),
+
+                // auto-approve unless it hits blacklist
+                ModerationStatus = needsManualReview ? ReviewModerationStatus.Pending : ReviewModerationStatus.Approved,
+
                 AuthorFingerprint = state.PgpFingerprint!,
-                CreateDate = DateTime.UtcNow
+                CreateDate = DateTime.UtcNow,
+
+                // mark as automated creator
+                CreatedByUserId = "automated"
             };
 
             await this.commentRepo.AddAsync(entity, ct);
             this.cache.Remove(CacheKey(flowId));
+
+            // message for Thanks page
+            this.TempData["ReviewPostStatusMessage"] = needsManualReview
+                ? "Thanks! Your reply will be manually reviewed before it appears."
+                : "Thanks! Your reply will go live shortly.";
 
             return this.RedirectToAction(nameof(this.Thanks));
         }
@@ -306,5 +327,53 @@ namespace DirectoryManager.Web.Controllers
 
         private bool TryGetFlow(Guid flowId, out ReviewReplyFlowState state) =>
             this.cache.TryGetValue(CacheKey(flowId), out state) && state.ExpiresUtc > DateTime.UtcNow;
+
+        // ----------------------------
+        // Blacklist helpers (shared behavior with reviews)
+        // ----------------------------
+
+        private async Task<IReadOnlyList<string>> GetBlacklistTermsCachedAsync(CancellationToken ct)
+        {
+            // IMPORTANT: keep the cached type consistent so ?? works without CS0019
+            return await this.cache.GetOrCreateAsync<IReadOnlyList<string>>(
+                       BlacklistCacheKey,
+                       async entry =>
+                       {
+                           entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+
+                           var terms = await this.searchBlacklistRepo.GetAllTermsAsync()
+                                       ?? Array.Empty<string>();
+
+                           return terms
+                               .Where(t => !string.IsNullOrWhiteSpace(t))
+                               .Select(t => t.Trim())
+                               .Distinct(StringComparer.OrdinalIgnoreCase)
+                               .ToList(); // List<string> implements IReadOnlyList<string>
+                       })
+                   ?? Array.Empty<string>();
+        }
+
+        private static bool ContainsBlacklistTerm(string text, IReadOnlyList<string> terms)
+        {
+            if (string.IsNullOrWhiteSpace(text) || terms == null || terms.Count == 0)
+            {
+                return false;
+            }
+
+            var haystack = text.ToLowerInvariant();
+
+            foreach (var raw in terms)
+            {
+                var term = (raw ?? string.Empty).Trim();
+                if (term.Length == 0) continue;
+
+                if (haystack.Contains(term.ToLowerInvariant()))
+                {
+                    return true;
+                }
+            }
+
+            return false;
+        }
     }
 }

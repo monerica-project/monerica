@@ -10,8 +10,19 @@
         @await Html.PartialAsync("_SiteLogo")
     </div>
     <hr />
-    <p>Thanks for your review! It has been queued for moderation and won’t be visible until approved.</p>
+
+    @{
+        var msg = TempData["ReplyMessage"] as string;
+    }
+    @if (!string.IsNullOrWhiteSpace(msg))
+    {
+        <p><b>@msg</b></p>
+    }
+    else
+    {
+        <p><b>Thanks! Your reply has been received.</b></p>
+    }
+
 
     @await Html.PartialAsync("_BackToHome")
-
 }
