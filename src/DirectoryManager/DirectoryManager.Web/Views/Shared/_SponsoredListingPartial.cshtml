@@ -136,18 +136,6 @@
                                         @RenderRatingStarsWithLinkedCount(avg!.Value, count!.Value, reviewsUrl)
                                     }
                                 </div>
-
-                                <div class="sponsor-links-center">
-                                    @if (!string.IsNullOrWhiteSpace(vm.Link2))
-                                    {
-                                        <a rel="sponsored" href="@vm.Link2" target="_blank">@vm.Link2Name</a>
-                                    }
-                                    @if (!string.IsNullOrWhiteSpace(vm.Link3))
-                                    {
-                                        <text> | </text>
-                                        <a rel="sponsored" href="@vm.Link3" target="_blank">@vm.Link3Name</a>
-                                    }
-                                </div>
                             </div>
                         }
 
