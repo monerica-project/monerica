@@ -66,7 +66,6 @@ namespace DirectoryManager.Web.Extensions
             services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
             services.AddScoped<IRssFeedService, RssFeedService>();
             services.AddScoped<IDirectoryEntriesAuditService, DirectoryEntriesAuditService>();
-            services.AddScoped<IDirectoryEntryReviewCommentRepository, DirectoryEntryReviewCommentRepository>();
 
             // ✅ EmailService: sync DI factory, block on async at the edge
             services.AddScoped<IEmailService>(provider =>
@@ -89,8 +88,7 @@ namespace DirectoryManager.Web.Extensions
                 return new EmailService(emailConfig, emailSettings);
             });
 
-            services.AddScoped<IAffiliateAccountRepository, AffiliateAccountRepository>();
-            services.AddScoped<IAffiliateCommissionRepository, AffiliateCommissionRepository>();
+            services.AddScoped<ISearchBlacklistCache, Services.SearchBlacklistCache>();
 
             // ✅ NOWPayments: avoid .Wait() (AggregateException). Use GetAwaiter().GetResult().
             services.AddScoped<INowPaymentsService>(provider =>
@@ -108,6 +106,7 @@ namespace DirectoryManager.Web.Extensions
 
             services.AddScoped<ISearchBlacklistRepository, SearchBlacklistRepository>();
             services.AddScoped<IChurnService, ChurnService>();
+            services.AddScoped<IUserContentModerationService, UserContentModerationService>();
 
             // ✅ BlobService singleton with a short-lived scope to access scoped services
             services.AddSingleton<IBlobService>(provider =>

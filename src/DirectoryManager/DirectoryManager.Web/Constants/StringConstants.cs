@@ -40,7 +40,7 @@
         public const string SelectText = "- Select -";
         public const string CookieNameCurrency = "currency";
         public const string NavMenu = "NavModel";
-        public const string CacheKeySearchBlacklistTerms = "blacklistterms";
+        public const string CacheKeySearchBlacklistTermsCacheKey = "blacklistterms";
         public const string UserAgent = "User-Agent";
         public const string PrefixDirectoryFilter = "DirectoryFilter:";
         public const string PrefixActiveCategories = "ActiveCategories:";
@@ -53,6 +53,5 @@
         public const string ActiveSubcategoriesByCategoryCachePrefix = "ActiveSubcategoriesByCategoryCachePrefix_";
         public const string ActiveTagsByCategoryCachePrefix = "ActiveTagsByCategoryCachePrefix_";
         public const string ActiveTagIdsByCategoryCachePrefix = "active-tag-ids-by-category-";
-        public const string BlacklistCacheKey = "blacklistterms";
     }
 }

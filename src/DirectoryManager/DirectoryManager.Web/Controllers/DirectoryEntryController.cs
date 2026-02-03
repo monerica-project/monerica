@@ -1,4 +1,6 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using System.Net;
+using System.Text.RegularExpressions;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -17,9 +19,6 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using System.Net;
-using System.Reflection.PortableExecutable;
-using System.Text.RegularExpressions;
 using DirectoryEntry = DirectoryManager.Data.Models.DirectoryEntry;
 
 namespace DirectoryManager.Web.Controllers

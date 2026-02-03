@@ -2,8 +2,6 @@
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
-using DirectoryManager.Utilities.Validation;
-using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -20,7 +18,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryReviewRepository reviewRepo;
         private readonly IDirectoryEntryReviewCommentRepository commentRepo;
         private readonly IDirectoryEntryRepository entryRepo;
-        private readonly ISearchBlacklistRepository searchBlacklistRepo;
+        private readonly IUserContentModerationService moderation;
 
         public DirectoryEntryReviewRepliesController(
             IMemoryCache cache,
@@ -31,8 +29,8 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryReviewRepository reviewRepo,
             IDirectoryEntryReviewCommentRepository commentRepo,
             IDirectoryEntryRepository entryRepo,
-            ISearchBlacklistRepository searchBlacklistRepo)
-                        : base(trafficLogRepository, userAgentCacheService, cache)
+            IUserContentModerationService moderation)
+            : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.cache = cache;
             this.captcha = captcha;
@@ -40,30 +38,7 @@ namespace DirectoryManager.Web.Controllers
             this.reviewRepo = reviewRepo;
             this.commentRepo = commentRepo;
             this.entryRepo = entryRepo;
-            this.searchBlacklistRepo = searchBlacklistRepo;
-        }
-
-        private static bool ContainsBlacklistTerm(string text, IReadOnlyList<string> terms)
-        {
-            if (string.IsNullOrWhiteSpace(text) || terms == null || terms.Count == 0)
-            {
-                return false;
-            }
-
-            var haystack = text.ToLowerInvariant();
-
-            foreach (var raw in terms)
-            {
-                var term = (raw ?? string.Empty).Trim();
-                if (term.Length == 0) continue;
-
-                if (haystack.Contains(term.ToLowerInvariant()))
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            this.moderation = moderation;
         }
 
         // POST-only begin (from review list)
@@ -71,7 +46,7 @@ namespace DirectoryManager.Web.Controllers
         public IActionResult BeginGet() => this.NotFound();
 
         [HttpPost("begin")]
-        [IgnoreAntiforgeryToken] // called from public page forms w/out token if needed
+        [IgnoreAntiforgeryToken]
         public async Task<IActionResult> Begin([FromForm] int directoryEntryReviewId, [FromForm] string? website, CancellationToken ct)
         {
             if (!string.IsNullOrWhiteSpace(website))
@@ -105,10 +80,9 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.PostController = "DirectoryEntryReviewReplies";
             this.ViewBag.PostAction = "CaptchaPost";
 
-            // IMPORTANT: this is a REPLY flow (drives title + captcha block)
+            // IMPORTANT: this is a REPLY flow
             this.ViewBag.CaptchaPurpose = "reply";
 
-            // reuse the existing Captcha view file
             return this.View("~/Views/DirectoryEntryReviews/Captcha.cshtml");
         }
 
@@ -128,11 +102,8 @@ namespace DirectoryManager.Web.Controllers
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.DirectoryEntryReviewId = state.DirectoryEntryReviewId;
 
-                // keep post routing on re-render
                 this.ViewBag.PostController = "DirectoryEntryReviewReplies";
                 this.ViewBag.PostAction = "CaptchaPost";
-
-                // keep it as REPLY on re-render
                 this.ViewBag.CaptchaPurpose = "reply";
 
                 return this.View("~/Views/DirectoryEntryReviews/Captcha.cshtml");
@@ -292,25 +263,13 @@ namespace DirectoryManager.Web.Controllers
             // Always trust the flow for the review id
             input.DirectoryEntryReviewId = state.DirectoryEntryReviewId;
 
-            var bodyTrimmed = (input.Body ?? string.Empty).Trim();
+            // Run moderation rules via shared service
+            var mod = await this.moderation.EvaluateReplyAsync(input.Body, ct);
 
-            // Minimum length rule (your existing logic)
-            if (string.IsNullOrWhiteSpace(bodyTrimmed) || bodyTrimmed.Length <= IntegerConstants.MinLengthCommentChars)
+            if (!mod.IsValid)
             {
-                this.ModelState.AddModelError(
-                    nameof(input.Body),
-                    "Please add a bit more detail so your reply is helpful to others.");
-            }
+                this.ModelState.AddModelError(nameof(input.Body), mod.ValidationErrorMessage ?? "Invalid reply.");
 
-            if (ScriptValidation.ContainsScriptTag(bodyTrimmed) || HtmlValidation.ContainsHtmlTag(bodyTrimmed))
-            {
-                this.ModelState.AddModelError(
-                    nameof(input.Body),
-                    "Please remove any HTML or scripts. Replies must be plain text.");
-            }
-
-            if (!this.ModelState.IsValid)
-            {
                 var entry = await this.entryRepo.GetByIdAsync(state.DirectoryEntryId);
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
@@ -319,13 +278,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("Compose", input);
             }
 
-            var terms = await this.GetBlacklistTermsCachedAsync(ct);
-
-            bool hasBlacklistTerm = ContainsBlacklistTerm(bodyTrimmed, terms);
-            bool hasLink = Utilities.Helpers.TextHelper.ContainsHyperlink(bodyTrimmed);
-
-            // pending if blacklist OR link
-            bool needsManualReview = hasBlacklistTerm || hasLink;
+            var bodyTrimmed = (input.Body ?? string.Empty).Trim();
 
             var entity = new DirectoryEntryReviewComment
             {
@@ -333,7 +286,7 @@ namespace DirectoryManager.Web.Controllers
                 ParentCommentId = input.ParentCommentId,
                 Body = bodyTrimmed,
 
-                ModerationStatus = needsManualReview
+                ModerationStatus = mod.NeedsManualReview
                     ? ReviewModerationStatus.Pending
                     : ReviewModerationStatus.Approved,
 
@@ -347,10 +300,8 @@ namespace DirectoryManager.Web.Controllers
             this.ClearCachedItems();
             this.cache.Remove(CacheKey(flowId));
 
-            // message for Thanks page
-            this.TempData["ReviewPostStatusMessage"] = needsManualReview
-                ? "Thanks! Your reply will be manually reviewed before it appears."
-                : "Thanks! Your reply will go live shortly.";
+            // ✅ Your Replies Thanks view reads TempData["ReplyMessage"]
+            this.TempData["ReplyMessage"] = mod.ThankYouMessage;
 
             return this.RedirectToAction(nameof(this.Thanks));
         }
@@ -376,29 +327,5 @@ namespace DirectoryManager.Web.Controllers
 
         private bool TryGetFlow(Guid flowId, out ReviewReplyFlowState state) =>
             this.cache.TryGetValue(CacheKey(flowId), out state) && state.ExpiresUtc > DateTime.UtcNow;
-
-        // ----------------------------
-        // Blacklist helpers (shared behavior with reviews)
-        // ----------------------------
-        private async Task<IReadOnlyList<string>> GetBlacklistTermsCachedAsync(CancellationToken ct)
-        {
-            // IMPORTANT: keep the cached type consistent so ?? works without CS0019
-            return await this.cache.GetOrCreateAsync<IReadOnlyList<string>>(
-                        StringConstants.BlacklistCacheKey,
-                        async entry =>
-                       {
-                           entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
-
-                           var terms = await this.searchBlacklistRepo.GetAllTermsAsync()
-                                       ?? Array.Empty<string>();
-
-                           return terms
-                               .Where(t => !string.IsNullOrWhiteSpace(t))
-                               .Select(t => t.Trim())
-                               .Distinct(StringComparer.OrdinalIgnoreCase)
-                               .ToList(); // List<string> implements IReadOnlyList<string>
-                       })
-                   ?? Array.Empty<string>();
-        }
     }
 }

@@ -8,7 +8,6 @@ using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using DirectoryManager.Utilities.Validation;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -20,7 +19,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IPgpService pgp;
         private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
-        private readonly ISearchBlacklistRepository searchBlacklistRepo;
+        private readonly IUserContentModerationService moderation;
 
         public DirectoryEntryReviewsController(
             IDirectoryEntryReviewRepository repo,
@@ -30,7 +29,7 @@ namespace DirectoryManager.Web.Controllers
             ICaptchaService captcha,
             IPgpService pgp,
             IDirectoryEntryRepository directoryEntryRepository,
-            ISearchBlacklistRepository searchBlacklistRepo)
+            IUserContentModerationService moderation)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.directoryEntryReviewRepository = repo;
@@ -38,33 +37,7 @@ namespace DirectoryManager.Web.Controllers
             this.captcha = captcha;
             this.pgp = pgp;
             this.directoryEntryRepository = directoryEntryRepository;
-            this.searchBlacklistRepo = searchBlacklistRepo;
-        }
-
-        private static bool ContainsBlacklistTerm(string text, IReadOnlyList<string> terms)
-        {
-            if (string.IsNullOrWhiteSpace(text) || terms == null || terms.Count == 0)
-            {
-                return false;
-            }
-
-            var haystack = text.ToLowerInvariant();
-
-            foreach (var raw in terms)
-            {
-                var term = (raw ?? string.Empty).Trim();
-                if (term.Length == 0)
-                {
-                    continue;
-                }
-
-                if (haystack.Contains(term.ToLowerInvariant()))
-                {
-                    return true;
-                }
-            }
-
-            return false;
+            this.moderation = moderation;
         }
 
         [HttpGet("begin")]
@@ -74,7 +47,6 @@ namespace DirectoryManager.Web.Controllers
         [IgnoreAntiforgeryToken] // static page can’t emit a token
         public IActionResult Begin([FromForm] int directoryEntryId, [FromForm] string? website)
         {
-            // simple honeypot check (optional)
             if (!string.IsNullOrWhiteSpace(website))
             {
                 return this.BadRequest();
@@ -94,8 +66,6 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.FlowId = flowId;
             this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
-
-            // tells the view what this flow is
             this.ViewBag.CaptchaPurpose = "review";
 
             return this.View();
@@ -115,10 +85,7 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(string.Empty, "Captcha failed. Please try again.");
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
-
-                // keep purpose on re-render
                 this.ViewBag.CaptchaPurpose = "review";
-
                 return this.View("Captcha");
             }
 
@@ -127,7 +94,6 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.SubmitKey), new { flowId });
         }
 
-        // Step 2: submit PGP key (GET/POST)
         [HttpGet("submit-key")]
         public IActionResult SubmitKey(Guid flowId)
         {
@@ -169,7 +135,6 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("SubmitKey");
             }
 
-            // Generate 6-digit code and encrypt it to their key
             int code = SixDigits();
             string cipher = this.pgp.EncryptTo(pgpArmored, code.ToString());
 
@@ -177,12 +142,11 @@ namespace DirectoryManager.Web.Controllers
             state.PgpFingerprint = fp;
             state.ChallengeCode = code;
             state.ChallengeCiphertext = cipher;
-            this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
 
+            this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
             return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
         }
 
-        // Step 3: show ciphertext and collect decrypted code
         [HttpGet("verify-code")]
         public IActionResult VerifyCode(Guid flowId)
         {
@@ -230,7 +194,6 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Compose), new { flowId });
         }
 
-        // Step 4: compose review (GET/POST)
         [HttpGet("compose")]
         public async Task<IActionResult> Compose(Guid flowId)
         {
@@ -246,7 +209,7 @@ namespace DirectoryManager.Web.Controllers
 
             var vm = new CreateDirectoryEntryReviewInputModel
             {
-                DirectoryEntryId = state.DirectoryEntryId,
+                DirectoryEntryId = state.DirectoryEntryId
             };
 
             var entry = await this.directoryEntryRepository.GetByIdAsync(state.DirectoryEntryId);
@@ -274,24 +237,7 @@ namespace DirectoryManager.Web.Controllers
             // Always trust the flow for the entry id
             input.DirectoryEntryId = flow.DirectoryEntryId;
 
-            var bodyTrimmed = (input.Body ?? string.Empty).Trim();
-
-            // Minimum detail requirement (don’t mention exact length)
-            if (string.IsNullOrWhiteSpace(bodyTrimmed) || bodyTrimmed.Length <= IntegerConstants.MinLengthCommentChars)
-            {
-                this.ModelState.AddModelError(
-                    nameof(input.Body),
-                    "Please add a bit more detail so your review is helpful to others.");
-            }
-
-            // NEW: block scripts/html in reviews (user-facing error, no crash)
-            if (ScriptValidation.ContainsScriptTag(bodyTrimmed) || HtmlValidation.ContainsHtmlTag(bodyTrimmed))
-            {
-                this.ModelState.AddModelError(
-                    nameof(input.Body),
-                    "Please remove any HTML or scripts. Reviews must be plain text.");
-            }
-
+            // keep your existing data annotations first
             if (!this.ModelState.IsValid)
             {
                 var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
@@ -302,33 +248,36 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("Compose", input);
             }
 
-            var terms = await this.GetBlacklistTermsCachedAsync(ct);
+            // moderation rules (min detail, no html/scripts, link/blacklist => pending)
+            var mod = await this.moderation.EvaluateReviewAsync(input.Body, ct);
 
-            bool hasBlacklistTerm = ContainsBlacklistTerm(bodyTrimmed, terms);
-            bool hasLink = Utilities.Helpers.TextHelper.ContainsHyperlink(bodyTrimmed);
+            if (!mod.IsValid)
+            {
+                this.ModelState.AddModelError(nameof(input.Body), mod.ValidationErrorMessage ?? "Invalid content.");
 
-            // pending if blacklist OR link
-            bool needsManualReview = hasBlacklistTerm || hasLink;
+                var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
+                this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
+
+                return this.View("Compose", input);
+            }
 
             var entity = new DirectoryEntryReview
             {
                 DirectoryEntryId = flow.DirectoryEntryId,
                 Rating = input.Rating!.Value,
-                Body = bodyTrimmed,
+                Body = (input.Body ?? string.Empty).Trim(),
                 CreateDate = DateTime.UtcNow,
-
-                ModerationStatus = needsManualReview
-                    ? ReviewModerationStatus.Pending
-                    : ReviewModerationStatus.Approved,
-
+                ModerationStatus = mod.NeedsManualReview ? ReviewModerationStatus.Pending : ReviewModerationStatus.Approved,
                 AuthorFingerprint = flow.PgpFingerprint,
                 CreatedByUserId = "automated"
             };
 
             await this.directoryEntryReviewRepository.AddAsync(entity, ct);
 
-            // show different thank-you messaging
-            this.TempData["ReviewNeedsManualReview"] = needsManualReview ? "1" : "0";
+            // ✅ Your Thanks.cshtml reads TempData["ReviewMessage"]
+            this.TempData["ReviewMessage"] = mod.ThankYouMessage;
 
             this.ClearCachedItems();
             this.cache.Remove(CacheKey(flowId));
@@ -336,11 +285,12 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Thanks));
         }
 
-        // Step 5: thank you
         [HttpGet("thanks")]
         public IActionResult Thanks() => this.View();
 
-        [HttpGet("")] // GET /directory-entry-reviews
+        // --- admin stuff unchanged below ---
+
+        [HttpGet("")]
         public async Task<IActionResult> Index(int page = 1, int pageSize = 50)
         {
             var items = await this.directoryEntryReviewRepository.ListAsync(page, pageSize);
@@ -350,7 +300,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(items);
         }
 
-        [HttpGet("{id:int}")] // GET /directory-entry-reviews/123
+        [HttpGet("{id:int}")]
         public async Task<IActionResult> Details(int id)
         {
             var item = await this.directoryEntryReviewRepository.GetByIdAsync(id);
@@ -371,7 +321,6 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.ModelState.IsValid)
             {
-                // ModelState contains field errors; the view will render them.
                 return this.View(input);
             }
 
@@ -381,8 +330,6 @@ namespace DirectoryManager.Web.Controllers
                 Rating = input.Rating,
                 Body = (input.Body ?? string.Empty).Trim(),
                 CreateDate = DateTime.UtcNow,
-
-                // (admin create path) keep your existing behavior, or change if you want
                 ModerationStatus = ReviewModerationStatus.Pending
             };
 
@@ -404,7 +351,7 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
-        [HttpGet("{id:int}/edit")] // GET /directory-entry-reviews/123/edit
+        [HttpGet("{id:int}/edit")]
         public async Task<IActionResult> Edit(int id)
         {
             var item = await this.directoryEntryReviewRepository.GetByIdAsync(id);
@@ -435,7 +382,7 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Index));
         }
 
-        [HttpPost("{id:int}/delete")] // POST /directory-entry-reviews/123/delete
+        [HttpPost("{id:int}/delete")]
         public async Task<IActionResult> Delete(int id)
         {
             var item = await this.directoryEntryReviewRepository.GetByIdAsync(id);
@@ -456,10 +403,7 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Index));
         }
 
-        private static int SixDigits()
-        {
-            return RandomNumberGenerator.GetInt32(100_000, 1_000_000);
-        }
+        private static int SixDigits() => RandomNumberGenerator.GetInt32(100_000, 1_000_000);
 
         private static string CacheKey(Guid flowId) => $"review-flow:{flowId}";
 
@@ -471,6 +415,7 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryId = directoryEntryId,
                 ExpiresUtc = DateTime.UtcNow.AddMinutes(20)
             };
+
             this.cache.Set(CacheKey(id), state, state.ExpiresUtc);
             return id;
         }
@@ -478,26 +423,6 @@ namespace DirectoryManager.Web.Controllers
         private bool TryGetFlow(Guid flowId, out ReviewFlowState state)
         {
             return this.cache.TryGetValue(CacheKey(flowId), out state) && state.ExpiresUtc > DateTime.UtcNow;
-        }
-
-        private async Task<IReadOnlyList<string>> GetBlacklistTermsCachedAsync(CancellationToken ct)
-        {
-            return await this.cache.GetOrCreateAsync<IReadOnlyList<string>>(
-                StringConstants.BlacklistCacheKey,
-                async entry =>
-                {
-                    entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
-
-                    var terms = await this.searchBlacklistRepo.GetAllTermsAsync()
-                                ?? Array.Empty<string>();
-
-                    return terms
-                        .Where(t => !string.IsNullOrWhiteSpace(t))
-                        .Select(t => t.Trim())
-                        .Distinct(StringComparer.OrdinalIgnoreCase)
-                        .ToList(); // List<string> implements IReadOnlyList<string>
-                })
-                ?? Array.Empty<string>();
         }
     }
 }

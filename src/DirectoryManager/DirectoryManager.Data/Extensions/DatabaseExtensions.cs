@@ -50,6 +50,10 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IDirectoryEntryReviewRepository, DirectoryEntryReviewRepository>();
             services.AddScoped<IReviewerKeyRepository, ReviewerKeyRepository>();
 
+            services.AddScoped<IAffiliateAccountRepository, AffiliateAccountRepository>();
+            services.AddScoped<IAffiliateCommissionRepository, AffiliateCommissionRepository>();
+            services.AddScoped<IDirectoryEntryReviewCommentRepository, DirectoryEntryReviewCommentRepository>();
+
             return services;
         }
     }
