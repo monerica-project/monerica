@@ -14,5 +14,6 @@
         public const int DefaultDebuggingHttpPort = 5007;
         public const int DefaultDebuggingHttpsPort = 7145;
         public const int UnverifiedMinimumDaysListedBeforeAdvertising = 90;
+        public const int MinLengthCommentChars = 35;
     }
 }

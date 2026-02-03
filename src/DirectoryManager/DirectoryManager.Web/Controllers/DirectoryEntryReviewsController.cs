@@ -3,6 +3,7 @@ using System.Security.Cryptography;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -12,7 +13,7 @@ using Microsoft.Extensions.Caching.Memory;
 namespace DirectoryManager.Web.Controllers
 {
     [Route("directory-entry-reviews")]
-    public class DirectoryEntryReviewsController : Controller
+    public class DirectoryEntryReviewsController : BaseController
     {
         private readonly IMemoryCache cache;
         private readonly ICaptchaService captcha;
@@ -26,10 +27,13 @@ namespace DirectoryManager.Web.Controllers
         public DirectoryEntryReviewsController(
             IDirectoryEntryReviewRepository repo,
             IMemoryCache cache,
+            ITrafficLogRepository trafficLogRepository,
+            IUserAgentCacheService userAgentCacheService,
             ICaptchaService captcha,
             IPgpService pgp,
             IDirectoryEntryRepository directoryEntryRepository,
             ISearchBlacklistRepository searchBlacklistRepo)
+            : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.directoryEntryReviewRepository = repo;
             this.cache = cache;
@@ -228,7 +232,6 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(vm);
         }
-
         [HttpPost("compose")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ComposePost(Guid flowId, CreateDirectoryEntryReviewInputModel input, CancellationToken ct)
@@ -243,6 +246,16 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
             }
 
+            // Always trust the flow for the entry id
+            input.DirectoryEntryId = flow.DirectoryEntryId;
+
+            if (string.IsNullOrWhiteSpace(input.Body) || input.Body.Trim().Length <= IntegerConstants.MinLengthCommentChars)
+            {
+                this.ModelState.AddModelError(
+                    nameof(input.Body),
+                    "Please add a bit more detail so your review is helpful to others.");
+            }
+
             if (!this.ModelState.IsValid)
             {
                 var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
@@ -250,41 +263,42 @@ namespace DirectoryManager.Web.Controllers
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
 
-                input.DirectoryEntryId = flow.DirectoryEntryId;
                 return this.View("Compose", input);
             }
 
-            // --- NEW: blacklist -> auto approve unless it contains a blacklist term ---
+            var bodyTrimmed = input.Body.Trim();
+
             var terms = await this.GetBlacklistTermsCachedAsync(ct);
 
-            // check body (add more fields if you want)
-            var combined = input.Body ?? string.Empty;
-            bool needsManualReview = ContainsBlacklistTerm(combined, terms);
+            bool hasBlacklistTerm = ContainsBlacklistTerm(bodyTrimmed, terms);
+            bool hasLink = Utilities.Helpers.TextHelper.ContainsHyperlink(bodyTrimmed);
+
+            // pending if blacklist OR link
+            bool needsManualReview = hasBlacklistTerm || hasLink;
 
             var entity = new DirectoryEntryReview
             {
                 DirectoryEntryId = flow.DirectoryEntryId,
                 Rating = input.Rating!.Value,
-                Body = (input.Body ?? string.Empty).Trim(),
+                Body = bodyTrimmed,
                 CreateDate = DateTime.UtcNow,
 
-                // auto-approve unless it hits blacklist
-                ModerationStatus = needsManualReview ? ReviewModerationStatus.Pending : ReviewModerationStatus.Approved,
+                ModerationStatus = needsManualReview
+                    ? ReviewModerationStatus.Pending
+                    : ReviewModerationStatus.Approved,
 
-                // fingerprint from flow
                 AuthorFingerprint = flow.PgpFingerprint,
-
-                // mark as automated creator
                 CreatedByUserId = "automated"
             };
-
 
             await this.directoryEntryReviewRepository.AddAsync(entity, ct);
 
             // show different thank-you messaging
             this.TempData["ReviewNeedsManualReview"] = needsManualReview ? "1" : "0";
 
+            this.ClearCachedItems();
             this.cache.Remove(CacheKey(flowId));
+
             return this.RedirectToAction(nameof(this.Thanks));
         }
 

@@ -1,16 +1,20 @@
 ﻿using System.Security.Cryptography;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
     [Route("directory-entry-review-replies")]
-    public class DirectoryEntryReviewRepliesController : Controller
+    public class DirectoryEntryReviewRepliesController : BaseController
     {
         private readonly IMemoryCache cache;
         private readonly ICaptchaService captcha;
@@ -24,12 +28,15 @@ namespace DirectoryManager.Web.Controllers
 
         public DirectoryEntryReviewRepliesController(
             IMemoryCache cache,
+            ITrafficLogRepository trafficLogRepository,
+            IUserAgentCacheService userAgentCacheService,
             ICaptchaService captcha,
             IPgpService pgp,
             IDirectoryEntryReviewRepository reviewRepo,
             IDirectoryEntryReviewCommentRepository commentRepo,
             IDirectoryEntryRepository entryRepo,
             ISearchBlacklistRepository searchBlacklistRepo)
+                        : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.cache = cache;
             this.captcha = captcha;
@@ -263,6 +270,16 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
             }
 
+            // Always trust the flow for the review id
+            input.DirectoryEntryReviewId = state.DirectoryEntryReviewId;
+
+            if (string.IsNullOrWhiteSpace(input.Body) || input.Body.Trim().Length <= IntegerConstants.MinLengthCommentChars)
+            {
+                this.ModelState.AddModelError(
+                    nameof(input.Body),
+                    "Please add a bit more detail so your reply is helpful to others.");
+            }
+
             if (!this.ModelState.IsValid)
             {
                 var entry = await this.entryRepo.GetByIdAsync(state.DirectoryEntryId);
@@ -270,32 +287,37 @@ namespace DirectoryManager.Web.Controllers
                 this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
                 this.ViewBag.PgpFingerprint = state.PgpFingerprint;
 
-                input.DirectoryEntryReviewId = state.DirectoryEntryReviewId;
                 return this.View("Compose", input);
             }
 
-            // NEW: blacklist -> auto approve unless it contains a blacklist term
+            var bodyTrimmed = input.Body.Trim();
+
             var terms = await this.GetBlacklistTermsCachedAsync(ct);
-            var combined = input.Body ?? string.Empty;
-            bool needsManualReview = ContainsBlacklistTerm(combined, terms);
+
+            bool hasBlacklistTerm = ContainsBlacklistTerm(bodyTrimmed, terms);
+            bool hasLink = Utilities.Helpers.TextHelper.ContainsHyperlink(bodyTrimmed);
+
+            // pending if blacklist OR link
+            bool needsManualReview = hasBlacklistTerm || hasLink;
 
             var entity = new DirectoryEntryReviewComment
             {
                 DirectoryEntryReviewId = state.DirectoryEntryReviewId,
                 ParentCommentId = input.ParentCommentId,
-                Body = (input.Body ?? string.Empty).Trim(),
+                Body = bodyTrimmed,
 
-                // auto-approve unless it hits blacklist
-                ModerationStatus = needsManualReview ? ReviewModerationStatus.Pending : ReviewModerationStatus.Approved,
+                ModerationStatus = needsManualReview
+                    ? ReviewModerationStatus.Pending
+                    : ReviewModerationStatus.Approved,
 
                 AuthorFingerprint = state.PgpFingerprint!,
                 CreateDate = DateTime.UtcNow,
-
-                // mark as automated creator
                 CreatedByUserId = "automated"
             };
 
             await this.commentRepo.AddAsync(entity, ct);
+
+            this.ClearCachedItems();
             this.cache.Remove(CacheKey(flowId));
 
             // message for Thanks page

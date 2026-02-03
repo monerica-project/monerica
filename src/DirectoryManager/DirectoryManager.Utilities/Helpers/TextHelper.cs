@@ -29,5 +29,24 @@ namespace DirectoryManager.Utilities.Helpers
 
             return s[..cut].TrimEnd() + "…";
         }
+
+        public static bool ContainsHyperlink(string text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            var t = text.ToLowerInvariant();
+
+            // simple + effective checks
+            return t.Contains("http://")
+                || t.Contains("https://")
+                || t.Contains("www.")
+                || t.Contains(".com")
+                || t.Contains(".net")
+                || t.Contains(".org")
+                || t.Contains(".onion");
+        }
     }
 }
