@@ -53,5 +53,6 @@
         public const string ActiveSubcategoriesByCategoryCachePrefix = "ActiveSubcategoriesByCategoryCachePrefix_";
         public const string ActiveTagsByCategoryCachePrefix = "ActiveTagsByCategoryCachePrefix_";
         public const string ActiveTagIdsByCategoryCachePrefix = "active-tag-ids-by-category-";
+        public const string BlacklistCacheKey = "blacklistterms";
     }
 }

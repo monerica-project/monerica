@@ -12,17 +12,29 @@
     <hr />
 
     @{
+        // Highest priority: explicit message (if you ever set it)
         var msg = TempData["ReviewMessage"] as string;
+
+        // Fallback: controller flag ("1" = manual review, "0" = go live shortly)
+        var manualFlag = TempData["ReviewNeedsManualReview"] as string;
+
+        string finalMessage;
+
+        if (!string.IsNullOrWhiteSpace(msg))
+        {
+            finalMessage = msg;
+        }
+        else if (manualFlag == "1")
+        {
+            finalMessage = "Thanks! Your review will be manually reviewed before it appears publicly.";
+        }
+        else
+        {
+            finalMessage = "Thanks! Your review will go live shortly.";
+        }
     }
 
-    @if (!string.IsNullOrWhiteSpace(msg))
-    {
-        <p><b>@msg</b></p>
-    }
-    else
-    {
-        <p><b>Thanks for your review!</b></p>
-    }
+    <p><b>@finalMessage</b></p>
 
     @await Html.PartialAsync("_BackToHome")
 }

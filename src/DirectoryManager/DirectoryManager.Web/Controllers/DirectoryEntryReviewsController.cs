@@ -1,5 +1,4 @@
-﻿using System.Linq;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -9,6 +8,7 @@ using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
+using DirectoryManager.Utilities.Validation;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -21,8 +21,6 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly ISearchBlacklistRepository searchBlacklistRepo;
-
-        private const string BlacklistCacheKey = "review:blacklist-terms";
 
         public DirectoryEntryReviewsController(
             IDirectoryEntryReviewRepository repo,
@@ -41,6 +39,32 @@ namespace DirectoryManager.Web.Controllers
             this.pgp = pgp;
             this.directoryEntryRepository = directoryEntryRepository;
             this.searchBlacklistRepo = searchBlacklistRepo;
+        }
+
+        private static bool ContainsBlacklistTerm(string text, IReadOnlyList<string> terms)
+        {
+            if (string.IsNullOrWhiteSpace(text) || terms == null || terms.Count == 0)
+            {
+                return false;
+            }
+
+            var haystack = text.ToLowerInvariant();
+
+            foreach (var raw in terms)
+            {
+                var term = (raw ?? string.Empty).Trim();
+                if (term.Length == 0)
+                {
+                    continue;
+                }
+
+                if (haystack.Contains(term.ToLowerInvariant()))
+                {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         [HttpGet("begin")]
@@ -232,6 +256,7 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(vm);
         }
+
         [HttpPost("compose")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ComposePost(Guid flowId, CreateDirectoryEntryReviewInputModel input, CancellationToken ct)
@@ -249,11 +274,22 @@ namespace DirectoryManager.Web.Controllers
             // Always trust the flow for the entry id
             input.DirectoryEntryId = flow.DirectoryEntryId;
 
-            if (string.IsNullOrWhiteSpace(input.Body) || input.Body.Trim().Length <= IntegerConstants.MinLengthCommentChars)
+            var bodyTrimmed = (input.Body ?? string.Empty).Trim();
+
+            // Minimum detail requirement (don’t mention exact length)
+            if (string.IsNullOrWhiteSpace(bodyTrimmed) || bodyTrimmed.Length <= IntegerConstants.MinLengthCommentChars)
             {
                 this.ModelState.AddModelError(
                     nameof(input.Body),
                     "Please add a bit more detail so your review is helpful to others.");
+            }
+
+            // NEW: block scripts/html in reviews (user-facing error, no crash)
+            if (ScriptValidation.ContainsScriptTag(bodyTrimmed) || HtmlValidation.ContainsHtmlTag(bodyTrimmed))
+            {
+                this.ModelState.AddModelError(
+                    nameof(input.Body),
+                    "Please remove any HTML or scripts. Reviews must be plain text.");
             }
 
             if (!this.ModelState.IsValid)
@@ -265,8 +301,6 @@ namespace DirectoryManager.Web.Controllers
 
                 return this.View("Compose", input);
             }
-
-            var bodyTrimmed = input.Body.Trim();
 
             var terms = await this.GetBlacklistTermsCachedAsync(ct);
 
@@ -449,7 +483,7 @@ namespace DirectoryManager.Web.Controllers
         private async Task<IReadOnlyList<string>> GetBlacklistTermsCachedAsync(CancellationToken ct)
         {
             return await this.cache.GetOrCreateAsync<IReadOnlyList<string>>(
-                BlacklistCacheKey,
+                StringConstants.BlacklistCacheKey,
                 async entry =>
                 {
                     entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
@@ -464,29 +498,6 @@ namespace DirectoryManager.Web.Controllers
                         .ToList(); // List<string> implements IReadOnlyList<string>
                 })
                 ?? Array.Empty<string>();
-        }
-
-        private static bool ContainsBlacklistTerm(string text, IReadOnlyList<string> terms)
-        {
-            if (string.IsNullOrWhiteSpace(text) || terms == null || terms.Count == 0)
-            {
-                return false;
-            }
-
-            var haystack = text.ToLowerInvariant();
-
-            foreach (var raw in terms)
-            {
-                var term = (raw ?? string.Empty).Trim();
-                if (term.Length == 0) continue;
-
-                if (haystack.Contains(term.ToLowerInvariant()))
-                {
-                    return true;
-                }
-            }
-
-            return false;
         }
     }
 }

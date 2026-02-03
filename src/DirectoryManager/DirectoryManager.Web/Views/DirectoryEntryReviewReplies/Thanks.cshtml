@@ -12,17 +12,29 @@
     <hr />
 
     @{
+        // If you ever set a specific reply message elsewhere, keep supporting it:
         var msg = TempData["ReplyMessage"] as string;
-    }
-    @if (!string.IsNullOrWhiteSpace(msg))
-    {
-        <p><b>@msg</b></p>
-    }
-    else
-    {
-        <p><b>Thanks! Your reply has been received.</b></p>
+
+        // This is what your controller sets:
+        var statusMsg = TempData["ReviewPostStatusMessage"] as string;
+
+        string finalMessage;
+
+        if (!string.IsNullOrWhiteSpace(msg))
+        {
+            finalMessage = msg;
+        }
+        else if (!string.IsNullOrWhiteSpace(statusMsg))
+        {
+            finalMessage = statusMsg;
+        }
+        else
+        {
+            finalMessage = "Thanks! Your reply has been received.";
+        }
     }
 
+    <p><b>@finalMessage</b></p>
 
     @await Html.PartialAsync("_BackToHome")
 }
