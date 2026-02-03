@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Utilities.Validation;
+﻿using System.Text.RegularExpressions;
+using DirectoryManager.Utilities.Validation;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
@@ -7,6 +8,9 @@ namespace DirectoryManager.Web.Services.Implementations
 {
     public sealed class UserContentModerationService : IUserContentModerationService
     {
+        // Treat letters/digits as “word” characters for boundary checks (Unicode-safe)
+        private const string WordCharClass = @"[\p{L}\p{Nd}]";
+
         private readonly ISearchBlacklistCache blacklistCache;
 
         public UserContentModerationService(ISearchBlacklistCache blacklistCache)
@@ -14,47 +18,66 @@ namespace DirectoryManager.Web.Services.Implementations
             this.blacklistCache = blacklistCache;
         }
 
-        public async Task<UserContentModerationResult> EvaluateReviewAsync(string? body, CancellationToken ct)
-        {
-            return await this.EvaluateAsync(
-                body,
-                isReply: false,
-                ct: ct);
-        }
+        public Task<UserContentModerationResult> EvaluateReviewAsync(string? body, CancellationToken ct)
+            => this.EvaluateAsync(body, isReply: false, ct: ct);
 
-        public async Task<UserContentModerationResult> EvaluateReplyAsync(string? body, CancellationToken ct)
-        {
-            return await this.EvaluateAsync(
-                body,
-                isReply: true,
-                ct: ct);
-        }
+        public Task<UserContentModerationResult> EvaluateReplyAsync(string? body, CancellationToken ct)
+            => this.EvaluateAsync(body, isReply: true, ct: ct);
 
-        private static bool ContainsBlacklistTerm(string text, HashSet<string> terms)
+        /// <summary>
+        /// Returns true if the content contains a blacklist term as a whole word / phrase,
+        /// not as a substring inside another word.
+        /// Example: "meth" will NOT match "something".
+        /// </summary>
+        private static bool ContainsBlacklistTermWholeWord(string text, HashSet<string> terms)
         {
             if (string.IsNullOrWhiteSpace(text) || terms is null || terms.Count == 0)
             {
                 return false;
             }
 
-            var haystack = text.ToLowerInvariant();
+            // Normalize once
+            var haystack = text.Trim();
 
-            foreach (var term in terms)
+            foreach (var raw in terms)
             {
-                if (string.IsNullOrWhiteSpace(term))
+                var term = (raw ?? string.Empty).Trim();
+                if (term.Length == 0)
                 {
                     continue;
                 }
 
-                // terms should already be normalized to lowercase by the cache,
-                // but this remains safe either way.
-                if (haystack.Contains(term.Trim().ToLowerInvariant()))
+                // Build a safe pattern:
+                // - escapes special characters
+                // - if phrase, allow whitespace between tokens
+                // - forces “not preceded/followed by letter/digit” so no substring matches
+                var pattern = BuildWholeWordOrPhrasePattern(term);
+
+                if (Regex.IsMatch(
+                        haystack,
+                        pattern,
+                        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant))
                 {
                     return true;
                 }
             }
 
             return false;
+        }
+
+        private static string BuildWholeWordOrPhrasePattern(string term)
+        {
+            // Escape everything first
+            var escaped = Regex.Escape(term);
+
+            // If the term includes spaces/tabs/newlines, treat it as a phrase and allow flexible whitespace
+            // (Regex.Escape turns spaces into "\ ", so replace any escaped whitespace runs with "\s+")
+            escaped = Regex.Replace(escaped, @"(\\\s)+", @"\s+");
+
+            // Whole-word/phrase boundaries:
+            // (?<![\p{L}\p{Nd}])  not preceded by a letter/digit
+            // (?![\p{L}\p{Nd}])   not followed by a letter/digit
+            return $@"(?<!{WordCharClass}){escaped}(?!{WordCharClass})";
         }
 
         private async Task<UserContentModerationResult> EvaluateAsync(string? body, bool isReply, CancellationToken ct)
@@ -89,7 +112,7 @@ namespace DirectoryManager.Web.Services.Implementations
 
             // 3) Manual review triggers: blacklist OR hyperlink
             var terms = await this.blacklistCache.GetTermsAsync(ct); // expected normalized/lowercase
-            bool hasBlacklistTerm = ContainsBlacklistTerm(trimmed, terms);
+            bool hasBlacklistTerm = ContainsBlacklistTermWholeWord(trimmed, terms);
 
             // hyperlink => pending (but still allowed)
             bool hasLink = Utilities.Helpers.TextHelper.ContainsHyperlink(trimmed);
