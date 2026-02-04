@@ -105,6 +105,8 @@
             DirectoryEntry = (catSponsor != null && catSponsor.DirectoryEntry != null)
                 ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel()
                 {
+                    CountryCode = catSponsor.DirectoryEntry.CountryCode,
+
                     CreateDate = catSponsor.DirectoryEntry.CreateDate,
                     UpdateDate = catSponsor.DirectoryEntry.UpdateDate,
                     DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,

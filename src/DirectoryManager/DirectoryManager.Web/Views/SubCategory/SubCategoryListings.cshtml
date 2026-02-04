@@ -119,6 +119,8 @@
             DirectoryEntry = (subCategorySponsor?.DirectoryEntry != null)
                 ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
                 {
+                    CountryCode = subCategorySponsor.DirectoryEntry.CountryCode,
+
                     DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
 
                     Link = subCategorySponsor.DirectoryEntry.Link,

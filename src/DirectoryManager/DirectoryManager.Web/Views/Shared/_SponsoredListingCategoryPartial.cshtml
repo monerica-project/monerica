@@ -30,10 +30,17 @@
     // Category sponsor should be a direct outbound link
     vm.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.Direct;
 
+    // Tell DisplayMarkUpHelper (via _DirectoryEntryPartial) to render:
+    // Name | Tor | I2P Flag
+    ViewData["SponsorInlineHeader"] = true;
+
+    // Not strictly required in this mode, but safe if other paths would have rendered links elsewhere.
+    ViewData["SkipLinksBlock"] = true;
+
     <div class="sponsored-section" style="margin-bottom:5px;">
         <p><b>Sponsored</b></p>
         <ul class="blank_list_item">
-            @await Html.PartialAsync("_DirectoryEntryPartial", vm)
+            @await Html.PartialAsync("_DirectoryEntryPartial", vm, ViewData)
         </ul>
     </div>
 }

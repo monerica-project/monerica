@@ -14,7 +14,11 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         // ----------------------------
         // Public API
         // ----------------------------
-        public static string GenerateDirectoryEntryHtml(DirectoryEntryViewModel model, string? rootUrl = null)
+        public static string GenerateDirectoryEntryHtml(
+            DirectoryEntryViewModel model,
+            string? rootUrl = null,
+            bool sponsorInlineHeader = false,
+            bool skipLinksBlock = false)
         {
             var sb = new StringBuilder();
 
@@ -24,19 +28,29 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             AppendOptionalDate(sb, model);
 
             var effectiveLinkType = GetEffectiveLinkTypeForDirectoryEntryRender(model);
-            AppendStatusAndPrimaryLink(sb, model, rootUrl, effectiveLinkType);
 
-            AppendDirectoryEntryLinksBlock(sb, model, rootUrl, effectiveLinkType);
+            if (sponsorInlineHeader)
+            {
+                // Name | Tor (if exists) | I2P (if exists) Flag
+                AppendSponsorInlineHeader(sb, model, rootUrl, effectiveLinkType);
+            }
+            else
+            {
+                AppendStatusAndPrimaryLink(sb, model, rootUrl, effectiveLinkType);
 
-            AppendOptionalFlag(sb, model, rootUrl);
+                if (!skipLinksBlock)
+                {
+                    AppendDirectoryEntryLinksBlock(sb, model, rootUrl, effectiveLinkType);
+                }
+
+                AppendOptionalFlag(sb, model, rootUrl);
+            }
 
             // Category/Subcategory sponsor block (not the normal sponsored list item)
             bool isSponsorBlock = model.IsSponsored && !model.DisplayAsSponsoredItem;
 
             if (isSponsorBlock)
             {
-                // name/links already written above
-
                 // ⭐ stars next
                 AppendInlineStarRating(sb, model, rootUrl);
 
@@ -128,6 +142,70 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         // ----------------------------
         // DirectoryEntryHtml helpers
         // ----------------------------
+        private static void AppendSponsorInlineHeader(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            string? rootUrl,
+            LinkType effectiveLinkType)
+        {
+            // Name (main link)
+            string? primary = GetPrimaryUrlForDisplay(model);
+
+            // Scam behavior preserved (del)
+            if (model.DirectoryStatus == DirectoryStatus.Scam)
+            {
+                sb.Append("&#10060; <del>");
+                AppendPrimaryLinkForDirectoryEntry(sb, model, primary, rootUrl, isScam: true, effectiveLinkType);
+                sb.Append("</del>");
+            }
+            else if (model.DirectoryStatus == DirectoryStatus.Verified)
+            {
+                // keep the verified checkmark (matches your normal rendering)
+                sb.Append("&#9989; ");
+                AppendPrimaryLinkForDirectoryEntry(sb, model, primary, rootUrl, isScam: false, effectiveLinkType);
+            }
+            else if (model.DirectoryStatus == DirectoryStatus.Questionable)
+            {
+                sb.Append("&#10067; ");
+                AppendPrimaryLinkForDirectoryEntry(sb, model, primary, rootUrl, isScam: false, effectiveLinkType);
+            }
+            else
+            {
+                AppendPrimaryLinkForDirectoryEntry(sb, model, primary, rootUrl, isScam: false, effectiveLinkType);
+            }
+
+            // Tor
+            if (!string.IsNullOrWhiteSpace(model.Link2))
+            {
+                sb.Append(" | ");
+                var label = string.IsNullOrWhiteSpace(model.Link2Name) ? "Tor" : model.Link2Name;
+                sb.Append("<a rel=\"sponsored\" href=\"");
+                sb.Append(WebUtility.HtmlEncode(model.Link2.Trim()));
+                sb.Append("\" target=\"_blank\">");
+                sb.Append(WebUtility.HtmlEncode(label));
+                sb.Append("</a>");
+            }
+
+            // I2P
+            if (!string.IsNullOrWhiteSpace(model.Link3))
+            {
+                sb.Append(" | ");
+                var label = string.IsNullOrWhiteSpace(model.Link3Name) ? "I2P" : model.Link3Name;
+                sb.Append("<a rel=\"sponsored\" href=\"");
+                sb.Append(WebUtility.HtmlEncode(model.Link3.Trim()));
+                sb.Append("\" target=\"_blank\">");
+                sb.Append(WebUtility.HtmlEncode(label));
+                sb.Append("</a>");
+            }
+
+            // Flag last
+            if (model.ItemDisplayType != ItemDisplayType.Email)
+            {
+                sb.Append("&nbsp;");
+                sb.Append(BuildFlagImgTag(model.CountryCode, rootUrl));
+            }
+        }
+
         private static void AppendOptionalDescriptionAndNote(
             StringBuilder sb,
             DirectoryEntryViewModel model,
@@ -709,25 +787,32 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
         private static string BuildFlagImgTag(string? countryCode, string? rootUrl = null)
         {
-            var sb = new StringBuilder();
-
-            if (!string.IsNullOrWhiteSpace(countryCode))
+            if (string.IsNullOrWhiteSpace(countryCode))
             {
-                var code = countryCode.Trim();
-                var countryName = CountryHelper.GetCountryName(code);
-                var file = code.ToLowerInvariant();
-
-                var src = string.Concat(rootUrl, $"/images/flags/{file}.png");
-
-                sb.Append("<img")
-                  .Append(" class=\"country-flag\"")
-                  .Append(" src=\"").Append(src).Append('"')
-                  .Append(" alt=\"Flag of ").Append(countryName).Append('"')
-                  .Append(" title=\"").Append(countryName).Append('"')
-                  .Append(" />");
+                return string.Empty;
             }
 
-            return sb.ToString();
+            var code = countryCode.Trim();
+            var countryName = CountryHelper.GetCountryName(code);
+            var file = code.ToLowerInvariant();
+
+            // rootUrl is either null (preferred) or "https://domain.com"
+            var baseUrl = (rootUrl ?? string.Empty).TrimEnd('/');
+
+            // If baseUrl is empty => "/images/flags/us.png"
+            // Else => "https://domain.com/images/flags/us.png"
+            var src = string.IsNullOrEmpty(baseUrl)
+                ? $"/images/flags/{file}.png"
+                : $"{baseUrl}/images/flags/{file}.png";
+
+            var safeSrc = WebUtility.HtmlEncode(src);
+            var safeName = WebUtility.HtmlEncode(countryName);
+
+            return "<img class=\"country-flag\""
+                 + $" src=\"{safeSrc}\""
+                 + $" alt=\"Flag of {safeName}\""
+                 + $" title=\"{safeName}\""
+                 + " />";
         }
     }
 }

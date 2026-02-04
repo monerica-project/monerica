@@ -674,7 +674,7 @@ p.intro {
 }
 
 .sponsor-card a b {
-    font-size: 20px;
+    font-size: 19px;
 }
 
 
@@ -1569,4 +1569,32 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px;}
 .reply-meta {
     margin-top: 8px;
 }
-  
+
+.sponsor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sponsor-header-left {
+    display: flex;
+    align-items: center;
+    min-width: 0; /* allows name to truncate nicely if needed */
+}
+
+.sponsor-header-right {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+.country-flag-right {
+    margin-left: 0px;
+    margin-right: 5px;
+}
+
+.sponsor-header .title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

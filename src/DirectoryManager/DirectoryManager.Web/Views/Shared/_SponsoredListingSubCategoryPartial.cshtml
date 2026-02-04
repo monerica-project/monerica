@@ -7,7 +7,7 @@
     var link2Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
     var link3Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
-    var vm = Model?.DirectoryEntry; // this is DisplayFormatting.Models.DirectoryEntryViewModel
+    var vm = Model?.DirectoryEntry; // DisplayFormatting.Models.DirectoryEntryViewModel
 }
 
 @if (Model != null && vm != null)
@@ -21,13 +21,17 @@
     vm.DisplayAsSponsoredItem = false;
     vm.IsSubCategorySponsor = true;
 
-    // Keep whatever you’re using on subcategory pages (you set ListingPage in the page)
-    // vm.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
+    // Tell DisplayMarkUpHelper (via _DirectoryEntryPartial) to render:
+    // Name | Tor | I2P Flag
+    ViewData["SponsorInlineHeader"] = true;
+
+    // Not strictly required in this mode, but safe
+    ViewData["SkipLinksBlock"] = true;
 
     <div class="sponsored-section">
         <p><b>Sponsored</b></p>
         <ul class="blank_list_item">
-            @await Html.PartialAsync("_DirectoryEntryPartial", vm)
+            @await Html.PartialAsync("_DirectoryEntryPartial", vm, ViewData)
         </ul>
     </div>
 }

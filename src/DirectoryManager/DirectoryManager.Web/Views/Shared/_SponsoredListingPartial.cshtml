@@ -1,4 +1,5 @@
 ﻿@using System.Globalization
+@using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.DisplayFormatting.Helpers
@@ -44,6 +45,30 @@
         sb.Append("</span>");
 
         return new HtmlString(sb.ToString());
+    }
+
+
+    private static IHtmlContent RenderCountryFlagRight(string? countryCode, string? rootUrl = null)
+    {
+        if (string.IsNullOrWhiteSpace(countryCode))
+        {
+            return HtmlString.Empty;
+        }
+
+        var code = countryCode.Trim();
+        var countryName = CountryHelper.GetCountryName(code);
+        var file = code.ToLowerInvariant();
+
+        var src = string.Concat(rootUrl ?? string.Empty, $"/images/flags/{file}.png");
+
+        var html =
+            "<img class=\"country-flag country-flag-right\"" +
+            $" src=\"{System.Net.WebUtility.HtmlEncode(src)}\"" +
+            $" alt=\"Flag of {System.Net.WebUtility.HtmlEncode(countryName)}\"" +
+            $" title=\"{System.Net.WebUtility.HtmlEncode(countryName)}\"" +
+            " />";
+
+        return new HtmlString(html);
     }
 }
 
@@ -119,12 +144,19 @@
                     <div class="sponsor-card">
                         <!-- Status + Title -->
                         <div class="sponsor-header">
-                            <span class="status">@Html.Raw(statusIcon(vm.DirectoryStatus))</span>
-                            <a rel="sponsored"
-                               href="@(vm.Link)"
-                               target="_blank"
-                               class="title"><b>@vm.Name</b></a>
+                            <div class="sponsor-header-left">
+                                <span class="status">@Html.Raw(statusIcon(vm.DirectoryStatus))</span>
+                                <a rel="sponsored"
+                                   href="@(vm.Link)"
+                                   target="_blank"
+                                   class="title"><b>@vm.Name</b></a>
+                            </div>
+
+                            <div class="sponsor-header-right">
+                                @RenderCountryFlagRight(vm.CountryCode)
+                            </div>
                         </div>
+
 
                         @* One row under name: rating on left, Tor/I2P centered to the right *@
                         @if (hasRating || hasLinks)
@@ -184,4 +216,6 @@
     {
         <p><a class="app-link" href="~/sponsoredlisting">Advertise here</a></p>
     }
+
+ 
 </cache-content>
