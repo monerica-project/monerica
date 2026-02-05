@@ -612,7 +612,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             // x.x/5 (NOT a link)
             sb.AppendFormat(
                 CultureInfo.InvariantCulture,
-                "<span class=\"rating-text\"> {0:0.0}/5 </span>",
+                "<span class=\"rating-text\"> {0:0.0}</span>",
                 avg);
 
             // (count) is a link if we have a URL

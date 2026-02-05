@@ -1441,7 +1441,6 @@ a.external-link {
 /* Only (count) is a link */
 .rating-count-link {
     text-decoration: none;
-    margin-left: 2px;
     font-size: 0.85em;
 }
 
@@ -1455,6 +1454,25 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px;}
     list-style: none;
     padding-bottom: 15px;
 }
+
+
+
+
+/* =========================
+   Subtle Orange Halo Headings
+   ========================= */
+
+/* h2 + h3 = soft glow only */
+h2, h3 {
+    color: #ff6600;
+    letter-spacing: 0.01em;
+    /* very soft halo */
+    text-shadow: 0 0 3px rgba(255,102,0,0.25), 0 0 8px rgba(255,102,0,0.15);
+    filter: drop-shadow(0 0 4px rgba(255,102,0,0.18));
+}
+
+
+
 
 /* Overall wrapper: left summary + right distribution */
 .rating-summary {

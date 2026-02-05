@@ -674,7 +674,7 @@ p.intro {
 }
 
 .sponsor-card a b {
-    font-size: 20px;
+    font-size: 19px;
 }
 
 
@@ -1441,7 +1441,6 @@ a.external-link {
 /* Only (count) is a link */
 .rating-count-link {
     text-decoration: none;
-    margin-left: 2px;
     font-size: 0.85em;
 }
 
@@ -1455,6 +1454,25 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px;}
     list-style: none;
     padding-bottom: 15px;
 }
+
+
+
+
+/* =========================
+   Subtle Orange Halo Headings
+   ========================= */
+
+/* h2 + h3 = soft glow only */
+h2, h3 {
+    color: #ff6600;
+    letter-spacing: 0.01em;
+    /* very soft halo */
+    text-shadow: 0 0 3px rgba(255,102,0,0.25), 0 0 8px rgba(255,102,0,0.15);
+    filter: drop-shadow(0 0 4px rgba(255,102,0,0.18));
+}
+
+
+
 
 /* Overall wrapper: left summary + right distribution */
 .rating-summary {
@@ -1569,4 +1587,32 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px;}
 .reply-meta {
     margin-top: 8px;
 }
-  
+
+.sponsor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.sponsor-header-left {
+    display: flex;
+    align-items: center;
+    min-width: 0; /* allows name to truncate nicely if needed */
+}
+
+.sponsor-header-right {
+    display: flex;
+    align-items: center;
+    flex: 0 0 auto;
+}
+
+.country-flag-right {
+    margin-left: 0px;
+    margin-right: 5px;
+}
+
+.sponsor-header .title {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}

@@ -32,7 +32,7 @@
         sb.Append("</span>");
 
         // Rating number (not a link)
-        sb.AppendFormat(CultureInfo.InvariantCulture, "<span class=\"rating-text\"> {0:0.0}/5 </span>", avg);
+        sb.AppendFormat(CultureInfo.InvariantCulture, "<span class=\"rating-text\"> {0:0.0} </span>", avg);
 
         // Review count ONLY is a link
         sb.Append("<a class=\"no-app-link rating-count-link\" href=\"");

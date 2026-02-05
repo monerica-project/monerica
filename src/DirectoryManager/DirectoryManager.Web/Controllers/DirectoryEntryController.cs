@@ -373,6 +373,24 @@ namespace DirectoryManager.Web.Controllers
 
             await this.LoadTagCheckboxesAsync(selectedIds);
 
+            // ✅ load additional links for edit form
+            var additional = await this.additionalLinkRepo.GetByDirectoryEntryIdAsync(id, CancellationToken.None);
+
+            var additionalLinks = (additional ?? new List<AdditionalLink>())
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.AdditionalLinkId) // stable ordering
+                .Select(x => x.Link)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(IntegerConstants.MaxAdditionalLinks)
+                .ToList();
+
+            // If your edit view renders a fixed number of input boxes, pad it:
+            while (additionalLinks.Count < IntegerConstants.MaxAdditionalLinks)
+            {
+                additionalLinks.Add(string.Empty);
+            }
+
             var vm = new DirectoryEntryEditViewModel
             {
                 DirectoryEntryKey = entry.DirectoryEntryKey,
@@ -396,7 +414,10 @@ namespace DirectoryManager.Web.Controllers
                 Note = entry.Note,
                 PgpKey = entry.PgpKey,
 
-                SelectedTagIds = selectedIds.ToList()
+                SelectedTagIds = selectedIds.ToList(),
+
+                // ✅ this is the missing piece
+                AdditionalLinks = additionalLinks
             };
 
             return this.View(vm);
