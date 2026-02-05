@@ -44,5 +44,6 @@ namespace DirectoryManager.Web.Models
         [MaxLength(200)]
         public string? NewTagsCsv { get; set; }
         public string DirectoryEntryKey { get; set; } = string.Empty;
+        public List<string> AdditionalLinks { get; set; } = new ();
     }
 }

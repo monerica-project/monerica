@@ -4,17 +4,12 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 {
     public interface IAdditionalLinkRepository
     {
-        Task<IReadOnlyList<AdditionalLink>> GetByDirectoryEntryIdAsync(int directoryEntryId, CancellationToken ct);
+        Task<List<AdditionalLink>> GetByDirectoryEntryIdAsync(int directoryEntryId, CancellationToken ct = default);
 
-        /// <summary>
-        /// Replaces the entry’s additional links with the provided set (max 3).
-        /// Pass 0..3 links; blanks are ignored; duplicates are removed.
-        /// </summary>
-        Task<IReadOnlyList<AdditionalLink>> UpsertForDirectoryEntryAsync(
-            int directoryEntryId,
-            IEnumerable<string?> links,
-            CancellationToken ct);
+        Task<AdditionalLink> CreateAsync(AdditionalLink model, CancellationToken ct = default);
 
-        Task DeleteForDirectoryEntryAsync(int directoryEntryId, CancellationToken ct);
+        Task DeleteAsync(int additionalLinkId, CancellationToken ct = default);
+
+        Task DeleteByDirectoryEntryIdAsync(int directoryEntryId, CancellationToken ct = default);
     }
 }

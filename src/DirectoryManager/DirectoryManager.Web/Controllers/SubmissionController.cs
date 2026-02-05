@@ -23,7 +23,7 @@ namespace DirectoryManager.Web.Controllers
 {
     public class SubmissionController : BaseController
     {
-        private const int MaxLinks = 3;
+        private const int MaxLinks = DirectoryManager.Web.Constants.IntegerConstants.MaxAdditionalLinks;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ISubmissionRepository submissionRepository;
         private readonly ISubcategoryRepository subCategoryRepository;

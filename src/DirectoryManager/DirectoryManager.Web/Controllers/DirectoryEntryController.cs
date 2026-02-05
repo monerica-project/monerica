@@ -122,10 +122,26 @@ namespace DirectoryManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(DirectoryEntryEditViewModel vm)
         {
+            // Normalize additional links (submission-only “forum/docs/etc” links)
+            var normalizedAdditional = NormalizeAdditionalLinks(vm.AdditionalLinks, IntegerConstants.MaxAdditionalLinks);
+
+            // Validate additional links
+            for (int i = 0; i < normalizedAdditional.Count; i++)
+            {
+                if (!UrlHelper.IsValidUrl(normalizedAdditional[i]))
+                {
+                    this.ModelState.AddModelError(string.Empty, $"Additional link {i + 1} is not a valid URL.");
+                }
+            }
+
             if (!this.ModelState.IsValid || vm.DirectoryStatus == DirectoryStatus.Unknown || vm.SubCategoryId == 0)
             {
                 await this.LoadLists();
                 await this.LoadTagCheckboxesAsync(NormalizeSelectedIds(vm.SelectedTagIds));
+
+                // keep user-entered values on redisplay
+                vm.AdditionalLinks = normalizedAdditional;
+
                 return this.View("create", vm);
             }
 
@@ -147,18 +163,21 @@ namespace DirectoryManager.Web.Controllers
             {
                 await this.LoadLists();
                 await this.LoadTagCheckboxesAsync(NormalizeSelectedIds(vm.SelectedTagIds));
+                vm.AdditionalLinks = normalizedAdditional;
+
                 this.ModelState.AddModelError("Link", "The provided link is already used by another entry (with or without a trailing slash).");
                 return this.View("create", vm);
             }
 
             var entryName = (vm.Name ?? string.Empty).Trim();
-            var existingEntryByName =
-                await this.directoryEntryRepository.GetByNameAsync(entryName);
+            var existingEntryByName = await this.directoryEntryRepository.GetByNameAsync(entryName);
 
             if (existingEntryByName != null)
             {
                 await this.LoadLists();
                 await this.LoadTagCheckboxesAsync(NormalizeSelectedIds(vm.SelectedTagIds));
+                vm.AdditionalLinks = normalizedAdditional;
+
                 this.ModelState.AddModelError("Name", "The provided name is already used by another entry.");
                 return this.View("create", vm);
             }
@@ -178,11 +197,13 @@ namespace DirectoryManager.Web.Controllers
                 Contact = vm.Contact?.Trim(),
                 Location = vm.Location?.Trim(),
                 Processor = vm.Processor?.Trim(),
+
                 LinkA = vm.LinkA?.Trim(),
                 Link2 = vm.Link2?.Trim(),
                 Link2A = vm.Link2A?.Trim(),
                 Link3 = vm.Link3?.Trim(),
                 Link3A = vm.Link3A?.Trim(),
+
                 PgpKey = vm.PgpKey?.Trim(),
                 ProofLink = vm.ProofLink?.Trim(),
                 VideoLink = vm.VideoLink?.Trim(),
@@ -190,6 +211,9 @@ namespace DirectoryManager.Web.Controllers
             };
 
             await this.directoryEntryRepository.CreateAsync(model);
+
+            // ✅ Sync additional links table
+            await this.SyncAdditionalLinksAsync(model.DirectoryEntryId, normalizedAdditional);
 
             // ✅ Persist checked tags (existing tags)
             var selectedIds = NormalizeSelectedIds(vm.SelectedTagIds);
@@ -214,6 +238,115 @@ namespace DirectoryManager.Web.Controllers
                               ?? await this.tagRepo.CreateAsync(normalizedName);
 
                     await this.entryTagRepo.AssignTagAsync(model.DirectoryEntryId, tag.TagId);
+                }
+            }
+
+            this.ClearCachedItems();
+            return this.RedirectToAction(nameof(this.Index));
+        }
+
+        [Route("directoryentry/edit/{id}")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, DirectoryEntryEditViewModel vm)
+        {
+            var existingEntry = await this.directoryEntryRepository.GetByIdAsync(id);
+            if (existingEntry == null)
+            {
+                return this.NotFound();
+            }
+
+            // Normalize additional links (forum/docs/etc)
+            var normalizedAdditional = NormalizeAdditionalLinks(vm.AdditionalLinks, IntegerConstants.MaxAdditionalLinks);
+
+            // Validate additional links
+            for (int i = 0; i < normalizedAdditional.Count; i++)
+            {
+                if (!UrlHelper.IsValidUrl(normalizedAdditional[i]))
+                {
+                    this.ModelState.AddModelError(string.Empty, $"Additional link {i + 1} is not a valid URL.");
+                }
+            }
+
+            if (!this.ModelState.IsValid || vm.DirectoryStatus == DirectoryStatus.Unknown || vm.SubCategoryId == 0)
+            {
+                await this.LoadSubCategories();
+                await this.PopulateCountryDropDownList(vm.CountryCode);
+                await this.LoadTagCheckboxesAsync(NormalizeSelectedIds(vm.SelectedTagIds));
+
+                // keep user-entered additional links on redisplay
+                vm.AdditionalLinks = normalizedAdditional;
+
+                return this.View(vm);
+            }
+
+            existingEntry.UpdatedByUserId = this.userManager.GetUserId(this.User);
+            existingEntry.SubCategoryId = vm.SubCategoryId;
+
+            existingEntry.Link = (vm.Link ?? string.Empty).Trim();
+            existingEntry.LinkA = vm.LinkA?.Trim();
+
+            existingEntry.Link2 = vm.Link2?.Trim();
+            existingEntry.Link2A = vm.Link2A?.Trim();
+
+            existingEntry.Link3 = vm.Link3?.Trim();
+            existingEntry.Link3A = vm.Link3A?.Trim();
+
+            existingEntry.ProofLink = vm.ProofLink?.Trim();
+            existingEntry.VideoLink = vm.VideoLink?.Trim();
+
+            existingEntry.Name = (vm.Name ?? string.Empty).Trim();
+            existingEntry.DirectoryEntryKey = StringHelpers.UrlKey(existingEntry.Name);
+
+            existingEntry.Description = vm.Description?.Trim();
+            existingEntry.Note = vm.Note?.Trim();
+            existingEntry.DirectoryStatus = vm.DirectoryStatus;
+
+            existingEntry.Contact = vm.Contact?.Trim();
+            existingEntry.Location = vm.Location?.Trim();
+            existingEntry.Processor = vm.Processor?.Trim();
+
+            existingEntry.CountryCode = vm.CountryCode;
+            existingEntry.PgpKey = vm.PgpKey?.Trim();
+
+            await this.directoryEntryRepository.UpdateAsync(existingEntry);
+
+            // ✅ Sync additional links table
+            await this.SyncAdditionalLinksAsync(id, normalizedAdditional);
+
+            // ✅ Re-sync tags by IDs (checkboxes)
+            var newSelected = NormalizeSelectedIds(vm.SelectedTagIds);
+            var current = await this.entryTagRepo.GetTagsForEntryAsync(id);
+            var currentIds = current.Select(t => t.TagId).ToHashSet();
+
+            // remove unchecked
+            foreach (var tagId in currentIds.Where(x => !newSelected.Contains(x)))
+            {
+                await this.entryTagRepo.RemoveTagAsync(id, tagId);
+            }
+
+            // add newly checked
+            foreach (var tagId in newSelected.Where(x => !currentIds.Contains(x)))
+            {
+                await this.entryTagRepo.AssignTagAsync(id, tagId);
+            }
+
+            // ✅ Optional: create+assign new typed tags
+            if (!string.IsNullOrWhiteSpace(vm.NewTagsCsv))
+            {
+                var newNames = vm.NewTagsCsv
+                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                    .Select(t => t.Trim())
+                    .Where(t => t.Length > 0)
+                    .Distinct(StringComparer.OrdinalIgnoreCase);
+
+                foreach (var name in newNames)
+                {
+                    var normalizedName = FormattingHelper.NormalizeTagName(name);
+                    var tag = await this.tagRepo.GetByKeyAsync(normalizedName.UrlKey())
+                              ?? await this.tagRepo.CreateAsync(normalizedName);
+
+                    await this.entryTagRepo.AssignTagAsync(id, tag.TagId);
                 }
             }
 
@@ -267,88 +400,6 @@ namespace DirectoryManager.Web.Controllers
             };
 
             return this.View(vm);
-        }
-
-        [Route("directoryentry/edit/{id}")]
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, DirectoryEntryEditViewModel vm)
-        {
-            var existingEntry = await this.directoryEntryRepository.GetByIdAsync(id);
-            if (existingEntry == null)
-            {
-                return this.NotFound();
-            }
-
-            if (!this.ModelState.IsValid || vm.DirectoryStatus == DirectoryStatus.Unknown || vm.SubCategoryId == 0)
-            {
-                await this.LoadSubCategories();
-                await this.PopulateCountryDropDownList(vm.CountryCode);
-                await this.LoadTagCheckboxesAsync(NormalizeSelectedIds(vm.SelectedTagIds));
-                return this.View(vm);
-            }
-
-            existingEntry.UpdatedByUserId = this.userManager.GetUserId(this.User);
-            existingEntry.SubCategoryId = vm.SubCategoryId;
-            existingEntry.Link = (vm.Link ?? string.Empty).Trim();
-            existingEntry.LinkA = vm.LinkA?.Trim();
-            existingEntry.Link2 = vm.Link2?.Trim();
-            existingEntry.Link2A = vm.Link2A?.Trim();
-            existingEntry.Link3 = vm.Link3?.Trim();
-            existingEntry.Link3A = vm.Link3A?.Trim();
-            existingEntry.ProofLink = vm.ProofLink?.Trim();
-            existingEntry.VideoLink = vm.VideoLink?.Trim();
-            existingEntry.Name = (vm.Name ?? string.Empty).Trim();
-            existingEntry.DirectoryEntryKey = StringHelpers.UrlKey(existingEntry.Name);
-            existingEntry.Description = vm.Description?.Trim();
-            existingEntry.Note = vm.Note?.Trim();
-            existingEntry.DirectoryStatus = vm.DirectoryStatus;
-            existingEntry.Contact = vm.Contact?.Trim();
-            existingEntry.Location = vm.Location?.Trim();
-            existingEntry.Processor = vm.Processor?.Trim();
-            existingEntry.CountryCode = vm.CountryCode;
-            existingEntry.PgpKey = vm.PgpKey?.Trim();
-
-            await this.directoryEntryRepository.UpdateAsync(existingEntry);
-
-            // ✅ Re-sync tags by IDs (checkboxes)
-            var newSelected = NormalizeSelectedIds(vm.SelectedTagIds);
-            var current = await this.entryTagRepo.GetTagsForEntryAsync(id);
-            var currentIds = current.Select(t => t.TagId).ToHashSet();
-
-            // remove unchecked
-            foreach (var tagId in currentIds.Where(x => !newSelected.Contains(x)))
-            {
-                await this.entryTagRepo.RemoveTagAsync(id, tagId);
-            }
-
-            // add newly checked
-            foreach (var tagId in newSelected.Where(x => !currentIds.Contains(x)))
-            {
-                await this.entryTagRepo.AssignTagAsync(id, tagId);
-            }
-
-            // ✅ Optional: create+assign new typed tags
-            if (!string.IsNullOrWhiteSpace(vm.NewTagsCsv))
-            {
-                var newNames = vm.NewTagsCsv
-                    .Split(',', StringSplitOptions.RemoveEmptyEntries)
-                    .Select(t => t.Trim())
-                    .Where(t => t.Length > 0)
-                    .Distinct(StringComparer.OrdinalIgnoreCase);
-
-                foreach (var name in newNames)
-                {
-                    var normalizedName = FormattingHelper.NormalizeTagName(name);
-                    var tag = await this.tagRepo.GetByKeyAsync(normalizedName.UrlKey())
-                              ?? await this.tagRepo.CreateAsync(normalizedName);
-
-                    await this.entryTagRepo.AssignTagAsync(id, tag.TagId);
-                }
-            }
-
-            this.ClearCachedItems();
-            return this.RedirectToAction(nameof(this.Index));
         }
 
         [HttpGet]
@@ -623,9 +674,10 @@ namespace DirectoryManager.Web.Controllers
             var (link2Name, link3Name) = await this.GetLinkLabelsAsync();
             var (tagNames, tagDict) = await this.GetTagsAsync(entry.DirectoryEntryId);
 
-            var additionalLinks = await this.additionalLinkRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId, ct);
+            var additionalLinks = await this.additionalLinkRepo
+                .GetByDirectoryEntryIdAsync(entry.DirectoryEntryId, ct);
 
-            var additionalLinkUrls = (additionalLinks ?? Array.Empty<AdditionalLink>())
+            var additionalLinkUrls = (additionalLinks ?? new List<AdditionalLink>())
                 .OrderBy(x => x.SortOrder)
                 .Select(x => x.Link)
                 .Where(x => !string.IsNullOrWhiteSpace(x))
@@ -1057,6 +1109,33 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.SelectedTagIds = selectedIds ?? new HashSet<int>();
         }
+
+        private static List<string> NormalizeAdditionalLinks(IEnumerable<string>? links, int max = IntegerConstants.MaxAdditionalLinks)
+        {
+            return (links ?? Enumerable.Empty<string>())
+                .Select(x => (x ?? string.Empty).Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(max)
+                .ToList();
+        }
+ 
+        private async Task SyncAdditionalLinksAsync(int directoryEntryId, List<string> normalizedLinks, CancellationToken ct = default)
+        {
+            // delete all existing for the entry, then re-insert in order
+            await this.additionalLinkRepo.DeleteByDirectoryEntryIdAsync(directoryEntryId, ct);
+
+            for (int i = 0; i < normalizedLinks.Count; i++)
+            {
+                await this.additionalLinkRepo.CreateAsync(new AdditionalLink
+                {
+                    DirectoryEntryId = directoryEntryId,
+                    Link = normalizedLinks[i],
+                    SortOrder = i + 1
+                }, ct);
+            }
+        }
+
 
         private sealed class TimelineItem
         {

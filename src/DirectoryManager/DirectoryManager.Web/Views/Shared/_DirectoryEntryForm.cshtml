@@ -102,6 +102,47 @@
 }
  
 
+
+@{
+
+    // Ensure list has at least 3 slots for UI
+    var additional = (Model.AdditionalLinks ?? new List<string>());
+    while (additional.Count < DirectoryManager.Web.Constants.IntegerConstants.MaxAdditionalLinks)
+    {
+        additional.Add(string.Empty);
+    }
+}
+
+<hr />
+<h3>Additional Links (forum post, docs, references)</h3>
+<p class="small-font"><i>Optional. These are NOT Tor/I2P links. Examples: forum thread, announcement, docs page.</i></p>
+
+@if (Model.AdditionalLinks != null && Model.AdditionalLinks.Any(x => !string.IsNullOrWhiteSpace(x)))
+{
+    <br />
+    <b>Additional Links:</b>
+    <ul>
+        @foreach (var l in Model.AdditionalLinks.Where(x => !string.IsNullOrWhiteSpace(x)))
+        {
+            <li><a target="_blank" href="@l">@l</a></li>
+        }
+    </ul>
+}
+
+
+@for (int i = 0; i < DirectoryManager.Web.Constants.IntegerConstants.MaxAdditionalLinks; i++)
+{
+    <div class="form-group">
+        <label>Additional Link @(i + 1)</label>
+        <input autocomplete="off"
+               class="input-width"
+               type="text"
+               name="AdditionalLinks[@i]"
+               value="@additional[i]" />
+    </div>
+}
+
+
 <div class="form-group">
     <label><b>Tags (existing)</b></label>
 
