@@ -1,6 +1,6 @@
 ﻿using DirectoryManager.Data.Enums;
 
-namespace DirectoryManager.Data.Models
+namespace DirectoryManager.Data.Models.TransferModels
 {
     public class DirectoryFilterQuery
     {

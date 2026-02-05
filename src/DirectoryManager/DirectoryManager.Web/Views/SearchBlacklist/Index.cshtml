@@ -1,5 +1,6 @@
-﻿@* Views/SearchBlacklist/Index.cshtml *@
-@model DirectoryManager.Data.Models.PagedResult<DirectoryManager.Data.Models.SearchBlacklistTerm>
+﻿@using DirectoryManager.Data.Models.TransferModels
+@* Views/SearchBlacklist/Index.cshtml *@
+@model PagedResult<DirectoryManager.Data.Models.SearchBlacklistTerm>
 @{
     Layout = "_CenteredLayout";
     int page = (int)(ViewBag.Page ?? 1);
