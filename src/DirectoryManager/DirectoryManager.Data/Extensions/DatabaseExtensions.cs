@@ -53,6 +53,7 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IAffiliateAccountRepository, AffiliateAccountRepository>();
             services.AddScoped<IAffiliateCommissionRepository, AffiliateCommissionRepository>();
             services.AddScoped<IDirectoryEntryReviewCommentRepository, DirectoryEntryReviewCommentRepository>();
+            services.AddScoped<IAdditionalLinkRepository, AdditionalLinkRepository>();
 
             return services;
         }

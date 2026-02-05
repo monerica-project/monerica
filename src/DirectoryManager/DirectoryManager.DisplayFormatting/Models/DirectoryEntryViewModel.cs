@@ -103,5 +103,7 @@ namespace DirectoryManager.DisplayFormatting.Models
         /// Count of Approved reviews that have a rating value.
         /// </summary>
         public int? ReviewCount { get; set; }
+
+        public List<string> AdditionalLinks { get; set; } = new ();
     }
 }

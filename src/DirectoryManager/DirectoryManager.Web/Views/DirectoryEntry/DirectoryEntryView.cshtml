@@ -278,6 +278,22 @@
             </div>
         }
 
+        @if (Model.AdditionalLinks?.Any() ?? false)
+        {
+            <br />
+            <div class="entry-additional-links">
+                <strong>Related Links:</strong>
+                <ul class="mb-0">
+                    @foreach (var link in Model.AdditionalLinks)
+                    {
+                        <li>
+                            <a class="multi-line-text" href="@link" target="_blank" rel="nofollow noopener">@link</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+
         <br />
         @await Html.PartialAsync("_EntryReviews", (DirectoryManager.Web.Models.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
 

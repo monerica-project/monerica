@@ -49,6 +49,22 @@
  
 }
 
+    @{
+        var relatedLinks = Model.RelatedLinks ?? new List<string>();
+    }
+
+    @if (relatedLinks.Any())
+    {
+        <h4>Related Links</h4>
+        <ul>
+            @foreach (var u in relatedLinks)
+            {
+                <li><a href="@u" target="_blank" rel="nofollow noopener">@u</a></li>
+            }
+        </ul>
+    }
+
+
 <hr />
 
 @if (!string.IsNullOrWhiteSpace(Model.NoteToAdmin))

@@ -13,6 +13,7 @@ using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -22,6 +23,7 @@ namespace DirectoryManager.Web.Controllers
 {
     public class SubmissionController : BaseController
     {
+        private const int MaxLinks = 3;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ISubmissionRepository submissionRepository;
         private readonly ISubcategoryRepository subCategoryRepository;
@@ -91,11 +93,14 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost("submit")]
         public async Task<IActionResult> Create(SubmissionRequest model)
         {
+            // ---- Validate URLs ----
+
             if (!UrlHelper.IsValidUrl(model.Link ?? string.Empty))
             {
                 this.ModelState.AddModelError(nameof(model.Link), "The link is not a valid URL.");
             }
 
+            // Link2/Link3 are Tor/I2P/alt links (still validate as URLs if supplied)
             if (!string.IsNullOrWhiteSpace(model.Link2) && !UrlHelper.IsValidUrl(model.Link2))
             {
                 this.ModelState.AddModelError(nameof(model.Link2), "The link 2 is not a valid URL.");
@@ -116,8 +121,21 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(nameof(model.VideoLink), "The video link is not a valid URL.");
             }
 
-            if (!string.IsNullOrWhiteSpace(model.PgpKey) &&
-                !PgpKeyValidator.IsValid(model.PgpKey))
+            // Related/Additional links (forum post / docs / proof page, etc.)
+            var relatedLinks = NormalizeLinks(
+                new[] { model.RelatedLink1, model.RelatedLink2, model.RelatedLink3 },
+                MaxLinks);
+
+            for (int i = 0; i < relatedLinks.Count; i++)
+            {
+                if (!UrlHelper.IsValidUrl(relatedLinks[i]))
+                {
+                    this.ModelState.AddModelError(string.Empty, $"Related link {i + 1} is not a valid URL.");
+                }
+            }
+
+            // PGP Key validation
+            if (!string.IsNullOrWhiteSpace(model.PgpKey) && !PgpKeyValidator.IsValid(model.PgpKey))
             {
                 this.ModelState.AddModelError(
                     nameof(model.PgpKey),
@@ -125,15 +143,17 @@ namespace DirectoryManager.Web.Controllers
                     "Please supply a valid ASCII-armored PGP public key.");
             }
 
+            // ---- Spam / block checks ----
+
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
 
-            if (ScriptValidation.ContainsScriptTag(model) ||
-                this.blockedIPRepository.IsBlockedIp(ipAddress))
+            if (ScriptValidation.ContainsScriptTag(model) || this.blockedIPRepository.IsBlockedIp(ipAddress))
             {
                 return this.RedirectToAction("Success", "Submission");
             }
 
-            // ✅ persist checkbox selections into CSV (no JS required)
+            // ---- Persist checkbox selections into CSV (no JS required) ----
+
             model.SelectedTagIds = model.SelectedTagIds
                 .Where(id => id > 0)
                 .Distinct()
@@ -143,21 +163,17 @@ namespace DirectoryManager.Web.Controllers
                 ? null
                 : string.Join(",", model.SelectedTagIds);
 
-            // ✅ log selections (optional)
-            if (model.SelectedTagIds.Count > 0)
+            // ---- If invalid, reload dropdowns + tag list and return to SubmitEdit ----
+
+            if (!this.ModelState.IsValid)
             {
-                System.Diagnostics.Debug.WriteLine(
-                    $"Submission selected tag ids: {model.SelectedTagIdsCsv}");
+                await this.LoadDropDowns();
+                await this.LoadAllTagsForCheckboxesAsync();
+                return this.View("SubmitEdit", model);
             }
 
-            if (this.ModelState.IsValid)
-            {
-                return await this.CreateSubmission(model);
-            }
-
-            await this.LoadDropDowns();
-            await this.LoadAllTagsForCheckboxesAsync(); // ✅ needed when returning view
-            return this.View("SubmitEdit", model);
+            // ---- Create/update preview submission ----
+            return await this.CreateSubmission(model);
         }
 
         [AllowAnonymous]
@@ -364,7 +380,7 @@ namespace DirectoryManager.Web.Controllers
         [Authorize]
         [HttpPost("submission/{id}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Review(int id, Submission model, int[] selectedTagIds)
+        public async Task<IActionResult> Review(int id, Submission model, int[] selectedTagIds, string? relatedLink1, string? relatedLink2, string? relatedLink3)
         {
             if (!this.ModelState.IsValid)
             {
@@ -508,12 +524,18 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryId = directoryEntry.DirectoryEntryId,
                 DirectoryStatus = directoryEntry.DirectoryStatus,
                 CountryCode = directoryEntry.CountryCode,
-                PgpKey = directoryEntry.PgpKey
+                PgpKey = directoryEntry.PgpKey,
+                RelatedLink1 = null,
+                RelatedLink2 = null,
+                RelatedLink3 = null,
+
             };
         }
 
         private static SubmissionRequest GetSubmissionCreateModel(Submission submission)
         {
+            var related = submission.RelatedLinks ?? new List<string>();
+
             return new SubmissionRequest()
             {
                 SubCategoryId = submission.SubCategoryId == null ? null : submission.SubCategoryId,
@@ -535,6 +557,9 @@ namespace DirectoryManager.Web.Controllers
                 Tags = submission.Tags,
                 CountryCode = submission.CountryCode,
                 PgpKey = submission.PgpKey,
+                RelatedLink1 = related.ElementAtOrDefault(0),
+                RelatedLink2 = related.ElementAtOrDefault(1),
+                RelatedLink3 = related.ElementAtOrDefault(2),
             };
         }
 
@@ -635,6 +660,7 @@ namespace DirectoryManager.Web.Controllers
                 SubmissionId = submission.SubmissionId,
                 NoteToAdmin = submission.NoteToAdmin,
                 SubcategoryName = subcatName,
+                RelatedLinks = submission.RelatedLinks.Take(MaxLinks).ToList(),
             };
         }
 
@@ -815,6 +841,9 @@ namespace DirectoryManager.Web.Controllers
         private Submission FormatSubmissionRequest(SubmissionRequest model)
         {
             var ipAddress = this.HttpContext.GetRemoteIpIfEnabled();
+            var relatedLinks = NormalizeLinks(
+               new[] { model.RelatedLink1, model.RelatedLink2, model.RelatedLink3 },
+               MaxLinks);
 
             var submission = new Submission
             {
@@ -841,6 +870,9 @@ namespace DirectoryManager.Web.Controllers
                 PgpKey = (model.PgpKey ?? string.Empty).Trim(),
                 SelectedTagIdsCsv = model.SelectedTagIdsCsv,
             };
+
+            submission.RelatedLinks = relatedLinks;
+
             return submission;
         }
 
@@ -884,6 +916,7 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.ProofLink = submissionModel.ProofLink;
             existingSubmission.VideoLink = submissionModel.VideoLink;
             existingSubmission.SelectedTagIdsCsv = submissionModel.SelectedTagIdsCsv;
+            existingSubmission.RelatedLinks = submissionModel.RelatedLinks;
 
             await this.submissionRepository.UpdateAsync(existingSubmission);
         }
@@ -927,98 +960,172 @@ namespace DirectoryManager.Web.Controllers
                 return true;
             }
 
-            if (existingEntry.Contact?.Trim() != model.Contact?.Trim())
+            static string Norm(string? s)
+            {
+                return (s ?? string.Empty).Trim();
+            }
+
+            static string NormCountry(string? s)
+            {
+                return (s ?? string.Empty).Trim().ToUpperInvariant();
+            }
+
+            static string NormPgp(string? s)
+            {
+                return (s ?? string.Empty).Trim();
+            }
+
+            if (!string.Equals(Norm(existingEntry.Contact), Norm(model.Contact), StringComparison.Ordinal))
             {
                 return true;
             }
 
-            if (existingEntry.Description?.Trim() != model.Description?.Trim())
+            if (!string.Equals(Norm(existingEntry.Description), Norm(model.Description), StringComparison.Ordinal))
             {
                 return true;
             }
 
-            if (existingEntry.Link?.Trim() != model.Link?.Trim())
+            if (!string.Equals(Norm(existingEntry.Link), Norm(model.Link), StringComparison.Ordinal))
             {
                 return true;
             }
 
-            if (existingEntry.Link2?.Trim() != model.Link2?.Trim())
+            // Tor / I2P / alternate links — unchanged meaning
+            if (!string.Equals(Norm(existingEntry.Link2), Norm(model.Link2), StringComparison.Ordinal))
             {
                 return true;
             }
 
-            if (existingEntry.Link3?.Trim() != model.Link3?.Trim())
+            if (!string.Equals(Norm(existingEntry.Link3), Norm(model.Link3), StringComparison.Ordinal))
             {
                 return true;
             }
 
-            if (existingEntry.ProofLink?.Trim() != model.ProofLink?.Trim())
+            if (!string.Equals(Norm(existingEntry.ProofLink), Norm(model.ProofLink), StringComparison.Ordinal))
             {
                 return true;
             }
 
-            if (existingEntry.VideoLink?.Trim() != model.VideoLink?.Trim())
+            if (!string.Equals(Norm(existingEntry.VideoLink), Norm(model.VideoLink), StringComparison.Ordinal))
             {
                 return true;
             }
 
-            if (existingEntry.Location?.Trim() != model.Location?.Trim())
+            if (!string.Equals(Norm(existingEntry.Location), Norm(model.Location), StringComparison.Ordinal))
             {
                 return true;
             }
 
-            if (existingEntry.Name?.Trim() != model.Name?.Trim())
+            if (!string.Equals(Norm(existingEntry.Name), Norm(model.Name), StringComparison.Ordinal))
             {
                 return true;
             }
 
-            if (existingEntry.Note?.Trim() != model.Note?.Trim())
+            if (!string.Equals(Norm(existingEntry.Note), Norm(model.Note), StringComparison.Ordinal))
             {
                 return true;
             }
 
-            if (existingEntry.Processor?.Trim() != model.Processor?.Trim())
+            if (!string.Equals(Norm(existingEntry.Processor), Norm(model.Processor), StringComparison.Ordinal))
             {
                 return true;
             }
 
-            if (existingEntry.SubCategoryId != model.SubCategoryId)
+            var requestedSubCatId = (model.SubCategoryId.HasValue && model.SubCategoryId.Value > 0)
+                ? model.SubCategoryId.Value
+                : 0;
+
+            if (existingEntry.SubCategoryId != requestedSubCatId)
             {
                 return true;
             }
 
-            if (existingEntry.DirectoryStatus != model.DirectoryStatus)
+            // Suggested status — only count if explicitly set to a real value
+            if (model.DirectoryStatus.HasValue && model.DirectoryStatus.Value != DirectoryStatus.Unknown)
+            {
+                if (existingEntry.DirectoryStatus != model.DirectoryStatus.Value)
+                {
+                    return true;
+                }
+            }
+
+            if (!string.Equals(NormCountry(existingEntry.CountryCode), NormCountry(model.CountryCode), StringComparison.Ordinal))
             {
                 return true;
             }
 
-            if (existingEntry.CountryCode != model.CountryCode)
+            if (!string.Equals(NormPgp(existingEntry.PgpKey), NormPgp(model.PgpKey), StringComparison.Ordinal))
             {
                 return true;
             }
 
-            if (existingEntry.PgpKey != model.PgpKey)
-            {
-                return true;
-            }
+            // ----- Checkbox tag IDs vs entry tags -----
 
-            // ✅ Do NOT compare model.Tags (free-text suggestions) to existingEntry tags anymore.
-            // if (existingEntry.Tags != model.Tags) return true;
-
-            // ✅ Compare selected checkbox tag IDs to entry's current tag IDs
             var selectedIds = ParseIdsCsv(model.SelectedTagIdsCsv);
 
-            // current tags on the entry
             var existingTags = await this.entryTagRepo.GetTagsForEntryAsync(existingEntry.DirectoryEntryId);
-            var existingIds = existingTags.Select(t => t.TagId).ToHashSet();
+            var existingIds = existingTags
+                .Select(t => t.TagId)
+                .ToHashSet();
 
-            // normalize + compare sets
             if (!existingIds.SetEquals(selectedIds))
             {
                 return true;
             }
 
+            // ----- Submission-only fields (not on DirectoryEntry) -----
+            // Related links + NoteToAdmin
+
+            var incomingRelated = NormalizeLinks(
+                new[] { model.RelatedLink1, model.RelatedLink2, model.RelatedLink3 },
+                MaxLinks);
+
+            // If editing an existing *preview submission*, compare against that submission’s stored related links.
+            // If this is a brand new submission (no SubmissionId), then any provided related links count as a change.
+            if (model.SubmissionId.HasValue && model.SubmissionId.Value > 0)
+            {
+                var existingSubmission = await this.submissionRepository.GetByIdAsync(model.SubmissionId.Value);
+                var existingRelated = existingSubmission?.RelatedLinks ?? new List<string>();
+
+                // compare as sets (order-insensitive)
+                var incomingSet = incomingRelated.ToHashSet(StringComparer.OrdinalIgnoreCase);
+                var existingSet = existingRelated.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+                if (!incomingSet.SetEquals(existingSet))
+                {
+                    return true;
+                }
+            }
+            else
+            {
+                if (incomingRelated.Count > 0)
+                {
+                    return true;
+                }
+            }
+
+            if (!string.IsNullOrWhiteSpace(Norm(model.NoteToAdmin)))
+            {
+                return true;
+            }
+
+
+            if (!string.IsNullOrWhiteSpace(Norm(model.NoteToAdmin)))
+            {
+                return true;
+            }
+
             return false;
+        }
+
+        private static List<string> NormalizeLinks(IEnumerable<string?>? links, int max)
+        {
+            return (links ?? Array.Empty<string?>())
+                .Select(x => (x ?? string.Empty).Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(max)
+                .ToList();
         }
 
         private static HashSet<int> ParseIdsCsv(string? csv)

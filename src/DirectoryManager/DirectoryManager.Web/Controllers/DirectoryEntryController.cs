@@ -40,6 +40,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubmissionRepository submissionRepository;
         private readonly IUrlResolutionService urlResolver;
         private readonly IDirectoryEntryReviewCommentRepository reviewCommentRepository;
+        private readonly IAdditionalLinkRepository additionalLinkRepo;
 
         public DirectoryEntryController(
             UserManager<ApplicationUser> userManager,
@@ -57,7 +58,8 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryReviewRepository reviewRepository,
             ISubmissionRepository submissionRepository,
             IUrlResolutionService urlResolver,
-            IDirectoryEntryReviewCommentRepository reviewCommentRepository)
+            IDirectoryEntryReviewCommentRepository reviewCommentRepository,
+            IAdditionalLinkRepository additionalLinkRepo)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -74,6 +76,7 @@ namespace DirectoryManager.Web.Controllers
             this.submissionRepository = submissionRepository;
             this.urlResolver = urlResolver;
             this.reviewCommentRepository = reviewCommentRepository;
+            this.additionalLinkRepo = additionalLinkRepo;
         }
 
         [Route("directoryentry/index")]
@@ -620,6 +623,15 @@ namespace DirectoryManager.Web.Controllers
             var (link2Name, link3Name) = await this.GetLinkLabelsAsync();
             var (tagNames, tagDict) = await this.GetTagsAsync(entry.DirectoryEntryId);
 
+            var additionalLinks = await this.additionalLinkRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId, ct);
+
+            var additionalLinkUrls = (additionalLinks ?? Array.Empty<AdditionalLink>())
+                .OrderBy(x => x.SortOrder)
+                .Select(x => x.Link)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+
             var sponsors = await this.GetAllSponsorsCachedAsync();
             bool isSponsor = sponsors.Any(s => s.DirectoryEntryId == entry.DirectoryEntryId);
 
@@ -665,7 +677,7 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.ReviewsVm = reviewsVm;
 
-            var model = this.BuildDirectoryEntryViewModel(entry, link2Name, link3Name, tagNames, tagDict, isSponsor);
+            var model = this.BuildDirectoryEntryViewModel(entry, link2Name, link3Name, tagNames, tagDict, isSponsor, additionalLinkUrls);
 
             await this.SetCategoryContextViewBagAsync(entry.SubCategoryId);
 
@@ -823,7 +835,8 @@ namespace DirectoryManager.Web.Controllers
             string link3Name,
             List<string> tagNames,
             Dictionary<string, string> tagDictionary,
-            bool isSponsor)
+            bool isSponsor,
+            List<string> additionalLinks)
         {
             return new DirectoryEntryViewModel
             {
@@ -857,6 +870,8 @@ namespace DirectoryManager.Web.Controllers
 
                 Tags = tagNames,
                 TagsAndKeys = tagDictionary,
+
+                AdditionalLinks = additionalLinks ?? new List<string>(),
 
                 CountryCode = entry.CountryCode,
                 IsSponsored = isSponsor,

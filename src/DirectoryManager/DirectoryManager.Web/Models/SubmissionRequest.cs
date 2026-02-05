@@ -85,5 +85,28 @@ namespace DirectoryManager.Web.Models
 
         [MaxLength(2000)]
         public string? SelectedTagIdsCsv { get; set; }
+
+        [MaxLength(500)]
+        [Display(Name = "Related Link 1", Prompt = "Optional")]
+        public string? RelatedLink1 { get; set; }
+
+        [MaxLength(500)]
+        [Display(Name = "Related Link 2", Prompt = "Optional")]
+        public string? RelatedLink2 { get; set; }
+
+        [MaxLength(500)]
+        [Display(Name = "Related Link 3", Prompt = "Optional")]
+        public string? RelatedLink3 { get; set; }
+
+        public List<string> GetRelatedLinksNormalized(int max = 3)
+        {
+            return new[] { this.RelatedLink1, this.RelatedLink2, this.RelatedLink3 }
+                .Select(x => (x ?? string.Empty).Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(max)
+                .ToList();
+        }
+
     }
 }

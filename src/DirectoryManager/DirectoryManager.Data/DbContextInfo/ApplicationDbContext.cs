@@ -50,7 +50,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
         public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
-
+        public DbSet<AdditionalLink> AdditionalLinks { get; set; }
         public override int SaveChanges()
         {
             this.SetDates();
@@ -323,7 +323,6 @@ namespace DirectoryManager.Data.DbContextInfo
                 .HasForeignKey(x => x.ParentCommentId)
                 .OnDelete(DeleteBehavior.Restrict);
 
-
             // DirectoryEntryReview (no FK to ReviewerKey; uses AuthorFingerprint)
             builder.Entity<DirectoryEntryReview>(r =>
             {
@@ -344,6 +343,18 @@ namespace DirectoryManager.Data.DbContextInfo
 
                 // concurrency token (since you have [Timestamp])
                 r.Property(x => x.RowVersion).IsRowVersion();
+            });
+
+            builder.Entity<AdditionalLink>(b =>
+            {
+                b.HasIndex(x => new { x.DirectoryEntryId, x.SortOrder }).IsUnique();
+
+                b.HasOne(x => x.DirectoryEntry)
+                 .WithMany() // or .WithMany(e => e.AdditionalLinks) if you add the nav on DirectoryEntry
+                 .HasForeignKey(x => x.DirectoryEntryId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                b.Property(x => x.Link).HasMaxLength(500);
             });
 
             builder.Entity<SearchBlacklistTerm>().HasIndex(e => new { e.Term }).IsUnique();
