@@ -143,6 +143,7 @@
 }
 
 @section PageContent {
+  
     <div>
         @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageDisplayHtml))
         @await Html.PartialAsync("_SponsoredListingPartial")
