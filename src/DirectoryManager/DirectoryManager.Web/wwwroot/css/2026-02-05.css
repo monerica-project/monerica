@@ -1463,7 +1463,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px;}
    ========================= */
 
 /* h2 + h3 = soft glow only */
-h2, h3 {
+h2.section-title, h2.subcat-heading {
     color: #ff6600;
     letter-spacing: 0.01em;
     /* very soft halo */
