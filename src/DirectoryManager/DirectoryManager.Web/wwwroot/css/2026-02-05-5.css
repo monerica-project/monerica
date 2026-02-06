@@ -116,26 +116,61 @@ table tbody tr:nth-child(even) {
 
 
 
-/* Base (unchanged, seam-proof border) */
+/* True black outline + inner orange ring (seam-proof) */
 .sponsor-card {
     --accent: var(--sponsor-accent);
     --bg: var(--card-bg, #222);
     border-radius: 12px;
-    border: 3px solid transparent;
-    space for ring background: linear-gradient(var(--bg), var(--bg)) padding-box, linear-gradient(var(--accent), var(--accent)) border-box;
+    /* outer black border (real outline) */
+    border: 2px solid #000;
+    /* create space so inner ring can show without covering black outline */
+    padding: 2px;
+    /* inner orange ring + card fill */
+    background: linear-gradient(var(--bg), var(--bg)) padding-box, linear-gradient(var(--accent), var(--accent)) border-box;
+    /* this border is only for the INNER ring layer */
+    background-clip: padding-box, border-box;
+    /* inner ring thickness */
+    outline: 0; /* just to avoid browser outlines */
+    box-shadow: none;
     overflow: clip;
     transition: box-shadow .08s ease-out;
-    was ~.15–.18s box-shadow: none;
-    text won’t wobble
+    transform: translateZ(0);
+}
+
+/* Optional: slightly thicker black stroke on desktop */
+@media (min-width: 900px) {
+    .sponsor-card {
+        border-width: 3px;
+    }
+}
+
+/* keep your glow */
+.sponsor-card:hover,
+.sponsor-card:focus-within {
+    box-shadow: 0 0 0 1px color-mix(in srgb, var(--sponsor-accent) 45%, transparent), 0 4px 11px 4px color-mix(in srgb, var(--sponsor-accent) 15%, transparent), 0 0 19px 8px color-mix(in srgb, var(--sponsor-accent) 12%, transparent);
 }
 
 
-    /* Glow: ~10% less than the previous half-strength */
-    .sponsor-card:hover,
-    .sponsor-card:focus-within {
-        box-shadow: 0 0 0 1px color-mix(in srgb, var(--sponsor-accent) 45%, transparent), 0 4px 11px 4px color-mix(in srgb, var(--sponsor-accent) 15%, transparent), 0 0 19px 8px color-mix(in srgb, var(--sponsor-accent) 12%, transparent);
-    }
+/* Orange ring (seam-proof) + visible black stroke */
+section.sponsors .sponsor-card {
+    --accent: var(--sponsor-accent, #ff6600);
+    --bg: var(--card-bg, #222);
+    border-radius: 12px;
+    border: 3px solid transparent;
+    /* seam-proof orange ring */
+    background: linear-gradient(var(--bg), var(--bg)) padding-box, linear-gradient(var(--accent), var(--accent)) border-box;
+    /* THIS is the black border you will actually see */
+    box-shadow: inset 0 0 0 2px #000;
+    overflow: clip;
+    transition: box-shadow .08s ease-out;
+    transform: translateZ(0);
+}
 
+    /* Keep the black stroke even on hover/focus */
+    section.sponsors .sponsor-card:hover,
+    section.sponsors .sponsor-card:focus-within {
+        box-shadow: inset 0 0 0 2px #000, 0 0 0 1px color-mix(in srgb, var(--accent) 45%, transparent), 0 4px 11px 4px color-mix(in srgb, var(--accent) 15%, transparent), 0 0 19px 8px color-mix(in srgb, var(--accent) 12%, transparent);
+    }
 
 
 
@@ -1771,3 +1806,4 @@ h2.section-title,
     0 0 3px rgba(255,102,0,.25), 0 0 8px rgba(255,102,0,.15);
     filter: drop-shadow(0 0 4px rgba(255,102,0,.18));
 }
+ 
