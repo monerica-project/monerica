@@ -1671,3 +1671,84 @@ h2.section-title, h2.subcat-heading {
         -webkit-overflow-scrolling: touch;
     }
 }
+
+@media (max-width: 768px) {
+    :root {
+        --mobile-nav-h: 56px;
+    }
+    /* adjust if your summary bar is taller */
+
+    details.mobile-nav {
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        z-index: 99999;
+        margin: 0;
+        background: rgba(0,0,0,.92);
+        border-bottom: 1px solid rgba(255,255,255,.10);
+        backdrop-filter: blur(6px);
+        -webkit-backdrop-filter: blur(6px);
+    }
+
+    /* keep page content from hiding under the fixed bar */
+    body {
+        padding-top: calc(var(--mobile-nav-h) + env(safe-area-inset-top, 0px)) !important;
+    }
+
+    #main-content {
+        padding-top: 0 !important;
+    }
+
+    details.mobile-nav > summary {
+        height: var(--mobile-nav-h);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 1rem;
+        cursor: pointer;
+        color: #fff;
+        font-weight: 700;
+        user-select: none;
+    }
+
+        details.mobile-nav > summary::-webkit-details-marker {
+            display: none;
+        }
+
+        details.mobile-nav > summary::marker {
+            content: "";
+        }
+
+    /* WHEN OPEN: make it a full-screen panel */
+    details.mobile-nav[open] {
+        bottom: 0; /* stretches to full height */
+        border-bottom: none;
+    }
+
+        /* the menu list becomes the scroll area */
+        details.mobile-nav[open] > ul {
+            margin: 0;
+            padding: .5rem 1rem calc(1rem + env(safe-area-inset-bottom, 0px));
+            height: calc(100dvh - var(--mobile-nav-h)); /* dynamic viewport */
+            max-height: none;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            overscroll-behavior: contain;
+            touch-action: pan-y;
+        }
+
+    /* fallback if 100dvh isn't supported */
+    @supports not (height: 100dvh) {
+        details.mobile-nav[open] > ul {
+            height: calc(100vh - var(--mobile-nav-h));
+        }
+    }
+
+    /* OPTIONAL (but nice): prevent page scrolling behind the open menu */
+    @supports selector(body:has(details[open])) {
+        body:has(details.mobile-nav[open]) {
+            overflow: hidden;
+        }
+    }
+}
