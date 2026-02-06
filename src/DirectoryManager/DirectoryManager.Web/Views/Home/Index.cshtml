@@ -261,11 +261,12 @@
             </ul>
             <hr />
         }
+       
 
         <div class="sponsor-sections">
             <!-- Category Sponsors -->
             <section>
-                <h2 class="section-title">Category Sponsors</h2>
+                <h2 class="section-title sponsor-section-title">Category Sponsors</h2>
                 @foreach (var cat in cats)
                 {
                     if (sponsorsByCategory.TryGetValue(cat.CategoryId, out var entries))
@@ -299,7 +300,7 @@
 
             <!-- Subcategory Sponsors -->
             <section>
-                <h2 class="section-title">Subcategory Sponsors</h2>
+                <h2 class="section-title sponsor-section-title">Subcategory Sponsors</h2>
                 @foreach (var sub in subs)
                 {
                     if (sponsorsBySubcategory.TryGetValue(sub.SubcategoryId, out var entries))
@@ -333,6 +334,7 @@
                 }
             </section>
         </div>
+       
 
         @* ✅ Latest Reviews *@
         @{

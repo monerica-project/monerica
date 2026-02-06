@@ -1791,19 +1791,16 @@ h2.subcat-heading {
         }
     }
 }
-
-/* Main Sponsors / sponsor section headings: black outline + subtle orange halo */
-section.sponsors > h2.section-title,
-section.sponsor-section-title > h2,
-h2.section-title,
-.sponsor-section-title {
+/* FORCE Category/Subcategory sponsor headings to match "Main Sponsors" */
+.sponsor-sections h2.section-title,
+section.sponsors h2.section-title,
+h2.section-title.sponsor-section-title {
+    display: block;
+    width: 100%;
+    text-align: center !important;
     color: #ff6600;
-    letter-spacing: 0.01em;
-    text-shadow:
-    /* black outline */
-    -1px -1px 0 #000, 0 -1px 0 #000, 1px -1px 0 #000, -1px 0 0 #000, 1px 0 0 #000, -1px 1px 0 #000, 0 1px 0 #000, 1px 1px 0 #000,
-    /* subtle orange halo */
-    0 0 3px rgba(255,102,0,.25), 0 0 8px rgba(255,102,0,.15);
-    filter: drop-shadow(0 0 4px rgba(255,102,0,.18));
+    /* solid black outline (stroke) */
+    text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000,
+    /* mild orange halo */
+    0 0 3px rgba(255,102,0,.22), 0 0 8px rgba(255,102,0,.14) !important;
 }
- 
