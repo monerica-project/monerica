@@ -1457,19 +1457,23 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px;}
 
 
 
-
+ 
 /* =========================
-   Subtle Orange Halo Headings
+   Orange headings with black outline + subtle halo
    ========================= */
 
-/* h2 + h3 = soft glow only */
-h2.section-title, h2.subcat-heading {
+h2.section-title,
+h2.subcat-heading {
     color: #ff6600;
     letter-spacing: 0.01em;
-    /* very soft halo */
-    text-shadow: 0 0 3px rgba(255,102,0,0.25), 0 0 8px rgba(255,102,0,0.15);
-    filter: drop-shadow(0 0 4px rgba(255,102,0,0.18));
+    /* black outline (stroke) */
+    text-shadow: -1px -1px 0 #000, 0 -1px 0 #000, 1px -1px 0 #000, -1px 0 0 #000, 1px 0 0 #000, -1px 1px 0 #000, 0 1px 0 #000, 1px 1px 0 #000,
+    /* subtle orange halo */
+    0 0 3px rgba(255,102,0,.25), 0 0 8px rgba(255,102,0,.15);
+    /* optional extra softness (keep subtle) */
+    filter: drop-shadow(0 0 4px rgba(255,102,0,.18));
 }
+
 
 
 
