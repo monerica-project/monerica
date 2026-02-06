@@ -380,8 +380,27 @@ namespace DirectoryManager.Web.Controllers
         [Authorize]
         [HttpPost("submission/{id}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Review(int id, Submission model, int[] selectedTagIds, string? relatedLink1, string? relatedLink2, string? relatedLink3)
+        public async Task<IActionResult> Review(int id, Submission model, int[] selectedTagIds, List<string>? relatedLinks)
         {
+            relatedLinks ??= new List<string>();
+
+            // normalize
+            var normalizedRelated = relatedLinks
+                .Select(x => (x ?? string.Empty).Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(3)
+                .ToList();
+
+            // validate
+            for (int i = 0; i < normalizedRelated.Count; i++)
+            {
+                if (!UrlHelper.IsValidUrl(normalizedRelated[i]))
+                {
+                   this.ModelState.AddModelError(string.Empty, $"Related link {i + 1} is not a valid URL.");
+                }
+            }
+
             if (!this.ModelState.IsValid)
             {
                 await this.LoadDropDowns();
@@ -391,6 +410,9 @@ namespace DirectoryManager.Web.Controllers
                 this.ViewBag.SelectedTagIds = (selectedTagIds ?? Array.Empty<int>())
                     .Where(x => x > 0)
                     .ToHashSet();
+
+                // re-populate the model so the form keeps values
+                model.RelatedLinks = normalizedRelated;
 
                 return this.View(model);
             }
