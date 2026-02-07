@@ -1804,3 +1804,43 @@ h2.section-title.sponsor-section-title {
     /* mild orange halo */
     0 0 3px rgba(255,102,0,.22), 0 0 8px rgba(255,102,0,.14) !important;
 }
+
+/* =========================
+   FIX: Only offset content when the menu exists
+   ========================= */
+
+/* Kill the global body offset (this is what causes the "pushed down" pages) */
+@media (max-width: 768px) {
+    body {
+        padding-top: 0 !important;
+    }
+}
+
+/* If mobile nav exists, offset ONLY the main content */
+@media (max-width: 768px) {
+    :root {
+        --mobile-nav-h: 56px;
+    }
+    /* keep your value */
+
+    details.mobile-nav ~ #main-content {
+        padding-top: calc(var(--mobile-nav-h) + env(safe-area-inset-top, 0px)) !important;
+    }
+
+        /* make sure inner main spacing stays consistent */
+        details.mobile-nav ~ #main-content .main {
+            padding-top: 1rem !important;
+        }
+}
+
+/* Desktop: only shift content right if the sidebar exists */
+@media (min-width: 769px) {
+    #main-content {
+        margin-left: 0 !important;
+    }
+    /* default if no sidebar */
+    .sidebar ~ #main-content {
+        margin-left: 220px !important;
+    }
+    /* only when sidebar present */
+}

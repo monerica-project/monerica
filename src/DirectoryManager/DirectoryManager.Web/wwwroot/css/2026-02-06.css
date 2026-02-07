@@ -295,17 +295,17 @@ ul.newest_items li ul li p.small-font {
     padding: 10px !important;
 }
 
-    .btn:hover,
-    .btn:focus {
-        background-color: darkgreen;
-        color: white;
-        text-decoration: none;
-    }
+.btn:hover,
+.btn:focus {
+    background-color: darkgreen;
+    color: white;
+    text-decoration: none;
+}
 
-    .btn:active {
-        background-color: #004d00;
-        transform: scale(0.98);
-    }
+.btn:active {
+    background-color: #004d00;
+    transform: scale(0.98);
+}
 
 .breadcrumb {
     display: flex;
@@ -775,9 +775,10 @@ p.intro {
 .btn-info {
     background-color: #007bff
 }
-.btn-info:hover {
-    background-color: #000386
-}
+
+    .btn-info:hover {
+        background-color: #000386
+    }
 
 .review-btn {
     display: inline-flex;
@@ -806,19 +807,20 @@ p.intro {
         box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.25);
         text-decoration: none;
     }
+
     .review-btn:active {
         transform: translateY(1px);
     }
 
 
- 
+
 .search-btn,
 .btn-info.search-btn {
     min-height: 25px;
 }
 
 
- .search-btn {
+.search-btn {
     font-size: 14px;
     font-weight: 600;
     line-height: 1.2;
@@ -1483,7 +1485,10 @@ a.external-link {
         text-decoration: underline;
     }
 
-ul.list-unstyled { padding-left: 0; margin-left: 15px;}
+ul.list-unstyled {
+    padding-left: 0;
+    margin-left: 15px;
+}
 
 .list-unstyled li {
     list-style: none;
@@ -1492,7 +1497,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px;}
 
 
 
- 
+
 /* =========================
    Orange headings with black outline + subtle halo
    ========================= */
@@ -1655,6 +1660,7 @@ h2.subcat-heading {
     text-overflow: ellipsis;
     white-space: nowrap;
 }
+
 @media (max-width: 768px) {
     :root {
         --mobile-nav-h: 56px;
@@ -1803,4 +1809,44 @@ h2.section-title.sponsor-section-title {
     text-shadow: -1px -1px 0 #000, 1px -1px 0 #000, -1px 1px 0 #000, 1px 1px 0 #000,
     /* mild orange halo */
     0 0 3px rgba(255,102,0,.22), 0 0 8px rgba(255,102,0,.14) !important;
+}
+
+/* =========================
+   FIX: Only offset content when the menu exists
+   ========================= */
+
+/* Kill the global body offset (this is what causes the "pushed down" pages) */
+@media (max-width: 768px) {
+    body {
+        padding-top: 0 !important;
+    }
+}
+
+/* If mobile nav exists, offset ONLY the main content */
+@media (max-width: 768px) {
+    :root {
+        --mobile-nav-h: 56px;
+    }
+    /* keep your value */
+
+    details.mobile-nav ~ #main-content {
+        padding-top: calc(var(--mobile-nav-h) + env(safe-area-inset-top, 0px)) !important;
+    }
+
+        /* make sure inner main spacing stays consistent */
+        details.mobile-nav ~ #main-content .main {
+            padding-top: 1rem !important;
+        }
+}
+
+/* Desktop: only shift content right if the sidebar exists */
+@media (min-width: 769px) {
+    #main-content {
+        margin-left: 0 !important;
+    }
+    /* default if no sidebar */
+    .sidebar ~ #main-content {
+        margin-left: 220px !important;
+    }
+    /* only when sidebar present */
 }

@@ -1,0 +1,751 @@
+/* ============================================================
+   MONERICA CSS (NO-JS) — Prod-style sidebar + mobile roll-up
+   Fixes:
+   - Mobile menu ROLLS UP (uses <details class="mobile-nav">…</details>)
+   - Desktop sidebar scrolls internally; page scrolls normally
+   - Main Sponsors centered + consistent sizing like prod
+   - Stars always render
+   - Links not globally bold
+   ============================================================ */
+
+/* ---------- Tokens ---------- */
+:root {
+    --bg0: #070707;
+    --bg1: #0d0d0d;
+    --text: #e9e9e9;
+    --muted: #bdbdbd;
+    --link: #37a4ff;
+    --orange: #ff6a00;
+    --green: #27d24b;
+    --sidebar-w: 260px;
+    --radius: 12px;
+    --shadow: 0 12px 30px rgba(0,0,0,.55);
+}
+
+/* ---------- Base / reset ---------- */
+* {
+    box-sizing: border-box;
+}
+
+html {
+    height: 100%;
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: smooth;
+}
+
+body {
+    min-height: 100%;
+    margin: 0;
+    overflow-x: hidden;
+    background: radial-gradient(1200px 700px at 65% 12%, rgba(255,106,0,.10), transparent 55%), radial-gradient(900px 600px at 25% 35%, rgba(255,255,255,.05), transparent 60%), linear-gradient(180deg,var(--bg0),var(--bg1));
+    color: var(--text);
+    font-family: Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;
+    line-height: 1.35;
+}
+
+img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+p {
+    margin: 0 0 10px;
+}
+
+i {
+    color: var(--muted);
+}
+
+a {
+    color: var(--link);
+    text-decoration: none;
+    font-weight: inherit;
+}
+    /* IMPORTANT */
+    a:hover {
+        text-decoration: underline;
+    }
+
+hr {
+    border: 0;
+    height: 1px;
+    background: linear-gradient(90deg,transparent,rgba(255,255,255,.18),transparent);
+    margin: 14px 0;
+}
+
+.text-center {
+    text-align: center;
+}
+
+.mb-3 {
+    margin-bottom: 12px;
+}
+
+.mb-4 {
+    margin-bottom: 16px;
+}
+
+/* ============================================================
+   DESKTOP SIDEBAR
+   ============================================================ */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-w);
+    height: 100vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+    padding: 10px 10px 14px;
+    background: linear-gradient(180deg,rgba(255,255,255,.06),transparent 45%), linear-gradient(180deg,#0b0b0b,#080808);
+    border-right: 1px solid rgba(255,255,255,.10);
+    box-shadow: 8px 0 30px rgba(0,0,0,.45);
+    z-index: 50;
+}
+
+    .sidebar .logo-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 6px 0 10px;
+    }
+
+        .sidebar .logo-container img {
+            width: 78px;
+            filter: drop-shadow(0 6px 14px rgba(0,0,0,.6));
+            opacity: .95;
+        }
+
+    .sidebar ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .sidebar .category-item {
+        margin: 2px 0;
+    }
+
+    /* expander (works with your checkbox/label approach) */
+    .sidebar .expander {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 18px;
+        height: 18px;
+        margin-right: 6px;
+        border-radius: 6px;
+        color: #fff;
+        background: rgba(255,255,255,.10);
+        border: 1px solid rgba(255,255,255,.12);
+        user-select: none;
+        font-weight: 800;
+        font-size: 12px;
+        line-height: 1;
+    }
+
+        .sidebar .expander:hover {
+            background: rgba(255,106,0,.16);
+            border-color: rgba(255,106,0,.40);
+        }
+
+    /* top-level link */
+    .sidebar > ul > .category-item > a {
+        display: inline-block;
+        padding: 6px 8px;
+        border-radius: 10px;
+        color: rgba(255,255,255,.92);
+        font-weight: 800;
+        font-size: 13px;
+        letter-spacing: .15px;
+        max-width: calc(var(--sidebar-w) - 55px);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+
+        .sidebar > ul > .category-item > a:hover {
+            text-decoration: none;
+            background: rgba(255,106,0,.12);
+            box-shadow: 0 0 0 1px rgba(255,106,0,.35);
+        }
+
+    /* submenu */
+    .sidebar .hidden {
+        display: none;
+        margin: 4px 0 8px 18px;
+        padding: 6px 6px 6px 10px;
+        border-left: 1px solid rgba(255,255,255,.12);
+    }
+
+        .sidebar .hidden a {
+            display: block;
+            padding: 5px 8px;
+            border-radius: 10px;
+            color: rgba(255,255,255,.78);
+            font-size: 12px;
+            line-height: 1.15;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+            .sidebar .hidden a:hover {
+                text-decoration: none;
+                color: #fff;
+                background: rgba(255,255,255,.08);
+                box-shadow: 0 0 0 1px rgba(255,255,255,.08) inset;
+            }
+
+/* checkbox toggle */
+.hidden-toggle {
+    display: none;
+}
+
+    .hidden-toggle:checked + .hidden {
+        display: block;
+    }
+
+/* ============================================================
+   MOBILE ROLL-UP MENU (NO JS)
+   REQUIREMENT: you must have:
+   <details class="mobile-nav"><summary>Menu</summary> ...menu... </details>
+   ============================================================ */
+.mobile-nav {
+    display: none;
+}
+
+.mobile-nav {
+    position: sticky;
+    top: 0;
+    z-index: 60;
+    background: rgba(10,10,10,.92);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid rgba(255,255,255,.12);
+}
+
+    .mobile-nav summary {
+        list-style: none;
+        cursor: pointer;
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        font-weight: 900;
+        color: #fff;
+    }
+
+        .mobile-nav summary::-webkit-details-marker {
+            display: none;
+        }
+
+        .mobile-nav summary::after {
+            content: "▾";
+            opacity: .85;
+            font-weight: 900;
+        }
+
+    .mobile-nav[open] summary::after {
+        content: "▴";
+    }
+
+    .mobile-nav .mobile-nav-body {
+        max-height: 55vh; /* THIS is what makes it roll up + scroll */
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+        padding: 8px 10px 12px;
+    }
+
+    .mobile-nav .logo-container {
+        display: flex;
+        justify-content: center;
+        padding: 8px 0 10px;
+    }
+
+        .mobile-nav .logo-container img {
+            width: 66px;
+            opacity: .95;
+            filter: drop-shadow(0 6px 14px rgba(0,0,0,.6));
+        }
+
+    .mobile-nav ul {
+        list-style: none;
+        margin: 0;
+        padding: 0;
+    }
+
+    .mobile-nav .category-item {
+        margin: 4px 0;
+    }
+
+        .mobile-nav .category-item > a {
+            display: inline-block;
+            padding: 7px 10px;
+            border-radius: 10px;
+            color: rgba(255,255,255,.92);
+            font-weight: 800;
+            font-size: 13px;
+        }
+
+            .mobile-nav .category-item > a:hover {
+                text-decoration: none;
+                background: rgba(255,106,0,.12);
+                box-shadow: 0 0 0 1px rgba(255,106,0,.35);
+            }
+
+    .mobile-nav .hidden {
+        display: none;
+        margin: 6px 0 10px 16px;
+        padding: 6px 6px 6px 10px;
+        border-left: 1px solid rgba(255,255,255,.12);
+    }
+
+        .mobile-nav .hidden a {
+            display: block;
+            padding: 6px 10px;
+            border-radius: 10px;
+            color: rgba(255,255,255,.80);
+            font-size: 12px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+    /* make your same checkbox toggles work inside mobile menu too */
+    .mobile-nav .hidden-toggle {
+        display: none;
+    }
+
+        .mobile-nav .hidden-toggle:checked + .hidden {
+            display: block;
+        }
+
+/* ============================================================
+   MAIN CONTENT LAYOUT
+   ============================================================ */
+#main-content {
+    margin-left: var(--sidebar-w);
+    padding: 14px 18px 24px;
+}
+
+.main {
+    max-width: 980px;
+    margin: 0 auto;
+}
+
+/* Prevent any container from becoming the scroller (fix “top is scrolled down”) */
+.page-shell, .content, .main, #main-content {
+    height: auto;
+    overflow: visible;
+}
+
+/* ============================================================
+   HOMEPAGE HERO
+   ============================================================ */
+.logo {
+    width: 165px; /* bigger center logo like prod */
+    margin: 8px auto 10px;
+    filter: drop-shadow(0 10px 22px rgba(0,0,0,.55));
+    opacity: .98;
+}
+
+.centered {
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+h1 {
+    margin: 0 0 4px;
+    font-size: 34px;
+    font-weight: 900;
+    letter-spacing: .2px;
+    text-shadow: 0 10px 24px rgba(0,0,0,.55);
+}
+
+.centered i {
+    display: block;
+    font-size: 13px;
+    color: rgba(255,255,255,.72);
+}
+
+/* ============================================================
+   MAIN SPONSORS — centered like prod
+   (Use flex so 5 cards sit nicely and wrap cleanly)
+   ============================================================ */
+.sponsors {
+    margin-top: 12px;
+}
+
+.section-title {
+    text-align: center;
+    margin: 12px 0 14px;
+    font-size: 16px;
+    letter-spacing: .3px;
+    color: var(--orange);
+    font-weight: 900;
+    text-shadow: 0 10px 20px rgba(0,0,0,.55);
+}
+
+.sponsors-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 14px;
+}
+
+.sponsor-card {
+    width: 190px; /* prod-ish size */
+    border-radius: 12px;
+    border: 2px solid transparent;
+    background: linear-gradient(#0f0f0f,#0f0f0f) padding-box, linear-gradient(90deg, rgba(255,106,0,.95), rgba(255,106,0,.60)) border-box;
+    box-shadow: 0 14px 34px rgba(0,0,0,.60);
+    padding: 10px 10px 12px;
+}
+
+    .sponsor-card:hover {
+        box-shadow: 0 18px 44px rgba(0,0,0,.68);
+        filter: brightness(1.02);
+    }
+
+/* Sponsor header */
+.sponsor-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.sponsor-header-left {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+}
+
+.sponsor-header .status {
+    color: var(--green);
+    font-size: 13px;
+    line-height: 1;
+}
+
+.sponsor-header .title {
+    display: inline-block;
+    color: #55b7ff;
+    font-size: 13px;
+    font-weight: 900; /* only sponsor title is bold */
+    max-width: 120px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+    .sponsor-header .title:hover {
+        text-decoration: underline;
+    }
+
+/* Flags */
+.country-flag, .country-flag-right {
+    width: 16px;
+    height: 11px;
+    display: inline-block;
+    vertical-align: middle;
+    border-radius: 2px;
+    box-shadow: 0 0 0 1px rgba(0,0,0,.35);
+}
+
+/* Rating row + stars */
+.sponsor-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 6px;
+}
+
+.rating-wrapper {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: rgba(255,255,255,.78);
+    font-size: 11px;
+    line-height: 1;
+}
+
+.stars {
+    position: relative;
+    display: inline-block;
+    width: 70px;
+    height: 12px;
+    line-height: 12px;
+    font-size: 12px;
+    letter-spacing: 1px;
+}
+
+    .stars::before {
+        content: "★★★★★";
+        position: absolute;
+        inset: 0;
+        color: rgba(255,255,255,.22);
+    }
+
+.stars-fill {
+    position: absolute;
+    inset: 0;
+    width: 0%;
+    overflow: hidden;
+}
+
+    .stars-fill::before {
+        content: "★★★★★";
+        position: absolute;
+        inset: 0;
+        color: #ff9d2a;
+        text-shadow: 0 0 10px rgba(255,106,0,.22);
+    }
+
+.rating-text {
+    color: rgba(255,255,255,.90);
+    font-weight: 800;
+}
+
+.rating-count-link {
+    color: rgba(100,180,255,.95);
+    font-weight: 800;
+    font-size: 11px;
+}
+
+    .rating-count-link:hover {
+        text-decoration: underline;
+    }
+
+/* Sponsor description */
+.sponsor-desc {
+    margin: 0;
+    color: rgba(255,255,255,.84);
+    font-size: 11px;
+    line-height: 1.28;
+    max-height: 80px;
+    overflow: hidden;
+}
+
+/* Waitlist line */
+.create-sponsored-listing {
+    text-align: center;
+    margin: 10px 0 0;
+    color: rgba(255,255,255,.78);
+    font-size: 12px;
+}
+
+    .create-sponsored-listing .status-text {
+        font-weight: 800;
+    }
+
+/* ============================================================
+   TOP CONTROLS + LISTS (avoid bold links)
+   ============================================================ */
+.intro {
+    color: rgba(255,255,255,.84);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.top-container {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 12px;
+    margin: 10px 0 10px;
+}
+
+.top-section {
+    background: linear-gradient(180deg, rgba(255,255,255,.06), rgba(255,255,255,.03));
+    border: 1px solid rgba(255,255,255,.10);
+    border-radius: 10px;
+    padding: 10px 10px;
+    box-shadow: 0 10px 22px rgba(0,0,0,.35);
+}
+
+.centered-text {
+    text-align: center;
+    margin: 0;
+    font-size: 12px;
+    color: rgba(255,255,255,.82);
+}
+
+.search-form {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.form-control {
+    height: 26px;
+    padding: 0 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.16);
+    background: rgba(0,0,0,.35);
+    color: #fff;
+    font-size: 12px;
+    outline: none;
+    width: 170px;
+}
+
+    .form-control:focus {
+        border-color: rgba(255,106,0,.55);
+        box-shadow: 0 0 0 3px rgba(255,106,0,.12);
+    }
+
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 26px;
+    padding: 0 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,.16);
+    color: #fff;
+    font-weight: 900;
+    font-size: 11px;
+    cursor: pointer;
+    text-decoration: none;
+}
+
+    .btn:hover {
+        text-decoration: none;
+        filter: brightness(1.05);
+    }
+
+.btn-primary {
+    background: #1d7b34;
+    border-color: rgba(39,210,75,.35);
+}
+
+.btn-info {
+    background: #1477c7;
+    border-color: rgba(55,164,255,.35);
+}
+
+.blank_list_item {
+    list-style: none;
+    margin: 8px 0 0;
+    padding: 0;
+}
+
+    .blank_list_item li {
+        margin: 6px 0;
+    }
+
+    .blank_list_item p {
+        margin: 0;
+    }
+
+    .blank_list_item a {
+        font-weight: inherit;
+    }
+/* IMPORTANT */
+
+/* External icon */
+.external-link {
+    display: inline-block;
+    margin-left: 6px;
+    width: 14px;
+    height: 14px;
+    border-radius: 4px;
+    background: rgba(55,164,255,.18);
+    position: relative;
+    vertical-align: middle;
+}
+
+    .external-link::after {
+        content: "↗";
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 11px;
+        color: rgba(150,220,255,.95);
+    }
+
+/* ============================================================
+   FOOTER
+   ============================================================ */
+.site-footer {
+    margin-left: var(--sidebar-w);
+    padding: 18px 18px 26px;
+}
+
+.footer-nav {
+    max-width: 980px;
+    margin: 0 auto;
+    text-align: center;
+    font-size: 12px;
+    color: rgba(255,255,255,.70);
+}
+
+    .footer-nav a {
+        color: rgba(150,220,255,.92);
+    }
+
+        .footer-nav a:hover {
+            text-decoration: underline;
+        }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width:980px) {
+    .top-container {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* MOBILE: hide fixed sidebar, show roll-up <details> menu */
+@media (max-width:900px) {
+    .sidebar {
+        display: none;
+    }
+
+    .mobile-nav {
+        display: block;
+    }
+
+    #main-content {
+        margin-left: 0;
+        padding: 12px 12px 18px;
+    }
+
+    .site-footer {
+        margin-left: 0;
+    }
+
+    .logo {
+        width: 150px;
+    }
+
+    h1 {
+        font-size: 28px;
+    }
+
+    .sponsor-card {
+        width: 200px;
+    }
+    /* slightly bigger on mobile */
+}
+
+/* Optional: if your <details> body wrapper doesn't exist,
+   this still keeps the list scrollable when open. */
+@media (max-width:900px) {
+    .mobile-nav[open] > ul,
+    .mobile-nav[open] > nav,
+    .mobile-nav[open] > div {
+        max-height: 55vh;
+        overflow: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+}

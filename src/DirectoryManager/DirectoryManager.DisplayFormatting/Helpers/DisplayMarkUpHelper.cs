@@ -266,6 +266,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             if (!string.IsNullOrWhiteSpace(entry.Description))
             {
+                sb.Append(" - ");
                 sb.AppendFormat(
                     "<p class=\"small-font text-inline\">{0}</p>",
                     WebUtility.HtmlEncode(entry.Description));
