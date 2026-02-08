@@ -5,20 +5,21 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheService
 @inject IUrlResolutionService urlService
 @model SearchViewModel
+
 @{
-    @if (!Model.Entries.Any())
+    if (!Model.Entries.Any())
     {
-        ViewData[StringConstants.TitleHeader] = $"No results found.";
+        ViewData[StringConstants.TitleHeader] = "No results found.";
     }
     else
     {
         ViewData[StringConstants.TitleHeader] = $"Search results for \"{Model.Query}\"";
     }
-   
-}
 
-@{
     Layout = "_CenteredLayout";
+
+    var q = Model.Query ?? string.Empty;
+    var encodedQ = System.Net.WebUtility.UrlEncode(q);
 }
 
 @section PageContent {
@@ -27,49 +28,57 @@
         @await Html.PartialAsync("_SiteLogo")
     </div>
 
-<hr />
-@await Html.PartialAsync("_BackToHome")
-<hr />
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
 
-<div style="text-align:center">
-<form method="get" class="form-inline mb-3">
-            <input maxlength="50" name="q" class="form-control mr-2" placeholder="Search…" autocomplete="off" />
-    <button style="padding:5px;" type="submit" class="btn btn-primary">Search</button>
-</form>
-</div>
+    <div style="text-align:center">
+        <form method="get" class="search-form mb-3" action="">
+            <input type="search"
+                   maxlength="50"
+                   name="q"
+                   class="form-control"
+                   placeholder="Search…"
+                   autocomplete="off"
+                   aria-label="Search directory" />
 
-@if (!Model.Entries.Any())
-{
-    <p>No results found.</p>
-}
-else
-{ 
-    <p><i>Showing @Model.Entries.Count of @Model.TotalCount results.</i></p>
- 
-    <ul class="search-results">
-    @foreach (var e in Model.Entries)
+            <input type="hidden" name="page" value="1" />
+
+            <button type="submit" class="btn btn-primary search-btn">Search</button>
+        </form>
+    </div>
+
+    @if (!Model.Entries.Any())
     {
-        @Html.Raw(DisplayMarkUpHelper.GenerateSearchResultHtml(e, urlService.BaseUrl))
+        <p>No results found.</p>
     }
-    </ul>
+    else
+    {
+        <p><i>Showing @Model.Entries.Count of @Model.TotalCount results.</i></p>
 
-    <nav aria-label="Search pagination">
-      <ul class="pagination">
-      @{
-        int totalPages = (int)Math.Ceiling(Model.TotalCount / (double)Model.PageSize);
-        for (int p = 1; p <= totalPages; p++)
-        {
-            <li class="page-item @(p==Model.Page? "active":"")">
-              <a class="page-link" href="?q=@Model.Query&page=@p">@p</a>
-            </li>;
-        }
-      }
-      </ul>
-    </nav>
+        <ul class="search-results">
+            @foreach (var e in Model.Entries)
+            {
+                @Html.Raw(DisplayMarkUpHelper.GenerateSearchResultHtml(e, urlService.BaseUrl))
+            }
+        </ul>
+
+        <nav aria-label="Search pagination">
+            <ul class="pagination">
+                @{
+                    int totalPages = (int)Math.Ceiling(Model.TotalCount / (double)Model.PageSize);
+                    for (int p = 1; p <= totalPages; p++)
+                    {
+                        <li class="page-item @(p == Model.Page ? "active" : "")">
+                            <a class="page-link" href="?q=@encodedQ&page=@p">@p</a>
+                        </li>
+                    }
+                }
+            </ul>
+        </nav>
+    }
+
+    <hr />
+
+    @await Html.PartialAsync("_SponsoredListingPartial")
 }
-
-<hr />
-
-@await Html.PartialAsync("_SponsoredListingPartial")
-
-    }
