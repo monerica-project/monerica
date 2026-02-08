@@ -1,30 +1,48 @@
-﻿using DirectoryManager.Data.Models;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using DirectoryManager.Data.Models;
 
 namespace DirectoryManager.Web.Helpers
 {
     internal static class ModelComparisonHelpers
     {
         public static string CompareEntries(
-             DirectoryEntry entry,
-             Submission submission,
-             IReadOnlyList<string>? entryTagNames = null,
-             IReadOnlyList<string>? selectedTagNames = null)
+            DirectoryEntry entry,
+            Submission submission,
+            IReadOnlyList<string>? entryTagNames = null,
+            IReadOnlyList<string>? selectedTagNames = null,
+            IReadOnlyList<string>? entryRelatedLinks = null)
         {
             if (entry == null || submission == null)
             {
                 return "<p>Either the DirectoryEntry or the Submission is null.</p>";
             }
 
-            // Helper function to compare strings, treating null and empty as equivalent.
-            static bool NotEqualTrimmed(string? a, string? b)
+            static string NormalizeString(string? value)
             {
-                string normalizedA = NormalizeString(a);
-                string normalizedB = NormalizeString(b);
-                return !string.Equals(normalizedA, normalizedB, StringComparison.OrdinalIgnoreCase);
+                return string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
             }
 
-            // Normalize strings by trimming and treating null, empty, or whitespace-only as empty.
-            static string NormalizeString(string? value) => string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+            static bool NotEqualTrimmed(string? a, string? b)
+            {
+                return !string.Equals(NormalizeString(a), NormalizeString(b), StringComparison.OrdinalIgnoreCase);
+            }
+
+            static string FormatValue(object? value)
+            {
+                return value?.ToString() ?? "null";
+            }
+
+            static List<string> NormalizeLinks(IEnumerable<string?>? links, int max = 3)
+            {
+                return (links ?? Array.Empty<string?>())
+                    .Select(x => (x ?? string.Empty).Trim())
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .Take(max)
+                    .ToList();
+            }
 
             var differences = new List<string>();
 
@@ -36,10 +54,9 @@ namespace DirectoryManager.Web.Helpers
                     $"<em>Submission:</em><br> {FormatValue(submissionValue)}</p>");
             }
 
-            // Format null or non-string values safely.
-            static string FormatValue(object? value) => value?.ToString() ?? "null";
-
-            // Compare properties and add differences to the list.
+            // -----------------------------
+            // Core fields
+            // -----------------------------
             if (NotEqualTrimmed(entry.Name, submission.Name))
             {
                 AddDifference("Name", entry.Name, submission.Name);
@@ -100,21 +117,25 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("VideoLink", entry.VideoLink, submission.VideoLink);
             }
 
-            // Compare SubCategory and Category names safely.
+            // SubCategory display
             if (entry.SubCategoryId != submission.SubCategoryId)
             {
-                string entrySubCategory = $"{FormatValue(entry.SubCategory?.Category?.Name)} > {FormatValue(entry.SubCategory?.Name)}";
-                string submissionSubCategory = $"{FormatValue(submission.SubCategory?.Category?.Name)} > {FormatValue(submission.SubCategory?.Name)}";
+                string entrySubCategory =
+                    $"{FormatValue(entry.SubCategory?.Category?.Name)} &gt; {FormatValue(entry.SubCategory?.Name)}";
+                string submissionSubCategory =
+                    $"{FormatValue(submission.SubCategory?.Category?.Name)} &gt; {FormatValue(submission.SubCategory?.Name)}";
+
                 AddDifference("Subcategory", entrySubCategory, submissionSubCategory);
             }
 
+            // Status
             if (entry.DirectoryStatus != submission.DirectoryStatus)
             {
                 AddDifference("Directory Status", entry.DirectoryStatus, submission.DirectoryStatus);
             }
 
             // -----------------------------
-            // ✅ Tags: compare checkbox selections vs current entry tags
+            // Tags diff
             // -----------------------------
             var entrySet = new HashSet<string>(
                 (entryTagNames ?? Array.Empty<string>())
@@ -133,8 +154,13 @@ namespace DirectoryManager.Web.Helpers
                 var added = selectedSet.Except(entrySet, StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
                 var removed = entrySet.Except(selectedSet, StringComparer.OrdinalIgnoreCase).OrderBy(x => x).ToList();
 
-                string entryTagsDisplay = entrySet.Count == 0 ? "<i>(none)</i>" : string.Join(", ", entrySet.OrderBy(x => x));
-                string selectedTagsDisplay = selectedSet.Count == 0 ? "<i>(none)</i>" : string.Join(", ", selectedSet.OrderBy(x => x));
+                string entryTagsDisplay = entrySet.Count == 0
+                    ? "<i>(none)</i>"
+                    : string.Join(", ", entrySet.OrderBy(x => x));
+
+                string selectedTagsDisplay = selectedSet.Count == 0
+                    ? "<i>(none)</i>"
+                    : string.Join(", ", selectedSet.OrderBy(x => x));
 
                 string addedDisplay = added.Count == 0 ? "<i>(none)</i>" : string.Join(", ", added);
                 string removedDisplay = removed.Count == 0 ? "<i>(none)</i>" : string.Join(", ", removed);
@@ -147,9 +173,53 @@ namespace DirectoryManager.Web.Helpers
                     $"<em>Removed:</em><br> {removedDisplay}</p>");
             }
 
-            return differences.Count > 0
-                ? string.Join(Environment.NewLine, differences)
-                : "<p>No differences found.</p>";
+            // -----------------------------
+            // Related/Additional Links diff
+            // -----------------------------
+            var entryLinks = NormalizeLinks(entryRelatedLinks, max: 3);
+            var submissionLinks = NormalizeLinks(submission.RelatedLinks, max: 3);
+
+            var entryLinksSet = entryLinks.ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var submissionLinksSet = submissionLinks.ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (!entryLinksSet.SetEquals(submissionLinksSet))
+            {
+                var added = submissionLinks.Where(x => !entryLinksSet.Contains(x)).ToList();
+                var removed = entryLinks.Where(x => !submissionLinksSet.Contains(x)).ToList();
+
+                string entryDisplay = entryLinks.Count == 0
+                    ? "<i>(none)</i>"
+                    : string.Join("<br>", entryLinks.Select(x =>
+                        $"<a href=\"{x}\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">{x}</a>"));
+
+                string submissionDisplay = submissionLinks.Count == 0
+                    ? "<i>(none)</i>"
+                    : string.Join("<br>", submissionLinks.Select(x =>
+                        $"<a href=\"{x}\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">{x}</a>"));
+
+                string addedDisplay = added.Count == 0
+                    ? "<i>(none)</i>"
+                    : string.Join("<br>", added.Select(x =>
+                        $"<a href=\"{x}\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">{x}</a>"));
+
+                string removedDisplay = removed.Count == 0
+                    ? "<i>(none)</i>"
+                    : string.Join("<br>", removed.Select(x => $"<span>{x}</span>"));
+
+                differences.Add(
+                    "<p><strong>Related Links:</strong><br>" +
+                    $"<em>Entry:</em><br> {entryDisplay}<br>" +
+                    $"<em>Submission:</em><br> {submissionDisplay}<br>" +
+                    $"<em>Added:</em><br> {addedDisplay}<br>" +
+                    $"<em>Removed:</em><br> {removedDisplay}</p>");
+            }
+
+            if (differences.Count > 0)
+            {
+                return string.Join(Environment.NewLine, differences);
+            }
+
+            return "<p>No differences found.</p>";
         }
     }
 }

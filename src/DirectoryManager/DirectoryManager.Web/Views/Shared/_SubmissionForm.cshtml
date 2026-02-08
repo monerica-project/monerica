@@ -1,4 +1,5 @@
 ﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants
 @model DirectoryManager.Web.Models.SubmissionRequest
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 
@@ -27,7 +28,9 @@
 
 <div class="form-group">
     <label asp-for="SubCategoryId">Subcategory</label>
-    <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "SubcategoryId", "DisplayName"))" required></select>
+    <select asp-for="SubCategoryId"
+            asp-items="@(new SelectList(ViewBag.SubCategories, "SubcategoryId", "DisplayName"))"
+            required></select>
 </div>
 
 <div class="form-group">
@@ -123,7 +126,14 @@
         @foreach (var t in allTags)
         {
             var id = (int)t.TagId;
-            var isChecked = Model.SelectedTagIds != null && Model.SelectedTagIds.Contains(id);
+
+            // ✅ support BOTH flows:
+            // - existing listing edit (Model.SelectedTagIds)
+            // - submission review page (ViewBag.SelectedTagIds is a HashSet<int>)
+            var selectedSet = ViewBag.SelectedTagIds as HashSet<int>;
+            var isChecked =
+            (selectedSet != null && selectedSet.Contains(id)) ||
+            (Model.SelectedTagIds != null && Model.SelectedTagIds.Contains(id));
 
             <label class="tag-chip">
                 <input type="checkbox"
@@ -138,7 +148,7 @@
 
 <div class="form-group">
     <label asp-for="Tags">Suggested Tags (if choice not provided) <i>comma-separated</i></label>
-    <input maxlength="100" asp-for="Tags" class="form-control  input-width" />
+    <input maxlength="100" asp-for="Tags" class="form-control input-width" />
     <span asp-validation-for="Tags" class="text-danger"></span>
 </div>
 
@@ -151,21 +161,22 @@
 <h4>Related Links</h4>
 <p class="text-muted">Forum posts, docs, reviews, etc. (not Tor/I2P links)</p>
 
+<!-- ✅ make sure these bind + post back correctly -->
 <div class="form-group">
     <label asp-for="RelatedLink1"></label>
-    <input asp-for="RelatedLink1" class="form-control" />
+    <input autocomplete="off" asp-for="RelatedLink1" class="form-control input-width" />
     <span asp-validation-for="RelatedLink1" class="text-danger"></span>
 </div>
 
 <div class="form-group">
     <label asp-for="RelatedLink2"></label>
-    <input asp-for="RelatedLink2" class="form-control" />
+    <input autocomplete="off" asp-for="RelatedLink2" class="form-control input-width" />
     <span asp-validation-for="RelatedLink2" class="text-danger"></span>
 </div>
 
 <div class="form-group">
     <label asp-for="RelatedLink3"></label>
-    <input asp-for="RelatedLink3" class="form-control" />
+    <input autocomplete="off" asp-for="RelatedLink3" class="form-control input-width" />
     <span asp-validation-for="RelatedLink3" class="text-danger"></span>
 </div>
 

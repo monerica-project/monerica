@@ -34,6 +34,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ICacheService cacheHelper;
         private readonly ITagRepository tagRepo;
         private readonly IDirectoryEntryTagRepository entryTagRepo;
+        private readonly IAdditionalLinkRepository additionalLinkRepo;
 
         public SubmissionController(
             UserManager<ApplicationUser> userManager,
@@ -47,7 +48,8 @@ namespace DirectoryManager.Web.Controllers
             IMemoryCache cache,
             ICacheService cacheHelper,
             ITagRepository tagRepo,
-            IDirectoryEntryTagRepository entryTagRepo)
+            IDirectoryEntryTagRepository entryTagRepo,
+            IAdditionalLinkRepository additionalLinkRepo)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -60,6 +62,7 @@ namespace DirectoryManager.Web.Controllers
             this.cacheHelper = cacheHelper;
             this.tagRepo = tagRepo;
             this.entryTagRepo = entryTagRepo;
+            this.additionalLinkRepo = additionalLinkRepo;
         }
 
         [AllowAnonymous]
@@ -194,7 +197,7 @@ namespace DirectoryManager.Web.Controllers
 
         [AllowAnonymous]
         [HttpGet("submission/submitedit/{id}")]
-        public async Task<IActionResult> SubmitEdit(int id)
+        public async Task<IActionResult> SubmitEdit(int id, CancellationToken ct)
         {
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(id);
             if (directoryEntry == null) return this.NotFound();
@@ -209,12 +212,28 @@ namespace DirectoryManager.Web.Controllers
             model.SelectedTagIds = entryTags.Select(t => t.TagId).Distinct().ToList();
             model.SelectedTagIdsCsv = string.Join(",", model.SelectedTagIds);
 
+            // ✅ LOAD existing "additional links" for this listing and map to the 3 inputs
+            var additional = await this.additionalLinkRepo.GetByDirectoryEntryIdAsync(id, ct);
+            var urls = (additional ?? new List<AdditionalLink>())
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.AdditionalLinkId)
+                .Select(x => x.Link)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(MaxLinks)
+                .ToList();
+
+            model.RelatedLink1 = urls.ElementAtOrDefault(0);
+            model.RelatedLink2 = urls.ElementAtOrDefault(1);
+            model.RelatedLink3 = urls.ElementAtOrDefault(2);
+
             await this.SetSelectSubCategoryViewBag();
             await this.LoadDropDowns();
             await this.LoadAllTagsForCheckboxesAsync();
 
             return this.View("SubmitEdit", model);
         }
+
 
         [AllowAnonymous]
         [HttpGet("submission/findexisting")]
@@ -295,7 +314,7 @@ namespace DirectoryManager.Web.Controllers
 
         [Authorize]
         [HttpGet("submission/{id}")]
-        public async Task<IActionResult> Review(int id)
+        public async Task<IActionResult> Review(int id, CancellationToken ct)
         {
             var submission = await this.submissionRepository.GetByIdAsync(id);
             if (submission == null)
@@ -303,15 +322,18 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            // ✅ load all tags for checkbox list
-            // after you load submission
+            // ----------------------------
+            // Load all tags for checkbox list (ViewBag.AllTags)
+            // ----------------------------
             var allTags = await this.tagRepo.ListAllAsync();
             this.ViewBag.AllTags = allTags
                 .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
                 .Select(t => new TagOptionVm { TagId = t.TagId, Name = t.Name })
                 .ToList();
 
-            // selected from submission csv
+            // ----------------------------
+            // Determine selected tag IDs (from submission CSV, with fallback to current listing tags)
+            // ----------------------------
             var selectedIds = (submission.SelectedTagIdsCsv ?? string.Empty)
                 .Split(',', StringSplitOptions.RemoveEmptyEntries)
                 .Select(x => x.Trim())
@@ -320,7 +342,6 @@ namespace DirectoryManager.Web.Controllers
                 .Distinct()
                 .ToHashSet();
 
-            // optional fallback: if none selected yet AND editing existing entry, pre-check current listing tags
             if (selectedIds.Count == 0 && submission.DirectoryEntryId.HasValue)
             {
                 var current = await this.entryTagRepo.GetTagsForEntryAsync(submission.DirectoryEntryId.Value);
@@ -329,15 +350,16 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.SelectedTagIds = selectedIds;
 
-            // ✅ compute selected tag names (for differences display)
-            // (from ALL tags + selectedIds so we don't need extra DB queries)
+            // Selected tag names (for diff output)
             var selectedTagNames = allTags
                 .Where(t => selectedIds.Contains(t.TagId))
                 .Select(t => t.Name)
                 .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
                 .ToList();
 
-            // Existing diff logic (unchanged)
+            // ----------------------------
+            // Compare submission vs existing entry (includes tags + related links)
+            // ----------------------------
             if (submission.DirectoryEntryId.HasValue)
             {
                 if (submission.SubCategory == null && submission.SubCategoryId.HasValue)
@@ -351,23 +373,35 @@ namespace DirectoryManager.Web.Controllers
 
                 if (existing != null)
                 {
-                    // ✅ existing/current entry tag names
+                    // existing/current entry tag names
                     var existingTags = await this.entryTagRepo.GetTagsForEntryAsync(existing.DirectoryEntryId);
-
                     var existingTagNames = existingTags
                         .Select(t => t.Name)
                         .OrderBy(n => n, StringComparer.OrdinalIgnoreCase)
                         .ToList();
 
-                    // (optional) keep this if you still want the old string for display elsewhere
+                    // optional: keep existing tag string for other UI
                     existing.Tags = string.Join(", ", existingTagNames);
 
-                    // ✅ pass both sets into the helper for tag diff output
+                    // existing/current entry additional links (for related link diff)
+                    var existingAdditional = await this.additionalLinkRepo
+                        .GetByDirectoryEntryIdAsync(existing.DirectoryEntryId, ct);
+
+                    var entryRelatedLinks = (existingAdditional ?? new List<AdditionalLink>())
+                        .OrderBy(x => x.SortOrder)
+                        .ThenBy(x => x.AdditionalLinkId)
+                        .Select(x => x.Link)
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .Take(MaxLinks)
+                        .ToList();
+
                     this.ViewBag.Differences = ModelComparisonHelpers.CompareEntries(
                         existing,
                         submission,
                         entryTagNames: existingTagNames,
-                        selectedTagNames: selectedTagNames);
+                        selectedTagNames: selectedTagNames,
+                        entryRelatedLinks: entryRelatedLinks);
                 }
             }
 
