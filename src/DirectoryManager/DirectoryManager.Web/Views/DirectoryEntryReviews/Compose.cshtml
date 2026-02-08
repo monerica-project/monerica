@@ -44,11 +44,11 @@
             <input asp-for="OrderProof" class="form-control" maxlength="2048" />
             <span asp-validation-for="OrderProof" class="text-danger"></span>
             <div class="form-text">
-                Paste either an order ID or an order URL. If provided, your review will go to moderation.
+                Optional: paste an order ID or order URL for internal verification only. This will not be shown publicly. If provided, your review may go to moderation.
             </div>
         </div>
 
-        <p class="text-muted"><i>Your review may be checked before it appears publicly. Most reviews go live quickly.</i></p>
+        <p class="text-muted"><i>Your review may be checked before it appears publicly.</i></p>
 
         <button type="submit" class="btn btn-success">Submit Review</button>
     </form>
