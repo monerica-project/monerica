@@ -2298,3 +2298,480 @@ h2.section-title.sponsor-section-title {
     background: #198754; /* green */
     color: #fff;
 }
+
+/* =========================================================
+   WHITE-LABEL UI CONTROLS + BUTTON SYSTEM (Paste at end)
+   - Search bar input + Search/Filter buttons (1 row on mobile)
+   - Filter page fieldsets, checks, selects w/ visible arrow
+   - Tags box
+   - Pagination hover/focus orange
+   - Unified .btn styling for ALL pages
+   - Neon-console green btn-primary + brighter btn-info
+   ========================================================= */
+
+/* -----------------------------
+   TOKENS (single source of truth)
+------------------------------ */
+:root {
+    --ui-accent: #ff6600;
+    --ui-bg: rgba(10,10,10,.92);
+    --ui-bg-focus: rgba(12,12,12,.96);
+    --ui-panel: rgba(30,30,30,.35);
+    --ui-border: rgba(255,255,255,.18);
+    --ui-border-strong: rgba(255,102,0,.60);
+    --ui-text: #fff;
+    --ui-muted: rgba(255,255,255,.65);
+    --ui-h: 32px;
+    --ui-radius: 10px;
+    --ui-radius-pill: 999px;
+    /* unified button base */
+    --ui-btn-bg: #0f0f0f;
+    --ui-btn-bg2: #161616;
+    --ui-btn-text: #fff;
+    --ui-btn-border: rgba(255,255,255,.22);
+    /* PRIMARY (neon console green -> dark) */
+    --ui-primary-1: #18ff6d; /* top */
+    --ui-primary-2: #05200f; /* bottom */
+    --ui-primary-border: rgba(24,255,109,.80);
+    --ui-primary-border-hover: rgba(24,255,109,.98);
+    --ui-primary-glow: rgba(24,255,109,.28);
+    /* INFO (more visible electric blue -> dark) */
+    --ui-info-1: #2aa8ff; /* top */
+    --ui-info-2: #061a33; /* bottom */
+    --ui-info-border: rgba(42,168,255,.78);
+    --ui-info-border-hover: rgba(42,168,255,.96);
+    --ui-info-glow: rgba(42,168,255,.22);
+}
+
+/* =========================================================
+   SEARCH BAR (always one row; no mobile stacking)
+   ========================================================= */
+.search-form {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: nowrap; /* keep 1 line */
+}
+
+    /* input */
+    .search-form input[type="search"].form-control {
+        height: var(--ui-h) !important;
+        padding: 0 14px !important;
+        line-height: 1 !important;
+        font-size: 14px !important;
+        background: var(--ui-bg) !important;
+        color: var(--ui-text) !important;
+        border: 1px solid var(--ui-border) !important;
+        border-radius: var(--ui-radius-pill) !important;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,.65);
+        outline: none !important;
+        caret-color: var(--ui-accent);
+        transition: border-color .15s ease,box-shadow .15s ease,background-color .15s ease;
+        /* key to prevent weird sizing + keep buttons from wrapping */
+        flex: 1 1 auto;
+        min-width: 140px;
+        max-width: 520px;
+    }
+
+        .search-form input[type="search"].form-control::placeholder {
+            color: rgba(255,255,255,.55);
+        }
+
+        .search-form input[type="search"].form-control:focus {
+            background: var(--ui-bg-focus) !important;
+            border-color: var(--ui-border-strong) !important;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,.70), 0 0 0 1px rgba(255,102,0,.35), 0 0 10px rgba(255,102,0,.30), 0 0 18px rgba(255,102,0,.16) !important;
+        }
+
+    /* buttons in search bar */
+    .search-form .search-btn,
+    .search-form .btn.search-btn {
+        height: var(--ui-h) !important;
+        min-height: var(--ui-h) !important;
+        padding: 0 14px !important;
+        line-height: 1 !important;
+        border-radius: 10px !important;
+        white-space: nowrap;
+        flex: 0 0 auto;
+    }
+
+/* small screens: keep row, just tighten spacing + prevent iOS zoom */
+@media (max-width:480px) {
+    :root {
+        --ui-h: 34px;
+    }
+
+    .search-form {
+        gap: 8px;
+    }
+
+        .search-form input[type="search"].form-control {
+            font-size: 16px !important; /* prevents mobile zoom and odd sizing */
+            min-width: 120px;
+            max-width: none;
+        }
+
+        .search-form .search-btn,
+        .search-form .btn.search-btn {
+            padding: 0 10px !important;
+        }
+}
+
+/* =========================================================
+   FILTER FORM LAYOUT
+   ========================================================= */
+.ui-form {
+    color: var(--ui-text);
+}
+
+.ui-fieldset {
+    border: 1px solid #444 !important;
+    border-radius: 10px !important;
+    padding: 12px !important;
+    margin: 0 0 12px 0 !important;
+    background: var(--ui-panel);
+}
+
+.ui-legend {
+    padding: 0 8px !important;
+    color: var(--ui-text);
+    font-weight: 700;
+    letter-spacing: .01em;
+}
+
+.ui-checks {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+    align-items: center;
+    margin-top: 6px;
+}
+
+.ui-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+    cursor: pointer;
+    user-select: none;
+    color: var(--ui-text);
+}
+
+/* checkboxes */
+.ui-form input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    margin: 0;
+    accent-color: var(--ui-accent);
+}
+
+    .ui-form input[type="checkbox"]:focus-visible {
+        outline: none;
+        box-shadow: 0 0 0 2px rgba(255,102,0,.28);
+        border-radius: 4px;
+    }
+
+/* labels */
+.ui-label-block {
+    display: block;
+    margin: 6px 0 10px 0;
+}
+
+.ui-label-text {
+    display: inline-block;
+    min-width: 110px;
+    color: var(--ui-muted);
+    font-weight: 600;
+}
+
+/* =========================================================
+   SELECTS (VISIBLE ARROW)
+   ========================================================= */
+.ui-select-wrap {
+    position: relative;
+    display: inline-block;
+    vertical-align: middle;
+    min-width: 280px;
+    max-width: 100%;
+}
+
+.ui-select {
+    height: var(--ui-h) !important;
+    line-height: 1 !important;
+    font-size: 14px !important;
+    width: 100%;
+    padding: 0 44px 0 12px !important;
+    border-radius: var(--ui-radius) !important;
+    background: var(--ui-bg) !important;
+    color: var(--ui-text) !important;
+    border: 1px solid var(--ui-border) !important;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.65);
+    appearance: none;
+    -webkit-appearance: none;
+    outline: none !important;
+    cursor: pointer;
+    transition: border-color .15s ease,box-shadow .15s ease,background-color .15s ease;
+}
+
+/* divider */
+.ui-select-wrap::before {
+    content: "";
+    position: absolute;
+    top: 7px;
+    bottom: 7px;
+    right: 34px;
+    width: 1px;
+    background: rgba(255,255,255,.12);
+    pointer-events: none;
+}
+
+/* arrow */
+.ui-select-wrap::after {
+    content: "";
+    position: absolute;
+    right: 14px;
+    top: 50%;
+    width: 0;
+    height: 0;
+    border-left: 6px solid transparent;
+    border-right: 6px solid transparent;
+    border-top: 7px solid rgba(255,255,255,.75);
+    transform: translateY(-35%);
+    pointer-events: none;
+}
+
+/* focus */
+.ui-select-wrap:focus-within .ui-select {
+    background: var(--ui-bg-focus) !important;
+    border-color: var(--ui-border-strong) !important;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.70), 0 0 0 1px rgba(255,102,0,.35), 0 0 10px rgba(255,102,0,.30), 0 0 18px rgba(255,102,0,.16) !important;
+}
+
+.ui-select-wrap:focus-within::after {
+    border-top-color: rgba(255,102,0,.95);
+}
+
+.ui-select-wrap:focus-within::before {
+    background: rgba(255,102,0,.22);
+}
+
+@media (max-width:650px) {
+    .ui-select-wrap {
+        min-width: 100%;
+    }
+
+    .ui-label-text {
+        display: block;
+        margin-bottom: 6px;
+        min-width: 0;
+    }
+}
+
+/* =========================================================
+   TAGS BOX
+   ========================================================= */
+.ui-tags {
+    margin-top: 10px;
+}
+
+.ui-tags-title {
+    margin: 0 0 8px 0;
+    color: var(--ui-muted);
+    font-weight: 700;
+    font-size: 13px;
+}
+
+.ui-tags-box {
+    border: 1px solid #333;
+    border-radius: 10px;
+    padding: 10px;
+    background: rgba(0,0,0,.22);
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 14px;
+}
+
+.ui-empty {
+    font-size: 12px;
+    opacity: .75;
+}
+
+/* =========================================================
+   FILTER ACTIONS
+   ========================================================= */
+.ui-actions {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-top: 8px;
+}
+
+.ui-submit {
+    height: var(--ui-h) !important;
+    padding: 0 14px !important;
+    line-height: 1 !important;
+    border-radius: 10px !important;
+    font-weight: 800;
+}
+
+.ui-clear {
+    font-size: 12px;
+    opacity: .75;
+    text-decoration: none;
+}
+
+    .ui-clear:hover {
+        opacity: 1;
+        color: var(--ui-accent);
+        text-decoration: underline;
+    }
+
+/* =========================================================
+   PAGINATION: orange hover/focus
+   ========================================================= */
+.page-link {
+    transition: color .12s ease,background-color .12s ease,border-color .12s ease,box-shadow .12s ease,transform .08s ease;
+}
+
+    .page-link:hover,
+    .page-link:focus,
+    .page-link:focus-visible {
+        color: var(--ui-accent) !important;
+        background-color: rgba(255,102,0,.10) !important;
+        border-color: rgba(255,102,0,.55) !important;
+        text-decoration: none !important;
+        box-shadow: 0 0 0 1px rgba(255,102,0,.28),0 0 12px rgba(255,102,0,.18) !important;
+        outline: none !important;
+    }
+
+.pagination .page-item.active .page-link {
+    background-color: rgba(255,102,0,.22) !important;
+    border-color: rgba(255,102,0,.70) !important;
+    color: #fff !important;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.55),0 0 10px rgba(255,102,0,.18) !important;
+}
+
+.page-item.disabled .page-link,
+.page-link[aria-disabled="true"],
+.page-link[tabindex="-1"] {
+    color: rgba(255,255,255,.55) !important;
+    background: transparent !important;
+    border-color: rgba(255,255,255,.18) !important;
+    box-shadow: none !important;
+    cursor: not-allowed !important;
+}
+
+/* =========================================================
+   UNIFIED BUTTON SYSTEM (ALL PAGES)
+   ========================================================= */
+.btn,
+button.btn,
+a.btn {
+    appearance: none;
+    -webkit-appearance: none;
+    border: 1px solid var(--ui-btn-border) !important;
+    background: linear-gradient(var(--ui-btn-bg),var(--ui-btn-bg2)) !important;
+    color: var(--ui-btn-text) !important;
+    font-weight: 700;
+    text-decoration: none !important;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 6px 14px;
+    min-height: 34px;
+    border-radius: 10px;
+    cursor: pointer;
+    user-select: none;
+    transition: filter .12s ease,border-color .12s ease,box-shadow .12s ease,transform .06s ease;
+}
+
+    .btn:hover,
+    button.btn:hover,
+    a.btn:hover {
+        border-color: rgba(255,255,255,.34) !important;
+        filter: brightness(1.06);
+    }
+
+    .btn:active,
+    button.btn:active,
+    a.btn:active {
+        transform: translateY(1px);
+    }
+
+    /* universal orange focus glow */
+    .btn:focus,
+    .btn:focus-visible,
+    button.btn:focus,
+    button.btn:focus-visible,
+    a.btn:focus,
+    a.btn:focus-visible {
+        outline: none !important;
+        border-color: rgba(255,102,0,.70) !important;
+        box-shadow: 0 0 0 1px rgba(255,102,0,.40),0 0 12px rgba(255,102,0,.22),0 0 20px rgba(255,102,0,.10) !important;
+    }
+
+/* variants */
+.btn-primary {
+    background: linear-gradient(var(--ui-primary-1),var(--ui-primary-2)) !important;
+    border-color: var(--ui-primary-border) !important;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 2px rgba(24,255,109,.10), 0 10px 22px rgba(0,0,0,.45) !important;
+}
+
+    .btn-primary:hover {
+        border-color: var(--ui-primary-border-hover) !important;
+        filter: brightness(1.06) saturate(1.08);
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 2px rgba(24,255,109,.16), 0 0 0 1px rgba(24,255,109,.22), 0 0 16px var(--ui-primary-glow), 0 10px 22px rgba(0,0,0,.45) !important;
+    }
+
+.btn-info {
+    background: linear-gradient(var(--ui-info-1),var(--ui-info-2)) !important;
+    border-color: var(--ui-info-border) !important;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 2px rgba(42,168,255,.10), 0 10px 22px rgba(0,0,0,.45) !important;
+}
+
+    .btn-info:hover {
+        border-color: var(--ui-info-border-hover) !important;
+        filter: brightness(1.08) saturate(1.08);
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 2px rgba(42,168,255,.16), 0 0 0 1px rgba(42,168,255,.18), 0 0 14px var(--ui-info-glow), 0 10px 22px rgba(0,0,0,.45) !important;
+    }
+
+/* sizing helpers */
+.btn-sm {
+    min-height: 28px !important;
+    padding: 4px 10px !important;
+    border-radius: 8px !important;
+    font-size: 13px !important;
+}
+
+/* disabled */
+.btn:disabled,
+button.btn:disabled,
+a.btn.disabled,
+.btn.disabled {
+    opacity: .55;
+    cursor: not-allowed;
+    transform: none !important;
+    box-shadow: none !important;
+}
+
+/* plain submit buttons that are missing .btn */
+button[type="submit"]:not(.btn) {
+    border: 1px solid var(--ui-btn-border);
+    background: linear-gradient(var(--ui-btn-bg),var(--ui-btn-bg2));
+    color: var(--ui-btn-text);
+    font-weight: 700;
+    padding: 6px 14px;
+    min-height: 34px;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: filter .12s ease,border-color .12s ease,box-shadow .12s ease,transform .06s ease;
+}
+
+    button[type="submit"]:not(.btn):focus,
+    button[type="submit"]:not(.btn):focus-visible {
+        outline: none;
+        border-color: rgba(255,102,0,.70);
+        box-shadow: 0 0 0 1px rgba(255,102,0,.40),0 0 12px rgba(255,102,0,.22),0 0 20px rgba(255,102,0,.10);
+    }
