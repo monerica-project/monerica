@@ -2246,3 +2246,55 @@ h2.section-title.sponsor-section-title {
         object-fit: contain;
     }
 }
+
+/* =========================
+   Review Tag Badges
+   ========================= */
+
+/* Container (optional) */
+.review-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .35rem;
+}
+
+    /* Base badge styling (works with <span class="badge ...">) */
+    .review-tags .badge {
+        display: inline-flex;
+        align-items: center;
+        gap: .35rem;
+        font-size: .78rem;
+        line-height: 1;
+       
+        border-radius: 999px;
+        font-weight: 600;
+        letter-spacing: .2px;
+        text-transform: none;
+        white-space: nowrap;
+        border: 1px solid transparent;
+    }
+
+        /* Optional: subtle hover */
+        .review-tags .badge:hover {
+            filter: brightness(1.06);
+        }
+
+        /* Optional: small dot indicator (add class "badge-dot" to enable) */
+        .review-tags .badge.badge-dot::before {
+            content: "";
+            width: .45rem;
+            height: .45rem;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: .9;
+        }
+.bg-success {
+    display: inline-block;
+    font-size: .72rem;
+    padding: .18rem .45rem;
+    line-height: 1.1;
+    border-radius: .375rem;
+    font-weight: 600;
+    background: #198754; /* green */
+    color: #fff;
+}

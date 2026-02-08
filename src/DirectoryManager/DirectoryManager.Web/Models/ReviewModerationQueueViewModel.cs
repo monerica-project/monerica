@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models.Reviews;
 
 namespace DirectoryManager.Web.Models
 {

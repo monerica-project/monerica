@@ -3,7 +3,7 @@ using DirectoryManager.Data.Models.BaseModels;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 
-namespace DirectoryManager.Data.Models
+namespace DirectoryManager.Data.Models.Reviews
 {
     public class DirectoryEntryReviewComment : UserStateInfo
     {

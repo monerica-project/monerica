@@ -1,7 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using DirectoryManager.Data.Models.BaseModels;
 
-namespace DirectoryManager.Data.Models
+namespace DirectoryManager.Data.Models.Reviews
 {
     public class ReviewerKey : UserStateInfo
     {

@@ -2,6 +2,7 @@
 using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.BaseModels;
 using DirectoryManager.Data.Models.Emails;
+using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Models.SponsoredListings;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
@@ -51,6 +52,8 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
         public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
         public DbSet<AdditionalLink> AdditionalLinks { get; set; }
+        public DbSet<ReviewTag> ReviewTags { get; set; }
+        public DbSet<DirectoryEntryReviewTag> DirectoryEntryReviewTags { get; set; }
         public override int SaveChanges()
         {
             this.SetDates();
@@ -358,6 +361,23 @@ namespace DirectoryManager.Data.DbContextInfo
             });
 
             builder.Entity<SearchBlacklistTerm>().HasIndex(e => new { e.Term }).IsUnique();
+
+            builder.Entity<ReviewTag>().HasIndex(x => x.Slug).IsUnique();
+
+            builder.Entity<DirectoryEntryReviewTag>()
+                .HasKey(x => new { x.DirectoryEntryReviewId, x.ReviewTagId });
+
+            builder.Entity<DirectoryEntryReviewTag>()
+                .HasOne(x => x.DirectoryEntryReview)
+                .WithMany(r => r.ReviewTags)
+                .HasForeignKey(x => x.DirectoryEntryReviewId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<DirectoryEntryReviewTag>()
+                .HasOne(x => x.ReviewTag)
+                .WithMany(t => t.ReviewLinks)
+                .HasForeignKey(x => x.ReviewTagId)
+                .OnDelete(DeleteBehavior.Cascade);
         }
 
         private void SetDates()

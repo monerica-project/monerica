@@ -3,7 +3,7 @@ using System.ComponentModel.DataAnnotations.Schema;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.BaseModels;
 
-namespace DirectoryManager.Data.Models
+namespace DirectoryManager.Data.Models.Reviews
 {
     public class DirectoryEntryReview : UserStateInfo
     {
@@ -66,10 +66,19 @@ namespace DirectoryManager.Data.Models
         [MaxLength(64)]
         public string? SourceIpHash { get; set; }
 
+        [MaxLength(128)]
+        public string? OrderId { get; set; }
+
+        [MaxLength(2048)]
+        public string? OrderUrl { get; set; }
+
         // Concurrency
         [Timestamp]
         public byte[]? RowVersion { get; set; }
 
         public ICollection<DirectoryEntryReviewComment> Comments { get; set; } = new List<DirectoryEntryReviewComment>();
+
+        public ICollection<DirectoryEntryReviewTag> ReviewTags { get; set; } = new List<DirectoryEntryReviewTag>();
+
     }
 }

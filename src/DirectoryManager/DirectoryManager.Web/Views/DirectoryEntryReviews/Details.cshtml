@@ -1,5 +1,5 @@
-﻿// DirectoryManager.Web/Views/DirectoryEntryReviews/Details.cshtml
-@using DirectoryManager.Data.Models
+﻿@using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Models.Reviews
 @model DirectoryEntryReview
 @{
     ViewData["Title"] = "Review Details";
@@ -14,17 +14,43 @@
     <div class="container py-4">
         <h1 class="mb-3">Review Details</h1>
         <hr />
+
         <div class="card mb-4">
             <div class="card-body">
                 <table class="table table-borderless mb-0">
                     <tbody>
                         <tr><th>Id</th><td>@Model.DirectoryEntryReviewId</td></tr>
                         <tr><th>Directory Entry Id</th><td>@Model.DirectoryEntryId</td></tr>
-                        <tr><th>Rating</th><td>@Model.Rating</td></tr>
+                        <tr><th>Rating</th><td>@(Model.Rating?.ToString() ?? "-")</td></tr>
+                        <tr><th>Moderation Status</th><td>@Model.ModerationStatus</td></tr>
+
+                        <!-- ✅ Show whatever proof was stored -->
+                        <tr>
+                            <th>Order Proof</th>
+                            <td>
+                                @{
+                                    var proof = Model.OrderUrl ?? Model.OrderId;
+                                }
+                                @if (string.IsNullOrWhiteSpace(proof))
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(Model.OrderUrl))
+                                {
+                                    <a href="@Model.OrderUrl" target="_blank" rel="noopener">@Model.OrderUrl</a>
+                                }
+                                else
+                                {
+                                    @Model.OrderId
+                                }
+                            </td>
+                        </tr>
+
                         <tr>
                             <th>Created</th>
                             <td>@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                         </tr>
+
                         @if (Model.UpdateDate.HasValue)
                         {
                             <tr>
@@ -32,10 +58,19 @@
                                 <td>@Model.UpdateDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                             </tr>
                         }
+
                         <tr>
                             <th>Body</th>
                             <td><pre class="mb-0">@Model.Body</pre></td>
                         </tr>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.RejectionReason))
+                        {
+                            <tr>
+                                <th>Rejection Reason</th>
+                                <td><pre class="mb-0">@Model.RejectionReason</pre></td>
+                            </tr>
+                        }
                     </tbody>
                 </table>
             </div>

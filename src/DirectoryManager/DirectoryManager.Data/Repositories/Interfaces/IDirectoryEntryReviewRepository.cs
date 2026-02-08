@@ -1,5 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Models.TransferModels;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
@@ -30,5 +30,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<List<DirectoryEntryReview>> ListLatestApprovedAsync(int count = 10, CancellationToken ct = default);
 
         Task<Dictionary<int, RatingSummaryDto>> GetRatingSummariesAsync(IReadOnlyCollection<int> directoryEntryIds);
+        public Task<DirectoryEntryReview?> GetWithTagsByIdAsync(int id, CancellationToken ct = default);
     }
 }

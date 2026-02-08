@@ -1,6 +1,6 @@
 ﻿using System.Security.Cryptography;
 using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
@@ -237,14 +237,12 @@ namespace DirectoryManager.Web.Controllers
             // Always trust the flow for the entry id
             input.DirectoryEntryId = flow.DirectoryEntryId;
 
-            // keep your existing data annotations first
             if (!this.ModelState.IsValid)
             {
                 var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
                 this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
-
                 return this.View("Compose", input);
             }
 
@@ -269,10 +267,21 @@ namespace DirectoryManager.Web.Controllers
                 Rating = input.Rating!.Value,
                 Body = (input.Body ?? string.Empty).Trim(),
                 CreateDate = DateTime.UtcNow,
-                ModerationStatus = mod.NeedsManualReview ? ReviewModerationStatus.Pending : ReviewModerationStatus.Approved,
                 AuthorFingerprint = flow.PgpFingerprint,
                 CreatedByUserId = "automated"
             };
+
+            // ✅ single textbox parsing: OrderProof -> OrderId/OrderUrl
+            ApplyOrderProof(entity, input.OrderProof);
+
+            // ✅ force pending if proof is supplied, regardless of moderation outcome
+            var hasOrderProof =
+                !string.IsNullOrWhiteSpace(entity.OrderId) ||
+                !string.IsNullOrWhiteSpace(entity.OrderUrl);
+
+            entity.ModerationStatus = (mod.NeedsManualReview || hasOrderProof)
+                ? ReviewModerationStatus.Pending
+                : ReviewModerationStatus.Approved;
 
             await this.directoryEntryReviewRepository.AddAsync(entity, ct);
 
@@ -288,22 +297,22 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("thanks")]
         public IActionResult Thanks() => this.View();
 
-        // --- admin stuff unchanged below ---
+        // --- admin stuff below ---
 
         [HttpGet("")]
-        public async Task<IActionResult> Index(int page = 1, int pageSize = 50)
+        public async Task<IActionResult> Index(int page = 1, int pageSize = 50, CancellationToken ct = default)
         {
-            var items = await this.directoryEntryReviewRepository.ListAsync(page, pageSize);
-            this.ViewBag.Total = await this.directoryEntryReviewRepository.CountAsync();
+            var items = await this.directoryEntryReviewRepository.ListAsync(page, pageSize, ct);
+            this.ViewBag.Total = await this.directoryEntryReviewRepository.CountAsync(ct);
             this.ViewBag.Page = page;
             this.ViewBag.PageSize = pageSize;
             return this.View(items);
         }
 
         [HttpGet("{id:int}")]
-        public async Task<IActionResult> Details(int id)
+        public async Task<IActionResult> Details(int id, CancellationToken ct = default)
         {
-            var item = await this.directoryEntryReviewRepository.GetByIdAsync(id);
+            var item = await this.directoryEntryReviewRepository.GetByIdAsync(id, ct);
             if (item is null)
             {
                 return this.NotFound();
@@ -313,7 +322,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("create")]
-        public IActionResult Create() => this.View(new DirectoryEntryReview());
+        public IActionResult Create() => this.View(new CreateDirectoryEntryReviewInputModel());
 
         [HttpPost("create")]
         [ValidateAntiForgeryToken]
@@ -332,6 +341,9 @@ namespace DirectoryManager.Web.Controllers
                 CreateDate = DateTime.UtcNow,
                 ModerationStatus = ReviewModerationStatus.Pending
             };
+
+            // ✅ single textbox parsing: OrderProof -> OrderId/OrderUrl
+            ApplyOrderProof(entity, input.OrderProof);
 
             try
             {
@@ -352,20 +364,25 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("{id:int}/edit")]
-        public async Task<IActionResult> Edit(int id)
+        public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
         {
-            var item = await this.directoryEntryReviewRepository.GetByIdAsync(id);
+            var item = await this.directoryEntryReviewRepository.GetByIdAsync(id, ct);
             if (item is null)
             {
                 return this.NotFound();
             }
 
+            // NOTE: this admin Edit action is still using the entity directly.
+            // If you switch admin edit to a VM (recommended for tags), map OrderProof similarly.
+            item.OrderId = item.OrderId; // no-op, just clarifying
+            item.OrderUrl = item.OrderUrl;
+
             return this.View(item);
         }
 
-        [HttpPost]
+        [HttpPost("{id:int}/edit")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, DirectoryEntryReview model)
+        public async Task<IActionResult> Edit(int id, DirectoryEntryReview model, [FromForm] string? orderProof, CancellationToken ct = default)
         {
             var pk = model.DirectoryEntryReviewId;
             if (id != pk)
@@ -378,14 +395,24 @@ namespace DirectoryManager.Web.Controllers
                 return this.View(model);
             }
 
-            await this.directoryEntryReviewRepository.UpdateAsync(model);
+            // ✅ If you keep posting entity, we still parse the single textbox separately
+            ApplyOrderProof(model, orderProof);
+
+            // Optional: if admin adds proof and review is approved, force back to pending
+            var hasProof = !string.IsNullOrWhiteSpace(model.OrderId) || !string.IsNullOrWhiteSpace(model.OrderUrl);
+            if (hasProof && model.ModerationStatus == ReviewModerationStatus.Approved)
+            {
+                model.ModerationStatus = ReviewModerationStatus.Pending;
+            }
+
+            await this.directoryEntryReviewRepository.UpdateAsync(model, ct);
             return this.RedirectToAction(nameof(this.Index));
         }
 
         [HttpPost("{id:int}/delete")]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, CancellationToken ct = default)
         {
-            var item = await this.directoryEntryReviewRepository.GetByIdAsync(id);
+            var item = await this.directoryEntryReviewRepository.GetByIdAsync(id, ct);
             if (item is null)
             {
                 return this.NotFound();
@@ -394,12 +421,11 @@ namespace DirectoryManager.Web.Controllers
             return this.View(item);
         }
 
-        [HttpPost]
-        [ActionName("Delete")]
+        [HttpPost("{id:int}/delete/confirmed")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id, CancellationToken ct = default)
         {
-            await this.directoryEntryReviewRepository.DeleteAsync(id);
+            await this.directoryEntryReviewRepository.DeleteAsync(id, ct);
             return this.RedirectToAction(nameof(this.Index));
         }
 
@@ -423,6 +449,30 @@ namespace DirectoryManager.Web.Controllers
         private bool TryGetFlow(Guid flowId, out ReviewFlowState state)
         {
             return this.cache.TryGetValue(CacheKey(flowId), out state) && state.ExpiresUtc > DateTime.UtcNow;
+        }
+
+        private static void ApplyOrderProof(DirectoryEntryReview review, string? orderProof)
+        {
+            var s = (orderProof ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(s))
+            {
+                review.OrderId = null;
+                review.OrderUrl = null;
+                return;
+            }
+
+            if (Uri.TryCreate(s, UriKind.Absolute, out var uri) &&
+                (uri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) ||
+                 uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)))
+            {
+                review.OrderUrl = s;
+                review.OrderId = null;
+            }
+            else
+            {
+                review.OrderId = s;
+                review.OrderUrl = null;
+            }
         }
     }
 }

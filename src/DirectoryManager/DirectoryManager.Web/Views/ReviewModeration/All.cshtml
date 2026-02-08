@@ -1,4 +1,5 @@
-﻿@using DirectoryManager.Web.Constants
+﻿@using DirectoryManager.Data.Models.Reviews
+@using DirectoryManager.Web.Constants
 @using DirectoryManager.Data.Models
 @using DirectoryManager.Data.Enums
 @model DirectoryManager.Web.Models.ReviewModerationDashboardViewModel
@@ -55,6 +56,7 @@
                         <th>Entry</th>
                         <th>Rating</th>
                         <th>Title</th>
+                        <th>Order Proof</th>
                         <th>Created (UTC)</th>
                         <th>Fingerprint</th>
                         <th>Excerpt</th>
@@ -64,12 +66,30 @@
                 <tbody>
                     @foreach (var r in Model.Reviews)
                     {
+                        var proof = r.OrderUrl ?? r.OrderId;
+
                         <tr>
                             <td>@r.DirectoryEntryReviewId</td>
                             <td>@r.ModerationStatus</td>
                             <td>@r.DirectoryEntryId</td>
                             <td>@(r.Rating?.ToString() ?? "-")</td>
                             <td>@(string.IsNullOrWhiteSpace(r.Title) ? "-" : r.Title)</td>
+
+                            <td>
+                                @if (string.IsNullOrWhiteSpace(proof))
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(r.OrderUrl))
+                                {
+                                    <a href="@r.OrderUrl" target="_blank" rel="noopener">@r.OrderUrl</a>
+                                }
+                                else
+                                {
+                                    @r.OrderId
+                                }
+                            </td>
+
                             <td>@r.CreateDate.ToString("yyyy-MM-dd HH:mm")</td>
                             <td><code>@r.AuthorFingerprint</code></td>
                             <td>@(string.IsNullOrWhiteSpace(r.Body) ? "-" : (r.Body.Length > 80 ? r.Body[..80] + "…" : r.Body))</td>
@@ -221,4 +241,4 @@
         </div>
     }
 
-}=
+}

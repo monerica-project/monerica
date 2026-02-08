@@ -1,6 +1,6 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -64,15 +64,23 @@ namespace DirectoryManager.Data.Repositories.Implementations
         // Public-side helpers (approved only)
         // ---------------------------
         public async Task<List<DirectoryEntryReview>> ListApprovedForEntryAsync(
-            int directoryEntryId, int page = 1, int pageSize = 50, CancellationToken ct = default) =>
-            await this.Set.AsNoTracking()
-                .Where(r => r.DirectoryEntryId == directoryEntryId &&
-                            r.ModerationStatus == ReviewModerationStatus.Approved)
-                .OrderByDescending(x => x.UpdateDate ?? x.CreateDate)
-                .ThenBy(x => x.DirectoryEntryReviewId)
+            int directoryEntryId,
+            int page,
+            int pageSize,
+            CancellationToken ct)
+        {
+            return await this.context.DirectoryEntryReviews
+                .AsNoTracking()
+                .Where(r => r.DirectoryEntryId == directoryEntryId
+                         && r.ModerationStatus == ReviewModerationStatus.Approved)
+                .Include(r => r.ReviewTags)
+                    .ThenInclude(x => x.ReviewTag)
+                .OrderBy(r => r.CreateDate)
+                .ThenBy(r => r.DirectoryEntryReviewId)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(ct);
+        }
 
         public async Task<double?> AverageRatingForEntryApprovedAsync(
             int directoryEntryId, CancellationToken ct = default)
@@ -129,6 +137,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Include(r => r.DirectoryEntry)
                     .ThenInclude(de => de.SubCategory!)
                         .ThenInclude(sc => sc.Category!)
+                            .Include(r => r.ReviewTags)
+                                .ThenInclude(rt => rt.ReviewTag)
                 .OrderByDescending(r => r.UpdateDate ?? r.CreateDate)
                 .ThenBy(r => r.DirectoryEntryReviewId)
                 .Take(count)
@@ -202,5 +212,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 })
                 .ToDictionaryAsync(x => x.DirectoryEntryId, x => x.Last, ct);
         }
+
+        public async Task<DirectoryEntryReview?> GetWithTagsByIdAsync(int id, CancellationToken ct = default) => await this.Set
+        .Include(r => r.ReviewTags)
+            .ThenInclude(rt => rt.ReviewTag)
+        .FirstOrDefaultAsync(r => r.DirectoryEntryReviewId == id, ct);
+
     }
 }

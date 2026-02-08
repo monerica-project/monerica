@@ -1,10 +1,11 @@
 ﻿using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
@@ -15,20 +16,26 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly IDirectoryEntryReviewRepository repo;
         private readonly IDirectoryEntryReviewCommentRepository commentRepo;
+        private readonly IReviewTagRepository reviewTagRepository;
+        private readonly IDirectoryEntryReviewTagRepository reviewTagLinkRepository;
 
         public ReviewModerationController(
              IDirectoryEntryReviewRepository repo,
              IDirectoryEntryReviewCommentRepository commentRepo,
              ITrafficLogRepository trafficLogRepository,
              IUserAgentCacheService userAgentCacheService,
+             IReviewTagRepository reviewTagRepository,
+             IDirectoryEntryReviewTagRepository reviewTagLinkRepository,
              IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.repo = repo;
             this.commentRepo = commentRepo;
+            this.reviewTagRepository = reviewTagRepository;
+            this.reviewTagLinkRepository = reviewTagLinkRepository;
         }
 
-        // Default route = Pending queue, but everything lives on the combined All page.
+        // Default route = Pending queue
         // GET /admin/reviews
         [HttpGet("")]
         public IActionResult Pending(int page = 1, int pageSize = 50)
@@ -44,8 +51,6 @@ namespace DirectoryManager.Web.Controllers
         }
 
         // GET /admin/reviews/all?status=Approved|Rejected|Pending (optional)
-        // Supports paging each table independently:
-        //   reviewPage, reviewPageSize, replyPage, replyPageSize
         [HttpGet("all")]
         public async Task<IActionResult> All(
             ReviewModerationStatus? status = null,
@@ -60,13 +65,13 @@ namespace DirectoryManager.Web.Controllers
 
             if (status.HasValue)
             {
-                reviews = await this.repo.ListByStatusAsync(status.Value, reviewPage, reviewPageSize);
-                reviewsTotal = await this.repo.CountByStatusAsync(status.Value);
+                reviews = await this.repo.ListByStatusAsync(status.Value, reviewPage, reviewPageSize, ct);
+                reviewsTotal = await this.repo.CountByStatusAsync(status.Value, ct);
             }
             else
             {
-                reviews = await this.repo.ListAsync(reviewPage, reviewPageSize);
-                reviewsTotal = await this.repo.CountAsync();
+                reviews = await this.repo.ListAsync(reviewPage, reviewPageSize, ct);
+                reviewsTotal = await this.repo.CountAsync(ct);
             }
 
             IReadOnlyList<DirectoryEntryReviewComment> replies;
@@ -79,9 +84,6 @@ namespace DirectoryManager.Web.Controllers
             }
             else
             {
-                // NOTE: requires these methods in comment repo:
-                //   Task<List<DirectoryEntryReviewComment>> ListAsync(int page, int pageSize, CancellationToken ct)
-                //   Task<int> CountAsync(CancellationToken ct)
                 replies = await this.commentRepo.ListAsync(replyPage, replyPageSize, ct);
                 repliesTotal = await this.commentRepo.CountAsync(ct);
             }
@@ -110,13 +112,70 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("{id:int}")]
         public async Task<IActionResult> Show(int id, CancellationToken ct = default)
         {
-            var item = await this.repo.GetByIdAsync(id, ct);
+            // Need tags for rendering checkboxes
+            var item = await this.repo.Query()
+                .Include(r => r.ReviewTags)
+                    .ThenInclude(rt => rt.ReviewTag)
+                .FirstOrDefaultAsync(r => r.DirectoryEntryReviewId == id, ct);
+
             if (item is null)
             {
                 return this.NotFound();
             }
 
-            return this.View("Show", item);
+            var allTags = await this.reviewTagRepository.ListAllAsync(ct);
+
+            var vm = new ReviewModerationReviewViewModel
+            {
+                Review = item,
+                OrderProof = item.OrderUrl ?? item.OrderId,
+                SelectedTagIds = item.ReviewTags.Select(x => x.ReviewTagId).ToList(),
+                AllTags = allTags.Select(t => new ReviewModerationReviewViewModel.TagOption
+                {
+                    Id = t.ReviewTagId,
+                    Name = t.Name,
+                    IsEnabled = t.IsEnabled
+                }).ToList()
+            };
+
+            return this.View("Show", vm);
+        }
+
+        // POST /admin/reviews/123/update
+        // Save OrderProof + Tags without approving/rejecting
+        [HttpPost("{id:int}/update")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Update(int id,
+            [FromForm] string? orderProof,
+            [FromForm] int[]? selectedTagIds,
+            CancellationToken ct = default)
+        {
+            var review = await this.repo.GetByIdAsync(id, ct);
+            if (review is null)
+            {
+                return this.NotFound();
+            }
+
+            ApplyOrderProof(review, orderProof);
+
+            // If proof is present and review was Approved, force back to Pending
+            var hasProof = !string.IsNullOrWhiteSpace(review.OrderId) || !string.IsNullOrWhiteSpace(review.OrderUrl);
+            if (hasProof && review.ModerationStatus == ReviewModerationStatus.Approved)
+            {
+                review.ModerationStatus = ReviewModerationStatus.Pending;
+            }
+
+            await this.repo.UpdateAsync(review, ct);
+
+            var tagIds = (selectedTagIds ?? Array.Empty<int>()).Distinct().ToArray();
+            await this.reviewTagLinkRepository.SetTagsForReviewAsync(
+                review.DirectoryEntryReviewId,
+                tagIds,
+                userId: this.User?.Identity?.Name ?? "admin",
+                ct);
+
+            this.ClearCachedItems();
+            return this.RedirectToAction(nameof(this.Show), new { id });
         }
 
         // POST /admin/reviews/123/approve
@@ -136,17 +195,11 @@ namespace DirectoryManager.Web.Controllers
         {
             if (string.IsNullOrWhiteSpace(reason))
             {
-                var item = await this.repo.GetByIdAsync(id, ct);
-                if (item is null)
-                {
-                    return this.NotFound();
-                }
-
-                this.ModelState.AddModelError("reason", "A rejection reason is required.");
-                return this.View("Show", item);
+                // Re-render show with vm again
+                return await this.Show(id, ct);
             }
 
-            await this.repo.RejectAsync(id, reason, ct);
+            await this.repo.RejectAsync(id, reason.Trim(), ct);
             this.ClearCachedItems();
             return this.RedirectToAction(nameof(this.Pending));
         }
@@ -161,10 +214,9 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Pending));
         }
 
-        // -------- Comments / Replies (DirectoryEntryReviewComment) --------
+        // -------- Comments / Replies --------
 
         // GET /admin/reviews/reply/123
-        // (Single canonical route; don’t duplicate ShowReply endpoints)
         [HttpGet("reply/{id:int}")]
         public async Task<IActionResult> ShowReply(int id, CancellationToken ct = default)
         {
@@ -204,7 +256,8 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("ShowReply", item);
             }
 
-            await this.commentRepo.RejectAsync(id, reason, ct);
+            await this.commentRepo.RejectAsync(id, reason.Trim(), ct);
+            this.ClearCachedItems();
             return this.RedirectToAction(nameof(this.Pending));
         }
 
@@ -216,6 +269,34 @@ namespace DirectoryManager.Web.Controllers
             await this.commentRepo.DeleteAsync(id, ct);
             this.ClearCachedItems();
             return this.RedirectToAction(nameof(this.Pending));
+        }
+
+        // -------------------------
+        // Helpers
+        // -------------------------
+        private static void ApplyOrderProof(DirectoryEntryReview review, string? orderProof)
+        {
+            var s = (orderProof ?? string.Empty).Trim();
+
+            if (string.IsNullOrWhiteSpace(s))
+            {
+                review.OrderId = null;
+                review.OrderUrl = null;
+                return;
+            }
+
+            if (Uri.TryCreate(s, UriKind.Absolute, out var uri) &&
+                (uri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) ||
+                 uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)))
+            {
+                review.OrderUrl = s;
+                review.OrderId = null;
+            }
+            else
+            {
+                review.OrderId = s;
+                review.OrderUrl = null;
+            }
         }
     }
 }

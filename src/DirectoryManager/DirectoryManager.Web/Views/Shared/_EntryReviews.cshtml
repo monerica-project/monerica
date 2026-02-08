@@ -4,6 +4,9 @@
 @using System.Net
 @using System.Text.Json
 @using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Models.Reviews
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Helpers
 @using System.Globalization
 @model DirectoryManager.Web.Models.EntryReviewsBlockViewModel
 @inject IUrlResolutionService Urls
@@ -108,8 +111,41 @@
   <span class=""stars""><span class=""stars-fill"" style=""width:{percent:0.##}%""></span></span>
 </span>");
     }
+
+    // ✅ Renders tags as colored badges.
+    // Assumes each review has: r.ReviewTags (links) -> link.ReviewTag
+    // i.e. r.ReviewTags : ICollection<DirectoryEntryReviewTag>
+    public static IHtmlContent RenderReviewTags(DirectoryEntryReview r)
+    {
+        // adjust this property name if your nav property differs
+        var links = r.ReviewTags;
+
+        if (links == null || links.Count == 0)
+            return HtmlString.Empty;
+
+        var tags = links
+            .Select(x => x.ReviewTag)
+            .Where(t => t != null && t.IsEnabled)
+            .OrderBy(t => t!.Name)
+            .ToList();
+
+        if (tags.Count == 0)
+            return HtmlString.Empty;
+
+        var sb = new System.Text.StringBuilder();
+        sb.Append("<div class=\"review-tags mt-2\">");
+
+        foreach (var t in tags!)
+        {
+            var cls = ReviewTagUiHelper.BadgeClass(t.Level);
+            var title = string.IsNullOrWhiteSpace(t.Description) ? "" : $" title=\"{WebUtility.HtmlEncode(t.Description)}\"";
+            sb.Append($"<span class=\"badge {cls} me-1\"{title}>{WebUtility.HtmlEncode(t.Name)}</span>");
+        }
+
+        sb.Append("</div>");
+        return new HtmlString(sb.ToString());
+    }
 }
- 
 
 @{
     var pageUrl = ViewData[DirectoryManager.Web.Constants.StringConstants.CanonicalUrl];
@@ -125,9 +161,9 @@
 
     double P(int count) => totalReviews <= 0 ? 0 : (count * 100.0 / totalReviews);
 }
- 
+
 <div class="reviews-block mt-4">
-    <h3 id="reviews" class="mb-3">Reviews</h3> 
+    <h3 id="reviews" class="mb-3">Reviews</h3>
 
     @if (Model.ReviewCount > 0)
     {
@@ -208,6 +244,9 @@
                             <meta itemprop="worstRating" content="1" />
                         </span>
                     </div>
+
+                    <!-- ✅ Tags -->
+                    @Html.Raw(RenderReviewTags(r))
 
                     <div class="mt-2" itemprop="reviewBody">
                         @RenderBodyWithLinks(r.Body)

@@ -1,5 +1,4 @@
 ﻿@using DirectoryManager.Web.Models
-
 @model CreateDirectoryEntryReviewInputModel
 @{
     ViewData["Title"] = "Create Review";
@@ -20,7 +19,6 @@
               method="post">
             @Html.AntiForgeryToken()
 
-            <!-- Global validation summary (server-side) -->
             @if (!ViewData.ModelState.IsValid)
             {
                 <div class="alert alert-danger">
@@ -45,6 +43,7 @@
                             <input asp-for="DirectoryEntryId" class="form-control" />
                             <span asp-validation-for="DirectoryEntryId" class="text-danger"></span>
                         </div>
+
                         <div class="col-md-4">
                             <label asp-for="Rating" class="form-label"></label>
                             <select asp-for="Rating" class="form-select" aria-describedby="Rating_help">
@@ -58,10 +57,19 @@
                             <span id="Rating_help" class="form-text">Required.</span>
                             <span asp-validation-for="Rating" class="text-danger"></span>
                         </div>
+
                         <div class="col-12">
                             <label asp-for="Body" class="form-label"></label>
                             <textarea asp-for="Body" rows="8" class="form-control"></textarea>
                             <span asp-validation-for="Body" class="text-danger"></span>
+                        </div>
+
+                        <!-- ✅ Single order proof textbox -->
+                        <div class="col-12">
+                            <label asp-for="OrderProof" class="form-label">Order Proof (optional)</label>
+                            <input asp-for="OrderProof" class="form-control" maxlength="2048" />
+                            <span asp-validation-for="OrderProof" class="text-danger"></span>
+                            <div class="form-text">Paste either an order ID or an order URL.</div>
                         </div>
                     </div>
                 </div>
@@ -74,6 +82,5 @@
         </form>
 
         <hr />
- 
     </div>
 }
