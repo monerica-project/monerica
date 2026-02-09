@@ -2122,67 +2122,65 @@ h2.section-title.sponsor-section-title {
    ============================================================ */
 @media (max-width: 768px) {
 
-  :root{
-    --m-orange:#ff6600;
-    --m-sel: rgba(255,102,0,.28);
-    --m-sel-strong: rgba(255,102,0,.32);
-    --m-hover: rgba(255,102,0,.18);
-  }
+    :root {
+        --m-orange: #ff6600;
+        --m-sel: rgba(255,102,0,.28);
+        --m-sel-strong: rgba(255,102,0,.32);
+        --m-hover: rgba(255,102,0,.18);
+    }
 
-  /* --- KILL BLUE ACTIVE (your earlier rules) --- */
-  .mobile-nav a.active,
-  .mobile-nav details[open] > summary > a,
-  details.mobile-nav a.active,
-  details.mobile-nav details[open] > summary > a{
-    background: transparent !important;
-    background-color: transparent !important;
-    color: #fff !important;
-    font-weight: inherit !important;
-    box-shadow: none !important;
-  }
+    /* --- KILL BLUE ACTIVE (your earlier rules) --- */
+    .mobile-nav a.active,
+    .mobile-nav details[open] > summary > a,
+    details.mobile-nav a.active,
+    details.mobile-nav details[open] > summary > a {
+        background: transparent !important;
+        background-color: transparent !important;
+        color: #fff !important;
+        font-weight: inherit !important;
+        box-shadow: none !important;
+    }
 
-  /* Gutters so the pill has left/right breathing room */
-  details.mobile-nav > ul{
-    padding: .6rem .9rem 1rem !important;
-    margin: 0 !important;
-    list-style: none !important;
-  }
+    /* Gutters so the pill has left/right breathing room */
+    details.mobile-nav > ul {
+        padding: .6rem .9rem 1rem !important;
+        margin: 0 !important;
+        list-style: none !important;
+    }
 
-  /* Ensure ALL menu links can actually paint a full-width background */
-  details.mobile-nav li a{
-    display: block !important;
-    width: 100% !important;
-    box-sizing: border-box !important;
-    text-decoration: none !important;
-    color: #eee !important;
+    /* Ensure ALL menu links can actually paint a full-width background */
+    details.mobile-nav li a {
+        display: block !important;
+        width: 100% !important;
+        box-sizing: border-box !important;
+        text-decoration: none !important;
+        color: #eee !important;
+        /* pill sizing (like your subcat look) */
+        padding: 11px 16px !important;
+        border-radius: 12px !important;
+        /* small vertical spacing between rows */
+        margin: 4px 0 !important;
+    }
 
-    /* pill sizing (like your subcat look) */
-    padding: 11px 16px !important;
-    border-radius: 12px !important;
+        /* Active = ORANGE pill + inset bar */
+        details.mobile-nav li a.active {
+            background: var(--m-sel) !important;
+            box-shadow: inset 4px 0 0 var(--m-orange) !important;
+            color: #fff !important;
+            font-weight: 600 !important;
+        }
 
-    /* small vertical spacing between rows */
-    margin: 4px 0 !important;
-  }
+        /* Hover */
+        details.mobile-nav li a:hover {
+            background: var(--m-hover) !important;
+            color: #fff !important;
+        }
 
-  /* Active = ORANGE pill + inset bar */
-  details.mobile-nav li a.active{
-    background: var(--m-sel) !important;
-    box-shadow: inset 4px 0 0 var(--m-orange) !important;
-    color: #fff !important;
-    font-weight: 600 !important;
-  }
-
-  /* Hover */
-  details.mobile-nav li a:hover{
-    background: var(--m-hover) !important;
-    color: #fff !important;
-  }
-
-  /* Subcats: keep same pill style, just slightly stronger */
-  details.mobile-nav li.category-item .hidden a.active{
-    background: var(--m-sel-strong) !important;
-    box-shadow: inset 4px 0 0 var(--m-orange) !important;
-  }
+    /* Subcats: keep same pill style, just slightly stronger */
+    details.mobile-nav li.category-item .hidden a.active {
+        background: var(--m-sel-strong) !important;
+        box-shadow: inset 4px 0 0 var(--m-orange) !important;
+    }
 }
 
 /* Logo hover in sidebar: use the same orange hover as the other sidebar links */
@@ -2265,7 +2263,6 @@ h2.section-title.sponsor-section-title {
         gap: .35rem;
         font-size: .78rem;
         line-height: 1;
-       
         border-radius: 999px;
         font-weight: 600;
         letter-spacing: .2px;
@@ -2288,6 +2285,7 @@ h2.section-title.sponsor-section-title {
             background: currentColor;
             opacity: .9;
         }
+
 .bg-success {
     display: inline-block;
     font-size: .72rem;
@@ -2344,18 +2342,35 @@ h2.section-title.sponsor-section-title {
 }
 
 /* =========================================================
-   SEARCH BAR (always one row; no mobile stacking)
+   SEARCH BAR (single row; no overflow; iOS-safe)
    ========================================================= */
+
+/* If the search section was "full-bleed" on mobile, align it with content */
+@media (max-width: 768px) {
+    .top-section.search-section,
+    .search-section.search-top-align {
+        margin-left: 0 !important;
+        margin-right: 0 !important;
+        padding-left: calc(12px + env(safe-area-inset-left));
+        padding-right: calc(12px + env(safe-area-inset-right));
+        box-sizing: border-box;
+    }
+}
+
 .search-form {
     display: flex;
     align-items: center;
-    justify-content: center;
     gap: 10px;
     flex-wrap: nowrap; /* keep 1 line */
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+    justify-content: flex-start;
 }
 
     /* input */
-    .search-form input[type="search"].form-control {
+    .search-form input[type="search"].form-control,
+    .search-form input[type="text"].form-control {
         height: var(--ui-h) !important;
         padding: 0 14px !important;
         line-height: 1 !important;
@@ -2367,18 +2382,22 @@ h2.section-title.sponsor-section-title {
         box-shadow: inset 0 0 0 1px rgba(0,0,0,.65);
         outline: none !important;
         caret-color: var(--ui-accent);
-        transition: border-color .15s ease,box-shadow .15s ease,background-color .15s ease;
-        /* key to prevent weird sizing + keep buttons from wrapping */
+        transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
+        /* critical for iOS Safari flex sizing */
         flex: 1 1 auto;
-        min-width: 140px;
+        min-width: 0; /* <-- allows shrinking, prevents overflow/shift */
+        width: auto;
         max-width: 520px;
+        margin-right: 0 !important; /* neutralize mr-2 inside this form */
     }
 
-        .search-form input[type="search"].form-control::placeholder {
+        .search-form input[type="search"].form-control::placeholder,
+        .search-form input[type="text"].form-control::placeholder {
             color: rgba(255,255,255,.55);
         }
 
-        .search-form input[type="search"].form-control:focus {
+        .search-form input[type="search"].form-control:focus,
+        .search-form input[type="text"].form-control:focus {
             background: var(--ui-bg-focus) !important;
             border-color: var(--ui-border-strong) !important;
             box-shadow: inset 0 0 0 1px rgba(0,0,0,.70), 0 0 0 1px rgba(255,102,0,.35), 0 0 10px rgba(255,102,0,.30), 0 0 18px rgba(255,102,0,.16) !important;
@@ -2396,19 +2415,21 @@ h2.section-title.sponsor-section-title {
         flex: 0 0 auto;
     }
 
-/* small screens: keep row, just tighten spacing + prevent iOS zoom */
-@media (max-width:480px) {
+/* Mobile tuning: keep row, add inset padding, prevent iOS zoom */
+@media (max-width: 480px) {
     :root {
         --ui-h: 34px;
     }
 
     .search-form {
         gap: 8px;
+        padding-left: calc(12px + env(safe-area-inset-left));
+        padding-right: calc(12px + env(safe-area-inset-right));
     }
 
-        .search-form input[type="search"].form-control {
+        .search-form input[type="search"].form-control,
+        .search-form input[type="text"].form-control {
             font-size: 16px !important; /* prevents mobile zoom and odd sizing */
-            min-width: 120px;
             max-width: none;
         }
 
@@ -2511,7 +2532,7 @@ h2.section-title.sponsor-section-title {
     -webkit-appearance: none;
     outline: none !important;
     cursor: pointer;
-    transition: border-color .15s ease,box-shadow .15s ease,background-color .15s ease;
+    transition: border-color .15s ease, box-shadow .15s ease, background-color .15s ease;
 }
 
 /* divider */
@@ -2556,7 +2577,7 @@ h2.section-title.sponsor-section-title {
     background: rgba(255,102,0,.22);
 }
 
-@media (max-width:650px) {
+@media (max-width: 650px) {
     .ui-select-wrap {
         min-width: 100%;
     }
@@ -2631,7 +2652,7 @@ h2.section-title.sponsor-section-title {
    PAGINATION: orange hover/focus
    ========================================================= */
 .page-link {
-    transition: color .12s ease,background-color .12s ease,border-color .12s ease,box-shadow .12s ease,transform .08s ease;
+    transition: color .12s ease, background-color .12s ease, border-color .12s ease, box-shadow .12s ease, transform .08s ease;
 }
 
     .page-link:hover,
@@ -2641,7 +2662,7 @@ h2.section-title.sponsor-section-title {
         background-color: rgba(255,102,0,.10) !important;
         border-color: rgba(255,102,0,.55) !important;
         text-decoration: none !important;
-        box-shadow: 0 0 0 1px rgba(255,102,0,.28),0 0 12px rgba(255,102,0,.18) !important;
+        box-shadow: 0 0 0 1px rgba(255,102,0,.28), 0 0 12px rgba(255,102,0,.18) !important;
         outline: none !important;
     }
 
@@ -2649,7 +2670,7 @@ h2.section-title.sponsor-section-title {
     background-color: rgba(255,102,0,.22) !important;
     border-color: rgba(255,102,0,.70) !important;
     color: #fff !important;
-    box-shadow: inset 0 0 0 1px rgba(0,0,0,.55),0 0 10px rgba(255,102,0,.18) !important;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.55), 0 0 10px rgba(255,102,0,.18) !important;
 }
 
 .page-item.disabled .page-link,
@@ -2671,7 +2692,7 @@ a.btn {
     appearance: none;
     -webkit-appearance: none;
     border: 1px solid var(--ui-btn-border) !important;
-    background: linear-gradient(var(--ui-btn-bg),var(--ui-btn-bg2)) !important;
+    background: linear-gradient(var(--ui-btn-bg), var(--ui-btn-bg2)) !important;
     color: var(--ui-btn-text) !important;
     font-weight: 700;
     text-decoration: none !important;
@@ -2684,7 +2705,7 @@ a.btn {
     border-radius: 10px;
     cursor: pointer;
     user-select: none;
-    transition: filter .12s ease,border-color .12s ease,box-shadow .12s ease,transform .06s ease;
+    transition: filter .12s ease, border-color .12s ease, box-shadow .12s ease, transform .06s ease;
 }
 
     .btn:hover,
@@ -2709,12 +2730,12 @@ a.btn {
     a.btn:focus-visible {
         outline: none !important;
         border-color: rgba(255,102,0,.70) !important;
-        box-shadow: 0 0 0 1px rgba(255,102,0,.40),0 0 12px rgba(255,102,0,.22),0 0 20px rgba(255,102,0,.10) !important;
+        box-shadow: 0 0 0 1px rgba(255,102,0,.40), 0 0 12px rgba(255,102,0,.22), 0 0 20px rgba(255,102,0,.10) !important;
     }
 
 /* variants */
 .btn-primary {
-    background: linear-gradient(var(--ui-primary-1),var(--ui-primary-2)) !important;
+    background: linear-gradient(var(--ui-primary-1), var(--ui-primary-2)) !important;
     border-color: var(--ui-primary-border) !important;
     box-shadow: inset 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 2px rgba(24,255,109,.10), 0 10px 22px rgba(0,0,0,.45) !important;
 }
@@ -2726,7 +2747,7 @@ a.btn {
     }
 
 .btn-info {
-    background: linear-gradient(var(--ui-info-1),var(--ui-info-2)) !important;
+    background: linear-gradient(var(--ui-info-1), var(--ui-info-2)) !important;
     border-color: var(--ui-info-border) !important;
     box-shadow: inset 0 0 0 1px rgba(0,0,0,.55), inset 0 0 0 2px rgba(42,168,255,.10), 0 10px 22px rgba(0,0,0,.45) !important;
 }
@@ -2759,19 +2780,39 @@ a.btn.disabled,
 /* plain submit buttons that are missing .btn */
 button[type="submit"]:not(.btn) {
     border: 1px solid var(--ui-btn-border);
-    background: linear-gradient(var(--ui-btn-bg),var(--ui-btn-bg2));
+    background: linear-gradient(var(--ui-btn-bg), var(--ui-btn-bg2));
     color: var(--ui-btn-text);
     font-weight: 700;
     padding: 6px 14px;
     min-height: 34px;
     border-radius: 10px;
     cursor: pointer;
-    transition: filter .12s ease,border-color .12s ease,box-shadow .12s ease,transform .06s ease;
+    transition: filter .12s ease, border-color .12s ease, box-shadow .12s ease, transform .06s ease;
 }
 
     button[type="submit"]:not(.btn):focus,
     button[type="submit"]:not(.btn):focus-visible {
         outline: none;
         border-color: rgba(255,102,0,.70);
-        box-shadow: 0 0 0 1px rgba(255,102,0,.40),0 0 12px rgba(255,102,0,.22),0 0 20px rgba(255,102,0,.10);
+        box-shadow: 0 0 0 1px rgba(255,102,0,.40), 0 0 12px rgba(255,102,0,.22), 0 0 20px rgba(255,102,0,.10);
     }
+
+/* =========================================================
+   OPTIONAL: Desktop sidebar offset (adjust to your sidebar width)
+   ========================================================= */
+@media (min-width: 769px) {
+    #main-content {
+        margin-left: 260px;
+    }
+    /* <- match .sidebar width */
+}
+
+/* =========================================================
+   OPTIONAL: Mobile: avoid fixed mobile header covering content
+   ========================================================= */
+@media (max-width: 768px) {
+    #main-content {
+        margin-left: 0;
+        padding-top: 70px;
+    }
+}
