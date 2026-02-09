@@ -534,24 +534,6 @@ namespace DirectoryManager.Web.Controllers
                 0.3);
 
             siteMapHelper.AddUrl(
-                string.Format("{0}/status/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), DirectoryStatus.Verified.ToString().ToLower()),
-                date,
-                ChangeFrequency.Weekly,
-                0.3);
-
-            siteMapHelper.AddUrl(
-                string.Format("{0}/status/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), DirectoryStatus.Scam.ToString().ToLower()),
-                date,
-                ChangeFrequency.Weekly,
-                0.3);
-
-            siteMapHelper.AddUrl(
-                string.Format("{0}/status/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), DirectoryStatus.Questionable.ToString().ToLower()),
-                date,
-                ChangeFrequency.Weekly,
-                0.3);
-
-            siteMapHelper.AddUrl(
                 string.Format("{0}/faq", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
                 date,
                 ChangeFrequency.Weekly,
