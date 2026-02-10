@@ -194,7 +194,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 typeId: typeId,
                 directoryEntryId: directoryEntryId).ConfigureAwait(false);
         }
-
         private async Task UpsertCoreAsync(string email, SponsorshipType sponsorshipType, int? typeId, int? directoryEntryId)
         {
             var e = NormalizeEmail(email);
@@ -211,10 +210,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var now = DateTime.UtcNow;
 
             // IMPORTANT:
-            // - email is the isolator
-            // - we keep separate rows for different emails (no overwrites)
-            // - we do NOT "revive" rows where IsReminderSent == true; those represent a completed cycle
-            //   (user can rejoin by creating a new row and getting a new SubscribedDate).
+            // - email isolates the subscriber
+            // - do NOT "revive" rows where IsReminderSent == true (those represent a completed cycle)
+            // - DirectoryEntryId is part of the unique scope (same email can subscribe for different listings)
             var query = this.context.SponsoredListingOpeningNotifications
                 .Where(n =>
                     n.Email == e &&
@@ -232,10 +230,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 query = query.Where(n => n.TypeId == scopeTypeId!.Value);
             }
 
-            // If duplicates ever exist, take the earliest SubscribedDate to preserve place.
+            // If duplicates exist (legacy/bug), take the MOST RECENT one
+            // since we're treating SubscribedDate as "last subscribed".
             var existing = await query
-                .OrderBy(n => n.SubscribedDate)
-                .ThenBy(n => n.SponsoredListingOpeningNotificationId)
+                .OrderByDescending(n => n.SubscribedDate)
+                .ThenByDescending(n => n.SponsoredListingOpeningNotificationId)
                 .FirstOrDefaultAsync()
                 .ConfigureAwait(false);
 
@@ -245,10 +244,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 {
                     DirectoryEntryId = deId,
                     SponsorshipType = sponsorshipType,
-                    TypeId = scopeTypeId,                 // main => null
+                    TypeId = scopeTypeId,     // main => null
                     Email = e,
 
-                    SubscribedDate = now,                 // join time (preserved)
+                    // NOW means "last subscribed"
+                    SubscribedDate = now,
                     UpdateDate = now,
 
                     IsActive = true,
@@ -257,12 +257,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
             else
             {
-                // Keep original SubscribedDate (their place in line)
-                existing.TypeId = scopeTypeId;           // main => null
+                // REFRESH JOIN DATE: last subscribed wins
+                existing.TypeId = scopeTypeId;     // main => null
+                existing.SubscribedDate = now;     // <-- key change
                 existing.UpdateDate = now;
-                existing.IsActive = true;
 
-                // They are re-affirming subscription; ensure not marked sent
+                existing.IsActive = true;
                 existing.IsReminderSent = false;
 
                 // Clean up legacy main sponsor rows stored with TypeId=0:
@@ -274,6 +274,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             await this.context.SaveChangesAsync().ConfigureAwait(false);
         }
+
 
         // ----------------------------
         // WAITLIST QUERIES (NEWEST FIRST)

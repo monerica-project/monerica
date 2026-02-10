@@ -14,6 +14,7 @@
 
     @if (Model.Items != null && Model.Items.Any())
     {
+        <div class="table-wrapper">
         <table class="table" style="width: 100%;">
             <thead>
                 <tr>
@@ -54,5 +55,6 @@
                 }
             </tbody>
         </table>
+        </div>
     }
 }

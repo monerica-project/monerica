@@ -55,7 +55,7 @@
         </p>
 
         @if (Model.Results != null && Model.Results.Any())
-        {
+        {   <div class="table-wrapper">
             <table class="table" style="width: 100%;">
                 <thead>
                     <tr>
@@ -108,6 +108,7 @@
                     }
                 </tbody>
             </table>
+            </div>
 
             @if (Model.TotalPages > 1)
             {
@@ -226,7 +227,7 @@
         </p>
 
         @if (Model.RecentPaid.Items != null && Model.RecentPaid.Items.Any())
-        {
+        {   <div class="table-wrapper">
             <table class="table" style="width: 100%;">
                 <thead>
                     <tr>
@@ -275,6 +276,7 @@
                     }
                 </tbody>
             </table>
+            </div>
         }
         else
         {
