@@ -30,11 +30,21 @@ namespace DirectoryManager.Data.Models.SponsoredListings
         public bool IsReminderSent { get; set; }
 
         /// <summary>
-        /// Kept for compatibility with existing code/config. If you don’t want it long-term,
-        /// you can migrate to using CreateDate from StateInfo and then remove this.
+        /// Treat as "last subscribed" (your repo refreshes this now).
         /// </summary>
         public DateTime SubscribedDate { get; set; } = DateTime.UtcNow;
+
         public bool IsActive { get; set; }
 
+        /// <summary>
+        /// When the opening reminder email was sent (UTC).
+        /// </summary>
+        public DateTime? ReminderSentDateUtc { get; set; }
+
+        /// <summary>
+        /// The link that was emailed (useful for debugging/support).
+        /// </summary>
+        [StringLength(700)]
+        public string? ReminderSentLink { get; set; }
     }
 }

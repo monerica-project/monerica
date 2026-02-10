@@ -130,22 +130,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context.SponsoredListingOpeningNotifications.Update(notification);
             return await this.context.SaveChangesAsync() > 0;
         }
-
-        public async Task MarkReminderAsSentAsync(int notificationId)
-        {
-            var notification = await this.context.SponsoredListingOpeningNotifications
-                .FirstOrDefaultAsync(n => n.SponsoredListingOpeningNotificationId == notificationId);
-
-            if (notification == null)
-                return;
-
-            notification.IsReminderSent = true;
-            notification.IsActive = false;
-
-            // IMPORTANT: do NOT touch SubscribedDate here
-            await this.context.SaveChangesAsync();
-        }
-
+ 
         public async Task<SponsoredListingOpeningNotification?> GetByIdAsync(int id)
         {
             return await this.context.SponsoredListingOpeningNotifications
@@ -345,5 +330,36 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return (items, total);
         }
+
+        public Task MarkReminderAsSentAsync(int notificationId)
+        {
+            return this.MarkReminderAsSentAsync(notificationId, sentLink: null);
+        }
+
+        public async Task MarkReminderAsSentAsync(int notificationId, string? sentLink)
+        {
+            var notification = await this.context.SponsoredListingOpeningNotifications
+                .FirstOrDefaultAsync(n => n.SponsoredListingOpeningNotificationId == notificationId);
+
+            if (notification == null)
+                return;
+
+            notification.IsReminderSent = true;
+            notification.IsActive = false;
+
+            // NEW: audit fields
+            notification.ReminderSentDateUtc = DateTime.UtcNow;
+
+            if (!string.IsNullOrWhiteSpace(sentLink))
+            {
+                notification.ReminderSentLink = sentLink.Trim();
+            }
+
+            // Keep SubscribedDate untouched here.
+            notification.UpdateDate = DateTime.UtcNow;
+
+            await this.context.SaveChangesAsync();
+        }
+
     }
 }

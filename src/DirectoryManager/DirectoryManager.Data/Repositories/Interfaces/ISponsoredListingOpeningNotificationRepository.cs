@@ -34,5 +34,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
             int? typeId,
             int page,
             int pageSize);
+
+        Task MarkReminderAsSentAsync(int notificationId, string? sentLink);
     }
 }
