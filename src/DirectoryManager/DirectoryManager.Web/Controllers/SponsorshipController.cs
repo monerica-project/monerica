@@ -4,6 +4,7 @@ using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
+using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models.Sponsorship;
@@ -251,7 +252,7 @@ namespace DirectoryManager.Web.Controllers
                 Items = rows.Select(r => new RecentPaidItemVm
                 {
                     PaidUtc = r.PaidDateUtc,
-                    SponsorshipType = r.SponsorshipType.ToString(),
+                    SponsorshipType = EnumHelper.GetDescription(r.SponsorshipType),
 
                     Days = r.Days,
                     AmountUsd = r.AmountUsd,
