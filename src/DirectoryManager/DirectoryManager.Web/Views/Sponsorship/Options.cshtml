@@ -219,6 +219,66 @@
         Waitlists are competitive — you’ll also see who’s already ahead of you.
     </p>
 
+ @{
+    // -----------------------------------------
+    // WAITLIST DEFAULTS (auto-check logic)
+    // -----------------------------------------
+
+    var qsTypeRaw =
+        (Context.Request.Query["sponsorshipType"].FirstOrDefault()
+        ?? Context.Request.Query["type"].FirstOrDefault()
+        ?? Context.Request.Query["subscribeType"].FirstOrDefault()
+        ?? "")
+        .Trim();
+
+    SponsorshipType? requestedType = null;
+    if (!string.IsNullOrWhiteSpace(qsTypeRaw) &&
+        Enum.TryParse<SponsorshipType>(qsTypeRaw, ignoreCase: true, out var parsedType) &&
+        parsedType != SponsorshipType.Unknown)
+    {
+        requestedType = parsedType;
+    }
+
+    // Eligible = can join waitlist for that type
+    var mainEligibleToWaitlist = (Model.Main?.IsExtension != true);
+
+    var catEligibleToWaitlist =
+        categoryTypeId.HasValue &&
+        categoryTypeId.Value > 0 &&
+        (Model.Category?.IsExtension != true);
+
+    var subEligibleToWaitlist =
+        subcategoryTypeId.HasValue &&
+        subcategoryTypeId.Value > 0 &&
+        (Model.Subcategory?.IsExtension != true);
+
+    bool defaultMain = false;
+    bool defaultCat = false;
+    bool defaultSub = false;
+
+    // If the request explicitly targets ONE type, default ONLY that one (when eligible).
+    // If it's not eligible, fall back to "default all eligible".
+    if (requestedType.HasValue)
+    {
+        if (requestedType.Value == SponsorshipType.MainSponsor && mainEligibleToWaitlist) defaultMain = true;
+        if (requestedType.Value == SponsorshipType.CategorySponsor && catEligibleToWaitlist) defaultCat = true;
+        if (requestedType.Value == SponsorshipType.SubcategorySponsor && subEligibleToWaitlist) defaultSub = true;
+    }
+
+    bool AnyChecked() => defaultMain || defaultCat || defaultSub;
+
+    // Default behavior for listing options page:
+    // ✅ check ALL eligible waitlists (Main + Cat + Sub)
+    if (!AnyChecked())
+    {
+        if (mainEligibleToWaitlist) defaultMain = true;
+        if (catEligibleToWaitlist) defaultCat = true;
+        if (subEligibleToWaitlist) defaultSub = true;
+    }
+
+    // If nothing is eligible (active in all 3), nothing will be checked.
+}
+
     <form method="post"
           action="@Url.Action("Subscribe", "Sponsorship")"
           class="card"
@@ -236,22 +296,35 @@
             <button type="submit" class="btn btn-primary">Subscribe</button>
         </div>
 
-        <div style="margin-top: 12px; display:flex; gap:14px; flex-wrap:wrap;">
-            <label style="display:flex; gap:8px; align-items:center;">
-                <input type="checkbox" name="NotifyMain" value="true" checked />
-                <span>Main Sponsor</span>
-            </label>
+<div class="ui-checks" style="margin-top:12px;">
+    <label class="ui-check @(mainEligibleToWaitlist ? "" : "ui-disabled")">
+        <input type="checkbox"
+               name="NotifyMain"
+               value="true"
+               @(defaultMain ? "checked=\"checked\"" : "")
+               @(mainEligibleToWaitlist ? "" : "disabled=\"disabled\"") />
+        <span>Main Sponsor</span>
+    </label>
 
-            <label style="display:flex; gap:8px; align-items:center;">
-                <input type="checkbox" name="NotifyCategory" value="true" />
-                <span>Category Sponsor</span>
-            </label>
+    <label class="ui-check @(catEligibleToWaitlist ? "" : "ui-disabled")">
+        <input type="checkbox"
+               name="NotifyCategory"
+               value="true"
+               @(defaultCat ? "checked=\"checked\"" : "")
+               @(catEligibleToWaitlist ? "" : "disabled=\"disabled\"") />
+        <span>Category Sponsor</span>
+    </label>
 
-            <label style="display:flex; gap:8px; align-items:center;">
-                <input type="checkbox" name="NotifySubcategory" value="true" />
-                <span>Subcategory Sponsor</span>
-            </label>
-        </div>
+    <label class="ui-check @(subEligibleToWaitlist ? "" : "ui-disabled")">
+        <input type="checkbox"
+               name="NotifySubcategory"
+               value="true"
+               @(defaultSub ? "checked=\"checked\"" : "")
+               @(subEligibleToWaitlist ? "" : "disabled=\"disabled\"") />
+        <span>Subcategory Sponsor</span>
+    </label>
+</div>
+
 
         <div style="margin-top:8px; opacity:.85;">
             Tip: subscribing again updates your subscription (no duplicates) and refreshes your waitlist join date.
