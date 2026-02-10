@@ -98,7 +98,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View("Index", vm);
         }
 
-
         // POST /sponsorship/select
         [HttpPost("select")]
         [ValidateAntiForgeryToken]
@@ -123,9 +122,9 @@ namespace DirectoryManager.Web.Controllers
             var (canAdvertise, reasons) = GetAdvertiseEligibility(entry);
 
             // Build option panels with availability (but checkout remains in your existing SponsoredListingController)
-            var main = await this.BuildTypeOptionAsync(entry, SponsorshipType.MainSponsor, typeIdForScope: null, "Main Sponsor (site-wide)", includeMainSubcategoryCap: true);
-            var cat = await this.BuildTypeOptionAsync(entry, SponsorshipType.CategorySponsor, typeIdForScope: catId <= 0 ? null : catId, $"Category Sponsor ({entry.SubCategory?.Category?.Name ?? "Unknown"})");
-            var sub = await this.BuildTypeOptionAsync(entry, SponsorshipType.SubcategorySponsor, typeIdForScope: subId <= 0 ? null : subId, $"Subcategory Sponsor ({FormattingHelper.SubcategoryFormatting(entry.SubCategory?.Category?.Name, entry.SubCategory?.Name)})");
+            var main = await this.BuildTypeOptionAsync(entry, SponsorshipType.MainSponsor, typeIdForScope: null, $"{EnumHelper.GetDescription(SponsorshipType.MainSponsor)} (site-wide)", includeMainSubcategoryCap: true);
+            var cat = await this.BuildTypeOptionAsync(entry, SponsorshipType.CategorySponsor, typeIdForScope: catId <= 0 ? null : catId, $"{EnumHelper.GetDescription(SponsorshipType.CategorySponsor)} ({entry.SubCategory?.Category?.Name ?? "Unknown"})");
+            var sub = await this.BuildTypeOptionAsync(entry, SponsorshipType.SubcategorySponsor, typeIdForScope: subId <= 0 ? null : subId, $"{EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)}  ({FormattingHelper.SubcategoryFormatting(entry.SubCategory?.Category?.Name, entry.SubCategory?.Name)})");
 
             // Price offers (transparent)
             main.Offers = await this.LoadOffersAsync(SponsorshipType.MainSponsor, entry.SubCategoryId);
@@ -521,7 +520,7 @@ namespace DirectoryManager.Web.Controllers
                 Count = count,
                 Preview = publicRows,
                 BrowseUrl = this.Url.Action("Waitlist", "Sponsorship", new { type, typeId }),
-                JoinWouldBeRank = count 
+                JoinWouldBeRank = count + 1
             };
         }
 
@@ -529,7 +528,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (type == SponsorshipType.MainSponsor)
             {
-                return "Main Sponsor (site-wide)";
+                return EnumHelper.GetDescription(SponsorshipType.MainSponsor) + " (site-wide)";
             }
 
             if (type == SponsorshipType.CategorySponsor)
@@ -537,9 +536,10 @@ namespace DirectoryManager.Web.Controllers
                 if (typeId.HasValue && typeId.Value > 0)
                 {
                     var cat = await this.categoryRepo.GetByIdAsync(typeId.Value);
-                    return cat != null ? $"Category Sponsor: {cat.Name}" : "Category Sponsor";
+                    return cat != null ? $"{EnumHelper.GetDescription(SponsorshipType.CategorySponsor)}: {cat.Name}" : EnumHelper.GetDescription(SponsorshipType.CategorySponsor);
                 }
-                return "Category Sponsor";
+
+                return EnumHelper.GetDescription(SponsorshipType.CategorySponsor);
             }
 
             if (type == SponsorshipType.SubcategorySponsor)
@@ -550,10 +550,11 @@ namespace DirectoryManager.Web.Controllers
                     if (sub != null)
                     {
                         var cat = sub.Category ?? await this.categoryRepo.GetByIdAsync(sub.CategoryId);
-                        return $"Subcategory Sponsor: {FormattingHelper.SubcategoryFormatting(cat?.Name, sub.Name)}";
+                        return $"{EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)}: {FormattingHelper.SubcategoryFormatting(cat?.Name, sub.Name)}";
                     }
                 }
-                return "Subcategory Sponsor";
+
+                return EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor);
             }
 
             return "Sponsorship";
@@ -646,6 +647,7 @@ namespace DirectoryManager.Web.Controllers
 
             return "Anonymous listing";
         }
+
         private async Task<List<WaitlistPreviewRowVm>> BuildWaitlistPreviewRowsAsync(IEnumerable<WaitlistItemDto> dtos)
         {
             var list = (dtos ?? Enumerable.Empty<WaitlistItemDto>()).ToList();
@@ -687,8 +689,6 @@ namespace DirectoryManager.Web.Controllers
                 MainPreview = previewRows,
                 BrowseWaitlistUrl = this.Url.Action("Waitlist", "Sponsorship", new { type = SponsorshipType.MainSponsor })
             };
-
         }
-
     }
 }
