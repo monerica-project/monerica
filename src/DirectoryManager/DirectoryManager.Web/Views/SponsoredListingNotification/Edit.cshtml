@@ -19,6 +19,14 @@
         <span>Listing: <a href="~/directoryentry/edit/@Model.DirectoryEntryId">@Model.DirectoryEntryId</a></span>
     }
 
+ 
+        <span>Subscribed Date: @Model.SubscribedDate</span>
+
+        @if (Model.UpdateDate != null)
+        {
+    <span>Update Date: @Model.UpdateDate</span>
+        }
+
 <form asp-action="Edit" method="post">
     <input type="hidden" asp-for="SponsoredListingOpeningNotificationId" />
 

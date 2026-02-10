@@ -1,8 +1,8 @@
 ﻿using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Models.SponsoredListings;
+using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -28,10 +28,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
         private static int? NormalizeTypeId(SponsorshipType type, int? typeId)
         {
             if (type == SponsorshipType.MainSponsor)
+            {
                 return null;
+            }
 
             if (!typeId.HasValue || typeId.Value <= 0)
+            {
                 return null;
+            }
 
             return typeId.Value;
         }
@@ -39,7 +43,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
         private static int? NormalizeDirectoryEntryId(int? directoryEntryId)
         {
             if (!directoryEntryId.HasValue || directoryEntryId.Value <= 0)
+            {
                 return null;
+            }
+
             return directoryEntryId.Value;
         }
 
@@ -63,7 +70,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             {
                 // If scope invalid, return empty
                 if (!typeIdNormalized.HasValue)
+                {
                     return q.Where(_ => false);
+                }
 
                 q = q.Where(n => n.TypeId == typeIdNormalized.Value);
             }
@@ -94,7 +103,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
             else
             {
-                if (!scopeTypeId.HasValue) return false;
+                if (!scopeTypeId.HasValue)
+                {
+                    return false;
+                }
+
                 q = q.Where(n => n.TypeId == scopeTypeId.Value);
             }
 
@@ -179,31 +192,38 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 typeId: typeId,
                 directoryEntryId: directoryEntryId).ConfigureAwait(false);
         }
-        private async Task UpsertCoreAsync(string email, SponsorshipType sponsorshipType, int? typeId, int? directoryEntryId)
+
+        private async Task UpsertCoreAsync(
+            string email,
+            SponsorshipType sponsorshipType,
+            int? typeId,
+            int? directoryEntryId)
         {
             var e = NormalizeEmail(email);
             if (string.IsNullOrWhiteSpace(e))
+            {
                 return;
+            }
 
             var scopeTypeId = NormalizeTypeId(sponsorshipType, typeId);
             var deId = NormalizeDirectoryEntryId(directoryEntryId);
 
             // If not main sponsor and scope is missing, do nothing.
             if (sponsorshipType != SponsorshipType.MainSponsor && !scopeTypeId.HasValue)
+            {
                 return;
+            }
 
             var now = DateTime.UtcNow;
 
-            // IMPORTANT:
-            // - email isolates the subscriber
-            // - do NOT "revive" rows where IsReminderSent == true (those represent a completed cycle)
-            // - DirectoryEntryId is part of the unique scope (same email can subscribe for different listings)
+            // IMPORTANT CHANGE:
+            // We match an existing record regardless of IsReminderSent.
+            // If it was previously sent, re-subscribing "revives" it.
             var query = this.context.SponsoredListingOpeningNotifications
                 .Where(n =>
                     n.Email == e &&
                     n.SponsorshipType == sponsorshipType &&
-                    n.DirectoryEntryId == deId &&
-                    !n.IsReminderSent);
+                    n.DirectoryEntryId == deId);
 
             if (sponsorshipType == SponsorshipType.MainSponsor)
             {
@@ -215,8 +235,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 query = query.Where(n => n.TypeId == scopeTypeId!.Value);
             }
 
-            // If duplicates exist (legacy/bug), take the MOST RECENT one
-            // since we're treating SubscribedDate as "last subscribed".
+            // If duplicates exist (legacy/bug), take the MOST RECENT "subscription intent"
+            // Prefer newest SubscribedDate; if tie/empty, newest row id.
             var existing = await query
                 .OrderByDescending(n => n.SubscribedDate)
                 .ThenByDescending(n => n.SponsoredListingOpeningNotificationId)
@@ -238,19 +258,26 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
                     IsActive = true,
                     IsReminderSent = false,
+                    ReminderSentDateUtc = null,
+                    ReminderSentLink = null
                 });
             }
             else
             {
                 // REFRESH JOIN DATE: last subscribed wins
-                existing.TypeId = scopeTypeId;     // main => null
-                existing.SubscribedDate = now;     // <-- key change
+                existing.TypeId = scopeTypeId;      // main => null
+                existing.SubscribedDate = now;
                 existing.UpdateDate = now;
 
+                // REVIVE if previously completed
                 existing.IsActive = true;
                 existing.IsReminderSent = false;
 
-                // Clean up legacy main sponsor rows stored with TypeId=0:
+                // Clear audit so it re-enters the queue cleanly
+                existing.ReminderSentDateUtc = null;
+                existing.ReminderSentLink = null;
+
+                // Clean up legacy main sponsor rows stored with TypeId=0
                 if (sponsorshipType == SponsorshipType.MainSponsor && existing.TypeId == 0)
                 {
                     existing.TypeId = null;
@@ -259,7 +286,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             await this.context.SaveChangesAsync().ConfigureAwait(false);
         }
-
 
         // ----------------------------
         // WAITLIST QUERIES (NEWEST FIRST)
@@ -274,7 +300,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<List<WaitlistItemDto>> GetWaitlistPreviewAsync(SponsorshipType type, int? typeId, int take)
         {
-            if (take < 1) take = 1;
+            if (take < 1)
+            {
+                take = 1;
+            }
 
             var scopeTypeId = NormalizeTypeId(type, typeId);
 
@@ -300,8 +329,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
             int page,
             int pageSize)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 10;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 10;
+            }
 
             var scopeTypeId = NormalizeTypeId(type, typeId);
 
@@ -342,7 +378,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .FirstOrDefaultAsync(n => n.SponsoredListingOpeningNotificationId == notificationId);
 
             if (notification == null)
+            {
                 return;
+            }
 
             notification.IsReminderSent = true;
             notification.IsActive = false;

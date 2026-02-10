@@ -126,10 +126,12 @@ namespace DirectoryManager.Web.Controllers
             var cat = await this.BuildTypeOptionAsync(entry, SponsorshipType.CategorySponsor, typeIdForScope: catId <= 0 ? null : catId, $"{EnumHelper.GetDescription(SponsorshipType.CategorySponsor)} ({entry.SubCategory?.Category?.Name ?? "Unknown"})");
             var sub = await this.BuildTypeOptionAsync(entry, SponsorshipType.SubcategorySponsor, typeIdForScope: subId <= 0 ? null : subId, $"{EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)}  ({FormattingHelper.SubcategoryFormatting(entry.SubCategory?.Category?.Name, entry.SubCategory?.Name)})");
 
-            // Price offers (transparent)
-            main.Offers = await this.LoadOffersAsync(SponsorshipType.MainSponsor, entry.SubCategoryId);
-            cat.Offers = await this.LoadOffersAsync(SponsorshipType.CategorySponsor, null);
-            sub.Offers = await this.LoadOffersAsync(SponsorshipType.SubcategorySponsor, entry.SubCategoryId);
+            int? pricingSubId = entry.SubCategoryId > 0 ? entry.SubCategoryId : (int?)null;
+
+            main.Offers = await this.LoadOffersAsync(SponsorshipType.MainSponsor, pricingSubId);
+            cat.Offers = await this.LoadOffersAsync(SponsorshipType.CategorySponsor, pricingSubId);
+            sub.Offers = await this.LoadOffersAsync(SponsorshipType.SubcategorySponsor, pricingSubId);
+
 
             // Scoped waitlist previews (jealousy + competition)
             main.Waitlist = await this.BuildWaitlistPanelAsync(SponsorshipType.MainSponsor, typeId: null);

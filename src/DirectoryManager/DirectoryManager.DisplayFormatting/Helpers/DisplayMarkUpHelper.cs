@@ -226,6 +226,10 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 {
                     sb.Append(" · ");
                 }
+                else
+                {
+                    sb.Append(" ");
+                }
 
                 sb.Append(model.Description);
             }
