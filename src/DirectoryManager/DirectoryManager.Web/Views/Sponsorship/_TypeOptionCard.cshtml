@@ -2,9 +2,22 @@
 @using System.Globalization
 @using DirectoryManager.Data.Enums
 
+@functions {
+    private static string FormatUtcFull(DateTime utc) =>
+        utc.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) + " UTC";
+
+    private static string FormatCountdown(DateTime utc, DateTime nowUtc)
+    {
+        var diff = utc - nowUtc;
+        if (diff <= TimeSpan.Zero) return "expired";
+        return $"{diff.Days}d {diff.Hours}h {diff.Minutes}m";
+    }
+}
+
 @{
     var usd = CultureInfo.GetCultureInfo("en-US");
     var opt = Model.Option;
+    var nowUtc = DateTime.UtcNow;
 
     var title = !string.IsNullOrWhiteSpace(opt.ScopeLabel)
         ? opt.ScopeLabel
@@ -14,32 +27,45 @@
     int? categoryId = opt.SponsorshipType == SponsorshipType.CategorySponsor ? Model.TypeId : null;
     int? subCategoryId = opt.SponsorshipType == SponsorshipType.SubcategorySponsor ? Model.TypeId : null;
 
-    // Availability should be based on the pool counts (what your UI is already showing)
+    // eligibility
     var eligible = Model.CanAdvertise;
 
+    // Pool capacity from controller counts
     var poolHasCapacity =
         opt.PoolMaxSlots > 0 &&
         opt.PoolActiveCount < opt.PoolMaxSlots;
 
-    // Main-per-subcategory cap only applies to MainSponsor (your model already exposes this)
+    // Main-per-subcategory cap only applies to MainSponsor
     var blockedByMainSubCap = opt.BlockedByMainSubcategoryCap;
 
-    // Available now = eligible + not extension + pool open + not blocked by special cap
+    // available now
     var availableNow = eligible && !opt.IsExtension && poolHasCapacity && !blockedByMainSubCap;
 
-    // POST endpoint that actually starts the checkout flow (creates reservation, redirects)
+    // POST endpoint that starts checkout/reservation flow
     var postStartCheckoutUrl =
         Url.Action("SelectListing", "SponsoredListing") ?? "/sponsoredlisting/selectlisting";
 
-    // Extend URL fallback (if not provided)
-    var extendHref = !string.IsNullOrWhiteSpace(Model.ExtendUrl)
-        ? Model.ExtendUrl
-        : (Url.Action("SelectDuration", "SponsoredListing", new { directoryEntryId = Model.DirectoryEntryId, sponsorshipType = opt.SponsorshipType })
-            ?? "/sponsoredlisting/selectduration");
+    // EXTEND: go straight to SelectDuration
+    var extendHref =
+        Url.Action("SelectDuration", "SponsoredListing", new
+        {
+            directoryEntryId = Model.DirectoryEntryId,
+            sponsorshipType = opt.SponsorshipType
+        }) ?? "/sponsoredlisting/selectduration";
 
-    // Waitlist helpers
+    // Waitlist logic:
+    // Only show "View waitlist" if Count > 0.
     var hasWaitlist = opt.Waitlist != null && opt.Waitlist.Count > 0;
-    var waitlistUrl = opt.Waitlist != null ? opt.Waitlist.BrowseUrl : null;
+
+    var waitlistUrl =
+        (opt.Waitlist != null && !string.IsNullOrWhiteSpace(opt.Waitlist.BrowseUrl))
+            ? opt.Waitlist.BrowseUrl
+            : (Url.Action("Waitlist", "Sponsorship", new { type = opt.SponsorshipType, typeId = Model.TypeId }) ?? "");
+
+    // Next to expire (in-scope) for "Next expiration" summary line
+    var nextExpire = (opt.ActiveSlots != null && opt.ActiveSlots.Any())
+        ? opt.ActiveSlots.OrderBy(x => x.CampaignEndUtc).FirstOrDefault()
+        : null;
 }
 
 <div class="card" style="padding:14px; border-radius:12px;">
@@ -56,8 +82,7 @@
                 {
                     <span><strong>Active</strong> — you can extend anytime.</span>
                     @if (opt.YourActiveUntilUtc.HasValue)
-                    {
-                        <span style="opacity:.85;"> (until @opt.YourActiveUntilUtc.Value.ToString("yyyy-MM-dd") UTC)</span>
+                    {<text>(</text><span style="opacity:.85;">until <strong>@FormatUtcFull(opt.YourActiveUntilUtc.Value)</strong></span><text>)</text>
                     }
                 }
                 else if (availableNow)
@@ -82,7 +107,10 @@
                 {
                     <div style="margin-top:6px; opacity:.85;">
                         Main-per-subcategory cap reached. Next likely opening:
-                        <strong>@opt.NextOpeningForMainSubcategoryCapUtc.Value.ToString("yyyy-MM-dd") (UTC)</strong>
+                        <strong>@FormatUtcFull(opt.NextOpeningForMainSubcategoryCapUtc.Value)</strong>
+                        <span style="display:block; opacity:.85;">
+                            in @FormatCountdown(opt.NextOpeningForMainSubcategoryCapUtc.Value, nowUtc)
+                        </span>
                     </div>
                 }
             </div>
@@ -108,7 +136,6 @@
                 <input type="hidden" name="sponsorshipType" value="@opt.SponsorshipType" />
                 <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
 
-                @* Scope ids *@
                 @if (categoryId.HasValue)
                 {
                     <input type="hidden" name="categoryId" value="@categoryId.Value" />
@@ -121,7 +148,7 @@
                 <button type="submit" class="btn btn-primary">Checkout</button>
             </form>
 
-            @* IMPORTANT: do NOT show "View waitlist" next to checkout unless there are actual waitlist entries *@
+            @* Only show if there are people actually on the waitlist *@
             @if (hasWaitlist && !string.IsNullOrWhiteSpace(waitlistUrl))
             {
                 <a class="btn btn-info" href="@waitlistUrl">View waitlist</a>
@@ -129,7 +156,7 @@
         }
         else
         {
-            @* Only show a waitlist button if there is a real waitlist (someone is waiting) *@
+            @* Only show view waitlist if there are people on it *@
             @if (hasWaitlist && !string.IsNullOrWhiteSpace(waitlistUrl))
             {
                 <a class="btn btn-info" href="@waitlistUrl">View waitlist</a>
@@ -137,7 +164,7 @@
         }
     </div>
 
-    @* Package details from snippet *@
+    @* Package details *@
     @if (!string.IsNullOrWhiteSpace(Model.DetailsHtml))
     {
         <details style="margin-top: 12px;">
@@ -154,26 +181,42 @@
         <div style="margin-top: 14px;">
             <div style="font-weight:600; margin-bottom: 6px;">Pricing</div>
             <div class="table-wrapper">
-            <table class="table" style="width:100%; margin:0;">
-                <thead>
-                    <tr>
-                        <th style="width:90px;">Days</th>
-                        <th style="text-align:right;">USD</th>
-                        <th style="text-align:right;">USD/day</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var o in opt.Offers.OrderBy(x => x.Days))
-                    {
+                <table class="table" style="width:100%; margin:0;">
+                    <thead>
                         <tr>
-                            <td>@o.Days</td>
-                            <td style="text-align:right;">@o.PriceUsd.ToString("C2", usd)</td>
-                            <td style="text-align:right;">@o.PricePerDay.ToString("C2", usd)</td>
+                            <th style="width:90px;">Days</th>
+                            <th style="text-align:right;">USD</th>
+                            <th style="text-align:right;">USD/day</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @foreach (var o in opt.Offers.OrderBy(x => x.Days))
+                        {
+                            <tr>
+                                <td>@o.Days</td>
+                                <td style="text-align:right;">@o.PriceUsd.ToString("C2", usd)</td>
+                                <td style="text-align:right;">@o.PricePerDay.ToString("C2", usd)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
             </div>
+
+            @* Next expiration summary (below the pricing table) *@
+            @if (nextExpire != null && nextExpire.CampaignEndUtc > nowUtc)
+            {
+                <div style="margin-top:10px; padding:10px; border-radius:10px; background: rgba(255,255,255,0.03);">
+                    <div style="font-weight:600;">Next expiration</div>
+                    <div style="opacity:.9; margin-top:4px;">
+                        <strong>@nextExpire.ListingName</strong>
+                        <span style="opacity:.85;">—</span>
+                        <strong>@FormatUtcFull(nextExpire.CampaignEndUtc)</strong>
+                        <span style="display:block; opacity:.85;">
+                            in @FormatCountdown(nextExpire.CampaignEndUtc, nowUtc)
+                        </span>
+                    </div>
+                </div>
+            }
         </div>
     }
 
@@ -183,7 +226,7 @@
         <div style="margin-top: 14px;">
             <div style="font-weight:600; margin-bottom: 6px;">Active sponsors (next to expire)</div>
             <ul style="margin:0; padding-left:18px;">
-                @foreach (var s in opt.ActiveSlots)
+                @foreach (var s in opt.ActiveSlots.OrderBy(x => x.CampaignEndUtc))
                 {
                     <li>
                         @if (!string.IsNullOrWhiteSpace(s.ListingUrl))
@@ -194,18 +237,32 @@
                         {
                             @s.ListingName
                         }
+
                         @if (s.IsYou)
                         {
                             <span style="margin-left:6px; opacity:.9;"><strong>(you)</strong></span>
                         }
-                        <span style="opacity:.85;"> — expires @s.CampaignEndUtc.ToString("yyyy-MM-dd") (UTC)</span>
+
+                        <span style="opacity:.85;">
+                            — expires <strong>@FormatUtcFull(s.CampaignEndUtc)</strong>
+                            @if (s.CampaignEndUtc > nowUtc)
+                            {
+                                <span style="display:block; opacity:.85;">
+                                    in @FormatCountdown(s.CampaignEndUtc, nowUtc)
+                                </span>
+                            }
+                            else
+                            {
+                                <span style="display:block; opacity:.85;">expired</span>
+                            }
+                        </span>
                     </li>
                 }
             </ul>
         </div>
     }
 
-    @* Waitlist preview: ONLY show if there are actually people on it *@
+    @* Waitlist preview: ONLY show if Count > 0 *@
     @if (hasWaitlist)
     {
         var joinRank = Math.Max(1, opt.Waitlist!.JoinWouldBeRank);
@@ -230,7 +287,9 @@
                             {
                                 @w.ListingName
                             }
-                            <span style="opacity:.85;"> — joined @w.JoinedUtc.ToString("yyyy-MM-dd") (UTC)</span>
+                            <span style="opacity:.85;">
+                                — joined @FormatUtcFull(w.JoinedUtc)
+                            </span>
                         </li>
                     }
                 </ul>

@@ -17,9 +17,9 @@ namespace DirectoryManager.Web.Models.Sponsorship
         public string CheckoutUrl { get; set; } = "/sponsoredlisting/start";
 
         // HTML from snippets/settings
-        public string DetailsHtml { get; set; } = "";
+        public string DetailsHtml { get; set; } = string.Empty;
 
         // Where "extend active" lives
-        public string ExtendUrl { get; set; } = "/sponsoredlisting/activelistings";
+        public string ExtendUrl { get; set; } = string.Empty;
     }
 }

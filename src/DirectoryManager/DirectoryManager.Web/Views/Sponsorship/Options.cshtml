@@ -22,6 +22,35 @@
     var catDetailsHtml = await cacheHelper.GetSnippetAsync(SiteConfigSetting.CategorySponsoredListingDetails);
     var subDetailsHtml = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SubcategorySponsoredListingDetails);
 
+    // -----------------------------
+    // EXTEND MODE (like activelistings.cshtml)
+    // -----------------------------
+    var extendMode = string.Equals(Context.Request.Query["extend"], "1", StringComparison.OrdinalIgnoreCase);
+
+    // gather active sponsorships for THIS listing
+    var extendChoices = new List<(SponsorshipType Type, SponsorshipTypeOptionVm Opt, string ExtendUrl)>();
+
+    string ExtendUrlFor(SponsorshipType t)
+    {
+        // IMPORTANT: must target SponsoredListing controller, not Sponsorship controller
+        return Url.Action("selectduration", "SponsoredListing", new { directoryEntryId = Model.DirectoryEntryId, sponsorshipType = t })
+               ?? $"/sponsoredlisting/selectduration?directoryEntryId={Model.DirectoryEntryId}&sponsorshipType={t}";
+    }
+
+    if (Model.Main?.IsExtension == true)
+        extendChoices.Add((SponsorshipType.MainSponsor, Model.Main, ExtendUrlFor(SponsorshipType.MainSponsor)));
+
+    if (Model.Category?.IsExtension == true)
+        extendChoices.Add((SponsorshipType.CategorySponsor, Model.Category, ExtendUrlFor(SponsorshipType.CategorySponsor)));
+
+    if (Model.Subcategory?.IsExtension == true)
+        extendChoices.Add((SponsorshipType.SubcategorySponsor, Model.Subcategory, ExtendUrlFor(SponsorshipType.SubcategorySponsor)));
+
+    // if extendMode and exactly one active sponsorship exists, auto-start flow immediately
+    var autoRedirectUrl = (extendMode && extendChoices.Count == 1)
+        ? extendChoices[0].ExtendUrl
+        : null;
+
     Layout = "_CenteredLayout";
 }
 
@@ -67,6 +96,86 @@
             <a class="btn btn-info" href="@Url.Action("Index", "Sponsorship")">Back to search</a>
         </div>
     </div>
+
+    @* -----------------------------------------
+       EXTEND MODE UI (auto-start like old page)
+       ----------------------------------------- *@
+    @if (extendMode)
+    {
+        @* Auto-redirect if only one extend choice *@
+        @if (!string.IsNullOrWhiteSpace(autoRedirectUrl))
+        {
+            <div class="alert alert-info" style="margin-top:14px; border-radius:10px;">
+                Redirecting to extension checkout…
+                <div style="margin-top:8px;">
+                    <a class="btn btn-primary" href="@autoRedirectUrl">Continue</a>
+                </div>
+            </div>
+
+            <script>
+                window.location.replace("@autoRedirectUrl");
+            </script>
+
+            @* Stop rendering rest of page in extend mode *@
+            return;
+        }
+
+        <div class="alert alert-info" style="margin-top:14px; border-radius:10px;">
+            <strong>Extend your active sponsorship</strong>
+            <div style="opacity:.9; margin-top:6px;">
+                Select which active placement you want to extend (this jumps directly into the old extension flow).
+            </div>
+        </div>
+
+        @if (extendChoices.Count == 0)
+        {
+            <div class="alert alert-warning" style="margin-top:14px; border-radius:10px;">
+                No active sponsored listing was found for this listing.
+            </div>
+        }
+        else
+        {
+            <table class="table" style="margin-top:14px;">
+                <thead>
+                    <tr>
+                        <th>Placement</th>
+                        <th style="width:220px;">Expires</th>
+                        <th style="width:120px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var x in extendChoices)
+                    {
+                        <tr>
+                            <td>
+                                @(!string.IsNullOrWhiteSpace(x.Opt.ScopeLabel) ? x.Opt.ScopeLabel : x.Type.ToString())
+                            </td>
+                            <td>
+                                @if (x.Opt.YourActiveUntilUtc.HasValue)
+                                {
+                                    @x.Opt.YourActiveUntilUtc.Value.ToString("yyyy-MM-dd") <span style="opacity:.85;">(UTC)</span>
+                                }
+                                else
+                                {
+                                    <span style="opacity:.8;">(unknown)</span>
+                                }
+                            </td>
+                            <td>
+                                <a class="btn btn-primary" href="@x.ExtendUrl">Extend</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        @* In extend-mode we do NOT show the waitlist / buy UI *@
+        return;
+    }
+
+    @* -----------------------------------------
+       NORMAL OPTIONS PAGE (your current UI)
+       ----------------------------------------- *@
 
     @if (Model.ShowSubscribedBanner)
     {
@@ -161,12 +270,12 @@
             @await Html.PartialAsync("_TypeOptionCard", new TypeOptionCardVm
             {
                 Option = Model.Main,
-        DirectoryEntryId = Model.DirectoryEntryId,
-        TypeId = mainTypeId,
-        CanAdvertise = Model.CanAdvertise,
-        CheckoutUrl = checkoutUrl,
-        DetailsHtml = mainDetailsHtml
-        })
+                DirectoryEntryId = Model.DirectoryEntryId,
+                TypeId = mainTypeId,
+                CanAdvertise = Model.CanAdvertise,
+                CheckoutUrl = checkoutUrl,
+                DetailsHtml = mainDetailsHtml
+            })
         }
 
         @* CATEGORY *@
@@ -175,12 +284,12 @@
             @await Html.PartialAsync("_TypeOptionCard", new TypeOptionCardVm
             {
                 Option = Model.Category,
-        DirectoryEntryId = Model.DirectoryEntryId,
-        TypeId = categoryTypeId,
-        CanAdvertise = Model.CanAdvertise,
-        CheckoutUrl = checkoutUrl,
-        DetailsHtml = catDetailsHtml
-        })
+                DirectoryEntryId = Model.DirectoryEntryId,
+                TypeId = categoryTypeId,
+                CanAdvertise = Model.CanAdvertise,
+                CheckoutUrl = checkoutUrl,
+                DetailsHtml = catDetailsHtml
+            })
         }
 
         @* SUBCATEGORY *@
@@ -189,12 +298,12 @@
             @await Html.PartialAsync("_TypeOptionCard", new TypeOptionCardVm
             {
                 Option = Model.Subcategory,
-        DirectoryEntryId = Model.DirectoryEntryId,
-        TypeId = subcategoryTypeId,
-        CanAdvertise = Model.CanAdvertise,
-        CheckoutUrl = checkoutUrl,
-        DetailsHtml = subDetailsHtml
-        })
+                DirectoryEntryId = Model.DirectoryEntryId,
+                TypeId = subcategoryTypeId,
+                CanAdvertise = Model.CanAdvertise,
+                CheckoutUrl = checkoutUrl,
+                DetailsHtml = subDetailsHtml
+            })
         }
 
     </div>
