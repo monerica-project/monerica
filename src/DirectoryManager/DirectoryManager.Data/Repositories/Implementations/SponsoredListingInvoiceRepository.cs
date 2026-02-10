@@ -279,7 +279,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     var overlapFrom = campStart > from ? campStart : from;
                     var overlapTo = campEnd < to ? campEnd : to;
 
-                    var overlapDays = (overlapTo - overlapFrom).TotalDays + 1; // inclusive
+                    var overlapDays = (overlapTo - overlapFrom).TotalDays; // inclusive
                     if (overlapDays <= 0)
                     {
                         continue;
@@ -287,7 +287,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
                     count++;
 
-                    var totalCampDays = (campEnd - campStart).TotalDays + 1;
+                    var totalCampDays = (campEnd - campStart).TotalDays;
                     if (totalCampDays <= 0)
                     {
                         totalCampDays = 1;
@@ -465,7 +465,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
                 foreach (var i in g)
                 {
-                    var days = (i.CampaignEndDate.Date - i.CampaignStartDate.Date).Days + 1;
+                    var days = (i.CampaignEndDate.Date - i.CampaignStartDate.Date).Days;
                     if (days <= 0)
                     {
                         days = 1;
@@ -493,6 +493,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return results;
         }
+
+
+
 
         // ------------------------------------------------------------
         // NEW: Paid invoices overlapping a window (for churn calculation)
@@ -539,6 +542,105 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 })
                 .ToListAsync(ct);
         }
+
+        public async Task<List<RecentPaidPurchaseDto>> GetRecentPaidPurchasesAsync(int take)
+        {
+            take = Math.Max(1, take);
+
+            // Base PAID invoices
+            var baseQ = WithIncludes(this.context.SponsoredListingInvoices)
+                .AsNoTracking()
+                .Where(i => i.PaymentStatus == PaymentStatus.Paid);
+
+            // 1) For each (DirectoryEntryId, SponsorshipType), find the MAX CreateDate
+            var maxCreatePerGroup = baseQ
+                .GroupBy(i => new { i.DirectoryEntryId, i.SponsorshipType })
+                .Select(g => new
+                {
+                    g.Key.DirectoryEntryId,
+                    g.Key.SponsorshipType,
+                    MaxCreateDate = g.Max(x => x.CreateDate)
+                });
+
+            // 2) Join back to get rows that match the latest CreateDate for that listing+type
+            var latestByCreateDate =
+                from i in baseQ
+                join m in maxCreatePerGroup
+                    on new { i.DirectoryEntryId, i.SponsorshipType, i.CreateDate }
+                    equals new { m.DirectoryEntryId, m.SponsorshipType, CreateDate = m.MaxCreateDate }
+                select i;
+
+            // 3) Tie-break: if multiple invoices share the same CreateDate, take the max InvoiceId
+            var maxIdPerGroupAtMaxCreate = latestByCreateDate
+                .GroupBy(i => new { i.DirectoryEntryId, i.SponsorshipType })
+                .Select(g => new
+                {
+                    g.Key.DirectoryEntryId,
+                    g.Key.SponsorshipType,
+                    MaxInvoiceId = g.Max(x => x.SponsoredListingInvoiceId)
+                });
+
+            var picked =
+                from i in latestByCreateDate
+                join pickMax in maxIdPerGroupAtMaxCreate
+                    on new { i.DirectoryEntryId, i.SponsorshipType, i.SponsoredListingInvoiceId }
+                    equals new { pickMax.DirectoryEntryId, pickMax.SponsorshipType, SponsoredListingInvoiceId = pickMax.MaxInvoiceId }
+                orderby i.CreateDate descending, i.SponsoredListingInvoiceId descending
+                select new
+                {
+                    PaidDateUtc = i.CreateDate, // <-- "bought date" per your rule
+                    i.SponsorshipType,
+
+                    AmountUsd = i.Amount,
+
+                    i.PaidInCurrency,
+                    i.PaidAmount,
+                    i.OutcomeAmount,
+
+                    i.CampaignStartDate,
+                    i.CampaignEndDate,
+
+                    i.DirectoryEntryId,
+                    ListingName = i.DirectoryEntry != null ? (i.DirectoryEntry.Name ?? "") : "",
+                    ListingUrl = i.DirectoryEntry != null ? (i.DirectoryEntry.Link ?? "") : ""
+                };
+
+            var rows = await picked
+                .Take(take)
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            // Map to DTO (do day math in memory to avoid provider quirks)
+            return rows.Select(x =>
+            {
+                // ✅ inclusive days (+1)
+                var days = (x.CampaignEndDate.Date - x.CampaignStartDate.Date).Days;
+                if (days <= 0) days = 1;
+
+                var paidAmount = x.PaidAmount > 0m ? x.PaidAmount : x.OutcomeAmount;
+
+                return new RecentPaidPurchaseDto
+                {
+                    PaidDateUtc = x.PaidDateUtc,
+                    SponsorshipType = x.SponsorshipType,
+
+                    AmountUsd = x.AmountUsd,
+                    Days = days,
+                    PricePerDayUsd = Math.Round(x.AmountUsd / days, 2),
+
+                    PaidCurrency = x.PaidInCurrency,
+                    PaidAmount = paidAmount,
+
+                    ExpiresUtc = x.CampaignEndDate,
+
+                    DirectoryEntryId = x.DirectoryEntryId,
+                    ListingName = x.ListingName,
+                    ListingUrl = x.ListingUrl
+                };
+            }).ToList();
+        }
+
+
 
         private static void CopyMutableFields(SponsoredListingInvoice target, SponsoredListingInvoice src)
         {

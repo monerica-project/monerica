@@ -1,6 +1,6 @@
 ﻿using DirectoryManager.Data.Enums;
 
-namespace DirectoryManager.Web.Models
+namespace DirectoryManager.Web.Models.SponsoredListing
 {
     public class SponsoredListingOfferDisplayModel
     {

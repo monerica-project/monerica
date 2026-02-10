@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.DisplayFormatting.Models;
+using DirectoryManager.Web.Models.SponsoredListing;
 
 namespace DirectoryManager.Web.Models
 {

@@ -670,6 +670,46 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ConfigureAwait(false);
         }
 
+        public async Task<PagedResult<DirectoryEntry>> SearchNonRemovedAsync(string query, int page, int pageSize)
+        {
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 10, 50);
+
+            query = (query ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return new PagedResult<DirectoryEntry>
+                {
+                    Page = page,
+                    PageSize = pageSize,
+                    TotalCount = 0,
+                    Items = new List<DirectoryEntry>()
+                };
+            }
+
+            // This is your “real” search: includes tags/category/subcategory/etc.
+            var result = await this.SearchAsync(query, page, pageSize).ConfigureAwait(false);
+
+            // Ensure paging fields are set consistently for callers that rely on them
+            result.Page = page;
+            result.PageSize = pageSize;
+
+            return result;
+        }
+
+
+        private static string NormalizeUrlLoose(string input)
+        {
+            if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+
+            return input
+                .Replace("https://", "")
+                .Replace("http://", "")
+                .Replace("www.", "")
+                .Trim()
+                .TrimEnd('/');
+        }
+
         public async Task<PagedResult<DirectoryEntry>> FilterAsync(DirectoryFilterQuery q)
         {
             q ??= new DirectoryFilterQuery();

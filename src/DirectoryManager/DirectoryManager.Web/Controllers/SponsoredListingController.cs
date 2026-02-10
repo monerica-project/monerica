@@ -11,6 +11,7 @@ using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Models.SponsoredListing;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;

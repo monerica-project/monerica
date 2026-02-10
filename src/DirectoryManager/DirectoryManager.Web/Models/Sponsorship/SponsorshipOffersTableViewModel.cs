@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Web.Models.SponsoredListing;
 
-namespace DirectoryManager.Web.Models
+namespace DirectoryManager.Web.Models.Sponsorship
 {
     public class SponsorshipOffersTableViewModel
     {

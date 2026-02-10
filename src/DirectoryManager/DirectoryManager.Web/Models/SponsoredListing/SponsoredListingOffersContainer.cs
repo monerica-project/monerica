@@ -1,4 +1,4 @@
-﻿namespace DirectoryManager.Web.Models
+﻿namespace DirectoryManager.Web.Models.SponsoredListing
 {
     public class SponsoredListingOffersContainer
     {

@@ -1,0 +1,217 @@
+﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Models.Sponsorship
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@model SponsorshipOptionsVm
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Sponsorship Options";
+
+    var siteUrl = !string.IsNullOrWhiteSpace(Model.DirectoryEntryKey)
+        ? $"/site/{Model.DirectoryEntryKey}"
+        : "";
+
+    string checkoutUrl = Url.Action("SelectListing", "SponsoredListing") ?? "/sponsoredlisting/selectlisting";
+
+    int? mainTypeId = null;
+    int? categoryTypeId = (Model.CategoryId > 0) ? Model.CategoryId : null;
+    int? subcategoryTypeId = (Model.SubCategoryId > 0) ? Model.SubCategoryId : null;
+
+    // package details HTML (from settings)
+    var mainDetailsHtml = await cacheHelper.GetSnippetAsync(SiteConfigSetting.MainSponsoredListingDetails);
+    var catDetailsHtml = await cacheHelper.GetSnippetAsync(SiteConfigSetting.CategorySponsoredListingDetails);
+    var subDetailsHtml = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SubcategorySponsoredListingDetails);
+
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    <div class="card" style="padding:14px; border-radius:12px; margin-top: 10px;">
+        <h2 style="margin:0 0 6px 0;">@Model.ListingName</h2>
+
+        <div style="opacity:.9; display:flex; flex-wrap:wrap; gap:12px;">
+            <span><strong>Status:</strong> @Model.DirectoryStatus</span>
+
+            @if (!string.IsNullOrWhiteSpace(Model.CategoryName))
+            {
+                <span><strong>Category:</strong> @Model.CategoryName</span>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.SubcategoryName))
+            {
+                <span><strong>Subcategory:</strong> @Model.SubcategoryName</span>
+            }
+        </div>
+
+        <div style="margin-top: 10px; display:flex; flex-wrap:wrap; gap:10px;">
+            @if (!string.IsNullOrWhiteSpace(siteUrl))
+            {
+                <a class="btn btn-info" href="@siteUrl" target="_blank" rel="noopener">View listing page</a>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.ListingUrl))
+            {
+                <a class="btn btn-info" href="@Model.ListingUrl" target="_blank" rel="nofollow noopener">Visit website</a>
+            }
+
+            <a class="btn btn-info" href="@Url.Action("Index", "Sponsorship")">Back to search</a>
+        </div>
+    </div>
+
+    @if (Model.ShowSubscribedBanner)
+    {
+        <div class="alert alert-success" style="margin-top: 14px; border-radius:10px;">
+            <strong>Subscribed!</strong> You’ll be notified when a slot opens.
+        </div>
+    }
+
+    @if (!Model.CanAdvertise)
+    {
+        <div class="alert alert-warning" style="margin-top: 14px; border-radius:10px;">
+            <div style="margin-bottom:6px;">
+                <strong>This listing is not eligible to advertise yet.</strong>
+            </div>
+            @if (Model.IneligibilityReasons != null && Model.IneligibilityReasons.Any())
+            {
+                <ul style="margin:0; padding-left:18px;">
+                    @foreach (var reason in Model.IneligibilityReasons)
+                    {
+                        <li>@reason</li>
+                    }
+                </ul>
+            }
+            <div style="margin-top: 8px; opacity:.9;">
+                You can still join waitlists below. Once your status/age is fixed, contact support to enable advertising.
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-success" style="margin-top: 14px; border-radius:10px;">
+            <strong>Eligible to advertise.</strong> If a slot is available, you can proceed to checkout.
+        </div>
+    }
+
+    <hr style="margin: 18px 0;" />
+
+    <h2>Join the waitlist (get notified)</h2>
+    <p style="opacity:.9;">
+        If a slot isn’t available right now, join the waitlist so you don’t miss the next opening.
+        Waitlists are competitive — you’ll also see who’s already ahead of you.
+    </p>
+
+    <form method="post"
+          action="@Url.Action("Subscribe", "Sponsorship")"
+          class="card"
+          style="padding:14px; border-radius:12px; margin-top: 10px;">
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" name="DirectoryEntryId" value="@Model.DirectoryEntryId" />
+
+        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+            <input type="email"
+                   name="Email"
+                   class="form-control"
+                   placeholder="Email for notifications"
+                   style="flex: 1 1 260px; max-width: 420px;" />
+            <button type="submit" class="btn btn-primary">Subscribe</button>
+        </div>
+
+        <div style="margin-top: 12px; display:flex; gap:14px; flex-wrap:wrap;">
+            <label style="display:flex; gap:8px; align-items:center;">
+                <input type="checkbox" name="NotifyMain" value="true" checked />
+                <span>Main Sponsor</span>
+            </label>
+
+            <label style="display:flex; gap:8px; align-items:center;">
+                <input type="checkbox" name="NotifyCategory" value="true" />
+                <span>Category Sponsor</span>
+            </label>
+
+            <label style="display:flex; gap:8px; align-items:center;">
+                <input type="checkbox" name="NotifySubcategory" value="true" />
+                <span>Subcategory Sponsor</span>
+            </label>
+        </div>
+
+        <div style="margin-top:8px; opacity:.85;">
+            Tip: subscribing again updates your existing subscription (no duplicates) and keeps your original joined date.
+        </div>
+    </form>
+
+    <hr style="margin: 18px 0;" />
+
+    <h2>Pick a sponsorship slot</h2>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-top: 12px;">
+
+        @* MAIN *@
+        @if (Model.Main != null)
+        {
+            @await Html.PartialAsync("_TypeOptionCard", new TypeOptionCardVm
+            {
+                Option = Model.Main,
+        DirectoryEntryId = Model.DirectoryEntryId,
+        TypeId = mainTypeId,
+        CanAdvertise = Model.CanAdvertise,
+        CheckoutUrl = checkoutUrl,
+        DetailsHtml = mainDetailsHtml
+        })
+        }
+
+        @* CATEGORY *@
+        @if (Model.Category != null)
+        {
+            @await Html.PartialAsync("_TypeOptionCard", new TypeOptionCardVm
+            {
+                Option = Model.Category,
+        DirectoryEntryId = Model.DirectoryEntryId,
+        TypeId = categoryTypeId,
+        CanAdvertise = Model.CanAdvertise,
+        CheckoutUrl = checkoutUrl,
+        DetailsHtml = catDetailsHtml
+        })
+        }
+
+        @* SUBCATEGORY *@
+        @if (Model.Subcategory != null)
+        {
+            @await Html.PartialAsync("_TypeOptionCard", new TypeOptionCardVm
+            {
+                Option = Model.Subcategory,
+        DirectoryEntryId = Model.DirectoryEntryId,
+        TypeId = subcategoryTypeId,
+        CanAdvertise = Model.CanAdvertise,
+        CheckoutUrl = checkoutUrl,
+        DetailsHtml = subDetailsHtml
+        })
+        }
+
+    </div>
+
+    <hr style="margin: 18px 0;" />
+
+    @if (Model.WaitlistBoard != null)
+    {
+        <div style="margin: 18px 0;">
+            @await Html.PartialAsync("_WaitlistBoard", Model.WaitlistBoard)
+        </div>
+    }
+
+    @if (Model.RecentPaid != null)
+    {
+        <div style="margin: 18px 0;">
+            @await Html.PartialAsync("_RecentPaid", Model.RecentPaid)
+        </div>
+    }
+}

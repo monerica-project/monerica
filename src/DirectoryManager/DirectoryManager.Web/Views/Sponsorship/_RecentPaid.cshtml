@@ -1,0 +1,58 @@
+﻿@model DirectoryManager.Web.Models.Sponsorship.RecentPaidVm
+@using System.Globalization
+
+@{
+    var usd = CultureInfo.GetCultureInfo("en-US");
+}
+
+@if (Model != null)
+{
+    <h2 style="margin-top: 22px;">Recent Paid Sponsorships</h2>
+    <p style="margin: 6px 0 12px 0;">
+        These businesses are investing in visibility and growth — sponsorship slots move fast.
+    </p>
+
+    @if (Model.Items != null && Model.Items.Any())
+    {
+        <table class="table" style="width: 100%;">
+            <thead>
+                <tr>
+                    <th>Paid (UTC)</th>
+                    <th>Type</th>
+                    <th>Listing</th>
+                    <th style="text-align:right;">Days</th>
+                    <th style="text-align:right;">Paid</th>
+                    <th style="text-align:right;">USD</th>
+                    <th style="text-align:right;">Expires (UTC)</th>
+                    <th style="text-align:right;">USD/day</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>@item.PaidUtc.ToString("yyyy-MM-dd")</td>
+                        <td>@item.SponsorshipType</td>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(item.ListingUrl))
+                            {
+                                <a href="@item.ListingUrl" target="_blank" rel="noopener">@item.ListingName</a>
+                            }
+                            else
+                            {
+                                @item.ListingName
+                            }
+                        </td>
+                        <td style="text-align:right;">@item.Days</td>
+                        <td style="text-align:right;">
+                            @item.PaidAmount.ToString("0.########") @item.PaidCurrency
+                        </td>
+                        <td style="text-align:right;">@item.AmountUsd.ToString("C2", usd)</td>
+                        <td style="text-align:right;">@item.ExpiresUtc.ToString("yyyy-MM-dd")</td>
+                        <td style="text-align:right;">@item.PricePerDayUsd.ToString("C2", usd)</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    }
+}

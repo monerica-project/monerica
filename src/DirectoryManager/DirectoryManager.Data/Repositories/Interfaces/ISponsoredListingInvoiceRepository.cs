@@ -42,5 +42,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         IAsyncEnumerable<AccountantRow> StreamPaidForAccountantAsync(DateTime startUtc, DateTime endUtc, SponsorshipType? sponsorshipType, CancellationToken ct = default);
         Task<SponsoredListingInvoice?> GetByProcessorInvoiceIdAsync(string ipnProcessorId);
+        Task<List<RecentPaidPurchaseDto>> GetRecentPaidPurchasesAsync(int take);
+
     }
 }

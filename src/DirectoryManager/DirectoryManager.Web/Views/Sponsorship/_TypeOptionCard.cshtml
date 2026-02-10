@@ -1,0 +1,245 @@
+﻿@model DirectoryManager.Web.Models.Sponsorship.TypeOptionCardVm
+@using System.Globalization
+@using DirectoryManager.Data.Enums
+
+@{
+    var usd = CultureInfo.GetCultureInfo("en-US");
+    var opt = Model.Option;
+
+    var title = !string.IsNullOrWhiteSpace(opt.ScopeLabel)
+        ? opt.ScopeLabel
+        : opt.SponsorshipType.ToString();
+
+    // Determine scope ids from the one TypeId we pass in
+    int? categoryId = opt.SponsorshipType == SponsorshipType.CategorySponsor ? Model.TypeId : null;
+    int? subCategoryId = opt.SponsorshipType == SponsorshipType.SubcategorySponsor ? Model.TypeId : null;
+
+    // Availability should be based on the pool counts (what your UI is already showing)
+    var eligible = Model.CanAdvertise;
+
+    var poolHasCapacity =
+        opt.PoolMaxSlots > 0 &&
+        opt.PoolActiveCount < opt.PoolMaxSlots;
+
+    // Main-per-subcategory cap only applies to MainSponsor (your model already exposes this)
+    var blockedByMainSubCap = opt.BlockedByMainSubcategoryCap;
+
+    // Available now = eligible + not extension + pool open + not blocked by special cap
+    var availableNow = eligible && !opt.IsExtension && poolHasCapacity && !blockedByMainSubCap;
+
+    // POST endpoint that actually starts the checkout flow (creates reservation, redirects)
+    var postStartCheckoutUrl =
+        Url.Action("SelectListing", "SponsoredListing") ?? "/sponsoredlisting/selectlisting";
+
+    // Extend URL fallback (if not provided)
+    var extendHref = !string.IsNullOrWhiteSpace(Model.ExtendUrl)
+        ? Model.ExtendUrl
+        : (Url.Action("SelectDuration", "SponsoredListing", new { directoryEntryId = Model.DirectoryEntryId, sponsorshipType = opt.SponsorshipType })
+            ?? "/sponsoredlisting/selectduration");
+
+    // Waitlist helpers
+    var hasWaitlist = opt.Waitlist != null && opt.Waitlist.Count > 0;
+    var waitlistUrl = opt.Waitlist != null ? opt.Waitlist.BrowseUrl : null;
+}
+
+<div class="card" style="padding:14px; border-radius:12px;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+        <div>
+            <h3 style="margin:0 0 6px 0;">@title</h3>
+
+            <div style="opacity:.9;">
+                @if (!eligible)
+                {
+                    <span><strong>Not eligible yet</strong> — you can still subscribe above.</span>
+                }
+                else if (opt.IsExtension)
+                {
+                    <span><strong>Active</strong> — you can extend anytime.</span>
+                    @if (opt.YourActiveUntilUtc.HasValue)
+                    {
+                        <span style="opacity:.85;"> (until @opt.YourActiveUntilUtc.Value.ToString("yyyy-MM-dd") UTC)</span>
+                    }
+                }
+                else if (availableNow)
+                {
+                    <div class="orange-text">
+                        Available now — proceed to checkout.
+                    </div>
+                }
+                else
+                {
+                    if (opt.PoolMaxSlots > 0 && opt.PoolActiveCount >= opt.PoolMaxSlots)
+                    {
+                        <span><strong>Full right now</strong> — subscribe above to get notified.</span>
+                    }
+                    else
+                    {
+                        <span><strong>Not available right now</strong> — subscribe above to get notified.</span>
+                    }
+                }
+
+                @if (opt.BlockedByMainSubcategoryCap && opt.NextOpeningForMainSubcategoryCapUtc.HasValue)
+                {
+                    <div style="margin-top:6px; opacity:.85;">
+                        Main-per-subcategory cap reached. Next likely opening:
+                        <strong>@opt.NextOpeningForMainSubcategoryCapUtc.Value.ToString("yyyy-MM-dd") (UTC)</strong>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div style="text-align:right; min-width: 120px;">
+            <div style="opacity:.85;">
+                Slots: <strong>@opt.PoolActiveCount</strong> / @opt.PoolMaxSlots
+            </div>
+        </div>
+    </div>
+
+    <div style="margin-top: 12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        @if (opt.IsExtension)
+        {
+            <a class="btn btn-info" href="@extendHref">Extend</a>
+        }
+        else if (availableNow)
+        {
+            <form method="post" action="@postStartCheckoutUrl" style="margin:0;">
+                @Html.AntiForgeryToken()
+
+                <input type="hidden" name="sponsorshipType" value="@opt.SponsorshipType" />
+                <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
+
+                @* Scope ids *@
+                @if (categoryId.HasValue)
+                {
+                    <input type="hidden" name="categoryId" value="@categoryId.Value" />
+                }
+                @if (subCategoryId.HasValue)
+                {
+                    <input type="hidden" name="subCategoryId" value="@subCategoryId.Value" />
+                }
+
+                <button type="submit" class="btn btn-primary">Checkout</button>
+            </form>
+
+            @* IMPORTANT: do NOT show "View waitlist" next to checkout unless there are actual waitlist entries *@
+            @if (hasWaitlist && !string.IsNullOrWhiteSpace(waitlistUrl))
+            {
+                <a class="btn btn-info" href="@waitlistUrl">View waitlist</a>
+            }
+        }
+        else
+        {
+            @* Only show a waitlist button if there is a real waitlist (someone is waiting) *@
+            @if (hasWaitlist && !string.IsNullOrWhiteSpace(waitlistUrl))
+            {
+                <a class="btn btn-info" href="@waitlistUrl">View waitlist</a>
+            }
+        }
+    </div>
+
+    @* Package details from snippet *@
+    @if (!string.IsNullOrWhiteSpace(Model.DetailsHtml))
+    {
+        <details style="margin-top: 12px;">
+            <summary style="cursor:pointer;"><strong>What’s included</strong></summary>
+            <div style="margin-top: 10px;">
+                @Html.Raw(Model.DetailsHtml)
+            </div>
+        </details>
+    }
+
+    @* Offers *@
+    @if (opt.Offers != null && opt.Offers.Any())
+    {
+        <div style="margin-top: 14px;">
+            <div style="font-weight:600; margin-bottom: 6px;">Pricing</div>
+            <table class="table" style="width:100%; margin:0;">
+                <thead>
+                    <tr>
+                        <th style="width:90px;">Days</th>
+                        <th style="text-align:right;">USD</th>
+                        <th style="text-align:right;">USD/day</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in opt.Offers.OrderBy(x => x.Days))
+                    {
+                        <tr>
+                            <td>@o.Days</td>
+                            <td style="text-align:right;">@o.PriceUsd.ToString("C2", usd)</td>
+                            <td style="text-align:right;">@o.PricePerDay.ToString("C2", usd)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    @* Active slots *@
+    @if (opt.ActiveSlots != null && opt.ActiveSlots.Any())
+    {
+        <div style="margin-top: 14px;">
+            <div style="font-weight:600; margin-bottom: 6px;">Active sponsors (next to expire)</div>
+            <ul style="margin:0; padding-left:18px;">
+                @foreach (var s in opt.ActiveSlots)
+                {
+                    <li>
+                        @if (!string.IsNullOrWhiteSpace(s.ListingUrl))
+                        {
+                            <a href="@s.ListingUrl" target="_blank" rel="noopener">@s.ListingName</a>
+                        }
+                        else
+                        {
+                            @s.ListingName
+                        }
+                        @if (s.IsYou)
+                        {
+                            <span style="margin-left:6px; opacity:.9;"><strong>(you)</strong></span>
+                        }
+                        <span style="opacity:.85;"> — expires @s.CampaignEndUtc.ToString("yyyy-MM-dd") (UTC)</span>
+                    </li>
+                }
+            </ul>
+        </div>
+    }
+
+    @* Waitlist preview: ONLY show if there are actually people on it *@
+    @if (hasWaitlist)
+    {
+        var joinRank = Math.Max(1, opt.Waitlist!.JoinWouldBeRank);
+
+        <div style="margin-top: 14px;">
+            <div style="font-weight:600;">
+                Waitlist: <strong>@opt.Waitlist!.Count</strong> waiting
+                <span style="opacity:.85;">— you’d join at position <strong>#@joinRank</strong></span>
+            </div>
+
+            @if (opt.Waitlist!.Preview != null && opt.Waitlist.Preview.Any())
+            {
+                <ul style="margin:8px 0 0 0; padding-left:18px;">
+                    @foreach (var w in opt.Waitlist.Preview.OrderByDescending(x => x.JoinedUtc))
+                    {
+                        <li>
+                            @if (!string.IsNullOrWhiteSpace(w.ListingUrl))
+                            {
+                                <a href="@w.ListingUrl" target="_blank" rel="noopener">@w.ListingName</a>
+                            }
+                            else
+                            {
+                                @w.ListingName
+                            }
+                            <span style="opacity:.85;"> — joined @w.JoinedUtc.ToString("yyyy-MM-dd") (UTC)</span>
+                        </li>
+                    }
+                </ul>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(waitlistUrl))
+            {
+                <div style="margin-top: 10px;">
+                    <a class="btn btn-info" href="@waitlistUrl">View waitlist</a>
+                </div>
+            }
+        </div>
+    }
+</div>
