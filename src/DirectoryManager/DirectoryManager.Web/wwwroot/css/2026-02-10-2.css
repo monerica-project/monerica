@@ -2555,8 +2555,9 @@ button[type="submit"]:not(.btn) {
         box-shadow: 0 0 0 1px rgba(255, 102, 0, .40), 0 0 12px rgba(255, 102, 0, .22), 0 0 20px rgba(255, 102, 0, .10);
     }
 
-button[type="submit"].btn-cta, a.btn-cta  {
-    background: linear-gradient(var(--ui-primary-1), var(--ui-primary-2)) !important
+button[type="submit"].btn-cta, a.btn-cta {
+    background: linear-gradient(var(--ui-primary-1), var(--ui-primary-2)) !important;
+    border: 0px !important
 }
 
  
