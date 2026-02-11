@@ -31,14 +31,14 @@
             <legend class="ui-legend">Status</legend>
 
             @{
-                var selected = new HashSet<DirectoryStatus>(Model.Query.Statuses ?? new());
+                var selected = new HashSet<DirectoryStatus>(Model.Query.Statuses ?? new List<DirectoryStatus>());
 
                 var orderedStatuses = new[]
                 {
-                DirectoryStatus.Verified,
-                DirectoryStatus.Admitted,
-                DirectoryStatus.Questionable,
-                DirectoryStatus.Scam
+                    DirectoryStatus.Verified,
+                    DirectoryStatus.Admitted,
+                    DirectoryStatus.Questionable,
+                    DirectoryStatus.Scam
                 };
             }
 
@@ -46,14 +46,10 @@
                 @foreach (var st in orderedStatuses)
                 {
                     <label class="ui-check">
-                        @if (selected.Contains(st))
-                        {
-                            <input type="checkbox" name="Statuses" value="@st" checked="checked" />
-                        }
-                        else
-                        {
-                            <input type="checkbox" name="Statuses" value="@st" />
-                        }
+                        <input type="checkbox"
+                               name="Statuses"
+                               value="@st"
+                               @(selected.Contains(st) ? "checked=\"checked\"" : null) />
                         <span>@st</span>
                     </label>
                 }
@@ -68,7 +64,7 @@
                 <span class="ui-label-text">Country</span>
 
                 <span class="ui-select-wrap">
-                    <select name="Country" class="form-control select-fit">
+                    <select name="Country" class="ui-select">
                         @if (string.IsNullOrWhiteSpace(Model.Query.Country))
                         {
                             <option value="" selected="selected">All</option>
@@ -77,10 +73,10 @@
                         {
                             <option value="">All</option>
                         }
-
                         @foreach (var c in Model.CountryOptions)
                         {
                             if (string.Equals(Model.Query.Country, c.Code, StringComparison.OrdinalIgnoreCase))
+
                             {
                                 <option value="@c.Code" selected="selected">@c.Name (@c.Code)</option>
                             }
@@ -95,38 +91,17 @@
 
             <div class="ui-checks">
                 <label class="ui-check">
-                    @if (Model.Query.HasVideo)
-                    {
-                        <input type="checkbox" name="HasVideo" value="true" checked="checked" />
-                    }
-                    else
-                    {
-                        <input type="checkbox" name="HasVideo" value="true" />
-                    }
+                    <input type="checkbox" name="HasVideo" value="true" @(Model.Query.HasVideo ? "checked=\"checked\"" : null) />
                     <span>Has Video</span>
                 </label>
 
                 <label class="ui-check">
-                    @if (Model.Query.HasTor)
-                    {
-                        <input type="checkbox" name="HasTor" value="true" checked="checked" />
-                    }
-                    else
-                    {
-                        <input type="checkbox" name="HasTor" value="true" />
-                    }
+                    <input type="checkbox" name="HasTor" value="true" @(Model.Query.HasTor ? "checked=\"checked\"" : null) />
                     <span>Has Tor (.onion)</span>
                 </label>
 
                 <label class="ui-check">
-                    @if (Model.Query.HasI2p)
-                    {
-                        <input type="checkbox" name="HasI2p" value="true" checked="checked" />
-                    }
-                    else
-                    {
-                        <input type="checkbox" name="HasI2p" value="true" />
-                    }
+                    <input type="checkbox" name="HasI2p" value="true" @(Model.Query.HasI2p ? "checked=\"checked\"" : null) />
                     <span>Has I2P (.i2p)</span>
                 </label>
             </div>
@@ -140,7 +115,7 @@
                 <span class="ui-label-text">Category</span>
 
                 <span class="ui-select-wrap">
-                    <select name="CategoryId" class="form-control select-fit">
+                    <select name="CategoryId" class="ui-select">
                         @if (!Model.Query.CategoryId.HasValue || Model.Query.CategoryId.Value <= 0)
                         {
                             <option value="" selected="selected">All</option>
@@ -149,6 +124,7 @@
                         {
                             <option value="">All</option>
                         }
+
 
                         @foreach (var cat in Model.CategoryOptions)
                         {
@@ -171,7 +147,7 @@
                     <span class="ui-label-text">Subcategory</span>
 
                     <span class="ui-select-wrap">
-                        <select name="SubCategoryId" class="form-control select-fit">
+                        <select name="SubCategoryId" class="ui-select">
                             @if (!Model.Query.SubCategoryId.HasValue || Model.Query.SubCategoryId.Value <= 0)
                             {
                                 <option value="" selected="selected">All</option>
@@ -180,7 +156,6 @@
                             {
                                 <option value="">All</option>
                             }
-
                             @foreach (var sc in Model.SubCategoryOptions)
                             {
                                 if (Model.Query.SubCategoryId == sc.Id)
@@ -206,26 +181,18 @@
 
                     @if (Model.CategoryTagOptions == null || Model.CategoryTagOptions.Count == 0)
                     {
-                        <div class="ui-empty">
-                            <i>No tags found for this category.</i>
-                        </div>
+                        <div class="ui-empty"><i>No tags found for this category.</i></div>
                     }
                     else
                     {
                         <div class="ui-tags-box">
                             @foreach (var t in Model.CategoryTagOptions)
                             {
-                                var isChecked = selectedTagIds.Contains(t.Id);
-
                                 <label class="ui-check">
-                                    @if (isChecked)
-                                    {
-                                        <input type="checkbox" name="TagIds" value="@t.Id" checked="checked" />
-                                    }
-                                    else
-                                    {
-                                        <input type="checkbox" name="TagIds" value="@t.Id" />
-                                    }
+                                    <input type="checkbox"
+                                           name="TagIds"
+                                           value="@t.Id"
+                                           @(selectedTagIds.Contains(t.Id) ? "checked=\"checked\"" : null) />
                                     <span>@t.Name</span>
                                 </label>
                             }
@@ -243,11 +210,10 @@
                 <span class="ui-label-text">Sort by</span>
 
                 <span class="ui-select-wrap">
-                    <select name="Sort" class="form-control select-fit">
+                    <select name="Sort" class="ui-select">
                         @{
                             var sort = Model.Query.Sort;
                         }
-
                         @if (sort == DirectoryFilterSort.Newest)
                         {
                             <option value="Newest" selected="selected">Newest</option>
@@ -256,7 +222,6 @@
                         {
                             <option value="Newest">Newest</option>
                         }
-
                         @if (sort == DirectoryFilterSort.Oldest)
                         {
                             <option value="Oldest" selected="selected">Oldest</option>
@@ -265,7 +230,6 @@
                         {
                             <option value="Oldest">Oldest</option>
                         }
-
                         @if (sort == DirectoryFilterSort.HighestRating)
                         {
                             <option value="HighestRating" selected="selected">Highest rating</option>
@@ -274,7 +238,6 @@
                         {
                             <option value="HighestRating">Highest rating</option>
                         }
-
                         @if (sort == DirectoryFilterSort.LowestRating)
                         {
                             <option value="LowestRating" selected="selected">Lowest rating</option>
@@ -283,7 +246,6 @@
                         {
                             <option value="LowestRating">Lowest rating</option>
                         }
-
                         @if (sort == DirectoryFilterSort.NameAsc)
                         {
                             <option value="NameAsc" selected="selected">Name (A–Z)</option>
@@ -292,7 +254,6 @@
                         {
                             <option value="NameAsc">Name (A–Z)</option>
                         }
-
                         @if (sort == DirectoryFilterSort.NameDesc)
                         {
                             <option value="NameDesc" selected="selected">Name (Z–A)</option>
@@ -457,19 +418,17 @@
         <nav aria-label="Directory pagination">
             <ul class="pagination">
                 <li class="page-item @(hasPrev ? "" : "disabled")">
-                    <a class="page-link" href="@(hasPrev? prevUrl : "#")" aria-label="Previous" tabindex="@(hasPrev ? "0" : "-1")">
+                    <a class="page-link" href="@(hasPrev ? prevUrl : "#")" aria-label="Previous" tabindex="@(hasPrev ? "0" : "-1")">
                         &laquo; Previous
                     </a>
                 </li>
 
                 <li class="page-item disabled">
-                    <span class="page-link">
-                        Page @currentPage of @totalPages
-                    </span>
+                    <span class="page-link">Page @currentPage of @totalPages</span>
                 </li>
 
                 <li class="page-item @(hasNext ? "" : "disabled")">
-                    <a class="page-link" href="@(hasNext? nextUrl : "#")" aria-label="Next" tabindex="@(hasNext ? "0" : "-1")">
+                    <a class="page-link" href="@(hasNext ? nextUrl : "#")" aria-label="Next" tabindex="@(hasNext ? "0" : "-1")">
                         Next &raquo;
                     </a>
                 </li>
