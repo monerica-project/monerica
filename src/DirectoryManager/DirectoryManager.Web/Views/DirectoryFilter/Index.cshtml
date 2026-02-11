@@ -286,7 +286,7 @@
     @{
         string BuildItemPath(DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel vm)
         {
-            return "/site/" + vm.DirectoryEntryKey;
+            return FormattingHelper.ListingPath(vm.DirectoryEntryKey);
         }
 
         void EnsureSponsorReviewLinking(DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel? vm)

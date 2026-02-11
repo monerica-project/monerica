@@ -139,7 +139,7 @@
                     bool hasLinks = !string.IsNullOrWhiteSpace(vm.Link2) || !string.IsNullOrWhiteSpace(vm.Link3);
 
                     // /site/sitename#reviews
-                    var reviewsUrl = $"/site/{vm.DirectoryEntryKey}#reviews";
+                    var reviewsUrl = FormattingHelper.ListingPath(vm.DirectoryEntryKey) + "#reviews";
 
                     <div class="sponsor-card">
                         <!-- Status + Title -->

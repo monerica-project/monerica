@@ -1,4 +1,5 @@
 ﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.DisplayFormatting.Helpers
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Models.Sponsorship
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
@@ -8,7 +9,7 @@
     ViewData[StringConstants.TitleHeader] = "Sponsorship Options";
 
     var siteUrl = !string.IsNullOrWhiteSpace(Model.DirectoryEntryKey)
-        ? $"/site/{Model.DirectoryEntryKey}"
+        ? FormattingHelper.ListingPath(Model.DirectoryEntryKey)
         : "";
 
     string checkoutUrl = Url.Action("SelectListing", "SponsoredListing") ?? "/sponsoredlisting/selectlisting";
@@ -50,6 +51,13 @@
     var autoRedirectUrl = (extendMode && extendChoices.Count == 1)
         ? extendChoices[0].ExtendUrl
         : null;
+
+    // ✅ NO-JS AUTO REDIRECT (must happen before any markup renders)
+    if (!string.IsNullOrWhiteSpace(autoRedirectUrl))
+    {
+        Context.Response.Redirect(autoRedirectUrl);
+        return;
+    }
 
     Layout = "_CenteredLayout";
 }
@@ -98,28 +106,10 @@
     </div>
 
     @* -----------------------------------------
-       EXTEND MODE UI (auto-start like old page)
+       EXTEND MODE UI (NO JS)
        ----------------------------------------- *@
     @if (extendMode)
     {
-        @* Auto-redirect if only one extend choice *@
-        @if (!string.IsNullOrWhiteSpace(autoRedirectUrl))
-        {
-            <div class="alert alert-info" style="margin-top:14px; border-radius:10px;">
-                Redirecting to extension checkout…
-                <div style="margin-top:8px;">
-                    <a class="btn btn-primary" href="@autoRedirectUrl">Continue</a>
-                </div>
-            </div>
-
-            <script>
-                window.location.replace("@autoRedirectUrl");
-            </script>
-
-            @* Stop rendering rest of page in extend mode *@
-            return;
-        }
-
         <div class="alert alert-info" style="margin-top:14px; border-radius:10px;">
             <strong>Extend your active sponsorship</strong>
             <div style="opacity:.9; margin-top:6px;">
@@ -220,21 +210,6 @@
     </p>
 
     @{
-        // -----------------------------------------
-        // CHECKBOX DISPLAY + DEFAULT CHECKING
-        // -----------------------------------------
-        // Show checkboxes consistently:
-        // - Main: always show
-        // - Category/Sub: show only if this listing has that scope id
-        //
-        // Default checked:
-        // - checked if NOT open-now and NOT already active
-        // - unchecked if open-now OR active (extend)
-        //
-        // Disabled (optional):
-        // - disable if active (because "extend" is the correct action)
-        // - still allow unchecking open-now (they can decide to waitlist anyway, but default is unchecked)
-
         bool IsOpenNow(SponsorshipTypeOptionVm? opt)
         {
             if (opt == null) return false;
@@ -257,12 +232,10 @@
         var hasCategoryScope = categoryTypeId.HasValue && categoryTypeId.Value > 0;
         var hasSubScope = subcategoryTypeId.HasValue && subcategoryTypeId.Value > 0;
 
-        // Always render these (if scope exists), but only check by default when not open and not active
         var defaultMain = (!mainOpenNow && !mainActive);
         var defaultCat = (hasCategoryScope && !catOpenNow && !catActive);
         var defaultSub = (hasSubScope && !subOpenNow && !subActive);
 
-        // Disable only when active (extension); user can still choose to join waitlist when "open now"
         var disableMain = mainActive;
         var disableCat = catActive;
         var disableSub = subActive;
@@ -286,7 +259,6 @@
         </div>
 
         <div class="ui-checks" style="margin-top:12px;">
-            @* MAIN (always show) *@
             <label class="ui-check @(disableMain ? "ui-disabled" : "")">
                 <input type="checkbox"
                        name="NotifyMain"
@@ -306,7 +278,6 @@
                 </span>
             </label>
 
-            @* CATEGORY (show whenever scope exists) *@
             @if (hasCategoryScope)
             {
                 <label class="ui-check @(disableCat ? "ui-disabled" : "")">
@@ -329,7 +300,6 @@
                 </label>
             }
 
-            @* SUBCATEGORY (show whenever scope exists) *@
             @if (hasSubScope)
             {
                 <label class="ui-check @(disableSub ? "ui-disabled" : "")">
@@ -364,7 +334,6 @@
 
     <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-top: 12px;">
 
-        @* MAIN *@
         @if (Model.Main != null)
         {
             @await Html.PartialAsync("_TypeOptionCard", new TypeOptionCardVm
@@ -378,7 +347,6 @@
             })
         }
 
-        @* CATEGORY *@
         @if (Model.Category != null)
         {
             @await Html.PartialAsync("_TypeOptionCard", new TypeOptionCardVm
@@ -392,7 +360,6 @@
             })
         }
 
-        @* SUBCATEGORY *@
         @if (Model.Subcategory != null)
         {
             @await Html.PartialAsync("_TypeOptionCard", new TypeOptionCardVm
