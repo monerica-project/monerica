@@ -24,131 +24,55 @@
     @await Html.PartialAsync("_BackToHome")
     <hr />
 
-    <form method="get" class="mb-3 filter-form ui-form">
+    <form method="get">
 
-        <!-- Status -->
-        <fieldset class="ui-fieldset">
-            <legend class="ui-legend">Status</legend>
+    <!-- Status -->
+    <fieldset class="ui-fieldset">
+        <legend class="ui-legend">Status</legend>
 
-            @{
-                var selected = new HashSet<DirectoryStatus>(Model.Query.Statuses ?? new List<DirectoryStatus>());
-
-                var orderedStatuses = new[]
-                {
-                    DirectoryStatus.Verified,
-                    DirectoryStatus.Admitted,
-                    DirectoryStatus.Questionable,
-                    DirectoryStatus.Scam
-                };
-            }
-
-            <div class="ui-checks">
-                @foreach (var st in orderedStatuses)
-                {
-                    <label class="ui-check">
-                        <input type="checkbox"
-                               name="Statuses"
-                               value="@st"
-                               @(selected.Contains(st) ? "checked=\"checked\"" : null) />
-                        <span>@st</span>
-                    </label>
-                }
-            </div>
-        </fieldset>
-
-        <!-- Location / Links -->
-        <fieldset class="ui-fieldset">
-            <legend class="ui-legend">Location / Links</legend>
-
-            <label class="ui-label-block">
-                <span class="ui-label-text">Country</span>
-
-                <span class="ui-select-wrap">
-                    <select name="Country" class="ui-select">
-                        @if (string.IsNullOrWhiteSpace(Model.Query.Country))
-                        {
-                            <option value="" selected="selected">All</option>
-                        }
-                        else
-                        {
-                            <option value="">All</option>
-                        }
-                        @foreach (var c in Model.CountryOptions)
-                        {
-                            if (string.Equals(Model.Query.Country, c.Code, StringComparison.OrdinalIgnoreCase))
-
-                            {
-                                <option value="@c.Code" selected="selected">@c.Name (@c.Code)</option>
-                            }
-                            else
-                            {
-                                <option value="@c.Code">@c.Name (@c.Code)</option>
-                            }
-                        }
-                    </select>
-                </span>
-            </label>
-
-            <div class="ui-checks">
-                <label class="ui-check">
-                    <input type="checkbox" name="HasVideo" value="true" @(Model.Query.HasVideo ? "checked=\"checked\"" : null) />
-                    <span>Has Video</span>
-                </label>
-
-                <label class="ui-check">
-                    <input type="checkbox" name="HasTor" value="true" @(Model.Query.HasTor ? "checked=\"checked\"" : null) />
-                    <span>Has Tor (.onion)</span>
-                </label>
-
-                <label class="ui-check">
-                    <input type="checkbox" name="HasI2p" value="true" @(Model.Query.HasI2p ? "checked=\"checked\"" : null) />
-                    <span>Has I2P (.i2p)</span>
-                </label>
-            </div>
-        </fieldset>
-
-        <!-- Categorization -->
-        <fieldset class="ui-fieldset">
-            <legend class="ui-legend">Categorization</legend>
-
-            <label class="ui-label-block">
-                <span class="ui-label-text">Category</span>
-
-                <span class="ui-select-wrap">
-                    <select name="CategoryId" class="ui-select">
-                        @if (!Model.Query.CategoryId.HasValue || Model.Query.CategoryId.Value <= 0)
-                        {
-                            <option value="" selected="selected">All</option>
-                        }
-                        else
-                        {
-                            <option value="">All</option>
-                        }
-
-
-                        @foreach (var cat in Model.CategoryOptions)
-                        {
-                            if (Model.Query.CategoryId == cat.Id)
-                            {
-                                <option value="@cat.Id" selected="selected">@cat.Name</option>
-                            }
-                            else
-                            {
-                                <option value="@cat.Id">@cat.Name</option>
-                            }
-                        }
-                    </select>
-                </span>
-            </label>
-
-            @if (Model.Query.CategoryId.HasValue && Model.Query.CategoryId.Value > 0)
+        @{
+            var selected = new HashSet<DirectoryStatus>(Model.Query.Statuses ?? new List<DirectoryStatus>());
+            var orderedStatuses = new[]
             {
+                DirectoryStatus.Verified,
+                DirectoryStatus.Admitted,
+                DirectoryStatus.Questionable,
+                DirectoryStatus.Scam
+            };
+        }
+
+        <div class="ui-checks">
+            @foreach (var st in orderedStatuses)
+            {
+                <label class="ui-check">
+                    <input type="checkbox"
+                           name="Statuses"
+                           value="@st"
+                           @(selected.Contains(st) ? "checked=\"checked\"" : null) />
+                    <span>@st</span>
+                </label>
+            }
+        </div>
+    </fieldset>
+
+
+    <!-- Location / Links -->
+    <fieldset class="ui-fieldset">
+        <legend class="ui-legend">Location / Links</legend>
+
+        <div class="form-group">
+
+
+
+
+
+
                 <label class="ui-label-block">
-                    <span class="ui-label-text">Subcategory</span>
+                    <span class="ui-label-text">Country</span>
 
                     <span class="ui-select-wrap">
-                        <select name="SubCategoryId" class="ui-select">
-                            @if (!Model.Query.SubCategoryId.HasValue || Model.Query.SubCategoryId.Value <= 0)
+                        <select name="Country" class="form-control select-fit">
+                            @if (string.IsNullOrWhiteSpace(Model.Query.Country))
                             {
                                 <option value="" selected="selected">All</option>
                             }
@@ -156,61 +80,146 @@
                             {
                                 <option value="">All</option>
                             }
-                            @foreach (var sc in Model.SubCategoryOptions)
+
+                            @foreach (var c in Model.CountryOptions)
                             {
-                                if (Model.Query.SubCategoryId == sc.Id)
+                                if (string.Equals(Model.Query.Country, c.Code, StringComparison.OrdinalIgnoreCase))
                                 {
-                                    <option value="@sc.Id" selected="selected">@sc.Name</option>
+                                    <option value="@c.Code" selected="selected">@c.Name (@c.Code)</option>
                                 }
                                 else
                                 {
-                                    <option value="@sc.Id">@sc.Name</option>
+                                    <option value="@c.Code">@c.Name (@c.Code)</option>
                                 }
                             }
                         </select>
                     </span>
                 </label>
-            }
 
-            @if (Model.Query.CategoryId.HasValue && Model.Query.CategoryId.Value > 0)
-            {
-                var selectedTagIds = new HashSet<int>(Model.Query.TagIds ?? new List<int>());
+ 
+        </div>
 
-                <div class="ui-tags">
-                    <div class="ui-tags-title">Tags (in this category)</div>
+        <div class="ui-checks">
+            <label class="ui-check">
+                <input type="checkbox" name="HasVideo" value="true" @(Model.Query.HasVideo ? "checked=\"checked\"" : null) />
+                <span>Has Video</span>
+            </label>
 
-                    @if (Model.CategoryTagOptions == null || Model.CategoryTagOptions.Count == 0)
+            <label class="ui-check">
+                <input type="checkbox" name="HasTor" value="true" @(Model.Query.HasTor ? "checked=\"checked\"" : null) />
+                <span>Has Tor (.onion)</span>
+            </label>
+
+            <label class="ui-check">
+                <input type="checkbox" name="HasI2p" value="true" @(Model.Query.HasI2p ? "checked=\"checked\"" : null) />
+                <span>Has I2P (.i2p)</span>
+            </label>
+        </div>
+    </fieldset>
+
+
+    <!-- Categorization -->
+    <fieldset class="ui-fieldset">
+        <legend class="ui-legend">Categorization</legend>
+
+        <div class="form-group">
+            <label class="ui-label-text">Category</label>
+            <div class="ui-select-wrap">
+                    <select name="CategoryId" class="form-control select-fit">
+                    @if (!Model.Query.CategoryId.HasValue || Model.Query.CategoryId.Value <= 0)
                     {
-                        <div class="ui-empty"><i>No tags found for this category.</i></div>
+                        <option value="" selected="selected">All</option>
                     }
                     else
                     {
-                        <div class="ui-tags-box">
-                            @foreach (var t in Model.CategoryTagOptions)
-                            {
-                                <label class="ui-check">
-                                    <input type="checkbox"
-                                           name="TagIds"
-                                           value="@t.Id"
-                                           @(selectedTagIds.Contains(t.Id) ? "checked=\"checked\"" : null) />
-                                    <span>@t.Name</span>
-                                </label>
-                            }
-                        </div>
+                        <option value="">All</option>
                     }
+
+                    @foreach (var cat in Model.CategoryOptions)
+                    {
+                        if (Model.Query.CategoryId == cat.Id)
+                        {
+                            <option value="@cat.Id" selected="selected">@cat.Name</option>
+                        }
+                        else
+                        {
+                            <option value="@cat.Id">@cat.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+        </div>
+
+        @if (Model.Query.CategoryId.HasValue && Model.Query.CategoryId.Value > 0)
+        {
+            <div class="form-group">
+                <label class="ui-label-text">Subcategory</label>
+                <div class="ui-select-wrap">
+                        <select name="SubCategoryId" class="form-control select-fit">
+                        @if (!Model.Query.SubCategoryId.HasValue || Model.Query.SubCategoryId.Value <= 0)
+                        {
+                            <option value="" selected="selected">All</option>
+                        }
+                        else
+                        {
+                            <option value="">All</option>
+                        }
+
+                        @foreach (var sc in Model.SubCategoryOptions)
+                        {
+                            if (Model.Query.SubCategoryId == sc.Id)
+                            {
+                                <option value="@sc.Id" selected="selected">@sc.Name</option>
+                            }
+                            else
+                            {
+                                <option value="@sc.Id">@sc.Name</option>
+                            }
+                        }
+                    </select>
                 </div>
-            }
-        </fieldset>
+            </div>
+        }
 
-        <!-- Sort -->
-        <fieldset class="ui-fieldset">
-            <legend class="ui-legend">Sort</legend>
+        @if (Model.Query.CategoryId.HasValue && Model.Query.CategoryId.Value > 0)
+        {
+            var selectedTagIds = new HashSet<int>(Model.Query.TagIds ?? new List<int>());
 
-            <label class="ui-label-block">
-                <span class="ui-label-text">Sort by</span>
+            <div class="form-group">
+                <label class="ui-label-text">Tags (in this category)</label>
 
-                <span class="ui-select-wrap">
-                    <select name="Sort" class="ui-select">
+                @if (Model.CategoryTagOptions == null || Model.CategoryTagOptions.Count == 0)
+                {
+                    <div class="ui-empty"><i>No tags found for this category.</i></div>
+                }
+                else
+                {
+                    <div class="ui-checks">
+                        @foreach (var t in Model.CategoryTagOptions)
+                        {
+                            <label class="ui-check">
+                                <input type="checkbox"
+                                       name="TagIds"
+                                       value="@t.Id"
+                                       @(selectedTagIds.Contains(t.Id) ? "checked=\"checked\"" : null) />
+                                <span>@t.Name</span>
+                            </label>
+                        }
+                    </div>
+                }
+            </div>
+        }
+    </fieldset>
+
+
+    <!-- Sort -->
+    <fieldset class="ui-fieldset">
+        <legend class="ui-legend">Sort</legend>
+
+        <div class="form-group">
+            <label class="ui-label-text">Sort by</label>
+            <div class="ui-select-wrap">
+                    <select name="Sort" class="form-control select-fit ">
                         @{
                             var sort = Model.Query.Sort;
                         }
@@ -263,24 +272,25 @@
                             <option value="NameDesc">Name (Z–A)</option>
                         }
                     </select>
-                </span>
-            </label>
-        </fieldset>
-
-        <input type="hidden" name="Page" value="1" />
-        <input type="hidden" name="PageSize" value="@Model.Query.PageSize" />
-
-        <div class="ui-actions" style="padding-bottom:5px;">
-            <button type="submit" class="btn btn-primary ui-submit btn-cta">
-                Apply Filters
-            </button>
-
-            <a class="no-app-link ui-clear"
-               href="@(Url.Action("Index", "DirectoryFilter") ?? "/filter")?Page=1&PageSize=@Model.Query.PageSize">
-                Clear
-            </a>
+            </div>
         </div>
-    </form>
+    </fieldset>
+
+    <input type="hidden" name="Page" value="1" />
+    <input type="hidden" name="PageSize" value="@Model.Query.PageSize" />
+
+    <div class="ui-actions" style="display:flex; gap:12px; align-items:center; padding-bottom:5px;">
+        <button type="submit" class="btn btn-primary btn-cta">
+            Apply Filters
+        </button>
+
+        <a class="no-app-link ui-clear"
+           href="@(Url.Action("Index", "DirectoryFilter") ?? "/filter")?Page=1&PageSize=@Model.Query.PageSize">
+            Clear
+        </a>
+    </div>
+</form>
+
 
     @* Sponsor block (only when filtering by category OR subcategory) *@
     @{
