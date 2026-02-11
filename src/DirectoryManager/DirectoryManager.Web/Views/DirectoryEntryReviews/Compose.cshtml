@@ -21,7 +21,7 @@
 
         <div class="mb-3">
             <label asp-for="Rating" class="form-label"></label>
-            <select asp-for="Rating" class="form-select">
+            <select asp-for="Rating" class="form-control select-fit">
                 <option value="">— Select a rating —</option>
                 <option value="5">5 – Excellent</option>
                 <option value="4">4 – Good</option>
@@ -50,6 +50,6 @@
 
         <p class="text-muted"><i>Your review may be checked before it appears publicly.</i></p>
 
-        <button type="submit" class="btn btn-success">Submit Review</button>
+        <button type="submit" class="btn btn-success btn-cta">Submit Review</button>
     </form>
 }
