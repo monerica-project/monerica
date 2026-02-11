@@ -36,5 +36,9 @@ namespace DirectoryManager.Data.Repositories.Interfaces
             int pageSize);
 
         Task MarkReminderAsSentAsync(int notificationId, string? sentLink);
+        Task UpsertManyAsync(
+            string email,
+            int directoryEntryId,
+            IEnumerable<(SponsorshipType Type, int? TypeId)> scopes);
     }
 }

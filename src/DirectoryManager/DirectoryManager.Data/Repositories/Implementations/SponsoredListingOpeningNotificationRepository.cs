@@ -143,7 +143,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context.SponsoredListingOpeningNotifications.Update(notification);
             return await this.context.SaveChangesAsync() > 0;
         }
- 
+
         public async Task<SponsoredListingOpeningNotification?> GetByIdAsync(int id)
         {
             return await this.context.SponsoredListingOpeningNotifications
@@ -170,43 +170,64 @@ namespace DirectoryManager.Data.Repositories.Implementations
         }
 
         // ----------------------------
-        // UPSERTS (FIXED)
+        // UPSERTS (WORKING + FAST)
         // ----------------------------
 
         // Existing signature used in older flow
-        public async Task UpsertAsync(int directoryEntryId, SponsorshipType type, string email, int? typeId)
+        public Task UpsertAsync(int directoryEntryId, SponsorshipType type, string email, int? typeId)
         {
-            await this.UpsertCoreAsync(
-                email: email,
-                sponsorshipType: type,
-                typeId: typeId,
-                directoryEntryId: directoryEntryId).ConfigureAwait(false);
+            return this.UpsertManyAsync(email, directoryEntryId, new[] { (type, typeId) });
         }
 
         // New signature used by your new flow/controller
-        public async Task UpsertAsync(string email, SponsorshipType sponsorshipType, int? typeId, int? directoryEntryId)
+        public Task UpsertAsync(string email, SponsorshipType sponsorshipType, int? typeId, int? directoryEntryId)
         {
-            await this.UpsertCoreAsync(
-                email: email,
-                sponsorshipType: sponsorshipType,
-                typeId: typeId,
-                directoryEntryId: directoryEntryId).ConfigureAwait(false);
-        }
-
-        private async Task UpsertCoreAsync(
-            string email,
-            SponsorshipType sponsorshipType,
-            int? typeId,
-            int? directoryEntryId)
-        {
-            var e = NormalizeEmail(email);
-            if (string.IsNullOrWhiteSpace(e))
+            if (!directoryEntryId.HasValue || directoryEntryId.Value <= 0)
             {
-                return;
+                return Task.CompletedTask;
             }
 
-            var scopeTypeId = NormalizeTypeId(sponsorshipType, typeId);
-            var deId = NormalizeDirectoryEntryId(directoryEntryId);
+            return this.UpsertManyAsync(email, directoryEntryId.Value, new[] { (sponsorshipType, typeId) });
+        }
+
+        public async Task UpsertManyAsync(
+            string email,
+            int directoryEntryId,
+            IEnumerable<(SponsorshipType Type, int? TypeId)> scopes)
+        {
+            var e = NormalizeEmail(email);
+            if (string.IsNullOrWhiteSpace(e)) return;
+            if (directoryEntryId <= 0) return;
+
+            var list = (scopes ?? Enumerable.Empty<(SponsorshipType, int?)>())
+                .Distinct()
+                .ToList();
+
+            if (list.Count == 0) return;
+
+            var now = DateTime.UtcNow;
+
+            foreach (var (type, rawTypeId) in list)
+            {
+                await this.UpsertCoreNoSaveAsync(
+                    emailNormalized: e,
+                    sponsorshipType: type,
+                    rawTypeId: rawTypeId,
+                    directoryEntryId: directoryEntryId,
+                    nowUtc: now).ConfigureAwait(false);
+            }
+
+            await this.context.SaveChangesAsync().ConfigureAwait(false);
+        }
+
+        private async Task UpsertCoreNoSaveAsync(
+            string emailNormalized,
+            SponsorshipType sponsorshipType,
+            int? rawTypeId,
+            int directoryEntryId,
+            DateTime nowUtc)
+        {
+            var scopeTypeId = NormalizeTypeId(sponsorshipType, rawTypeId);
 
             // If not main sponsor and scope is missing, do nothing.
             if (sponsorshipType != SponsorshipType.MainSponsor && !scopeTypeId.HasValue)
@@ -214,20 +235,19 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return;
             }
 
-            var now = DateTime.UtcNow;
-
-            // IMPORTANT CHANGE:
-            // We match an existing record regardless of IsReminderSent.
-            // If it was previously sent, re-subscribing "revives" it.
+            // Match existing regardless of IsReminderSent so re-subscribe revives it.
+            // IMPORTANT: Use non-nullable directoryEntryId to avoid the "IS NULL" trap.
             var query = this.context.SponsoredListingOpeningNotifications
                 .Where(n =>
-                    n.Email == e &&
+                    n.Email == emailNormalized &&
                     n.SponsorshipType == sponsorshipType &&
-                    n.DirectoryEntryId == deId);
+                    (
+                        n.DirectoryEntryId == directoryEntryId
+                        || n.DirectoryEntryId == null // legacy fallback
+                    ));
 
             if (sponsorshipType == SponsorshipType.MainSponsor)
             {
-                // Match both null and legacy 0 rows
                 query = query.Where(n => n.TypeId == null || n.TypeId == 0);
             }
             else
@@ -235,8 +255,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 query = query.Where(n => n.TypeId == scopeTypeId!.Value);
             }
 
-            // If duplicates exist (legacy/bug), take the MOST RECENT "subscription intent"
-            // Prefer newest SubscribedDate; if tie/empty, newest row id.
             var existing = await query
                 .OrderByDescending(n => n.SubscribedDate)
                 .ThenByDescending(n => n.SponsoredListingOpeningNotificationId)
@@ -247,44 +265,40 @@ namespace DirectoryManager.Data.Repositories.Implementations
             {
                 this.context.SponsoredListingOpeningNotifications.Add(new SponsoredListingOpeningNotification
                 {
-                    DirectoryEntryId = deId,
+                    DirectoryEntryId = directoryEntryId,     // REQUIRED
                     SponsorshipType = sponsorshipType,
-                    TypeId = scopeTypeId,     // main => null
-                    Email = e,
-
-                    // NOW means "last subscribed"
-                    SubscribedDate = now,
-                    UpdateDate = now,
+                    TypeId = scopeTypeId,                    // main => null
+                    Email = emailNormalized,
+                    CreateDate = nowUtc,
+                    SubscribedDate = nowUtc,
+                    UpdateDate = nowUtc,
 
                     IsActive = true,
                     IsReminderSent = false,
                     ReminderSentDateUtc = null,
                     ReminderSentLink = null
                 });
+
+                return;
             }
             else
+
+            // Resubscribe: refresh + revive
+            existing.DirectoryEntryId = directoryEntryId;   // ensure set even if legacy null
+            existing.TypeId = scopeTypeId;                  // main => null
+            existing.SubscribedDate = nowUtc;
+            existing.UpdateDate = nowUtc;
+
+            existing.IsActive = true;
+            existing.IsReminderSent = false;
+            existing.ReminderSentDateUtc = null;
+            existing.ReminderSentLink = null;
+
+            // Clean up legacy main sponsor rows stored with TypeId=0
+            if (sponsorshipType == SponsorshipType.MainSponsor && existing.TypeId == 0)
             {
-                // REFRESH JOIN DATE: last subscribed wins
-                existing.TypeId = scopeTypeId;      // main => null
-                existing.SubscribedDate = now;
-                existing.UpdateDate = now;
-
-                // REVIVE if previously completed
-                existing.IsActive = true;
-                existing.IsReminderSent = false;
-
-                // Clear audit so it re-enters the queue cleanly
-                existing.ReminderSentDateUtc = null;
-                existing.ReminderSentLink = null;
-
-                // Clean up legacy main sponsor rows stored with TypeId=0
-                if (sponsorshipType == SponsorshipType.MainSponsor && existing.TypeId == 0)
-                {
-                    existing.TypeId = null;
-                }
+                existing.TypeId = null;
             }
-
-            await this.context.SaveChangesAsync().ConfigureAwait(false);
         }
 
         // ----------------------------
@@ -385,7 +399,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             notification.IsReminderSent = true;
             notification.IsActive = false;
 
-            // NEW: audit fields
+            // audit fields
             notification.ReminderSentDateUtc = DateTime.UtcNow;
 
             if (!string.IsNullOrWhiteSpace(sentLink))
@@ -393,11 +407,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 notification.ReminderSentLink = sentLink.Trim();
             }
 
-            // Keep SubscribedDate untouched here.
             notification.UpdateDate = DateTime.UtcNow;
 
             await this.context.SaveChangesAsync();
         }
-
     }
 }

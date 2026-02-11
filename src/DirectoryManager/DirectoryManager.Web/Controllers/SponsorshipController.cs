@@ -200,7 +200,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View("Waitlist", vm);
         }
 
-        // POST /sponsorship/subscribe
         [HttpPost("subscribe")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Subscribe([FromForm] SponsorshipSubscribeVm vm)
@@ -214,28 +213,36 @@ namespace DirectoryManager.Web.Controllers
             var email = (vm.Email ?? string.Empty).Trim();
             if (string.IsNullOrWhiteSpace(email))
             {
-                // you can also ModelState error; keeping it frictionless
                 return this.RedirectToAction("Options", new { directoryEntryId = vm.DirectoryEntryId });
             }
 
             var catId = entry.SubCategory?.CategoryId;
             var subId = entry.SubCategoryId;
 
-            // Upsert selections (listing-scoped to enable "buy for your listing" links later)
+            var scopes = new List<(SponsorshipType Type, int? TypeId)>();
+
             if (vm.NotifyMain)
             {
-                await this.waitlistRepo.UpsertAsync(email, SponsorshipType.MainSponsor, typeId: null, directoryEntryId: entry.DirectoryEntryId);
+                scopes.Add((SponsorshipType.MainSponsor, null));
             }
 
             if (vm.NotifyCategory && catId.HasValue && catId.Value > 0)
             {
-                await this.waitlistRepo.UpsertAsync(email, SponsorshipType.CategorySponsor, typeId: catId.Value, directoryEntryId: entry.DirectoryEntryId);
+                scopes.Add((SponsorshipType.CategorySponsor, catId.Value));
             }
 
             if (vm.NotifySubcategory && subId > 0)
             {
-                await this.waitlistRepo.UpsertAsync(email, SponsorshipType.SubcategorySponsor, typeId: subId, directoryEntryId: entry.DirectoryEntryId);
+                scopes.Add((SponsorshipType.SubcategorySponsor, subId));
             }
+
+            if (scopes.Count == 0)
+            {
+                return this.RedirectToAction("Options", new { directoryEntryId = entry.DirectoryEntryId });
+            }
+
+            // IMPORTANT: pass the non-nullable int id
+            await this.waitlistRepo.UpsertManyAsync(email, entry.DirectoryEntryId, scopes);
 
             return this.RedirectToAction("Options", new { directoryEntryId = entry.DirectoryEntryId, subscribed = 1 });
         }
@@ -243,7 +250,7 @@ namespace DirectoryManager.Web.Controllers
         // ----------------------------
         // VIEWMODEL BUILDERS
         // ----------------------------
- 
+
         private async Task<RecentPaidVm> BuildRecentPaidAsync()
         {
             var rows = await this.invoiceRepo.GetRecentPaidPurchasesAsync(RecentPaidTake);
@@ -610,19 +617,8 @@ namespace DirectoryManager.Web.Controllers
                 .Distinct()
                 .ToList();
 
-            var dict = new Dictionary<int, DirectoryEntry>();
-
-            // Bounded (preview/page sizes), so this is fine. If you add a batch method later, swap this.
-            foreach (var id in ids)
-            {
-                var entry = await this.entryRepo.GetByIdAsync(id);
-                if (entry != null)
-                {
-                    dict[id] = entry;
-                }
-            }
-
-            return dict;
+            // ✅ single query instead of N queries
+            return await this.entryRepo.GetByIdsAsync(ids);
         }
 
         private static DirectoryEntry? TryGetEntry(Dictionary<int, DirectoryEntry> lookup, int? id)

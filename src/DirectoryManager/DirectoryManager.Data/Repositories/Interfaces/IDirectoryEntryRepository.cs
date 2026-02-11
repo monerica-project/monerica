@@ -59,5 +59,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         Task<List<string>> ListActiveCountryCodesAsync(CancellationToken ct = default);
         Task<PagedResult<DirectoryEntry>> SearchNonRemovedAsync(string query, int page, int pageSize);
+
+        Task<Dictionary<int, DirectoryEntry>> GetByIdsAsync(IEnumerable<int> ids);
     }
 }

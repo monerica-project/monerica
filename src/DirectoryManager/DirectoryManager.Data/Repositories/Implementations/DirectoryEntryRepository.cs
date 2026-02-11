@@ -611,6 +611,35 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return subs.Select(x => new IdNameOption { Id = x.SubCategoryId, Name = x.Name }).ToList();
         }
 
+        public async Task<Dictionary<int, DirectoryEntry>> GetByIdsAsync(IEnumerable<int> ids)
+        {
+            var list = (ids ?? Enumerable.Empty<int>())
+                .Where(x => x > 0)
+                .Distinct()
+                .ToList();
+
+            if (list.Count == 0)
+            {
+                return new Dictionary<int, DirectoryEntry>();
+            }
+
+            // Only fetch what you need (Name/Link/Id) for waitlist display
+            var rows = await this.context.DirectoryEntries
+                .AsNoTracking()
+                .Where(d => list.Contains(d.DirectoryEntryId))
+                .Select(d => new DirectoryEntry
+                {
+                    DirectoryEntryKey = d.DirectoryEntryKey,
+                    DirectoryEntryId = d.DirectoryEntryId,
+                    Name = d.Name,
+                    Link = d.Link
+                })
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            return rows.ToDictionary(x => x.DirectoryEntryId, x => x);
+        }
+
         public async Task<PagedResult<DirectoryEntry>> SearchAsync(string term, int page, int pageSize)
         {
             if (string.IsNullOrWhiteSpace(term))
