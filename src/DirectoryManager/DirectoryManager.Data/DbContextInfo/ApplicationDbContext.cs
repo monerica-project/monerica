@@ -54,6 +54,22 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<ReviewTag> ReviewTags { get; set; }
         public DbSet<DirectoryEntryReviewTag> DirectoryEntryReviewTags { get; set; }
 
+
+        public override int SaveChanges()
+        {
+            this.SetDates();
+
+            return base.SaveChanges();
+        }
+
+        public override Task<int> SaveChangesAsync(
+            CancellationToken cancellationToken = default)
+        {
+            this.SetDates();
+
+            return base.SaveChangesAsync(cancellationToken);
+        }
+
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
@@ -483,14 +499,48 @@ namespace DirectoryManager.Data.DbContextInfo
             });
         }
 
-        object IApplicationDbContext.Set<T>() { 
+        private void SetDates()
+        {
+            foreach (var entry in this.ChangeTracker.Entries()
+                .Where(x => (x.Entity is StateInfo) && x.State == EntityState.Added)
+                .Select(x => (StateInfo)x.Entity))
+            {
+                if (entry.CreateDate == DateTime.MinValue)
+                {
+                    entry.CreateDate = DateTime.UtcNow;
+                }
+            }
 
-            var method = typeof(DbContext).GetMethods(BindingFlags.Public | 
-                BindingFlags.Instance).First(m => m.Name == "Set" 
-                && m.IsGenericMethodDefinition && m.GetGenericArguments().Length == 1 &&
-                m.GetParameters().Length == 0); 
+            foreach (var entry in this.ChangeTracker.Entries()
+                .Where(x => x.Entity is CreatedStateInfo && x.State == EntityState.Added)
+                .Select(x => (CreatedStateInfo)x.Entity)
+                .Where(x => x != null))
+            {
+                if (entry.CreateDate == DateTime.MinValue)
+                {
+                    entry.CreateDate = DateTime.UtcNow;
+                }
+            }
+
+            foreach (var entry in this.ChangeTracker.Entries()
+                .Where(x => x.Entity is StateInfo && x.State == EntityState.Modified)
+                .Select(x => (StateInfo)x.Entity)
+                .Where(x => x != null))
+            {
+                entry.UpdateDate = DateTime.UtcNow;
+            }
+        }
+
+        object IApplicationDbContext.Set<T>()
+        {
+            var method = typeof(DbContext)
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .First(m => m.Name == "Set"
+                            && m.IsGenericMethodDefinition
+                            && m.GetGenericArguments().Length == 1
+                            && m.GetParameters().Length == 0);
+
             var generic = method.MakeGenericMethod(typeof(T));
-
             return generic.Invoke(this, null)!;
         }
     }

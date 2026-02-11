@@ -44,7 +44,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             // Ensure only the ID is set for the foreign key, and EF does not track the SubCategory entity itself
             submission.SubCategory = null;
-
+            submission.CreateDate = DateTime.UtcNow;
             await this.context.Submissions.AddAsync(submission);
             await this.context.SaveChangesAsync();
 
