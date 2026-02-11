@@ -1,11 +1,11 @@
-﻿using Microsoft.EntityFrameworkCore;
-using System.Reflection;
+﻿using System.Reflection;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.BaseModels;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Models.SponsoredListings;
+using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Data.DbContextInfo
 {
@@ -541,7 +541,7 @@ namespace DirectoryManager.Data.DbContextInfo
                             && m.GetParameters().Length == 0);
 
             var generic = method.MakeGenericMethod(typeof(T));
-            return generic.Invoke(this, null)!;
+            return generic.Invoke(this, null) !;
         }
     }
 }

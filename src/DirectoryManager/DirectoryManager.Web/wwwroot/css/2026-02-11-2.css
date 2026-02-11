@@ -2560,4 +2560,207 @@ button[type="submit"].btn-cta, a.btn-cta {
     border: 0px !important
 }
 
- 
+/* ---------------------------------
+   Default <hr> for dark / neon UI
+   --------------------------------- */
+hr {
+    border: 0;
+    height: 1px;
+    margin: 14px 0;
+    background: linear-gradient( 90deg, transparent, rgba(255,255,255,.12), rgba(255,255,255,.12), transparent );
+    opacity: .95;
+}
+
+/* Slightly stronger when placed inside panels/cards (optional) */
+.sponsor-card hr,
+.sponsored-section hr,
+.ui-fieldset hr {
+    margin: 12px 0;
+    background: linear-gradient( 90deg, transparent, rgba(255,102,0,.28), rgba(255,255,255,.14), rgba(255,102,0,.28), transparent );
+}
+
+/* Optional: force an accent divider when you want it */
+hr.hr-accent {
+    height: 2px;
+    background: linear-gradient( 90deg, transparent, rgba(255,102,0,.65), rgba(255,102,0,.18), rgba(255,102,0,.65), transparent );
+}
+
+/* Optional: tighter spacing */
+hr.hr-tight {
+    margin: 8px 0;
+}
+
+
+/* =========================================================
+   PATCH: Classic forms (Create Submission / Edit Submission)
+   - DOES NOT affect the Filter page (it uses form.ui-form)
+   - Fixes giant <select> rendering (SubCategoryId)
+   ========================================================= */
+
+.main-content-centered form:not(.ui-form) {
+    /* keep your centered layout, just ensure sane form spacing */
+    margin-top: 8px;
+}
+
+    .main-content-centered form:not(.ui-form) h3,
+    .main-content-centered form:not(.ui-form) h4 {
+        margin: 18px 0 10px;
+    }
+
+    .main-content-centered form:not(.ui-form) .form-group {
+        margin: 0 0 14px;
+    }
+
+        .main-content-centered form:not(.ui-form) .form-group > label {
+            display: block;
+            margin: 0 0 6px;
+            font-weight: 600;
+        }
+
+    /* Shared field styling (inputs + selects + textareas) for NON ui-form */
+    .main-content-centered form:not(.ui-form) .form-control,
+    .main-content-centered form:not(.ui-form) .input-width,
+    .main-content-centered form:not(.ui-form) select:not(.ui-select):not(.ui-control),
+    .main-content-centered form:not(.ui-form) textarea {
+        box-sizing: border-box;
+        width: 100%;
+        max-width: 100%;
+        border-radius: 12px;
+        /* dark theme */
+        background: rgba(0, 0, 0, 0.55);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.18);
+        outline: none;
+        padding: 10px 12px;
+        font-size: 16px; /* prevents mobile zoom + keeps consistency */
+        line-height: 1.25;
+        box-shadow: 0 0 0 1px rgba(0,0,0,0.2) inset;
+    }
+
+    /* --- IMPORTANT FIX ---
+   Force non-ui selects to render like a normal dropdown (not a listbox).
+   This fixes the giant white box you’re seeing on #SubCategoryId.
+*/
+    .main-content-centered form:not(.ui-form) select:not(.ui-select):not(.ui-control) {
+        height: 44px !important;
+        min-height: 44px !important;
+        max-height: 44px !important;
+        padding-right: 40px; /* room for native arrow */
+        /* keep native select UI but prevent weird stretching */
+        -webkit-appearance: menulist;
+        appearance: menulist;
+    }
+
+    /* Extra safety for the exact broken one */
+    .main-content-centered form:not(.ui-form) select#SubCategoryId {
+        height: 44px !important;
+        min-height: 44px !important;
+        max-height: 44px !important;
+    }
+
+    /* Textareas should actually be textareas */
+    .main-content-centered form:not(.ui-form) textarea {
+        min-height: 96px;
+        resize: vertical;
+    }
+
+        /* The PgpKey textarea in your markup lacks .form-control — ensure it matches */
+        .main-content-centered form:not(.ui-form) textarea.input-width {
+            border-radius: 12px;
+        }
+
+        /* Focus states */
+        .main-content-centered form:not(.ui-form) .form-control:focus,
+        .main-content-centered form:not(.ui-form) .input-width:focus,
+        .main-content-centered form:not(.ui-form) select:not(.ui-select):not(.ui-control):focus,
+        .main-content-centered form:not(.ui-form) textarea:focus {
+            border-color: rgba(255, 102, 0, 0.75);
+            box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.18), 0 0 0 1px rgba(0,0,0,0.2) inset;
+        }
+
+    /* Validation text */
+    .main-content-centered form:not(.ui-form) .text-danger {
+        display: block;
+        margin-top: 6px;
+        color: #ff6b6b;
+        font-size: 0.95rem;
+    }
+
+/* Submission guidelines block (your HTML has a <p> wrapping <ul> which browsers “fix” differently) */
+.submission-guidelines {
+    padding: 12px 0;
+}
+
+    .submission-guidelines ul {
+        margin: 8px 0 0 18px;
+        padding: 0;
+    }
+
+    .submission-guidelines li {
+        margin: 6px 0;
+    }
+
+/* Tags grid/chips (Create Submission) */
+.main-content-centered form:not(.ui-form) .tag-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 10px;
+    margin: 8px 0 14px;
+}
+
+.main-content-centered form:not(.ui-form) .tag-chip {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: rgba(0, 0, 0, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    cursor: pointer;
+    user-select: none;
+}
+
+    .main-content-centered form:not(.ui-form) .tag-chip:hover {
+        border-color: rgba(255, 102, 0, 0.45);
+    }
+
+    .main-content-centered form:not(.ui-form) .tag-chip input[type="checkbox"] {
+        transform: scale(1.05);
+        accent-color: #ff6600;
+    }
+
+/* Keep buttons as-is globally; just ensure spacing in this form */
+.main-content-centered form:not(.ui-form) .btn {
+    margin-top: 6px;
+}
+
+/* =========================================================
+   PATCH: ui-checks orange checked state (Sponsorship Options)
+   - Restores orange checkboxes for .ui-check inputs
+   - Safe: scoped ONLY to .ui-checks / .ui-check
+   ========================================================= */
+
+:root {
+    --ui-accent: #ff6600;
+}
+
+/* Make checked state orange */
+.ui-checks .ui-check input[type="checkbox"],
+.ui-checks .ui-check input[type="radio"] {
+    accent-color: var(--ui-accent);
+    -webkit-appearance: auto; /* in case something set appearance:none */
+    appearance: auto;
+}
+
+    /* Optional: a subtle “selected” emphasis when checked (doesn't break layout) */
+    .ui-checks .ui-check input[type="checkbox"]:checked + span,
+    .ui-checks .ui-check input[type="radio"]:checked + span {
+        color: #fff;
+    }
+
+/* Disabled look */
+.ui-checks .ui-check.ui-disabled,
+.ui-checks .ui-check input:disabled + span {
+    opacity: .6;
+    cursor: not-allowed;
+}
