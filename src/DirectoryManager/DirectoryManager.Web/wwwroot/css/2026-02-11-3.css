@@ -91,11 +91,7 @@ table tbody tr:nth-child(even) {
     background-color: #262626;
     color: white;
 }
-
-.input-width {
-    width: 73%;
-}
-
+ 
 .right {
     text-align: right;
 }
@@ -2128,6 +2124,9 @@ h2.section-title.sponsor-section-title {
     background: #198754;
     color: #fff;
 }
+/* =========================================================
+   UI CONTROLS + BUTTONS + FORMS (SINGLE BLOCK — KEEP ONCE)
+   ========================================================= */
 
 :root {
     --ui-accent: #ff6600;
@@ -2155,8 +2154,41 @@ h2.section-title.sponsor-section-title {
     --ui-info-border: rgba(42, 168, 255, .78);
     --ui-info-border-hover: rgba(42, 168, 255, .96);
     --ui-info-glow: rgba(42, 168, 255, .22);
+    /* ✅ controls “narrow” input max width on desktop */
+    --ui-input-max: 420px;
 }
 
+/* =========================================================
+   FIX: input-width should be NARROW (not % of page)
+   - inputs get capped width on desktop
+   - textareas stay full width
+   ========================================================= */
+.main-content-centered input.input-width {
+    width: 100% !important;
+    max-width: var(--ui-input-max) !important;
+    display: block;
+}
+
+.main-content-centered textarea.input-width {
+    width: 100% !important;
+    max-width: 100% !important;
+}
+
+@media (max-width: 520px) {
+    .main-content-centered input.input-width {
+        max-width: none !important; /* full width on mobile */
+    }
+}
+
+/* Extra-safety: force newsletter email specifically (no HTML change needed) */
+form[action="/newsletter"] input[type="email"].form-control {
+    width: 100% !important;
+    max-width: var(--ui-input-max) !important;
+}
+
+/* =========================================================
+   Search bar (your neon / compact style)
+   ========================================================= */
 .search-form {
     display: flex;
     align-items: center;
@@ -2165,11 +2197,11 @@ h2.section-title.sponsor-section-title {
     flex-wrap: nowrap;
 }
 
-    .search-form input[type="search"].form-control {
+    .search-form input[type="search"].form-control,
+    .search-form input[type="text"].form-control {
         height: var(--ui-h) !important;
         padding: 0 14px !important;
         line-height: 1 !important;
-        /* font-size: 14px !important;*/
         background: var(--ui-bg) !important;
         color: var(--ui-text) !important;
         border: 1px solid var(--ui-border) !important;
@@ -2183,11 +2215,13 @@ h2.section-title.sponsor-section-title {
         max-width: 520px;
     }
 
-        .search-form input[type="search"].form-control::placeholder {
+        .search-form input[type="search"].form-control::placeholder,
+        .search-form input[type="text"].form-control::placeholder {
             color: rgba(255, 255, 255, .55);
         }
 
-        .search-form input[type="search"].form-control:focus {
+        .search-form input[type="search"].form-control:focus,
+        .search-form input[type="text"].form-control:focus {
             background: var(--ui-bg-focus) !important;
             border-color: var(--ui-border-strong) !important;
             box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .70), 0 0 0 1px rgba(255, 102, 0, .35), 0 0 10px rgba(255, 102, 0, .30), 0 0 18px rgba(255, 102, 0, .16) !important;
@@ -2204,7 +2238,7 @@ h2.section-title.sponsor-section-title {
         flex: 0 0 auto;
     }
 
-@media (max-width:480px) {
+@media (max-width: 480px) {
     :root {
         --ui-h: 34px;
     }
@@ -2213,10 +2247,11 @@ h2.section-title.sponsor-section-title {
         gap: 8px;
     }
 
-        .search-form input[type="search"].form-control {
-            /*  font-size: 16px !important;*/
-            min-width: 120px;
+        .search-form input[type="search"].form-control,
+        .search-form input[type="text"].form-control {
+            font-size: 16px !important; /* prevents iOS zoom */
             max-width: none;
+            min-width: 120px;
         }
 
         .search-form .search-btn,
@@ -2225,6 +2260,9 @@ h2.section-title.sponsor-section-title {
         }
 }
 
+/* =========================================================
+   Filter page UI controls (fieldset / checks / selects / tags)
+   ========================================================= */
 .ui-form {
     color: var(--ui-text);
 }
@@ -2267,24 +2305,6 @@ h2.section-title.sponsor-section-title {
     height: 16px;
     margin: 0;
     accent-color: var(--ui-accent);
-}
-
-    .ui-form input[type="checkbox"]:focus-visible {
-        outline: none;
-        box-shadow: 0 0 0 2px rgba(255, 102, 0, .28);
-        border-radius: 4px;
-    }
-
-.ui-label-block {
-    display: block;
-    margin: 6px 0 10px 0;
-}
-
-.ui-label-text {
-    display: inline-block;
-    min-width: 110px;
-    color: var(--ui-muted);
-    font-weight: 600;
 }
 
 .ui-select-wrap {
@@ -2344,79 +2364,15 @@ h2.section-title.sponsor-section-title {
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .70), 0 0 0 1px rgba(255, 102, 0, .35), 0 0 10px rgba(255, 102, 0, .30), 0 0 18px rgba(255, 102, 0, .16) !important;
 }
 
-.ui-select-wrap:focus-within::after {
-    border-top-color: rgba(255, 102, 0, .95);
-}
-
-.ui-select-wrap:focus-within::before {
-    background: rgba(255, 102, 0, .22);
-}
-
-@media (max-width:650px) {
+@media (max-width: 650px) {
     .ui-select-wrap {
         min-width: 100%;
     }
-
-    .ui-label-text {
-        display: block;
-        margin-bottom: 6px;
-        min-width: 0;
-    }
 }
 
-.ui-tags {
-    margin-top: 10px;
-}
-
-.ui-tags-title {
-    margin: 0 0 8px 0;
-    color: var(--ui-muted);
-    font-weight: 700;
-    font-size: 13px;
-}
-
-.ui-tags-box {
-    border: 1px solid #333;
-    border-radius: 10px;
-    padding: 10px;
-    background: rgba(0, 0, 0, .22);
-    display: flex;
-    flex-wrap: wrap;
-    gap: 10px 14px;
-}
-
-.ui-empty {
-    font-size: 12px;
-    opacity: .75;
-}
-
-.ui-actions {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    margin-top: 8px;
-}
-
-.ui-submit {
-    height: var(--ui-h) !important;
-    padding: 0 14px !important;
-    line-height: 1 !important;
-    border-radius: 10px !important;
-    font-weight: 800;
-}
-
-.ui-clear {
-    font-size: 12px;
-    opacity: .75;
-    text-decoration: none;
-}
-
-    .ui-clear:hover {
-        opacity: 1;
-        color: var(--ui-accent);
-        text-decoration: underline;
-    }
-
+/* =========================================================
+   Pagination hover orange
+   ========================================================= */
 .page-link {
     transition: color .12s ease, background-color .12s ease, border-color .12s ease, box-shadow .12s ease, transform .08s ease;
 }
@@ -2436,19 +2392,11 @@ h2.section-title.sponsor-section-title {
     background-color: rgba(255, 102, 0, .22) !important;
     border-color: rgba(255, 102, 0, .70) !important;
     color: #fff !important;
-    box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .55), 0 0 10px rgba(255, 102, 0, .18) !important;
 }
 
-.page-item.disabled .page-link,
-.page-link[aria-disabled="true"],
-.page-link[tabindex="-1"] {
-    color: rgba(255, 255, 255, .55) !important;
-    background: transparent !important;
-    border-color: rgba(255, 255, 255, .18) !important;
-    box-shadow: none !important;
-    cursor: not-allowed !important;
-}
-
+/* =========================================================
+   Unified .btn styling (all pages)
+   ========================================================= */
 .btn,
 button.btn,
 a.btn {
@@ -2496,7 +2444,6 @@ a.btn {
     }
 
 .btn-primary {
- 
     border-color: var(--ui-primary-border) !important;
     box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .55), inset 0 0 0 2px rgba(24, 255, 109, .10), 0 10px 22px rgba(0, 0, 0, .45) !important;
 }
@@ -2519,248 +2466,84 @@ a.btn {
         box-shadow: inset 0 0 0 1px rgba(0, 0, 0, .55), inset 0 0 0 2px rgba(42, 168, 255, .16), 0 0 0 1px rgba(42, 168, 255, .18), 0 0 14px var(--ui-info-glow), 0 10px 22px rgba(0, 0, 0, .45) !important;
     }
 
-.btn-sm {
-    min-height: 28px !important;
-    padding: 4px 10px !important;
-    border-radius: 8px !important;
-    font-size: 13px !important;
-}
-
-.btn:disabled,
-button.btn:disabled,
-a.btn.disabled,
-.btn.disabled {
-    opacity: .55;
-    cursor: not-allowed;
-    transform: none !important;
-    box-shadow: none !important;
-}
-
-button[type="submit"]:not(.btn) {
-    border: 1px solid var(--ui-btn-border);
-    background: linear-gradient(var(--ui-btn-bg), var(--ui-btn-bg2));
-    color: var(--ui-btn-text);
-    font-weight: 700;
-    padding: 6px 14px;
-    min-height: 34px;
-    border-radius: 10px;
-    cursor: pointer;
-    transition: filter .12s ease, border-color .12s ease, box-shadow .12s ease, transform .06s ease;
-}
-
-    button[type="submit"]:not(.btn):focus,
-    button[type="submit"]:not(.btn):focus-visible {
-        outline: none;
-        border-color: rgba(255, 102, 0, .70);
-        box-shadow: 0 0 0 1px rgba(255, 102, 0, .40), 0 0 12px rgba(255, 102, 0, .22), 0 0 20px rgba(255, 102, 0, .10);
-    }
-
-button[type="submit"].btn-cta, a.btn-cta {
-    background: linear-gradient(var(--ui-primary-1), var(--ui-primary-2)) !important;
-    border: 0px !important
-}
-
-/* ---------------------------------
-   Default <hr> for dark / neon UI
-   --------------------------------- */
+/* =========================================================
+   <hr> styling
+   ========================================================= */
 hr {
     border: 0;
     height: 1px;
     margin: 14px 0;
-    background: linear-gradient( 90deg, transparent, rgba(255,255,255,.12), rgba(255,255,255,.12), transparent );
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,.12), rgba(255,255,255,.12), transparent);
     opacity: .95;
 }
 
-/* Slightly stronger when placed inside panels/cards (optional) */
-.sponsor-card hr,
-.sponsored-section hr,
-.ui-fieldset hr {
-    margin: 12px 0;
-    background: linear-gradient( 90deg, transparent, rgba(255,102,0,.28), rgba(255,255,255,.14), rgba(255,102,0,.28), transparent );
-}
-
-/* Optional: force an accent divider when you want it */
-hr.hr-accent {
-    height: 2px;
-    background: linear-gradient( 90deg, transparent, rgba(255,102,0,.65), rgba(255,102,0,.18), rgba(255,102,0,.65), transparent );
-}
-
-/* Optional: tighter spacing */
-hr.hr-tight {
-    margin: 8px 0;
-}
-
-
 /* =========================================================
-   PATCH: Classic forms (Create Submission / Edit Submission)
-   - DOES NOT affect the Filter page (it uses form.ui-form)
-   - Fixes giant <select> rendering (SubCategoryId)
+   PATCH: Classic forms (Create/Edit/Newsletter)
+   - styles normal inputs/selects/textarea
+   - fixes giant select listbox
    ========================================================= */
-
-.main-content-centered form:not(.ui-form) {
-    /* keep your centered layout, just ensure sane form spacing */
-    margin-top: 8px;
+.main-content-centered form:not(.ui-form) .form-group {
+    margin: 0 0 14px;
 }
 
-    .main-content-centered form:not(.ui-form) h3,
-    .main-content-centered form:not(.ui-form) h4 {
-        margin: 18px 0 10px;
-    }
-
-    .main-content-centered form:not(.ui-form) .form-group {
-        margin: 0 0 14px;
-    }
-
-        .main-content-centered form:not(.ui-form) .form-group > label {
-            display: block;
-            margin: 0 0 6px;
-            font-weight: 600;
-        }
-
-    /* Shared field styling (inputs + selects + textareas) for NON ui-form */
-    .main-content-centered form:not(.ui-form) .form-control,
-    .main-content-centered form:not(.ui-form) .input-width,
-    .main-content-centered form:not(.ui-form) select:not(.ui-select):not(.ui-control),
-    .main-content-centered form:not(.ui-form) textarea {
-        box-sizing: border-box;
-        width: 100%;
-        max-width: 100%;
-        border-radius: 12px;
-        /* dark theme */
-        background: rgba(0, 0, 0, 0.55);
-        color: #fff;
-        border: 1px solid rgba(255, 255, 255, 0.18);
-        outline: none;
-        padding: 10px 12px;
-        font-size: 16px; /* prevents mobile zoom + keeps consistency */
-        line-height: 1.25;
-        box-shadow: 0 0 0 1px rgba(0,0,0,0.2) inset;
-    }
-
-    /* --- IMPORTANT FIX ---
-   Force non-ui selects to render like a normal dropdown (not a listbox).
-   This fixes the giant white box you’re seeing on #SubCategoryId.
-*/
-    .main-content-centered form:not(.ui-form) select:not(.ui-select):not(.ui-control) {
-        height: 44px !important;
-        min-height: 44px !important;
-        max-height: 44px !important;
-        padding-right: 40px; /* room for native arrow */
-        /* keep native select UI but prevent weird stretching */
-        -webkit-appearance: menulist;
-        appearance: menulist;
-    }
-
-    /* Extra safety for the exact broken one */
-    .main-content-centered form:not(.ui-form) select#SubCategoryId {
-        height: 44px !important;
-        min-height: 44px !important;
-        max-height: 44px !important;
-    }
-
-    /* Textareas should actually be textareas */
-    .main-content-centered form:not(.ui-form) textarea {
-        min-height: 96px;
-        resize: vertical;
-    }
-
-        /* The PgpKey textarea in your markup lacks .form-control — ensure it matches */
-        .main-content-centered form:not(.ui-form) textarea.input-width {
-            border-radius: 12px;
-        }
-
-        /* Focus states */
-        .main-content-centered form:not(.ui-form) .form-control:focus,
-        .main-content-centered form:not(.ui-form) .input-width:focus,
-        .main-content-centered form:not(.ui-form) select:not(.ui-select):not(.ui-control):focus,
-        .main-content-centered form:not(.ui-form) textarea:focus {
-            border-color: rgba(255, 102, 0, 0.75);
-            box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.18), 0 0 0 1px rgba(0,0,0,0.2) inset;
-        }
-
-    /* Validation text */
-    .main-content-centered form:not(.ui-form) .text-danger {
-        display: block;
-        margin-top: 6px;
-        color: #ff6b6b;
-        font-size: 0.95rem;
-    }
-
-/* Submission guidelines block (your HTML has a <p> wrapping <ul> which browsers “fix” differently) */
-.submission-guidelines {
-    padding: 12px 0;
-}
-
-    .submission-guidelines ul {
-        margin: 8px 0 0 18px;
-        padding: 0;
-    }
-
-    .submission-guidelines li {
-        margin: 6px 0;
-    }
-
-/* Tags grid/chips (Create Submission) */
-.main-content-centered form:not(.ui-form) .tag-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 10px;
-    margin: 8px 0 14px;
-}
-
-.main-content-centered form:not(.ui-form) .tag-chip {
-    display: flex;
-    align-items: center;
-    gap: 10px;
+.main-content-centered form:not(.ui-form) .form-control,
+.main-content-centered form:not(.ui-form) select:not(.ui-select):not(.ui-control),
+.main-content-centered form:not(.ui-form) textarea,
+.main-content-centered form:not(.ui-form) input[type="text"],
+.main-content-centered form:not(.ui-form) input[type="email"],
+.main-content-centered form:not(.ui-form) input[type="password"],
+.main-content-centered form:not(.ui-form) input[type="url"],
+.main-content-centered form:not(.ui-form) input[type="number"],
+.main-content-centered form:not(.ui-form) input[type="search"] {
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    border-radius: 12px;
+    background: rgba(0, 0, 0, 0.55);
+    color: #fff;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    outline: none;
     padding: 10px 12px;
-    border-radius: 14px;
-    background: rgba(0, 0, 0, 0.4);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    cursor: pointer;
-    user-select: none;
+    font-size: 16px; /* prevents mobile zoom */
+    line-height: 1.25;
+    box-shadow: 0 0 0 1px rgba(0,0,0,0.2) inset;
 }
 
-    .main-content-centered form:not(.ui-form) .tag-chip:hover {
-        border-color: rgba(255, 102, 0, 0.45);
-    }
-
-    .main-content-centered form:not(.ui-form) .tag-chip input[type="checkbox"] {
-        transform: scale(1.05);
-        accent-color: #ff6600;
-    }
-
-/* Keep buttons as-is globally; just ensure spacing in this form */
-.main-content-centered form:not(.ui-form) .btn {
-    margin-top: 6px;
+.main-content-centered form:not(.ui-form) select:not(.ui-select):not(.ui-control) {
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+    padding-right: 40px;
+    -webkit-appearance: menulist;
+    appearance: menulist;
 }
+
+.main-content-centered form:not(.ui-form) select#SubCategoryId {
+    height: 44px !important;
+    min-height: 44px !important;
+    max-height: 44px !important;
+}
+
+.main-content-centered form:not(.ui-form) textarea {
+    min-height: 96px;
+    resize: vertical;
+}
+
+    .main-content-centered form:not(.ui-form) .form-control:focus,
+    .main-content-centered form:not(.ui-form) select:not(.ui-select):not(.ui-control):focus,
+    .main-content-centered form:not(.ui-form) textarea:focus,
+    .main-content-centered form:not(.ui-form) input[type="text"]:focus,
+    .main-content-centered form:not(.ui-form) input[type="email"]:focus {
+        border-color: rgba(255, 102, 0, 0.75);
+        box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.18), 0 0 0 1px rgba(0,0,0,0.2) inset;
+    }
 
 /* =========================================================
-   PATCH: ui-checks orange checked state (Sponsorship Options)
-   - Restores orange checkboxes for .ui-check inputs
-   - Safe: scoped ONLY to .ui-checks / .ui-check
+   PATCH: ui-checks orange checked state
    ========================================================= */
-
-:root {
-    --ui-accent: #ff6600;
-}
-
-/* Make checked state orange */
 .ui-checks .ui-check input[type="checkbox"],
 .ui-checks .ui-check input[type="radio"] {
     accent-color: var(--ui-accent);
-    -webkit-appearance: auto; /* in case something set appearance:none */
+    -webkit-appearance: auto;
     appearance: auto;
-}
-
-    /* Optional: a subtle “selected” emphasis when checked (doesn't break layout) */
-    .ui-checks .ui-check input[type="checkbox"]:checked + span,
-    .ui-checks .ui-check input[type="radio"]:checked + span {
-        color: #fff;
-    }
-
-/* Disabled look */
-.ui-checks .ui-check.ui-disabled,
-.ui-checks .ui-check input:disabled + span {
-    opacity: .6;
-    cursor: not-allowed;
 }

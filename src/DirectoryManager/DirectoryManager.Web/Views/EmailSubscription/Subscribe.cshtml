@@ -30,8 +30,10 @@
         <p>Email:</p>
         <input name="Email"
                type="email"
+               autocomplete="off"
                id="inlineFormInput"
                placeholder="yourname@email.com"
+               class="form-control input-width"
                value="@(Model?.Email ?? string.Empty)" />
         <div class="text-danger" style="margin-top:4px;">
             @Html.ValidationMessage("Email")
