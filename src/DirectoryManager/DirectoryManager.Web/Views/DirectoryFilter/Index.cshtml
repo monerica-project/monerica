@@ -68,7 +68,7 @@
                 <span class="ui-label-text">Country</span>
 
                 <span class="ui-select-wrap">
-                    <select name="Country" class="ui-control ui-select">
+                    <select name="Country" class="form-control select-fit">
                         @if (string.IsNullOrWhiteSpace(Model.Query.Country))
                         {
                             <option value="" selected="selected">All</option>
@@ -140,7 +140,7 @@
                 <span class="ui-label-text">Category</span>
 
                 <span class="ui-select-wrap">
-                    <select name="CategoryId" class="ui-control ui-select">
+                    <select name="CategoryId" class="form-control select-fit">
                         @if (!Model.Query.CategoryId.HasValue || Model.Query.CategoryId.Value <= 0)
                         {
                             <option value="" selected="selected">All</option>
@@ -171,7 +171,7 @@
                     <span class="ui-label-text">Subcategory</span>
 
                     <span class="ui-select-wrap">
-                        <select name="SubCategoryId" class="ui-control ui-select">
+                        <select name="SubCategoryId" class="form-control select-fit">
                             @if (!Model.Query.SubCategoryId.HasValue || Model.Query.SubCategoryId.Value <= 0)
                             {
                                 <option value="" selected="selected">All</option>
@@ -243,7 +243,7 @@
                 <span class="ui-label-text">Sort by</span>
 
                 <span class="ui-select-wrap">
-                    <select name="Sort" class="ui-control ui-select">
+                    <select name="Sort" class="form-control select-fit">
                         @{
                             var sort = Model.Query.Sort;
                         }

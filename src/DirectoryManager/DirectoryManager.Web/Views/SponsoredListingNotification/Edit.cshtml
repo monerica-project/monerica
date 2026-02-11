@@ -38,7 +38,7 @@
 
     <div class="form-group">
         <label asp-for="SponsorshipType"></label>
-        <select asp-for="SponsorshipType" class="form-control">
+            <select asp-for="SponsorshipType" class="form-control select-fit">
             @foreach (var value in Enum.GetValues(typeof(DirectoryManager.Data.Enums.SponsorshipType)).Cast<DirectoryManager.Data.Enums.SponsorshipType>())
             {
                 if (Model.SponsorshipType == value)

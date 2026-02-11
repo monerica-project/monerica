@@ -13,7 +13,7 @@
 {
     <div class="form-group">
         <label asp-for="DirectoryStatus">Directory Status</label>
-        <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control">
+        <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control select-fit">
             @foreach (var status in Enum.GetValues(typeof(DirectoryManager.Data.Enums.DirectoryStatus)))
             {
                 if ((DirectoryManager.Data.Enums.DirectoryStatus)status == DirectoryManager.Data.Enums.DirectoryStatus.Unknown)
@@ -29,6 +29,7 @@
 <div class="form-group">
     <label asp-for="SubCategoryId">Subcategory</label>
     <select asp-for="SubCategoryId"
+    class="form-control select-fit"
             asp-items="@(new SelectList(ViewBag.SubCategories, "SubcategoryId", "DisplayName"))"
             required></select>
 </div>
@@ -99,7 +100,7 @@
 
 <div class="form-group">
     <label asp-for="CountryCode" class="control-label"></label>
-    <select asp-for="CountryCode" asp-items="ViewBag.CountryCode" class="form-control"></select>
+    <select class="form-control select-fit" asp-for="CountryCode" asp-items="ViewBag.CountryCode" class="form-control"></select>
     <span asp-validation-for="CountryCode" class="text-danger"></span>
 </div>
 
