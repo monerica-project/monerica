@@ -253,7 +253,7 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task<RecentPaidVm> BuildRecentPaidAsync()
         {
-            var rows = await this.invoiceRepo.GetRecentPaidPurchasesAsync(RecentPaidTake);
+            var rows = await this.invoiceRepo.GetRecentPaidActivePurchasesAsync(RecentPaidTake);
 
             return new RecentPaidVm
             {

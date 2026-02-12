@@ -543,14 +543,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync(ct);
         }
 
-        public async Task<List<RecentPaidPurchaseDto>> GetRecentPaidPurchasesAsync(int take)
+        public async Task<List<RecentPaidPurchaseDto>> GetRecentPaidActivePurchasesAsync(int take)
         {
             take = Math.Max(1, take);
 
-            // Base PAID invoices
+            // Base PAID invoices (ONLY for Admitted/Verified listings)
             var baseQ = WithIncludes(this.context.SponsoredListingInvoices)
                 .AsNoTracking()
-                .Where(i => i.PaymentStatus == PaymentStatus.Paid);
+                .Where(i => i.PaymentStatus == PaymentStatus.Paid)
+                .Where(i =>
+                    i.DirectoryEntry != null &&
+                    (i.DirectoryEntry.DirectoryStatus == DirectoryStatus.Admitted ||
+                     i.DirectoryEntry.DirectoryStatus == DirectoryStatus.Verified));
 
             // 1) For each (DirectoryEntryId, SponsorshipType), find the MAX CreateDate
             var maxCreatePerGroup = baseQ
@@ -588,7 +592,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 orderby i.CreateDate descending, i.SponsoredListingInvoiceId descending
                 select new
                 {
-                    PaidDateUtc = i.CreateDate, // <-- "bought date" per your rule
+                    PaidDateUtc = i.CreateDate, // "bought date"
                     i.SponsorshipType,
 
                     AmountUsd = i.Amount,
@@ -639,8 +643,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 };
             }).ToList();
         }
-
-
 
         private static void CopyMutableFields(SponsoredListingInvoice target, SponsoredListingInvoice src)
         {
