@@ -185,8 +185,8 @@
                             </td>
                             <td>@c.DirectoryEntryReviewId</td>
                             <td>@(c.ParentCommentId?.ToString() ?? "-")</td>
-                            <td>@c.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3)</td>
-                            <td>@((c.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3)) ?? "-")</td>
+                            <td>@c.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
+                            <td>@((c.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)) ?? "-")</td>
                             <td><code>@c.AuthorFingerprint</code></td>
                             <td>@(string.IsNullOrWhiteSpace(c.Body) ? "-" : (c.Body.Length > 80 ? c.Body[..80] + "…" : c.Body))</td>
                             <td>
