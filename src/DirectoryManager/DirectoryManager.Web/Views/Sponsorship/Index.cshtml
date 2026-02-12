@@ -5,13 +5,24 @@
 @using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Constants
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
-
+@inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepo;
 @{
     ViewData[StringConstants.TitleHeader] = "Sponsorship";
     Layout = "_CenteredLayout";
 
     var q = (Model.Query ?? string.Empty).Trim();
     var usd = CultureInfo.GetCultureInfo("en-US");
+
+    // ✅ View-only "Main Sponsor is open" check
+    var mainSponsorIsOpen = false;
+
+    var active = await sponsoredListingRepo.GetActiveSponsorsCountAsync(
+        SponsorshipType.MainSponsor,
+        typeId: null);
+
+    var maxSlots = DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings;
+
+    mainSponsorIsOpen = active < maxSlots;
 }
 
 @section PageContent {
@@ -29,6 +40,15 @@
         <strong>Find your listing, claim your spot.</strong><br />
         Search any non-removed listing, select yours, and join waitlists with your email to get notified when a slot opens.
     </p>
+
+    @* MAIN SPONSOR OPEN NOTICE *@
+    @if (mainSponsorIsOpen)
+    {
+        <p class="orange-text" style="margin: 0 0 10px 0; font-weight: 800;">
+            Main Sponsor is OPEN — find your listing above and claim your spot.
+        </p>
+    }
+
 
     <!-- SEARCH -->
     <form method="get" action="@Url.Action("Index","Sponsorship")" class="search-form" style="margin: 16px 0;">
