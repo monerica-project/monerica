@@ -143,7 +143,7 @@
                             <td>
                                 @if (x.Opt.YourActiveUntilUtc.HasValue)
                                 {
-                                    @x.Opt.YourActiveUntilUtc.Value.ToString("yyyy-MM-dd") <span style="opacity:.85;">(UTC)</span>
+                                    @x.Opt.YourActiveUntilUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) 
                                 }
                                 else
                                 {

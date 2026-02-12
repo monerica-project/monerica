@@ -2,7 +2,7 @@
 @using System.Globalization
 
 @{
-    var usd = CultureInfo.GetCultureInfo("en-US");
+    var usd = CultureInfo.GetCultureInfo(DirectoryManager.Web.Constants.StringConstants.EnglishUS);
 }
 
 @if (Model != null)
@@ -18,13 +18,13 @@
         <table class="table" style="width: 100%;">
             <thead>
                 <tr>
-                    <th>Paid (UTC)</th>
+                    <th>Paid</th>
                     <th>Type</th>
                     <th>Listing</th>
                     <th style="text-align:right;">Days</th>
                     <th style="text-align:right;">Paid</th>
                     <th style="text-align:right;">USD</th>
-                    <th style="text-align:right;">Expires (UTC)</th>
+                    <th style="text-align:right;">Expires</th>
                     <th style="text-align:right;">USD/day</th>
                 </tr>
             </thead>
@@ -32,7 +32,7 @@
                 @foreach (var item in Model.Items)
                 {
                     <tr>
-                        <td>@item.PaidUtc.ToString("yyyy-MM-dd")</td>
+                            <td>@item.PaidUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                         <td>@item.SponsorshipType</td>
                         <td>
                             @if (!string.IsNullOrWhiteSpace(item.ListingUrl))
@@ -49,7 +49,7 @@
                             @item.PaidAmount.ToString("0.########") @item.PaidCurrency
                         </td>
                         <td style="text-align:right;">@item.AmountUsd.ToString("C2", usd)</td>
-                        <td style="text-align:right;">@item.ExpiresUtc.ToString("yyyy-MM-dd")</td>
+                        <td style="text-align:right;">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                         <td style="text-align:right;">@item.PricePerDayUsd.ToString("C2", usd)</td>
                     </tr>
                 }

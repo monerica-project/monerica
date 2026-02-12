@@ -4,7 +4,7 @@
 
 @functions {
     private static string FormatUtcFull(DateTime utc) =>
-        utc.ToString("yyyy-MM-dd HH:mm:ss", CultureInfo.InvariantCulture) + " UTC";
+        utc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat, CultureInfo.InvariantCulture) + " UTC";
 
     private static string FormatCountdown(DateTime utc, DateTime nowUtc)
     {
@@ -15,7 +15,7 @@
 }
 
 @{
-    var usd = CultureInfo.GetCultureInfo("en-US");
+    var usd = CultureInfo.GetCultureInfo(DirectoryManager.Web.Constants.StringConstants.EnglishUS);
     var opt = Model.Option;
     var nowUtc = DateTime.UtcNow;
 

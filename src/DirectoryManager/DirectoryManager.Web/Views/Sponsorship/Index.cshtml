@@ -11,7 +11,7 @@
     Layout = "_CenteredLayout";
 
     var q = (Model.Query ?? string.Empty).Trim();
-    var usd = CultureInfo.GetCultureInfo("en-US");
+    var usd = CultureInfo.GetCultureInfo(DirectoryManager.Web.Constants.StringConstants.EnglishUS);
 
     // ✅ View-only "Main Sponsor is open" check
     var mainSponsorIsOpen = false;
@@ -35,6 +35,9 @@
     <hr />
     @await Html.PartialAsync("_BackToHome")
     <hr />
+
+    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SponsoredListingSteps))
+
 
     <p style="margin: 0 0 10px 0;">
         <strong>Find your listing, claim your spot.</strong><br />
@@ -211,7 +214,7 @@
                         {
                             @row.ListingName
                         }
-                        — joined @row.JoinedUtc.ToString("yyyy-MM-dd") (UTC)
+                        — joined @row.JoinedUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) (UTC)
                     </li>
                 }
             </ul>
@@ -251,13 +254,13 @@
             <table class="table" style="width: 100%;">
                 <thead>
                     <tr>
-                        <th>Paid (UTC)</th>
+                        <th>Paid</th>
                         <th>Type</th>
                         <th>Listing</th>
                         <th style="text-align:right;">Days</th>
-                        <th style="text-align:right;">Paid (XMR)</th>
+                            <th style="text-align:right;">Paid (@Currency.XMR.ToString())</th>
                         <th style="text-align:right;">USD</th>
-                        <th style="text-align:right;">Expires (UTC)</th>
+                        <th style="text-align:right;">Expires</th>
                         <th style="text-align:right;">USD/day</th>
                     </tr>
                 </thead>
@@ -265,7 +268,7 @@
                     @foreach (var item in Model.RecentPaid.Items)
                     {
                         <tr>
-                            <td>@item.PaidUtc.ToString("yyyy-MM-dd")</td>
+                            <td>@item.PaidUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                             <td>@item.SponsorshipType</td>
                             <td>
                                 @if (!string.IsNullOrWhiteSpace(item.ListingUrl))
@@ -280,17 +283,17 @@
 
                             <td style="text-align:right;">@item.Days</td>
                             <td style="text-align:right;">
-                                @if (string.Equals(item.PaidCurrency, "XMR", StringComparison.OrdinalIgnoreCase))
+                                @if (string.Equals(item.PaidCurrency, Currency.XMR.ToString(), StringComparison.OrdinalIgnoreCase))
                                 {
-                                    @item.PaidAmount.ToString("0.########")
+                                    @item.PaidAmount.ToString(DirectoryManager.Common.Constants.StringConstants.RoundingFormatCrypto)
                                 }
                                 else
                                 {
-                                    @item.PaidAmount.ToString("0.########")
+                                        @item.PaidAmount.ToString(DirectoryManager.Common.Constants.StringConstants.RoundingFormatCrypto)
                                 }
                             </td>
                             <td style="text-align:right;">@item.AmountUsd.ToString("C2", usd)</td>
-                            <td style="text-align:right;">@item.ExpiresUtc.ToString("yyyy-MM-dd")</td>
+                            <td style="text-align:right;">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3)</td>
                             <td style="text-align:right;">@item.PricePerDayUsd.ToString("C2", usd)</td>
                         </tr>
                     }
