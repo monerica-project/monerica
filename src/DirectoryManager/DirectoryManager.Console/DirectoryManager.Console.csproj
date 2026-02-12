@@ -13,6 +13,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Nager.PublicSuffix" Version="3.7.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="OpenAI" Version="2.8.0" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
