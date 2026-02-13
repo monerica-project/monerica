@@ -349,7 +349,7 @@
         @if (latestReviews?.Any() == true)
         {
             <hr />
-            <p><b>Latest Reviews</b></p>
+            <h3>Latest Reviews</h3>
             <ul class="blank_list_item">
                 @foreach (var r in latestReviews)
                 {
@@ -385,7 +385,7 @@
             @* ✅ Latest Replies *@
             @if (latestComments?.Any() == true)
             {
-                <p><b>Latest Replies</b></p>
+                <h3>Latest Replies</h3>
                 <ul class="blank_list_item">
                     @foreach (var c in latestComments)
                     {

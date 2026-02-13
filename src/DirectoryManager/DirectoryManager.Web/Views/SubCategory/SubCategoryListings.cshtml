@@ -209,34 +209,45 @@
         }
     </ul>
 
-  @{
-    int totalPages = (int)Math.Ceiling(Model.PagedEntries.TotalCount / (double)Model.PageSize);
-    int currentPage = Model.CurrentPage;
-    string categoryKey = Model.Category.CategoryKey;
-    string subCategoryKey = Model.SubCategoryKey;
-}
+    @{
+        int totalPages = (int)Math.Ceiling(Model.PagedEntries.TotalCount / (double)Model.PageSize);
+        int currentPage = Model.CurrentPage < 1 ? 1 : Model.CurrentPage;
 
-<nav aria-label="Pagination">
-    <ul class="pagination">
-        @for (int p = 1; p <= totalPages; p++)
-        {
-            string rawPath = p == 1
-                ? $"/{categoryKey}/{subCategoryKey}"
-                : $"/{categoryKey}/{subCategoryKey}/page/{p}";
+        string categoryKey2 = Model.Category.CategoryKey;
+        string subCategoryKey2 = Model.SubCategoryKey;
+    }
 
-            string href = p == 1
-                ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
-                : UrlResolver.ResolveToApp(rawPath);
+    @if (totalPages > 1)
+    {
+        <nav aria-label="Pagination">
+            <ul class="pagination">
+                @for (int p = 1; p <= totalPages; p++)
+                {
+                    string rawPath = (p == 1)
+                        ? $"/{categoryKey2}/{subCategoryKey2}"
+                        : $"/{categoryKey2}/{subCategoryKey2}/page/{p}";
 
-            string linkClass = p == 1 ? "no-app-link" : "no-app-link";
-            string activeClass = p == currentPage ? "active" : "";
+                    string href = (p == 1)
+                        ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
+                        : UrlResolver.ResolveToApp(rawPath);
 
-            <li class="page-item @activeClass">
-                <a class="page-link @linkClass" href="@href">@p</a>
-            </li>
-        }
-    </ul>
-</nav>
+                    var isActive = (p == currentPage);
+
+                    <li class="page-item @(isActive ? "active" : "")">
+                        @if (isActive)
+                        {
+                            <span class="page-link" aria-current="page">@p</span>
+                        }
+                        else
+                        {
+                            <a class="page-link no-app-link" href="@href">@p</a>
+                        }
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+
 
 <hr />
 
