@@ -17,11 +17,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.context = context ?? throw new ArgumentNullException(nameof(context));
         }
 
-        // Centralize eager-loading for all places that need DirectoryEntry populated
-        private static IQueryable<SponsoredListingInvoice> WithIncludes(IQueryable<SponsoredListingInvoice> q) =>
-            q.Include(i => i.DirectoryEntry) // ensures DirectoryEntry and its Name are populated
-             .Include(i => i.SponsoredListing);         // optional, but often useful
-
         public async Task<SponsoredListingInvoice?> GetByIdAsync(int sponsoredListingInvoiceId)
         {
             return await WithIncludes(this.context.SponsoredListingInvoices)
@@ -494,12 +489,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return results;
         }
 
-
-
-
-        // ------------------------------------------------------------
-        // NEW: Paid invoices overlapping a window (for churn calculation)
-        // ------------------------------------------------------------
         public async Task<List<SponsoredListingInvoice>> GetPaidInvoicesAsync(
             DateTime fromUtc,
             DateTime toUtc,
@@ -643,6 +632,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 };
             }).ToList();
         }
+
+        // Centralize eager-loading for all places that need DirectoryEntry populated
+        private static IQueryable<SponsoredListingInvoice> WithIncludes(IQueryable<SponsoredListingInvoice> q) =>
+            q.Include(i => i.DirectoryEntry) // ensures DirectoryEntry and its Name are populated
+             .Include(i => i.SponsoredListing);         // optional, but often useful
 
         private static void CopyMutableFields(SponsoredListingInvoice target, SponsoredListingInvoice src)
         {

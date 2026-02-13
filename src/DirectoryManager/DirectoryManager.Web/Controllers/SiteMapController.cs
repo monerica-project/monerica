@@ -23,7 +23,6 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISponsoredListingRepository sponsoredListingRepository;
         private readonly IDirectoryEntrySelectionRepository directoryEntrySelectionRepository;
         private readonly ITagRepository tagRepository;
-        private readonly IDirectoryEntryTagRepository entryTagRepository; // (kept if used elsewhere)
         private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
         private readonly IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository;
 
@@ -37,7 +36,6 @@ namespace DirectoryManager.Web.Controllers
             ISponsoredListingRepository sponsoredListingRepository,
             IDirectoryEntrySelectionRepository directoryEntrySelectionRepository,
             ITagRepository tagRepository,
-            IDirectoryEntryTagRepository entryTagRepository,
             IDirectoryEntryReviewRepository directoryEntryReviewRepository,
             IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository)
         {
@@ -50,7 +48,6 @@ namespace DirectoryManager.Web.Controllers
             this.sponsoredListingRepository = sponsoredListingRepository;
             this.directoryEntrySelectionRepository = directoryEntrySelectionRepository;
             this.tagRepository = tagRepository;
-            this.entryTagRepository = entryTagRepository;
             this.directoryEntryReviewRepository = directoryEntryReviewRepository;
             this.directoryEntryReviewCommentRepository = directoryEntryReviewCommentRepository;
         }

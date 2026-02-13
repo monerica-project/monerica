@@ -154,6 +154,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 linkWithoutSlash = linkWithoutSlash[..^1];
             }
+
             var linkWithSlash = linkWithoutSlash + "/";
 
             var existingEntryByLink =

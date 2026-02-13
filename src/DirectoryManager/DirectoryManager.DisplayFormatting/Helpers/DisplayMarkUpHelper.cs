@@ -426,7 +426,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         }
 
         /// <summary>
-        /// Emits: Website | Tor | I2P (only those which exist)
+        /// Emits: Website | Tor | I2P (only those which exist).
         /// </summary>
         private static void AppendSearchResultLinksLine(StringBuilder sb, DirectoryEntryViewModel model)
         {
@@ -502,7 +502,10 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
         private static void AppendDescriptionNoteLine(StringBuilder sb, DirectoryEntryViewModel model)
         {
-            if (string.IsNullOrWhiteSpace(model.Description)) return;
+            if (string.IsNullOrWhiteSpace(model.Description))
+            {
+                return;
+            }
 
             var desc = WebUtility.HtmlEncode(model.Description);
             sb.AppendFormat("<p>{0}", desc);

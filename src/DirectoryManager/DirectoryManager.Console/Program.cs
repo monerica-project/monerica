@@ -12,12 +12,12 @@ using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
-using Newtonsoft.Json;
-using OpenAI;
-using OpenAI.Chat;
 using Nager.PublicSuffix;
 using Nager.PublicSuffix.RuleProviders;
 using Nager.PublicSuffix.RuleProviders.CacheProviders;
+using Newtonsoft.Json;
+using OpenAI;
+using OpenAI.Chat;
 
 var config = new ConfigurationBuilder()
     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
@@ -50,7 +50,9 @@ if (choice == "1")
     var jsonData = JsonConvert.DeserializeObject<List<UserAgentModel>>(json);
 
     if (jsonData == null)
+    {
         return;
+    }
 
     var userAgentRepository = serviceProvider.GetService<IExcludeUserAgentRepository>()
         ?? throw new InvalidOperationException("The IExcludeUserAgentRepository service is not registered.");
@@ -58,12 +60,16 @@ if (choice == "1")
     foreach (var instance in jsonData)
     {
         if (instance.Instances == null)
+        {
             continue;
+        }
 
         foreach (var userAgent in instance.Instances)
         {
             if (userAgentRepository.Exists(userAgent))
+            {
                 continue;
+            }
 
             userAgentRepository.Create(new DirectoryManager.Data.Models.ExcludeUserAgent()
             {
@@ -345,10 +351,6 @@ else
     Console.WriteLine("Invalid choice. Exiting.");
 }
 
-// =========================
-// Shared helpers
-// =========================
-
 static void AddToMap(Dictionary<string, HashSet<string>> map, string key, string value)
 {
     if (!map.TryGetValue(key, out var set))
@@ -358,7 +360,9 @@ static void AddToMap(Dictionary<string, HashSet<string>> map, string key, string
     }
 
     if (!string.IsNullOrWhiteSpace(value))
+    {
         set.Add(value);
+    }
 }
 
 static bool TryGetHostFromLink(string link, out string host)
@@ -366,10 +370,14 @@ static bool TryGetHostFromLink(string link, out string host)
     host = string.Empty;
 
     if (!link.Contains("://", StringComparison.OrdinalIgnoreCase))
+    {
         link = "https://" + link;
+    }
 
     if (!Uri.TryCreate(link, UriKind.Absolute, out var uri))
+    {
         return false;
+    }
 
     host = (uri.Host ?? string.Empty).Trim().Trim('.');
     return !string.IsNullOrWhiteSpace(host);
@@ -379,7 +387,9 @@ static async Task<List<string>> ResolveIPv4sWithRetryAsync(string host, TimeSpan
 {
     host = (host ?? "").Trim().Trim('.');
     if (string.IsNullOrWhiteSpace(host))
+    {
         return new List<string>();
+    }
 
     for (var attempt = 1; attempt <= maxAttempts; attempt++)
     {
@@ -448,7 +458,9 @@ static string GetRegistrableDomainOrHost(string host, DomainParser domainParser)
 
         // RegistrableDomain is the "root" you want: example.com / example.co.uk / etc
         if (!string.IsNullOrWhiteSpace(info.RegistrableDomain))
+        {
             return info.RegistrableDomain;
+        }
 
         return host;
     }

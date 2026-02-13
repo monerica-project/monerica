@@ -149,15 +149,19 @@ foreach (var notification in pendingNotifications)
 
         // Prepare email body
         var plainTextContent = emailMessage.EmailBodyText
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder,
+            .Replace(
+                DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder,
                 EnumHelper.GetDescription(notification.SponsorshipType))
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingRenewalLinkToken,
+            .Replace(
+                DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingRenewalLinkToken,
                 notificationLink);
 
         var htmlContent = emailMessage.EmailBodyHtml
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder,
+            .Replace(
+                DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder,
                 EnumHelper.GetDescription(notification.SponsorshipType))
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingRenewalLinkToken,
+            .Replace(
+                DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingRenewalLinkToken,
                 notificationLink);
 
         // Send
@@ -222,7 +226,9 @@ static async Task<bool> CanPurchaseCategoryListing(
     DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification notification)
 {
     if (!notification.TypeId.HasValue || notification.TypeId.Value <= 0)
+    {
         return false;
+    }
 
     var categoryId = notification.TypeId.Value;
 
@@ -249,7 +255,9 @@ static async Task<bool> CanPurchaseSubcategoryListing(
     DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification notification)
 {
     if (!notification.TypeId.HasValue || notification.TypeId.Value <= 0)
+    {
         return false;
+    }
 
     var subCategoryId = notification.TypeId.Value;
 
