@@ -186,7 +186,7 @@
         @if (featuredEntries?.Any() == true)
         {
             <hr />
-            <p><b>Featured</b></p>
+            <h3>Featured</h3>
             <ul class="blank_list_item">
                 @{
                     var vmList = ViewModelConverter.ConvertToViewModels(
@@ -211,7 +211,7 @@
         @if (newest?.Any() == true)
         {
             <hr />
-            <p><b>Newest Additions</b></p>
+            <h3>Newest Additions</h3> 
             <i>
                 See:
                 <a href="~/newest">all new additions</a>
@@ -245,7 +245,7 @@
         }
         @if (revisions?.Any() == true)
         {
-            <p><b>Newest Revisions</b></p>
+            <h3>Newest Revisions</h3>
             <ul class="blank_list_item">
                 @{
                     var vmList = ViewModelConverter.ConvertToViewModels(
