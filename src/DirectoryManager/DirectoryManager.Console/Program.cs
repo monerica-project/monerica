@@ -315,7 +315,9 @@ else if (choice == "3")
         {
             var wwwRoot = "www." + rootDomain;
             if (!wwwRoot.Equals(originalHost, StringComparison.OrdinalIgnoreCase))
+            {
                 list.Add(wwwRoot);
+            }
         }
 
         // De-dupe while preserving order
@@ -324,8 +326,15 @@ else if (choice == "3")
         foreach (var x in list)
         {
             var v = (x ?? "").Trim().Trim('.');
-            if (string.IsNullOrWhiteSpace(v)) continue;
-            if (seen.Add(v)) deduped.Add(v);
+            if (string.IsNullOrWhiteSpace(v))
+            {
+                continue;
+            }
+
+            if (seen.Add(v))
+            {
+                deduped.Add(v);
+            }
         }
 
         return deduped;
@@ -339,7 +348,9 @@ else if (choice == "3")
         TimeSpan retryDelay)
     {
         if (cache.TryGetValue(host, out var cached))
+        {
             return cached;
+        }
 
         var resolved = await ResolveIPv4sWithRetryAsync(host, timeout, maxAttempts, retryDelay);
         cache[host] = resolved;
@@ -399,7 +410,9 @@ static async Task<List<string>> ResolveIPv4sWithRetryAsync(string host, TimeSpan
             var completed = await Task.WhenAny(dnsTask, Task.Delay(timeout));
 
             if (completed != dnsTask)
+            {
                 throw new TimeoutException($"DNS lookup timed out after {timeout.TotalSeconds:n0}s");
+            }
 
             var addresses = await dnsTask;
 
@@ -414,7 +427,9 @@ static async Task<List<string>> ResolveIPv4sWithRetryAsync(string host, TimeSpan
         {
             Console.WriteLine($"  Attempt {attempt}/{maxAttempts} failed for {host}: {ex.Message}");
             if (attempt < maxAttempts)
+            {
                 await Task.Delay(retryDelay);
+            }
         }
     }
 
@@ -437,7 +452,9 @@ static string GetRegistrableDomainOrHost(string host, DomainParser domainParser)
 {
     host = (host ?? "").Trim().Trim('.');
     if (string.IsNullOrWhiteSpace(host))
+    {
         return host;
+    }
 
     // Normalize IDN -> punycode for stability
     try { host = new IdnMapping().GetAscii(host); } catch { /* ignore */ }
@@ -446,11 +463,15 @@ static string GetRegistrableDomainOrHost(string host, DomainParser domainParser)
 
     // IP stays IP
     if (IPAddress.TryParse(host, out _))
+    {
         return host;
+    }
 
     // strip www for consistency
     if (host.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
+    {
         host = host.Substring(4);
+    }
 
     try
     {

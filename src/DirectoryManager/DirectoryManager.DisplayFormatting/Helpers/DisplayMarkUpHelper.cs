@@ -286,6 +286,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             {
                 sb.Append(@" class=""sponsored"" ");
             }
+
             sb.Append(">");
         }
 
@@ -495,9 +496,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             var catUrl = $"{domain}/{catKey}";
             var subUrl = $"{domain}/{catKey}/{subKey}";
 
-            sb.AppendFormat(
-                "<p><a class=\"no-app-link\" href=\"{0}\">{1}</a> &rsaquo; <a class=\"no-app-link\" href=\"{2}\">{3}</a></p>",
-                WebUtility.HtmlEncode(catUrl), catName, WebUtility.HtmlEncode(subUrl), subName);
+            sb.AppendFormat($"<p><a class=\"no-app-link\" href=\"{WebUtility.HtmlEncode(catUrl)}\">{catName}</a> &rsaquo; <a class=\"no-app-link\" href=\"{WebUtility.HtmlEncode(subUrl)}\">{subName}</a></p>");
         }
 
         private static void AppendDescriptionNoteLine(StringBuilder sb, DirectoryEntryViewModel model)
@@ -592,7 +591,10 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
         private static string? BuildReviewsUrl(string? rootUrl, string? itemPath)
         {
-            if (string.IsNullOrWhiteSpace(itemPath)) return null;
+            if (string.IsNullOrWhiteSpace(itemPath))
+            {
+                return null;
+            }
 
             var baseUrl = (rootUrl ?? string.Empty).TrimEnd('/');
             var path = itemPath.StartsWith("/") ? itemPath : "/" + itemPath;
@@ -702,9 +704,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             if (isScam)
             {
-                sb.AppendFormat(
-                    "<a {3} href=\"{0}\" {1}>{2}</a>",
-                    WebUtility.HtmlEncode(finalLink), target, name, relAttr);
+                sb.AppendFormat($"<a {relAttr} href=\"{WebUtility.HtmlEncode(finalLink)}\" {target}>{name}</a>");
             }
             else
             {

@@ -680,7 +680,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View("SubcategoryTrends", vm);
         }
 
-
         [AllowAnonymous]
         [HttpGet("site/{directoryEntryKey}")]
         [HttpGet("site/{directoryEntryKey}/page/{page:int}")]
@@ -743,6 +742,212 @@ namespace DirectoryManager.Web.Controllers
             return this.View("DirectoryEntryView", model);
         }
 
+        private static HashSet<int> NormalizeSelectedIds(IEnumerable<int>? ids)
+        {
+            return (ids ?? Enumerable.Empty<int>())
+                .Where(x => x > 0)
+                .Distinct()
+                .ToHashSet();
+        }
+
+        // Normalize any fingerprint (strip spaces/separators, upper-case)
+        private static string NormalizeFp(string? s)
+        {
+            if (string.IsNullOrWhiteSpace(s))
+            {
+                return string.Empty;
+            }
+
+            string hex = Regex.Replace(s, @"[^0-9A-Fa-f]", ""); // keep hex only
+            return hex.ToUpperInvariant();
+        }
+
+        private static List<string> NormalizeAdditionalLinks(IEnumerable<string>? links, int max = IntegerConstants.MaxAdditionalLinks)
+        {
+            return (links ?? Enumerable.Empty<string>())
+                .Select(x => (x ?? string.Empty).Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(max)
+                .ToList();
+        }
+
+        private static string BuildLocationHtml(string? locationRaw, string? countryCode, IUrlResolutionService urlResolver)
+        {
+            var location = locationRaw?.Trim();
+            var ccRaw = countryCode?.Trim();
+
+            // Prepare flag (show whenever we have a country code)
+            string flagHtml = string.Empty;
+            if (!string.IsNullOrWhiteSpace(ccRaw))
+            {
+                var ccLower = ccRaw.ToLowerInvariant();
+                var countryNameForAlt = CountryHelper.GetCountryName(ccRaw) ?? string.Empty;
+                var altTitle = string.IsNullOrWhiteSpace(countryNameForAlt)
+                    ? $"Flag ({ccRaw})"
+                    : $"Flag of {countryNameForAlt} ({ccRaw.ToUpperInvariant()})";
+
+                flagHtml =
+                    $"<img class=\"country-flag me-2 align-text-bottom\" " +
+                    $"src=\"/images/flags/{ccLower}.png\" " +
+                    $"alt=\"{WebUtility.HtmlEncode(altTitle)}\" " +
+                    $"title=\"{WebUtility.HtmlEncode(countryNameForAlt)}\" /> ";
+            }
+
+            // Compute country name + link (if available)
+            string? countryName = null;
+            string? anchorHtml = null;
+
+            if (!string.IsNullOrWhiteSpace(ccRaw))
+            {
+                countryName = CountryHelper.GetCountryName(ccRaw);
+                if (!string.IsNullOrWhiteSpace(countryName))
+                {
+                    var slug = StringHelpers.UrlKey(countryName);
+                    var href = urlResolver.ResolveToRoot($"/countries/{slug}");
+                    anchorHtml = $"<a class=\"no-app-link\" href=\"{href}\">{WebUtility.HtmlEncode(countryName)}</a>";
+                }
+            }
+
+            // Nothing else to show
+            if (string.IsNullOrWhiteSpace(location) && string.IsNullOrWhiteSpace(countryName))
+            {
+                return flagHtml; // could be empty if no cc
+            }
+
+            // If we don't have a country name/link, just emit flag + encoded location
+            if (string.IsNullOrWhiteSpace(countryName) || string.IsNullOrWhiteSpace(anchorHtml))
+            {
+                return $"{flagHtml}{WebUtility.HtmlEncode(location ?? string.Empty)}";
+            }
+
+            // If location already ends with the country (standalone), link ONLY that trailing country.
+            // Examples it will match:
+            // "Mexico City, Mexico"
+            // "Mexico"
+            // "Mexico City ,   Mexico"
+            // It will NOT match "Mexico City" (because Mexico isn't at the end).
+            if (!string.IsNullOrWhiteSpace(location))
+            {
+                var pattern = $@"(?i)(?<sep>,\s*|\s*)\b{Regex.Escape(countryName!)}\b\s*$";
+                var match = Regex.Match(location!, pattern);
+
+                if (match.Success)
+                {
+                    var start = match.Index;
+                    var before = location!.Substring(0, start);
+                    var sep = match.Groups["sep"].Value; // keep whatever comma/space was there
+
+                    return $"{flagHtml}{WebUtility.HtmlEncode(before)}{WebUtility.HtmlEncode(sep)}{anchorHtml}";
+                }
+
+                // Otherwise append ", <linked country>" (exactly one comma + space)
+                var left = location!.TrimEnd();
+                if (left.EndsWith(",", StringComparison.Ordinal))
+                {
+                    left += " ";
+                }
+                else
+                {
+                    left += ", ";
+                }
+
+                return $"{flagHtml}{WebUtility.HtmlEncode(left)}{anchorHtml}";
+            }
+
+            // No location text; only the linked country (with flag)
+            return $"{flagHtml}{anchorHtml}";
+        }
+
+        private async Task LoadLists()
+        {
+            await this.LoadSubCategories();
+            await this.PopulateCountryDropDownList();
+        }
+
+        private async Task PopulateCountryDropDownList(object? selectedId = null)
+        {
+            // Get the dictionary of countries from the helper.
+            var countries = CountryHelper.GetCountries();
+
+            countries = countries.OrderBy(x => x.Value).ToDictionary<string, string>();
+
+            // Build a list of SelectListItem from the dictionary.
+            var list = countries.Select(c => new SelectListItem
+            {
+                Value = c.Key,
+                Text = c.Value
+            }).ToList();
+
+            // Insert default option at the top.
+            list.Insert(0, new SelectListItem { Value = "", Text = StringConstants.SelectText });
+            this.ViewBag.CountryCode = new SelectList(list, "Value", "Text", selectedId);
+            await Task.CompletedTask; // For async signature compliance.
+        }
+
+        private async Task LoadSubCategories()
+        {
+            var subCategories = (await this.subCategoryRepository.GetAllDtoAsync())
+                .OrderBy(sc => sc.CategoryName)
+                .ThenBy(sc => sc.Name)
+                .Select(sc => new
+                {
+                    sc.SubcategoryId,
+                    DisplayName = $"{sc.CategoryName} > {sc.Name}"
+                })
+                .ToList();
+
+            subCategories.Insert(0, new { SubcategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
+
+            this.ViewBag.SubCategories = subCategories;
+        }
+
+        private async Task LoadTagCheckboxesAsync(HashSet<int>? selectedIds = null)
+        {
+            var allTags = await this.tagRepo.ListAllAsync();
+
+            this.ViewBag.AllTags = allTags
+                .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+                .Select(t => new TagOptionVm { TagId = t.TagId, Name = t.Name })
+                .ToList();
+
+            this.ViewBag.SelectedTagIds = selectedIds ?? new HashSet<int>();
+        }
+
+        private async Task SyncAdditionalLinksAsync(int directoryEntryId, List<string> normalizedLinks, CancellationToken ct = default)
+        {
+            // delete all existing for the entry, then re-insert in order
+            await this.additionalLinkRepo.DeleteByDirectoryEntryIdAsync(directoryEntryId, ct);
+
+            for (int i = 0; i < normalizedLinks.Count; i++)
+            {
+                await this.additionalLinkRepo.CreateAsync(
+                    new AdditionalLink
+                {
+                    DirectoryEntryId = directoryEntryId,
+                    Link = normalizedLinks[i],
+                    SortOrder = i + 1
+                }, ct);
+            }
+        }
+
+        private async Task<List<string>> GetAdditionalLinkUrlsAsync(int directoryEntryId, CancellationToken ct)
+        {
+            var additionalLinks = await this.additionalLinkRepo.GetByDirectoryEntryIdAsync(directoryEntryId, ct);
+
+            return (additionalLinks ?? new List<AdditionalLink>())
+                .OrderBy(x => x.SortOrder)
+                .Select(x => x.Link)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private async Task<bool> IsEntrySponsoredAsync(int directoryEntryId)
+        {
+            var sponsors = await this.GetAllSponsorsCachedAsync();
+            return sponsors.Any(s => s.DirectoryEntryId == directoryEntryId);
+        }
 
         private async Task SetCanonicalAsync(string directoryEntryKey)
         {
@@ -776,6 +981,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     c.DisplayName = string.IsNullOrWhiteSpace(c.DisplayName) ? null : c.DisplayName;
                 }
+
                 return;
             }
 
@@ -953,213 +1159,6 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.SubCategoryName = subcategory.Name;
             this.ViewBag.CategoryKey = category.CategoryKey;
             this.ViewBag.SubCategoryKey = subcategory.SubCategoryKey;
-        }
-
-
-        private static HashSet<int> NormalizeSelectedIds(IEnumerable<int>? ids)
-        {
-            return (ids ?? Enumerable.Empty<int>())
-                .Where(x => x > 0)
-                .Distinct()
-                .ToHashSet();
-        }
-
-        // Normalize any fingerprint (strip spaces/separators, upper-case)
-        private static string NormalizeFp(string? s)
-        {
-            if (string.IsNullOrWhiteSpace(s))
-            {
-                return string.Empty;
-            }
-
-            string hex = Regex.Replace(s, @"[^0-9A-Fa-f]", ""); // keep hex only
-            return hex.ToUpperInvariant();
-        }
-
-        private static string BuildLocationHtml(string? locationRaw, string? countryCode, IUrlResolutionService urlResolver)
-        {
-            var location = locationRaw?.Trim();
-            var ccRaw = countryCode?.Trim();
-
-            // Prepare flag (show whenever we have a country code)
-            string flagHtml = string.Empty;
-            if (!string.IsNullOrWhiteSpace(ccRaw))
-            {
-                var ccLower = ccRaw.ToLowerInvariant();
-                var countryNameForAlt = CountryHelper.GetCountryName(ccRaw) ?? string.Empty;
-                var altTitle = string.IsNullOrWhiteSpace(countryNameForAlt)
-                    ? $"Flag ({ccRaw})"
-                    : $"Flag of {countryNameForAlt} ({ccRaw.ToUpperInvariant()})";
-
-                flagHtml =
-                    $"<img class=\"country-flag me-2 align-text-bottom\" " +
-                    $"src=\"/images/flags/{ccLower}.png\" " +
-                    $"alt=\"{WebUtility.HtmlEncode(altTitle)}\" " +
-                    $"title=\"{WebUtility.HtmlEncode(countryNameForAlt)}\" /> ";
-            }
-
-            // Compute country name + link (if available)
-            string? countryName = null;
-            string? anchorHtml = null;
-
-            if (!string.IsNullOrWhiteSpace(ccRaw))
-            {
-                countryName = CountryHelper.GetCountryName(ccRaw);
-                if (!string.IsNullOrWhiteSpace(countryName))
-                {
-                    var slug = StringHelpers.UrlKey(countryName);
-                    var href = urlResolver.ResolveToRoot($"/countries/{slug}");
-                    anchorHtml = $"<a class=\"no-app-link\" href=\"{href}\">{WebUtility.HtmlEncode(countryName)}</a>";
-                }
-            }
-
-            // Nothing else to show
-            if (string.IsNullOrWhiteSpace(location) && string.IsNullOrWhiteSpace(countryName))
-            {
-                return flagHtml; // could be empty if no cc
-            }
-
-            // If we don't have a country name/link, just emit flag + encoded location
-            if (string.IsNullOrWhiteSpace(countryName) || string.IsNullOrWhiteSpace(anchorHtml))
-            {
-                return $"{flagHtml}{WebUtility.HtmlEncode(location ?? string.Empty)}";
-            }
-
-            // If location already ends with the country (standalone), link ONLY that trailing country.
-            // Examples it will match:
-            // "Mexico City, Mexico"
-            // "Mexico"
-            // "Mexico City ,   Mexico"
-            // It will NOT match "Mexico City" (because Mexico isn't at the end).
-            if (!string.IsNullOrWhiteSpace(location))
-            {
-                var pattern = $@"(?i)(?<sep>,\s*|\s*)\b{Regex.Escape(countryName!)}\b\s*$";
-                var match = Regex.Match(location!, pattern);
-
-                if (match.Success)
-                {
-                    var start = match.Index;
-                    var before = location!.Substring(0, start);
-                    var sep = match.Groups["sep"].Value; // keep whatever comma/space was there
-
-                    return $"{flagHtml}{WebUtility.HtmlEncode(before)}{WebUtility.HtmlEncode(sep)}{anchorHtml}";
-                }
-
-                // Otherwise append ", <linked country>" (exactly one comma + space)
-                var left = location!.TrimEnd();
-                if (left.EndsWith(",", StringComparison.Ordinal))
-                {
-                    left += " ";
-                }
-                else
-                {
-                    left += ", ";
-                }
-
-                return $"{flagHtml}{WebUtility.HtmlEncode(left)}{anchorHtml}";
-            }
-
-            // No location text; only the linked country (with flag)
-            return $"{flagHtml}{anchorHtml}";
-        }
-
-        private async Task LoadLists()
-        {
-            await this.LoadSubCategories();
-            await this.PopulateCountryDropDownList();
-        }
-
-        private async Task PopulateCountryDropDownList(object? selectedId = null)
-        {
-            // Get the dictionary of countries from the helper.
-            var countries = CountryHelper.GetCountries();
-
-            countries = countries.OrderBy(x => x.Value).ToDictionary<string, string>();
-
-            // Build a list of SelectListItem from the dictionary.
-            var list = countries.Select(c => new SelectListItem
-            {
-                Value = c.Key,
-                Text = c.Value
-            }).ToList();
-
-            // Insert default option at the top.
-            list.Insert(0, new SelectListItem { Value = "", Text = StringConstants.SelectText });
-            this.ViewBag.CountryCode = new SelectList(list, "Value", "Text", selectedId);
-            await Task.CompletedTask; // For async signature compliance.
-        }
-
-        private async Task LoadSubCategories()
-        {
-            var subCategories = (await this.subCategoryRepository.GetAllDtoAsync())
-                .OrderBy(sc => sc.CategoryName)
-                .ThenBy(sc => sc.Name)
-                .Select(sc => new
-                {
-                    sc.SubcategoryId,
-                    DisplayName = $"{sc.CategoryName} > {sc.Name}"
-                })
-                .ToList();
-
-            subCategories.Insert(0, new { SubcategoryId = 0, DisplayName = Constants.StringConstants.SelectACategory });
-
-            this.ViewBag.SubCategories = subCategories;
-        }
-
-        private async Task LoadTagCheckboxesAsync(HashSet<int>? selectedIds = null)
-        {
-            var allTags = await this.tagRepo.ListAllAsync();
-
-            this.ViewBag.AllTags = allTags
-                .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
-                .Select(t => new TagOptionVm { TagId = t.TagId, Name = t.Name })
-                .ToList();
-
-            this.ViewBag.SelectedTagIds = selectedIds ?? new HashSet<int>();
-        }
-
-        private static List<string> NormalizeAdditionalLinks(IEnumerable<string>? links, int max = IntegerConstants.MaxAdditionalLinks)
-        {
-            return (links ?? Enumerable.Empty<string>())
-                .Select(x => (x ?? string.Empty).Trim())
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Take(max)
-                .ToList();
-        }
- 
-        private async Task SyncAdditionalLinksAsync(int directoryEntryId, List<string> normalizedLinks, CancellationToken ct = default)
-        {
-            // delete all existing for the entry, then re-insert in order
-            await this.additionalLinkRepo.DeleteByDirectoryEntryIdAsync(directoryEntryId, ct);
-
-            for (int i = 0; i < normalizedLinks.Count; i++)
-            {
-                await this.additionalLinkRepo.CreateAsync(new AdditionalLink
-                {
-                    DirectoryEntryId = directoryEntryId,
-                    Link = normalizedLinks[i],
-                    SortOrder = i + 1
-                }, ct);
-            }
-        }
-
-        private async Task<List<string>> GetAdditionalLinkUrlsAsync(int directoryEntryId, CancellationToken ct)
-        {
-            var additionalLinks = await this.additionalLinkRepo.GetByDirectoryEntryIdAsync(directoryEntryId, ct);
-
-            return (additionalLinks ?? new List<AdditionalLink>())
-                .OrderBy(x => x.SortOrder)
-                .Select(x => x.Link)
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
-        }
-
-        private async Task<bool> IsEntrySponsoredAsync(int directoryEntryId)
-        {
-            var sponsors = await this.GetAllSponsorsCachedAsync();
-            return sponsors.Any(s => s.DirectoryEntryId == directoryEntryId);
         }
 
         private async Task<(EntryReviewsBlockViewModel Vm, int EffectivePage)> BuildReviewsVmAsync(

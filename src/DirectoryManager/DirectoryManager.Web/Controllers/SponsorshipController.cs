@@ -53,7 +53,6 @@ namespace DirectoryManager.Web.Controllers
             this.invoiceRepo = invoiceRepo;
         }
 
-
         // GET /sponsorship
         [HttpGet("")]
         public async Task<IActionResult> Index(string? q, int page = 1)
@@ -131,7 +130,6 @@ namespace DirectoryManager.Web.Controllers
             main.Offers = await this.LoadOffersAsync(SponsorshipType.MainSponsor, pricingSubId);
             cat.Offers = await this.LoadOffersAsync(SponsorshipType.CategorySponsor, pricingSubId);
             sub.Offers = await this.LoadOffersAsync(SponsorshipType.SubcategorySponsor, pricingSubId);
-
 
             // Scoped waitlist previews (jealousy + competition)
             main.Waitlist = await this.BuildWaitlistPanelAsync(SponsorshipType.MainSponsor, typeId: null);
@@ -247,61 +245,31 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction("Options", new { directoryEntryId = entry.DirectoryEntryId, subscribed = 1 });
         }
 
-        // ----------------------------
-        // VIEWMODEL BUILDERS
-        // ----------------------------
-
-        private async Task<RecentPaidVm> BuildRecentPaidAsync()
+        private static DirectoryEntry? TryGetEntry(Dictionary<int, DirectoryEntry> lookup, int? id)
         {
-            var rows = await this.invoiceRepo.GetRecentPaidActivePurchasesAsync(RecentPaidTake);
-
-            return new RecentPaidVm
+            if (id.HasValue && id.Value > 0 && lookup.TryGetValue(id.Value, out var e))
             {
-                Items = rows.Select(r => new RecentPaidItemVm
-                {
-                    PaidUtc = r.PaidDateUtc,
-                    SponsorshipType = EnumHelper.GetDescription(r.SponsorshipType),
+                return e;
+            }
 
-                    Days = r.Days,
-                    AmountUsd = r.AmountUsd,
-                    PricePerDayUsd = r.PricePerDayUsd,
-
-                    PaidCurrency = r.PaidCurrency.ToString(),
-                    PaidAmount = r.PaidAmount,
-
-                    ExpiresUtc = r.ExpiresUtc,
-
-                    ListingName = r.ListingName,
-                    ListingUrl = r.ListingUrl
-                }).ToList()
-            };
+            return null;
         }
 
-
-
-        private SponsorshipSearchItemVm ToSearchItem(DirectoryEntry e)
+        private static string GetListingName(DirectoryEntry? entry, int? directoryEntryId)
         {
-            var (ok, reasons) = GetAdvertiseEligibility(e);
-
-            var cat = e.SubCategory?.Category?.Name ?? "";
-            var sub = e.SubCategory?.Name ?? "";
-            var ageDays = (e.CreateDate == DateTime.MinValue) ? 0 : (int)Math.Floor((DateTime.UtcNow - e.CreateDate).TotalDays);
-
-            return new SponsorshipSearchItemVm
+            if (entry != null && !string.IsNullOrWhiteSpace(entry.Name))
             {
-                DirectoryEntryId = e.DirectoryEntryId,
-                Name = e.Name ?? StringConstants.DefaultName,
-                Link = e.Link ?? "",
-                DirectoryEntryKey = e.DirectoryEntryKey ?? "",
-                Status = e.DirectoryStatus.ToString(),
-                AgeDays = ageDays,
-                Category = cat,
-                Subcategory = FormattingHelper.SubcategoryFormatting(cat, sub),
-                CanAdvertise = ok,
-                Reasons = reasons,
-            };
-        }
+                return entry.Name;
+            }
 
+            // If we have an ID but couldn't load it (removed/hidden), be explicit.
+            if (directoryEntryId.HasValue && directoryEntryId.Value > 0)
+            {
+                return "Listing unavailable";
+            }
+
+            return "Anonymous listing";
+        }
         private static (bool canAdvertise, List<string> reasons) GetAdvertiseEligibility(DirectoryEntry e)
         {
             var reasons = new List<string>();
@@ -338,6 +306,55 @@ namespace DirectoryManager.Web.Controllers
             return (reasons.Count == 0, reasons);
         }
 
+        private async Task<RecentPaidVm> BuildRecentPaidAsync()
+        {
+            var rows = await this.invoiceRepo.GetRecentPaidActivePurchasesAsync(RecentPaidTake);
+
+            return new RecentPaidVm
+            {
+                Items = rows.Select(r => new RecentPaidItemVm
+                {
+                    PaidUtc = r.PaidDateUtc,
+                    SponsorshipType = EnumHelper.GetDescription(r.SponsorshipType),
+
+                    Days = r.Days,
+                    AmountUsd = r.AmountUsd,
+                    PricePerDayUsd = r.PricePerDayUsd,
+
+                    PaidCurrency = r.PaidCurrency.ToString(),
+                    PaidAmount = r.PaidAmount,
+
+                    ExpiresUtc = r.ExpiresUtc,
+
+                    ListingName = r.ListingName,
+                    ListingUrl = r.ListingUrl
+                }).ToList()
+            };
+        }
+
+        private SponsorshipSearchItemVm ToSearchItem(DirectoryEntry e)
+        {
+            var (ok, reasons) = GetAdvertiseEligibility(e);
+
+            var cat = e.SubCategory?.Category?.Name ?? "";
+            var sub = e.SubCategory?.Name ?? "";
+            var ageDays = (e.CreateDate == DateTime.MinValue) ? 0 : (int)Math.Floor((DateTime.UtcNow - e.CreateDate).TotalDays);
+
+            return new SponsorshipSearchItemVm
+            {
+                DirectoryEntryId = e.DirectoryEntryId,
+                Name = e.Name ?? StringConstants.DefaultName,
+                Link = e.Link ?? "",
+                DirectoryEntryKey = e.DirectoryEntryKey ?? "",
+                Status = e.DirectoryStatus.ToString(),
+                AgeDays = ageDays,
+                Category = cat,
+                Subcategory = FormattingHelper.SubcategoryFormatting(cat, sub),
+                CanAdvertise = ok,
+                Reasons = reasons,
+            };
+        }
+
         private async Task<List<SponsorshipOfferVm>> LoadOffersAsync(SponsorshipType type, int? subcategoryId)
         {
             var offers = await this.offerRepo.GetByTypeAndSubCategoryAsync(type, subcategoryId);
@@ -359,11 +376,11 @@ namespace DirectoryManager.Web.Controllers
         }
 
         private async Task<SponsorshipTypeOptionVm> BuildTypeOptionAsync(
-       DirectoryEntry entry,
-       SponsorshipType type,
-       int? typeIdForScope,
-       string scopeLabel,
-       bool includeMainSubcategoryCap = false)
+            DirectoryEntry entry,
+            SponsorshipType type,
+            int? typeIdForScope,
+            string scopeLabel,
+            bool includeMainSubcategoryCap = false)
         {
             // Extension allowed regardless of availability
             var isExtension = await this.sponsoredListingRepo.IsSponsoredListingActive(entry.DirectoryEntryId, type);
@@ -423,10 +440,6 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var isAvailableNow = isExtension || (poolAvailable && !blockedByMainSubCap);
-
-            // ----------------------------
-            // NEW: who holds the slots now?
-            // ----------------------------
             var allActiveForType = await this.sponsoredListingRepo.GetActiveSponsorsByTypeAsync(type);
 
             var inScope = FilterActiveSponsorsToScope(allActiveForType, type, typeIdForScope);
@@ -569,10 +582,6 @@ namespace DirectoryManager.Web.Controllers
             return "Sponsorship";
         }
 
-        // ----------------------------
-        // WAITLIST NAME/URL RESOLUTION
-        // ----------------------------
-
         private async Task<List<WaitlistPublicRowVm>> BuildPublicWaitlistRowsAsync(IEnumerable<WaitlistItemDto> dtos)
         {
             var list = (dtos ?? Enumerable.Empty<WaitlistItemDto>()).ToList();
@@ -619,31 +628,6 @@ namespace DirectoryManager.Web.Controllers
 
             // ✅ single query instead of N queries
             return await this.entryRepo.GetByIdsAsync(ids);
-        }
-
-        private static DirectoryEntry? TryGetEntry(Dictionary<int, DirectoryEntry> lookup, int? id)
-        {
-            if (id.HasValue && id.Value > 0 && lookup.TryGetValue(id.Value, out var e))
-            {
-                return e;
-            }
-            return null;
-        }
-
-        private static string GetListingName(DirectoryEntry? entry, int? directoryEntryId)
-        {
-            if (entry != null && !string.IsNullOrWhiteSpace(entry.Name))
-            {
-                return entry.Name;
-            }
-
-            // If we have an ID but couldn't load it (removed/hidden), be explicit.
-            if (directoryEntryId.HasValue && directoryEntryId.Value > 0)
-            {
-                return "Listing unavailable";
-            }
-
-            return "Anonymous listing";
         }
 
         private async Task<List<WaitlistPreviewRowVm>> BuildWaitlistPreviewRowsAsync(IEnumerable<WaitlistItemDto> dtos)

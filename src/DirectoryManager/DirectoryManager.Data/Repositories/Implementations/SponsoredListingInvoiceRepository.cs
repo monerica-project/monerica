@@ -608,7 +608,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
             {
                 // ✅ inclusive days (+1)
                 var days = (x.CampaignEndDate.Date - x.CampaignStartDate.Date).Days;
-                if (days <= 0) days = 1;
+                if (days <= 0)
+                {
+                    days = 1;
+                }
 
                 var paidAmount = x.PaidAmount > 0m ? x.PaidAmount : x.OutcomeAmount;
 

@@ -200,12 +200,16 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> SubmitEdit(int id, CancellationToken ct)
         {
             var directoryEntry = await this.directoryEntryRepository.GetByIdAsync(id);
-            if (directoryEntry == null) return this.NotFound();
+            if (directoryEntry == null)
+            {
+                return this.NotFound();
+            }
 
             var entryTags = await this.entryTagRepo.GetTagsForEntryAsync(id);
 
             var model = GetSubmissionRequestModel(directoryEntry);
-            model.Tags = string.Join(", ",
+            model.Tags = string.Join(
+                ", ",
                 entryTags.OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase).Select(t => t.Name));
 
             // ✅ pre-check existing tag ids
@@ -521,7 +525,6 @@ namespace DirectoryManager.Web.Controllers
 
             return this.RedirectToAction(nameof(this.Index));
         }
-
 
         [Authorize]
         [HttpGet("submission/delete/{id}")]
@@ -1001,6 +1004,30 @@ namespace DirectoryManager.Web.Controllers
                 .Distinct()
                 .ToList();
         }
+        private static List<string> NormalizeLinks(IEnumerable<string?>? links, int max)
+        {
+            return (links ?? Array.Empty<string?>())
+                .Select(x => (x ?? string.Empty).Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(max)
+                .ToList();
+        }
+
+        private static HashSet<int> ParseIdsCsv(string? csv)
+        {
+            if (string.IsNullOrWhiteSpace(csv))
+            {
+                return new HashSet<int>();
+            }
+
+            return csv.Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(s => s.Trim())
+                .Select(s => int.TryParse(s, out var id) ? id : 0)
+                .Where(id => id > 0)
+                .Distinct()
+                .ToHashSet();
+        }
 
         private async Task<bool> HasChangesAsync(SubmissionRequest model)
         {
@@ -1115,8 +1142,6 @@ namespace DirectoryManager.Web.Controllers
                 return true;
             }
 
-            // ----- Checkbox tag IDs vs entry tags -----
-
             var selectedIds = ParseIdsCsv(model.SelectedTagIdsCsv);
 
             var existingTags = await this.entryTagRepo.GetTagsForEntryAsync(existingEntry.DirectoryEntryId);
@@ -1130,7 +1155,6 @@ namespace DirectoryManager.Web.Controllers
             }
 
             // ----- Submission-only fields (not on DirectoryEntry) -----
-            // Related links + NoteToAdmin
 
             var incomingRelated = NormalizeLinks(
                 new[] { model.RelatedLink1, model.RelatedLink2, model.RelatedLink3 },
@@ -1165,38 +1189,12 @@ namespace DirectoryManager.Web.Controllers
                 return true;
             }
 
-
             if (!string.IsNullOrWhiteSpace(Norm(model.NoteToAdmin)))
             {
                 return true;
             }
 
             return false;
-        }
-
-        private static List<string> NormalizeLinks(IEnumerable<string?>? links, int max)
-        {
-            return (links ?? Array.Empty<string?>())
-                .Select(x => (x ?? string.Empty).Trim())
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Take(max)
-                .ToList();
-        }
-
-        private static HashSet<int> ParseIdsCsv(string? csv)
-        {
-            if (string.IsNullOrWhiteSpace(csv))
-            {
-                return new HashSet<int>();
-            }
-
-            return csv.Split(',', StringSplitOptions.RemoveEmptyEntries)
-                .Select(s => s.Trim())
-                .Select(s => int.TryParse(s, out var id) ? id : 0)
-                .Where(id => id > 0)
-                .Distinct()
-                .ToHashSet();
         }
     }
 }

@@ -341,8 +341,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     n.SponsorshipType == sponsorshipType &&
                     (
                         n.DirectoryEntryId == directoryEntryId
-                        || n.DirectoryEntryId == null // legacy fallback
-                    ));
+                        || n.DirectoryEntryId == null)); // legacy fallback
 
             if (sponsorshipType == SponsorshipType.MainSponsor)
             {
