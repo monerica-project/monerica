@@ -103,6 +103,9 @@ namespace DirectoryManager.Data.DbContextInfo
             ConfigureAdditionalLinkIndexes(builder);
 
             ConfigureSearchBlacklistAndReviewTagIndexes(builder);
+
+            ConfigureReviewCommentIndexes(builder);
+            ConfigureDirectoryEntryTagIndexes(builder);
         }
 
         private static void ConfigureSponsoredListingOpeningNotificationIndexes(ModelBuilder builder)
@@ -173,7 +176,7 @@ namespace DirectoryManager.Data.DbContextInfo
         private static void ConfigureDirectoryEntryIndexes(ModelBuilder builder)
         {
             builder.Entity<DirectoryEntry>()
-                   .HasIndex(e => new { e.DirectoryEntryId, e.DirectoryStatus })
+                   .HasIndex(e => e.DirectoryEntryKey)
                    .IsUnique();
 
             builder.Entity<DirectoryEntry>()
@@ -181,16 +184,18 @@ namespace DirectoryManager.Data.DbContextInfo
                    .IsUnique();
 
             builder.Entity<DirectoryEntry>()
-                   .HasIndex(e => new { e.SubCategoryId, e.DirectoryEntryKey })
-                   .IsUnique();
-
-            builder.Entity<DirectoryEntry>()
-                   .HasIndex(e => e.DirectoryEntryKey)
-                   .IsUnique();
-
-            builder.Entity<DirectoryEntry>()
                    .HasIndex(e => e.SubCategoryId)
                    .HasDatabaseName("IX_DirectoryEntries_SubCategoryId");
+
+            // ✅ Helps filtering out Removed quickly (sitemap / lists)
+            builder.Entity<DirectoryEntry>()
+                   .HasIndex(e => e.DirectoryStatus)
+                   .HasDatabaseName("IX_DirectoryEntries_Status");
+
+            // ✅ Helps “latest changed entries” / revision-based queries
+            builder.Entity<DirectoryEntry>()
+                   .HasIndex(e => new { e.UpdateDate, e.CreateDate })
+                   .HasDatabaseName("IX_DirectoryEntries_Update_Create");
         }
 
         private static void ConfigureTagCategorySubcategoryIndexes(ModelBuilder builder)
@@ -337,10 +342,52 @@ namespace DirectoryManager.Data.DbContextInfo
 
             builder.Entity<DirectoryEntryReview>(r =>
             {
-                r.HasIndex(x => x.DirectoryEntryId);
-                r.HasIndex(x => new { x.DirectoryEntryId, x.ModerationStatus });
                 r.HasIndex(x => x.AuthorFingerprint);
+
+                // ✅ Fast "approved reviews for entry ordered by date" (site page)
+                // WHERE DirectoryEntryId=@id AND ModerationStatus=Approved
+                // ORDER BY CreateDate, DirectoryEntryReviewId
+                r.HasIndex(x => new { x.DirectoryEntryId, x.ModerationStatus, x.CreateDate, x.DirectoryEntryReviewId })
+                 .HasDatabaseName("IX_Reviews_Entry_Mod_Create_Id");
+
+                // ✅ Fast sitemap aggregation (group by entry) + filters
+                // WHERE ModerationStatus=Approved GROUP BY DirectoryEntryId
+                r.HasIndex(x => new { x.ModerationStatus, x.DirectoryEntryId })
+                 .HasDatabaseName("IX_Reviews_Mod_Entry")
+                 .IncludeProperties(x => new { x.CreateDate, x.UpdateDate });
+
+                // Optional: if you also frequently query by ModStatus alone:
+                // r.HasIndex(x => x.ModerationStatus).HasDatabaseName("IX_Reviews_Mod");
             });
+        }
+
+        private static void ConfigureReviewCommentIndexes(ModelBuilder builder)
+        {
+            builder.Entity<DirectoryEntryReviewComment>(c =>
+            {
+                // ✅ Fast "approved comments for review ordered by date"
+                // WHERE DirectoryEntryReviewId=@rid AND ModerationStatus=Approved
+                // ORDER BY CreateDate, DirectoryEntryReviewCommentId
+                c.HasIndex(x => new { x.DirectoryEntryReviewId, x.ModerationStatus, x.CreateDate, x.DirectoryEntryReviewCommentId })
+                 .HasDatabaseName("IX_ReviewComments_Review_Mod_Create_Id");
+
+                // ✅ Helps the sitemap join + aggregation patterns
+                // WHERE ModerationStatus=Approved AND DirectoryEntryReviewId IN (...)
+                c.HasIndex(x => new { x.ModerationStatus, x.DirectoryEntryReviewId })
+                 .HasDatabaseName("IX_ReviewComments_Mod_Review")
+                 .IncludeProperties(x => new { x.CreateDate, x.UpdateDate });
+
+                // ✅ If you ever traverse threads (parent/children)
+                c.HasIndex(x => x.ParentCommentId)
+                 .HasDatabaseName("IX_ReviewComments_ParentCommentId");
+            });
+        }
+
+        private static void ConfigureDirectoryEntryTagIndexes(ModelBuilder builder)
+        {
+            builder.Entity<DirectoryEntryTag>()
+                   .HasIndex(x => new { x.TagId, x.DirectoryEntryId })
+                   .HasDatabaseName("IX_DirectoryEntryTags_Tag_Entry");
         }
 
         private static void ConfigureAdditionalLinkIndexes(ModelBuilder builder)
