@@ -212,6 +212,23 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 })
                 .ToDictionaryAsync(x => x.DirectoryEntryId, x => x.Last, ct);
         }
+        public async Task<int> CountApprovedForEntryAsync(int directoryEntryId, CancellationToken ct)
+        {
+            return await this.context.DirectoryEntryReviews
+                .AsNoTracking()
+                .Where(r => r.DirectoryEntryId == directoryEntryId
+                    && r.ModerationStatus == ReviewModerationStatus.Approved)
+                .CountAsync(ct);
+        }
+        public async Task<Dictionary<int, int>> GetApprovedReviewCountsByEntryAsync(CancellationToken ct = default)
+        {
+            return await this.context.DirectoryEntryReviews
+                .AsNoTracking()
+                .Where(r => r.ModerationStatus == ReviewModerationStatus.Approved)
+                .GroupBy(r => r.DirectoryEntryId)
+                .Select(g => new { EntryId = g.Key, Count = g.Count() })
+                .ToDictionaryAsync(x => x.EntryId, x => x.Count, ct);
+        }
 
         public async Task<DirectoryEntryReview?> GetWithTagsByIdAsync(int id, CancellationToken ct = default) => await this.Set
         .Include(r => r.ReviewTags)

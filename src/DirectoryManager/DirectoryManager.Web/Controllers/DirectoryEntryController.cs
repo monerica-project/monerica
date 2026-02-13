@@ -679,11 +679,20 @@ namespace DirectoryManager.Web.Controllers
             return this.View("SubcategoryTrends", vm);
         }
 
+
         [AllowAnonymous]
         [HttpGet("site/{directoryEntryKey}")]
-        public async Task<IActionResult> DirectoryEntryView(string directoryEntryKey, CancellationToken ct)
+        [HttpGet("site/{directoryEntryKey}/page/{page:int}")]
+        public async Task<IActionResult> DirectoryEntryView(string directoryEntryKey, int page = 1, CancellationToken ct = default)
         {
-            await this.SetCanonicalAsync(directoryEntryKey);
+            // normalize requested page
+            int requestedPage = page < 1 ? 1 : page;
+
+            // /site/key/page/1 => /site/key (clean URL)
+            if (requestedPage == 1 && this.RouteData.Values.ContainsKey("page"))
+            {
+                return this.RedirectPermanent($"/site/{directoryEntryKey}");
+            }
 
             var entry = await this.GetEntryOr404Async(directoryEntryKey);
             if (entry == null)
@@ -696,67 +705,43 @@ namespace DirectoryManager.Web.Controllers
             var (link2Name, link3Name) = await this.GetLinkLabelsAsync();
             var (tagNames, tagDict) = await this.GetTagsAsync(entry.DirectoryEntryId);
 
-            var additionalLinks = await this.additionalLinkRepo
-                .GetByDirectoryEntryIdAsync(entry.DirectoryEntryId, ct);
+            var additionalLinkUrls = await this.GetAdditionalLinkUrlsAsync(entry.DirectoryEntryId, ct);
+            bool isSponsor = await this.IsEntrySponsoredAsync(entry.DirectoryEntryId);
 
-            var additionalLinkUrls = (additionalLinks ?? new List<AdditionalLink>())
-                .OrderBy(x => x.SortOrder)
-                .Select(x => x.Link)
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .ToList();
+            // Reviews + Replies (paged)
+            var (reviewsVm, effectivePage) = await this.BuildReviewsVmAsync(entry, requestedPage, ct);
 
-            var sponsors = await this.GetAllSponsorsCachedAsync();
-            bool isSponsor = sponsors.Any(s => s.DirectoryEntryId == entry.DirectoryEntryId);
-
-            // Reviews (approved)
-            var reviews = await this.reviewRepository
-                .ListApprovedForEntryAsync(entry.DirectoryEntryId, page: 1, pageSize: 50, ct);
-
-            // ✅ Force oldest-first display (stable ordering)
-            reviews = (reviews ?? new List<DirectoryEntryReview>())
-                .OrderBy(r => r.CreateDate)
-                .ThenBy(r => r.DirectoryEntryReviewId)
-                .ToList();
-
-            this.ApplyOwnerDisplayNames(entry, reviews);
-
-            // Review ids
-            var reviewIds = reviews.Select(r => r.DirectoryEntryReviewId).ToList();
-
-            // Replies (approved) - MUST come from the comment repo (not review repo)
-            var allReplies = await this.reviewCommentRepository.Query()
-                .Where(c =>
-                    reviewIds.Contains(c.DirectoryEntryReviewId) &&
-                    c.ModerationStatus == DirectoryManager.Data.Enums.ReviewModerationStatus.Approved)
-                .OrderBy(c => c.CreateDate)
-                .ToListAsync(ct);
-
-            this.ApplyOwnerDisplayNamesToReplies(entry, allReplies);
-
-            // Lookup by review
-            var repliesLookup = allReplies
-                .GroupBy(x => x.DirectoryEntryReviewId)
-                .ToDictionary(g => g.Key, g => g.ToList());
-
-            // VM
-            var reviewsVm = new EntryReviewsBlockViewModel
+            // If the requested page was out of range, redirect to the valid one
+            if (effectivePage != requestedPage)
             {
-                DirectoryEntryId = entry.DirectoryEntryId,
-                Reviews = reviews,
-                ReviewCount = reviews.Count,
-                AverageRating = await this.reviewRepository.AverageRatingForEntryApprovedAsync(entry.DirectoryEntryId, ct),
-                RepliesByReviewId = repliesLookup
-            };
+                // page 1 should always be the root /site/key
+                if (effectivePage == 1)
+                {
+                    return this.RedirectPermanent($"/site/{directoryEntryKey}");
+                }
+
+                return this.RedirectPermanent($"/site/{directoryEntryKey}/page/{effectivePage}");
+            }
+
+            // ✅ Canonical URL should reflect the final page
+            await this.SetCanonicalAsync(directoryEntryKey, effectivePage);
 
             this.ViewBag.ReviewsVm = reviewsVm;
 
-            var model = this.BuildDirectoryEntryViewModel(entry, link2Name, link3Name, tagNames, tagDict, isSponsor, additionalLinkUrls);
+            var model = this.BuildDirectoryEntryViewModel(
+                entry,
+                link2Name,
+                link3Name,
+                tagNames,
+                tagDict,
+                isSponsor,
+                additionalLinkUrls);
 
             await this.SetCategoryContextViewBagAsync(entry.SubCategoryId);
 
             return this.View("DirectoryEntryView", model);
         }
+
 
         private async Task SetCanonicalAsync(string directoryEntryKey)
         {
@@ -1158,6 +1143,116 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
+        private async Task<List<string>> GetAdditionalLinkUrlsAsync(int directoryEntryId, CancellationToken ct)
+        {
+            var additionalLinks = await this.additionalLinkRepo.GetByDirectoryEntryIdAsync(directoryEntryId, ct);
+
+            return (additionalLinks ?? new List<AdditionalLink>())
+                .OrderBy(x => x.SortOrder)
+                .Select(x => x.Link)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private async Task<bool> IsEntrySponsoredAsync(int directoryEntryId)
+        {
+            var sponsors = await this.GetAllSponsorsCachedAsync();
+            return sponsors.Any(s => s.DirectoryEntryId == directoryEntryId);
+        }
+
+        private async Task<(EntryReviewsBlockViewModel Vm, int EffectivePage)> BuildReviewsVmAsync(
+            DirectoryEntry entry,
+            int requestedPage,
+            CancellationToken ct)
+        {
+            // Total review count (approved)
+            int totalReviews = await this.reviewRepository.CountApprovedForEntryAsync(entry.DirectoryEntryId, ct);
+
+            int totalPages = (int)Math.Ceiling(totalReviews / (double)IntegerConstants.ReviewsPageSize);
+            if (totalPages < 1)
+            {
+                totalPages = 1;
+            }
+
+            int page = requestedPage;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (page > totalPages)
+            {
+                page = totalPages;
+            }
+
+            // Page slice (repo MUST order BEFORE skip/take for stable paging)
+            var reviews = await this.reviewRepository.ListApprovedForEntryAsync(
+                entry.DirectoryEntryId,
+                page: page,
+                pageSize: IntegerConstants.ReviewsPageSize,
+                ct);
+
+            reviews ??= new List<DirectoryEntryReview>();
+
+            // Map owner display names for reviews
+            this.ApplyOwnerDisplayNames(entry, reviews);
+
+            // Replies for just the reviews on this page
+            var reviewIds = reviews.Select(r => r.DirectoryEntryReviewId).ToList();
+
+            var allReplies = (reviewIds.Count == 0)
+                ? new List<DirectoryEntryReviewComment>()
+                : await this.reviewCommentRepository.Query()
+                    .Where(c =>
+                        reviewIds.Contains(c.DirectoryEntryReviewId) &&
+                        c.ModerationStatus == ReviewModerationStatus.Approved)
+                    .OrderBy(c => c.CreateDate)
+                    .ThenBy(c => c.DirectoryEntryReviewCommentId)
+                    .ToListAsync(ct);
+
+            this.ApplyOwnerDisplayNamesToReplies(entry, allReplies);
+
+            var repliesLookup = allReplies
+                .GroupBy(x => x.DirectoryEntryReviewId)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            // Avg rating across ALL approved reviews (not just this page)
+            var avg = totalReviews > 0
+                ? await this.reviewRepository.AverageRatingForEntryApprovedAsync(entry.DirectoryEntryId, ct)
+                : null;
+
+            var vm = new EntryReviewsBlockViewModel
+            {
+                DirectoryEntryId = entry.DirectoryEntryId,
+                DirectoryEntryKey = entry.DirectoryEntryKey,
+
+                Reviews = reviews,
+
+                ReviewCount = totalReviews, // ✅ total, across all pages
+                AverageRating = avg,
+
+                RepliesByReviewId = repliesLookup,
+
+                CurrentPage = page,
+                TotalPages = totalPages,
+                PageSize = IntegerConstants.ReviewsPageSize
+            };
+
+            return (vm, page);
+        }
+
+        // ✅ Updated canonical to include /page/n when n > 1
+        private async Task SetCanonicalAsync(string directoryEntryKey, int page)
+        {
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
+
+            string path = (page <= 1)
+                ? $"site/{directoryEntryKey}"
+                : $"site/{directoryEntryKey}/page/{page}";
+
+            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, path);
+        }
 
         private sealed class TimelineItem
         {

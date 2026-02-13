@@ -31,5 +31,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         Task<Dictionary<int, RatingSummaryDto>> GetRatingSummariesAsync(IReadOnlyCollection<int> directoryEntryIds);
         public Task<DirectoryEntryReview?> GetWithTagsByIdAsync(int id, CancellationToken ct = default);
+        Task<int> CountApprovedForEntryAsync(int directoryEntryId, CancellationToken ct);
+        Task<Dictionary<int, int>> GetApprovedReviewCountsByEntryAsync(CancellationToken ct = default);
     }
 }

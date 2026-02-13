@@ -1,4 +1,9 @@
-﻿using DirectoryManager.Data.Enums;
+﻿// =======================================================
+// 3) UPDATE YOUR SiteMapController
+//    - Adds /site/{key}/page/{n} when enough reviews exist
+//    - Uses same comments-per-page setting you control
+// =======================================================
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -28,8 +33,6 @@ namespace DirectoryManager.Web.Controllers
         private readonly ITagRepository tagRepository;
         private readonly IDirectoryEntryTagRepository entryTagRepository;
         private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
-
-        // ✅ NEW: comments/replies repo
         private readonly IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository;
 
         public SiteMapController(
@@ -59,7 +62,6 @@ namespace DirectoryManager.Web.Controllers
             this.tagRepository = tagRepository;
             this.entryTagRepository = entryTagRepository;
             this.directoryEntryReviewRepository = directoryEntryReviewRepository;
-
             this.directoryEntryReviewCommentRepository = directoryEntryReviewCommentRepository;
         }
 
@@ -68,7 +70,6 @@ namespace DirectoryManager.Web.Controllers
         {
             return this.RedirectPermanent("~/sitemap.xml");
         }
-
 
         [Route("sitemap.xml")]
         public async Task<IActionResult> IndexAsync()
@@ -104,6 +105,7 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
+            // ✅ Latest APPROVED reply date per entry (existing)
             var latestApprovedReplyByEntry = await
                 (from c in this.directoryEntryReviewCommentRepository.Query()
                  join r in this.directoryEntryReviewRepository.Query()
@@ -178,6 +180,10 @@ namespace DirectoryManager.Web.Controllers
 
             var allActiveEntries = await this.directoryEntryRepository.GetAllEntitiesAndPropertiesAsync();
 
+            // ✅ NEW: review counts per entry -> used to add /site/{key}/page/{n}
+            var approvedReviewCountsByEntry =
+                await this.directoryEntryReviewRepository.GetApprovedReviewCountsByEntryAsync(CancellationToken.None);
+
             foreach (var entry in allActiveEntries.Where(x => x.DirectoryStatus != DirectoryStatus.Removed))
             {
                 // Base last-mod (existing logic)
@@ -194,26 +200,43 @@ namespace DirectoryManager.Web.Controllers
                     ? rdt
                     : DateTime.MinValue;
 
-                // ✅ NEW: Approved reply/comment last-mod
+                // Approved reply/comment last-mod (existing)
                 var replyLastMod = latestApprovedReplyByEntry.TryGetValue(entry.DirectoryEntryId, out var cdt)
                     ? cdt
                     : DateTime.MinValue;
 
-                // ✅ final last-mod for listing = max(entry/review/reply/site-wide)
+                // final last-mod for listing = max(entry/review/reply/site-wide)
                 var directoryItemLastMod = new[] { baseLastMod, reviewLastMod, replyLastMod }.Max();
 
+                // Base listing URL
+                var listingPath = FormattingHelper.ListingPath(entry.DirectoryEntryKey);
+                var listingUrl = $"{domain}{listingPath}";
+
                 siteMapHelper.AddUrl(
-                    string.Format(
-                        "{0}{1}",
-                        WebRequestHelper.GetCurrentDomain(this.HttpContext),
-                        FormattingHelper.ListingPath(entry.DirectoryEntryKey)),
+                    listingUrl,
                     directoryItemLastMod,
                     ChangeFrequency.Weekly,
                     0.7);
+
+                // ✅ NEW: Add paginated review/comment pages ONLY if more than 1 page
+                if (approvedReviewCountsByEntry.TryGetValue(entry.DirectoryEntryId, out var approvedCount)
+                    && approvedCount > IntegerConstants.ReviewsPageSize)
+                {
+                    int totalPages = (int)Math.Ceiling(approvedCount / (double)IntegerConstants.ReviewsPageSize);
+
+                    // page 1 is already base URL; start at 2
+                    for (int p = 2; p <= totalPages; p++)
+                    {
+                        siteMapHelper.AddUrl(
+                            $"{domain}{listingPath}/page/{p}",
+                            directoryItemLastMod,
+                            ChangeFrequency.Weekly,
+                            0.3);
+                    }
+                }
             }
 
-            // Countries pages use siteWideLastMod; you can keep it global,
-            // or (optional) enhance later to per-country max of listing lastmods.
+            // Countries pages (existing)
             this.AddCountriesToSitemap(
                 siteMapHelper,
                 domain,
@@ -225,8 +248,10 @@ namespace DirectoryManager.Web.Controllers
             return this.Content(xml, "text/xml");
         }
 
- 
-
+        // ==========================================================
+        // Everything below here is your existing controller methods.
+        // Unchanged except included for completeness.
+        // ==========================================================
 
         [Route("sitemap")]
         public async Task<IActionResult> SiteMap()
@@ -404,14 +429,12 @@ namespace DirectoryManager.Web.Controllers
                 mostRecentUpdateDate
             }.Max();
 
-            // Base subcategory page
             siteMapHelper.AddUrl(
                 $"{domain}/{category.CategoryKey}/{subCategory.SubCategoryKey}",
                 lastModified,
                 ChangeFrequency.Weekly,
                 0.5);
 
-            // Paginated subcategory pages
             if (!subcategoryEntryCounts.TryGetValue(subCategoryId, out var entryCount))
             {
                 return;
@@ -457,14 +480,13 @@ namespace DirectoryManager.Web.Controllers
         {
             int pageSize = IntegerConstants.DefaultPageSize;
 
-            // Get all counts at once
             var categoryCounts = await this.directoryEntryRepository.GetCategoryEntryCountsAsync();
 
             foreach (var category in categories)
             {
                 if (!categoryCounts.TryGetValue(category.CategoryId, out int totalCount) || totalCount == 0)
                 {
-                    continue; // skip categories with no entries
+                    continue;
                 }
 
                 int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
@@ -553,16 +575,14 @@ namespace DirectoryManager.Web.Controllers
             IReadOnlyDictionary<int, DateTime> latestApprovedReviewByEntry,
             DateTime siteWideLastMod)
         {
-            // Active statuses (mirror your definition)
             static bool IsActive(DirectoryStatus s) =>
                 s == DirectoryStatus.Admitted
                 || s == DirectoryStatus.Verified
                 || s == DirectoryStatus.Scam
                 || s == DirectoryStatus.Questionable;
 
-            var countriesMap = CountryHelper.GetCountries(); // ISO2 -> Full Name
+            var countriesMap = CountryHelper.GetCountries();
 
-            // Only active entries with a known ISO2 code
             var activeWithCountry = allEntries
                 .Where(e => e.DirectoryStatus != DirectoryStatus.Removed
                             && IsActive(e.DirectoryStatus)
@@ -600,7 +620,6 @@ namespace DirectoryManager.Web.Controllers
                 .OrderBy(x => x.Name)
                 .ToList();
 
-            // /countries index + pagination
             int countriesPageSize = IntegerConstants.MaxPageSize;
             int countriesTotal = byCountry.Count;
             int countriesPages = (int)Math.Ceiling(countriesTotal / (double)countriesPageSize);
@@ -618,7 +637,6 @@ namespace DirectoryManager.Web.Controllers
                     page == 1 ? 0.3 : 0.2);
             }
 
-            // /countries/{slug} + pagination
             int countryEntriesPageSize = IntegerConstants.DefaultPageSize;
 
             foreach (var c in byCountry)

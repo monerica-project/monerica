@@ -84,21 +84,6 @@
         return dict.TryGetValue(reviewId, out var list) ? list : new();
     }
 
-    public static IHtmlContent RenderAggregateStars(double? avg, int? count)
-    {
-        if (!avg.HasValue || !count.HasValue || count.Value <= 0)
-            return HtmlString.Empty;
-
-        const int totalStars = 5;
-        double percent = Math.Clamp(avg.Value / totalStars * 100, 0, 100);
-
-        return new HtmlString($@"
-<span class=""rating-wrapper"" aria-label=""{avg:0.0} out of 5 stars from {count} reviews"">
-  <span class=""stars""><span class=""stars-fill"" style=""width:{percent:0.##}%""></span></span>
-  <span class=""rating-text""> {avg:0.0}/5 ({count})</span>
-</span>");
-    }
-
     public static IHtmlContent RenderSingleReviewStars(byte? rating)
     {
         if (!rating.HasValue || rating.Value < 1)
@@ -117,7 +102,6 @@
     // i.e. r.ReviewTags : ICollection<DirectoryEntryReviewTag>
     public static IHtmlContent RenderReviewTags(DirectoryEntryReview r)
     {
-        // adjust this property name if your nav property differs
         var links = r.ReviewTags;
 
         if (links == null || links.Count == 0)
@@ -148,10 +132,10 @@
 }
 
 @{
-    var pageUrl = ViewData[DirectoryManager.Web.Constants.StringConstants.CanonicalUrl];
-
-    // Rating distribution (1–5)
-    int totalReviews = Model?.Reviews?.Count ?? 0;
+    // ✅ With paging, Model.Reviews is only the current page
+    // Keep percent math based on current page distribution (simple/fast).
+    // If you want true global distribution, pass counts from DB instead.
+    int pageReviews = Model?.Reviews?.Count ?? 0;
 
     int c5 = Model?.Reviews?.Count(x => (x.Rating ?? 0) == 5) ?? 0;
     int c4 = Model?.Reviews?.Count(x => (x.Rating ?? 0) == 4) ?? 0;
@@ -159,7 +143,12 @@
     int c2 = Model?.Reviews?.Count(x => (x.Rating ?? 0) == 2) ?? 0;
     int c1 = Model?.Reviews?.Count(x => (x.Rating ?? 0) == 1) ?? 0;
 
-    double P(int count) => totalReviews <= 0 ? 0 : (count * 100.0 / totalReviews);
+    double P(int count) => pageReviews <= 0 ? 0 : (count * 100.0 / pageReviews);
+
+    bool showPager = (Model?.TotalPages ?? 1) > 1;
+    int currentPage = Model?.CurrentPage ?? 1;
+    int totalPages = Model?.TotalPages ?? 1;
+    string entryKey = Model?.DirectoryEntryKey ?? string.Empty;
 }
 
 <div class="reviews-block mt-4">
@@ -222,7 +211,7 @@
         </div>
     }
 
-    @if (Model.ReviewCount > 0)
+    @if (Model.ReviewCount > 0 && Model.Reviews != null && Model.Reviews.Any())
     {
         <ul class="list-unstyled">
             @foreach (var r in Model.Reviews)
@@ -308,6 +297,36 @@
                 </li>
             }
         </ul>
+
+        @* ✅ Review pagination (ONLY show if more than 1 page) *@
+        @if (showPager && !string.IsNullOrWhiteSpace(entryKey))
+        {
+            <nav aria-label="Review pages">
+                <ul class="pagination">
+                    @for (int p = 1; p <= totalPages; p++)
+                    {
+                        string rawPath = (p == 1)
+                            ? $"/site/{entryKey}"
+                            : $"/site/{entryKey}/page/{p}";
+
+                        string href = Urls.ResolveToRoot(rawPath);
+
+                        if (p == currentPage)
+                        {
+                            <li class="page-item active">
+                                <span class="page-link" aria-current="page">@p</span>
+                            </li>
+                        }
+                        else
+                        {
+                            <li class="page-item">
+                                <a class="page-link no-app-link" href="@href">@p</a>
+                            </li>
+                        }
+                    }
+                </ul>
+            </nav>
+        }
     }
     else
     {

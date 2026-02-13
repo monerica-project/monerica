@@ -16,6 +16,6 @@
         public const int UnverifiedMinimumDaysListedBeforeAdvertising = 180;
         public const int MinLengthCommentChars = 35;
         public const int MaxAdditionalLinks = 3;
-
+        public const int ReviewsPageSize = 10;
     }
 }
