@@ -212,6 +212,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 })
                 .ToDictionaryAsync(x => x.DirectoryEntryId, x => x.Last, ct);
         }
+
         public async Task<int> CountApprovedForEntryAsync(int directoryEntryId, CancellationToken ct)
         {
             return await this.context.DirectoryEntryReviews
@@ -220,20 +221,59 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     && r.ModerationStatus == ReviewModerationStatus.Approved)
                 .CountAsync(ct);
         }
-        public async Task<Dictionary<int, int>> GetApprovedReviewCountsByEntryAsync(CancellationToken ct = default)
+
+        public async Task<Dictionary<int, ApprovedReviewStatsRow>> GetApprovedReviewStatsByEntryAsync(CancellationToken ct = default)
         {
+            // Single grouped query; pulls ONLY EntryId, Count, Last.
+            var rows = await this.context.DirectoryEntryReviews
+                .AsNoTracking()
+                .Where(r => r.ModerationStatus == ReviewModerationStatus.Approved)
+                .GroupBy(r => r.DirectoryEntryId)
+                .Select(g => new ApprovedReviewStatsRow
+                {
+                    DirectoryEntryId = g.Key,
+                    Count = g.Count(),
+                    Last = g.Max(x => (x.UpdateDate ?? x.CreateDate))
+                })
+                .ToListAsync(ct);
+
+            // Dictionary<int, ApprovedReviewStatsRow> so the controller can access both Count + Last without extra lookups.
+            return rows.ToDictionary(x => x.DirectoryEntryId, x => x);
+        }
+
+        public async Task<Dictionary<int, DateTime>> GetApprovedReviewLastModifiedByEntryAsync(CancellationToken ct = default)
+        {
+            // ✅ only: DirectoryEntryId + MAX(UpdateDate ?? CreateDate)
             return await this.context.DirectoryEntryReviews
                 .AsNoTracking()
                 .Where(r => r.ModerationStatus == ReviewModerationStatus.Approved)
                 .GroupBy(r => r.DirectoryEntryId)
-                .Select(g => new { EntryId = g.Key, Count = g.Count() })
-                .ToDictionaryAsync(x => x.EntryId, x => x.Count, ct);
+                .Select(g => new
+                {
+                    EntryId = g.Key,
+                    Last = g.Max(x => x.UpdateDate ?? x.CreateDate)
+                })
+                .ToDictionaryAsync(x => x.EntryId, x => x.Last, ct);
+        }
+
+        public async Task<Dictionary<int, int>> GetApprovedReviewCountsByEntryAsync(CancellationToken ct = default)
+        {
+            // ✅ only: DirectoryEntryId + COUNT(*)
+            return await this.context.DirectoryEntryReviews
+                .AsNoTracking()
+                .Where(r => r.ModerationStatus == ReviewModerationStatus.Approved)
+                .GroupBy(r => r.DirectoryEntryId)
+                .Select(g => new
+                {
+                    EntryId = g.Key,
+                    Cnt = g.Count()
+                })
+                .ToDictionaryAsync(x => x.EntryId, x => x.Cnt, ct);
         }
 
         public async Task<DirectoryEntryReview?> GetWithTagsByIdAsync(int id, CancellationToken ct = default) => await this.Set
         .Include(r => r.ReviewTags)
             .ThenInclude(rt => rt.ReviewTag)
         .FirstOrDefaultAsync(r => r.DirectoryEntryReviewId == id, ct);
-
     }
 }

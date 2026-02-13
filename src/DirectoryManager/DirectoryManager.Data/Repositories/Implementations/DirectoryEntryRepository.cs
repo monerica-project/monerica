@@ -175,6 +175,49 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     .ConfigureAwait(false);
             }
         }
+        public async Task<List<DirectoryEntrySitemapRow>> GetSitemapEntriesAsync(CancellationToken ct = default)
+        {
+            // ✅ only columns needed to build /site/{key} + lastmod + removed filter + countries
+            return await this.context.DirectoryEntries
+                .AsNoTracking()
+                .Where(e => e.DirectoryStatus != DirectoryStatus.Removed)
+                .Select(e => new DirectoryEntrySitemapRow
+                {
+                    DirectoryEntryId = e.DirectoryEntryId,
+                    DirectoryEntryKey = e.DirectoryEntryKey,
+                    DirectoryStatus = e.DirectoryStatus,
+                    CreateDate = e.CreateDate,
+                    UpdateDate = e.UpdateDate,
+                    CountryCode = e.CountryCode
+                })
+                .ToListAsync(ct);
+        }
+
+        public async Task<List<CountryCountRow>> GetActiveCountryCountsForSitemapAsync(CancellationToken ct = default)
+        {
+            // Mirror your "active" definition used in sitemap
+            var activeStatuses = new[]
+            {
+            DirectoryStatus.Admitted,
+            DirectoryStatus.Verified,
+            DirectoryStatus.Scam,
+            DirectoryStatus.Questionable
+            };
+
+            // ✅ returns only code + count, not whole entries
+            return await this.context.DirectoryEntries
+                .AsNoTracking()
+                .Where(e =>
+                    activeStatuses.Contains(e.DirectoryStatus) &&
+                    !string.IsNullOrWhiteSpace(e.CountryCode))
+                .GroupBy(e => e.CountryCode!.Trim().ToUpper())
+                .Select(g => new CountryCountRow
+                {
+                    CountryCode = g.Key,
+                    Count = g.Count()
+                })
+                .ToListAsync(ct);
+        }
 
         public async Task<IEnumerable<DirectoryEntry>> GetAllBySubCategoryIdAsync(int subCategoryId)
         {

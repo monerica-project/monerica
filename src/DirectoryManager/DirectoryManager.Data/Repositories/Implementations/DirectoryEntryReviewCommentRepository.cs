@@ -46,6 +46,25 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync();
         }
 
+        public async Task<Dictionary<int, DateTime>> GetApprovedReplyLastModifiedByEntryAsync(CancellationToken ct = default)
+        {
+            // ✅ minimal join: comments -> reviews to get DirectoryEntryId
+            // returns: EntryId + MAX(comment date)
+            return await (
+                from c in this.context.DirectoryEntryReviewComments.AsNoTracking()
+                join r in this.context.DirectoryEntryReviews.AsNoTracking()
+                    on c.DirectoryEntryReviewId equals r.DirectoryEntryReviewId
+                where c.ModerationStatus == ReviewModerationStatus.Approved
+                      && r.ModerationStatus == ReviewModerationStatus.Approved
+                group c.UpdateDate ?? c.CreateDate by r.DirectoryEntryId into g
+                select new
+                {
+                    EntryId = g.Key,
+                    Last = g.Max()
+                }
+            ).ToDictionaryAsync(x => x.EntryId, x => x.Last, ct);
+        }
+
         public async Task AddAsync(DirectoryEntryReviewComment entity, CancellationToken ct = default)
         {
             entity.CreateDate = DateTime.UtcNow;
