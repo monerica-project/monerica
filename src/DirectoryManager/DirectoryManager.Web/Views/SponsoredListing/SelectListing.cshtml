@@ -48,7 +48,7 @@
             <option class="form-control select-fit" value="">--Category &gt; Subcategory--</option>
             @foreach (var subCategory in (IEnumerable<Subcategory>)ViewBag.SubCategories)
             {
-                <option value="@subCategory.SubCategoryId"
+                <option class="form-control select-fit" value="@subCategory.SubCategoryId"
                         selected="@(Context.Request.Query["subCategoryId"] == subCategory.SubCategoryId.ToString() ? "selected" : null)">
                     @subCategory.Category.Name &gt; @subCategory.Name
                 </option>
