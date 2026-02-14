@@ -24,7 +24,7 @@
         @Html.ValidationSummary(excludePropertyErrors: false)
     </div>
 
-    <form asp-controller="EmailSubscription" asp-action="Subscribe" method="post" class="form-inline">
+    <form asp-controller="EmailSubscription" asp-action="Subscribe" method="post">
         @Html.AntiForgeryToken()
 
         <p>Email:</p>
