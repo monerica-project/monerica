@@ -1201,8 +1201,7 @@ namespace DirectoryManager.Web.Controllers
 
             await this.sponsoredListingRepository.UpdateAsync(listing);
 
-            this.cache.Remove(StringConstants.CacheKeyEntries);
-            this.cache.Remove(StringConstants.CacheKeySponsoredListings);
+            this.ClearCachedItems();
 
             return this.RedirectToAction("List");
         }

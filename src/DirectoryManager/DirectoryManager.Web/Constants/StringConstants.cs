@@ -6,6 +6,7 @@
         public const string CacheKeyAllActiveSponsors = "AllActiveSponsors";
         public const string CacheKeyEntries = "entries-cache-key";
         public const string CacheKeySponsoredListings = "sponsored-listings-cache-key";
+        public const string CacheKeySponsorTickerItems = "SponsorTickerItems_v1";
         public const string DefaultName = "Default Name";
         public const string InvalidOfferSelection = "Invalid offer selection.";
         public const string CheckoutInProcess = "A checkout for a sponsored advertisement is in progress, check back in {0} minutes.";

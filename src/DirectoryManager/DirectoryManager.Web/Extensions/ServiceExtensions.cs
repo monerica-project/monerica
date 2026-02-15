@@ -61,7 +61,8 @@ namespace DirectoryManager.Web.Extensions
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>()
                     .AddScoped<IUrlResolutionService, UrlResolutionService>();
             services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
-            services.AddScoped<ICacheService, CacheService>();           // was Transient → Scoped
+            services.AddScoped<ICacheService, CacheService>();
+            services.AddScoped<ISponsorTickerService, SponsorTickerService>();
             services.AddTransient<IPgpService, PgpService>();
             services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
             services.AddScoped<IRssFeedService, RssFeedService>();
