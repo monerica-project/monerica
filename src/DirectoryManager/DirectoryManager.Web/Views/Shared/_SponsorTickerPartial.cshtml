@@ -28,7 +28,7 @@
                             @for (var i = 0; i < Model.Count; i++)
                             {
                                 var s = Model[i];
-                                <a class="no-app-link" href="@ListingHref(s.DirectoryEntryKey)">@s.Name</a>
+                                <a target="_blank" href="@s.Link">@s.Name</a>
 
                                 @if (i < Model.Count - 1)
                                 {

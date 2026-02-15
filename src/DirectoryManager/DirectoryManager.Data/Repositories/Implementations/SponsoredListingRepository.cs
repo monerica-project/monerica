@@ -384,7 +384,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     DirectoryEntryId = x.Entry.DirectoryEntryId,
                     DirectoryEntryKey = x.Entry.DirectoryEntryKey ?? "",
                     Name = x.Entry.Name ?? "Sponsor",
-                    Tier = x.Listing.SponsorshipType
+                    Tier = x.Listing.SponsorshipType,
+                    Link = x.Entry.Link
                 })
                 .Where(x => !string.IsNullOrWhiteSpace(x.DirectoryEntryKey))
                 .ToList();

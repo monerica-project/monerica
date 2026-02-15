@@ -19,14 +19,14 @@ namespace DirectoryManager.Web.Services.Implementations
 
         public async Task<List<SponsorTickerItemVm>> GetItemsAsync()
         {
-            if (this.cache.TryGetValue(StringConstants.CacheKeyAllActiveSponsors, out List<SponsorTickerItemVm> cached) && cached != null)
+            if (this.cache.TryGetValue(StringConstants.CacheKeySponsorTickerItems, out List<SponsorTickerItemVm> cached) && cached != null)
             {
                 return cached;
             }
 
             var items = await this.sponsoredListingRepo.GetSponsorTickerItemsAsync();
 
-            this.cache.Set(StringConstants.CacheKeyAllActiveSponsors, items, new MemoryCacheEntryOptions
+            this.cache.Set(StringConstants.CacheKeySponsorTickerItems, items, new MemoryCacheEntryOptions
             {
                 AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10)
             });
