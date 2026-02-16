@@ -13,6 +13,7 @@ namespace DirectoryManager.Web.Controllers
     [Route("directory-entry-review-replies")]
     public class DirectoryEntryReviewRepliesController : BaseController
     {
+        private const string SesssionExpiredMessage = "Session expired, your review message was not saved, please start over!";
         private readonly IMemoryCache cache;
         private readonly ICaptchaService captcha;
         private readonly IPgpService pgp;
@@ -71,7 +72,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage);
             }
 
             this.ViewBag.FlowId = flowId;
@@ -93,7 +94,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage);
             }
 
             if (!this.captcha.IsValid(this.Request))
@@ -122,7 +123,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage);
             }
 
             if (!state.CaptchaOk)
@@ -141,7 +142,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage);
             }
 
             if (!state.CaptchaOk)
@@ -176,7 +177,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage);
             }
 
             if (string.IsNullOrWhiteSpace(state.ChallengeCiphertext))
@@ -196,7 +197,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage);
             }
 
             if (state.ChallengeCode is null)
@@ -225,7 +226,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage);
             }
 
             if (!state.ChallengeSolved)
@@ -253,7 +254,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage);
             }
 
             if (!state.ChallengeSolved)
