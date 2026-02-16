@@ -9,6 +9,5 @@ namespace DirectoryManager.Web.Models
         public int SubmissionId { get; set; }
         public string SubcategoryName { get; set; } = string.Empty;
         public List<string> RelatedLinks { get; set; } = new ();
-
     }
 }

@@ -166,6 +166,11 @@ namespace DirectoryManager.Web.Controllers
                 ? null
                 : string.Join(",", model.SelectedTagIds);
 
+            if (!TryParseFoundedDateParts(model.FoundedYear, model.FoundedMonth, model.FoundedDay, out var foundedDate, out var foundedErr))
+            {
+                this.ModelState.AddModelError(nameof(model.FoundedYear), foundedErr!);
+            }
+
             // ---- If invalid, reload dropdowns + tag list and return to SubmitEdit ----
 
             if (!this.ModelState.IsValid)
@@ -418,7 +423,14 @@ namespace DirectoryManager.Web.Controllers
         [Authorize]
         [HttpPost("submission/{id}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Review(int id, Submission model, int[] selectedTagIds, List<string>? relatedLinks)
+        public async Task<IActionResult> Review(
+            int id,
+            Submission model,
+            int[] selectedTagIds,
+            List<string>? relatedLinks,
+            string? foundedYear,
+            string? foundedMonth,
+            string? foundedDay)
         {
             relatedLinks ??= new List<string>();
 
@@ -437,6 +449,15 @@ namespace DirectoryManager.Web.Controllers
                 {
                    this.ModelState.AddModelError(string.Empty, $"Related link {i + 1} is not a valid URL.");
                 }
+            }
+
+            if (!TryParseFoundedDateParts(foundedYear, foundedMonth, foundedDay, out var foundedDate, out var foundedErr))
+            {
+                this.ModelState.AddModelError("FoundedYear", foundedErr!);
+            }
+            else
+            {
+                model.FoundedDate = foundedDate; // keep it on the posted model for redisplay
             }
 
             if (!this.ModelState.IsValid)
@@ -476,6 +497,7 @@ namespace DirectoryManager.Web.Controllers
                 .ToArray();
 
             submission.SelectedTagIdsCsv = selected.Length == 0 ? null : string.Join(",", selected);
+            submission.FoundedDate = foundedDate;
 
             if (submission.SubmissionStatus == SubmissionStatus.Pending
                 && model.SubmissionStatus == SubmissionStatus.Approved)
@@ -564,6 +586,64 @@ namespace DirectoryManager.Web.Controllers
             return this.View("Success");
         }
 
+        private static bool TryParseFoundedDateParts(
+            string? yearRaw,
+            string? monthRaw,
+            string? dayRaw,
+            out DateOnly? founded,
+            out string? error)
+        {
+            founded = null;
+            error = null;
+
+            var y = (yearRaw ?? "").Trim();
+            var m = (monthRaw ?? "").Trim();
+            var d = (dayRaw ?? "").Trim();
+
+            // all blank => treat as NULL
+            if (string.IsNullOrWhiteSpace(y) &&
+                string.IsNullOrWhiteSpace(m) &&
+                string.IsNullOrWhiteSpace(d))
+            {
+                return true;
+            }
+
+            // any provided => require all 3
+            if (string.IsNullOrWhiteSpace(y) ||
+                string.IsNullOrWhiteSpace(m) ||
+                string.IsNullOrWhiteSpace(d))
+            {
+                error = "Founded date requires Year, Month, and Day (YYYY MM DD).";
+                return false;
+            }
+
+            if (!int.TryParse(y, out var yy) ||
+                !int.TryParse(m, out var mm) ||
+                !int.TryParse(d, out var dd))
+            {
+                error = "Founded date must be numeric (YYYY MM DD).";
+                return false;
+            }
+
+            // sanity (optional)
+            if (yy < 1000 || yy > DateTime.UtcNow.Year + 1)
+            {
+                error = "Founded year looks invalid.";
+                return false;
+            }
+
+            try
+            {
+                founded = new DateOnly(yy, mm, dd);
+                return true;
+            }
+            catch
+            {
+                error = "Founded date is not a real calendar date.";
+                return false;
+            }
+        }
+
         private static SubmissionRequest GetSubmissionRequestModel(Data.Models.DirectoryEntry directoryEntry)
         {
             return new SubmissionRequest()
@@ -587,6 +667,9 @@ namespace DirectoryManager.Web.Controllers
                 RelatedLink1 = null,
                 RelatedLink2 = null,
                 RelatedLink3 = null,
+                FoundedYear = directoryEntry.FoundedDate?.Year.ToString("0000"),
+                FoundedMonth = directoryEntry.FoundedDate?.Month.ToString("00"),
+                FoundedDay = directoryEntry.FoundedDate?.Day.ToString("00"),
 
             };
         }
@@ -619,6 +702,10 @@ namespace DirectoryManager.Web.Controllers
                 RelatedLink1 = related.ElementAtOrDefault(0),
                 RelatedLink2 = related.ElementAtOrDefault(1),
                 RelatedLink3 = related.ElementAtOrDefault(2),
+                FoundedYear = submission.FoundedDate?.Year.ToString("0000"),
+                FoundedMonth = submission.FoundedDate?.Month.ToString("00"),
+                FoundedDay = submission.FoundedDate?.Day.ToString("00"),
+
             };
         }
 
@@ -714,7 +801,8 @@ namespace DirectoryManager.Web.Controllers
                     Processor = submission.Processor,
                     SubCategoryId = submission.SubCategoryId,
                     Tags = tagsList,
-                    CountryCode = submission.CountryCode
+                    CountryCode = submission.CountryCode,
+                    FoundedDate = submission.FoundedDate,
                 },
                 SubmissionId = submission.SubmissionId,
                 NoteToAdmin = submission.NoteToAdmin,
@@ -855,6 +943,7 @@ namespace DirectoryManager.Web.Controllers
                     CountryCode = model.CountryCode,
                     PgpKey = model.PgpKey?.Trim(),
                     ProofLink = model.ProofLink?.Trim(),
+                    FoundedDate = model.FoundedDate,
                 });
         }
 
@@ -885,6 +974,7 @@ namespace DirectoryManager.Web.Controllers
             existing.CountryCode = model.CountryCode;
             existing.PgpKey = model.PgpKey?.Trim();
             existing.ProofLink = model.ProofLink?.Trim();
+            existing.FoundedDate = model.FoundedDate;
 
             if (model.DirectoryStatus != null)
             {
@@ -899,6 +989,8 @@ namespace DirectoryManager.Web.Controllers
 
         private Submission FormatSubmissionRequest(SubmissionRequest model)
         {
+            TryParseFoundedDateParts(model.FoundedYear, model.FoundedMonth, model.FoundedDay, out var foundedDate, out _);
+
             var ipAddress = this.HttpContext.GetRemoteIpIfEnabled();
             var relatedLinks = NormalizeLinks(
                new[] { model.RelatedLink1, model.RelatedLink2, model.RelatedLink3 },
@@ -928,6 +1020,7 @@ namespace DirectoryManager.Web.Controllers
                 CountryCode = model.CountryCode,
                 PgpKey = (model.PgpKey ?? string.Empty).Trim(),
                 SelectedTagIdsCsv = model.SelectedTagIdsCsv,
+                FoundedDate = foundedDate,
             };
 
             submission.RelatedLinks = relatedLinks;
@@ -976,6 +1069,7 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.VideoLink = submissionModel.VideoLink;
             existingSubmission.SelectedTagIdsCsv = submissionModel.SelectedTagIdsCsv;
             existingSubmission.RelatedLinks = submissionModel.RelatedLinks;
+            existingSubmission.FoundedDate = submissionModel.FoundedDate;
 
             await this.submissionRepository.UpdateAsync(existingSubmission);
         }
@@ -1039,6 +1133,13 @@ namespace DirectoryManager.Web.Controllers
             var existingEntry = await this.directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value);
 
             if (existingEntry == null)
+            {
+                return true;
+            }
+
+            TryParseFoundedDateParts(model.FoundedYear, model.FoundedMonth, model.FoundedDay, out var requestedFounded, out _);
+
+            if (existingEntry.FoundedDate != requestedFounded)
             {
                 return true;
             }

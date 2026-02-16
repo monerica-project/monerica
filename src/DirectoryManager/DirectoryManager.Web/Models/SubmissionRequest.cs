@@ -98,6 +98,15 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Related Link 3", Prompt = "Optional")]
         public string? RelatedLink3 { get; set; }
 
+        [MaxLength(4)]
+        public string? FoundedYear { get; set; }
+
+        [MaxLength(2)]
+        public string? FoundedMonth { get; set; }
+
+        [MaxLength(2)]
+        public string? FoundedDay { get; set; }
+
         public List<string> GetRelatedLinksNormalized(int max = 3)
         {
             return new[] { this.RelatedLink1, this.RelatedLink2, this.RelatedLink3 }

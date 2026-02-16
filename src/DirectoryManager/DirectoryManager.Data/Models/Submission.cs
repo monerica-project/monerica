@@ -84,6 +84,8 @@ namespace DirectoryManager.Data.Models
         [Column(TypeName = "nvarchar(max)")]
         public string? RelatedLinksJson { get; set; }
 
+        public DateOnly? FoundedDate { get; set; }
+
         [NotMapped]
         public List<string> RelatedLinks
         {
