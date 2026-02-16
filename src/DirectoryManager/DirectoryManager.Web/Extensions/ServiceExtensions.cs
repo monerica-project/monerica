@@ -15,7 +15,6 @@ using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Identity;
-using Microsoft.AspNetCore.Routing;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using NowPayments.API.Implementations;
@@ -62,6 +61,19 @@ namespace DirectoryManager.Web.Extensions
                     .AddScoped<IUrlResolutionService, UrlResolutionService>();
             services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
             services.AddScoped<ICacheService, CacheService>();
+
+            // Captcha + Http
+            services.Configure<CaptchaOptions>(config.GetSection("Captcha"));
+            services.AddHttpClient();
+            services.AddTransient<ICaptchaService, CaptchaService>();
+
+            // ✅ Domain registration date lookup (RDAP -> WHOIS fallback)
+            services.AddHttpClient<IDomainRegistrationDateService, DomainRegistrationDateService>(client =>
+            {
+                client.Timeout = TimeSpan.FromSeconds(10);
+                client.DefaultRequestHeaders.UserAgent.ParseAdd("DirectoryManager/1.0");
+            });
+
             services.AddScoped<ISponsorTickerService, SponsorTickerService>();
             services.AddTransient<IPgpService, PgpService>();
             services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();

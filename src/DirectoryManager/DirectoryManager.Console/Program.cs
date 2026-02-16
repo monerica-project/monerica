@@ -9,6 +9,8 @@ using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Models; // DirectoryEntry
 using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Services.Implementations;
+using DirectoryManager.Services.Interfaces;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,13 +20,15 @@ using Nager.PublicSuffix.RuleProviders.CacheProviders;
 using Newtonsoft.Json;
 using OpenAI;
 using OpenAI.Chat;
+using Microsoft.Extensions.DependencyInjection;
+
 
 var config = new ConfigurationBuilder()
     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
     .AddJsonFile(DirectoryManager.Common.Constants.StringConstants.AppSettingsFileName)
     .Build();
 
-var serviceProvider = new ServiceCollection()
+var services = new ServiceCollection()
     .AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(config.GetConnectionString(StringConstants.DefaultConnection)))
     .AddTransient<IApplicationDbContext, ApplicationDbContext>()
@@ -35,12 +39,21 @@ var serviceProvider = new ServiceCollection()
     .AddTransient<IExcludeUserAgentRepository, ExcludeUserAgentRepository>()
     .AddTransient<ITagRepository, TagRepository>()
     .AddTransient<IDirectoryEntryTagRepository, DirectoryEntryTagRepository>()
-    .AddScoped<IAITagService, AITagService>()
-    .BuildServiceProvider();
+    .AddScoped<IAITagService, AITagService>();
+
+// ✅ Register the typed HttpClient on the IServiceCollection (separate statement)
+services.AddHttpClient<IDomainRegistrationDateService, DomainRegistrationDateService>(client =>
+{
+    client.Timeout = TimeSpan.FromSeconds(10);
+    client.DefaultRequestHeaders.UserAgent.ParseAdd("DirectoryManager.Console/1.0");
+});
+
+var serviceProvider = services.BuildServiceProvider();
 
 Console.WriteLine("Type 1 for user agent loaded");
 Console.WriteLine("Type 2 for AI tags");
 Console.WriteLine("Type 3 to group sites by A-record IP (root-domain consolidated + show multi-IP roots only)");
+Console.WriteLine("Type 4 for domain lookups");
 var choice = Console.ReadLine();
 
 if (choice == "1")
@@ -357,10 +370,184 @@ else if (choice == "3")
         return resolved;
     }
 }
+else if (choice == "4")
+{
+    Console.Write("Only fill missing FoundedDate? (Y/n): ");
+    var onlyMissingInput = (Console.ReadLine() ?? string.Empty).Trim();
+    var onlyMissing = !onlyMissingInput.Equals("n", StringComparison.OrdinalIgnoreCase);
+
+    var regService = serviceProvider.GetRequiredService<IDomainRegistrationDateService>();
+    var db = serviceProvider.GetRequiredService<ApplicationDbContext>();
+
+    // IMPORTANT: tracked entities (no AsNoTracking)
+    var entries = await db.Set<DirectoryEntry>()
+        .Where(e => e.DirectoryStatus != DirectoryManager.Data.Enums.DirectoryStatus.Removed)
+        .OrderBy(e => e.DirectoryEntryId)
+        .ToListAsync();
+
+    Console.WriteLine($"Loaded {entries.Count:n0} non-removed entries.");
+    Console.WriteLine();
+
+    var processed = 0;
+    var updated = 0;
+    var skippedHasDate = 0;
+    var skippedNoLink = 0;
+    var skippedNoDateFound = 0;
+    var failed = 0;
+
+    foreach (var entry in entries)
+    {
+        processed++;
+
+        // ✅ Correct "already has date" logic for DateOnly?
+        // Treat NULL as missing.
+        // ALSO treat 0001-01-01 as missing (common placeholder).
+        if (onlyMissing && entry.FoundedDate.HasValue && entry.FoundedDate.Value != DateOnly.MinValue)
+        {
+            skippedHasDate++;
+            continue;
+        }
+
+        var link = (entry.Link ?? string.Empty).Trim();
+        if (string.IsNullOrWhiteSpace(link))
+        {
+            skippedNoLink++;
+            continue;
+        }
+
+        try
+        {
+            var found = await regService.GetDomainRegistrationDateAsync(link);
+
+            if (found is null)
+            {
+                skippedNoDateFound++;
+                continue;
+            }
+
+            // ✅ DIRECT assignment to your real property
+            entry.FoundedDate = found.Value;
+
+            // Optional: bump UpdateDate so you can see rows are being updated
+            entry.UpdateDate = DateTime.UtcNow;
+
+            // ✅ Save EACH row (as you requested)
+            await db.SaveChangesAsync();
+
+            updated++;
+
+            if (processed % 25 == 0)
+            {
+                Console.WriteLine($"Progress {processed:n0}/{entries.Count:n0} | updated={updated:n0} | no-date={skippedNoDateFound:n0} | failed={failed:n0}");
+            }
+        }
+        catch (Exception ex)
+        {
+            failed++;
+            Console.WriteLine($"FAIL id={entry.DirectoryEntryId}: {ex.Message}");
+        }
+    }
+
+    Console.WriteLine();
+    Console.WriteLine("============================================================");
+    Console.WriteLine("DONE - FoundedDate backfill (Link only, save each row)");
+    Console.WriteLine($"Processed:          {processed:n0}");
+    Console.WriteLine($"Updated:            {updated:n0}");
+    Console.WriteLine($"Skipped (has date): {skippedHasDate:n0}");
+    Console.WriteLine($"Skipped (no Link):  {skippedNoLink:n0}");
+    Console.WriteLine($"Skipped (no date):  {skippedNoDateFound:n0}");
+    Console.WriteLine($"Failed:             {failed:n0}");
+    Console.WriteLine("============================================================");
+}
+
+
 else
 {
     Console.WriteLine("Invalid choice. Exiting.");
 }
+
+static IEnumerable<string> GetUrlCandidates(DirectoryEntry entry)
+{
+    // prefer primary Link first, then fallbacks
+    var urls = new[]
+    {
+        entry.Link,
+        entry.Link2,
+        entry.Link3,
+        entry.ProofLink,
+    };
+
+    foreach (var u in urls)
+    {
+        var s = (u ?? string.Empty).Trim();
+        if (!string.IsNullOrWhiteSpace(s))
+        {
+            yield return s;
+        }
+    }
+}
+
+
+static bool TryGetExistingDateOnly(object entity, IEnumerable<string> propertyNames, out DateOnly? existing)
+{
+    existing = null;
+
+    foreach (var name in propertyNames)
+    {
+        var prop = entity.GetType().GetProperty(name);
+        if (prop == null)
+        {
+            continue;
+        }
+
+        if (prop.PropertyType == typeof(DateOnly))
+        {
+            var val = prop.GetValue(entity);
+            if (val is DateOnly d)
+            {
+                existing = d;
+            }
+
+            return true;
+        }
+
+        if (prop.PropertyType == typeof(DateOnly?))
+        {
+            var val = prop.GetValue(entity);
+            existing = (DateOnly?)val;
+            return true;
+        }
+    }
+
+    return false;
+}
+
+static bool TrySetDateOnly(object entity, IEnumerable<string> propertyNames, DateOnly value)
+{
+    foreach (var name in propertyNames)
+    {
+        var prop = entity.GetType().GetProperty(name);
+        if (prop == null || !prop.CanWrite)
+        {
+            continue;
+        }
+
+        if (prop.PropertyType == typeof(DateOnly))
+        {
+            prop.SetValue(entity, value);
+            return true;
+        }
+
+        if (prop.PropertyType == typeof(DateOnly?))
+        {
+            prop.SetValue(entity, (DateOnly?)value);
+            return true;
+        }
+    }
+
+    return false;
+}
+
 
 static void AddToMap(Dictionary<string, HashSet<string>> map, string key, string value)
 {
@@ -490,4 +677,7 @@ static string GetRegistrableDomainOrHost(string host, DomainParser domainParser)
         // If PSL parse fails (localhost, weird hosts), just return cleaned host
         return host;
     }
+
+  
+
 }

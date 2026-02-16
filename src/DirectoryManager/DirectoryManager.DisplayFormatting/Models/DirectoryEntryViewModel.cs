@@ -73,6 +73,8 @@ namespace DirectoryManager.DisplayFormatting.Models
 
         public DateTime CreateDate { get; set; }
 
+        public DateOnly? FoundedDate { get; set; }
+
         public LinkType LinkType { get; set; } = LinkType.Direct;
 
         public ItemDisplayType ItemDisplayType { get; set; } = ItemDisplayType.Normal;

@@ -208,6 +208,13 @@
                                 <td>@Model.Processor</td>
                             </tr>
                         }
+                        @if (Model.FoundedDate.HasValue)
+                        {
+                            <tr>
+                                <th scope="row">Founded</th>
+                                <td>@Model.FoundedDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                            </tr>
+                        }
                         <tr>
                             <th scope="row">Added On</th>
                             <td>@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>

@@ -1146,6 +1146,8 @@ namespace DirectoryManager.Web.Controllers
                 ProofLink = entry.ProofLink,
                 VideoLink = entry.VideoLink,
 
+                FoundedDate = entry.FoundedDate,
+
                 FormattedLocation = BuildLocationHtml(entry.Location, entry.CountryCode, this.urlResolver)
             };
         }

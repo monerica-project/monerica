@@ -90,6 +90,9 @@ namespace DirectoryManager.Data.Models
 
         public int SubCategoryId { get; set; }
 
+        [Column(TypeName = "date")]
+        public DateOnly? FoundedDate { get; set; }
+
         [NotMapped]
         public string? Tags { get; set; }
 
@@ -119,7 +122,8 @@ namespace DirectoryManager.Data.Models
                 this.PgpKey == other.PgpKey &&
                 this.SubCategoryId == other.SubCategoryId &&
                 this.ProofLink == other.ProofLink &&
-                this.VideoLink == other.VideoLink;
+                this.VideoLink == other.VideoLink &&
+                this.FoundedDate == other.FoundedDate;
         }
 
         public override int GetHashCode()

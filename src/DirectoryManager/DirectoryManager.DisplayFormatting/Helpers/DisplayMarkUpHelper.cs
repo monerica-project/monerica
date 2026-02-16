@@ -575,6 +575,11 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             if (!model.AverageRating.HasValue || count <= 0)
             {
+                if (model.IsSponsored)
+                {
+                    sb.Append("<br />");
+                }
+
                 return;
             }
 
