@@ -38,5 +38,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         Task<(int c1, int c2, int c3, int c4, int c5)> GetApprovedRatingCountsForEntryAsync(int directoryEntryId, CancellationToken ct);
 
+        Task<Dictionary<int, int>> GetApprovedReviewPageMapAsync(IEnumerable<int> reviewIds, int pageSize, CancellationToken ct = default);
     }
 }

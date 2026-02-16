@@ -72,23 +72,19 @@
     var isOnTor = httpContextAccessor.HttpContext?.Request.Host.Host.EndsWith(DirectoryManager.Web.Constants.StringConstants.TorDomain) ?? false;
     var useRelative = isOnTor || string.IsNullOrWhiteSpace(root) || urlResolver.IsLocal;
 
-    string BuildListingUrlWithAnchor(string entryKey, string anchor)
+    string BuildListingUrlWithAnchorAndPage(string entryKey, int page, string anchor)
     {
-        // base path (relative): "/site/xyz"
-        var rel = FormattingHelper.ListingPath(entryKey);
+        var basePath = FormattingHelper.ListingPath(entryKey); // "/site/xyz"
+        if (!basePath.StartsWith("/")) basePath = "/" + basePath;
 
-        // ensure it starts with "/"
-        if (!rel.StartsWith("/")) rel = "/" + rel;
+        string rel = (page <= 1)
+            ? $"{basePath}#{anchor}"
+            : $"{basePath}/page/{page}#{anchor}";
 
-        // add anchor
-        var withAnchor = $"{rel}#{anchor}";
+        if (useRelative) return rel;
 
-        // Tor/local => keep relative
-        if (useRelative) return withAnchor;
-
-        // Otherwise fully-qualified
         var baseUrl = root.TrimEnd('/');
-        return $"{baseUrl}{withAnchor}";
+        return $"{baseUrl}{rel}";
     }
 }
 
@@ -344,6 +340,19 @@
             // Controller should set this:
             // ViewBag.LatestComments = await commentRepository.ListLatestApprovedAsync(15);
             var latestComments = ViewBag.LatestComments as IEnumerable<DirectoryEntryReviewComment>;
+
+            // ✅ build a page map for latest reviews (per-entry paging)
+            var latestReviewIds = latestReviews?
+                .Select(r => r.DirectoryEntryReviewId)
+                .Distinct()
+                .ToList() ?? new List<int>();
+
+            var reviewPageMap = latestReviewIds.Count == 0
+                ? new Dictionary<int, int>()
+                : await reviewRepository.GetApprovedReviewPageMapAsync(
+                    latestReviewIds,
+                    pageSize: IntegerConstants.ReviewsPageSize);
+
         }
 
         @if (latestReviews?.Any() == true)
@@ -365,8 +374,12 @@
                     // ✅ Listing base URL (no anchor)
                     var listingUrl = UrlResolver.ResolveToRoot(FormattingHelper.ListingPath(e.DirectoryEntryKey));
 
-                    // ✅ Review deep-link
-                    var reviewAnchorUrl = BuildListingUrlWithAnchor(e.DirectoryEntryKey, $"review-{r.DirectoryEntryReviewId}");
+                    var pageNum = reviewPageMap.TryGetValue(r.DirectoryEntryReviewId, out var p) ? p : 1;
+                    var reviewAnchorUrl = BuildListingUrlWithAnchorAndPage(
+                        e.DirectoryEntryKey,
+                        pageNum,
+                        $"review-{r.DirectoryEntryReviewId}");
+
 
                     var reviewDate = (r.UpdateDate ?? r.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
 
@@ -399,8 +412,13 @@
 
                         var listingName = entry.Name ?? "Listing";
 
-                        // ✅ Comment deep-link
-                        var commentAnchorUrl = BuildListingUrlWithAnchor(entry.DirectoryEntryKey, $"review-comment-{c.DirectoryEntryReviewCommentId}");
+                        var parentReviewId = review.DirectoryEntryReviewId;
+                        var pageNum = reviewPageMap.TryGetValue(parentReviewId, out var p) ? p : 1;
+
+                        var commentAnchorUrl = BuildListingUrlWithAnchorAndPage(
+                            entry.DirectoryEntryKey,
+                            pageNum,
+                            $"review-comment-{c.DirectoryEntryReviewCommentId}");
 
                         var commentDate = (c.UpdateDate ?? c.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
                         var snippet = TextHelper.TruncateAtWord((c.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
