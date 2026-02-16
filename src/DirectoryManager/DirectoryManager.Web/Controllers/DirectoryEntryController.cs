@@ -1250,8 +1250,8 @@ namespace DirectoryManager.Web.Controllers
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
 
             string path = (page <= 1)
-                ? $"site/{directoryEntryKey}"
-                : $"site/{directoryEntryKey}/page/{page}";
+                ? FormattingHelper.ListingPath(directoryEntryKey)
+                : $"{FormattingHelper.ListingPath(directoryEntryKey)}/page/{page}";
 
             this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, path);
         }
