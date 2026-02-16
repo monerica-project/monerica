@@ -135,6 +135,11 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
+            if (!TryParseFoundedDate(vm, out var foundedDate, out var foundedErr))
+            {
+                this.ModelState.AddModelError(nameof(vm.FoundedYear), foundedErr!);
+            }
+
             if (!this.ModelState.IsValid || vm.DirectoryStatus == DirectoryStatus.Unknown || vm.SubCategoryId == 0)
             {
                 await this.LoadLists();
@@ -209,7 +214,8 @@ namespace DirectoryManager.Web.Controllers
                 PgpKey = vm.PgpKey?.Trim(),
                 ProofLink = vm.ProofLink?.Trim(),
                 VideoLink = vm.VideoLink?.Trim(),
-                CountryCode = vm.CountryCode
+                CountryCode = vm.CountryCode,
+                FoundedDate = foundedDate
             };
 
             await this.directoryEntryRepository.CreateAsync(model);
@@ -270,6 +276,11 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
+            if (!TryParseFoundedDate(vm, out var foundedDate, out var foundedErr))
+            {
+                this.ModelState.AddModelError(nameof(vm.FoundedYear), foundedErr!);
+            }
+
             if (!this.ModelState.IsValid || vm.DirectoryStatus == DirectoryStatus.Unknown || vm.SubCategoryId == 0)
             {
                 await this.LoadSubCategories();
@@ -310,6 +321,8 @@ namespace DirectoryManager.Web.Controllers
 
             existingEntry.CountryCode = vm.CountryCode;
             existingEntry.PgpKey = vm.PgpKey?.Trim();
+
+            existingEntry.FoundedDate = foundedDate;
 
             await this.directoryEntryRepository.UpdateAsync(existingEntry);
 
@@ -415,6 +428,9 @@ namespace DirectoryManager.Web.Controllers
                 Description = entry.Description,
                 Note = entry.Note,
                 PgpKey = entry.PgpKey,
+                FoundedYear = entry.FoundedDate?.Year.ToString("0000"),
+                FoundedMonth = entry.FoundedDate?.Month.ToString("00"),
+                FoundedDay = entry.FoundedDate?.Day.ToString("00"),
 
                 SelectedTagIds = selectedIds.ToList(),
 
@@ -750,16 +766,61 @@ namespace DirectoryManager.Web.Controllers
                 .ToHashSet();
         }
 
-        // Normalize any fingerprint (strip spaces/separators, upper-case)
-        private static string NormalizeFp(string? s)
+        private static bool TryParseFoundedDate(
+            DirectoryEntryEditViewModel vm,
+            out DateOnly? foundedDate,
+            out string? error)
         {
-            if (string.IsNullOrWhiteSpace(s))
+            foundedDate = null;
+            error = null;
+
+            var yRaw = (vm.FoundedYear ?? string.Empty).Trim();
+            var mRaw = (vm.FoundedMonth ?? string.Empty).Trim();
+            var dRaw = (vm.FoundedDay ?? string.Empty).Trim();
+
+            // If all empty => user means "no founded date"
+            if (string.IsNullOrWhiteSpace(yRaw) &&
+                string.IsNullOrWhiteSpace(mRaw) &&
+                string.IsNullOrWhiteSpace(dRaw))
             {
-                return string.Empty;
+                foundedDate = null;
+                return true;
             }
 
-            string hex = Regex.Replace(s, @"[^0-9A-Fa-f]", ""); // keep hex only
-            return hex.ToUpperInvariant();
+            // If any provided, require all 3
+            if (string.IsNullOrWhiteSpace(yRaw) ||
+                string.IsNullOrWhiteSpace(mRaw) ||
+                string.IsNullOrWhiteSpace(dRaw))
+            {
+                error = "FoundedDate requires Year, Month, and Day (YYYY MM DD).";
+                return false;
+            }
+
+            if (!int.TryParse(yRaw, out var y) ||
+                !int.TryParse(mRaw, out var m) ||
+                !int.TryParse(dRaw, out var d))
+            {
+                error = "FoundedDate must be numeric (YYYY MM DD).";
+                return false;
+            }
+
+            // optional sanity constraints (tweak if you want)
+            if (y < 1000 || y > DateTime.UtcNow.Year + 1)
+            {
+                error = "Founded year looks invalid.";
+                return false;
+            }
+
+            try
+            {
+                foundedDate = new DateOnly(y, m, d); // throws if invalid (e.g., 2023-02-31)
+                return true;
+            }
+            catch
+            {
+                error = "FoundedDate is not a real calendar date.";
+                return false;
+            }
         }
 
         private static List<string> NormalizeAdditionalLinks(IEnumerable<string>? links, int max = IntegerConstants.MaxAdditionalLinks)

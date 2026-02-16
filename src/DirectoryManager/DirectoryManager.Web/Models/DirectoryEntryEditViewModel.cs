@@ -36,6 +36,11 @@ namespace DirectoryManager.Web.Models
         public string? Note { get; set; }
         public string? PgpKey { get; set; }
 
+        public string? FoundedYear { get; set; }
+        public string? FoundedMonth { get; set; }
+        public string? FoundedDay { get; set; }
+
+
         // ✅ Existing tags chosen via checkboxes (these are what get persisted)
         public List<int> SelectedTagIds { get; set; } = new ();
 
