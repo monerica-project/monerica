@@ -241,6 +241,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return rows.ToDictionary(x => x.DirectoryEntryId, x => x);
         }
 
+        public async Task<(int c1, int c2, int c3, int c4, int c5)> GetApprovedRatingCountsForEntryAsync(int directoryEntryId, CancellationToken ct)
+        {
+            // adjust names to your schema: ModerationStatus / IsApproved, etc.
+            var grouped = await this.Query()
+                .Where(r => r.DirectoryEntryId == directoryEntryId
+                         && r.ModerationStatus == ReviewModerationStatus.Approved
+                         && r.Rating.HasValue
+                         && r.Rating.Value >= 1
+                         && r.Rating.Value <= 5)
+                .GroupBy(r => r.Rating!.Value)
+                .Select(g => new { Rating = g.Key, Count = g.Count() })
+                .ToListAsync(ct);
+
+            int Get(int rating) => grouped.FirstOrDefault(x => x.Rating == rating)?.Count ?? 0;
+
+            return (Get(1), Get(2), Get(3), Get(4), Get(5));
+        }
+
         public async Task<Dictionary<int, DateTime>> GetApprovedReviewLastModifiedByEntryAsync(CancellationToken ct = default)
         {
             // ✅ only: DirectoryEntryId + MAX(UpdateDate ?? CreateDate)

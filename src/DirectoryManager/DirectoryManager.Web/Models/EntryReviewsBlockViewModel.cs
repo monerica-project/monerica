@@ -23,5 +23,13 @@ namespace DirectoryManager.Web.Models
 
         // ✅ needed to build /site/{key}/page/{n}
         public string DirectoryEntryKey { get; set; } = string.Empty;
+
+        public int Rating5Count { get; set; }
+        public int Rating4Count { get; set; }
+        public int Rating3Count { get; set; }
+        public int Rating2Count { get; set; }
+        public int Rating1Count { get; set; }
+
+        public int RatingTotalCount => this.Rating1Count + this.Rating2Count + this.Rating3Count + this.Rating4Count + this.Rating5Count;
     }
 }

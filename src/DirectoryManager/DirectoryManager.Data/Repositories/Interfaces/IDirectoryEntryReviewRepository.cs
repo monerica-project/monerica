@@ -35,5 +35,8 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<Dictionary<int, int>> GetApprovedReviewCountsByEntryAsync(CancellationToken ct = default);
         Task<Dictionary<int, DateTime>> GetApprovedReviewLastModifiedByEntryAsync(CancellationToken ct = default);
         Task<Dictionary<int, ApprovedReviewStatsRow>> GetApprovedReviewStatsByEntryAsync(CancellationToken ct = default);
+
+        Task<(int c1, int c2, int c3, int c4, int c5)> GetApprovedRatingCountsForEntryAsync(int directoryEntryId, CancellationToken ct);
+
     }
 }

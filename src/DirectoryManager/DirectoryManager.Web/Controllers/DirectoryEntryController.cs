@@ -1232,6 +1232,8 @@ namespace DirectoryManager.Web.Controllers
             // Total review count (approved)
             int totalReviews = await this.reviewRepository.CountApprovedForEntryAsync(entry.DirectoryEntryId, ct);
 
+            var (c1, c2, c3, c4, c5) = totalReviews > 0 ? await this.reviewRepository.GetApprovedRatingCountsForEntryAsync(entry.DirectoryEntryId, ct) : (0, 0, 0, 0, 0);
+
             int totalPages = (int)Math.Ceiling(totalReviews / (double)IntegerConstants.ReviewsPageSize);
             if (totalPages < 1)
             {
@@ -1291,11 +1293,16 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryKey = entry.DirectoryEntryKey,
 
                 Reviews = reviews,
+                RepliesByReviewId = repliesLookup,
 
-                ReviewCount = totalReviews, // ✅ total, across all pages
+                ReviewCount = totalReviews,
                 AverageRating = avg,
 
-                RepliesByReviewId = repliesLookup,
+                Rating1Count = c1,
+                Rating2Count = c2,
+                Rating3Count = c3,
+                Rating4Count = c4,
+                Rating5Count = c5,
 
                 CurrentPage = page,
                 TotalPages = totalPages,
