@@ -7,6 +7,8 @@
         HighestRating = 2,
         LowestRating = 3,
         NameAsc = 4,
-        NameDesc = 5
+        NameDesc = 5,
+        FoundedDateNewest = 6,
+        FoundedDateOldest = 7
     }
 }

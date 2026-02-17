@@ -109,14 +109,21 @@ public class DirectoryFilterController : Controller
             q.Page = 1;
         }
 
+        // ✅ NEW: if querystring has an invalid Sort value, fall back safely
+        if (!Enum.IsDefined(typeof(DirectoryFilterSort), q.Sort))
+        {
+            q.Sort = DirectoryFilterSort.Newest;
+            q.Page = 1;
+        }
+
         // Default statuses if none selected
         if (q.Statuses is null || q.Statuses.Count == 0)
         {
             q.Statuses = new List<DirectoryStatus>
-            {
-                DirectoryStatus.Admitted,
-                DirectoryStatus.Verified
-            };
+        {
+            DirectoryStatus.Admitted,
+            DirectoryStatus.Verified
+        };
         }
     }
 

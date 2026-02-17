@@ -31,7 +31,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<DirectoryEntry?> GetByIdAsync(int directoryEntryId)
         {
-               return await this.BaseQuery()
+            return await this.BaseQuery()
                 .FirstOrDefaultAsync(de => de.DirectoryEntryId == directoryEntryId)
                 .ConfigureAwait(false);
         }
@@ -143,6 +143,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.Note = entry.Note;
             existing.Contact = entry.Contact;
             existing.SubCategoryId = entry.SubCategoryId;
+            existing.FoundedDate = entry.FoundedDate;
             existing.UpdateDate = DateTime.UtcNow;
             existing.UpdatedByUserId = entry.UpdatedByUserId;
             existing.PgpKey = entry.PgpKey;
@@ -199,10 +200,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
             // Mirror your "active" definition used in sitemap
             var activeStatuses = new[]
             {
-            DirectoryStatus.Admitted,
-            DirectoryStatus.Verified,
-            DirectoryStatus.Scam,
-            DirectoryStatus.Questionable
+                DirectoryStatus.Admitted,
+                DirectoryStatus.Verified,
+                DirectoryStatus.Scam,
+                DirectoryStatus.Questionable
             };
 
             // ✅ returns only code + count, not whole entries
@@ -253,7 +254,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<DirectoryEntry>> GetNewestAdditions(int count)
         {
-            // Phase 1: just fetch the IDs of the newest 'count' entries
+            // Phase 1: just fetch the IDs of the newest 'count' entries
             var ids = await this.context.DirectoryEntries
                 .Where(x => x.DirectoryStatus != DirectoryStatus.Removed)
                 .AsNoTracking()
@@ -268,14 +269,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return Array.Empty<DirectoryEntry>();
             }
 
-            // Phase 2: eager‐load the full entities (and their SubCategory/Category/Tags)
+            // Phase 2: eager-load the full entities (and their SubCategory/Category/Tags)
             var entries = await this.BaseQuery()
                 .AsNoTracking()
                 .Where(e => ids.Contains(e.DirectoryEntryId))
                 .ToListAsync()
                 .ConfigureAwait(false);
 
-            // Finally, re‐order them by CreateDate descending
+            // Finally, re-order them by CreateDate descending
             return entries
                 .OrderByDescending(e => e.CreateDate)
                 .ToList();
@@ -1260,7 +1261,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return baseQ;
         }
 
-        // 3) Your page-id query builder (kept logic)
+        // 3) Your page-id query builder (UPDATED for FoundedDate sorts)
         private IQueryable<int> BuildFilterPageIdsQuery(IQueryable<DirectoryEntry> baseQ, DirectoryFilterSort sort)
         {
             if (sort == DirectoryFilterSort.Newest)
@@ -1275,6 +1276,26 @@ namespace DirectoryManager.Data.Repositories.Implementations
             {
                 return baseQ
                     .OrderBy(e => e.CreateDate)
+                    .ThenBy(e => e.DirectoryEntryId)
+                    .Select(e => e.DirectoryEntryId);
+            }
+
+            if (sort == DirectoryFilterSort.FoundedDateNewest)
+            {
+                return baseQ
+                    .OrderByDescending(e => e.FoundedDate.HasValue)
+                    .ThenByDescending(e => e.FoundedDate)
+                    .ThenByDescending(e => e.CreateDate)
+                    .ThenByDescending(e => e.DirectoryEntryId)
+                    .Select(e => e.DirectoryEntryId);
+            }
+
+            if (sort == DirectoryFilterSort.FoundedDateOldest)
+            {
+                return baseQ
+                    .OrderByDescending(e => e.FoundedDate.HasValue)
+                    .ThenBy(e => e.FoundedDate)
+                    .ThenBy(e => e.CreateDate)
                     .ThenBy(e => e.DirectoryEntryId)
                     .Select(e => e.DirectoryEntryId);
             }

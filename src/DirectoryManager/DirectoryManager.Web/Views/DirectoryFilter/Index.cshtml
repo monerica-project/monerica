@@ -61,13 +61,7 @@
         <legend class="ui-legend">Location / Links</legend>
 
         <div class="form-group">
-
-
-
-
-
-
-                <label class="ui-label-block">
+            <label class="ui-label-block">
                     <span class="ui-label-text">Country</span>
 
                     <span class="ui-select-wrap">
@@ -95,8 +89,6 @@
                         </select>
                     </span>
                 </label>
-
- 
         </div>
 
         <div class="ui-checks">
@@ -219,26 +211,47 @@
         <div class="form-group">
             <label class="ui-label-text">Sort by</label>
             <div class="ui-select-wrap">
-                    <select name="Sort" class="form-control select-fit ">
+                    <select name="Sort" class="form-control select-fit">
                         @{
                             var sort = Model.Query.Sort;
                         }
+
                         @if (sort == DirectoryFilterSort.Newest)
                         {
-                            <option value="Newest" selected="selected">Newest</option>
+                            <option value="Newest" selected="selected">Directory: Newest added</option>
                         }
                         else
                         {
-                            <option value="Newest">Newest</option>
+                            <option value="Newest">Directory: Newest added</option>
                         }
+
                         @if (sort == DirectoryFilterSort.Oldest)
                         {
-                            <option value="Oldest" selected="selected">Oldest</option>
+                            <option value="Oldest" selected="selected">Directory: Oldest added</option>
                         }
                         else
                         {
-                            <option value="Oldest">Oldest</option>
+                            <option value="Oldest">Directory: Oldest added</option>
                         }
+
+                        @if (sort == DirectoryFilterSort.FoundedDateNewest)
+                        {
+                            <option value="FoundedDateNewest" selected="selected">Founded date: Newest</option>
+                        }
+                        else
+                        {
+                            <option value="FoundedDateNewest">Founded date: Newest</option>
+                        }
+
+                        @if (sort == DirectoryFilterSort.FoundedDateOldest)
+                        {
+                            <option value="FoundedDateOldest" selected="selected">Founded date: Oldest</option>
+                        }
+                        else
+                        {
+                            <option value="FoundedDateOldest">Founded date: Oldest</option>
+                        }
+
                         @if (sort == DirectoryFilterSort.HighestRating)
                         {
                             <option value="HighestRating" selected="selected">Highest rating</option>
@@ -247,6 +260,7 @@
                         {
                             <option value="HighestRating">Highest rating</option>
                         }
+
                         @if (sort == DirectoryFilterSort.LowestRating)
                         {
                             <option value="LowestRating" selected="selected">Lowest rating</option>
@@ -255,6 +269,7 @@
                         {
                             <option value="LowestRating">Lowest rating</option>
                         }
+
                         @if (sort == DirectoryFilterSort.NameAsc)
                         {
                             <option value="NameAsc" selected="selected">Name (A–Z)</option>
@@ -263,6 +278,7 @@
                         {
                             <option value="NameAsc">Name (A–Z)</option>
                         }
+
                         @if (sort == DirectoryFilterSort.NameDesc)
                         {
                             <option value="NameDesc" selected="selected">Name (Z–A)</option>
@@ -272,6 +288,7 @@
                             <option value="NameDesc">Name (Z–A)</option>
                         }
                     </select>
+
             </div>
         </div>
     </fieldset>
