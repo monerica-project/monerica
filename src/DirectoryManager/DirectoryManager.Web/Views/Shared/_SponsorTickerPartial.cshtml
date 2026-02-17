@@ -12,6 +12,8 @@
     }
 }
 
+ 
+
 @if (Model != null && Model.Count > 0)
 {
     <div class="sponsor-ticker" aria-label="Sponsors">
@@ -20,8 +22,6 @@
 
             <div class="sponsor-ticker__viewport">
                 <div class="sponsor-ticker__track">
-
-                    @* Repeat SAME set 4x so you never see a blank “phase” *@
                     @for (var set = 0; set < 4; set++)
                     {
                         <div class="sponsor-ticker__set" @(set > 0 ? "aria-hidden=\"true\"" : "")>
@@ -30,14 +30,22 @@
                                 var s = Model[i];
                                 <a target="_blank" href="@s.Link">@s.Name</a>
 
-                                @if (i < Model.Count - 1)
+                                var isLastItem = (i == Model.Count - 1);
+                                var isLastSet = (set == 4 - 1);
+
+                                // • between sponsors inside a set
+                                if (!isLastItem)
                                 {
                                     <span class="sponsor-ticker__sep">•</span>
+                                }
+                                // | at the end of the set (between sets)
+                                else if (!isLastSet)
+                                {
+                                    <span class="sponsor-ticker__sep">|</span>
                                 }
                             }
                         </div>
                     }
-
                 </div>
             </div>
         </div>
