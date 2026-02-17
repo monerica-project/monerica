@@ -4,6 +4,7 @@ using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.DisplayFormatting.Models;
+using DirectoryManager.Services.Interfaces;
 using DirectoryManager.Utilities;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Utilities.Validation;
@@ -13,7 +14,6 @@ using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
@@ -35,6 +35,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ITagRepository tagRepo;
         private readonly IDirectoryEntryTagRepository entryTagRepo;
         private readonly IAdditionalLinkRepository additionalLinkRepo;
+        private readonly IDomainRegistrationDateService domainRegistrationDateService;
 
         public SubmissionController(
             UserManager<ApplicationUser> userManager,
@@ -49,7 +50,8 @@ namespace DirectoryManager.Web.Controllers
             ICacheService cacheHelper,
             ITagRepository tagRepo,
             IDirectoryEntryTagRepository entryTagRepo,
-            IAdditionalLinkRepository additionalLinkRepo)
+            IAdditionalLinkRepository additionalLinkRepo,
+            IDomainRegistrationDateService domainRegistrationDateService)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -63,6 +65,7 @@ namespace DirectoryManager.Web.Controllers
             this.tagRepo = tagRepo;
             this.entryTagRepo = entryTagRepo;
             this.additionalLinkRepo = additionalLinkRepo;
+            this.domainRegistrationDateService = domainRegistrationDateService;
         }
 
         [AllowAnonymous]
@@ -565,7 +568,7 @@ namespace DirectoryManager.Web.Controllers
 
         [AllowAnonymous]
         [HttpPost("confirm")]
-        public async Task<IActionResult> ConfirmAsync(int submissionId)
+        public async Task<IActionResult> ConfirmAsync(int submissionId, CancellationToken ct)
         {
             var submission = await this.submissionRepository.GetByIdAsync(submissionId);
 
@@ -577,6 +580,36 @@ namespace DirectoryManager.Web.Controllers
             if (submission.SubmissionStatus == SubmissionStatus.Pending)
             {
                 return this.BadRequest(Constants.StringConstants.SubmissionAlreadySubmitted);
+            }
+
+            // ✅ If user didn't provide FoundedDate during preview creation,
+            // set it now (final submission), using:
+            // 1) existing directory entry founded date if present, else
+            // 2) domain registration date lookup from the link
+            if (submission.FoundedDate is null)
+            {
+                // 1) Prefer existing listing's founded date if this is tied to an existing entry
+                if (submission.DirectoryEntryId.HasValue && submission.DirectoryEntryId.Value > 0)
+                {
+                    var existing = await this.directoryEntryRepository.GetByIdAsync(submission.DirectoryEntryId.Value);
+                    if (existing?.FoundedDate is not null)
+                    {
+                        submission.FoundedDate = existing.FoundedDate;
+                    }
+                }
+
+                // 2) Otherwise try domain registration lookup
+                if (submission.FoundedDate is null && !string.IsNullOrWhiteSpace(submission.Link))
+                {
+                    var lookedUp = await this.domainRegistrationDateService
+                        .GetDomainRegistrationDateAsync(submission.Link, ct)
+                        .ConfigureAwait(false);
+
+                    if (lookedUp.HasValue)
+                    {
+                        submission.FoundedDate = lookedUp.Value;
+                    }
+                }
             }
 
             submission.SubmissionStatus = SubmissionStatus.Pending;
