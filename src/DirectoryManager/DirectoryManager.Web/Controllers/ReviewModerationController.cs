@@ -145,7 +145,8 @@ namespace DirectoryManager.Web.Controllers
         // Save OrderProof + Tags without approving/rejecting
         [HttpPost("{id:int}/update")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Update(int id,
+        public async Task<IActionResult> Update(
+            int id,
             [FromForm] string? orderProof,
             [FromForm] int[]? selectedTagIds,
             CancellationToken ct = default)

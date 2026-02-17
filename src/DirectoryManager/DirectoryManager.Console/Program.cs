@@ -243,7 +243,9 @@ else if (choice == "3")
         var primaryIp = ipv4s.OrderBy(x => x, StringComparer.OrdinalIgnoreCase).First();
 
         if (ipv4s.Count > 1)
+        {
             Console.WriteLine($"  Note: {hostUsed} returned multiple IPv4s: {string.Join(", ", ipv4s.OrderBy(x => x))} (primary={primaryIp})");
+        }
 
         AddToMap(ipToRootDomains, primaryIp, rootDomain);
 
@@ -459,8 +461,6 @@ else if (choice == "4")
     Console.WriteLine($"Failed:             {failed:n0}");
     Console.WriteLine("============================================================");
 }
-
-
 else
 {
     Console.WriteLine("Invalid choice. Exiting.");
