@@ -31,6 +31,19 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return model;
         }
 
+        // ✅ ADD THIS (bulk create)
+        public async Task CreateManyAsync(IEnumerable<AdditionalLink> models, CancellationToken ct = default)
+        {
+            var list = (models ?? Enumerable.Empty<AdditionalLink>()).ToList();
+            if (list.Count == 0)
+            {
+                return;
+            }
+
+            await this.db.AdditionalLinks.AddRangeAsync(list, ct);
+            await this.db.SaveChangesAsync(ct);
+        }
+
         public async Task DeleteAsync(int additionalLinkId, CancellationToken ct = default)
         {
             var existing = await this.db.AdditionalLinks

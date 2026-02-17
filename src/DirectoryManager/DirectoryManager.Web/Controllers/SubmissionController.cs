@@ -433,56 +433,24 @@ namespace DirectoryManager.Web.Controllers
             List<string>? relatedLinks,
             string? foundedYear,
             string? foundedMonth,
-            string? foundedDay)
+            string? foundedDay,
+            CancellationToken ct)
         {
-            relatedLinks ??= new List<string>();
+            var normalizedRelated = NormalizeRelatedLinks(relatedLinks, max: 3);
 
-            // normalize
-            var normalizedRelated = relatedLinks
-                .Select(x => (x ?? string.Empty).Trim())
-                .Where(x => !string.IsNullOrWhiteSpace(x))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .Take(3)
-                .ToList();
+            this.ValidateRelatedLinks(normalizedRelated);
 
-            // validate
-            for (int i = 0; i < normalizedRelated.Count; i++)
+            if (!this.TryApplyFoundedDate(model, foundedYear, foundedMonth, foundedDay, out var foundedDate))
             {
-                if (!UrlHelper.IsValidUrl(normalizedRelated[i]))
-                {
-                   this.ModelState.AddModelError(string.Empty, $"Related link {i + 1} is not a valid URL.");
-                }
-            }
-
-            if (!TryParseFoundedDateParts(foundedYear, foundedMonth, foundedDay, out var foundedDate, out var foundedErr))
-            {
-                this.ModelState.AddModelError("FoundedYear", foundedErr!);
-            }
-            else
-            {
-                model.FoundedDate = foundedDate; // keep it on the posted model for redisplay
+                // ModelState error already set
             }
 
             if (!this.ModelState.IsValid)
             {
-                await this.LoadDropDowns();
-                await this.SetSelectSubCategoryViewBag();
-                await this.LoadAllTagsForCheckboxesAsync();
-
-                this.ViewBag.SelectedTagIds = (selectedTagIds ?? Array.Empty<int>())
-                    .Where(x => x > 0)
-                    .ToHashSet();
-
-                // re-populate the model so the form keeps values
-                model.RelatedLinks = normalizedRelated;
-
-                return this.View(model);
+                return await this.ReturnInvalidReviewAsync(model, selectedTagIds, normalizedRelated);
             }
 
-            if (model.DirectoryStatus == DirectoryStatus.Unknown)
-            {
-                throw new Exception($"Invalid directory status: {model.DirectoryStatus}");
-            }
+            EnsureValidDirectoryStatus(model);
 
             var submission = await this.submissionRepository.GetByIdAsync(id);
             if (submission == null)
@@ -490,58 +458,16 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            // typed tags are suggestions only
-            submission.Tags = model.Tags?.Trim();
+            var selected = NormalizeSelectedTagIds(selectedTagIds);
 
-            // checkbox tags = real tags
-            var selected = (selectedTagIds ?? Array.Empty<int>())
-                .Where(x => x > 0)
-                .Distinct()
-                .ToArray();
+            ApplyReviewEditsToSubmission(
+                submission,
+                model,
+                selected,
+                normalizedRelated,
+                foundedDate);
 
-            submission.SelectedTagIdsCsv = selected.Length == 0 ? null : string.Join(",", selected);
-            submission.FoundedDate = foundedDate;
-
-            if (submission.SubmissionStatus == SubmissionStatus.Pending
-                && model.SubmissionStatus == SubmissionStatus.Approved)
-            {
-                if (model.SubCategoryId == null || model.SubCategoryId == 0)
-                {
-                    return this.BadRequest(new { Error = "Submission does not have a subcategory" });
-                }
-
-                int entryId;
-
-                if (model.DirectoryEntryId == null)
-                {
-                    await this.CreateDirectoryEntry(model);
-                    var created = await this.directoryEntryRepository.GetByLinkAsync((model.Link ?? string.Empty).Trim());
-                    entryId = created?.DirectoryEntryId
-                        ?? throw new Exception("Failed to locate newly created entry");
-                }
-                else
-                {
-                    await this.UpdateDirectoryEntry(model);
-                    entryId = model.DirectoryEntryId.Value;
-                }
-
-                // SYNC TAGS ON LISTING (checkboxes only)
-                var existingTags = await this.entryTagRepo.GetTagsForEntryAsync(entryId);
-                var existingIds = existingTags.Select(t => t.TagId).ToHashSet();
-                var selectedIds = selected.ToHashSet();
-
-                foreach (var oldId in existingIds.Except(selectedIds))
-                {
-                    await this.entryTagRepo.RemoveTagAsync(entryId, oldId);
-                }
-
-                foreach (var newId in selectedIds.Except(existingIds))
-                {
-                    await this.entryTagRepo.AssignTagAsync(entryId, newId);
-                }
-
-                this.ClearCachedItems();
-            }
+            await this.ApproveIfNeededAsync(submission, model, selected, normalizedRelated, ct);
 
             submission.SubmissionStatus = model.SubmissionStatus;
             submission.CountryCode = model.CountryCode;
@@ -907,6 +833,49 @@ namespace DirectoryManager.Web.Controllers
                     id = submissionId
                 });
         }
+        private async Task SyncAdditionalLinksAsync(int directoryEntryId, List<string> relatedLinks, CancellationToken ct)
+        {
+            // normalize again (defensive)
+            var normalized = (relatedLinks ?? new List<string>())
+                .Select(x => (x ?? string.Empty).Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(MaxLinks) // uses your controller const MaxLinks
+                .ToList();
+
+            // optional: safety validate (you already validate earlier)
+            normalized = normalized
+                .Where(UrlHelper.IsValidUrl)
+                .ToList();
+
+            // simplest + correct with your repo:
+            // delete all existing, then insert current set in order
+            await this.additionalLinkRepo.DeleteByDirectoryEntryIdAsync(directoryEntryId, ct);
+
+            if (normalized.Count == 0)
+            {
+                return;
+            }
+
+            var models = normalized
+                .Select((url, index) => new AdditionalLink
+                {
+                    DirectoryEntryId = directoryEntryId,
+                    Link = url,
+                    SortOrder = index + 1
+                })
+                .ToList();
+
+            // ✅ If you added CreateManyAsync:
+            await this.additionalLinkRepo.CreateManyAsync(models, ct);
+
+            // ---- If you DID NOT add CreateManyAsync, use this instead ----
+            // foreach (var m in models)
+            // {
+            //     await this.additionalLinkRepo.CreateAsync(m, ct);
+            // }
+        }
+
 
         private async Task PopulateCountryDropDownList(object? selectedId = null)
         {
@@ -930,7 +899,174 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.CountryCode = new SelectList(list, "Value", "Text", selectedId);
             await Task.CompletedTask; // For async signature compliance.
         }
+        /* =========================================================
+   Helpers (keep in SubmissionController)
+   ========================================================= */
 
+        private static List<string> NormalizeRelatedLinks(List<string>? relatedLinks, int max)
+        {
+            return (relatedLinks ?? new List<string>())
+                .Select(x => (x ?? string.Empty).Trim())
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(max)
+                .ToList();
+        }
+
+        private void ValidateRelatedLinks(List<string> normalizedRelated)
+        {
+            for (int i = 0; i < normalizedRelated.Count; i++)
+            {
+                if (!UrlHelper.IsValidUrl(normalizedRelated[i]))
+                {
+                    this.ModelState.AddModelError(string.Empty, $"Related link {i + 1} is not a valid URL.");
+                }
+            }
+        }
+
+        private bool TryApplyFoundedDate(
+            Submission model,
+            string? foundedYear,
+            string? foundedMonth,
+            string? foundedDay,
+            out DateOnly? foundedDate)
+        {
+            foundedDate = null;
+
+            if (!TryParseFoundedDateParts(foundedYear, foundedMonth, foundedDay, out var parsed, out var err))
+            {
+                this.ModelState.AddModelError("FoundedYear", err!);
+                return false;
+            }
+
+            foundedDate = parsed;
+            model.FoundedDate = parsed; // keep it on the posted model for redisplay
+            return true;
+        }
+
+        private async Task<IActionResult> ReturnInvalidReviewAsync(
+            Submission model,
+            int[] selectedTagIds,
+            List<string> normalizedRelated)
+        {
+            await this.LoadDropDowns();
+            await this.SetSelectSubCategoryViewBag();
+            await this.LoadAllTagsForCheckboxesAsync();
+
+            this.ViewBag.SelectedTagIds = (selectedTagIds ?? Array.Empty<int>())
+                .Where(x => x > 0)
+                .ToHashSet();
+
+            // keep values on model so the form stays filled
+            model.RelatedLinks = normalizedRelated;
+
+            return this.View(model);
+        }
+
+        private static void EnsureValidDirectoryStatus(Submission model)
+        {
+            if (model.DirectoryStatus == DirectoryStatus.Unknown)
+            {
+                throw new Exception($"Invalid directory status: {model.DirectoryStatus}");
+            }
+        }
+
+        private static int[] NormalizeSelectedTagIds(int[] selectedTagIds)
+        {
+            return (selectedTagIds ?? Array.Empty<int>())
+                .Where(x => x > 0)
+                .Distinct()
+                .ToArray();
+        }
+
+        private static void ApplyReviewEditsToSubmission(
+            Submission submission,
+            Submission postedModel,
+            int[] selectedTagIds,
+            List<string> normalizedRelated,
+            DateOnly? foundedDate)
+        {
+            // typed tags are suggestions only
+            submission.Tags = postedModel.Tags?.Trim();
+
+            // checkbox tags = real tags
+            submission.SelectedTagIdsCsv = selectedTagIds.Length == 0
+                ? null
+                : string.Join(",", selectedTagIds);
+
+            // persist related links on submission itself
+            submission.RelatedLinks = normalizedRelated;
+
+            submission.FoundedDate = foundedDate;
+        }
+
+        private async Task ApproveIfNeededAsync(
+            Submission submission,
+            Submission postedModel,
+            int[] selectedTagIds,
+            List<string> normalizedRelated,
+            CancellationToken ct)
+        {
+            bool isApproving =
+                submission.SubmissionStatus == SubmissionStatus.Pending &&
+                postedModel.SubmissionStatus == SubmissionStatus.Approved;
+
+            if (!isApproving)
+            {
+                return;
+            }
+
+            if (postedModel.SubCategoryId == null || postedModel.SubCategoryId == 0)
+            {
+                // keep same behavior you had
+                throw new Exception("Submission does not have a subcategory");
+                // or: return this.BadRequest(new { Error = "Submission does not have a subcategory" });
+            }
+
+            int entryId = await this.UpsertDirectoryEntryForApprovalAsync(postedModel);
+
+            // ✅ SYNC ADDITIONAL LINKS ON LISTING (from submission)
+            await this.SyncAdditionalLinksAsync(entryId, normalizedRelated, ct);
+
+            // ✅ SYNC TAGS ON LISTING (checkboxes only)
+            await this.SyncEntryTagsAsync(entryId, selectedTagIds);
+
+            this.ClearCachedItems();
+        }
+
+        private async Task<int> UpsertDirectoryEntryForApprovalAsync(Submission postedModel)
+        {
+            if (postedModel.DirectoryEntryId == null)
+            {
+                await this.CreateDirectoryEntry(postedModel);
+
+                var created = await this.directoryEntryRepository
+                    .GetByLinkAsync((postedModel.Link ?? string.Empty).Trim());
+
+                return created?.DirectoryEntryId
+                    ?? throw new Exception("Failed to locate newly created entry");
+            }
+
+            await this.UpdateDirectoryEntry(postedModel);
+            return postedModel.DirectoryEntryId.Value;
+        }
+
+        private async Task SyncEntryTagsAsync(int entryId, int[] selectedTagIds)
+        {
+            var existingTags = await this.entryTagRepo.GetTagsForEntryAsync(entryId);
+            var existingIds = existingTags.Select(t => t.TagId).ToHashSet();
+            var selectedIds = selectedTagIds.ToHashSet();
+
+            foreach (var oldId in existingIds.Except(selectedIds))
+            {
+                await this.entryTagRepo.RemoveTagAsync(entryId, oldId);
+            }
+
+            foreach (var newId in selectedIds.Except(existingIds))
+            {
+                await this.entryTagRepo.AssignTagAsync(entryId, newId);
+            }
+        }
         private async Task AssignExistingProperties(Submission submissionModel, int existingDirectoryEntryId)
         {
             var existingDirectoryEntry = await this.directoryEntryRepository.GetByIdAsync(existingDirectoryEntryId);
@@ -976,7 +1112,9 @@ namespace DirectoryManager.Web.Controllers
                     CountryCode = model.CountryCode,
                     PgpKey = model.PgpKey?.Trim(),
                     ProofLink = model.ProofLink?.Trim(),
+                    VideoLink = model.VideoLink?.Trim(),
                     FoundedDate = model.FoundedDate,
+
                 });
         }
 
