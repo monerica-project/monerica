@@ -4,34 +4,86 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Edit Sponsored Listing";
     Layout = "_CenteredLayout";
+
+    // --- Time-left calculation (calendar months + remainder) ---
+    var now = DateTime.Now;                 // matches datetime-local UX
+    var end = Model.CampaignEndDate;        // your expiration/end date
+
+    var isExpired = end <= now;
+
+    int monthsLeft = 0;
+    DateTime cursor = now;
+
+    if (!isExpired)
+    {
+        // Count whole calendar months until the next month would pass the end date
+        // (safety cap included)
+        while (cursor.AddMonths(1) <= end)
+        {
+            cursor = cursor.AddMonths(1);
+            monthsLeft++;
+            if (monthsLeft > 2400) break;
+        }
+    }
+
+    var remainder = isExpired ? TimeSpan.Zero : (end - cursor);
+
+    var daysLeft = remainder.Days;
+    var hoursLeft = remainder.Hours;
+    var minutesLeft = remainder.Minutes;
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
-@await Html.PartialAsync("_AdminMenu")
+    @await Html.PartialAsync("_AdminMenu")
 
-<p>@Model.Name</p>
+    <p>@Model.Name</p>
 
-<a href="~/sponsoredlistinginvoice/details?id=@Model.SponsoredListingInvoiceId">Invoice</a>
+    <a href="~/sponsoredlistinginvoice/details?id=@Model.SponsoredListingInvoiceId">Invoice</a>
 
     <div class="form-group">
         <label for="CampaignStartDate">Sponsorship Type:</label>
         <span>@Model.SponsorshipType</span>
     </div>
 
-<form method="post">
-  
-    <div class="form-group">
-        <label for="CampaignStartDate">Start Date and Time</label>
-        <input type="datetime-local" class="form-control" id="CampaignStartDate" name="CampaignStartDate"
-               value="@Model.CampaignStartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3)" required />
-    </div>
-    <div class="form-group">
-        <label for="CampaignEndDate">End Date and Time</label>
-        <input type="datetime-local" class="form-control" id="CampaignEndDate" name="CampaignEndDate"
-               value="@Model.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3)" required />
-    </div>
-    <button type="submit" class="btn btn-primary">Update</button>
-</form>
+    <form method="post">
+
+        <div class="form-group">
+            <label for="CampaignStartDate">Start Date and Time</label>
+            <input type="datetime-local"
+                   class="form-control"
+                   id="CampaignStartDate"
+                   name="CampaignStartDate"
+                   value="@Model.CampaignStartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3)"
+                   required />
+        </div>
+
+        <div class="form-group">
+            <label for="CampaignEndDate">End Date and Time</label>
+            <input type="datetime-local"
+                   class="form-control"
+                   id="CampaignEndDate"
+                   name="CampaignEndDate"
+                   value="@Model.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3)"
+                   required />
+
+            <!-- ✅ Time left (below expiration) -->
+            <div style="margin-top:6px; font-size:0.95rem; opacity:0.9;">
+                @if (isExpired)
+                {
+                    <span><b>Expired</b></span>
+                }
+                else
+                {
+                    <span>
+                        <b>Time left:</b>
+                        @monthsLeft month(s), @daysLeft day(s), @hoursLeft hour(s), @minutesLeft minute(s)
+                    </span>
+                }
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Update</button>
+    </form>
 }

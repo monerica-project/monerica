@@ -2843,3 +2843,54 @@ body {
 }
 
 .warning-color { color: red !important;}
+
+
+/* =========================================================
+   MOBILE NAV: expander shows "-" when checkbox is checked
+   Works with your exact markup (label text is "+")
+   ========================================================= */
+@media (max-width: 768px) {
+
+    /* Hide the literal "+" text in the label, we'll draw our own */
+    details.mobile-nav .expander {
+        position: relative;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        /* keep your sizing/spacing predictable */
+        width: 1.25rem;
+        height: 1.25rem;
+        line-height: 1.25rem;
+        /* hide the real "+" character */
+        color: transparent !important;
+    }
+
+        /* Draw the visible symbol */
+        details.mobile-nav .expander::before {
+            content: "+";
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            /* visible color */
+            color: inherit; /* inherits transparent, so force it: */
+            color: #fff !important; /* change if you want */
+            font-weight: 700;
+            top: 0 !important;
+        }
+
+    /* Flip + -> - when the li contains a checked checkbox */
+    @supports selector(li:has(input:checked)) {
+        details.mobile-nav li.category-item:has(> input[type="checkbox"]:checked) .expander::before {
+            content: "-" !important;
+            top: 0 !important;
+        }
+
+        details.mobile-nav li.category-item:not(:has(> input[type="checkbox"]:checked)) .expander::before {
+            content: "+" !important;
+            top: 1px !important;
+        }
+    }
+}
+
