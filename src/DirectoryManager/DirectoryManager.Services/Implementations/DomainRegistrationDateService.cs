@@ -9,7 +9,6 @@ using DirectoryManager.Services.Interfaces;
 
 namespace DirectoryManager.Services.Implementations
 {
- 
     public sealed class DomainRegistrationDateService : IDomainRegistrationDateService
     {
         private const string IanaRdapBootstrapUrl = "https://data.iana.org/rdap/dns.json";
@@ -85,10 +84,6 @@ namespace DirectoryManager.Services.Implementations
             return whois;
         }
 
-        // -----------------------------
-        // Host / domain normalization
-        // -----------------------------
-
         private static bool TryGetHost(string url, out string host)
         {
             host = string.Empty;
@@ -131,6 +126,12 @@ namespace DirectoryManager.Services.Implementations
             }
         }
 
+        private static string? GetTld(string registrableDomain)
+        {
+            string[] parts = registrableDomain.Split('.', StringSplitOptions.RemoveEmptyEntries);
+            return parts.Length >= 2 ? parts[parts.Length - 1] : null;
+        }
+
         private string? GetRegistrableDomain(string asciiHost)
         {
             // Very small heuristic:
@@ -158,16 +159,6 @@ namespace DirectoryManager.Services.Implementations
 
             return last2;
         }
-
-        private static string? GetTld(string registrableDomain)
-        {
-            string[] parts = registrableDomain.Split('.', StringSplitOptions.RemoveEmptyEntries);
-            return parts.Length >= 2 ? parts[parts.Length - 1] : null;
-        }
-
-        // -----------------------------
-        // RDAP
-        // -----------------------------
 
         private async Task<RdapBootstrap> LoadRdapBootstrapAsync()
         {
@@ -347,30 +338,6 @@ namespace DirectoryManager.Services.Implementations
             return s.EndsWith("/", StringComparison.Ordinal) ? s : (s + "/");
         }
 
-        // -----------------------------
-        // WHOIS fallback (best effort)
-        // -----------------------------
-
-        private async Task<DateOnly?> TryGetFromWhoisAsync(string registrableDomain, CancellationToken cancellationToken)
-        {
-            string? tld = GetTld(registrableDomain);
-            if (tld is null)
-            {
-                return null;
-            }
-
-            string ianaResponse = await QueryWhoisAsync(IanaWhoisServer, tld, cancellationToken).ConfigureAwait(false);
-            string? whoisServer = ParseWhoisServerFromIana(ianaResponse);
-
-            if (string.IsNullOrWhiteSpace(whoisServer))
-            {
-                return null;
-            }
-
-            string whoisResponse = await QueryWhoisAsync(whoisServer, registrableDomain, cancellationToken).ConfigureAwait(false);
-            return TryParseCreationDateFromWhois(whoisResponse);
-        }
-
         private static string? ParseWhoisServerFromIana(string ianaResponse)
         {
             foreach (string line in ianaResponse.Split('\n'))
@@ -488,9 +455,25 @@ namespace DirectoryManager.Services.Implementations
             return Encoding.UTF8.GetString(ms.ToArray());
         }
 
-        // -----------------------------
-        // Bootstrap holder
-        // -----------------------------
+        private async Task<DateOnly?> TryGetFromWhoisAsync(string registrableDomain, CancellationToken cancellationToken)
+        {
+            string? tld = GetTld(registrableDomain);
+            if (tld is null)
+            {
+                return null;
+            }
+
+            string ianaResponse = await QueryWhoisAsync(IanaWhoisServer, tld, cancellationToken).ConfigureAwait(false);
+            string? whoisServer = ParseWhoisServerFromIana(ianaResponse);
+
+            if (string.IsNullOrWhiteSpace(whoisServer))
+            {
+                return null;
+            }
+
+            string whoisResponse = await QueryWhoisAsync(whoisServer, registrableDomain, cancellationToken).ConfigureAwait(false);
+            return TryParseCreationDateFromWhois(whoisResponse);
+        }
 
         private sealed class RdapBootstrap
         {

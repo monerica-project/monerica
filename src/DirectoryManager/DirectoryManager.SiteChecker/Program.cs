@@ -179,9 +179,6 @@ async Task CreateOfflineSubmissionIfNotExists(
         IpAddress = null
     };
 
-    // ❌ Do NOT set SubCategory nav property here.
-    // submission.SubCategory = entry.SubCategory;  // <-- remove
-
     await submissionRepository.CreateAsync(submission);
     Console.WriteLine($"Created submission for entry ID {entry.DirectoryEntryId} marked as '{SiteOfflineMessage}'.");
 }

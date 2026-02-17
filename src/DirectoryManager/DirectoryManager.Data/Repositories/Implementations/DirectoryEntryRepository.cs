@@ -175,6 +175,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     .ConfigureAwait(false);
             }
         }
+
         public async Task<List<DirectoryEntrySitemapRow>> GetSitemapEntriesAsync(CancellationToken ct = default)
         {
             // ✅ only columns needed to build /site/{key} + lastmod + removed filter + countries
@@ -767,19 +768,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             result.PageSize = pageSize;
 
             return result;
-        }
-
-
-        private static string NormalizeUrlLoose(string input)
-        {
-            if (string.IsNullOrWhiteSpace(input)) return string.Empty;
-
-            return input
-                .Replace("https://", "")
-                .Replace("http://", "")
-                .Replace("www.", "")
-                .Trim()
-                .TrimEnd('/');
         }
 
         public async Task<PagedResult<DirectoryEntry>> FilterAsync(DirectoryFilterQuery q)
