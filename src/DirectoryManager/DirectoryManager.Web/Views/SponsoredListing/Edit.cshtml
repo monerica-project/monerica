@@ -6,7 +6,7 @@
     Layout = "_CenteredLayout";
 
     // --- Time-left calculation (calendar months + remainder) ---
-    var now = DateTime.Now;                 // matches datetime-local UX
+    var now = DateTime.UtcNow;                 // matches datetime-local UX
     var end = Model.CampaignEndDate;        // your expiration/end date
 
     var isExpired = end <= now;
