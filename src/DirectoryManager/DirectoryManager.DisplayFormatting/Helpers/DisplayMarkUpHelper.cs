@@ -236,7 +236,22 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             if (!string.IsNullOrWhiteSpace(model.Note))
             {
-                sb.AppendFormat(" <i>(Note: {0})</i> ", model.Note);
+                bool isBad = model.DirectoryStatus == DirectoryStatus.Questionable
+                          || model.DirectoryStatus == DirectoryStatus.Scam;
+
+                sb.Append(" <i>(");
+                if (isBad)
+                {
+                    sb.Append("<span class=\"warning-color\">Note:</span> ");
+                }
+                else
+                {
+                    sb.Append("Note:");
+                }
+
+                sb.Append(" ");
+                sb.Append(model.Note); // keep existing behavior (raw HTML if that's what you want)
+                sb.Append(")</i> ");
             }
         }
 
@@ -249,7 +264,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                     .ToString(Common.Constants.StringConstants.DateFormat));
         }
 
-        private static void AppendGroupedEntry(StringBuilder sb, DirectoryManager.Data.Models.DirectoryEntry entry)
+        private static void AppendGroupedEntry(StringBuilder sb, DirectoryEntry entry)
         {
             sb.Append("<li>");
             sb.Append("<p class=\"small-font text-inline\">");
@@ -511,7 +526,19 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             if (!string.IsNullOrWhiteSpace(model.Note))
             {
-                sb.Append(" <i>Note: ");
+                bool isBad = model.DirectoryStatus == DirectoryStatus.Questionable
+                          || model.DirectoryStatus == DirectoryStatus.Scam;
+
+                sb.Append(" <i>");
+                if (isBad)
+                {
+                    sb.Append("<span class=\"warning-color\">Note:</span> ");
+                }
+                else
+                {
+                    sb.Append("Note: ");
+                }
+
                 sb.Append(model.Note); // raw HTML on purpose (your current behavior)
                 sb.Append("</i>");
             }
