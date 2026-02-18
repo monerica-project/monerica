@@ -112,7 +112,6 @@
                             </td>
                         </tr>
 
-                        @* ✅ WEBSITE: if scam -> plain text of Model.Link (not LinkA). else -> clickable using finalLink *@
                         @if (!string.IsNullOrWhiteSpace(Model.Link))
                         {
                             <tr>
@@ -252,7 +251,14 @@
         {
             <br />
             <div class="mb-4">
-                <h4>Note</h4>
+                @if (Model.DirectoryStatus == DirectoryStatus.Scam || Model.DirectoryStatus == DirectoryStatus.Questionable)
+                {
+                    <h4 class="warning-color">Note</h4>
+                }
+                else
+                {
+                    <h4>Note</h4>
+                }
                 <p><em>@Html.Raw(Model.Note)</em></p>
             </div>
         }

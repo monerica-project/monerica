@@ -134,6 +134,11 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("Directory Status", entry.DirectoryStatus, submission.DirectoryStatus);
             }
 
+            if (entry.FoundedDate != submission.FoundedDate)
+            {
+                AddDifference("Founded Date", entry.FoundedDate, submission.FoundedDate);
+            }
+
             // -----------------------------
             // Tags diff
             // -----------------------------
