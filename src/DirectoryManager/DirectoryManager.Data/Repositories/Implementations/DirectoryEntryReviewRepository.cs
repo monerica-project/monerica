@@ -22,10 +22,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public IQueryable<DirectoryEntryReview> Query() => this.Set.AsNoTracking();
 
+        // =========================================================
+        // ✅ SINGLE SOURCE OF TRUTH (PUBLIC REVIEW ORDER)
+        //
+        // EffectiveDate = UpdateDate ?? CreateDate
+        // Newest first:
+        // ORDER BY EffectiveDate DESC, ReviewId DESC
+        // =========================================================
         private static IOrderedQueryable<DirectoryEntryReview> ApplyApprovedListingOrder(IQueryable<DirectoryEntryReview> q)
         {
             return q
-                .OrderByDescending(r => r.CreateDate)
+                .OrderByDescending(r => r.UpdateDate ?? r.CreateDate)
                 .ThenByDescending(r => r.DirectoryEntryReviewId);
         }
 
@@ -44,17 +51,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<List<DirectoryEntryReview>> ListAsync(int page = 1, int pageSize = 50, CancellationToken ct = default)
         {
-            if (page < 1)
-            {
-                page = 1;
-            }
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 50;
 
-            if (pageSize < 1)
-            {
-                pageSize = 50;
-            }
-
-            // admin list (your preference)
             return await this.Set.AsNoTracking()
                 .OrderByDescending(x => x.UpdateDate ?? x.CreateDate)
                 .ThenByDescending(x => x.DirectoryEntryReviewId)
@@ -84,10 +83,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var existing = await this.Set.FindAsync(new object[] { id }, ct);
-            if (existing is null)
-            {
-                return;
-            }
+            if (existing is null) return;
 
             this.Set.Remove(existing);
             await this.context.SaveChangesAsync(ct);
@@ -104,17 +100,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             int pageSize,
             CancellationToken ct)
         {
-            if (page < 1)
-            {
-                page = 1;
-            }
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 10;
 
-            if (pageSize < 1)
-            {
-                pageSize = 10;
-            }
-
-            // IMPORTANT: declare as IQueryable so it can hold Include + ordered query
             IQueryable<DirectoryEntryReview> q = this.ApprovedForEntryQuery(directoryEntryId)
                 .Include(r => r.ReviewTags)
                     .ThenInclude(x => x.ReviewTag);
@@ -143,15 +131,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
                          && r.Rating.HasValue)
                 .Select(r => (double)r.Rating!.Value);
 
-            if (!await q.AnyAsync(ct))
-            {
-                return null;
-            }
+            if (!await q.AnyAsync(ct)) return null;
 
             return await q.AverageAsync(ct);
         }
 
-        // ✅ Global rating distribution counts (for your bars)
         public async Task<(int c1, int c2, int c3, int c4, int c5)> GetApprovedRatingCountsForEntryAsync(
             int directoryEntryId,
             CancellationToken ct)
@@ -172,15 +156,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
         }
 
         // =========================================================
-        // ✅ CORRECT PAGE MAP (NO RAW SQL)
+        // ✅ CORRECT PAGE MAP (matches public listing order EXACTLY)
         //
-        // Returns: ReviewId -> PageNumber
-        // Page is computed using EXACT same ordering as listing:
-        // CreateDate DESC, ReviewId DESC
+        // EffectiveDate = UpdateDate ?? CreateDate
+        // ORDER BY EffectiveDate DESC, ReviewId DESC
         //
-        // Position formula for descending order:
-        // pos = COUNT(approved where date > r.date OR (date== AND id>=))
-        // page = ceil(pos / pageSize)
+        // For descending order:
+        // position = count(approved reviews "ahead" of r) using same comparator
+        // page = ceil(position / pageSize)
         // =========================================================
         public async Task<Dictionary<int, int>> GetApprovedReviewPageMapAsync(
             IEnumerable<int> reviewIds,
@@ -192,15 +175,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Distinct()
                 .ToList();
 
-            if (ids.Count == 0)
-            {
-                return new Dictionary<int, int>();
-            }
-
-            if (pageSize < 1)
-            {
-                pageSize = 10;
-            }
+            if (ids.Count == 0) return new Dictionary<int, int>();
+            if (pageSize < 1) pageSize = 10;
 
             var rows = await this.Set.AsNoTracking()
                 .Where(r => ids.Contains(r.DirectoryEntryReviewId)
@@ -212,8 +188,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         .Where(x => x.DirectoryEntryId == r.DirectoryEntryId
                                  && x.ModerationStatus == ReviewModerationStatus.Approved
                                  && (
-                                     x.CreateDate > r.CreateDate
-                                     || (x.CreateDate == r.CreateDate && x.DirectoryEntryReviewId >= r.DirectoryEntryReviewId)))
+                                     (x.UpdateDate ?? x.CreateDate) > (r.UpdateDate ?? r.CreateDate)
+                                     || ((x.UpdateDate ?? x.CreateDate) == (r.UpdateDate ?? r.CreateDate)
+                                         && x.DirectoryEntryReviewId >= r.DirectoryEntryReviewId)
+                                 ))
                         .Count()
                 })
                 .ToListAsync(ct);
@@ -223,10 +201,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             foreach (var row in rows)
             {
                 int page = (int)Math.Ceiling(row.Position / (double)pageSize);
-                if (page < 1)
-                {
-                    page = 1;
-                }
+                if (page < 1) page = 1;
 
                 result[row.DirectoryEntryReviewId] = page;
             }
@@ -240,15 +215,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<List<DirectoryEntryReview>> ListByStatusAsync(
             ReviewModerationStatus status, int page = 1, int pageSize = 50, CancellationToken ct = default)
         {
-            if (page < 1)
-            {
-                page = 1;
-            }
-
-            if (pageSize < 1)
-            {
-                pageSize = 50;
-            }
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 50;
 
             return await this.Set.AsNoTracking()
                 .Where(r => r.ModerationStatus == status)
@@ -266,10 +234,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             int id, ReviewModerationStatus status, string reason, CancellationToken ct = default)
         {
             var review = await this.Set.FindAsync(new object[] { id }, ct);
-            if (review is null)
-            {
-                return;
-            }
+            if (review is null) return;
 
             review.RejectionReason = reason;
             review.ModerationStatus = status;
@@ -288,10 +253,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         // ---------------------------
         public async Task<List<DirectoryEntryReview>> ListLatestApprovedAsync(int count = 10, CancellationToken ct = default)
         {
-            if (count < 1)
-            {
-                count = 10;
-            }
+            if (count < 1) count = 10;
 
             return await this.Set.AsNoTracking()
                 .Where(r => r.ModerationStatus == ReviewModerationStatus.Approved
@@ -314,15 +276,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<List<DirectoryEntryReview>> ListForEntryAsync(
             int directoryEntryId, int page = 1, int pageSize = 50, CancellationToken ct = default)
         {
-            if (page < 1)
-            {
-                page = 1;
-            }
-
-            if (pageSize < 1)
-            {
-                pageSize = 50;
-            }
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 50;
 
             return await this.Set.AsNoTracking()
                 .Where(r => r.DirectoryEntryId == directoryEntryId)
@@ -339,10 +294,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Where(r => r.DirectoryEntryId == directoryEntryId && r.Rating.HasValue)
                 .Select(r => (double)r.Rating!.Value);
 
-            if (!await q.AnyAsync(ct))
-            {
-                return null;
-            }
+            if (!await q.AnyAsync(ct)) return null;
 
             return await q.AverageAsync(ct);
         }
@@ -423,7 +375,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     EntryId = g.Key,
                     Cnt = g.Count()
                 })
-                .ToDictionaryAsync(x => x.EntryId, x => x.Cnt, ct);
+                .ToDictionaryAsync(x => x.EntryId, x => x.Cnt);
         }
 
         public async Task<DirectoryEntryReview?> GetWithTagsByIdAsync(int id, CancellationToken ct = default)

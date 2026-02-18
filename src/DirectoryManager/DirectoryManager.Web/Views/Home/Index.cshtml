@@ -22,6 +22,7 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepo
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository subCatRepo
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository reviewRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewCommentRepository commentRepository
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 @inject IHttpContextAccessor httpContextAccessor
 @inject IUrlResolutionService urlResolver
@@ -72,14 +73,18 @@
     var isOnTor = httpContextAccessor.HttpContext?.Request.Host.Host.EndsWith(DirectoryManager.Web.Constants.StringConstants.TorDomain) ?? false;
     var useRelative = isOnTor || string.IsNullOrWhiteSpace(root) || urlResolver.IsLocal;
 
-    string BuildListingUrlWithAnchorAndPage(string entryKey, int page, string anchor)
+    string BuildListingUrlWithAnchorAndPage(string entryKey, int page, string anchor, string? queryString = null)
     {
         var basePath = FormattingHelper.ListingPath(entryKey); // "/site/xyz"
         if (!basePath.StartsWith("/")) basePath = "/" + basePath;
 
+        var qs = string.IsNullOrWhiteSpace(queryString)
+            ? string.Empty
+            : (queryString.StartsWith("?") ? queryString : "?" + queryString);
+
         string rel = (page <= 1)
-            ? $"{basePath}#{anchor}"
-            : $"{basePath}/page/{page}#{anchor}";
+            ? $"{basePath}{qs}#{anchor}"
+            : $"{basePath}/page/{page}{qs}#{anchor}";
 
         if (useRelative) return rel;
 
@@ -114,10 +119,9 @@
     // build a quick lookup from SubCategoryId → Subcategory (so we can get CategoryId cheaply)
     var subById = subs.ToDictionary(sc => sc.SubcategoryId, sc => sc);
 
-    // now group your category-level sponsors by CategoryId
+    // group category sponsors by CategoryId
     var sponsorsByCategory = catSponsors
-        .Where(s => s.DirectoryEntry != null
-                    && subById.ContainsKey(s.DirectoryEntry.SubCategoryId))
+        .Where(s => s.DirectoryEntry != null && subById.ContainsKey(s.DirectoryEntry.SubCategoryId))
         .GroupBy(s => subById[s.DirectoryEntry.SubCategoryId].CategoryId)
         .ToDictionary(
             g => g.Key,
@@ -140,7 +144,7 @@
 }
 
 @section PageContent {
-  
+
     <div>
         @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageDisplayHtml))
         @await Html.PartialAsync("_SponsoredListingPartial")
@@ -173,8 +177,7 @@
 
         @* Featured *@
         @{
-            var featuredEntries = await directoryEntrySelectionRepository
-            .GetEntriesForSelection(EntrySelectionType.Featured);
+            var featuredEntries = await directoryEntrySelectionRepository.GetEntriesForSelection(EntrySelectionType.Featured);
 
             var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
             var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
@@ -186,11 +189,11 @@
             <ul class="blank_list_item">
                 @{
                     var vmList = ViewModelConverter.ConvertToViewModels(
-                    featuredEntries.ToList(),
-                    DateDisplayOption.NotDisplayed,
-                    ItemDisplayType.Featured,
-                    link2Name,
-                    link3Name);
+                        featuredEntries.ToList(),
+                        DateDisplayOption.NotDisplayed,
+                        ItemDisplayType.Featured,
+                        link2Name,
+                        link3Name);
                 }
                 @foreach (var vm in vmList)
                 {
@@ -207,7 +210,7 @@
         @if (newest?.Any() == true)
         {
             <hr />
-            <h3>Newest Additions</h3> 
+            <h3>Newest Additions</h3>
             <i>
                 See:
                 <a href="~/newest">all new additions</a>
@@ -217,10 +220,11 @@
             <ul class="blank_list_item">
                 @{
                     var vmList = ViewModelConverter.ConvertToViewModels(
-                    newest.ToList(),
-                    DateDisplayOption.DisplayCreateDate,
-                    ItemDisplayType.Normal,
-                    link2Name, link3Name);
+                        newest.ToList(),
+                        DateDisplayOption.DisplayCreateDate,
+                        ItemDisplayType.Normal,
+                        link2Name,
+                        link3Name);
                 }
                 @foreach (var vm in vmList)
                 {
@@ -245,10 +249,11 @@
             <ul class="blank_list_item">
                 @{
                     var vmList = ViewModelConverter.ConvertToViewModels(
-                    revisions.ToList(),
-                    DateDisplayOption.DisplayUpdateDate,
-                    ItemDisplayType.NewestRevions,
-                    link2Name, link3Name);
+                        revisions.ToList(),
+                        DateDisplayOption.DisplayUpdateDate,
+                        ItemDisplayType.NewestRevions,
+                        link2Name,
+                        link3Name);
                 }
                 @foreach (var vm in vmList)
                 {
@@ -258,7 +263,6 @@
             </ul>
             <hr />
         }
-       
 
         <div class="sponsor-sections">
             <!-- Category Sponsors -->
@@ -273,12 +277,12 @@
                             @foreach (var e in entries)
                             {
                                 var vm = ViewModelConverter
-                                .ConvertToViewModels(
-                                new List<DirectoryEntry> { e },
-                                DateDisplayOption.NotDisplayed,
-                                ItemDisplayType.CategorySponsor,
-                                link2Name, link3Name)
-                                .First();
+                                    .ConvertToViewModels(
+                                        new List<DirectoryEntry> { e },
+                                        DateDisplayOption.NotDisplayed,
+                                        ItemDisplayType.CategorySponsor,
+                                        link2Name, link3Name)
+                                    .First();
 
                                 vm.IsSponsored = true;
 
@@ -309,12 +313,12 @@
                             @foreach (var e in entries)
                             {
                                 var vm = ViewModelConverter
-                                .ConvertToViewModels(
-                                new List<DirectoryEntry> { e },
-                                DateDisplayOption.NotDisplayed,
-                                ItemDisplayType.SubcategorySponsor,
-                                link2Name, link3Name)
-                                .First();
+                                    .ConvertToViewModels(
+                                        new List<DirectoryEntry> { e },
+                                        DateDisplayOption.NotDisplayed,
+                                        ItemDisplayType.SubcategorySponsor,
+                                        link2Name, link3Name)
+                                    .First();
 
                                 vm.IsSponsored = true;
 
@@ -331,28 +335,34 @@
                 }
             </section>
         </div>
-       
 
-        @* ✅ Latest Reviews *@
+        @* ===========================
+           Latest Reviews / Replies
+           =========================== *@
         @{
-            var latestReviews = await reviewRepository.ListLatestApprovedAsync(15);
+            // Pull the same stuff the controller puts in ViewBag to avoid confusion.
+            // If ViewBag has it, use it; otherwise fall back.
+            var latestReviews = ViewBag.LatestReviews as IEnumerable<DirectoryEntryReview>
+                ?? await reviewRepository.ListLatestApprovedAsync(IntegerConstants.ReviewCountToShowOnHomepage);
 
-            // Controller should set this:
-            // ViewBag.LatestComments = await commentRepository.ListLatestApprovedAsync(15);
-            var latestComments = ViewBag.LatestComments as IEnumerable<DirectoryEntryReviewComment>;
+            var latestComments = ViewBag.LatestComments as IEnumerable<DirectoryEntryReviewComment>
+                ?? await commentRepository.ListLatestApprovedAsync(IntegerConstants.CommentCountToShowOnHomepage);
 
-            // ✅ build a page map for latest reviews (per-entry paging)
-            var latestReviewIds = latestReviews?
-                .Select(r => r.DirectoryEntryReviewId)
+            // ✅ build a page map for ALL reviews we might link to:
+            //    - latestReviews (for "Latest Reviews")
+            //    - parent reviews of latestComments (for "Latest Replies")
+            var reviewIdsToMap =
+                (latestReviews?.Select(r => r.DirectoryEntryReviewId) ?? Enumerable.Empty<int>())
+                .Concat(latestComments?.Select(c => c.DirectoryEntryReviewId) ?? Enumerable.Empty<int>())
+                .Where(id => id > 0)
                 .Distinct()
-                .ToList() ?? new List<int>();
+                .ToList();
 
-            var reviewPageMap = latestReviewIds.Count == 0
+            var reviewsPageSize = IntegerConstants.ReviewsPageSize;
+
+            var reviewPageMap = reviewIdsToMap.Count == 0
                 ? new Dictionary<int, int>()
-                : await reviewRepository.GetApprovedReviewPageMapAsync(
-                    latestReviewIds,
-                    pageSize: IntegerConstants.ReviewsPageSize);
-
+                : await reviewRepository.GetApprovedReviewPageMapAsync(reviewIdsToMap, pageSize: reviewsPageSize);
         }
 
         @if (latestReviews?.Any() == true)
@@ -371,7 +381,6 @@
                     var listingName = e.Name ?? "Listing";
                     var oneLine = TextHelper.TruncateAtWord((r.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
 
-                    // ✅ Listing base URL (no anchor)
                     var listingUrl = UrlResolver.ResolveToRoot(FormattingHelper.ListingPath(e.DirectoryEntryKey));
 
                     var pageNum = reviewPageMap.TryGetValue(r.DirectoryEntryReviewId, out var p) ? p : 1;
@@ -380,8 +389,8 @@
                         pageNum,
                         $"review-{r.DirectoryEntryReviewId}");
 
-
-                    var reviewDate = (r.UpdateDate ?? r.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
+                    var reviewDate = (r.UpdateDate ?? r.CreateDate)
+                        .ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
 
                     <li>
                         <i>@reviewDate</i>
@@ -420,7 +429,9 @@
                             pageNum,
                             $"review-comment-{c.DirectoryEntryReviewCommentId}");
 
-                        var commentDate = (c.UpdateDate ?? c.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
+                        var commentDate = (c.UpdateDate ?? c.CreateDate)
+                            .ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
+
                         var snippet = TextHelper.TruncateAtWord((c.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
 
                         <li>

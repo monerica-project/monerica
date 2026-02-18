@@ -17,5 +17,7 @@
         public const int MinLengthCommentChars = 35;
         public const int MaxAdditionalLinks = 3;
         public const int ReviewsPageSize = 10;
+        public const int ReviewCountToShowOnHomepage = 15;
+        public const int CommentCountToShowOnHomepage = 10;
     }
 }
