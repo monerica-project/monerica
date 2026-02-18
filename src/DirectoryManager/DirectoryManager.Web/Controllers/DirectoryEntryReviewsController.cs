@@ -1,4 +1,5 @@
 ﻿using System.Security.Cryptography;
+using System.Text;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -20,6 +21,13 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly IUserContentModerationService moderation;
+
+        // =========================
+        // ✅ Challenge code settings
+        // =========================
+        private const int ChallengeLength = 10;     // normalized length, e.g. ABCDEFGHIJ
+        private const int MaxVerifyAttempts = 10;   // per flow
+        private static readonly char[] CodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".ToCharArray(); // no 0/1/I/O
 
         public DirectoryEntryReviewsController(
             IDirectoryEntryReviewRepository repo,
@@ -135,13 +143,21 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("SubmitKey");
             }
 
-            int code = SixDigits();
-            string cipher = this.pgp.EncryptTo(pgpArmored, code.ToString());
+            // ✅ stronger but still typable:
+            // Store normalized (no dash) and encrypt a friendly formatted version (ABCDE-FGHIJ).
+            var expectedNormalized = GenerateChallengeCodeNormalized(ChallengeLength);
+            var plaintextForUser = FormatChallengeCodeForHumans(expectedNormalized);
+            var cipher = this.pgp.EncryptTo(pgpArmored, plaintextForUser);
 
             state.PgpArmored = pgpArmored;
             state.PgpFingerprint = fp;
-            state.ChallengeCode = code;
+
+            // NOTE: ReviewFlowState must have:
+            //   public string? ChallengeCode { get; set; }
+            //   public int VerifyAttempts { get; set; }
+            state.ChallengeCode = expectedNormalized;
             state.ChallengeCiphertext = cipher;
+            state.VerifyAttempts = 0;
 
             this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
             return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
@@ -163,6 +179,10 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.FlowId = flowId;
             this.ViewBag.Ciphertext = state.ChallengeCiphertext;
             this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+
+            // This uses your wrapper view at:
+            // /Views/DirectoryEntryReviews/VerifyCode.cshtml
+            // which should render the shared partial and set PostController/PostAction.
             return this.View();
         }
 
@@ -175,17 +195,32 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest("Session expired.");
             }
 
-            if (state.ChallengeCode is null)
+            if (string.IsNullOrWhiteSpace(state.ChallengeCode))
             {
                 return this.RedirectToAction(nameof(this.SubmitKey), new { flowId });
             }
 
-            if (!int.TryParse(code, out var numeric) || numeric != state.ChallengeCode.Value)
+            var submitted = NormalizeSubmittedCode(code);
+
+            // ✅ throttle guessing per flow
+            state.VerifyAttempts++;
+            if (state.VerifyAttempts > MaxVerifyAttempts)
             {
-                this.ModelState.AddModelError(string.Empty, "That code doesn’t match. Decrypt the message with your private key and try again.");
+                this.cache.Remove(CacheKey(flowId));
+                return this.BadRequest("Too many attempts. Please start over.");
+            }
+
+            if (!CodesMatchConstantTime(submitted, state.ChallengeCode))
+            {
+                this.ModelState.AddModelError(
+                    string.Empty,
+                    "That code doesn’t match. Decrypt the message again and enter the code exactly as shown (dashes/spaces don’t matter).");
+
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.Ciphertext = state.ChallengeCiphertext;
                 this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+
+                this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
                 return this.View("VerifyCode");
             }
 
@@ -429,7 +464,68 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Index));
         }
 
-        private static int SixDigits() => RandomNumberGenerator.GetInt32(100_000, 1_000_000);
+        // =========================
+        // ✅ Challenge helpers
+        // =========================
+
+        private static string GenerateChallengeCodeNormalized(int length)
+        {
+            if (length < 6) length = 6;
+
+            Span<char> chars = stackalloc char[length];
+            for (var i = 0; i < length; i++)
+            {
+                chars[i] = CodeAlphabet[RandomNumberGenerator.GetInt32(CodeAlphabet.Length)];
+            }
+            return new string(chars);
+        }
+
+        private static string FormatChallengeCodeForHumans(string normalized)
+        {
+            // 10 chars -> 5-5 (ABCDE-FGHIJ)
+            if (string.IsNullOrWhiteSpace(normalized) || normalized.Length <= 5)
+            {
+                return normalized;
+            }
+
+            return normalized.Substring(0, 5) + "-" + normalized.Substring(5);
+        }
+
+        private static string NormalizeSubmittedCode(string? input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return string.Empty;
+            }
+
+            var sb = new StringBuilder(input.Length);
+            foreach (var ch in input.Trim().ToUpperInvariant())
+            {
+                if (char.IsLetterOrDigit(ch))
+                {
+                    sb.Append(ch);
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private static bool CodesMatchConstantTime(string submitted, string expected)
+        {
+            if (string.IsNullOrEmpty(submitted) || string.IsNullOrEmpty(expected))
+            {
+                return false;
+            }
+
+            if (submitted.Length != expected.Length)
+            {
+                return false;
+            }
+
+            var a = Encoding.UTF8.GetBytes(submitted);
+            var b = Encoding.UTF8.GetBytes(expected);
+            return CryptographicOperations.FixedTimeEquals(a, b);
+        }
 
         private static string CacheKey(Guid flowId) => $"review-flow:{flowId}";
 
