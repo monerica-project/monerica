@@ -144,7 +144,6 @@
 }
 
 @section PageContent {
-
     <div>
         @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageDisplayHtml))
         @await Html.PartialAsync("_SponsoredListingPartial")
@@ -272,7 +271,7 @@
                 {
                     if (sponsorsByCategory.TryGetValue(cat.CategoryId, out var entries))
                     {
-                        <span class="category-name">@cat.Name</span>
+                        <h3>@cat.Name</h3>
                         <ul class="blank_list_item">
                             @foreach (var e in entries)
                             {
@@ -306,9 +305,7 @@
                 {
                     if (sponsorsBySubcategory.TryGetValue(sub.SubcategoryId, out var entries))
                     {
-                        <span class="subcategory-name">
-                            @Html.Raw(FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name))
-                        </span>
+                        <h3>@Html.Raw(FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name))</h3>
                         <ul class="blank_list_item">
                             @foreach (var e in entries)
                             {
