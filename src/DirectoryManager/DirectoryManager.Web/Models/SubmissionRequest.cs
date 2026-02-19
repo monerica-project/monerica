@@ -116,6 +116,5 @@ namespace DirectoryManager.Web.Models
                 .Take(max)
                 .ToList();
         }
-
     }
 }

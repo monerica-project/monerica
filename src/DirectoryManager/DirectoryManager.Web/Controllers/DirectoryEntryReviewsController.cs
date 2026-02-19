@@ -15,19 +15,15 @@ namespace DirectoryManager.Web.Controllers
     [Route("directory-entry-reviews")]
     public class DirectoryEntryReviewsController : BaseController
     {
+        private const string SesssionExpiredMessage = "Session expired, your reply message was not saved, please start over!";
+        private static readonly char[] CodeAlphabet = StringConstants.CodeAlphabet.ToCharArray();
+
         private readonly IMemoryCache cache;
         private readonly ICaptchaService captcha;
         private readonly IPgpService pgp;
         private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly IUserContentModerationService moderation;
-
-        // =========================
-        // ✅ Challenge code settings
-        // =========================
-        private const int ChallengeLength = 10;     // normalized length, e.g. ABCDEFGHIJ
-        private const int MaxVerifyAttempts = 10;   // per flow
-        private static readonly char[] CodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".ToCharArray(); // no 0/1/I/O
 
         public DirectoryEntryReviewsController(
             IDirectoryEntryReviewRepository repo,
@@ -69,7 +65,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
             this.ViewBag.FlowId = flowId;
@@ -85,7 +81,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
             if (!this.captcha.IsValid(this.Request))
@@ -107,7 +103,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
             if (!state.CaptchaOk)
@@ -126,7 +122,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
             if (!state.CaptchaOk)
@@ -145,7 +141,7 @@ namespace DirectoryManager.Web.Controllers
 
             // ✅ stronger but still typable:
             // Store normalized (no dash) and encrypt a friendly formatted version (ABCDE-FGHIJ).
-            var expectedNormalized = GenerateChallengeCodeNormalized(ChallengeLength);
+            var expectedNormalized = GenerateChallengeCodeNormalized(IntegerConstants.ChallengeLength);
             var plaintextForUser = FormatChallengeCodeForHumans(expectedNormalized);
             var cipher = this.pgp.EncryptTo(pgpArmored, plaintextForUser);
 
@@ -168,7 +164,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
             if (string.IsNullOrWhiteSpace(state.ChallengeCiphertext))
@@ -180,9 +176,6 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.Ciphertext = state.ChallengeCiphertext;
             this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
 
-            // This uses your wrapper view at:
-            // /Views/DirectoryEntryReviews/VerifyCode.cshtml
-            // which should render the shared partial and set PostController/PostAction.
             return this.View();
         }
 
@@ -192,7 +185,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
             if (string.IsNullOrWhiteSpace(state.ChallengeCode))
@@ -204,7 +197,7 @@ namespace DirectoryManager.Web.Controllers
 
             // ✅ throttle guessing per flow
             state.VerifyAttempts++;
-            if (state.VerifyAttempts > MaxVerifyAttempts)
+            if (state.VerifyAttempts > IntegerConstants.MaxVerifyAttempts)
             {
                 this.cache.Remove(CacheKey(flowId));
                 return this.BadRequest("Too many attempts. Please start over.");
@@ -234,7 +227,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
             if (!state.ChallengeSolved)
@@ -261,7 +254,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var flow))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
             if (!flow.ChallengeSolved)
@@ -331,8 +324,6 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpGet("thanks")]
         public IActionResult Thanks() => this.View();
-
-        // --- admin stuff below ---
 
         [HttpGet("")]
         public async Task<IActionResult> Index(int page = 1, int pageSize = 50, CancellationToken ct = default)
@@ -470,13 +461,17 @@ namespace DirectoryManager.Web.Controllers
 
         private static string GenerateChallengeCodeNormalized(int length)
         {
-            if (length < 6) length = 6;
+            if (length < 6)
+            {
+                length = 6;
+            }
 
             Span<char> chars = stackalloc char[length];
             for (var i = 0; i < length; i++)
             {
                 chars[i] = CodeAlphabet[RandomNumberGenerator.GetInt32(CodeAlphabet.Length)];
             }
+
             return new string(chars);
         }
 
@@ -529,24 +524,6 @@ namespace DirectoryManager.Web.Controllers
 
         private static string CacheKey(Guid flowId) => $"review-flow:{flowId}";
 
-        private Guid CreateFlow(int directoryEntryId)
-        {
-            var id = Guid.NewGuid();
-            var state = new ReviewFlowState
-            {
-                DirectoryEntryId = directoryEntryId,
-                ExpiresUtc = DateTime.UtcNow.AddMinutes(20)
-            };
-
-            this.cache.Set(CacheKey(id), state, state.ExpiresUtc);
-            return id;
-        }
-
-        private bool TryGetFlow(Guid flowId, out ReviewFlowState state)
-        {
-            return this.cache.TryGetValue(CacheKey(flowId), out state) && state.ExpiresUtc > DateTime.UtcNow;
-        }
-
         private static void ApplyOrderProof(DirectoryEntryReview review, string? orderProof)
         {
             var s = (orderProof ?? string.Empty).Trim();
@@ -569,6 +546,24 @@ namespace DirectoryManager.Web.Controllers
                 review.OrderId = s;
                 review.OrderUrl = null;
             }
+        }
+
+        private Guid CreateFlow(int directoryEntryId)
+        {
+            var id = Guid.NewGuid();
+            var state = new ReviewFlowState
+            {
+                DirectoryEntryId = directoryEntryId,
+                ExpiresUtc = DateTime.UtcNow.AddMinutes(IntegerConstants.SessinExpiresMinutes)
+            };
+
+            this.cache.Set(CacheKey(id), state, state.ExpiresUtc);
+            return id;
+        }
+
+        private bool TryGetFlow(Guid flowId, out ReviewFlowState state)
+        {
+            return this.cache.TryGetValue(CacheKey(flowId), out state) && state.ExpiresUtc > DateTime.UtcNow;
         }
     }
 }

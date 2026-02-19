@@ -19,5 +19,8 @@
         public const int ReviewsPageSize = 10;
         public const int ReviewCountToShowOnHomepage = 15;
         public const int CommentCountToShowOnHomepage = 10;
+        public const int SessinExpiresMinutes = 20;
+        public const int ChallengeLength = 10;
+        public const int MaxVerifyAttempts = 10;
     }
 }

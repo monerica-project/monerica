@@ -1,9 +1,9 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
 using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -17,12 +17,7 @@ namespace DirectoryManager.Web.Controllers
         private const string SesssionExpiredMessage =
             "Session expired, your review message was not saved, please start over!";
 
-        // =========================
-        // ✅ Challenge code settings
-        // =========================
-        private const int ChallengeLength = 10;     // normalized length, e.g. ABCDEFGHIJ
-        private const int MaxVerifyAttempts = 10;   // per flow
-        private static readonly char[] CodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789".ToCharArray(); // no 0/1/I/O
+        private static readonly char[] CodeAlphabet = StringConstants.CodeAlphabet.ToCharArray();
 
         private readonly IMemoryCache cache;
         private readonly ICaptchaService captcha;
@@ -173,7 +168,7 @@ namespace DirectoryManager.Web.Controllers
 
             // ✅ stronger but still typable:
             // Store normalized (no dash) and encrypt a friendly formatted version (ABCDE-FGHIJ).
-            var expectedNormalized = GenerateChallengeCodeNormalized(ChallengeLength);
+            var expectedNormalized = GenerateChallengeCodeNormalized(IntegerConstants.ChallengeLength);
             var plaintextForUser = FormatChallengeCodeForHumans(expectedNormalized);
             var cipher = this.pgp.EncryptTo(pgpArmored, plaintextForUser);
 
@@ -233,7 +228,7 @@ namespace DirectoryManager.Web.Controllers
 
             // ✅ throttle guessing per flow
             state.VerifyAttempts++;
-            if (state.VerifyAttempts > MaxVerifyAttempts)
+            if (state.VerifyAttempts > IntegerConstants.MaxVerifyAttempts)
             {
                 this.cache.Remove(CacheKey(flowId));
                 return this.BadRequest("Too many attempts. Please start over.");
@@ -350,19 +345,19 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("thanks")]
         public IActionResult Thanks() => this.View();
 
-        // =========================
-        // ✅ Challenge helpers
-        // =========================
-
         private static string GenerateChallengeCodeNormalized(int length)
         {
-            if (length < 6) length = 6;
+            if (length < 6)
+            {
+                length = 6;
+            }
 
             Span<char> chars = stackalloc char[length];
             for (var i = 0; i < length; i++)
             {
                 chars[i] = CodeAlphabet[RandomNumberGenerator.GetInt32(CodeAlphabet.Length)];
             }
+
             return new string(chars);
         }
 
@@ -422,13 +417,15 @@ namespace DirectoryManager.Web.Controllers
             {
                 DirectoryEntryReviewId = reviewId,
                 DirectoryEntryId = entryId,
-                ExpiresUtc = DateTime.UtcNow.AddMinutes(20)
+                ExpiresUtc = DateTime.UtcNow.AddMinutes(IntegerConstants.SessinExpiresMinutes)
             };
             this.cache.Set(CacheKey(id), state, state.ExpiresUtc);
             return id;
         }
 
-        private bool TryGetFlow(Guid flowId, out ReviewReplyFlowState state) =>
-            this.cache.TryGetValue(CacheKey(flowId), out state) && state.ExpiresUtc > DateTime.UtcNow;
+        private bool TryGetFlow(Guid flowId, out ReviewReplyFlowState state)
+        {
+            return this.cache.TryGetValue(CacheKey(flowId), out state) && state.ExpiresUtc > DateTime.UtcNow;
+        }
     }
 }
