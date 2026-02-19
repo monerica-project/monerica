@@ -271,7 +271,7 @@
                 {
                     if (sponsorsByCategory.TryGetValue(cat.CategoryId, out var entries))
                     {
-                        <h3>@cat.Name</h3>
+                        <h4>@cat.Name</h4>
                         <ul class="blank_list_item">
                             @foreach (var e in entries)
                             {
@@ -305,7 +305,7 @@
                 {
                     if (sponsorsBySubcategory.TryGetValue(sub.SubcategoryId, out var entries))
                     {
-                        <h3>@Html.Raw(FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name))</h3>
+                        <h4>@Html.Raw(FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name))</h4>
                         <ul class="blank_list_item">
                             @foreach (var e in entries)
                             {
