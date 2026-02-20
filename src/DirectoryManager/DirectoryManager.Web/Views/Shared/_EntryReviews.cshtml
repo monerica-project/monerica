@@ -3,6 +3,7 @@
 @using DirectoryManager.Data.Models.Reviews
 @using DirectoryManager.Web.Helpers
 @using DirectoryManager.Utilities.Helpers
+@using DirectoryManager.DisplayFormatting.Helpers
 @model DirectoryManager.Web.Models.EntryReviewsBlockViewModel
 @inject IUrlResolutionService Urls
 
@@ -22,6 +23,12 @@
     int currentPage = Model?.CurrentPage ?? 1;
     int totalPages = Model?.TotalPages ?? 1;
     string entryKey = Model?.DirectoryEntryKey ?? string.Empty;
+
+    // ✅ Hover shows exact time to the minute
+    string HoverMinute(DateTime dt) => dt.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4, CultureInfo.InvariantCulture);
+
+    // ✅ datetime attribute uses minute precision (valid-ish ISO local)
+    string DateTimeMinuteAttr(DateTime dt) => dt.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3, CultureInfo.InvariantCulture);
 }
 
 <div class="reviews-block mt-4">
@@ -123,7 +130,8 @@
                         <small class="text-muted ms-2">•</small>
                         <time class="text-muted ms-2"
                               itemprop="datePublished"
-                              datetime="@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)">
+                              datetime="@DateTimeMinuteAttr(r.CreateDate)"
+                              title="@HoverMinute(r.CreateDate)">
                             @r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
                         </time>
                     </div>
@@ -156,9 +164,13 @@
                                                 Author: @(string.IsNullOrWhiteSpace(c.DisplayName) ? c.AuthorFingerprint : c.DisplayName)
                                             </small>
                                             <small class="text-muted ms-2">•</small>
+                                            @{
+                                                var replyDt = (c.UpdateDate ?? c.CreateDate);
+                                            }
                                             <time class="text-muted ms-2"
-                                                  datetime="@((c.UpdateDate ?? c.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))">
-                                                @((c.UpdateDate ?? c.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))
+                                                  datetime="@DateTimeMinuteAttr(replyDt)"
+                                                  title="@HoverMinute(replyDt)">
+                                                @replyDt.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
                                             </time>
                                         </div>
                                     </li>
@@ -178,9 +190,12 @@
                 <ul class="pagination">
                     @for (int p = 1; p <= totalPages; p++)
                     {
+                        // ✅ single source of truth for listing path: /site/{key}
+                        string basePath = FormattingHelper.ListingPath(entryKey);
+
                         string rawPath = (p == 1)
-                            ? $"/site/{entryKey}"
-                            : $"/site/{entryKey}/page/{p}";
+                            ? basePath
+                            : $"{basePath}/page/{p}";
 
                         string href = Urls.ResolveToRoot(rawPath);
 
