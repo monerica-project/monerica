@@ -13,7 +13,10 @@
 <br />
 <div asp-validation-summary="All" class="text-danger"></div>
 
-<form asp-action="@ViewBag.PostAction" asp-controller="@ViewBag.PostController" method="post">
+<form asp-action="@ViewBag.PostAction"
+      asp-controller="@ViewBag.PostController"
+      asp-route-directoryEntryKey="@ViewBag.DirectoryEntryKey"
+      method="post">
     @Html.AntiForgeryToken()
     <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
 
