@@ -376,7 +376,7 @@
                     }
 
                     var listingName = e.Name ?? "Listing";
-                    var oneLine = TextHelper.TruncateAtWord((r.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
+                    var oneLine = StringHelpers.TruncateAtWord((r.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
 
                     var listingUrl = UrlResolver.ResolveToRoot(FormattingHelper.ListingPath(e.DirectoryEntryKey));
 
@@ -429,7 +429,7 @@
                         var commentDate = (c.UpdateDate ?? c.CreateDate)
                             .ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
 
-                        var snippet = TextHelper.TruncateAtWord((c.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
+                        var snippet = StringHelpers.TruncateAtWord((c.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
 
                         <li>
                             <i>@commentDate</i>

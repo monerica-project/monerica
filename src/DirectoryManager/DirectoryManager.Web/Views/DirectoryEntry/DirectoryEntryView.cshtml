@@ -1,6 +1,7 @@
 ﻿@using DirectoryManager.Data.Enums
 @using DirectoryManager.Data.Models
 @using DirectoryManager.Data.Repositories.Interfaces
+@using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Helpers
 @using DirectoryManager.Web.Models
@@ -187,7 +188,9 @@
                         {
                             <tr>
                                 <th scope="row">Contact</th>
-                                <td><span class="multi-line-text">@Model.Contact</span></td>
+                                <td>
+                                    @Html.Raw(StringHelpers.RenderContactFieldHtml(Model.Contact, cssClass: "multi-line-text"))
+                                </td>
                             </tr>
                         }
                         @if (!string.IsNullOrEmpty(Model.Location) || !string.IsNullOrWhiteSpace(Model.CountryCode))

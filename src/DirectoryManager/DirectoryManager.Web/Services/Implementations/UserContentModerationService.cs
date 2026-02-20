@@ -115,7 +115,7 @@ namespace DirectoryManager.Web.Services.Implementations
             bool hasBlacklistTerm = ContainsBlacklistTermWholeWord(trimmed, terms);
 
             // hyperlink => pending (but still allowed)
-            bool hasLink = Utilities.Helpers.TextHelper.ContainsHyperlink(trimmed);
+            bool hasLink = Utilities.Helpers.StringHelpers.ContainsHyperlink(trimmed);
 
             bool needsManualReview = hasBlacklistTerm || hasLink;
 
