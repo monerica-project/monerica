@@ -299,5 +299,33 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public Task RejectAsync(int id, string reason, CancellationToken ct = default)
             => this.SetModerationStatusAsync(id, ReviewModerationStatus.Rejected, reason, ct);
+
+        public async Task<List<DirectoryEntryReviewComment>> ListForReviewAnyStatusAsync(
+         int directoryEntryReviewId, CancellationToken ct = default)
+        {
+            var q = ApplyThreadOrder(
+                this.Set.AsNoTracking().Where(c => c.DirectoryEntryReviewId == directoryEntryReviewId));
+
+            return await q.ToListAsync(ct);
+        }
+
+        public async Task<bool> DeleteOwnedAsync(int commentId, string fingerprint, CancellationToken ct = default)
+        {
+            fingerprint = (fingerprint ?? string.Empty).Trim();
+
+            var comment = await this.Set
+                .FirstOrDefaultAsync(
+                    c => c.DirectoryEntryReviewCommentId == commentId
+                                       && c.AuthorFingerprint == fingerprint, ct);
+
+            if (comment is null)
+            {
+                return false;
+            }
+
+            this.Set.Remove(comment);
+            await this.context.SaveChangesAsync(ct);
+            return true;
+        }
     }
 }

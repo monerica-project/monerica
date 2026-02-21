@@ -155,6 +155,56 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return (Get(1), Get(2), Get(3), Get(4), Get(5));
         }
 
+        public async Task<List<DirectoryEntryReview>> ListByAuthorFingerprintAsync(
+            string fingerprint, int page, int pageSize, CancellationToken ct = default)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 25;
+
+            fingerprint = (fingerprint ?? string.Empty).Trim();
+
+            return await this.Set.AsNoTracking()
+                .Where(r => r.AuthorFingerprint == fingerprint
+                         && r.DirectoryEntry != null
+                         && r.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed)
+                .Include(r => r.DirectoryEntry)
+                    .ThenInclude(de => de.SubCategory!)
+                        .ThenInclude(sc => sc.Category!)
+                .OrderByDescending(r => r.UpdateDate ?? r.CreateDate)
+                .ThenByDescending(r => r.DirectoryEntryReviewId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(ct);
+        }
+
+        public Task<int> CountByAuthorFingerprintAsync(string fingerprint, CancellationToken ct = default)
+        {
+            fingerprint = (fingerprint ?? string.Empty).Trim();
+
+            return this.Set.AsNoTracking()
+                .Where(r => r.AuthorFingerprint == fingerprint
+                         && r.DirectoryEntry != null
+                         && r.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed)
+                .CountAsync(ct);
+        }
+
+        public async Task<bool> DeleteOwnedAsync(int reviewId, string fingerprint, CancellationToken ct = default)
+        {
+            fingerprint = (fingerprint ?? string.Empty).Trim();
+
+            // Load tracked entity so we can remove it
+            var review = await this.Set
+                .FirstOrDefaultAsync(r => r.DirectoryEntryReviewId == reviewId && r.AuthorFingerprint == fingerprint, ct);
+
+            if (review is null)
+            {
+                return false;
+            }
+
+            this.Set.Remove(review);
+            await this.context.SaveChangesAsync(ct);
+            return true;
+        }
         public async Task<Dictionary<int, int>> GetApprovedReviewPageMapAsync(
             IEnumerable<int> reviewIds,
             int pageSize,

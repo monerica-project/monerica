@@ -1,0 +1,21 @@
+﻿@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Captcha";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+<h1>Verify you're human</h1>
+
+<form asp-action="CaptchaPost" asp-route-flowId="@ViewBag.FlowId" method="post">
+    @Html.AntiForgeryToken()
+        <br />
+    @await Html.PartialAsync(
+            "_CaptchaBlock",
+    (string)(ViewBag.CaptchaPurpose ?? "review-management")
+    )
+
+    <br />
+    <button type="submit" class="btn btn-success btn-cta">Continue</button>
+</form>
+}

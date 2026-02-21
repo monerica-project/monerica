@@ -16,6 +16,6 @@
         // negative / risky
         Risk = 4,          // orange
         KycIssue = 5,      // red
-        Scam = 6           // dark red
+        Scam = 6,           // dark red
     }
 }

@@ -1,0 +1,36 @@
+﻿@model DirectoryManager.Web.Models.Reviews.DeleteMyReplyVm
+@using DirectoryManager.Web.Constants
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Delete Reply";
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+<h1>Delete reply?</h1>
+
+<p>
+    This will permanently delete your reply in the thread for <strong>@Model.ListingName</strong>.
+</p>
+
+<div class="card p-3">
+    <div class="mb-2 text-muted">
+        @( (Model.Comment.UpdateDate ?? Model.Comment.CreateDate).ToString("yyyy-MM-dd HH:mm") )
+    </div>
+    <div style="white-space:pre-wrap">@Model.Comment.Body</div>
+</div>
+
+<br />
+
+<form asp-action="DeleteReplyConfirmed"
+      asp-route-flowId="@Model.FlowId"
+      asp-route-id="@Model.Comment.DirectoryEntryReviewCommentId"
+      method="post">
+    @Html.AntiForgeryToken()
+
+    <button type="submit" class="btn btn-danger">Yes, delete</button>
+    <a class="btn btn-secondary"
+           href="@Url.Action("Index", "MyReviews", new { flowId = Model.FlowId })">
+        Cancel
+    </a>
+</form>
+}
