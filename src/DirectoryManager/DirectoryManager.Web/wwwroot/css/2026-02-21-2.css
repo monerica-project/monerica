@@ -157,6 +157,7 @@ section.sponsors .sponsor-card {
     border: 3px solid #ff6600;
     border-radius: 10px;
     box-shadow: 0 2px 4px rgb(195 195 195 / 50%);
+    padding: 10px;
 }
 
     .sponsored-section ul.blank_list_item {
@@ -192,7 +193,7 @@ section.sponsors .sponsor-card {
 li.sponsored {
     background-color: #1e1e1e;
     border: 2px solid #ff6600;
-    padding: 3px;
+    padding: 8px;
     margin: 3px 0;
     font-size: 18px;
     border-radius: 10px;
