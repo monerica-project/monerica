@@ -25,14 +25,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
         // =========================================================
         // ✅ SINGLE SOURCE OF TRUTH (PUBLIC REVIEW ORDER)
         //
-        // EffectiveDate = UpdateDate ?? CreateDate
-        // Newest first:
-        // ORDER BY EffectiveDate DESC, ReviewId DESC
+        // Newest first by CreateDate (NOT UpdateDate):
+        // ORDER BY CreateDate DESC, ReviewId DESC
+        //
+        // This guarantees:
+        // - "Newest created review" always appears first
+        // - paging is stable (tie-breaker = ReviewId)
+        // - moderation/edits won't reshuffle public order
         // =========================================================
         private static IOrderedQueryable<DirectoryEntryReview> ApplyApprovedListingOrder(IQueryable<DirectoryEntryReview> q)
         {
             return q
-                .OrderByDescending(r => r.UpdateDate ?? r.CreateDate)
+                .OrderByDescending(r => r.CreateDate)
                 .ThenByDescending(r => r.DirectoryEntryReviewId);
         }
 
@@ -55,7 +59,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             if (pageSize < 1) pageSize = 50;
 
             return await this.Set.AsNoTracking()
-                .OrderByDescending(x => x.UpdateDate ?? x.CreateDate)
+                .OrderByDescending(x => x.CreateDate)
                 .ThenByDescending(x => x.DirectoryEntryReviewId)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -170,7 +174,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Include(r => r.DirectoryEntry)
                     .ThenInclude(de => de.SubCategory!)
                         .ThenInclude(sc => sc.Category!)
-                .OrderByDescending(r => r.UpdateDate ?? r.CreateDate)
+                .OrderByDescending(r => r.CreateDate)
                 .ThenByDescending(r => r.DirectoryEntryReviewId)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -205,6 +209,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync(ct);
             return true;
         }
+
         public async Task<Dictionary<int, int>> GetApprovedReviewPageMapAsync(
             IEnumerable<int> reviewIds,
             int pageSize,
@@ -225,6 +230,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 pageSize = 10;
             }
 
+            // IMPORTANT:
+            // Must match ApplyApprovedListingOrder:
+            // Order = CreateDate DESC, ReviewId DESC
+            //
+            // Position is 1-based count of items that come "before or equal" this review
+            // in that ordering (so we can compute page = ceil(position / pageSize)).
             var rows = await this.Set.AsNoTracking()
                 .Where(r => ids.Contains(r.DirectoryEntryReviewId)
                          && r.ModerationStatus == ReviewModerationStatus.Approved)
@@ -235,8 +246,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         .Where(x => x.DirectoryEntryId == r.DirectoryEntryId
                                  && x.ModerationStatus == ReviewModerationStatus.Approved
                                  && (
-                                     (x.UpdateDate ?? x.CreateDate) > (r.UpdateDate ?? r.CreateDate)
-                                     || ((x.UpdateDate ?? x.CreateDate) == (r.UpdateDate ?? r.CreateDate)
+                                     // x comes before r if it has a later CreateDate
+                                     x.CreateDate > r.CreateDate
+                                     // or same CreateDate but higher/equal ReviewId (DESC id)
+                                     || (x.CreateDate == r.CreateDate
                                          && x.DirectoryEntryReviewId >= r.DirectoryEntryReviewId)
                                  ))
                         .Count()
@@ -327,7 +340,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         .ThenInclude(sc => sc.Category!)
                 .Include(r => r.ReviewTags)
                     .ThenInclude(rt => rt.ReviewTag)
-                .OrderByDescending(r => r.UpdateDate ?? r.CreateDate)
+                .OrderByDescending(r => r.CreateDate)
                 .ThenByDescending(r => r.DirectoryEntryReviewId)
                 .Take(count)
                 .ToListAsync(ct);
@@ -351,7 +364,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             return await this.Set.AsNoTracking()
                 .Where(r => r.DirectoryEntryId == directoryEntryId)
-                .OrderByDescending(x => x.UpdateDate ?? x.CreateDate)
+                .OrderByDescending(x => x.CreateDate)
                 .ThenByDescending(x => x.DirectoryEntryReviewId)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
@@ -396,6 +409,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return rows.ToDictionary(x => x.DirectoryEntryId, x => x);
         }
 
+        // NOTE:
+        // These "latest/last modified" methods were originally based on UpdateDate ?? CreateDate.
+        // Leaving them as-is preserves "last modified" semantics for caching/sitemap/etc.
+        // Public display order no longer depends on UpdateDate.
         public async Task<Dictionary<int, DateTime>> GetLatestApprovedReviewDatesByEntryAsync(CancellationToken ct = default)
         {
             return await this.Set.AsNoTracking()
