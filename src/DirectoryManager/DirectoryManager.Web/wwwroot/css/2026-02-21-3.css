@@ -2925,3 +2925,114 @@ body {
         background: #0d6efd;
         color: #fff;
     }/* Blue */
+
+
+ 
+/* =========================================================
+       NAV SEARCH (shared for SIDEBAR + MOBILE NAV)
+       - One style block, no duplicates
+       ========================================================= */
+/* Tokens (keeps it consistent & easy to tweak) */
+:root {
+    --nav-gap: .35rem;
+    --nav-input-bg: rgba(10,10,10,.92);
+    --nav-input-bg-focus: rgba(12,12,12,.96);
+    --nav-input-text: #fff;
+    --nav-placeholder: rgba(255,255,255,.55);
+    --nav-border: rgba(255,255,255,.18);
+    --nav-border-focus: rgba(255,102,0,.60);
+    --nav-caret: #ff6600;
+    --nav-glow1: rgba(255,102,0,.35);
+    --nav-glow2: rgba(255,102,0,.30);
+    --nav-glow3: rgba(255,102,0,.16);
+}
+
+/* Wrapper spacing (context-specific tweaks below) */
+.nav-search-wrap {
+    padding: 0 .35rem;
+    margin: 0 0 .6rem 0;
+}
+
+/* Layout */
+.nav-search-form {
+    display: flex;
+    flex-wrap: wrap; /* allow wrap in narrow containers */
+    gap: var(--nav-gap);
+    width: 100%;
+}
+
+/* Input: black + glow (shared everywhere) */
+.nav-search-input {
+    flex: 1 1 100%;
+    width: 100%;
+    min-width: 0;
+    height: 28px;
+    font-size: 12px;
+    padding: .15rem .5rem;
+    background: var(--nav-input-bg) !important;
+    color: var(--nav-input-text) !important;
+    border: 1px solid var(--nav-border) !important;
+    border-radius: 999px !important;
+    box-shadow: inset 0 0 0 1px rgba(0,0,0,.65) !important;
+    outline: none !important;
+    caret-color: var(--nav-caret) !important;
+}
+
+    .nav-search-input::placeholder {
+        color: var(--nav-placeholder) !important;
+    }
+
+    .nav-search-input:focus {
+        background: var(--nav-input-bg-focus) !important;
+        border-color: var(--nav-border-focus) !important;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,.70), 0 0 0 1px var(--nav-glow1), 0 0 10px var(--nav-glow2), 0 0 18px var(--nav-glow3) !important;
+    }
+
+/* Buttons: shared base sizing */
+.nav-search-btn,
+.nav-filter-btn {
+    flex: 1 1 calc(50% - (var(--nav-gap) / 2));
+    min-width: 0;
+    height: 26px;
+    padding: .10rem .45rem;
+    font-size: 11px;
+    line-height: 1;
+    border-radius: 7px;
+}
+
+/* =========================================================
+       CONTEXT OVERRIDES
+       ========================================================= */
+
+/* Sidebar stays compact */
+.sidebar .nav-search-wrap {
+    padding: 0 .35rem;
+}
+
+/* Mobile: input row 1 full width, buttons row 2 50/50 + slightly larger */
+@media (max-width: 768px) {
+    .mobile-nav .nav-search-wrap {
+        padding: .25rem .85rem .5rem;
+        margin: 0;
+    }
+
+    .mobile-nav .nav-search-form {
+        gap: .5rem;
+    }
+
+    .mobile-nav .nav-search-input {
+        height: 34px;
+        font-size: 14px;
+        padding: 0 12px;
+    }
+
+    .mobile-nav .nav-search-btn,
+    .mobile-nav .nav-filter-btn {
+        height: 32px;
+        padding: 0 12px;
+        font-size: 13px;
+        border-radius: 10px;
+    }
+}
+
+ 
