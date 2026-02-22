@@ -3036,3 +3036,116 @@ body {
 }
 
  
+:root{
+  --nav-gap: .5rem;
+  --nav-input-bg: rgba(10,10,10,.92);
+  --nav-input-bg-focus: rgba(12,12,12,.96);
+  --nav-input-text: #fff;
+  --nav-placeholder: rgba(255,255,255,.55);
+  --nav-border: rgba(255,255,255,.18);
+  --nav-border-focus: rgba(255,102,0,.60);
+  --nav-caret: #ff6600;
+  --nav-glow1: rgba(255,102,0,.35);
+  --nav-glow2: rgba(255,102,0,.30);
+  --nav-glow3: rgba(255,102,0,.16);
+}
+
+.nav-search-wrap{ width:100%; }
+.nav-search-form{
+  display:flex;
+  flex-wrap:wrap;
+  gap: var(--nav-gap);
+  width:100%;
+}
+
+.nav-search-input{
+  flex: 1 1 100%;
+  width:100%;
+  min-width:0;
+  height: 28px;
+  font-size: 12px;
+  padding: .15rem .55rem;
+
+  background: var(--nav-input-bg) !important;
+  color: var(--nav-input-text) !important;
+  border: 1px solid var(--nav-border) !important;
+  border-radius: 999px !important;
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,.65) !important;
+  outline: none !important;
+  caret-color: var(--nav-caret) !important;
+}
+
+.nav-search-input::placeholder{ color: var(--nav-placeholder) !important; }
+
+.nav-search-input:focus{
+  background: var(--nav-input-bg-focus) !important;
+  border-color: var(--nav-border-focus) !important;
+  box-shadow:
+    inset 0 0 0 1px rgba(0,0,0,.70),
+    0 0 0 1px var(--nav-glow1),
+    0 0 10px var(--nav-glow2),
+    0 0 18px var(--nav-glow3) !important;
+}
+
+.nav-search-btn,
+.nav-filter-btn{
+  flex: 1 1 calc(50% - (var(--nav-gap) / 2));
+  min-width:0;
+  height: 26px;
+  font-size: 11px;
+  line-height: 1;
+  border-radius: 7px;
+}
+
+/* Mobile: bigger, full width row 1 */
+@media (max-width:768px){
+  .mobile-nav .nav-search-wrap{ padding: .25rem .85rem .5rem; }
+  .nav-search-input{ height:34px; font-size:14px; padding:0 12px; }
+  .nav-search-btn, .nav-filter-btn{ height:32px; font-size:13px; border-radius:10px; }
+}
+
+
+
+
+@media (max-width: 768px) {
+
+    /* ✅ CLOSED: do NOT be full height, do NOT have big padding */
+    details.mobile-nav {
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
+        /* if you accidentally added inline padding-bottom to <details>, this kills it */
+        padding-bottom: 0 !important;
+    }
+
+        /* ✅ OPEN: the overlay becomes full-height */
+        details.mobile-nav[open] {
+            height: 100vh !important;
+            height: 100dvh !important; /* better on mobile address-bar browsers */
+            max-height: 100vh !important;
+            max-height: 100dvh !important;
+            display: flex !important;
+            flex-direction: column !important;
+            overflow: hidden !important; /* important: only the UL scrolls */
+            padding-bottom: 0 !important; /* never pad the <details> itself */
+        }
+
+            /* keep header + search fixed (non-scrolling) */
+            details.mobile-nav[open] > summary.mobile-nav-summary,
+            details.mobile-nav[open] > .nav-search-wrap {
+                flex: 0 0 auto !important;
+            }
+
+            /* ✅ SCROLLER: the UL gets the scroll + bottom breathing room */
+            details.mobile-nav[open] > ul {
+                flex: 1 1 auto !important;
+                min-height: 0 !important; /* CRITICAL for flex children to scroll */
+                overflow-y: auto !important;
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+                touch-action: pan-y;
+                /* your “extra space” but only when open */
+                padding-bottom: 6rem !important;
+                padding-bottom: calc(env(safe-area-inset-bottom) + 6rem) !important;
+            }
+}
