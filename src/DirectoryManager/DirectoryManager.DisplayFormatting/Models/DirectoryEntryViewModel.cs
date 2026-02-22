@@ -73,6 +73,8 @@ namespace DirectoryManager.DisplayFormatting.Models
 
         public DateTime CreateDate { get; set; }
 
+        public DateOnly? FoundedDate { get; set; }
+
         public LinkType LinkType { get; set; } = LinkType.Direct;
 
         public ItemDisplayType ItemDisplayType { get; set; } = ItemDisplayType.Normal;
@@ -103,5 +105,7 @@ namespace DirectoryManager.DisplayFormatting.Models
         /// Count of Approved reviews that have a rating value.
         /// </summary>
         public int? ReviewCount { get; set; }
+
+        public List<string> AdditionalLinks { get; set; } = new ();
     }
 }

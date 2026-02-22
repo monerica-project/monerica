@@ -13,6 +13,14 @@
         public const int DefaultRemoteHttpsPort = 443;
         public const int DefaultDebuggingHttpPort = 5007;
         public const int DefaultDebuggingHttpsPort = 7145;
-        public const int UnverifiedMinimumDaysListedBeforeAdvertising = 90;
+        public const int UnverifiedMinimumDaysListedBeforeAdvertising = 180;
+        public const int MinLengthCommentChars = 35;
+        public const int MaxAdditionalLinks = 3;
+        public const int ReviewsPageSize = 10;
+        public const int ReviewCountToShowOnHomepage = 15;
+        public const int CommentCountToShowOnHomepage = 10;
+        public const int SessinExpiresMinutes = 20;
+        public const int ChallengeLength = 10;
+        public const int MaxVerifyAttempts = 10;
     }
 }

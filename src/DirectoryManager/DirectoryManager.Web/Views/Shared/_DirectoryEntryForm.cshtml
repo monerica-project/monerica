@@ -5,93 +5,129 @@
 
 <div class="form-group">
     <label asp-for="DirectoryStatus">Status</label>
-    <select asp-for="DirectoryStatus" asp-items="@Html.GetEnumSelectList<DirectoryStatus>()"></select>
+    <select class="form-control select-fit" asp-for="DirectoryStatus" asp-items="@Html.GetEnumSelectList<DirectoryStatus>()"></select>
 </div>
 
 <div class="form-group">
     <label asp-for="SubCategoryId">Subcategory</label>
-    <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "SubcategoryId", "DisplayName"))" required></select>
+    <select  class="form-control select-fit" asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "SubcategoryId", "DisplayName"))" required></select>
 </div>
 
 <div class="form-group">
     <label asp-for="Name">Name</label>
-    <input autocomplete="off" class="input-width" type="text" asp-for="Name" required />
+    <input autocomplete="off" class="form-control input-width" type="text" asp-for="Name" required />
 </div>
 
 <div class="form-group">
     <label asp-for="Link">Link</label>
-    <input autocomplete="off" class="input-width" type="text" asp-for="Link" required />
+    <input autocomplete="off" class="form-control input-width" type="text" asp-for="Link" required />
 </div>
 
 <div class="form-group">
     <label asp-for="LinkA">Link (affiliate)</label>
-    <input autocomplete="off" class="input-width" type="text" asp-for="LinkA" />
+    <input autocomplete="off" class="form-control input-width" type="text" asp-for="LinkA" />
 </div>
 
 <div class="form-group">
     <label asp-for="Link2">@await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name)</label>
-    <input autocomplete="off" class="input-width" type="text" asp-for="Link2" />
+    <input autocomplete="off" class="form-control input-width" type="text" asp-for="Link2" />
 </div>
 
 <div class="form-group">
     <label asp-for="Link2A">@await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name) (affiliate 2)</label>
-    <input autocomplete="off" class="input-width" type="text" asp-for="Link2A" />
+    <input autocomplete="off" class="form-control input-width" type="text" asp-for="Link2A" />
 </div>
 
 <div class="form-group">
     <label asp-for="Link3">@await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name)</label>
-    <input autocomplete="off" class="input-width" type="text" asp-for="Link3" />
+    <input autocomplete="off" class="form-control input-width" type="text" asp-for="Link3" />
 </div>
 
 <div class="form-group">
     <label asp-for="Link3A">@await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name) (affiliate 3)</label>
-    <input autocomplete="off"  class="input-width" type="text" asp-for="Link3A" />
+    <input autocomplete="off"  class="form-control input-width" type="text" asp-for="Link3A" />
 </div>
 
 <div class="form-group">
     <label asp-for="ProofLink">Proof Link</label>
-    <input autocomplete="off" class="input-width" type="text" asp-for="ProofLink" />
+    <input autocomplete="off" class="form-control input-width" type="text" asp-for="ProofLink" />
 </div>
 
 <div class="form-group">
     <label asp-for="VideoLink">Video Link</label>
-    <input autocomplete="off" class="input-width" type="text" asp-for="VideoLink" />
+    <input autocomplete="off" class="form-control input-width" type="text" asp-for="VideoLink" />
 </div>
 
 <div class="form-group">
     <label asp-for="Location">Location</label>
-    <input autocomplete="off" class="input-width" type="text" asp-for="Location" />
+    <input autocomplete="off" class="form-control input-width" type="text" asp-for="Location" />
 </div>
 
 <div class="form-group">
     <label asp-for="CountryCode" class="control-label"></label>
-    <select asp-for="CountryCode" asp-items="ViewBag.CountryCode" class="form-control"></select>
+    <select class="form-control select-fit" asp-for="CountryCode" asp-items="ViewBag.CountryCode" ></select>
     <span asp-validation-for="CountryCode" class="text-danger"></span>
 </div>
 
 <div class="form-group">
     <label asp-for="Processor">Processor</label>
-    <input autocomplete="off" class="input-width" type="text" asp-for="Processor" />
+    <input autocomplete="off" class="form-control input-width" type="text" asp-for="Processor" />
 </div>
 
 <div class="form-group">
     <label asp-for="Contact">Contact</label>
-    <input autocomplete="off" class="input-width" type="text" asp-for="Contact" />
+    <input autocomplete="off" class="form-control input-width" type="text" asp-for="Contact" />
 </div>
 
 <div class="form-group">
     <label asp-for="Description">Description</label>
-    <textarea rows="4" class="input-width" asp-for="Description"></textarea>
+    <textarea rows="4" class="form-control input-width" asp-for="Description"></textarea>
 </div>
 
 <div class="form-group">
     <label asp-for="Note">Note</label>
-    <textarea rows="4" class="input-width" asp-for="Note"></textarea>
+    <textarea rows="4" class="form-control input-width" asp-for="Note"></textarea>
 </div>
 
 <div class="form-group">
+    <label>Founded Date (YYYY-MM-DD)</label>
+
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <input asp-for="FoundedYear"
+               class="form-control"
+               style="width:110px;"
+               autocomplete="off"
+               inputmode="numeric"
+               pattern="[0-9]*"
+               maxlength="4"
+               placeholder="YYYY" />
+
+        <input asp-for="FoundedMonth"
+               class="form-control"
+               style="width:90px;"
+               autocomplete="off"
+               inputmode="numeric"
+               pattern="[0-9]*"
+               maxlength="2"
+               placeholder="MM" />
+
+        <input asp-for="FoundedDay"
+               class="form-control"
+               style="width:90px;"
+               autocomplete="off"
+               inputmode="numeric"
+               pattern="[0-9]*"
+               maxlength="2"
+               placeholder="DD" />
+    </div>
+
+    <span asp-validation-for="FoundedYear" class="text-danger"></span>
+</div>
+
+
+<div class="form-group">
     <label asp-for="PgpKey">PGP Key</label>
-    <textarea rows="4" class="input-width" asp-for="PgpKey"></textarea>
+    <textarea rows="4" class="form-control input-width" asp-for="PgpKey"></textarea>
 </div>
 
 @{
@@ -101,6 +137,47 @@
     var selected = ViewBag.SelectedTagIds as HashSet<int> ?? new HashSet<int>();
 }
  
+
+
+@{
+
+    // Ensure list has at least 3 slots for UI
+    var additional = (Model.AdditionalLinks ?? new List<string>());
+    while (additional.Count < DirectoryManager.Web.Constants.IntegerConstants.MaxAdditionalLinks)
+    {
+        additional.Add(string.Empty);
+    }
+}
+
+<hr />
+<h3>Additional Links (forum post, docs, references)</h3>
+<p class="small-font"><i>Optional. These are NOT Tor/I2P links. Examples: forum thread, announcement, docs page.</i></p>
+
+@if (Model.AdditionalLinks != null && Model.AdditionalLinks.Any(x => !string.IsNullOrWhiteSpace(x)))
+{
+    <br />
+    <b>Additional Links:</b>
+    <ul>
+        @foreach (var l in Model.AdditionalLinks.Where(x => !string.IsNullOrWhiteSpace(x)))
+        {
+            <li><a target="_blank" href="@l">@l</a></li>
+        }
+    </ul>
+}
+
+
+@for (int i = 0; i < DirectoryManager.Web.Constants.IntegerConstants.MaxAdditionalLinks; i++)
+{
+    <div class="form-group">
+        <label>Additional Link @(i + 1)</label>
+        <input autocomplete="off"
+               class="form-control input-width"
+               type="text"
+               name="AdditionalLinks[@i]"
+               value="@additional[i]" />
+    </div>
+}
+
 
 <div class="form-group">
     <label><b>Tags (existing)</b></label>
@@ -130,7 +207,7 @@
 
 <div class="form-group">
     <label asp-for="NewTagsCsv">New Tags (optional, comma-separated)</label>
-    <input asp-for="NewTagsCsv" class="input-width form-control"
+    <input asp-for="NewTagsCsv" class="form-control input-width form-control"
            placeholder="e.g. privacy, wallet, exchange" />
     <span asp-validation-for="NewTagsCsv" class="text-danger"></span>
 </div>

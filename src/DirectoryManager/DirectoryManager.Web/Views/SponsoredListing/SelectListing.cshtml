@@ -45,16 +45,16 @@
         <input name="sponsorshipType" type="hidden" value="@ViewBag.SponsorshipType" />
         <input name="rsvId" type="hidden" value="@reservationGuid" />
         <select id="combinedFilter" name="subCategoryId">
-            <option value="">--Category &gt; Subcategory--</option>
+            <option class="form-control select-fit" value="">--Category &gt; Subcategory--</option>
             @foreach (var subCategory in (IEnumerable<Subcategory>)ViewBag.SubCategories)
             {
-                <option value="@subCategory.SubCategoryId"
+                <option class="form-control select-fit" value="@subCategory.SubCategoryId"
                         selected="@(Context.Request.Query["subCategoryId"] == subCategory.SubCategoryId.ToString() ? "selected" : null)">
                     @subCategory.Category.Name &gt; @subCategory.Name
                 </option>
             }
         </select>
-        <input type="submit" value="Filter" />
+        <input class="btn" type="submit" value="Filter" />
     </form>
 
     <br />
@@ -85,7 +85,7 @@
                         <input type="hidden" name="categoryId" value="@ViewBag.CategoryId" />
                     }
 
-                    <button type="submit" style="margin:2px;">Select</button>
+                    <button class="btn" type="submit" style="margin:2px;">Select</button>
                 </form>
 
                 <a target="_blank" href="@entry.Link">@entry.Name</a>

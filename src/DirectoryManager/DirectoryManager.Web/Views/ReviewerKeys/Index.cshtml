@@ -1,5 +1,6 @@
 ﻿// DirectoryManager.Web/Views/ReviewerKeys/Index.cshtml
 @using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Models.Reviews
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 @model IEnumerable<ReviewerKey>
 
@@ -9,10 +10,7 @@
 }
 
 @section PageContent {
-    <div class="top-section search-section search-top-align">
-        @await Html.PartialAsync("_SearchForm")
-    </div>
-
+ 
     <div class="container py-4">
         <h1 class="mb-3">Reviewer Keys</h1>
         <hr />

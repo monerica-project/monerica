@@ -10,8 +10,31 @@
         @await Html.PartialAsync("_SiteLogo")
     </div>
     <hr />
-    <p>Thanks for your review! It has been queued for moderation and won’t be visible until approved.</p>
+
+    @{
+        // If you ever set a specific reply message elsewhere, keep supporting it:
+        var msg = TempData["ReplyMessage"] as string;
+
+        // This is what your controller sets:
+        var statusMsg = TempData["ReviewPostStatusMessage"] as string;
+
+        string finalMessage;
+
+        if (!string.IsNullOrWhiteSpace(msg))
+        {
+            finalMessage = msg;
+        }
+        else if (!string.IsNullOrWhiteSpace(statusMsg))
+        {
+            finalMessage = statusMsg;
+        }
+        else
+        {
+            finalMessage = "Thanks! Your reply has been received.";
+        }
+    }
+
+    <p><b>@finalMessage</b></p>
 
     @await Html.PartialAsync("_BackToHome")
-
 }

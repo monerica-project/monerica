@@ -1,19 +1,25 @@
-﻿using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Repositories.Interfaces;
+﻿using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers.Management
 {
     [Authorize]
     [Route("manage/tags")]
-    public class TagManagementController : Controller
+    public class TagManagementController : BaseController
     {
         private readonly ITagRepository tagRepo;
         private const int PageSize = 100;
 
-        public TagManagementController(ITagRepository tagRepo)
+        public TagManagementController(
+            ITagRepository tagRepo,
+            ITrafficLogRepository trafficLogRepository,
+            IUserAgentCacheService userAgentCacheService,
+            IMemoryCache cache)
+             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.tagRepo = tagRepo;
         }
@@ -72,6 +78,9 @@ namespace DirectoryManager.Web.Controllers.Management
             var created = await this.tagRepo.CreateAsync(vm.Name);
 
             this.TempData["TagMessage"] = $"Created tag: {created.Name}";
+
+            this.ClearCachedItems();
+
             return this.RedirectToAction(nameof(this.Index));
         }
 
@@ -124,6 +133,7 @@ namespace DirectoryManager.Web.Controllers.Management
             }
 
             this.TempData["TagMessage"] = "Tag updated.";
+            this.ClearCachedItems();
             return this.RedirectToAction(nameof(this.Index));
         }
 

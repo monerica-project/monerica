@@ -1,64 +1,47 @@
-﻿@using DirectoryManager.Data.Models
-@using DirectoryManager.Web.Constants;
-@using DirectoryManager.Data.Enums;
-@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
-@inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
+﻿@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Enums
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 @model DirectoryManager.Web.Models.SubcategorySponsorModel
 
 @{
-    var directoryEntries = new List<DirectoryManager.Data.Models.DirectoryEntry>();
     var link2Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
     var link3Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
-    var directoryEntry = Model?.DirectoryEntry;
+
+    var vm = Model?.DirectoryEntry; // DisplayFormatting.Models.DirectoryEntryViewModel
 }
 
-@if (Model != null && directoryEntry != null)
+@if (Model != null && vm != null)
 {
-    directoryEntries.Add(new DirectoryEntry()
-    {
-                    Name = directoryEntry.Name,
-                    DirectoryEntryKey = directoryEntry.DirectoryEntryKey,
-                    Contact = directoryEntry.Contact,
-                    CreateDate = directoryEntry.CreateDate,
-                    Description = directoryEntry.Description,
-                    DirectoryBadge = directoryEntry.DirectoryBadge,
-                    DirectoryEntryId = directoryEntry.DirectoryEntryId,
-                    DirectoryStatus = directoryEntry.DirectoryStatus,
-                    Link = directoryEntry.Link,
-                    Link2 = directoryEntry.Link2,
-                    Link2A = directoryEntry.Link2A,
-                    Link3 = directoryEntry.Link3,
-                    Link3A = directoryEntry.Link3A,
-                    LinkA = directoryEntry.LinkA,
-                    Location = directoryEntry.Location,
-                    Note = directoryEntry.Note,
-                    Processor = directoryEntry.Processor,
-                    SubCategory = directoryEntry.SubCategory,
-                    SubCategoryId = (directoryEntry.SubCategoryId == null) ? 0 : directoryEntry.SubCategoryId.Value,
-                    UpdateDate = directoryEntry.UpdateDate
-    });
+    // Ensure link labels exist
+    vm.Link2Name = string.IsNullOrWhiteSpace(vm.Link2Name) ? link2Name : vm.Link2Name;
+    vm.Link3Name = string.IsNullOrWhiteSpace(vm.Link3Name) ? link3Name : vm.Link3Name;
+
+    // Ensure sponsor behavior
+    vm.IsSponsored = true;
+    vm.DisplayAsSponsoredItem = false;
+    vm.IsSubCategorySponsor = true;
+
+    // Tell DisplayMarkUpHelper (via _DirectoryEntryPartial) to render:
+    // Name | Tor | I2P Flag
+    ViewData["SponsorInlineHeader"] = true;
+
+    // Not strictly required in this mode, but safe
+    ViewData["SkipLinksBlock"] = true;
+
     <div class="sponsored-section">
         <p><b>Sponsored</b></p>
         <ul class="blank_list_item">
-            @{
-                var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
-                directoryEntries,
-                DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
-                DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.SubcategorySponsor,
-                link2Name,
-                link3Name);
-            }
-            @foreach (var viewModel in viewModelList)
-            {
-                viewModel.IsSubCategorySponsor = true;
-                @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
-            }
+            @await Html.PartialAsync("_DirectoryEntryPartial", vm, ViewData)
         </ul>
     </div>
 }
 else if (Model != null && Model.TotalActiveSubCategoryListings >= DirectoryManager.Common.Constants.IntegerConstants.MinRequiredSubcategories)
-{<p class="sub-category-sponsored-listing">
-        <a class="app-link" rel="nofollow" href="~/sponsoredlisting/selectlisting?subCategoryId=@Model.SubCategoryId&sponsorshipType=@SponsorshipType.SubcategorySponsor">Advertise here</a>
-</p>
+{
+    <p class="sub-category-sponsored-listing">
+        <a class="app-link"
+           rel="nofollow"
+           href="~/sponsoredlisting/selectlisting?subCategoryId=@Model.SubCategoryId&sponsorshipType=@SponsorshipType.SubcategorySponsor">
+            Advertise here
+        </a>
+    </p>
 }

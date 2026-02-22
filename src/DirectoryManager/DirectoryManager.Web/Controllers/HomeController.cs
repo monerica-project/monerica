@@ -48,10 +48,10 @@ namespace DirectoryManager.Web.Controllers
             this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, string.Empty);
 
             // ✅ Load homepage “Latest Reviews” + “Latest Comments”
-            var latestReviews = await this.reviewRepository.ListLatestApprovedAsync(15);
+            var latestReviews = await this.reviewRepository.ListLatestApprovedAsync(IntegerConstants.ReviewCountToShowOnHomepage);
 
             // NOTE: method name may differ in your repo — see note below
-            var latestComments = await this.commentRepository.ListLatestApprovedAsync(10);
+            var latestComments = await this.commentRepository.ListLatestApprovedAsync(IntegerConstants.CommentCountToShowOnHomepage);
 
             this.ViewBag.LatestReviews = latestReviews;
             this.ViewBag.LatestComments = latestComments;
@@ -124,8 +124,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("expire-cache")]
         public IActionResult ExpireCache()
         {
-            this.cache.Remove(StringConstants.CacheKeyEntries);
-            this.cache.Remove(StringConstants.CacheKeySponsoredListings);
+            this.ExpireCache();
 
             return this.View();
         }

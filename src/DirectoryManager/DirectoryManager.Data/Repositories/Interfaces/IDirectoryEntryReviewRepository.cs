@@ -1,5 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Models.TransferModels;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
@@ -30,5 +30,24 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<List<DirectoryEntryReview>> ListLatestApprovedAsync(int count = 10, CancellationToken ct = default);
 
         Task<Dictionary<int, RatingSummaryDto>> GetRatingSummariesAsync(IReadOnlyCollection<int> directoryEntryIds);
+        public Task<DirectoryEntryReview?> GetWithTagsByIdAsync(int id, CancellationToken ct = default);
+        Task<int> CountApprovedForEntryAsync(int directoryEntryId, CancellationToken ct);
+        Task<Dictionary<int, int>> GetApprovedReviewCountsByEntryAsync(CancellationToken ct = default);
+        Task<Dictionary<int, DateTime>> GetApprovedReviewLastModifiedByEntryAsync(CancellationToken ct = default);
+        Task<Dictionary<int, ApprovedReviewStatsRow>> GetApprovedReviewStatsByEntryAsync(CancellationToken ct = default);
+
+        Task<(int c1, int c2, int c3, int c4, int c5)> GetApprovedRatingCountsForEntryAsync(int directoryEntryId, CancellationToken ct);
+
+        Task<Dictionary<int, int>> GetApprovedReviewPageMapAsync(IEnumerable<int> reviewIds, int pageSize, CancellationToken ct = default);
+
+        Task<List<DirectoryEntryReview>> ListByAuthorFingerprintAsync(
+            string fingerprint,
+            int page,
+            int pageSize,
+            CancellationToken ct = default);
+
+        Task<int> CountByAuthorFingerprintAsync(string fingerprint, CancellationToken ct = default);
+
+        Task<bool> DeleteOwnedAsync(int reviewId, string fingerprint, CancellationToken ct = default);
     }
 }

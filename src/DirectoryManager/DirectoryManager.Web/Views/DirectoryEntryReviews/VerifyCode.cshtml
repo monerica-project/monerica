@@ -2,27 +2,15 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Leave a Review – Verify Code";
     Layout = "_CenteredLayout";
+
+    // This wrapper tells the shared partial where to post
+    ViewBag.PostController = "DirectoryEntryReviews";
+    ViewBag.PostAction = "VerifyCodePost";
 }
 
 @section PageContent {
     <h1>@ViewData[StringConstants.TitleHeader]</h1>
     <hr />
 
-    <p>Decrypt the message below with your private key. Enter the 6-digit code you obtain.</p>
-
-    <br />
-    <div class="card p-3" style="white-space:pre-wrap; font-family: 'Lucida Console'">@ViewBag.Ciphertext</div>
-
-    <br />
-    <div asp-validation-summary="All" class="text-danger"></div>
-
-    <form asp-action="VerifyCodePost" asp-controller="DirectoryEntryReviews" method="post">
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
-
-        <input name="code" class="form-control" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" placeholder="6-digit code" />
-        <br />
-        <br />
-        <button type="submit" class="btn btn-primary">Verify</button>
-    </form>
+    @await Html.PartialAsync("_PgpVerifyCode")
 }

@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.Emails;
+using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Models.SponsoredListings;
 using Microsoft.EntityFrameworkCore;
 
@@ -42,6 +43,9 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
         public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
+        public DbSet<AdditionalLink> AdditionalLinks { get; set; }
+        public DbSet<ReviewTag> ReviewTags { get; set; }
+        public DbSet<DirectoryEntryReviewTag> DirectoryEntryReviewTags { get; set; }
 
         int SaveChanges();
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

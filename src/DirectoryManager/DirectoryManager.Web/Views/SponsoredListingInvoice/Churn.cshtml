@@ -6,8 +6,8 @@
     Layout = "_CenteredLayout";
 
     // show inclusive end day in the date picker
-    var startDate = Model.WindowStartUtc.ToUniversalTime().ToString("yyyy-MM-dd");
-    var endDate = Model.WindowEndOpenUtc.AddDays(-1).ToUniversalTime().ToString("yyyy-MM-dd");
+    var startDate = Model.WindowStartUtc.ToUniversalTime().ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
+    var endDate = Model.WindowEndOpenUtc.AddDays(-1).ToUniversalTime().ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
 
     // derive start-cohort churn and retention directly from lists/counters
     var churnedFromStart = Model.Churned?.Count() ?? 0; // Churned = START-COHORT losses
@@ -30,7 +30,7 @@
 
     <hr />
 
-    <form method="get" asp-action="Churn" asp-controller="SponsoredListingInvoice" class="form-inline mb-3">
+    <form method="get" asp-action="Churn" asp-controller="SponsoredListingInvoice">
         <div class="form-row">
             <div class="form-group mr-3">
                 <label for="startDate" class="mr-2">Start</label>
@@ -80,9 +80,9 @@
 
     <div class="mb-3">
         <strong>Window:</strong>
-        @Model.WindowStartUtc.ToUniversalTime().ToString("yyyy-MM-dd")
+        @Model.WindowStartUtc.ToUniversalTime().ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
         &rarr;
-        @Model.WindowEndOpenUtc.AddDays(-1).ToUniversalTime().ToString("yyyy-MM-dd")
+        @Model.WindowEndOpenUtc.AddDays(-1).ToUniversalTime().ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
         <br />
         <strong>Type:</strong> @(Model.SponsorshipType?.ToString() ?? "All")
         &nbsp;|&nbsp;

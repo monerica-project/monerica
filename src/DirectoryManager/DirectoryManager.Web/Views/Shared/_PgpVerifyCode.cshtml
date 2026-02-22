@@ -1,0 +1,35 @@
+﻿@using DirectoryManager.Web.Constants
+
+<p>
+    Decrypt the message below with your private key. The decrypted text will be a short code like
+    <strong>ABCDE-FGHIJ</strong>.
+    Enter that code below (dashes/spaces don’t matter).
+</p>
+
+<br />
+
+<div class="card p-3" style="white-space:pre-wrap; font-family:'Lucida Console'">@ViewBag.Ciphertext</div>
+
+<br />
+<div asp-validation-summary="All" class="text-danger"></div>
+
+<form asp-action="@ViewBag.PostAction"
+      asp-controller="@ViewBag.PostController"
+      asp-route-directoryEntryKey="@ViewBag.DirectoryEntryKey"
+      method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+
+    <input name="code"
+           class="form-control input-width"
+           autocomplete="one-time-code"
+           autocapitalize="characters"
+           autocorrect="off"
+           spellcheck="false"
+           inputmode="text"
+           maxlength="16"
+           placeholder="ABCDE-FGHIJ" />
+
+    <br /><br />
+    <button type="submit" class="btn btn-success btn-cta">Verify</button>
+</form>

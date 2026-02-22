@@ -2,19 +2,24 @@
 @using DirectoryManager.Data.Models
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Models
+@using DirectoryManager.Web.Services.Interfaces
+@using Microsoft.AspNetCore.Html
+@using Microsoft.Extensions.Caching.Memory
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContext
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheService
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService urlResolver
-@using Microsoft.Extensions.Caching.Memory
 @inject IMemoryCache MemoryCache
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepo
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository subCatRepo
+@inject IUrlResolutionService Urls
+
+@model SearchFormViewModel
 
 @{
     var currentCat = (string?)ViewData["CurrentCategoryKey"] ?? "";
     var currentSub = (string?)ViewData["CurrentSubCategoryKey"] ?? "";
 
-    // Cache ONLY the static data (cats + subs), not the "current" selection.
+    // Cache ONLY static data (cats + subs)
     var cached = await MemoryCache.GetOrCreateAsync<
         (IReadOnlyList<Category> Categories, Dictionary<int, List<Subcategory>> SubsByCategory)
     >(StringConstants.NavMenu, async entry =>
@@ -39,14 +44,94 @@
         CurrentSubCategoryKey = currentSub
     };
 
-    // Fetch logo URL once (don’t inline await in an attribute)
     var logoUrl = await cacheService.GetSnippetAsync(SiteConfigSetting.SiteLogoUrl);
-
     ViewData["NavModel"] = navModel;
+
+
+    // ... your existing cached/navModel setup above ...
+
+    // ✅ Infer CategoryId/SubCategoryId from current page keys (ViewData)
+    int? inferredCategoryId = null;
+    int? inferredSubCategoryId = null;
+
+    if (!string.IsNullOrWhiteSpace(currentCat))
+    {
+        inferredCategoryId = navModel.Categories
+            .FirstOrDefault(c => string.Equals(c.CategoryKey, currentCat, StringComparison.OrdinalIgnoreCase))
+            ?.CategoryId;
+
+        if (inferredCategoryId is > 0 && !string.IsNullOrWhiteSpace(currentSub))
+        {
+            if (navModel.SubsByCategory.TryGetValue(inferredCategoryId.Value, out var subsForCat)
+                && subsForCat != null)
+            {
+                inferredSubCategoryId = subsForCat
+                    .FirstOrDefault(s => string.Equals(s.SubCategoryKey, currentSub, StringComparison.OrdinalIgnoreCase))
+                    ?.SubCategoryId;
+            }
+        }
+    }
+
+    // ✅ Prefer explicit model values (when provided), otherwise use inferred values
+    int? effectiveCatId = (Model?.FilterCategoryId is > 0) ? Model!.FilterCategoryId : inferredCategoryId;
+    int? effectiveSubId = (Model?.FilterSubCategoryId is > 0) ? Model!.FilterSubCategoryId : inferredSubCategoryId;
+
+    string BuildFilterUrl()
+    {
+        if (effectiveCatId is > 0)
+        {
+            var routeVals = new Dictionary<string, object?>
+            {
+                ["CategoryId"] = effectiveCatId.Value,
+                ["Page"] = 1,
+                ["PageSize"] = 10
+            };
+
+            if (effectiveSubId is > 0)
+            {
+                routeVals["SubCategoryId"] = effectiveSubId.Value;
+            }
+
+            return Urls.ResolveToApp(Url.Action("Index", "DirectoryFilter", routeVals) ?? "/filter");
+        }
+
+        return Urls.ResolveToApp("/filter");
+    }
+
+    var filterUrl = BuildFilterUrl();
+}
+
+   
+
+
+@functions {
+    // ✅ Single source of truth for Search/Filter markup (reused twice)
+    private Microsoft.AspNetCore.Html.IHtmlContent RenderNavSearch(string filterUrl, IUrlResolutionService Urls)
+    {
+        return new HtmlString($@"
+<div class=""nav-search-wrap"">
+  <form method=""get"" action=""{Urls.ResolveToApp("/search")}"" class=""nav-search-form"" role=""search"" aria-label=""Search Monerica"">
+    <input type=""search"" name=""q"" class=""nav-search-input"" maxlength=""50"" aria-label=""Search""
+           placeholder=""Search directory..."" autocomplete=""off"" />
+    <button type=""submit"" class=""btn btn-primary nav-search-btn"">Search</button>
+    <a href=""{filterUrl}"" class=""btn btn-info nav-filter-btn"">Filter</a>
+  </form>
+</div>");
+    }
 }
 
 <details class="mobile-nav">
-    <summary>Menu</summary>
+    <summary class="mobile-nav-summary">
+        <span class="mobile-nav-title">Menu</span>
+
+        <a class="mobile-nav-home no-app-link" href="@urlResolver.ResolveToRoot("/")" aria-label="Go to homepage">
+            <img src="@urlResolver.ExtractPathFromFullUrl(logoUrl)" alt="logo" class="mobile-nav-home-logo">
+        </a>
+    </summary>
+
+    @* ✅ TOP OF MOBILE MENU *@
+    @RenderNavSearch(filterUrl, Urls)
+
     <ul>
         @foreach (var cat in navModel.Categories)
         {
@@ -60,7 +145,7 @@
                 <div class="cat-row" style="display:flex;align-items:center;gap:.5rem;">
                     <label for="@expanderIdMobile" class="expander" aria-label="Expand @cat.Name" style="cursor:pointer;">+</label>
                     <a class="no-app-link @(isCurrentCat ? "active" : "")"
-                       href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
+                           href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
                         @cat.Name
                     </a>
                 </div>
@@ -83,7 +168,7 @@
 </details>
 
 <nav class="sidebar">
-    <div class="logo-container text-center mb-4">
+    <div class="logo-container text-center mb-3">
         <a class="no-app-link" href="@urlResolver.ResolveToRoot("/")">
             @if (urlResolver.IsTor)
             {
@@ -95,6 +180,9 @@
             }
         </a>
     </div>
+
+    @* ✅ TOP OF SIDEBAR *@
+    @RenderNavSearch(filterUrl, Urls)
 
     <ul>
         @foreach (var cat in navModel.Categories)
@@ -108,14 +196,11 @@
             <li class="category-item">
                 <label for="@expanderId" class="expander">+</label>
                 <a class="no-app-link @(isCurrentCat ? "active" : "")"
-                   href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
+                       href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
                     @cat.Name
                 </a>
 
-                <input type="checkbox"
-                       id="@expanderId"
-                       class="hidden-toggle"
-                       @(isCurrentCat ? "checked" : "") />
+                <input type="checkbox" id="@expanderId" class="hidden-toggle" @(isCurrentCat ? "checked" : "") />
 
                 <div class="hidden">
                     <ul>

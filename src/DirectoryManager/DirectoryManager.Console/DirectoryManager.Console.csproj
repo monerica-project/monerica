@@ -13,6 +13,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Http" Version="10.0.3" />
+    <PackageReference Include="Nager.PublicSuffix" Version="3.7.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="OpenAI" Version="2.8.0" />
     <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
@@ -23,6 +25,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\DirectoryManager.Data\DirectoryManager.Data.csproj" />
+    <ProjectReference Include="..\DirectoryManager.Services\DirectoryManager.Services.csproj" />
   </ItemGroup>
 
   <ItemGroup>

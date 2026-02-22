@@ -17,10 +17,52 @@ namespace DirectoryManager.Data.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.2")
+                .HasAnnotation("ProductVersion", "10.0.3")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
             SqlServerModelBuilderExtensions.UseIdentityColumns(modelBuilder);
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.AdditionalLink", b =>
+                {
+                    b.Property<int>("AdditionalLinkId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("AdditionalLinkId"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.Property<int>("DirectoryEntryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("Link")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.HasKey("AdditionalLinkId");
+
+                    b.HasIndex("DirectoryEntryId", "SortOrder")
+                        .IsUnique();
+
+                    b.ToTable("AdditionalLinks");
+                });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.Affiliates.AffiliateAccount", b =>
                 {
@@ -396,6 +438,9 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<int>("DirectoryStatus")
                         .HasColumnType("int");
 
+                    b.Property<DateOnly?>("FoundedDate")
+                        .HasColumnType("date");
+
                     b.Property<string>("Link")
                         .IsRequired()
                         .HasMaxLength(500)
@@ -463,170 +508,19 @@ namespace DirectoryManager.Data.Migrations
                     b.HasIndex("DirectoryEntryKey")
                         .IsUnique();
 
+                    b.HasIndex("DirectoryStatus")
+                        .HasDatabaseName("IX_DirectoryEntries_Status");
+
                     b.HasIndex("Link")
                         .IsUnique();
 
                     b.HasIndex("SubCategoryId")
                         .HasDatabaseName("IX_DirectoryEntries_SubCategoryId");
 
-                    b.HasIndex("DirectoryEntryId", "DirectoryStatus")
-                        .IsUnique();
-
-                    b.HasIndex("SubCategoryId", "DirectoryEntryKey")
-                        .IsUnique();
+                    b.HasIndex("UpdateDate", "CreateDate")
+                        .HasDatabaseName("IX_DirectoryEntries_Update_Create");
 
                     b.ToTable("DirectoryEntries");
-                });
-
-            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryReview", b =>
-                {
-                    b.Property<int>("DirectoryEntryReviewId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DirectoryEntryReviewId"));
-
-                    b.Property<string>("AuthorFingerprint")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("nvarchar(40)");
-
-                    b.Property<string>("AuthorHandle")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("AuthorPublicKeyArmor")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime>("CreateDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedByUserId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
-
-                    b.Property<string>("DeletionSignatureHash")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<int>("DirectoryEntryId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("DisplayName")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("DisplayNameSignatureArmor")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<int>("ModerationStatus")
-                        .HasColumnType("int");
-
-                    b.Property<string>("PostSignatureHash")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<byte?>("Rating")
-                        .HasColumnType("tinyint");
-
-                    b.Property<string>("RejectionReason")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<byte[]>("RowVersion")
-                        .IsConcurrencyToken()
-                        .ValueGeneratedOnAddOrUpdate()
-                        .HasColumnType("rowversion");
-
-                    b.Property<string>("SourceIpHash")
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("Title")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime?>("UpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedByUserId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
-
-                    b.HasKey("DirectoryEntryReviewId");
-
-                    b.HasIndex("AuthorFingerprint");
-
-                    b.HasIndex("DirectoryEntryId");
-
-                    b.HasIndex("DirectoryEntryId", "ModerationStatus");
-
-                    b.ToTable("DirectoryEntryReviews", (string)null);
-                });
-
-            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryReviewComment", b =>
-                {
-                    b.Property<int>("DirectoryEntryReviewCommentId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DirectoryEntryReviewCommentId"));
-
-                    b.Property<string>("AuthorFingerprint")
-                        .IsRequired()
-                        .HasMaxLength(64)
-                        .HasColumnType("nvarchar(64)");
-
-                    b.Property<string>("Body")
-                        .IsRequired()
-                        .HasMaxLength(4000)
-                        .HasColumnType("nvarchar(4000)");
-
-                    b.Property<DateTime>("CreateDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("CreatedByUserId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
-
-                    b.Property<int?>("DirectoryEntryReviewCommentId1")
-                        .HasColumnType("int");
-
-                    b.Property<int>("DirectoryEntryReviewId")
-                        .HasColumnType("int");
-
-                    b.Property<int>("ModerationStatus")
-                        .HasColumnType("int");
-
-                    b.Property<int?>("ParentCommentId")
-                        .HasColumnType("int");
-
-                    b.Property<string>("RejectionReason")
-                        .HasMaxLength(800)
-                        .HasColumnType("nvarchar(800)");
-
-                    b.Property<DateTime?>("UpdateDate")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("UpdatedByUserId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
-
-                    b.HasKey("DirectoryEntryReviewCommentId");
-
-                    b.HasIndex("DirectoryEntryReviewCommentId1");
-
-                    b.HasIndex("DirectoryEntryReviewId");
-
-                    b.HasIndex("ParentCommentId");
-
-                    b.ToTable("DirectoryEntryReviewComments");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntrySelection", b =>
@@ -681,7 +575,8 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasKey("DirectoryEntryId", "TagId");
 
-                    b.HasIndex("TagId");
+                    b.HasIndex("TagId", "DirectoryEntryId")
+                        .HasDatabaseName("IX_DirectoryEntryTags_Tag_Entry");
 
                     b.ToTable("DirectoryEntryTags");
                 });
@@ -966,7 +861,249 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("LogEntries");
                 });
 
-            modelBuilder.Entity("DirectoryManager.Data.Models.ReviewerKey", b =>
+            modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.DirectoryEntryReview", b =>
+                {
+                    b.Property<int>("DirectoryEntryReviewId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DirectoryEntryReviewId"));
+
+                    b.Property<string>("AuthorFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("nvarchar(40)");
+
+                    b.Property<string>("AuthorHandle")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("AuthorPublicKeyArmor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.Property<string>("DeletionSignatureHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<int>("DirectoryEntryId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("DisplayNameSignatureArmor")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ModerationStatus")
+                        .HasColumnType("int");
+
+                    b.Property<string>("OrderId")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)");
+
+                    b.Property<string>("OrderUrl")
+                        .HasMaxLength(2048)
+                        .HasColumnType("nvarchar(2048)");
+
+                    b.Property<string>("PostSignatureHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<byte?>("Rating")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("RejectionReason")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<byte[]>("RowVersion")
+                        .IsConcurrencyToken()
+                        .ValueGeneratedOnAddOrUpdate()
+                        .HasColumnType("rowversion");
+
+                    b.Property<string>("SourceIpHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.HasKey("DirectoryEntryReviewId");
+
+                    b.HasIndex("AuthorFingerprint");
+
+                    b.HasIndex("ModerationStatus", "DirectoryEntryId")
+                        .HasDatabaseName("IX_Reviews_Mod_Entry");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ModerationStatus", "DirectoryEntryId"), new[] { "CreateDate", "UpdateDate" });
+
+                    b.HasIndex("DirectoryEntryId", "ModerationStatus", "CreateDate", "DirectoryEntryReviewId")
+                        .HasDatabaseName("IX_Reviews_Entry_Mod_Create_Id");
+
+                    b.ToTable("DirectoryEntryReviews", (string)null);
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.DirectoryEntryReviewComment", b =>
+                {
+                    b.Property<int>("DirectoryEntryReviewCommentId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DirectoryEntryReviewCommentId"));
+
+                    b.Property<string>("AuthorFingerprint")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Body")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("nvarchar(4000)");
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.Property<int?>("DirectoryEntryReviewCommentId1")
+                        .HasColumnType("int");
+
+                    b.Property<int>("DirectoryEntryReviewId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ModerationStatus")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("ParentCommentId")
+                        .HasColumnType("int");
+
+                    b.Property<string>("RejectionReason")
+                        .HasMaxLength(800)
+                        .HasColumnType("nvarchar(800)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.HasKey("DirectoryEntryReviewCommentId");
+
+                    b.HasIndex("DirectoryEntryReviewCommentId1");
+
+                    b.HasIndex("ParentCommentId")
+                        .HasDatabaseName("IX_ReviewComments_ParentCommentId");
+
+                    b.HasIndex("ModerationStatus", "DirectoryEntryReviewId")
+                        .HasDatabaseName("IX_ReviewComments_Mod_Review");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("ModerationStatus", "DirectoryEntryReviewId"), new[] { "CreateDate", "UpdateDate" });
+
+                    b.HasIndex("DirectoryEntryReviewId", "ModerationStatus", "CreateDate", "DirectoryEntryReviewCommentId")
+                        .HasDatabaseName("IX_ReviewComments_Review_Mod_Create_Id");
+
+                    b.ToTable("DirectoryEntryReviewComments");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.DirectoryEntryReviewTag", b =>
+                {
+                    b.Property<int>("DirectoryEntryReviewId")
+                        .HasColumnType("int");
+
+                    b.Property<int>("ReviewTagId")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.HasKey("DirectoryEntryReviewId", "ReviewTagId");
+
+                    b.HasIndex("ReviewTagId");
+
+                    b.ToTable("DirectoryEntryReviewTags");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.ReviewTag", b =>
+                {
+                    b.Property<int>("ReviewTagId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("ReviewTagId"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("CreatedByUserId")
+                        .IsRequired()
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(256)
+                        .HasColumnType("nvarchar(256)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("bit");
+
+                    b.Property<byte>("Level")
+                        .HasColumnType("tinyint");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<string>("Slug")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("nvarchar(64)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("UpdatedByUserId")
+                        .HasMaxLength(36)
+                        .HasColumnType("nvarchar(36)");
+
+                    b.HasKey("ReviewTagId");
+
+                    b.HasIndex("Slug")
+                        .IsUnique();
+
+                    b.ToTable("ReviewTags");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.ReviewerKey", b =>
                 {
                     b.Property<int>("ReviewerKeyId")
                         .ValueGeneratedOnAdd()
@@ -1136,12 +1273,25 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasIndex("CampaignEndDate");
 
-                    b.HasIndex("DirectoryEntryId");
+                    b.HasIndex("DirectoryEntryId")
+                        .HasDatabaseName("IX_SponsoredListings_DirectoryEntryId");
 
                     b.HasIndex("SponsoredListingInvoiceId")
                         .IsUnique();
 
+                    b.HasIndex("CampaignEndDate", "CampaignStartDate")
+                        .IsDescending()
+                        .HasDatabaseName("IX_SponsoredListings_End_Start");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("CampaignEndDate", "CampaignStartDate"), new[] { "DirectoryEntryId", "SponsorshipType" });
+
                     b.HasIndex("CreateDate", "UpdateDate");
+
+                    b.HasIndex("SponsorshipType", "CampaignEndDate", "CampaignStartDate")
+                        .IsDescending(false, true, true)
+                        .HasDatabaseName("IX_SponsoredListings_Type_End_Start");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("SponsorshipType", "CampaignEndDate", "CampaignStartDate"), new[] { "DirectoryEntryId" });
 
                     b.ToTable("SponsoredListings");
                 });
@@ -1312,7 +1462,7 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasIndex("SponsorshipType", "Days")
                         .IsUnique()
-                        .HasFilter("SubcategoryId IS NULL");
+                        .HasFilter("[SubcategoryId] IS NULL");
 
                     b.HasIndex("SponsorshipType", "Days", "CategoryId")
                         .IsUnique()
@@ -1338,13 +1488,26 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("datetime2");
 
+                    b.Property<int?>("DirectoryEntryId")
+                        .HasColumnType("int");
+
                     b.Property<string>("Email")
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
                     b.Property<bool>("IsReminderSent")
                         .HasColumnType("bit");
+
+                    b.Property<DateTime?>("ReminderSentDateUtc")
+                        .HasColumnType("datetime2");
+
+                    b.Property<string>("ReminderSentLink")
+                        .HasMaxLength(700)
+                        .HasColumnType("nvarchar(700)");
 
                     b.Property<int>("SponsorshipType")
                         .HasColumnType("int");
@@ -1360,10 +1523,20 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasKey("SponsoredListingOpeningNotificationId");
 
+                    b.HasIndex("SubscribedDate", "SponsoredListingOpeningNotificationId")
+                        .HasDatabaseName("IX_SponsoredListingOpeningNotification_Queue")
+                        .HasFilter("[IsActive] = 1 AND [IsReminderSent] = 0");
+
+                    SqlServerIndexBuilderExtensions.IncludeProperties(b.HasIndex("SubscribedDate", "SponsoredListingOpeningNotificationId"), new[] { "Email", "SponsorshipType", "TypeId", "DirectoryEntryId" });
+
+                    b.HasIndex("Email", "SponsorshipType", "TypeId", "DirectoryEntryId");
+
                     b.HasIndex("Email", "SponsorshipType", "TypeId", "SubscribedDate")
                         .IsUnique()
                         .HasDatabaseName("IX_SponsoredListingOpeningNotification_Unique")
                         .HasFilter("[TypeId] IS NOT NULL");
+
+                    b.HasIndex("SponsorshipType", "TypeId", "IsActive", "IsReminderSent", "SubscribedDate");
 
                     b.ToTable("SponsoredListingOpeningNotifications");
                 });
@@ -1461,7 +1634,8 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasKey("SubCategoryId");
 
-                    b.HasIndex("CategoryId");
+                    b.HasIndex("CategoryId")
+                        .HasDatabaseName("IX_Subcategories_CategoryId");
 
                     b.HasIndex("SubCategoryKey", "CategoryId")
                         .IsUnique();
@@ -1497,6 +1671,9 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<int?>("DirectoryStatus")
                         .HasColumnType("int");
+
+                    b.Property<DateOnly?>("FoundedDate")
+                        .HasColumnType("date");
 
                     b.Property<string>("IpAddress")
                         .HasMaxLength(255)
@@ -1542,6 +1719,9 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("ProofLink")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("RelatedLinksJson")
+                        .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("SelectedTagIdsCsv")
                         .HasMaxLength(2000)
@@ -1792,6 +1972,17 @@ namespace DirectoryManager.Data.Migrations
                     b.HasDiscriminator().HasValue("ApplicationUserRole");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.AdditionalLink", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntry", "DirectoryEntry")
+                        .WithMany()
+                        .HasForeignKey("DirectoryEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DirectoryEntry");
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.Affiliates.AffiliateCommission", b =>
                 {
                     b.HasOne("DirectoryManager.Data.Models.Affiliates.AffiliateAccount", "AffiliateAccount")
@@ -1829,39 +2020,6 @@ namespace DirectoryManager.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("SubCategory");
-                });
-
-            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryReview", b =>
-                {
-                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntry", "DirectoryEntry")
-                        .WithMany()
-                        .HasForeignKey("DirectoryEntryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DirectoryEntry");
-                });
-
-            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryReviewComment", b =>
-                {
-                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntryReviewComment", null)
-                        .WithMany("Comments")
-                        .HasForeignKey("DirectoryEntryReviewCommentId1");
-
-                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntryReview", "DirectoryEntryReview")
-                        .WithMany("Comments")
-                        .HasForeignKey("DirectoryEntryReviewId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntryReviewComment", "ParentComment")
-                        .WithMany("Children")
-                        .HasForeignKey("ParentCommentId")
-                        .OnDelete(DeleteBehavior.Restrict);
-
-                    b.Navigation("DirectoryEntryReview");
-
-                    b.Navigation("ParentComment");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntrySelection", b =>
@@ -1949,6 +2107,58 @@ namespace DirectoryManager.Data.Migrations
                     b.Navigation("EmailMessage");
 
                     b.Navigation("EmailSubscription");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.DirectoryEntryReview", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntry", "DirectoryEntry")
+                        .WithMany()
+                        .HasForeignKey("DirectoryEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DirectoryEntry");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.DirectoryEntryReviewComment", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.Reviews.DirectoryEntryReviewComment", null)
+                        .WithMany("Comments")
+                        .HasForeignKey("DirectoryEntryReviewCommentId1");
+
+                    b.HasOne("DirectoryManager.Data.Models.Reviews.DirectoryEntryReview", "DirectoryEntryReview")
+                        .WithMany("Comments")
+                        .HasForeignKey("DirectoryEntryReviewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DirectoryManager.Data.Models.Reviews.DirectoryEntryReviewComment", "ParentComment")
+                        .WithMany("Children")
+                        .HasForeignKey("ParentCommentId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.Navigation("DirectoryEntryReview");
+
+                    b.Navigation("ParentComment");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.DirectoryEntryReviewTag", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.Reviews.DirectoryEntryReview", "DirectoryEntryReview")
+                        .WithMany("ReviewTags")
+                        .HasForeignKey("DirectoryEntryReviewId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DirectoryManager.Data.Models.Reviews.ReviewTag", "ReviewTag")
+                        .WithMany("ReviewLinks")
+                        .HasForeignKey("ReviewTagId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("DirectoryEntryReview");
+
+                    b.Navigation("ReviewTag");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.SponsoredListing", b =>
@@ -2083,21 +2293,28 @@ namespace DirectoryManager.Data.Migrations
                     b.Navigation("EntryTags");
                 });
 
-            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryReview", b =>
+            modelBuilder.Entity("DirectoryManager.Data.Models.Emails.EmailCampaign", b =>
                 {
-                    b.Navigation("Comments");
+                    b.Navigation("CampaignMessages");
                 });
 
-            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryReviewComment", b =>
+            modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.DirectoryEntryReview", b =>
+                {
+                    b.Navigation("Comments");
+
+                    b.Navigation("ReviewTags");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.DirectoryEntryReviewComment", b =>
                 {
                     b.Navigation("Children");
 
                     b.Navigation("Comments");
                 });
 
-            modelBuilder.Entity("DirectoryManager.Data.Models.Emails.EmailCampaign", b =>
+            modelBuilder.Entity("DirectoryManager.Data.Models.Reviews.ReviewTag", b =>
                 {
-                    b.Navigation("CampaignMessages");
+                    b.Navigation("ReviewLinks");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice", b =>

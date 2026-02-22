@@ -2,6 +2,7 @@
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.Data.Models
 @using DirectoryManager.Web.Models
+@using DirectoryManager.Web.Models.Reviews
 @model ReviewModerationQueueViewModel
 
 @{
@@ -41,6 +42,7 @@
                         <th>Entry</th>
                         <th>Rating</th>
                         <th>Title</th>
+                        <th>Order Proof</th>
                         <th>Created (UTC)</th>
                         <th>Fingerprint</th>
                         <th>Excerpt</th>
@@ -50,6 +52,8 @@
                 <tbody>
                     @foreach (var r in Model.PendingReviews)
                     {
+                        var proof = r.OrderUrl ?? r.OrderId;
+
                         <tr>
                             <td>@r.DirectoryEntryReviewId</td>
                             <td>
@@ -59,6 +63,22 @@
                             </td>
                             <td>@(r.Rating?.ToString() ?? "-")</td>
                             <td>@(string.IsNullOrWhiteSpace(r.Title) ? "-" : r.Title)</td>
+
+                            <td>
+                                @if (string.IsNullOrWhiteSpace(proof))
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(r.OrderUrl))
+                                {
+                                    <a href="@r.OrderUrl" target="_blank" rel="noopener">@r.OrderUrl</a>
+                                }
+                                else
+                                {
+                                    @r.OrderId
+                                }
+                            </td>
+
                             <td>@r.CreateDate.ToString("yyyy-MM-dd HH:mm")</td>
                             <td><code>@r.AuthorFingerprint</code></td>
                             <td>
@@ -167,8 +187,8 @@
     <!-- Pagination -->
     <!-- ===================== -->
     @if (ViewBag.Page is int pageNumber &&
-         ViewBag.PageSize is int pageSize &&
-         ViewBag.ReviewTotal is int reviewTotal)
+             ViewBag.PageSize is int pageSize &&
+             ViewBag.ReviewTotal is int reviewTotal)
     {
         var last = Math.Max(1, (int)Math.Ceiling(reviewTotal / (double)pageSize));
 

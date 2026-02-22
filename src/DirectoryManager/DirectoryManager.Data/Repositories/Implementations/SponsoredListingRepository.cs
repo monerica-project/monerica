@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
+using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 
@@ -328,6 +329,66 @@ namespace DirectoryManager.Data.Repositories.Implementations
               .Where(s => s.SponsorshipType == type && s.CampaignEndDate > DateTime.UtcNow)
               .GroupBy(s => s.SubCategoryId)
               .ToDictionaryAsync(g => g.Key.Value, g => g.Count());
+        }
+
+        public async Task<List<SponsorTickerItemVm>> GetSponsorTickerItemsAsync()
+        {
+            var now = DateTime.UtcNow;
+
+            // Pull all active sponsor listings
+            var all = await this.context.SponsoredListings
+                .AsNoTracking()
+                .Include(x => x.DirectoryEntry)
+                .Where(x => x.CampaignStartDate <= now && x.CampaignEndDate >= now)
+                .ToListAsync();
+
+            static int TierRank(SponsorshipType t) => t switch
+            {
+                SponsorshipType.MainSponsor => 0,
+                SponsorshipType.CategorySponsor => 1,
+                SponsorshipType.SubcategorySponsor => 2,
+                _ => 99
+            };
+
+            // candidates w/ rank
+            var candidates = all
+                .Where(x => x.DirectoryEntry != null)
+                .Select(x => new
+                {
+                    Listing = x,
+                    Entry = x.DirectoryEntry!,
+                    Rank = TierRank(x.SponsorshipType),
+                });
+
+            // Dedup by DirectoryEntryId:
+            // pick best tier first, then keep your consistent campaign ordering
+            var bestPerEntry = candidates
+                .GroupBy(x => x.Entry.DirectoryEntryId)
+                .Select(g =>
+                    g.OrderBy(x => x.Rank)
+                     .ThenByDescending(x => x.Listing.CampaignEndDate)
+                     .ThenByDescending(x => x.Listing.CampaignStartDate)
+                     .First())
+                .ToList();
+
+            // Final order: tier -> end desc -> start desc
+            var ordered = bestPerEntry
+                .OrderBy(x => x.Rank)
+                .ThenByDescending(x => x.Listing.CampaignEndDate)
+                .ThenByDescending(x => x.Listing.CampaignStartDate)
+                .ToList();
+
+            return ordered
+                .Select(x => new SponsorTickerItemVm
+                {
+                    DirectoryEntryId = x.Entry.DirectoryEntryId,
+                    DirectoryEntryKey = x.Entry.DirectoryEntryKey ?? "",
+                    Name = x.Entry.Name ?? "Sponsor",
+                    Tier = x.Listing.SponsorshipType,
+                    Link = x.Entry.Link
+                })
+                .Where(x => !string.IsNullOrWhiteSpace(x.DirectoryEntryKey))
+                .ToList();
         }
     }
 }

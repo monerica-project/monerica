@@ -1,7 +1,11 @@
 ﻿using System.Security.Cryptography;
-using DirectoryManager.Data.Models;
+using System.Text;
+using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Models.Reviews;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,26 +14,35 @@ using Microsoft.Extensions.Caching.Memory;
 namespace DirectoryManager.Web.Controllers
 {
     [Route("directory-entry-reviews")]
-    public class DirectoryEntryReviewsController : Controller
+    public class DirectoryEntryReviewsController : BaseController
     {
+        private const string SesssionExpiredMessage = "Session expired, your reply message was not saved, please start over!";
+        private static readonly char[] CodeAlphabet = StringConstants.CodeAlphabet.ToCharArray();
+
         private readonly IMemoryCache cache;
         private readonly ICaptchaService captcha;
         private readonly IPgpService pgp;
         private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly IUserContentModerationService moderation;
 
         public DirectoryEntryReviewsController(
             IDirectoryEntryReviewRepository repo,
             IMemoryCache cache,
+            ITrafficLogRepository trafficLogRepository,
+            IUserAgentCacheService userAgentCacheService,
             ICaptchaService captcha,
             IPgpService pgp,
-            IDirectoryEntryRepository directoryEntryRepository)
+            IDirectoryEntryRepository directoryEntryRepository,
+            IUserContentModerationService moderation)
+            : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.directoryEntryReviewRepository = repo;
             this.cache = cache;
             this.captcha = captcha;
             this.pgp = pgp;
             this.directoryEntryRepository = directoryEntryRepository;
+            this.moderation = moderation;
         }
 
         [HttpGet("begin")]
@@ -39,7 +52,6 @@ namespace DirectoryManager.Web.Controllers
         [IgnoreAntiforgeryToken] // static page can’t emit a token
         public IActionResult Begin([FromForm] int directoryEntryId, [FromForm] string? website)
         {
-            // simple honeypot check (optional)
             if (!string.IsNullOrWhiteSpace(website))
             {
                 return this.BadRequest();
@@ -54,13 +66,11 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
             this.ViewBag.FlowId = flowId;
             this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
-
-            // ✅ IMPORTANT: tells the view what this flow is
             this.ViewBag.CaptchaPurpose = "review";
 
             return this.View();
@@ -72,7 +82,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
             if (!this.captcha.IsValid(this.Request))
@@ -80,10 +90,7 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(string.Empty, "Captcha failed. Please try again.");
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
-
-                // ✅ IMPORTANT: keep purpose on re-render
                 this.ViewBag.CaptchaPurpose = "review";
-
                 return this.View("Captcha");
             }
 
@@ -92,13 +99,12 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.SubmitKey), new { flowId });
         }
 
-        // Step 2: submit PGP key (GET/POST)
         [HttpGet("submit-key")]
         public IActionResult SubmitKey(Guid flowId)
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
             if (!state.CaptchaOk)
@@ -117,7 +123,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
             if (!state.CaptchaOk)
@@ -128,32 +134,38 @@ namespace DirectoryManager.Web.Controllers
             var fp = this.pgp.GetFingerprint(pgpArmored);
             if (string.IsNullOrWhiteSpace(fp))
             {
-               this.ModelState.AddModelError(string.Empty, "Invalid PGP public key.");
-               this.ViewBag.FlowId = flowId;
-               this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
-               return this.View("SubmitKey");
+                this.ModelState.AddModelError(string.Empty, "Invalid PGP public key.");
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+                return this.View("SubmitKey");
             }
 
-            // Generate 6-digit code and encrypt it to their key
-            int code = SixDigits();
-            string cipher = this.pgp.EncryptTo(pgpArmored, code.ToString());
+            // ✅ stronger but still typable:
+            // Store normalized (no dash) and encrypt a friendly formatted version (ABCDE-FGHIJ).
+            var expectedNormalized = GenerateChallengeCodeNormalized(IntegerConstants.ChallengeLength);
+            var plaintextForUser = FormatChallengeCodeForHumans(expectedNormalized);
+            var cipher = this.pgp.EncryptTo(pgpArmored, plaintextForUser);
 
             state.PgpArmored = pgpArmored;
             state.PgpFingerprint = fp;
-            state.ChallengeCode = code;
-            state.ChallengeCiphertext = cipher;
-            this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
 
+            // NOTE: ReviewFlowState must have:
+            //   public string? ChallengeCode { get; set; }
+            //   public int VerifyAttempts { get; set; }
+            state.ChallengeCode = expectedNormalized;
+            state.ChallengeCiphertext = cipher;
+            state.VerifyAttempts = 0;
+
+            this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
             return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
         }
 
-        // Step 3: show ciphertext and collect decrypted code
         [HttpGet("verify-code")]
         public IActionResult VerifyCode(Guid flowId)
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
             if (string.IsNullOrWhiteSpace(state.ChallengeCiphertext))
@@ -164,6 +176,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.FlowId = flowId;
             this.ViewBag.Ciphertext = state.ChallengeCiphertext;
             this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+
             return this.View();
         }
 
@@ -173,20 +186,35 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
-            if (state.ChallengeCode is null)
+            if (string.IsNullOrWhiteSpace(state.ChallengeCode))
             {
                 return this.RedirectToAction(nameof(this.SubmitKey), new { flowId });
             }
 
-            if (!int.TryParse(code, out var numeric) || numeric != state.ChallengeCode.Value)
+            var submitted = NormalizeSubmittedCode(code);
+
+            // ✅ throttle guessing per flow
+            state.VerifyAttempts++;
+            if (state.VerifyAttempts > IntegerConstants.MaxVerifyAttempts)
             {
-                this.ModelState.AddModelError(string.Empty, "That code doesn’t match. Decrypt the message with your private key and try again.");
+                this.cache.Remove(CacheKey(flowId));
+                return this.BadRequest("Too many attempts. Please start over.");
+            }
+
+            if (!CodesMatchConstantTime(submitted, state.ChallengeCode))
+            {
+                this.ModelState.AddModelError(
+                    string.Empty,
+                    "That code doesn’t match. Decrypt the message again and enter the code exactly as shown (dashes/spaces don’t matter).");
+
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.Ciphertext = state.ChallengeCiphertext;
                 this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+
+                this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
                 return this.View("VerifyCode");
             }
 
@@ -195,13 +223,12 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Compose), new { flowId });
         }
 
-        // Step 4: compose review (GET/POST)
         [HttpGet("compose")]
         public async Task<IActionResult> Compose(Guid flowId)
         {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
             if (!state.ChallengeSolved)
@@ -211,7 +238,7 @@ namespace DirectoryManager.Web.Controllers
 
             var vm = new CreateDirectoryEntryReviewInputModel
             {
-                DirectoryEntryId = state.DirectoryEntryId,
+                DirectoryEntryId = state.DirectoryEntryId
             };
 
             var entry = await this.directoryEntryRepository.GetByIdAsync(state.DirectoryEntryId);
@@ -228,7 +255,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.TryGetFlow(flowId, out var flow))
             {
-                return this.BadRequest("Session expired.");
+                return this.BadRequest(SesssionExpiredMessage );
             }
 
             if (!flow.ChallengeSolved)
@@ -236,14 +263,30 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
             }
 
+            // Always trust the flow for the entry id
+            input.DirectoryEntryId = flow.DirectoryEntryId;
+
             if (!this.ModelState.IsValid)
             {
                 var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
                 this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
+                return this.View("Compose", input);
+            }
 
-                input.DirectoryEntryId = flow.DirectoryEntryId;
+            // moderation rules (min detail, no html/scripts, link/blacklist => pending)
+            var mod = await this.moderation.EvaluateReviewAsync(input.Body, ct);
+
+            if (!mod.IsValid)
+            {
+                this.ModelState.AddModelError(nameof(input.Body), mod.ValidationErrorMessage ?? "Invalid content.");
+
+                var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
+                this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
+
                 return this.View("Compose", input);
             }
 
@@ -251,35 +294,52 @@ namespace DirectoryManager.Web.Controllers
             {
                 DirectoryEntryId = flow.DirectoryEntryId,
                 Rating = input.Rating!.Value,
-                Body = input.Body,
+                Body = (input.Body ?? string.Empty).Trim(),
                 CreateDate = DateTime.UtcNow,
-                ModerationStatus = DirectoryManager.Data.Enums.ReviewModerationStatus.Pending,
-                AuthorFingerprint = flow.PgpFingerprint
+                AuthorFingerprint = flow.PgpFingerprint,
+                CreatedByUserId = "automated"
             };
 
+            // ✅ single textbox parsing: OrderProof -> OrderId/OrderUrl
+            ApplyOrderProof(entity, input.OrderProof);
+
+            // ✅ force pending if proof is supplied, regardless of moderation outcome
+            var hasOrderProof =
+                !string.IsNullOrWhiteSpace(entity.OrderId) ||
+                !string.IsNullOrWhiteSpace(entity.OrderUrl);
+
+            entity.ModerationStatus = (mod.NeedsManualReview || hasOrderProof)
+                ? ReviewModerationStatus.Pending
+                : ReviewModerationStatus.Approved;
+
             await this.directoryEntryReviewRepository.AddAsync(entity, ct);
+
+            // ✅ Your Thanks.cshtml reads TempData["ReviewMessage"]
+            this.TempData["ReviewMessage"] = mod.ThankYouMessage;
+
+            this.ClearCachedItems();
             this.cache.Remove(CacheKey(flowId));
+
             return this.RedirectToAction(nameof(this.Thanks));
         }
 
-        // Step 5: thank you
         [HttpGet("thanks")]
         public IActionResult Thanks() => this.View();
 
-        [HttpGet("")] // GET /directory-entry-reviews
-        public async Task<IActionResult> Index(int page = 1, int pageSize = 50)
+        [HttpGet("")]
+        public async Task<IActionResult> Index(int page = 1, int pageSize = 50, CancellationToken ct = default)
         {
-            var items = await this.directoryEntryReviewRepository.ListAsync(page, pageSize);
-            this.ViewBag.Total = await this.directoryEntryReviewRepository.CountAsync();
+            var items = await this.directoryEntryReviewRepository.ListAsync(page, pageSize, ct);
+            this.ViewBag.Total = await this.directoryEntryReviewRepository.CountAsync(ct);
             this.ViewBag.Page = page;
             this.ViewBag.PageSize = pageSize;
             return this.View(items);
         }
 
-        [HttpGet("{id:int}")] // GET /directory-entry-reviews/123
-        public async Task<IActionResult> Details(int id)
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> Details(int id, CancellationToken ct = default)
         {
-            var item = await this.directoryEntryReviewRepository.GetByIdAsync(id);
+            var item = await this.directoryEntryReviewRepository.GetByIdAsync(id, ct);
             if (item is null)
             {
                 return this.NotFound();
@@ -289,7 +349,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("create")]
-        public IActionResult Create() => this.View(new DirectoryEntryReview());
+        public IActionResult Create() => this.View(new CreateDirectoryEntryReviewInputModel());
 
         [HttpPost("create")]
         [ValidateAntiForgeryToken]
@@ -297,7 +357,6 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.ModelState.IsValid)
             {
-                // ModelState contains field errors; the view will render them.
                 return this.View(input);
             }
 
@@ -305,9 +364,13 @@ namespace DirectoryManager.Web.Controllers
             {
                 DirectoryEntryId = input.DirectoryEntryId,
                 Rating = input.Rating,
-                Body = input.Body,
-                CreateDate = DateTime.UtcNow
+                Body = (input.Body ?? string.Empty).Trim(),
+                CreateDate = DateTime.UtcNow,
+                ModerationStatus = ReviewModerationStatus.Pending
             };
+
+            // ✅ single textbox parsing: OrderProof -> OrderId/OrderUrl
+            ApplyOrderProof(entity, input.OrderProof);
 
             try
             {
@@ -327,23 +390,27 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
-        [HttpGet("{id:int}/edit")] // GET /directory-entry-reviews/123/edit
-        public async Task<IActionResult> Edit(int id)
+        [HttpGet("{id:int}/edit")]
+        public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
         {
-            var item = await this.directoryEntryReviewRepository.GetByIdAsync(id);
+            var item = await this.directoryEntryReviewRepository.GetByIdAsync(id, ct);
             if (item is null)
             {
                 return this.NotFound();
             }
 
+            // NOTE: this admin Edit action is still using the entity directly.
+            // If you switch admin edit to a VM (recommended for tags), map OrderProof similarly.
+            item.OrderId = item.OrderId; // no-op, just clarifying
+            item.OrderUrl = item.OrderUrl;
+
             return this.View(item);
         }
 
-        [HttpPost]
+        [HttpPost("{id:int}/edit")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, DirectoryEntryReview model)
+        public async Task<IActionResult> Edit(int id, DirectoryEntryReview model, [FromForm] string? orderProof, CancellationToken ct = default)
         {
-            // replace DirectoryEntryReviewId with your PK if named differently
             var pk = model.DirectoryEntryReviewId;
             if (id != pk)
             {
@@ -355,14 +422,24 @@ namespace DirectoryManager.Web.Controllers
                 return this.View(model);
             }
 
-            await this.directoryEntryReviewRepository.UpdateAsync(model);
+            // ✅ If you keep posting entity, we still parse the single textbox separately
+            ApplyOrderProof(model, orderProof);
+
+            // Optional: if admin adds proof and review is approved, force back to pending
+            var hasProof = !string.IsNullOrWhiteSpace(model.OrderId) || !string.IsNullOrWhiteSpace(model.OrderUrl);
+            if (hasProof && model.ModerationStatus == ReviewModerationStatus.Approved)
+            {
+                model.ModerationStatus = ReviewModerationStatus.Pending;
+            }
+
+            await this.directoryEntryReviewRepository.UpdateAsync(model, ct);
             return this.RedirectToAction(nameof(this.Index));
         }
 
-        [HttpPost("{id:int}/delete")] // POST /directory-entry-reviews/123/delete
-        public async Task<IActionResult> Delete(int id)
+        [HttpPost("{id:int}/delete")]
+        public async Task<IActionResult> Delete(int id, CancellationToken ct = default)
         {
-            var item = await this.directoryEntryReviewRepository.GetByIdAsync(id);
+            var item = await this.directoryEntryReviewRepository.GetByIdAsync(id, ct);
             if (item is null)
             {
                 return this.NotFound();
@@ -371,21 +448,106 @@ namespace DirectoryManager.Web.Controllers
             return this.View(item);
         }
 
-        [HttpPost]
-        [ActionName("Delete")]
+        [HttpPost("{id:int}/delete/confirmed")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> DeleteConfirmed(int id)
+        public async Task<IActionResult> DeleteConfirmed(int id, CancellationToken ct = default)
         {
-            await this.directoryEntryReviewRepository.DeleteAsync(id);
+            await this.directoryEntryReviewRepository.DeleteAsync(id, ct);
             return this.RedirectToAction(nameof(this.Index));
         }
 
-        private static int SixDigits()
+        // =========================
+        // ✅ Challenge helpers
+        // =========================
+
+        private static string GenerateChallengeCodeNormalized(int length)
         {
-            return RandomNumberGenerator.GetInt32(100_000, 1_000_000);
+            if (length < 6)
+            {
+                length = 6;
+            }
+
+            Span<char> chars = stackalloc char[length];
+            for (var i = 0; i < length; i++)
+            {
+                chars[i] = CodeAlphabet[RandomNumberGenerator.GetInt32(CodeAlphabet.Length)];
+            }
+
+            return new string(chars);
+        }
+
+        private static string FormatChallengeCodeForHumans(string normalized)
+        {
+            // 10 chars -> 5-5 (ABCDE-FGHIJ)
+            if (string.IsNullOrWhiteSpace(normalized) || normalized.Length <= 5)
+            {
+                return normalized;
+            }
+
+            return normalized.Substring(0, 5) + "-" + normalized.Substring(5);
+        }
+
+        private static string NormalizeSubmittedCode(string? input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return string.Empty;
+            }
+
+            var sb = new StringBuilder(input.Length);
+            foreach (var ch in input.Trim().ToUpperInvariant())
+            {
+                if (char.IsLetterOrDigit(ch))
+                {
+                    sb.Append(ch);
+                }
+            }
+
+            return sb.ToString();
+        }
+
+        private static bool CodesMatchConstantTime(string submitted, string expected)
+        {
+            if (string.IsNullOrEmpty(submitted) || string.IsNullOrEmpty(expected))
+            {
+                return false;
+            }
+
+            if (submitted.Length != expected.Length)
+            {
+                return false;
+            }
+
+            var a = Encoding.UTF8.GetBytes(submitted);
+            var b = Encoding.UTF8.GetBytes(expected);
+            return CryptographicOperations.FixedTimeEquals(a, b);
         }
 
         private static string CacheKey(Guid flowId) => $"review-flow:{flowId}";
+
+        private static void ApplyOrderProof(DirectoryEntryReview review, string? orderProof)
+        {
+            var s = (orderProof ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(s))
+            {
+                review.OrderId = null;
+                review.OrderUrl = null;
+                return;
+            }
+
+            if (Uri.TryCreate(s, UriKind.Absolute, out var uri) &&
+                (uri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) ||
+                 uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)))
+            {
+                review.OrderUrl = s;
+                review.OrderId = null;
+            }
+            else
+            {
+                review.OrderId = s;
+                review.OrderUrl = null;
+            }
+        }
 
         private Guid CreateFlow(int directoryEntryId)
         {
@@ -393,8 +555,9 @@ namespace DirectoryManager.Web.Controllers
             var state = new ReviewFlowState
             {
                 DirectoryEntryId = directoryEntryId,
-                ExpiresUtc = DateTime.UtcNow.AddMinutes(20)
+                ExpiresUtc = DateTime.UtcNow.AddMinutes(IntegerConstants.SessinExpiresMinutes)
             };
+
             this.cache.Set(CacheKey(id), state, state.ExpiresUtc);
             return id;
         }

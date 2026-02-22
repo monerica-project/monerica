@@ -1,16 +1,15 @@
 ﻿// DirectoryManager.Web/Views/DirectoryEntryReviews/Delete.cshtml
 @using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Models.Reviews
+@using DirectoryManager.Web.Constants
 @model DirectoryEntryReview
 @{
-    ViewData["Title"] = "Delete Review";
+    ViewData[StringConstants.TitleHeader] = "Delete Review";
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
-    <div class="top-section search-section search-top-align">
-        @await Html.PartialAsync("_SearchForm")
-    </div>
-
+ 
     <div class="container py-4">
         <h1 class="mb-3">Delete Review</h1>
         <hr />

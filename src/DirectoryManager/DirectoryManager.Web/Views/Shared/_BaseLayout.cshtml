@@ -6,42 +6,52 @@
 <head>
     <meta charset="UTF-8">
     <title>@ViewData[StringConstants.TitleHeader]</title>
+
     @if (ViewData[StringConstants.MetaDescription] != null &&
-    !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.MetaDescription])))
+             !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.MetaDescription])))
     {
         <meta name="description" content="@ViewData[StringConstants.MetaDescription]" />
         <meta name="twitter:description" content="@ViewData[StringConstants.MetaDescription]" />
     }
+
     @if (ViewData[StringConstants.MetaContent] != null &&
-    !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.MetaContent])))
+             !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.MetaContent])))
     {
         @Html.Raw(ViewData[StringConstants.MetaContent])
     }
+
     @{
         var torUrl = await cacheHelper.GetSnippetAsync(SiteConfigSetting.FullRootTorUrl);
         if (!string.IsNullOrWhiteSpace(torUrl))
         {
             torUrl = DirectoryManager.Web.Helpers.UrlHelper.NormalizeUrl(torUrl);
             var currentPath = Context.Request.Path + Context.Request.QueryString;
-    <meta http-equiv="onion-location" content="@($"{torUrl}{currentPath}")" />
+            <meta http-equiv="onion-location" content="@($"{torUrl}{currentPath}")" />
         }
     }
+
     <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
+
     @if (ViewData[StringConstants.CanonicalUrl] != null &&
-    !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.CanonicalUrl])))
+             !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.CanonicalUrl])))
     {
-    <link rel="canonical" href="@ViewData[StringConstants.CanonicalUrl]" />
+        <link rel="canonical" href="@ViewData[StringConstants.CanonicalUrl]" />
     }
-    @if (ViewData[StringConstants.IsIndexable] != null && bool.TryParse(ViewData[StringConstants.IsIndexable]?.ToString(), out bool isIndexable) && !isIndexable)
+
+    @if (ViewData[StringConstants.IsIndexable] != null &&
+             bool.TryParse(ViewData[StringConstants.IsIndexable]?.ToString(), out bool isIndexable) && !isIndexable)
     {
         <meta name="robots" content="noindex" />
     }
+
     @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HeaderHtml))
     @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.CssHeader))
-    </head>
+     
+</head>
+
 <body>
     @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopBannerHtml))
 
@@ -51,10 +61,10 @@
 
     @RenderSection("ChromeAfterMain", required: false)
 
-    <footer class="site-footer">  
-      <nav class="footer-nav">
+    <footer class="site-footer">
+        <nav class="footer-nav">
             @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.FooterHtml))
-      </nav>
+        </nav>
     </footer>
 </body>
 </html>

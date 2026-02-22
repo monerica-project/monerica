@@ -30,7 +30,7 @@ namespace DirectoryManager.Web.Helpers
             bool hasElements = doc.DocumentNode.Descendants().Any(n => n.NodeType == HtmlNodeType.Element);
             if (!hasElements)
             {
-                string truncated = TextHelper.TruncateAtWord(sourceHtml, maxLength);
+                string truncated = StringHelpers.TruncateAtWord(sourceHtml, maxLength);
 
                 // Encode because this branch is plain text
                 return new HtmlString(HtmlEncoder.Default.Encode(truncated));

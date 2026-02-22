@@ -1,4 +1,5 @@
 ﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants
 @model DirectoryManager.Web.Models.SubmissionRequest
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 
@@ -12,7 +13,7 @@
 {
     <div class="form-group">
         <label asp-for="DirectoryStatus">Directory Status</label>
-        <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control">
+        <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control select-fit">
             @foreach (var status in Enum.GetValues(typeof(DirectoryManager.Data.Enums.DirectoryStatus)))
             {
                 if ((DirectoryManager.Data.Enums.DirectoryStatus)status == DirectoryManager.Data.Enums.DirectoryStatus.Unknown)
@@ -27,7 +28,10 @@
 
 <div class="form-group">
     <label asp-for="SubCategoryId">Subcategory</label>
-    <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "SubcategoryId", "DisplayName"))" required></select>
+    <select asp-for="SubCategoryId"
+    class="form-control select-fit"
+            asp-items="@(new SelectList(ViewBag.SubCategories, "SubcategoryId", "DisplayName"))"
+            required></select>
 </div>
 
 <div class="form-group">
@@ -96,7 +100,7 @@
 
 <div class="form-group">
     <label asp-for="CountryCode" class="control-label"></label>
-    <select asp-for="CountryCode" asp-items="ViewBag.CountryCode" class="form-control"></select>
+    <select asp-for="CountryCode" asp-items="ViewBag.CountryCode" class="form-control select-fit"></select>
     <span asp-validation-for="CountryCode" class="text-danger"></span>
 </div>
 
@@ -105,6 +109,44 @@
     <textarea asp-for="Note" class="form-control input-width"></textarea>
     <span asp-validation-for="Note" class="text-danger"></span>
 </div>
+
+<div class="form-group">
+    <label>Founded Date (YYYY MM DD)</label>
+
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <input asp-for="FoundedYear"
+               class="form-control"
+               style="width:110px;"
+               autocomplete="off"
+               inputmode="numeric"
+               pattern="[0-9]*"
+               maxlength="4"
+               placeholder="YYYY" />
+
+        <input asp-for="FoundedMonth"
+               class="form-control"
+               style="width:90px;"
+               autocomplete="off"
+               inputmode="numeric"
+               pattern="[0-9]*"
+               maxlength="2"
+               placeholder="MM" />
+
+        <input asp-for="FoundedDay"
+               class="form-control"
+               style="width:90px;"
+               autocomplete="off"
+               inputmode="numeric"
+               pattern="[0-9]*"
+               maxlength="2"
+               placeholder="DD" />
+    </div>
+
+    <span class="text-danger">
+        @Html.ValidationMessage(nameof(Model.FoundedYear))
+    </span>
+</div>
+
 
 <div class="form-group">
     <label asp-for="PgpKey">PGP Key</label>
@@ -123,7 +165,14 @@
         @foreach (var t in allTags)
         {
             var id = (int)t.TagId;
-            var isChecked = Model.SelectedTagIds != null && Model.SelectedTagIds.Contains(id);
+
+            // ✅ support BOTH flows:
+            // - existing listing edit (Model.SelectedTagIds)
+            // - submission review page (ViewBag.SelectedTagIds is a HashSet<int>)
+            var selectedSet = ViewBag.SelectedTagIds as HashSet<int>;
+            var isChecked =
+            (selectedSet != null && selectedSet.Contains(id)) ||
+            (Model.SelectedTagIds != null && Model.SelectedTagIds.Contains(id));
 
             <label class="tag-chip">
                 <input type="checkbox"
@@ -138,7 +187,7 @@
 
 <div class="form-group">
     <label asp-for="Tags">Suggested Tags (if choice not provided) <i>comma-separated</i></label>
-    <input maxlength="100" asp-for="Tags" class="form-control  input-width" />
+    <input maxlength="100" asp-for="Tags" class="form-control input-width" />
     <span asp-validation-for="Tags" class="text-danger"></span>
 </div>
 
@@ -146,6 +195,28 @@
     <label asp-for="SuggestedSubCategory">Suggested Category (if choice not provided)</label>
     <input autocomplete="off" asp-for="SuggestedSubCategory" class="form-control input-width" />
     <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
+</div>
+
+<h4>Related Links</h4>
+<p class="text-muted">Forum posts, docs, reviews, etc. (not Tor/I2P links)</p>
+
+<!-- ✅ make sure these bind + post back correctly -->
+<div class="form-group">
+    <label asp-for="RelatedLink1"></label>
+    <input autocomplete="off" asp-for="RelatedLink1" class="form-control input-width" />
+    <span asp-validation-for="RelatedLink1" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="RelatedLink2"></label>
+    <input autocomplete="off" asp-for="RelatedLink2" class="form-control input-width" />
+    <span asp-validation-for="RelatedLink2" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="RelatedLink3"></label>
+    <input autocomplete="off" asp-for="RelatedLink3" class="form-control input-width" />
+    <span asp-validation-for="RelatedLink3" class="text-danger"></span>
 </div>
 
 <hr />

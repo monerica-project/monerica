@@ -8,5 +8,6 @@ namespace DirectoryManager.Web.Models
         public string? NoteToAdmin { get; set; }
         public int SubmissionId { get; set; }
         public string SubcategoryName { get; set; } = string.Empty;
+        public List<string> RelatedLinks { get; set; } = new ();
     }
 }

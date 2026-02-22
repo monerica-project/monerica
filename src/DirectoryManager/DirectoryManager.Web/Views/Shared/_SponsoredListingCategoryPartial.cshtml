@@ -1,70 +1,46 @@
 ﻿@model DirectoryManager.Web.Models.CategorySponsorModel
-@using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Data.Enums
-@using DirectoryManager.Data.Models
-@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
-@inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
-@inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
+@using DirectoryManager.Web.Services.Interfaces
+@inject ICacheService _cacheHelper
 
 @{
     var link2Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
     var link3Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
-    var hasModel = Model is not null;
-    var dirVm = Model?.DirectoryEntry; // this is a DisplayFormatting VM in your model
-    var hasEntry = dirVm is not null;
-
     var categoryId = Model?.CategoryId ?? 0;
     var advertiseHref = Url.Content($"~/sponsoredlisting/selectlisting?categoryId={categoryId}&sponsorshipType={SponsorshipType.CategorySponsor}");
+
+    var vm = Model?.DirectoryEntry; // DisplayFormatting.Models.DirectoryEntryViewModel
 }
 
-@if (hasModel && hasEntry)
+@if (vm is not null)
 {
-    var directoryEntries = new List<DirectoryManager.Data.Models.DirectoryEntry>
-    {
-        new DirectoryManager.Data.Models.DirectoryEntry
-        {
-            Name = dirVm!.Name,
-            DirectoryEntryKey = dirVm.DirectoryEntryKey,
-            Contact = dirVm.Contact,
-            CreateDate = dirVm.CreateDate,
-            Description = dirVm.Description,
-            DirectoryBadge = dirVm.DirectoryBadge,
-            DirectoryEntryId = dirVm.DirectoryEntryId,
-            DirectoryStatus = dirVm.DirectoryStatus,
-            Link = dirVm.Link,
-            Link2 = dirVm.Link2,
-            Link2A = dirVm.Link2A,
-            Link3 = dirVm.Link3,
-            Link3A = dirVm.Link3A,
-            LinkA = dirVm.LinkA,
-            Location = dirVm.Location,
-            Note = dirVm.Note,
-            Processor = dirVm.Processor,
-            SubCategory = dirVm.SubCategory,
-            SubCategoryId = dirVm.SubCategoryId ?? 0,
-            UpdateDate = dirVm.UpdateDate
-        }
-    };
+    // Ensure link labels exist (Tor/I2P labels etc.)
+    vm.Link2Name = string.IsNullOrWhiteSpace(vm.Link2Name) ? link2Name : vm.Link2Name;
+    vm.Link3Name = string.IsNullOrWhiteSpace(vm.Link3Name) ? link3Name : vm.Link3Name;
+
+    // Ensure it behaves like a sponsor listing
+    vm.IsSponsored = true;
+    vm.DisplayAsSponsoredItem = false;
+
+    // Category sponsor (NOT subcategory sponsor)
+    vm.IsSubCategorySponsor = false;
+
+    // Category sponsor should be a direct outbound link
+    vm.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.Direct;
+
+    // Tell DisplayMarkUpHelper (via _DirectoryEntryPartial) to render:
+    // Name | Tor | I2P Flag
+    ViewData["SponsorInlineHeader"] = true;
+
+    // Not strictly required in this mode, but safe if other paths would have rendered links elsewhere.
+    ViewData["SkipLinksBlock"] = true;
 
     <div class="sponsored-section" style="margin-bottom:5px;">
         <p><b>Sponsored</b></p>
         <ul class="blank_list_item">
-            @{
-                var viewModelList = DirectoryManager.DisplayFormatting.Helpers.ViewModelConverter.ConvertToViewModels(
-                directoryEntries,
-                DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
-                DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.CategorySponsor,
-                link2Name,
-                link3Name);
-            }
-            @foreach (var viewModel in viewModelList)
-            {
-                viewModel.IsSubCategorySponsor = true;
-                viewModel.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.Direct;
-                @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
-            }
+            @await Html.PartialAsync("_DirectoryEntryPartial", vm, ViewData)
         </ul>
     </div>
 }

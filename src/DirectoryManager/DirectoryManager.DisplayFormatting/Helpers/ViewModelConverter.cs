@@ -43,6 +43,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 ItemDisplayType = itemDisplayType,
                 CountryCode = entry.CountryCode,
                 PgpKey = entry.PgpKey,
+                FoundedDate = entry.FoundedDate
             }).ToList();
         }
     }

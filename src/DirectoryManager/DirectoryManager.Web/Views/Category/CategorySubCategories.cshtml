@@ -9,6 +9,7 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject ICategoryRepository categoryRepo
 @inject ISubcategoryRepository subCatRepo
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository directoryEntryReviewRepository
 
 @{
     Layout = "_LayoutWithNav";
@@ -65,47 +66,95 @@
     <p><i>Note: @Html.Raw(Model.Note)</i></p>
 }
 
-@{
+    @{
         var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
         var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
-    var categorySponsors = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
 
-    // find the sponsor for this category (if any)
-    var catSponsor = categorySponsors
-                        .FirstOrDefault(s =>
-                            s.DirectoryEntry?.SubCategory?.CategoryId == Model.CategoryId);
+        var categorySponsors = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
 
-    var catSponsorCount = categorySponsors.Count();
+        // find the sponsor for this category (if any)
+        var catSponsor = categorySponsors
+            .FirstOrDefault(s => s.DirectoryEntry?.SubCategory?.CategoryId == Model.CategoryId);
 
-    var categorySponsorModel = new DirectoryManager.Web.Models.CategorySponsorModel()
+        var catSponsorCount = categorySponsors.Count();
+
+        // ✅ Pull rating summary for the sponsor (uses existing interface method)
+        DirectoryManager.Data.Models.TransferModels.RatingSummaryDto? sponsorRating = null;
+
+        if (catSponsor?.DirectoryEntry != null)
+        {
+            var sponsorId = catSponsor.DirectoryEntry.DirectoryEntryId;
+
+            var dict = await directoryEntryReviewRepository.GetRatingSummariesAsync(new[] { sponsorId });
+
+            if (dict.TryGetValue(sponsorId, out var dto))
+            {
+                sponsorRating = dto;
+            }
+        }
+
+        var categorySponsorModel = new DirectoryManager.Web.Models.CategorySponsorModel()
+        {
+            CategoryId = Model.CategoryId,
+            TotalActiveCategoryListings = catSponsorCount,
+
+            DirectoryEntry = (catSponsor?.DirectoryEntry != null)
+                ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel()
                 {
-                    CategoryId = Model.CategoryId,
-                    TotalActiveCategoryListings = catSponsorCount,
-                    DirectoryEntry = (catSponsor != null && catSponsor.DirectoryEntry != null) ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel()
-                    {
-                        CreateDate = catSponsor.DirectoryEntry.CreateDate,
-                        UpdateDate = catSponsor.DirectoryEntry.UpdateDate,
-                        DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
-                        Link = catSponsor.DirectoryEntry.Link,
-                        Link2 = catSponsor.DirectoryEntry.Link2,
-                        Link3 = catSponsor.DirectoryEntry.Link3,
-                        Name = catSponsor.DirectoryEntry.Name,
-                        Contact = catSponsor.DirectoryEntry.Contact,
-                        Description = catSponsor.DirectoryEntry.Description,
-                        DirectoryEntryId = catSponsor.DirectoryEntry.DirectoryEntryId,
-                        DirectoryStatus = catSponsor.DirectoryEntry.DirectoryStatus,
-                        Location = catSponsor.DirectoryEntry.Location,
-                        Note = catSponsor.DirectoryEntry.Note,
-                        Processor = catSponsor.DirectoryEntry.Processor,
-                        SubCategoryId = catSponsor.DirectoryEntry.SubCategoryId,
-                        IsSponsored = true,
-                        DisplayAsSponsoredItem = false,
-                        Link2Name = link2Name,
-                        Link3Name = link3Name
-                    } : null
-                };
+                    // identity/routing
+                    DirectoryEntryId = catSponsor.DirectoryEntry.DirectoryEntryId,
+                    DirectoryEntryKey = catSponsor.DirectoryEntry.DirectoryEntryKey,
+                    ItemPath = DirectoryManager.DisplayFormatting.Helpers.FormattingHelper.ListingPath(catSponsor.DirectoryEntry.DirectoryEntryKey),
+                    ItemDisplayType = DirectoryManager.DisplayFormatting.Enums.ItemDisplayType.CategorySponsor,
+
+                    // dates
+                    CreateDate = catSponsor.DirectoryEntry.CreateDate,
+                    UpdateDate = catSponsor.DirectoryEntry.UpdateDate,
+                    DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+
+                    // links
+                    Link = catSponsor.DirectoryEntry.Link,
+                    LinkA = catSponsor.DirectoryEntry.LinkA,
+                    Link2 = catSponsor.DirectoryEntry.Link2,
+                    Link2A = catSponsor.DirectoryEntry.Link2A,
+                    Link3 = catSponsor.DirectoryEntry.Link3,
+                    Link3A = catSponsor.DirectoryEntry.Link3A,
+
+                    // content
+                    Name = catSponsor.DirectoryEntry.Name,
+                    Contact = catSponsor.DirectoryEntry.Contact,
+                    Description = catSponsor.DirectoryEntry.Description,
+                    DirectoryStatus = catSponsor.DirectoryEntry.DirectoryStatus,
+                    Location = catSponsor.DirectoryEntry.Location,
+                    Note = catSponsor.DirectoryEntry.Note,
+                    Processor = catSponsor.DirectoryEntry.Processor,
+                    SubCategoryId = catSponsor.DirectoryEntry.SubCategoryId,
+                    CountryCode = catSponsor.DirectoryEntry.CountryCode,
+                    ProofLink = catSponsor.DirectoryEntry.ProofLink,
+                    VideoLink = catSponsor.DirectoryEntry.VideoLink,
+
+                    // sponsor flags
+                    IsSponsored = true,
+                    DisplayAsSponsoredItem = false,
+                    IsSubCategorySponsor = false, // ✅ category sponsor
+                    LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.Direct,
+
+                    // link labels
+                    Link2Name = link2Name,
+                    Link3Name = link3Name,
+
+                    // ✅ ratings from RatingSummaryDto (only set if count > 0)
+                    AverageRating = (sponsorRating != null && sponsorRating.ReviewCount > 0) ? sponsorRating.AvgRating : null,
+                    ReviewCount = (sponsorRating != null && sponsorRating.ReviewCount > 0) ? sponsorRating.ReviewCount : null
+                }
+                : null
+        };
+
+        @await Html.PartialAsync("_SponsoredListingCategoryPartial", categorySponsorModel)
+
+    }
+
 }
- @await Html.PartialAsync("_SponsoredListingCategoryPartial", categorySponsorModel)
 
     <ul class="blank_list_item">
         @foreach (var entryVm in Model.PagedEntries.Items)

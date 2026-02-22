@@ -1,5 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Enums;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -19,8 +19,6 @@ public class CountriesController : Controller
 
     private readonly IDirectoryEntryRepository entryRepo;
     private readonly ICacheService cacheService;
-
-    // ✅ add these
     private readonly ISponsoredListingRepository sponsoredListingRepository;
     private readonly IDirectoryEntryReviewRepository entryReviewsRepo;
     private readonly IMemoryCache cache;

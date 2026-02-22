@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 

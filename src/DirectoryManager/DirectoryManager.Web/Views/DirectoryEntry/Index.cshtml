@@ -19,7 +19,7 @@
 
 <form method="get">
     <label for="combinedFilter">Category > Subcategory: </label>
-    <select id="combinedFilter" name="subCategoryId">
+        <select class="ui-select" id="combinedFilter" name="subCategoryId">
         <option value="">--Select a Category > SubCategory--</option>
         @foreach (var subCategory in (IEnumerable<SubcategoryDto>)ViewBag.SubCategories)
         {
@@ -27,7 +27,7 @@
         }
     </select>
 
-    <input type="submit" value="Filter" />
+        <input type="submit" class="btn btn-primary ui-submit btn-cta" value="Filter" />
 </form>
 
 @foreach (var entry in Model)

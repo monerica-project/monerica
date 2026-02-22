@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
+using System.Text.Json;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.BaseModels;
 
@@ -79,5 +80,50 @@ namespace DirectoryManager.Data.Models
 
         [MaxLength(2000)]
         public string? SelectedTagIdsCsv { get; set; }
+
+        [Column(TypeName = "nvarchar(max)")]
+        public string? RelatedLinksJson { get; set; }
+
+        public DateOnly? FoundedDate { get; set; }
+
+        [NotMapped]
+        public List<string> RelatedLinks
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(this.RelatedLinksJson))
+                {
+                    return new List<string>();
+                }
+
+                try
+                {
+                    var list = JsonSerializer.Deserialize<List<string>>(this.RelatedLinksJson)
+                               ?? new List<string>();
+
+                    return list
+                        .Select(x => (x ?? string.Empty).Trim())
+                        .Where(x => !string.IsNullOrWhiteSpace(x))
+                        .Distinct(StringComparer.OrdinalIgnoreCase)
+                        .ToList();
+                }
+                catch
+                {
+                    return new List<string>();
+                }
+            }
+            set
+            {
+                var normalized = (value ?? new List<string>())
+                    .Select(x => (x ?? string.Empty).Trim())
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+
+                this.RelatedLinksJson = normalized.Count == 0
+                    ? null
+                    : JsonSerializer.Serialize(normalized);
+            }
+        }
     }
 }

@@ -12,23 +12,32 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 
+const string SponsorshipTypePlaceholder = "[SPONSORSHIP_TYPE]";
+const string SubCategoryIdPlaceholder = "[SUBCATEGORY_ID]";
+const string CategoryIdPlaceholder = "[CATEGORY_ID]";
+const string DirectoryEntryIdPlaceholder = "[DIRECTORY_ENTRY_ID]";
+
 // Build configuration
 var config = new ConfigurationBuilder()
     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
     .AddJsonFile(StringConstants.AppSettingsFileName, optional: true, reloadOnChange: true)
     .Build();
 
-// Email message key and notification link template from configuration
+// Email message key and notification link templates from configuration
 var emailMessageKey = config.GetValue<string>("EmailKeys:SponsoredListingOpeningNotification") ??
     throw new Exception("EmailKeys:SponsoredListingOpeningNotification is missing in configuration.");
-var notificationLinkTemplate = config.GetValue<string>("NotificationLinkTemplate") ??
-    throw new Exception("NotificationLinkTemplate is missing in configuration.");
 
-// Register services in the service container
+var notificationLinkTemplateDefault = config.GetValue<string>("NotificationLinkTemplateDefault") ??
+    throw new Exception("NotificationLinkTemplateDefault is missing in configuration.");
+
+var notificationLinkTemplateWithListing = config.GetValue<string>("NotificationLinkTemplateWithListing") ??
+    notificationLinkTemplateDefault;
+
+// Register services
 var serviceProvider = new ServiceCollection()
     .AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(config.GetConnectionString(DirectoryManager.Data.Constants.StringConstants.DefaultConnection)))
-    .AddDbRepositories() // Add repositories using the extension method
+    .AddDbRepositories()
     .AddSingleton<IEmailService, EmailService>(provider =>
     {
         using var scope = provider.CreateScope();
@@ -51,7 +60,7 @@ var serviceProvider = new ServiceCollection()
     })
     .BuildServiceProvider();
 
-// Retrieve required services
+// Services
 var notificationRepo = serviceProvider.GetRequiredService<ISponsoredListingOpeningNotificationRepository>();
 var listingRepo = serviceProvider.GetRequiredService<ISponsoredListingRepository>();
 var directoryEntryRepository = serviceProvider.GetRequiredService<IDirectoryEntryRepository>();
@@ -60,9 +69,8 @@ var reservationRepo = serviceProvider.GetRequiredService<ISponsoredListingReserv
 var emailMessageRepo = serviceProvider.GetRequiredService<IEmailMessageRepository>();
 var emailService = serviceProvider.GetRequiredService<IEmailService>();
 
-// Fetch the email message template
+// Fetch template
 var emailMessage = emailMessageRepo.GetByKey(emailMessageKey);
-
 if (emailMessage == null)
 {
     Console.WriteLine($"Email template with key '{emailMessageKey}' not found. Exiting.");
@@ -78,162 +86,193 @@ var hasOpeningForMainSponsor = false;
 
 if (currentMainSponsorListings.Any())
 {
-    var activeCount = currentMainSponsorListings.Count();
-    if (activeCount < IntegerConstants.MaxMainSponsoredListings)
-    {
-        var totalActiveListings = await listingRepo.GetActiveSponsorsCountAsync(mainSponsorType, null);
-        var totalActiveReservations = await reservationRepo.GetActiveReservationsCountAsync(mainSponsorReservationGroup);
+    var totalActiveListings = await listingRepo.GetActiveSponsorsCountAsync(mainSponsorType, null);
+    var totalActiveReservations = await reservationRepo.GetActiveReservationsCountAsync(mainSponsorReservationGroup);
 
-        hasOpeningForMainSponsor = CanPurchaseMainSponsorListing(totalActiveListings, totalActiveReservations, mainSponsorType);
-    }
+    hasOpeningForMainSponsor = CanPurchaseMainSponsorListing(totalActiveListings, totalActiveReservations);
 }
 else
 {
-    hasOpeningForMainSponsor = true; // No active listings, opening exists.
+    hasOpeningForMainSponsor = true;
 }
 
 // Fetch pending notifications
 var pendingNotifications = await notificationRepo.GetSubscribers();
-
 Console.WriteLine($"Found {pendingNotifications.Count()} pending notifications.");
 
 // Process each notification
 foreach (var notification in pendingNotifications)
 {
-    // Skip notifications for subcategories if the sponsorship type is Main Sponsor and no opening exists
-    if (notification.SponsorshipType == SponsorshipType.MainSponsor && !hasOpeningForMainSponsor)
-    {
-        Console.WriteLine($"No opening for {SponsorshipType.MainSponsor}. Skipping notification for Email: {notification.Email}");
-        continue;
-    }
-
-    if (notification.SponsorshipType == SponsorshipType.SubcategorySponsor)
-    {
-        bool canBuySubcategorySponsor = await CanPurchaseSubcategoryListing(directoryEntryRepository, sponsoredListingRepository, notification);
-
-        if (!canBuySubcategorySponsor)
-        {
-            Console.WriteLine($"No opening for {SponsorshipType.SubcategorySponsor}. Skipping notification for Email: {notification.Email}");
-            continue;
-        }
-    }
-
-    if (notification.SponsorshipType == SponsorshipType.CategorySponsor)
-    {
-        bool canBuyCategorySponsor = await CanPurchaseCategoryListing(directoryEntryRepository, sponsoredListingRepository, notification);
-
-        if (!canBuyCategorySponsor)
-        {
-            Console.WriteLine($"No opening for {SponsorshipType.CategorySponsor}. Skipping notification for Email: {notification.Email}");
-            continue;
-        }
-    }
-
-    // Generate the notification link using the template and replace placeholders
-    var notificationLink = string.Empty;
-
-    if (notification.SponsorshipType == SponsorshipType.MainSponsor)
-    {
-        notificationLink = notificationLinkTemplate
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder, notification.SponsorshipType.ToString())
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SubCategoryIdPlaceholder, string.Empty)
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.CategoryIdPlaceholder, string.Empty);
-    }
-    else if (notification.SponsorshipType == SponsorshipType.SubcategorySponsor)
-    {
-        notificationLink = notificationLinkTemplate
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder, notification.SponsorshipType.ToString())
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SubCategoryIdPlaceholder, notification.TypeId?.ToString() ?? string.Empty)
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.CategoryIdPlaceholder, string.Empty);
-    }
-    else if (notification.SponsorshipType == SponsorshipType.CategorySponsor)
-    {
-        notificationLink = notificationLinkTemplate
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder, notification.SponsorshipType.ToString())
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SubCategoryIdPlaceholder, string.Empty)
-            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.CategoryIdPlaceholder, notification.TypeId?.ToString() ?? string.Empty);
-    }
-    else
-    {
-        throw new Exception("unknown type of notificastion:" + notification.SponsorshipType);
-    }
-
-    // Prepare the email content by replacing placeholders
-    var plainTextContent = emailMessage.EmailBodyText
-        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder, EnumHelper.GetDescription(notification.SponsorshipType))
-        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingRenewalLinkToken, notificationLink);
-
-    var htmlContent = emailMessage.EmailBodyHtml
-        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder, EnumHelper.GetDescription(notification.SponsorshipType))
-        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingRenewalLinkToken, notificationLink);
-
     try
     {
-        // Send the email using the EmailService
-        await emailService.SendEmailAsync(emailMessage.EmailSubject, plainTextContent, htmlContent, new List<string> { notification.Email });
+        // MAIN: skip if no opening
+        if (notification.SponsorshipType == SponsorshipType.MainSponsor && !hasOpeningForMainSponsor)
+        {
+            Console.WriteLine($"No opening for {SponsorshipType.MainSponsor}. Skipping: {notification.Email}");
+            continue;
+        }
 
-        //// Mark the notification as sent
-        await notificationRepo.MarkReminderAsSentAsync(notification.SponsoredListingOpeningNotificationId);
+        // CATEGORY/SUBCATEGORY: validate opening (includes reservations)
+        if (notification.SponsorshipType == SponsorshipType.CategorySponsor)
+        {
+            var ok = await CanPurchaseCategoryListing(directoryEntryRepository, sponsoredListingRepository, reservationRepo, notification);
+            if (!ok)
+            {
+                Console.WriteLine($"No opening for {SponsorshipType.CategorySponsor}. Skipping: {notification.Email}");
+                continue;
+            }
+        }
 
-        Console.WriteLine($"Notification sent and marked for Email: {notification.Email}");
+        if (notification.SponsorshipType == SponsorshipType.SubcategorySponsor)
+        {
+            var ok = await CanPurchaseSubcategoryListing(directoryEntryRepository, sponsoredListingRepository, reservationRepo, notification);
+            if (!ok)
+            {
+                Console.WriteLine($"No opening for {SponsorshipType.SubcategorySponsor}. Skipping: {notification.Email}");
+                continue;
+            }
+        }
+
+        // Choose template: with listing if directoryEntryId exists AND entry still exists
+        var useWithListing = false;
+
+        if (notification.DirectoryEntryId.HasValue && notification.DirectoryEntryId.Value > 0)
+        {
+            var entry = await directoryEntryRepository.GetByIdAsync(notification.DirectoryEntryId.Value);
+            useWithListing = entry != null;
+        }
+
+        var templateToUse = useWithListing ? notificationLinkTemplateWithListing : notificationLinkTemplateDefault;
+
+        // Build link
+        var notificationLink = BuildNotificationLink(templateToUse, notification);
+
+        // Prepare email body
+        var plainTextContent = emailMessage.EmailBodyText
+            .Replace(
+                DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder,
+                EnumHelper.GetDescription(notification.SponsorshipType))
+            .Replace(
+                DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingRenewalLinkToken,
+                notificationLink);
+
+        var htmlContent = emailMessage.EmailBodyHtml
+            .Replace(
+                DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder,
+                EnumHelper.GetDescription(notification.SponsorshipType))
+            .Replace(
+                DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingRenewalLinkToken,
+                notificationLink);
+
+        // Send
+        await emailService.SendEmailAsync(
+            emailMessage.EmailSubject,
+            plainTextContent,
+            htmlContent,
+            new List<string> { notification.Email });
+
+        // Mark as sent + store sent link
+        await notificationRepo.MarkReminderAsSentAsync(notification.SponsoredListingOpeningNotificationId, notificationLink);
+
+        Console.WriteLine($"Notification sent and marked for: {notification.Email}");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Failed to send notification to Email: {notification.Email}. Error: {ex.Message}");
+        Console.WriteLine($"Failed to notify {notification.Email}. Error: {ex.Message}");
     }
 }
 
 Console.WriteLine("Processing complete.");
 
-// Method to determine if a listing can be purchased
-static bool CanPurchaseMainSponsorListing(int totalActiveListings, int totalActiveReservations, SponsorshipType sponsorshipType)
+static string BuildNotificationLink(
+    string template,
+    DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification notification)
 {
-    // Logic to determine if the listing can be purchased
+    // Fill placeholders based on sponsorship type
+    var sponsorshipType = notification.SponsorshipType.ToString();
+
+    var categoryId = "";
+    var subCategoryId = "";
+
+    if (notification.SponsorshipType == SponsorshipType.CategorySponsor)
+    {
+        categoryId = notification.TypeId?.ToString() ?? "";
+    }
+    else if (notification.SponsorshipType == SponsorshipType.SubcategorySponsor)
+    {
+        subCategoryId = notification.TypeId?.ToString() ?? "";
+    }
+
+    var directoryEntryId = (notification.DirectoryEntryId.HasValue && notification.DirectoryEntryId.Value > 0)
+        ? notification.DirectoryEntryId.Value.ToString()
+        : "";
+
+    return template
+        .Replace(SponsorshipTypePlaceholder, sponsorshipType)
+        .Replace(CategoryIdPlaceholder, categoryId)
+        .Replace(SubCategoryIdPlaceholder, subCategoryId)
+        .Replace(DirectoryEntryIdPlaceholder, directoryEntryId);
+}
+
+static bool CanPurchaseMainSponsorListing(int totalActiveListings, int totalActiveReservations)
+{
     return (totalActiveListings + totalActiveReservations) < IntegerConstants.MaxMainSponsoredListings;
 }
 
 static async Task<bool> CanPurchaseCategoryListing(
     IDirectoryEntryRepository directoryEntryRepository,
     ISponsoredListingRepository sponsoredListingRepository,
+    ISponsoredListingReservationRepository reservationRepo,
     DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification notification)
 {
-    if (notification.TypeId == null)
+    if (!notification.TypeId.HasValue || notification.TypeId.Value <= 0)
     {
         return false;
     }
 
-    var totalActiveEntriesInCategory = await directoryEntryRepository
-                                         .GetActiveEntriesByCategoryAsync(notification.TypeId.Value);
+    var categoryId = notification.TypeId.Value;
 
-    var totalActiveListings = await sponsoredListingRepository
-                                .GetActiveSponsorsCountAsync(notification.SponsorshipType, notification.TypeId.Value);
+    // Minimum listings requirement for category sponsor
+    var totalActiveEntriesInCategory = await directoryEntryRepository.GetActiveEntriesByCategoryAsync(categoryId);
 
-    var canBuyCategorySponsor =
-            totalActiveListings < IntegerConstants.MaxCategorySponsoredListings &&
-            totalActiveEntriesInCategory.Count() >= IntegerConstants.MinRequiredCategories;
+    // Active sponsors in that category
+    var totalActiveListings = await sponsoredListingRepository.GetActiveSponsorsCountAsync(notification.SponsorshipType, categoryId);
 
-    return canBuyCategorySponsor;
+    // Active reservations in that category pool
+    var reservationGroup = ReservationGroupHelper.BuildReservationGroupName(notification.SponsorshipType, categoryId);
+    var totalActiveReservations = await reservationRepo.GetActiveReservationsCountAsync(reservationGroup);
+
+    var capacityOk = (totalActiveListings + totalActiveReservations) < IntegerConstants.MaxCategorySponsoredListings;
+    var hasEnoughListings = totalActiveEntriesInCategory.Count() >= IntegerConstants.MinRequiredCategories;
+
+    return capacityOk && hasEnoughListings;
 }
 
 static async Task<bool> CanPurchaseSubcategoryListing(
     IDirectoryEntryRepository directoryEntryRepository,
     ISponsoredListingRepository sponsoredListingRepository,
+    ISponsoredListingReservationRepository reservationRepo,
     DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification notification)
 {
-    if (notification.TypeId == null)
+    if (!notification.TypeId.HasValue || notification.TypeId.Value <= 0)
     {
         return false;
     }
 
-    var totalActiveEntriesInCategory = await directoryEntryRepository
-                                         .GetActiveEntriesBySubcategoryAsync(notification.TypeId.Value);
+    var subCategoryId = notification.TypeId.Value;
 
-    var totalActiveListings = await sponsoredListingRepository
-                                .GetActiveSponsorsCountAsync(notification.SponsorshipType, notification.TypeId.Value);
+    // Minimum listings requirement for subcategory sponsor
+    var totalActiveEntriesInSubcategory = await directoryEntryRepository.GetActiveEntriesBySubcategoryAsync(subCategoryId);
 
-    var canBuySubcategorySponsor =
-            totalActiveListings < IntegerConstants.MaxSubcategorySponsoredListings &&
-            totalActiveEntriesInCategory.Count() >= IntegerConstants.MinRequiredSubcategories;
+    // Active sponsors in that subcategory
+    var totalActiveListings = await sponsoredListingRepository.GetActiveSponsorsCountAsync(notification.SponsorshipType, subCategoryId);
 
-    return canBuySubcategorySponsor;
+    // Active reservations in that subcategory pool
+    var reservationGroup = ReservationGroupHelper.BuildReservationGroupName(notification.SponsorshipType, subCategoryId);
+    var totalActiveReservations = await reservationRepo.GetActiveReservationsCountAsync(reservationGroup);
+
+    var capacityOk = (totalActiveListings + totalActiveReservations) < IntegerConstants.MaxSubcategorySponsoredListings;
+    var hasEnoughListings = totalActiveEntriesInSubcategory.Count() >= IntegerConstants.MinRequiredSubcategories;
+
+    return capacityOk && hasEnoughListings;
 }

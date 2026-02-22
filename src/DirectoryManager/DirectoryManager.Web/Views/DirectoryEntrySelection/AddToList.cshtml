@@ -19,10 +19,10 @@
 
 <form asp-action="AddToList">
     <label for="DirectoryEntryId">Directory Entry:</label>
-    <select asp-for="DirectoryEntryId" asp-items="ViewBag.DirectoryEntryList"></select>
+        <select class="form-control select-fit" asp-for="DirectoryEntryId" asp-items="ViewBag.DirectoryEntryList"></select>
 
     <label for="EntrySelectionType">Selection Type:</label>
-    <select asp-for="EntrySelectionType">
+        <select class="form-control select-fit" asp-for="EntrySelectionType">
         @foreach (var type in Enum.GetValues(typeof(DirectoryManager.Data.Enums.EntrySelectionType)))
         {
             <option value="@type">@type</option>

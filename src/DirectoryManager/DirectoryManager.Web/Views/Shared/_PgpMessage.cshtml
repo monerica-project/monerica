@@ -1,3 +1,6 @@
-﻿<p>
-    <b>Q: How do I get a PGP public key to post a review?</b> <span>A: Download: <a href="https://apps.kde.org/kleopatra/" target="_blank">Kleopatra</a> then: File > New Open PGP Key Pair.</span>
-</p>
+﻿@using DirectoryManager.Data.Enums
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheService
+
+@{var message = await cacheService.GetSnippetAsync(SiteConfigSetting.PgpInstructionsHtml); }
+
+@Html.Raw(message)

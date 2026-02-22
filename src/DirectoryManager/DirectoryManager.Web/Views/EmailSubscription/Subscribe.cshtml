@@ -24,14 +24,16 @@
         @Html.ValidationSummary(excludePropertyErrors: false)
     </div>
 
-    <form asp-controller="EmailSubscription" asp-action="Subscribe" method="post" class="form-inline">
+    <form asp-controller="EmailSubscription" asp-action="Subscribe" method="post">
         @Html.AntiForgeryToken()
 
         <p>Email:</p>
         <input name="Email"
                type="email"
+               autocomplete="off"
                id="inlineFormInput"
                placeholder="yourname@email.com"
+               class="form-control input-width"
                value="@(Model?.Email ?? string.Empty)" />
         <div class="text-danger" style="margin-top:4px;">
             @Html.ValidationMessage("Email")
@@ -47,6 +49,6 @@
             </div>
         </div>
 
-        <button type="submit" class="btn btn-success">Subscribe</button>
+        <button type="submit" class="btn btn-primary ui-submit btn-cta">Subscribe</button>
     </form>
 }

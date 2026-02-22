@@ -1,5 +1,5 @@
 ﻿// DirectoryManager.Data/Repositories/Interfaces/IReviewerKeyRepository.cs
-using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.Reviews;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
