@@ -1,0 +1,63 @@
+﻿@model DirectoryManager.Web.Models.Sponsorship.WaitlistBoardVm
+
+@if (Model != null)
+{
+    <h2>Waitlist activity</h2>
+
+        var preview = (Model.MainPreview ?? new List<DirectoryManager.Web.Models.Sponsorship.WaitlistPreviewRowVm>())
+            .OrderByDescending(x => x.JoinedUtc)
+            .ToList();
+
+        var shown = preview.Count;
+        var total = Model.MainWaitlistCount;
+        var remaining = Math.Max(0, total - shown);
+
+    <p style="margin: 6px 0 10px 0;">
+        Main Sponsor waitlist: <strong>@total</strong> waiting
+        <span style="opacity:.85;">— newest signups shown first.</span>
+    </p>
+
+    @if (shown > 0)
+    {
+        <p style="margin-bottom: 6px;">
+            Preview (newest first): <span style="opacity:.85;">showing @shown of @total</span>
+        </p>
+
+        <ul style="margin-top: 0;">
+            @foreach (var row in preview)
+            {
+                <li>
+                    @if (!string.IsNullOrWhiteSpace(row.ListingUrl))
+                    {
+                        <a href="@row.ListingUrl" target="_blank" rel="noopener">@row.ListingName</a>
+                    }
+                    else
+                    {
+                        @row.ListingName
+                    }
+                    — joined @row.JoinedUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
+                </li>
+            }
+        </ul>
+
+        @if (!string.IsNullOrWhiteSpace(Model.BrowseWaitlistUrl))
+        {
+            <div style="margin-top: 10px;">
+                @if (remaining > 0)
+                {
+                    <a class="btn btn-info" href="@Model.BrowseWaitlistUrl">
+                        Browse waitlists (+@remaining more)
+                    </a>
+                }
+                else
+                {
+                    <a class="btn btn-info" href="@Model.BrowseWaitlistUrl">Browse waitlists</a>
+                }
+            </div>
+        }
+    }
+    else
+    {
+        <p style="opacity:.85; margin-top: 8px;">No one is waiting yet.</p>
+    }
+}

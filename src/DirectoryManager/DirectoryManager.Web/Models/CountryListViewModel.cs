@@ -1,5 +1,4 @@
-﻿using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Models.TransferModels;
+﻿using DirectoryManager.Data.Models.TransferModels;
 
 namespace DirectoryManager.Web.Models
 {

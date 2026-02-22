@@ -1,5 +1,6 @@
 ﻿// DirectoryManager.Web/Views/ReviewerKeys/Create.cshtml
 @using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Models.Reviews
 @model ReviewerKey
 @{
     ViewData["Title"] = "Create Reviewer Key";
@@ -7,10 +8,7 @@
 }
 
 @section PageContent {
-    <div class="top-section search-section search-top-align">
-        @await Html.PartialAsync("_SearchForm")
-    </div>
-
+   
     <div class="container py-4">
         <h1 class="mb-3">Create Reviewer Key</h1>
         <hr />

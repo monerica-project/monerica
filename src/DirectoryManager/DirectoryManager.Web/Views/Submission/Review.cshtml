@@ -54,7 +54,7 @@
     <br />
     <div class="form-group">
         <label asp-for="SubCategoryId">Subcategory</label>
-        <select asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "SubcategoryId", "DisplayName"))" required></select>
+            <select class="form-control select-fit" asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "SubcategoryId", "DisplayName"))" required></select>
     </div>
  
     <div class="form-group">
@@ -65,7 +65,7 @@
 
     <div class="form-group">
         <label asp-for="DirectoryStatus">Directory Status:</label>
-            <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control ">
+            <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control select-fit">
             @foreach (var status in Enum.GetValues(typeof(DirectoryStatus)))
             {
                 if ((DirectoryStatus)status == DirectoryStatus.Unknown)
@@ -132,24 +132,99 @@
 
     <div class="form-group">
         <label asp-for="CountryCode" class="control-label"></label>
-        <select asp-for="CountryCode" asp-items="ViewBag.CountryCode" class="form-control"></select>
+            <select asp-for="CountryCode" asp-items="ViewBag.CountryCode" class="form-control select-fit"></select>
         <span asp-validation-for="CountryCode" class="text-danger"></span>
     </div>
 
         <div class="form-group">
             <label asp-for="PgpKey">PGP Key</label>
-            <textarea class="input-width" asp-for="PgpKey"></textarea>
+            <textarea class="form-control input-width" asp-for="PgpKey"></textarea>
         </div>
 
         <div class="form-group">
+            <label>Founded Date (YYYY MM DD)</label>
+
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <input class="form-control" style="width:110px;"
+                       name="FoundedYear"
+                       value="@(Model.FoundedDate?.Year.ToString("0000") ?? "")"
+                       autocomplete="off" inputmode="numeric" pattern="[0-9]*" maxlength="4"
+                       placeholder="YYYY" />
+
+                <input class="form-control" style="width:90px;"
+                       name="FoundedMonth"
+                       value="@(Model.FoundedDate?.Month.ToString("00") ?? "")"
+                       autocomplete="off" inputmode="numeric" pattern="[0-9]*" maxlength="2"
+                       placeholder="MM" />
+
+                <input class="form-control" style="width:90px;"
+                       name="FoundedDay"
+                       value="@(Model.FoundedDate?.Day.ToString("00") ?? "")"
+                       autocomplete="off" inputmode="numeric" pattern="[0-9]*" maxlength="2"
+                       placeholder="DD" />
+            </div>
+
+            <span class="text-danger">@Html.ValidationMessage("FoundedYear")</span>
+        </div>
+
+
+        <div class="form-group">
             <label asp-for="ProofLink">Proof Link (where it shows acceptance on site)</label>
-            <input class="input-width" asp-for="ProofLink" />
+            <input class="form-control input-width" asp-for="ProofLink" />
         </div>
 
         <div class="form-group">
             <label asp-for="VideoLink">Video Link (where it shows using site)</label>
-            <input class="input-width" asp-for="VideoLink" />
+            <input class="form-control input-width" asp-for="VideoLink" />
         </div>
+
+        @{
+            var relatedLinks = Model.RelatedLinks ?? new List<string>();
+        }
+
+        <h3>Related / Additional Links (optional)</h3>
+        @if (relatedLinks.Count > 0)
+        {
+            <br />
+            <span>Related Links:</span>
+            <ul>
+                @foreach (var u in relatedLinks)
+                {
+                    <li>
+                        <a target="_blank" rel="nofollow noopener" href="@u">@u</a>
+                    </li>
+                }
+            </ul>
+        }
+
+        @{
+            var links = (Model.RelatedLinks ?? new List<string>()).Take(3).ToList();
+
+            // pad to exactly 3 so indexers are safe
+            while (links.Count < 3)
+            {
+                links.Add(string.Empty);
+            }
+        }
+
+
+        <p class="small-font"><i>Forum posts, proof articles, docs, reviews, etc. (not Tor/I2P links).</i></p>
+
+        <div class="form-group">
+            <label>Related Link 1</label>
+            <input class="form-control input-width" name="RelatedLinks[0]" value="@links[0]" autocomplete="off" />
+        </div>
+
+        <div class="form-group">
+            <label>Related Link 2</label>
+            <input class="form-control input-width" name="RelatedLinks[1]" value="@links[1]" autocomplete="off" />
+        </div>
+
+        <div class="form-group">
+            <label>Related Link 3</label>
+            <input class="form-control input-width" name="RelatedLinks[2]" value="@links[2]" autocomplete="off" />
+        </div>
+
 
 
         @{
@@ -208,7 +283,7 @@
     <!-- For SubmissionStatus Enum Dropdown -->
     <div class="form-group">
         <label asp-for="SubmissionStatus">Submission Status</label>
-        <select asp-for="SubmissionStatus" class="form-control ">
+            <select asp-for="SubmissionStatus" class="form-control select-fit">
             @foreach (var status in submissionStatuses)
             {
                 <option value="@status">@status</option>

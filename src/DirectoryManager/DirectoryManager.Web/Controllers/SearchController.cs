@@ -19,6 +19,7 @@ public class SearchController : Controller
     private readonly ISponsoredListingRepository sponsoredListingRepository;
     private readonly ISearchBlacklistRepository blacklistRepository;
     private readonly IMemoryCache memoryCache;
+    private readonly ISearchBlacklistCache blacklistCache;
 
     public SearchController(
         IDirectoryEntryRepository entryRepo,
@@ -28,7 +29,8 @@ public class SearchController : Controller
         ISponsoredListingRepository sponsoredListingRepository,
         ISearchBlacklistRepository blacklistRepository,
         IMemoryCache memoryCache,
-        IUrlResolutionService urlResolver) // keep if you need it elsewhere; not used here
+        IUrlResolutionService urlResolver,
+        DirectoryManager.Web.Services.Interfaces.ISearchBlacklistCache blacklistCache)
     {
         this.entryRepo = entryRepo;
         this.reviewRepo = reviewRepo;
@@ -37,6 +39,8 @@ public class SearchController : Controller
         this.sponsoredListingRepository = sponsoredListingRepository;
         this.blacklistRepository = blacklistRepository;
         this.memoryCache = memoryCache;
+
+        this.blacklistCache = blacklistCache;
     }
 
     [HttpGet("search")]
@@ -47,17 +51,15 @@ public class SearchController : Controller
             return this.BadRequest("No search performed.");
         }
 
-        if (ScriptValidation.ContainsScriptTag(q))
+        if (ScriptValidation.ContainsScriptTag(q) || HtmlValidation.ContainsHtmlTag(q))
         {
             return this.BadRequest("Invalid search.");
         }
 
         // 🔒 Blacklist check (case-insensitive word-boundary match)
-        var qNorm = q.Trim().ToLowerInvariant();
-        var black = (await this.GetBlackTermsAsync())
-            .Where(t => !string.IsNullOrWhiteSpace(t))
-            .Select(t => t.Trim().ToLowerInvariant())
-            .ToArray();
+        var qNorm = q.Trim();
+
+        var black = await this.blacklistCache.GetTermsAsync();
 
         string? hit = black.FirstOrDefault(term =>
             System.Text.RegularExpressions.Regex.IsMatch(
@@ -146,25 +148,5 @@ public class SearchController : Controller
         };
 
         return this.View(vmOut);
-    }
-
-    private async Task<HashSet<string>> GetBlackTermsAsync()
-    {
-        if (this.memoryCache.TryGetValue(StringConstants.CacheKeySearchBlacklistTerms, out HashSet<string>? set) && set is not null)
-        {
-            return set;
-        }
-
-        var terms = await this.blacklistRepository.GetAllTermsAsync();
-        var norm = new HashSet<string>(terms
-            .Where(t => !string.IsNullOrWhiteSpace(t))
-            .Select(t => t.Trim().ToLowerInvariant()));
-
-        _ = this.memoryCache.Set(
-            StringConstants.CacheKeySearchBlacklistTerms,
-            norm,
-            new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6) });
-
-        return norm;
     }
 }

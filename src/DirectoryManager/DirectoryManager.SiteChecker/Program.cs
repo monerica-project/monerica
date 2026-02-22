@@ -64,7 +64,6 @@ else
     Console.WriteLine("None offline");
 }
 
-// Function to create a new submission only if it doesn't already exist
 async Task CreateOfflineSubmissionIfNotExists(
     DirectoryEntry entry,
     ISubmissionRepository submissionRepository)
@@ -83,29 +82,101 @@ async Task CreateOfflineSubmissionIfNotExists(
         ? SiteOfflineMessage
         : $"{entry.Note} | {SiteOfflineMessage}";
 
+    // ✅ Carry forward "real tag data" if your DirectoryEntry has it.
+    // You currently set Tags = entry.Tags, but in your Submission flow the checkbox tags live in SelectedTagIdsCsv.
+    // Only set these if your DirectoryEntry actually has them.
+    string? selectedTagIdsCsv = null;
+    try
+    {
+        // If your DirectoryEntry has SelectedTagIdsCsv (common in your newer flow), copy it.
+        // If it doesn't exist on DirectoryEntry, just leave null.
+        var prop = entry.GetType().GetProperty("SelectedTagIdsCsv");
+        if (prop != null)
+        {
+            selectedTagIdsCsv = prop.GetValue(entry) as string;
+        }
+    }
+    catch
+    {
+        selectedTagIdsCsv = null;
+    }
+
+    // ✅ Related links: your Submission stores these in RelatedLinksJson (via the RelatedLinks property).
+    // If DirectoryEntry has related links (either json or a list), copy them.
+    List<string> relatedLinks = new List<string>();
+    try
+    {
+        // If your DirectoryEntry has RelatedLinks (List<string>) copy it
+        var relatedProp = entry.GetType().GetProperty("RelatedLinks");
+        if (relatedProp != null)
+        {
+            if (relatedProp.GetValue(entry) is IEnumerable<string> rel)
+            {
+                relatedLinks = rel
+                    .Select(x => (x ?? string.Empty).Trim())
+                    .Where(x => !string.IsNullOrWhiteSpace(x))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }
+        }
+        else
+        {
+            // Or if it has RelatedLinksJson, copy/deserialize it
+            var jsonProp = entry.GetType().GetProperty("RelatedLinksJson");
+            if (jsonProp != null)
+            {
+                var json = jsonProp.GetValue(entry) as string;
+                if (!string.IsNullOrWhiteSpace(json))
+                {
+                    relatedLinks = System.Text.Json.JsonSerializer.Deserialize<List<string>>(json)
+                        ?? new List<string>();
+                }
+            }
+        }
+    }
+    catch
+    {
+        relatedLinks = new List<string>();
+    }
+
     // Create a new submission with the appropriate details
     var submission = new Submission
     {
-        Note = newNote,
-        DirectoryStatus = DirectoryStatus.Removed,
+        // core
+        SubmissionStatus = SubmissionStatus.Pending,
         DirectoryEntryId = entry.DirectoryEntryId,
+        SubCategoryId = entry.SubCategoryId,
+        DirectoryStatus = DirectoryStatus.Removed,
+
+        // content copy
         Name = entry.Name,
         Link = entry.Link,
-        SubmissionStatus = SubmissionStatus.Pending,
-        SubCategoryId = entry.SubCategoryId,
-        Description = entry.Description,
-        Contact = entry.Contact,
         Link2 = entry.Link2,
         Link3 = entry.Link3,
+        Description = entry.Description,
+        Contact = entry.Contact,
         Location = entry.Location,
         Processor = entry.Processor,
-        SubCategory = entry.SubCategory,
         CountryCode = entry.CountryCode,
-        NoteToAdmin = "(automated submission)",
         PgpKey = entry.PgpKey,
         ProofLink = entry.ProofLink,
         VideoLink = entry.VideoLink,
-        Tags = entry.Tags,
+        FoundedDate = entry.FoundedDate,
+
+        // notes
+        Note = newNote,
+        NoteToAdmin = "(automated submission)",
+
+        // tags
+        Tags = entry.Tags,                 // typed tags (legacy / display)
+        SelectedTagIdsCsv = selectedTagIdsCsv, // ✅ checkbox tags (modern flow)
+
+        // related links (writes RelatedLinksJson via setter)
+        RelatedLinks = relatedLinks,
+
+        // keep these empty for automation
+        SuggestedSubCategory = null,
+        IpAddress = null
     };
 
     await submissionRepository.CreateAsync(submission);

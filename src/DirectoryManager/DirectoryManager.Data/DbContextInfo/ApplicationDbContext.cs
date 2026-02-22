@@ -1,11 +1,11 @@
-﻿using DirectoryManager.Data.Models;
+﻿using System.Reflection;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.BaseModels;
 using DirectoryManager.Data.Models.Emails;
+using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Models.SponsoredListings;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection;
-using System.Reflection.Emit;
 
 namespace DirectoryManager.Data.DbContextInfo
 {
@@ -50,6 +50,10 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
         public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
+        public DbSet<AdditionalLink> AdditionalLinks { get; set; }
+        public DbSet<ReviewTag> ReviewTags { get; set; }
+        public DbSet<DirectoryEntryReviewTag> DirectoryEntryReviewTags { get; set; }
+
 
         public override int SaveChanges()
         {
@@ -66,25 +70,113 @@ namespace DirectoryManager.Data.DbContextInfo
             return base.SaveChangesAsync(cancellationToken);
         }
 
-        object IApplicationDbContext.Set<T>()
-        {
-            var method = typeof(DbContext)
-                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
-                .First(m => m.Name == "Set"
-                            && m.IsGenericMethodDefinition
-                            && m.GetGenericArguments().Length == 1
-                            && m.GetParameters().Length == 0);
-
-            var generic = method.MakeGenericMethod(typeof(T));
-            return generic.Invoke(this, null) !;
-        }
-
         protected override void OnModelCreating(ModelBuilder builder)
         {
             base.OnModelCreating(builder);
 
+            ConfigureIndexes(builder);                // ✅ ALL HasIndex() calls
+            ConfigureKeysAndRelationships(builder);   // ✅ keys + relationships only (no HasIndex)
+            ConfigurePropertyMappings(builder);       // ✅ column types, max lengths, table names, etc. (no HasIndex)
+        }
+
+        // =========================================================
+        // INDEXES (ALL HasIndex() CALLS LIVE HERE)
+        // =========================================================
+        private static void ConfigureIndexes(ModelBuilder builder)
+        {
+            ConfigureSponsoredListingOpeningNotificationIndexes(builder);
+            ConfigureSponsoredListingIndexes(builder);
+            ConfigureDirectoryEntryIndexes(builder);
+            ConfigureTagCategorySubcategoryIndexes(builder);
+
+            ConfigureTrafficAndUserAgentIndexes(builder);
+            ConfigureSponsoredListingInvoiceIndexes(builder);
+            ConfigureSponsoredListingOfferIndexes(builder);
+            ConfigureSponsoredListingReservationIndexes(builder);
+
+            ConfigureProcessorConfigIndexes(builder);
+            ConfigureEmailIndexes(builder);
+            ConfigureBlockedIpIndexes(builder);
+
+            ConfigureAffiliateIndexes(builder);
+            ConfigureReviewerAndReviewIndexes(builder);
+            ConfigureAdditionalLinkIndexes(builder);
+
+            ConfigureSearchBlacklistAndReviewTagIndexes(builder);
+
+            ConfigureReviewCommentIndexes(builder);
+            ConfigureDirectoryEntryTagIndexes(builder);
+        }
+
+        private static void ConfigureSponsoredListingOpeningNotificationIndexes(ModelBuilder builder)
+        {
+            builder.Entity<SponsoredListingOpeningNotification>()
+                   .HasIndex(x => new { x.Email, x.SponsorshipType, x.TypeId, x.DirectoryEntryId });
+
+            builder.Entity<SponsoredListingOpeningNotification>()
+                   .HasIndex(x => new { x.SponsorshipType, x.TypeId, x.IsActive, x.IsReminderSent, x.SubscribedDate });
+
+            builder.Entity<SponsoredListingOpeningNotification>()
+                   .HasIndex(e => new { e.Email, e.SponsorshipType, e.TypeId, e.SubscribedDate })
+                   .IsUnique()
+                   .HasDatabaseName("IX_SponsoredListingOpeningNotification_Unique");
+
+            // For GetSubscribers():
+            // WHERE IsActive = 1 AND IsReminderSent = 0
+            // ORDER BY SubscribedDate, SponsoredListingOpeningNotificationId
+            builder.Entity<SponsoredListingOpeningNotification>()
+                   .HasIndex(x => new { x.SubscribedDate, x.SponsoredListingOpeningNotificationId })
+                   .HasDatabaseName("IX_SponsoredListingOpeningNotification_Queue")
+                   .HasFilter("[IsActive] = 1 AND [IsReminderSent] = 0")
+                   // EF Core 10 + SqlServer supports INCLUDE columns
+                   .IncludeProperties(x => new
+                   {
+                       x.Email,
+                       x.SponsorshipType,
+                       x.TypeId,
+                       x.DirectoryEntryId
+                   });
+        }
+
+        private static void ConfigureSponsoredListingIndexes(ModelBuilder builder)
+        {
+            builder.Entity<SponsoredListing>()
+                   .HasIndex(e => new { e.CreateDate, e.UpdateDate });
+
+            builder.Entity<SponsoredListing>()
+                   .HasIndex(e => e.CampaignEndDate);
+
+            // For GetActiveSponsorsByTypeAsync(type):
+            // WHERE SponsorshipType = @type
+            //   AND CampaignStartDate <= @now
+            //   AND CampaignEndDate   >= @now
+            // ORDER BY CampaignEndDate DESC, CampaignStartDate DESC
+            builder.Entity<SponsoredListing>()
+                   .HasIndex(x => new { x.SponsorshipType, x.CampaignEndDate, x.CampaignStartDate })
+                   .HasDatabaseName("IX_SponsoredListings_Type_End_Start")
+                   // EF Core 10 supports descending per-column
+                   .IsDescending(false, true, true)
+                   .IncludeProperties(x => new { x.DirectoryEntryId });
+
+            // For GetAllActiveSponsorsAsync():
+            // WHERE CampaignStartDate <= @now AND CampaignEndDate >= @now
+            // ORDER BY CampaignEndDate DESC, CampaignStartDate DESC
+            builder.Entity<SponsoredListing>()
+                   .HasIndex(x => new { x.CampaignEndDate, x.CampaignStartDate })
+                   .HasDatabaseName("IX_SponsoredListings_End_Start")
+                   .IsDescending(true, true)
+                   .IncludeProperties(x => new { x.DirectoryEntryId, x.SponsorshipType });
+
+            // Helpful for includes/joins (often created automatically, but explicit is fine)
+            builder.Entity<SponsoredListing>()
+                   .HasIndex(x => x.DirectoryEntryId)
+                   .HasDatabaseName("IX_SponsoredListings_DirectoryEntryId");
+        }
+
+        private static void ConfigureDirectoryEntryIndexes(ModelBuilder builder)
+        {
             builder.Entity<DirectoryEntry>()
-                   .HasIndex(e => new { e.DirectoryEntryId, e.DirectoryStatus })
+                   .HasIndex(e => e.DirectoryEntryKey)
                    .IsUnique();
 
             builder.Entity<DirectoryEntry>()
@@ -92,39 +184,29 @@ namespace DirectoryManager.Data.DbContextInfo
                    .IsUnique();
 
             builder.Entity<DirectoryEntry>()
-                   .HasIndex(e => new { e.SubCategoryId, e.DirectoryEntryKey })
+                   .HasIndex(e => e.SubCategoryId)
+                   .HasDatabaseName("IX_DirectoryEntries_SubCategoryId");
+
+            // ✅ Helps filtering out Removed quickly (sitemap / lists)
+            builder.Entity<DirectoryEntry>()
+                   .HasIndex(e => e.DirectoryStatus)
+                   .HasDatabaseName("IX_DirectoryEntries_Status");
+
+            // ✅ Helps “latest changed entries” / revision-based queries
+            builder.Entity<DirectoryEntry>()
+                   .HasIndex(e => new { e.UpdateDate, e.CreateDate })
+                   .HasDatabaseName("IX_DirectoryEntries_Update_Create");
+        }
+
+        private static void ConfigureTagCategorySubcategoryIndexes(ModelBuilder builder)
+        {
+            builder.Entity<Tag>()
+                   .HasIndex(t => t.Name)
                    .IsUnique();
 
-            builder.Entity<DirectoryEntry>()
-                   .HasIndex(e => new { e.DirectoryEntryKey })
+            builder.Entity<Tag>()
+                   .HasIndex(t => t.Key)
                    .IsUnique();
-
-            builder.Entity<DirectoryEntry>()
-                    .HasIndex(e => e.SubCategoryId)
-                    .HasDatabaseName("IX_DirectoryEntries_SubCategoryId");
-
-            builder.Entity<DirectoryEntryTag>()
-                .HasKey(et => new { et.DirectoryEntryId, et.TagId });
-
-            // relationships
-            builder.Entity<DirectoryEntryTag>()
-                .HasOne(et => et.DirectoryEntry)
-                .WithMany(de => de.EntryTags)
-                .HasForeignKey(et => et.DirectoryEntryId);
-
-            builder.Entity<DirectoryEntryTag>()
-                .HasOne(et => et.Tag)
-                .WithMany(t => t.EntryTags)
-                .HasForeignKey(et => et.TagId);
-
-            // Tag.Name must be unique
-            builder.Entity<Tag>()
-                .HasIndex(t => t.Name)
-                .IsUnique();
-
-            builder.Entity<Tag>()
-                 .HasIndex(t => t.Key)
-                 .IsUnique();
 
             builder.Entity<Category>()
                    .HasIndex(e => e.CategoryKey)
@@ -134,6 +216,14 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasIndex(e => new { e.SubCategoryKey, e.CategoryId })
                    .IsUnique();
 
+            // Helps Include chain: DirectoryEntry -> SubCategory -> Category
+            builder.Entity<Subcategory>()
+                   .HasIndex(e => e.CategoryId)
+                   .HasDatabaseName("IX_Subcategories_CategoryId");
+        }
+
+        private static void ConfigureTrafficAndUserAgentIndexes(ModelBuilder builder)
+        {
             builder.Entity<TrafficLog>()
                    .HasIndex(t => t.CreateDate)
                    .HasDatabaseName("IX_TrafficLog_CreateDate");
@@ -141,58 +231,32 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<ExcludeUserAgent>()
                    .HasIndex(e => e.UserAgent)
                    .IsUnique();
+        }
 
+        private static void ConfigureSponsoredListingInvoiceIndexes(ModelBuilder builder)
+        {
             builder.Entity<SponsoredListingInvoice>()
                    .HasIndex(e => e.InvoiceId)
                    .IsUnique();
 
             builder.Entity<SponsoredListingInvoice>()
-                   .Property(e => e.Amount)
-                   .HasColumnType("decimal(20, 12)");
+                   .HasIndex(i => new { i.DirectoryEntryId, i.PaymentStatus })
+                   .HasDatabaseName("IX_Invoice_Dir_PaidStatus");
+        }
 
-            builder.Entity<SponsoredListingInvoice>()
-                   .Property(e => e.PaidAmount)
-                   .HasColumnType("decimal(20, 12)");
-
-            builder.Entity<SponsoredListingInvoice>()
-                   .Property(e => e.OutcomeAmount)
-                   .HasColumnType("decimal(20, 12)");
-
-            builder.Entity<SponsoredListingOffer>()
-                   .Property(e => e.Price)
-                   .HasColumnType("decimal(20, 12)");
-
-            builder.Entity<SponsoredListing>()
-                   .HasIndex(e => new { e.CreateDate, e.UpdateDate });
-
-            builder.Entity<SponsoredListing>()
-                   .HasIndex(e => new { e.CampaignEndDate });
-
-            builder.Entity<SponsoredListing>()
-                   .HasOne(sl => sl.DirectoryEntry)
-                   .WithMany()
-                   .HasForeignKey(sl => sl.DirectoryEntryId)
-                   .OnDelete(DeleteBehavior.Cascade);
-
-            builder.Entity<SponsoredListing>()
-                   .HasOne(sl => sl.SponsoredListingInvoice)
-                   .WithOne(sli => sli.SponsoredListing)
-                   .HasForeignKey<SponsoredListing>(sl => sl.SponsoredListingInvoiceId)
-                   .OnDelete(DeleteBehavior.Restrict);
-
+        private static void ConfigureSponsoredListingOfferIndexes(ModelBuilder builder)
+        {
             builder.Entity<SponsoredListingOffer>()
                    .HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId, e.SubcategoryId })
                    .IsUnique();
 
             builder.Entity<SponsoredListingOffer>(eb =>
             {
-                // 1️⃣ Enforce uniqueness when SubcategoryId IS NULL
                 eb.HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId })
                   .IsUnique()
                   .HasFilter("[SubcategoryId] IS NULL")
                   .HasDatabaseName("UX_Offer_Type_Days_Cat_NoSubcat");
 
-                // 2️⃣ Enforce uniqueness when SubcategoryId IS NOT NULL
                 eb.HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId, e.SubcategoryId })
                   .IsUnique()
                   .HasFilter("[SubcategoryId] IS NOT NULL")
@@ -202,19 +266,28 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<SponsoredListingOffer>()
                    .HasIndex(e => new { e.SponsorshipType, e.Days })
                    .IsUnique()
-                   .HasFilter("SubcategoryId IS NULL");
+                   .HasFilter("[SubcategoryId] IS NULL");
+        }
 
-            builder.Entity<ProcessorConfig>()
-                   .HasIndex(e => e.PaymentProcessor)
-                   .IsUnique();
-
+        private static void ConfigureSponsoredListingReservationIndexes(ModelBuilder builder)
+        {
             builder.Entity<SponsoredListingReservation>()
                    .HasIndex(e => e.ReservationGuid)
                    .IsUnique();
 
             builder.Entity<SponsoredListingReservation>()
                    .HasIndex(e => e.ExpirationDateTime);
+        }
 
+        private static void ConfigureProcessorConfigIndexes(ModelBuilder builder)
+        {
+            builder.Entity<ProcessorConfig>()
+                   .HasIndex(e => e.PaymentProcessor)
+                   .IsUnique();
+        }
+
+        private static void ConfigureEmailIndexes(ModelBuilder builder)
+        {
             builder.Entity<EmailMessage>()
                    .HasIndex(e => e.EmailKey)
                    .IsUnique();
@@ -231,73 +304,223 @@ namespace DirectoryManager.Data.DbContextInfo
                    .IsUnique();
 
             builder.Entity<EmailCampaignSubscription>()
-                    .HasIndex(e => new { e.EmailCampaignId, e.IsActive });
+                   .HasIndex(e => new { e.EmailCampaignId, e.IsActive });
 
             builder.Entity<EmailCampaignSubscription>()
                    .HasIndex(e => e.EmailSubscriptionId);
 
-            builder.Entity<BlockedIP>()
-                   .HasIndex(e => e.IpAddress)
-                   .IsUnique();
-
             builder.Entity<EmailCampaign>()
                    .HasIndex(e => e.EmailCampaignKey)
                    .IsUnique();
+        }
 
-            builder.Entity<SponsoredListingOpeningNotification>()
-                   .HasIndex(e => new { e.Email, e.SponsorshipType, e.TypeId, e.SubscribedDate })
+        private static void ConfigureBlockedIpIndexes(ModelBuilder builder)
+        {
+            builder.Entity<BlockedIP>()
+                   .HasIndex(e => e.IpAddress)
+                   .IsUnique();
+        }
+
+        private static void ConfigureAffiliateIndexes(ModelBuilder builder)
+        {
+            builder.Entity<AffiliateAccount>()
+                   .HasIndex(x => x.ReferralCode)
                    .IsUnique()
-                   .HasDatabaseName("IX_SponsoredListingOpeningNotification_Unique");
+                   .HasDatabaseName("UX_AffiliateAccount_ReferralCode");
 
-            // --- Affiliates ---
-            builder.Entity<AffiliateAccount>(aa =>
+            builder.Entity<AffiliateCommission>()
+                   .HasIndex(x => x.SponsoredListingInvoiceId)
+                   .IsUnique()
+                   .HasDatabaseName("UX_AffiliateCommission_Invoice");
+        }
+
+        private static void ConfigureReviewerAndReviewIndexes(ModelBuilder builder)
+        {
+            builder.Entity<ReviewerKey>()
+                   .HasIndex(x => x.Fingerprint)
+                   .IsUnique();
+
+            builder.Entity<DirectoryEntryReview>(r =>
             {
-                // unique referral code
-                aa.HasIndex(x => x.ReferralCode)
-                  .IsUnique()
-                  .HasDatabaseName("UX_AffiliateAccount_ReferralCode");
+                r.HasIndex(x => x.AuthorFingerprint);
 
-                // enforce 3–12 chars
-                aa.Property(x => x.ReferralCode)
-                  .HasMaxLength(12)
-                  .IsRequired();
+                // ✅ Fast "approved reviews for entry ordered by date" (site page)
+                // WHERE DirectoryEntryId=@id AND ModerationStatus=Approved
+                // ORDER BY CreateDate, DirectoryEntryReviewId
+                r.HasIndex(x => new { x.DirectoryEntryId, x.ModerationStatus, x.CreateDate, x.DirectoryEntryReviewId })
+                 .HasDatabaseName("IX_Reviews_Entry_Mod_Create_Id");
 
-                aa.Property(x => x.WalletAddress).HasMaxLength(256).IsRequired();
-                aa.Property(x => x.Email).HasMaxLength(256);
+                // ✅ Fast sitemap aggregation (group by entry) + filters
+                // WHERE ModerationStatus=Approved GROUP BY DirectoryEntryId
+                r.HasIndex(x => new { x.ModerationStatus, x.DirectoryEntryId })
+                 .HasDatabaseName("IX_Reviews_Mod_Entry")
+                 .IncludeProperties(x => new { x.CreateDate, x.UpdateDate });
+
+                // Optional: if you also frequently query by ModStatus alone:
+                // r.HasIndex(x => x.ModerationStatus).HasDatabaseName("IX_Reviews_Mod");
             });
+        }
+
+        private static void ConfigureReviewCommentIndexes(ModelBuilder builder)
+        {
+            builder.Entity<DirectoryEntryReviewComment>(c =>
+            {
+                // ✅ Fast "approved comments for review ordered by date"
+                // WHERE DirectoryEntryReviewId=@rid AND ModerationStatus=Approved
+                // ORDER BY CreateDate, DirectoryEntryReviewCommentId
+                c.HasIndex(x => new { x.DirectoryEntryReviewId, x.ModerationStatus, x.CreateDate, x.DirectoryEntryReviewCommentId })
+                 .HasDatabaseName("IX_ReviewComments_Review_Mod_Create_Id");
+
+                // ✅ Helps the sitemap join + aggregation patterns
+                // WHERE ModerationStatus=Approved AND DirectoryEntryReviewId IN (...)
+                c.HasIndex(x => new { x.ModerationStatus, x.DirectoryEntryReviewId })
+                 .HasDatabaseName("IX_ReviewComments_Mod_Review")
+                 .IncludeProperties(x => new { x.CreateDate, x.UpdateDate });
+
+                // ✅ If you ever traverse threads (parent/children)
+                c.HasIndex(x => x.ParentCommentId)
+                 .HasDatabaseName("IX_ReviewComments_ParentCommentId");
+            });
+        }
+
+        private static void ConfigureDirectoryEntryTagIndexes(ModelBuilder builder)
+        {
+            builder.Entity<DirectoryEntryTag>()
+                   .HasIndex(x => new { x.TagId, x.DirectoryEntryId })
+                   .HasDatabaseName("IX_DirectoryEntryTags_Tag_Entry");
+        }
+
+        private static void ConfigureAdditionalLinkIndexes(ModelBuilder builder)
+        {
+            builder.Entity<AdditionalLink>()
+                   .HasIndex(x => new { x.DirectoryEntryId, x.SortOrder })
+                   .IsUnique();
+        }
+
+        private static void ConfigureSearchBlacklistAndReviewTagIndexes(ModelBuilder builder)
+        {
+            builder.Entity<SearchBlacklistTerm>()
+                   .HasIndex(e => e.Term)
+                   .IsUnique();
+
+            builder.Entity<ReviewTag>()
+                   .HasIndex(x => x.Slug)
+                   .IsUnique();
+        }
+
+        // =========================================================
+        // KEYS + RELATIONSHIPS (NO HasIndex HERE)
+        // =========================================================
+        private static void ConfigureKeysAndRelationships(ModelBuilder builder)
+        {
+            builder.Entity<DirectoryEntryTag>()
+                   .HasKey(et => new { et.DirectoryEntryId, et.TagId });
+
+            builder.Entity<DirectoryEntryTag>()
+                   .HasOne(et => et.DirectoryEntry)
+                   .WithMany(de => de.EntryTags)
+                   .HasForeignKey(et => et.DirectoryEntryId);
+
+            builder.Entity<DirectoryEntryTag>()
+                   .HasOne(et => et.Tag)
+                   .WithMany(t => t.EntryTags)
+                   .HasForeignKey(et => et.TagId);
+
+            builder.Entity<SponsoredListing>()
+                   .HasOne(sl => sl.DirectoryEntry)
+                   .WithMany()
+                   .HasForeignKey(sl => sl.DirectoryEntryId)
+                   .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<SponsoredListing>()
+                   .HasOne(sl => sl.SponsoredListingInvoice)
+                   .WithOne(sli => sli.SponsoredListing)
+                   .HasForeignKey<SponsoredListing>(sl => sl.SponsoredListingInvoiceId)
+                   .OnDelete(DeleteBehavior.Restrict);
 
             builder.Entity<AffiliateCommission>(ac =>
             {
-                // one commission per invoice
-                ac.HasIndex(x => x.SponsoredListingInvoiceId)
-                  .IsUnique()
-                  .HasDatabaseName("UX_AffiliateCommission_Invoice");
-
-                ac.Property(x => x.AmountDue).HasColumnType("decimal(18,8)");
-
                 ac.HasOne(x => x.AffiliateAccount)
                   .WithMany(a => a.Commissions)
                   .HasForeignKey(x => x.AffiliateAccountId)
                   .OnDelete(DeleteBehavior.Cascade);
 
-                // don't allow invoice deletes via commissions
                 ac.HasOne(x => x.SponsoredListingInvoice)
-                  .WithMany() // or .WithMany(i => i.AffiliateCommissions) if you add a nav
+                  .WithMany()
                   .HasForeignKey(x => x.SponsoredListingInvoiceId)
                   .OnDelete(DeleteBehavior.Restrict);
             });
 
-            builder.Entity<SponsoredListingInvoice>()
-                .HasIndex(i => new { i.DirectoryEntryId, i.PaymentStatus })
-                .HasDatabaseName("IX_Invoice_Dir_PaidStatus");
+            builder.Entity<DirectoryEntryReviewComment>()
+                   .HasOne(x => x.DirectoryEntryReview)
+                   .WithMany(r => r.Comments)
+                   .HasForeignKey(x => x.DirectoryEntryReviewId)
+                   .OnDelete(DeleteBehavior.Cascade);
 
-            // ReviewerKey
+            builder.Entity<DirectoryEntryReviewComment>()
+                   .HasOne(x => x.ParentComment)
+                   .WithMany(x => x.Children)
+                   .HasForeignKey(x => x.ParentCommentId)
+                   .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<DirectoryEntryReviewTag>()
+                   .HasKey(x => new { x.DirectoryEntryReviewId, x.ReviewTagId });
+
+            builder.Entity<DirectoryEntryReviewTag>()
+                   .HasOne(x => x.DirectoryEntryReview)
+                   .WithMany(r => r.ReviewTags)
+                   .HasForeignKey(x => x.DirectoryEntryReviewId)
+                   .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<DirectoryEntryReviewTag>()
+                   .HasOne(x => x.ReviewTag)
+                   .WithMany(t => t.ReviewLinks)
+                   .HasForeignKey(x => x.ReviewTagId)
+                   .OnDelete(DeleteBehavior.Cascade);
+        }
+
+        // =========================================================
+        // PROPERTY / COLUMN MAPPINGS (NO HasIndex HERE)
+        // =========================================================
+        private static void ConfigurePropertyMappings(ModelBuilder builder)
+        {
+            builder.Entity<SponsoredListingInvoice>()
+                   .Property(e => e.Amount)
+                   .HasColumnType("decimal(20, 12)");
+
+            builder.Entity<SponsoredListingInvoice>()
+                   .Property(e => e.PaidAmount)
+                   .HasColumnType("decimal(20, 12)");
+
+            builder.Entity<SponsoredListingInvoice>()
+                   .Property(e => e.OutcomeAmount)
+                   .HasColumnType("decimal(20, 12)");
+
+            builder.Entity<SponsoredListingOffer>()
+                   .Property(e => e.Price)
+                   .HasColumnType("decimal(20, 12)");
+
+            builder.Entity<AffiliateCommission>()
+                   .Property(x => x.AmountDue)
+                   .HasColumnType("decimal(18,8)");
+
+            builder.Entity<AffiliateAccount>(aa =>
+            {
+                aa.Property(x => x.ReferralCode)
+                  .HasMaxLength(12)
+                  .IsRequired();
+
+                aa.Property(x => x.WalletAddress)
+                  .HasMaxLength(256)
+                  .IsRequired();
+
+                aa.Property(x => x.Email)
+                  .HasMaxLength(256);
+            });
+
             builder.Entity<ReviewerKey>(rk =>
             {
                 rk.ToTable("ReviewerKeys");
-
-                // one row per PGP identity
-                rk.HasIndex(x => x.Fingerprint).IsUnique();
 
                 rk.Property(x => x.Fingerprint)
                   .HasMaxLength(64)
@@ -311,42 +534,16 @@ namespace DirectoryManager.Data.DbContextInfo
                   .HasMaxLength(64);
             });
 
-            builder.Entity<DirectoryEntryReviewComment>()
-                .HasOne(x => x.DirectoryEntryReview)
-                .WithMany(r => r.Comments)
-                .HasForeignKey(x => x.DirectoryEntryReviewId)
-                .OnDelete(DeleteBehavior.Cascade);
+            builder.Entity<AdditionalLink>(b =>
+            {
+                b.Property(x => x.Link).HasMaxLength(500);
+            });
 
-            builder.Entity<DirectoryEntryReviewComment>()
-                .HasOne(x => x.ParentComment)
-                .WithMany(x => x.Children)
-                .HasForeignKey(x => x.ParentCommentId)
-                .OnDelete(DeleteBehavior.Restrict);
-
-
-            // DirectoryEntryReview (no FK to ReviewerKey; uses AuthorFingerprint)
             builder.Entity<DirectoryEntryReview>(r =>
             {
                 r.ToTable("DirectoryEntryReviews");
-
-                // lookups & moderation queue
-                r.HasIndex(x => x.DirectoryEntryId);
-                r.HasIndex(x => new { x.DirectoryEntryId, x.ModerationStatus });
-
-                // author lookups
-                r.HasIndex(x => x.AuthorFingerprint);
-
-                // relationship to DirectoryEntry
-                r.HasOne(x => x.DirectoryEntry)
-                 .WithMany() // add .WithMany(e => e.Reviews) if you later add a nav on DirectoryEntry
-                 .HasForeignKey(x => x.DirectoryEntryId)
-                 .OnDelete(DeleteBehavior.Cascade);
-
-                // concurrency token (since you have [Timestamp])
                 r.Property(x => x.RowVersion).IsRowVersion();
             });
-
-            builder.Entity<SearchBlacklistTerm>().HasIndex(e => new { e.Term }).IsUnique();
         }
 
         private void SetDates()
@@ -379,6 +576,19 @@ namespace DirectoryManager.Data.DbContextInfo
             {
                 entry.UpdateDate = DateTime.UtcNow;
             }
+        }
+
+        object IApplicationDbContext.Set<T>()
+        {
+            var method = typeof(DbContext)
+                .GetMethods(BindingFlags.Public | BindingFlags.Instance)
+                .First(m => m.Name == "Set"
+                            && m.IsGenericMethodDefinition
+                            && m.GetGenericArguments().Length == 1
+                            && m.GetParameters().Length == 0);
+
+            var generic = method.MakeGenericMethod(typeof(T));
+            return generic.Invoke(this, null) !;
         }
     }
 }

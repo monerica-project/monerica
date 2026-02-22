@@ -4,9 +4,6 @@
 @using DirectoryManager.Web.Constants;
 @{
     ViewData[StringConstants.TitleHeader] = "Sub Categories";
-}
-
-@{
     Layout = "_CenteredLayout";
 }
 
@@ -27,7 +24,7 @@
             <option value="@category.CategoryId">@category.Name</option>
         }
     </select>
-    <button type="submit">Filter</button>
+    <button class="btn" type="submit">Filter</button>
 </form>
 <br />
 @foreach (var subCategory in Model)

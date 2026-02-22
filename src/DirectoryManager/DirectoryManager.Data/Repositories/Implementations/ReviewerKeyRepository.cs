@@ -1,6 +1,6 @@
 ﻿// DirectoryManager.Data/Repositories/ReviewerKeyRepository.cs
 using DirectoryManager.Data.DbContextInfo;
-using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
 

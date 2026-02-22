@@ -10,8 +10,31 @@
         @await Html.PartialAsync("_SiteLogo")
     </div>
     <hr />
-    <p>Thanks for your review! It has been queued for moderation and won’t be visible until approved.</p>
+
+    @{
+        // Highest priority: explicit message (if you ever set it)
+        var msg = TempData["ReviewMessage"] as string;
+
+        // Fallback: controller flag ("1" = manual review, "0" = go live shortly)
+        var manualFlag = TempData["ReviewNeedsManualReview"] as string;
+
+        string finalMessage;
+
+        if (!string.IsNullOrWhiteSpace(msg))
+        {
+            finalMessage = msg;
+        }
+        else if (manualFlag == "1")
+        {
+            finalMessage = "Thanks! Your review will be manually reviewed before it appears publicly.";
+        }
+        else
+        {
+            finalMessage = "Thanks! Your review will go live shortly.";
+        }
+    }
+
+    <p><b>@finalMessage</b></p>
 
     @await Html.PartialAsync("_BackToHome")
-
 }

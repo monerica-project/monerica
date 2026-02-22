@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Enums;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -12,7 +13,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -151,7 +151,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View("CategoryItems", vm);
         }
 
-
         [Route("category/create")]
         [HttpPost]
         public async Task<IActionResult> Create(Category category)
@@ -250,6 +249,5 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
         }
-
     }
 }

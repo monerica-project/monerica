@@ -11,6 +11,7 @@ using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Models.SponsoredListing;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -46,7 +47,6 @@ namespace DirectoryManager.Web.Controllers
             { PaymentStatus.Canceled,       5 },
             { PaymentStatus.Test,           5 },
         };
-
 
         private readonly ISubcategoryRepository subCategoryRepository;
         private readonly ICategoryRepository categoryRepository;
@@ -1201,8 +1201,7 @@ namespace DirectoryManager.Web.Controllers
 
             await this.sponsoredListingRepository.UpdateAsync(listing);
 
-            this.cache.Remove(StringConstants.CacheKeyEntries);
-            this.cache.Remove(StringConstants.CacheKeySponsoredListings);
+            this.ClearCachedItems();
 
             return this.RedirectToAction("List");
         }
@@ -1437,59 +1436,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View(model);
         }
 
-        private async Task<string> BuildReservationDetailsAsync(
-            SponsorshipType sponsorshipType,
-            DirectoryEntry entry,
-            int? subCategoryId,
-            int? categoryId)
-        {
-            var sb = new System.Text.StringBuilder();
-            sb.Append($"Type={sponsorshipType}; ListingId={entry.DirectoryEntryId}; ListingName=\"{entry.Name}\"");
-
-            if (sponsorshipType == SponsorshipType.SubcategorySponsor)
-            {
-                // subId is INT (non-null). If neither value is present, fall back to 0.
-                int subId = subCategoryId ?? entry.SubCategoryId;
-                string catName = "Unknown Category";
-                string subName = "Unknown Subcategory";
-
-                if (subId > 0)
-                {
-                    var sub = await this.subCategoryRepository.GetByIdAsync(subId).ConfigureAwait(false);
-                    if (sub != null)
-                    {
-                        subName = sub.Name;
-                        var cat = sub.Category ?? await this.categoryRepository.GetByIdAsync(sub.CategoryId).ConfigureAwait(false);
-                        if (cat != null)
-                        {
-                            catName = cat.Name;
-                        }
-                    }
-                }
-
-                sb.Append($"; SubcategoryId={subId}; Scope=\"{catName} > {subName}\"");
-            }
-            else if (sponsorshipType == SponsorshipType.CategorySponsor)
-            {
-                // catId also ends up non-null (0 fallback if unknown)
-                int catId = categoryId ?? entry.SubCategory?.CategoryId ?? 0;
-                string catName = "Unknown Category";
-
-                if (catId > 0)
-                {
-                    var cat = await this.categoryRepository.GetByIdAsync(catId).ConfigureAwait(false);
-                    if (cat != null)
-                    {
-                        catName = cat.Name;
-                    }
-                }
-
-                sb.Append($"; CategoryId={catId}; Category=\"{catName}\"");
-            }
-
-            return sb.ToString();
-        }
-
         private static int GetMaxSlotsForType(SponsorshipType type)
         {
             return type switch
@@ -1643,6 +1589,59 @@ namespace DirectoryManager.Web.Controllers
             }
 
             throw new NotImplementedException("SponsorshipType:" + sponsorshipType.ToString());
+        }
+
+        private async Task<string> BuildReservationDetailsAsync(
+            SponsorshipType sponsorshipType,
+            DirectoryEntry entry,
+            int? subCategoryId,
+            int? categoryId)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.Append($"Type={sponsorshipType}; ListingId={entry.DirectoryEntryId}; ListingName=\"{entry.Name}\"");
+
+            if (sponsorshipType == SponsorshipType.SubcategorySponsor)
+            {
+                // subId is INT (non-null). If neither value is present, fall back to 0.
+                int subId = subCategoryId ?? entry.SubCategoryId;
+                string catName = "Unknown Category";
+                string subName = "Unknown Subcategory";
+
+                if (subId > 0)
+                {
+                    var sub = await this.subCategoryRepository.GetByIdAsync(subId).ConfigureAwait(false);
+                    if (sub != null)
+                    {
+                        subName = sub.Name;
+                        var cat = sub.Category ?? await this.categoryRepository.GetByIdAsync(sub.CategoryId).ConfigureAwait(false);
+                        if (cat != null)
+                        {
+                            catName = cat.Name;
+                        }
+                    }
+                }
+
+                sb.Append($"; SubcategoryId={subId}; Scope=\"{catName} > {subName}\"");
+            }
+            else if (sponsorshipType == SponsorshipType.CategorySponsor)
+            {
+                // catId also ends up non-null (0 fallback if unknown)
+                int catId = categoryId ?? entry.SubCategory?.CategoryId ?? 0;
+                string catName = "Unknown Category";
+
+                if (catId > 0)
+                {
+                    var cat = await this.categoryRepository.GetByIdAsync(catId).ConfigureAwait(false);
+                    if (cat != null)
+                    {
+                        catName = cat.Name;
+                    }
+                }
+
+                sb.Append($"; CategoryId={catId}; Category=\"{catName}\"");
+            }
+
+            return sb.ToString();
         }
 
         private string SetSubcategoryNameAsync(int? subCategoryId)
@@ -1945,6 +1944,7 @@ namespace DirectoryManager.Web.Controllers
 
             return $"Another checkout is currently in process for Main Sponsor in {scope}.";
         }
+
         private async Task<IEnumerable<DirectoryEntry>> FilterEntries(int? subCategoryId, int? categoryId)
         {
             var entries = await this.directoryEntryRepository.GetAllowableAdvertisers();

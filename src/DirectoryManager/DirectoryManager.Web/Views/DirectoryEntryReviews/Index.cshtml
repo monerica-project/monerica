@@ -1,5 +1,6 @@
 ﻿// DirectoryManager.Web/Views/DirectoryEntryReviews/Index.cshtml
 @using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Models.Reviews
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 @model IEnumerable<DirectoryEntryReview>
 
@@ -8,10 +9,7 @@
     Layout = "_CenteredLayout";
 }
 
-@section PageContent {
-    <div class="top-section search-section search-top-align">
-        @await Html.PartialAsync("_SearchForm")
-    </div>
+@section PageContent { 
 
     <div class="container py-4">
         <h1 class="mb-3">Directory Entry Reviews</h1>

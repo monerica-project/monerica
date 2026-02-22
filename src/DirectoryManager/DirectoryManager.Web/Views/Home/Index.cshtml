@@ -1,4 +1,5 @@
 ﻿@using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Models.Reviews
 @using DirectoryManager.DisplayFormatting.Enums
 @using DirectoryManager.DisplayFormatting.Helpers
 @using DirectoryManager.Web.Constants
@@ -6,6 +7,9 @@
 @using DirectoryManager.Web.Models
 @using DirectoryManager.Utilities.Helpers
 @using Microsoft.AspNetCore.Html
+@using Microsoft.AspNetCore.Http
+@using DirectoryManager.Web.Services.Interfaces
+@using System.Net
 
 @model DirectoryManager.Data.Models.Category
 
@@ -18,12 +22,15 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepo
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository subCatRepo
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository reviewRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewCommentRepository commentRepository
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+@inject IHttpContextAccessor httpContextAccessor
+@inject IUrlResolutionService urlResolver
 
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 @functions {
-    private static IHtmlContent RenderInlineRatingStars_NoCount(double value)
+    private static IHtmlContent RenderInlineRatingStars_NoCount_LinkToReview(double value, string reviewAnchorUrl)
     {
         const int totalStars = 5;
         double percent = Math.Clamp(value / totalStars * 100, 0, 100);
@@ -39,10 +46,12 @@
         sb.Append("%\"></span>");
         sb.Append("</span>");
 
-        // ✅ rating text WITHOUT review count
-        sb.AppendFormat(
-            "<span class=\"rating-text\"> {0:0}/5</span>",
-            value);
+        // ✅ Link ONLY the "x/5" text to #review-ID
+        sb.Append("<a class=\"rating-text\" href=\"");
+        sb.Append(WebUtility.HtmlEncode(reviewAnchorUrl));
+        sb.Append("\"> ");
+        sb.Append(value.ToString("0", System.Globalization.CultureInfo.InvariantCulture));
+        sb.Append("/5</a>");
 
         sb.Append("</span>");
 
@@ -50,14 +59,38 @@
     }
 }
 
-
-
 @{
     ViewData[StringConstants.TitleHeader] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageTitle));
     ViewData[StringConstants.MetaContent] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageMetaTags));
     ViewData["CurrentCategoryKey"] = null;
     ViewData["CurrentSubCategoryKey"] = null;
     Layout = "_LayoutWithNav";
+}
+
+@{
+    // ✅ Decide whether we should emit fully-qualified URLs
+    var root = await cacheHelper.GetSnippetAsync(SiteConfigSetting.FullRootUrl);
+    var isOnTor = httpContextAccessor.HttpContext?.Request.Host.Host.EndsWith(DirectoryManager.Web.Constants.StringConstants.TorDomain) ?? false;
+    var useRelative = isOnTor || string.IsNullOrWhiteSpace(root) || urlResolver.IsLocal;
+
+    string BuildListingUrlWithAnchorAndPage(string entryKey, int page, string anchor, string? queryString = null)
+    {
+        var basePath = FormattingHelper.ListingPath(entryKey); // "/site/xyz"
+        if (!basePath.StartsWith("/")) basePath = "/" + basePath;
+
+        var qs = string.IsNullOrWhiteSpace(queryString)
+            ? string.Empty
+            : (queryString.StartsWith("?") ? queryString : "?" + queryString);
+
+        string rel = (page <= 1)
+            ? $"{basePath}{qs}#{anchor}"
+            : $"{basePath}/page/{page}{qs}#{anchor}";
+
+        if (useRelative) return rel;
+
+        var baseUrl = root.TrimEnd('/');
+        return $"{baseUrl}{rel}";
+    }
 }
 
 @{
@@ -86,10 +119,9 @@
     // build a quick lookup from SubCategoryId → Subcategory (so we can get CategoryId cheaply)
     var subById = subs.ToDictionary(sc => sc.SubcategoryId, sc => sc);
 
-    // now group your category-level sponsors by CategoryId
+    // group category sponsors by CategoryId
     var sponsorsByCategory = catSponsors
-        .Where(s => s.DirectoryEntry != null
-                    && subById.ContainsKey(s.DirectoryEntry.SubCategoryId))
+        .Where(s => s.DirectoryEntry != null && subById.ContainsKey(s.DirectoryEntry.SubCategoryId))
         .GroupBy(s => subById[s.DirectoryEntry.SubCategoryId].CategoryId)
         .ToDictionary(
             g => g.Key,
@@ -130,9 +162,7 @@
                 </p>
             </div>
 
-            <div class="top-section search-section">
-                @await Html.PartialAsync("_SearchForm")
-            </div>
+            
 
             <div class="top-section links-section">
                 @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopMenuActionsHtml))
@@ -144,8 +174,7 @@
 
         @* Featured *@
         @{
-            var featuredEntries = await directoryEntrySelectionRepository
-                .GetEntriesForSelection(EntrySelectionType.Featured);
+            var featuredEntries = await directoryEntrySelectionRepository.GetEntriesForSelection(EntrySelectionType.Featured);
 
             var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
             var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
@@ -153,7 +182,7 @@
         @if (featuredEntries?.Any() == true)
         {
             <hr />
-            <p><b>Featured</b></p>
+            <h3>Featured</h3>
             <ul class="blank_list_item">
                 @{
                     var vmList = ViewModelConverter.ConvertToViewModels(
@@ -178,7 +207,7 @@
         @if (newest?.Any() == true)
         {
             <hr />
-            <p><b>Newest Additions</b></p>
+            <h3>Newest Additions</h3>
             <i>
                 See:
                 <a href="~/newest">all new additions</a>
@@ -191,7 +220,8 @@
                         newest.ToList(),
                         DateDisplayOption.DisplayCreateDate,
                         ItemDisplayType.Normal,
-                        link2Name, link3Name);
+                        link2Name,
+                        link3Name);
                 }
                 @foreach (var vm in vmList)
                 {
@@ -212,14 +242,15 @@
         }
         @if (revisions?.Any() == true)
         {
-            <p><b>Newest Revisions</b></p>
+            <h3>Newest Revisions</h3>
             <ul class="blank_list_item">
                 @{
                     var vmList = ViewModelConverter.ConvertToViewModels(
                         revisions.ToList(),
                         DateDisplayOption.DisplayUpdateDate,
                         ItemDisplayType.NewestRevions,
-                        link2Name, link3Name);
+                        link2Name,
+                        link3Name);
                 }
                 @foreach (var vm in vmList)
                 {
@@ -233,12 +264,12 @@
         <div class="sponsor-sections">
             <!-- Category Sponsors -->
             <section>
-                <h2 class="section-title">Category Sponsors</h2>
+                <h2 class="section-title sponsor-section-title">Category Sponsors</h2>
                 @foreach (var cat in cats)
                 {
                     if (sponsorsByCategory.TryGetValue(cat.CategoryId, out var entries))
                     {
-                        <span class="category-name">@cat.Name</span>
+                        <h4>@cat.Name</h4>
                         <ul class="blank_list_item">
                             @foreach (var e in entries)
                             {
@@ -267,14 +298,12 @@
 
             <!-- Subcategory Sponsors -->
             <section>
-                <h2 class="section-title">Subcategory Sponsors</h2>
+                <h2 class="section-title sponsor-section-title">Subcategory Sponsors</h2>
                 @foreach (var sub in subs)
                 {
                     if (sponsorsBySubcategory.TryGetValue(sub.SubcategoryId, out var entries))
                     {
-                        <span class="subcategory-name">
-                            @Html.Raw(FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name))
-                        </span>
+                        <h4>@Html.Raw(FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name))</h4>
                         <ul class="blank_list_item">
                             @foreach (var e in entries)
                             {
@@ -302,19 +331,39 @@
             </section>
         </div>
 
-        @* ✅ Latest Reviews *@
+        @* ===========================
+           Latest Reviews / Replies
+           =========================== *@
         @{
-            var latestReviews = await reviewRepository.ListLatestApprovedAsync(15);
+            // Pull the same stuff the controller puts in ViewBag to avoid confusion.
+            // If ViewBag has it, use it; otherwise fall back.
+            var latestReviews = ViewBag.LatestReviews as IEnumerable<DirectoryEntryReview>
+                ?? await reviewRepository.ListLatestApprovedAsync(IntegerConstants.ReviewCountToShowOnHomepage);
 
-            // Controller should set this:
-            // ViewBag.LatestComments = await commentRepository.ListLatestApprovedAsync(15);
-            var latestComments = ViewBag.LatestComments as IEnumerable<DirectoryEntryReviewComment>;
+            var latestComments = ViewBag.LatestComments as IEnumerable<DirectoryEntryReviewComment>
+                ?? await commentRepository.ListLatestApprovedAsync(IntegerConstants.CommentCountToShowOnHomepage);
+
+            // ✅ build a page map for ALL reviews we might link to:
+            //    - latestReviews (for "Latest Reviews")
+            //    - parent reviews of latestComments (for "Latest Replies")
+            var reviewIdsToMap =
+                (latestReviews?.Select(r => r.DirectoryEntryReviewId) ?? Enumerable.Empty<int>())
+                .Concat(latestComments?.Select(c => c.DirectoryEntryReviewId) ?? Enumerable.Empty<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            var reviewsPageSize = IntegerConstants.ReviewsPageSize;
+
+            var reviewPageMap = reviewIdsToMap.Count == 0
+                ? new Dictionary<int, int>()
+                : await reviewRepository.GetApprovedReviewPageMapAsync(reviewIdsToMap, pageSize: reviewsPageSize);
         }
 
         @if (latestReviews?.Any() == true)
         {
             <hr />
-            <p><b>Latest Reviews</b></p>
+            <h3>Latest Reviews</h3>
             <ul class="blank_list_item">
                 @foreach (var r in latestReviews)
                 {
@@ -325,28 +374,35 @@
                     }
 
                     var listingName = e.Name ?? "Listing";
-                    var oneLine = TextHelper.TruncateAtWord((r.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
+                    var oneLine = StringHelpers.TruncateAtWord((r.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
 
-                    var url = UrlResolver.ResolveToRoot(FormattingHelper.ListingPath(e.DirectoryEntryKey));
-                    var reviewDate = (r.UpdateDate ?? r.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
+                    var listingUrl = UrlResolver.ResolveToRoot(FormattingHelper.ListingPath(e.DirectoryEntryKey));
+
+                    var pageNum = reviewPageMap.TryGetValue(r.DirectoryEntryReviewId, out var p) ? p : 1;
+                    var reviewAnchorUrl = BuildListingUrlWithAnchorAndPage(
+                        e.DirectoryEntryKey,
+                        pageNum,
+                        $"review-{r.DirectoryEntryReviewId}");
+
+                    var reviewDate = (r.UpdateDate ?? r.CreateDate)
+                        .ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
 
                     <li>
                         <i>@reviewDate</i>
-                        <a href="@url">@listingName</a>
+                        <a href="@listingUrl">@listingName</a>
                         @if (r.Rating.HasValue && r.Rating.Value > 0)
                         {
-                            // ✅ Uses same CSS classes/structure as DisplayMarkUpHelper
-                            @: — @RenderInlineRatingStars_NoCount(r.Rating.Value)
+                            @: — @RenderInlineRatingStars_NoCount_LinkToReview(r.Rating.Value, reviewAnchorUrl)
                         }
                         — @oneLine
                     </li>
                 }
             </ul>
 
-            @* ✅ Latest Comments (NO stars; link only to listing like reviews) *@
+            @* ✅ Latest Replies *@
             @if (latestComments?.Any() == true)
             {
-                <p><b>Latest Replies</b></p>
+                <h3>Latest Replies</h3>
                 <ul class="blank_list_item">
                     @foreach (var c in latestComments)
                     {
@@ -359,14 +415,23 @@
                         }
 
                         var listingName = entry.Name ?? "Listing";
-                        var listingUrl = UrlResolver.ResolveToRoot(FormattingHelper.ListingPath(entry.DirectoryEntryKey));
-                        var commentDate = (c.UpdateDate ?? c.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
 
-                        var snippet = TextHelper.TruncateAtWord((c.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
+                        var parentReviewId = review.DirectoryEntryReviewId;
+                        var pageNum = reviewPageMap.TryGetValue(parentReviewId, out var p) ? p : 1;
+
+                        var commentAnchorUrl = BuildListingUrlWithAnchorAndPage(
+                            entry.DirectoryEntryKey,
+                            pageNum,
+                            $"review-comment-{c.DirectoryEntryReviewCommentId}");
+
+                        var commentDate = (c.UpdateDate ?? c.CreateDate)
+                            .ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
+
+                        var snippet = StringHelpers.TruncateAtWord((c.Body ?? string.Empty).ReplaceLineEndings(" "), 100);
 
                         <li>
                             <i>@commentDate</i>
-                            <a href="@listingUrl">@listingName</a>
+                            <a href="@commentAnchorUrl">@listingName</a>
                             — @snippet
                         </li>
                     }

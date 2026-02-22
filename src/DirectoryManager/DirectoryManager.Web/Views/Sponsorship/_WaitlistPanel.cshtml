@@ -1,0 +1,46 @@
+﻿@using DirectoryManager.Web.Models.Sponsorship
+@model WaitlistPanelVm
+
+<h4 style="margin:0 0 6px 0;">Waitlist</h4>
+
+<div style="opacity:.9;">
+    <strong>@Model.Count</strong> waiting
+    <span style="margin-left:10px;">(you would join as <strong>#@Model.JoinWouldBeRank</strong>)</span>
+</div>
+
+@if (Model.Preview != null && Model.Preview.Count > 0)
+{
+    <div style="margin-top:10px;">
+        <div style="opacity:.85; margin-bottom:6px;">Ahead of you (preview):</div>
+
+        <ul style="margin:0; padding-left: 18px;">
+            @foreach (var w in Model.Preview)
+            {
+                <li style="margin-bottom:6px;">
+                    @if (!string.IsNullOrWhiteSpace(w.ListingUrl))
+                    {
+                        <a href="@w.ListingUrl" target="_blank" rel="nofollow noopener">@w.ListingName</a>
+                    }
+                    else
+                    {
+                        @w.ListingName
+                    }
+                    <span style="opacity:.75;"> — joined @w.JoinedUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</span>
+                </li>
+            }
+        </ul>
+    </div>
+}
+else
+{
+    <div style="margin-top:10px; opacity:.9;">
+        No one is waiting yet — be first.
+    </div>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.BrowseUrl))
+{
+    <div style="margin-top: 10px;">
+        <a class="btn btn-info" href="@Model.BrowseUrl">View full waitlist</a>
+    </div>
+}

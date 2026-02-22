@@ -1,7 +1,7 @@
 ﻿@using DirectoryManager.Web.Constants
 @{
     var purpose = (ViewBag.CaptchaPurpose as string)?.ToLowerInvariant();
-
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
     ViewData[StringConstants.TitleHeader] =
         purpose == "reply"
             ? "Reply to Review – CAPTCHA"
@@ -28,6 +28,6 @@
         )
 
     <br />
-    <button type="submit" class="btn btn-primary">Continue</button>
+        <button type="submit" class="btn btn-primary btn-cta">Continue</button>
 </form>
 }

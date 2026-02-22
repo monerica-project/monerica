@@ -1,64 +1,130 @@
 ﻿@using DirectoryManager.Web.Constants
+@using System
+
 @model DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification
 
 @{
     ViewData[StringConstants.TitleHeader] = "Edit Notification";
+    Layout = "_CenteredLayout";
+
+    // --- Build admin edit links (only show when relevant) ---
+    string? listingEditUrl = null;
+    if (Model.DirectoryEntryId.HasValue && Model.DirectoryEntryId.Value > 0)
+    {
+        listingEditUrl = Url.Content($"~/directoryentry/edit/{Model.DirectoryEntryId.Value}");
+    }
+
+    string? typeEditUrl = null;
+    string? typeLabel = null;
+
+    // TypeId means CategoryId or SubCategoryId depending on SponsorshipType
+    if (Model.TypeId.HasValue && Model.TypeId.Value > 0)
+    {
+        var st = (Model.SponsorshipType.ToString() ?? string.Empty);
+
+        // If the enum name contains "Sub", treat as subcategory; otherwise if contains "Category", treat as category.
+        if (st.Contains("Sub", StringComparison.OrdinalIgnoreCase))
+        {
+            typeLabel = "Subcategory";
+            typeEditUrl = Url.Content($"~/subcategory/edit?id={Model.TypeId.Value}");
+        }
+        else if (st.Contains("Category", StringComparison.OrdinalIgnoreCase))
+        {
+            typeLabel = "Category";
+            typeEditUrl = Url.Content($"~/category/edit?id={Model.TypeId.Value}");
+        }
+    }
 }
 
-@{
-    Layout = "_CenteredLayout";
-}
 @section PageContent {
 
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
-@await Html.PartialAsync("_AdminMenu")
+    @await Html.PartialAsync("_AdminMenu")
 
-<form asp-action="Edit" method="post">
-    <input type="hidden" asp-for="SponsoredListingOpeningNotificationId" />
+    <div style="margin: 10px 0 14px 0; display: grid; gap: 6px;">
+        @if (!string.IsNullOrWhiteSpace(listingEditUrl))
+        {
+            <div>
+                Listing:
+                <a href="@listingEditUrl">@Model.DirectoryEntryId</a>
+            </div>
+        }
 
-    <div class="form-group">
-        <label asp-for="Email"></label>
-        <input asp-for="Email" class="form-control" />
-        <span asp-validation-for="Email" class="text-danger"></span>
+        @if (!string.IsNullOrWhiteSpace(typeEditUrl) && !string.IsNullOrWhiteSpace(typeLabel))
+        {
+            <div>
+                @typeLabel:
+                <a href="@typeEditUrl">@Model.TypeId</a>
+            </div>
+        }
+
+        <div>Subscribed Date: @Model.SubscribedDate</div>
+
+        @if (Model.UpdateDate != null)
+        {
+            <div>Update Date: @Model.UpdateDate</div>
+        }
+
+        @if (!string.IsNullOrWhiteSpace(Model.ReminderSentLink))
+        {
+            <div>
+                Reminder Sent Link:
+                <a href="@Model.ReminderSentLink" target="_blank" rel="noopener">open</a>
+            </div>
+        }
     </div>
 
-    <div class="form-group">
-        <label asp-for="SponsorshipType"></label>
-        <select asp-for="SponsorshipType" class="form-control">
-            @foreach (var value in Enum.GetValues(typeof(DirectoryManager.Data.Enums.SponsorshipType)).Cast<DirectoryManager.Data.Enums.SponsorshipType>())
-            {
-                if (Model.SponsorshipType == value)
+    <form asp-action="Edit" method="post">
+        <input type="hidden" asp-for="SponsoredListingOpeningNotificationId" />
+
+        <div class="form-group">
+            <label asp-for="Email"></label>
+            <input asp-for="Email" class="form-control" />
+            <span asp-validation-for="Email" class="text-danger"></span>
+        </div>
+
+        <div class="form-group">
+            <label asp-for="SponsorshipType"></label>
+            <select asp-for="SponsorshipType" class="form-control select-fit">
+                @foreach (var value in Enum.GetValues(typeof(DirectoryManager.Data.Enums.SponsorshipType))
+                                                      .Cast<DirectoryManager.Data.Enums.SponsorshipType>())
                 {
-                    <option value="@value" selected="selected">@value</option>
+                    if (Model.SponsorshipType == value)
+                    {
+                        <option value="@value" selected="selected">@value</option>
+                    }
+                    else
+                    {
+                        <option value="@value">@value</option>
+                    }
                 }
-                else
-                {
-                    <option value="@value">@value</option>
-                }
-            }
-        </select>
-    </div>
+            </select>
+        </div>
 
-    <div class="form-group">
-        <label asp-for="TypeId"></label>
-        <input asp-for="TypeId" class="form-control" />
-        <span asp-validation-for="TypeId" class="text-danger"></span>
-    </div>
+        <div class="form-group">
+            <label asp-for="TypeId"></label>
+            <input asp-for="TypeId" class="form-control" />
+            <span asp-validation-for="TypeId" class="text-danger"></span>
+        </div>
 
-    <div class="form-group">
-        <label asp-for="IsReminderSent"></label>
-        <input asp-for="IsReminderSent" class="form-check-input" type="checkbox" />
-    </div>
+        <div class="form-group">
+            <label asp-for="IsReminderSent"></label>
+            <input asp-for="IsReminderSent" class="form-check-input" type="checkbox" />
+        </div>
 
-    <button type="submit">Save</button>
-    <a asp-action="List">Cancel</a>
-</form>
+        <button class="btn" type="submit">Save</button>
+        <a asp-action="List">Cancel</a>
+    </form>
 
-<hr />
+    <hr />
 
-<form asp-action="Delete" asp-route-id="@Model.SponsoredListingOpeningNotificationId" method="post" onsubmit="return confirm('Are you sure you want to delete this notification?');">
-    @Html.AntiForgeryToken()
-    <button type="submit">Delete</button>
-</form>
+    <form asp-action="Delete"
+          asp-route-id="@Model.SponsoredListingOpeningNotificationId"
+          method="post"
+          onsubmit="return confirm('Are you sure you want to delete this notification?');">
+        @Html.AntiForgeryToken()
+        <button class="btn" type="submit">Delete</button>
+    </form>
+
 }

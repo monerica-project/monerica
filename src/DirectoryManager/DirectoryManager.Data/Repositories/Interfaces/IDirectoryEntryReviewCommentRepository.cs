@@ -1,5 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
-using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.Reviews;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
@@ -58,5 +58,12 @@ namespace DirectoryManager.Data.Repositories.Interfaces
             int id, string reason, CancellationToken ct = default);
 
         Task<IReadOnlyList<DirectoryEntryReviewComment>> ListLatestApprovedAsync(int take);
+        Task<Dictionary<int, DateTime>> GetApprovedReplyLastModifiedByEntryAsync(CancellationToken ct = default);
+
+        Task<List<DirectoryEntryReviewComment>> ListForReviewAnyStatusAsync(
+             int directoryEntryReviewId,
+             CancellationToken ct = default);
+
+        Task<bool> DeleteOwnedAsync(int commentId, string fingerprint, CancellationToken ct = default);
     }
 }

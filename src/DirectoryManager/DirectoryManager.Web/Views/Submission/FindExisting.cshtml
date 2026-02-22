@@ -21,7 +21,7 @@
 <hr />
 
 <form method="get">
-    <select id="combinedFilter" name="subCategoryId">
+        <select id="combinedFilter" name="subCategoryId" class="form-control select-fit">
         <option value="">--Select: Category > Subcategory--</option>
         @foreach (var subCategory in (IEnumerable<SubcategoryDto>)ViewBag.SubCategories)
         {
@@ -30,7 +30,7 @@
         }
     </select>
 
-    <input type="submit" value="Filter" />
+    <input type="submit" class="btn btn-primary btn-cta" value="Filter" />
 </form>
 
 <br />

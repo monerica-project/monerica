@@ -1,0 +1,393 @@
+﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Models.Sponsorship
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@model SponsorshipOptionsVm
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Sponsorship Options";
+
+    var siteUrl = !string.IsNullOrWhiteSpace(Model.DirectoryEntryKey)
+        ? FormattingHelper.ListingPath(Model.DirectoryEntryKey)
+        : "";
+
+    string checkoutUrl = Url.Action("SelectListing", "SponsoredListing") ?? "/sponsoredlisting/selectlisting";
+
+    int? mainTypeId = null;
+    int? categoryTypeId = (Model.CategoryId > 0) ? Model.CategoryId : null;
+    int? subcategoryTypeId = (Model.SubCategoryId > 0) ? Model.SubCategoryId : null;
+
+    // package details HTML (from settings)
+    var mainDetailsHtml = await cacheHelper.GetSnippetAsync(SiteConfigSetting.MainSponsoredListingDetails);
+    var catDetailsHtml = await cacheHelper.GetSnippetAsync(SiteConfigSetting.CategorySponsoredListingDetails);
+    var subDetailsHtml = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SubcategorySponsoredListingDetails);
+
+    // -----------------------------
+    // EXTEND MODE (like activelistings.cshtml)
+    // -----------------------------
+    var extendMode = string.Equals(Context.Request.Query["extend"], "1", StringComparison.OrdinalIgnoreCase);
+
+    // gather active sponsorships for THIS listing
+    var extendChoices = new List<(SponsorshipType Type, SponsorshipTypeOptionVm Opt, string ExtendUrl)>();
+
+    string ExtendUrlFor(SponsorshipType t)
+    {
+        // IMPORTANT: must target SponsoredListing controller, not Sponsorship controller
+        return Url.Action("selectduration", "SponsoredListing", new { directoryEntryId = Model.DirectoryEntryId, sponsorshipType = t })
+               ?? $"/sponsoredlisting/selectduration?directoryEntryId={Model.DirectoryEntryId}&sponsorshipType={t}";
+    }
+
+    if (Model.Main?.IsExtension == true)
+        extendChoices.Add((SponsorshipType.MainSponsor, Model.Main, ExtendUrlFor(SponsorshipType.MainSponsor)));
+
+    if (Model.Category?.IsExtension == true)
+        extendChoices.Add((SponsorshipType.CategorySponsor, Model.Category, ExtendUrlFor(SponsorshipType.CategorySponsor)));
+
+    if (Model.Subcategory?.IsExtension == true)
+        extendChoices.Add((SponsorshipType.SubcategorySponsor, Model.Subcategory, ExtendUrlFor(SponsorshipType.SubcategorySponsor)));
+
+    // if extendMode and exactly one active sponsorship exists, auto-start flow immediately
+    var autoRedirectUrl = (extendMode && extendChoices.Count == 1)
+        ? extendChoices[0].ExtendUrl
+        : null;
+
+    // ✅ NO-JS AUTO REDIRECT (must happen before any markup renders)
+    if (!string.IsNullOrWhiteSpace(autoRedirectUrl))
+    {
+        Context.Response.Redirect(autoRedirectUrl);
+        return;
+    }
+
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    <div class="card" style="padding:14px; border-radius:12px; margin-top: 10px;">
+        <h2 style="margin:0 0 6px 0;">@Model.ListingName</h2>
+
+        <div style="opacity:.9; display:flex; flex-wrap:wrap; gap:12px;">
+            <span><strong>Status:</strong> @Model.DirectoryStatus</span>
+
+            @if (!string.IsNullOrWhiteSpace(Model.CategoryName))
+            {
+                <span><strong>Category:</strong> @Model.CategoryName</span>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.SubcategoryName))
+            {
+                <span><strong>Subcategory:</strong> @Model.SubcategoryName</span>
+            }
+        </div>
+
+        <div style="margin-top: 10px; display:flex; flex-wrap:wrap; gap:10px;">
+            @if (!string.IsNullOrWhiteSpace(siteUrl))
+            {
+                <a class="btn btn-info" href="@siteUrl" target="_blank" rel="noopener">View listing page</a>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(Model.ListingUrl))
+            {
+                <a class="btn btn-info" href="@Model.ListingUrl" target="_blank" rel="nofollow noopener">Visit website</a>
+            }
+
+            <a class="btn btn-info" href="@Url.Action("Index", "Sponsorship")">Back to search</a>
+        </div>
+    </div>
+
+    @* -----------------------------------------
+       EXTEND MODE UI (NO JS)
+       ----------------------------------------- *@
+    @if (extendMode)
+    {
+        <div class="alert alert-info" style="margin-top:14px; border-radius:10px;">
+            <strong>Extend your active sponsorship</strong>
+            <div style="opacity:.9; margin-top:6px;">
+                Select which active placement you want to extend (this jumps directly into the old extension flow).
+            </div>
+        </div>
+
+        @if (extendChoices.Count == 0)
+        {
+            <div class="alert alert-warning" style="margin-top:14px; border-radius:10px;">
+                No active sponsored listing was found for this listing.
+            </div>
+        }
+        else
+        {
+            <table class="table" style="margin-top:14px;">
+                <thead>
+                    <tr>
+                        <th>Placement</th>
+                        <th style="width:220px;">Expires</th>
+                        <th style="width:120px;"></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var x in extendChoices)
+                    {
+                        <tr>
+                            <td>
+                                @(!string.IsNullOrWhiteSpace(x.Opt.ScopeLabel) ? x.Opt.ScopeLabel : x.Type.ToString())
+                            </td>
+                            <td>
+                                @if (x.Opt.YourActiveUntilUtc.HasValue)
+                                {
+                                    @x.Opt.YourActiveUntilUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) 
+                                }
+                                else
+                                {
+                                    <span style="opacity:.8;">(unknown)</span>
+                                }
+                            </td>
+                            <td>
+                                <a class="btn btn-primary btn-cta" href="@x.ExtendUrl">Extend</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+
+        @* In extend-mode we do NOT show the waitlist / buy UI *@
+        return;
+    }
+
+    @* -----------------------------------------
+       NORMAL OPTIONS PAGE (your current UI)
+       ----------------------------------------- *@
+
+    @if (Model.ShowSubscribedBanner)
+    {
+        <div class="alert alert-success" style="margin-top: 14px; border-radius:10px;">
+            <strong class="orange-text">Subscribed!</strong> You’ll be notified when a slot opens.
+        </div>
+    }
+
+    @if (!Model.CanAdvertise)
+    {
+        <div class="alert alert-warning" style="margin-top: 14px; border-radius:10px;">
+            <div style="margin-bottom:6px;">
+                <strong>This listing is not eligible to advertise yet.</strong>
+            </div>
+            @if (Model.IneligibilityReasons != null && Model.IneligibilityReasons.Any())
+            {
+                <ul style="margin:0; padding-left:18px;">
+                    @foreach (var reason in Model.IneligibilityReasons)
+                    {
+                        <li>@reason</li>
+                    }
+                </ul>
+            }
+            <div style="margin-top: 8px; opacity:.9;">
+                You can still join waitlists below. Once your status/age is fixed, contact support to enable advertising.
+            </div>
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-success" style="margin-top: 14px; border-radius:10px;">
+            <strong>Eligible to advertise.</strong> If a slot is available, you can proceed to checkout.
+        </div>
+    }
+
+    <hr style="margin: 18px 0;" />
+
+    <h2>Join the waitlist (get notified)</h2>
+    <p style="opacity:.9;">
+        If a slot isn’t available right now, join the waitlist so you don’t miss the next opening.
+        Waitlists are competitive — you’ll also see who’s already ahead of you.
+    </p>
+
+    @{
+        bool IsOpenNow(SponsorshipTypeOptionVm? opt)
+        {
+            if (opt == null) return false;
+            if (!Model.CanAdvertise) return false; // "open now" only matters when eligible to advertise
+            if (opt.IsExtension) return false;
+            if (opt.PoolMaxSlots <= 0) return false;
+            if (opt.PoolActiveCount >= opt.PoolMaxSlots) return false;
+            if (opt.BlockedByMainSubcategoryCap) return false;
+            return true;
+        }
+
+        var mainOpenNow = IsOpenNow(Model.Main);
+        var catOpenNow = IsOpenNow(Model.Category);
+        var subOpenNow = IsOpenNow(Model.Subcategory);
+
+        var mainActive = (Model.Main?.IsExtension == true);
+        var catActive = (Model.Category?.IsExtension == true);
+        var subActive = (Model.Subcategory?.IsExtension == true);
+
+        var hasCategoryScope = categoryTypeId.HasValue && categoryTypeId.Value > 0;
+        var hasSubScope = subcategoryTypeId.HasValue && subcategoryTypeId.Value > 0;
+
+        var defaultMain = (!mainOpenNow && !mainActive);
+        var defaultCat = (hasCategoryScope && !catOpenNow && !catActive);
+        var defaultSub = (hasSubScope && !subOpenNow && !subActive);
+
+        var disableMain = mainActive;
+        var disableCat = catActive;
+        var disableSub = subActive;
+    }
+
+    <form method="post"
+          action="@Url.Action("Subscribe", "Sponsorship")"
+          class="card"
+          style="padding:14px; border-radius:12px; margin-top: 10px;">
+        @Html.AntiForgeryToken()
+
+        <input type="hidden" name="DirectoryEntryId" value="@Model.DirectoryEntryId" />
+
+        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+            <input type="email"
+                   name="Email"
+                   class="form-control"
+                   placeholder="Email for notifications"
+                   style="flex: 1 1 260px; max-width: 420px;" />
+            <button type="submit" class="btn btn-primary btn-cta">Subscribe</button>
+        </div>
+
+        <div class="ui-checks" style="margin-top:12px;">
+            <label class="ui-check @(disableMain ? "ui-disabled" : "")">
+                <input type="checkbox"
+                       name="NotifyMain"
+                       value="true"
+                       @(defaultMain ? "checked=\"checked\"" : "")
+                       @(disableMain ? "disabled=\"disabled\"" : "") />
+                <span>
+                    Main Sponsor
+                    @if (mainOpenNow)
+                    {
+                        <span style="opacity:.8;">— open now</span>
+                    }
+                    else if (mainActive)
+                    {
+                        <span style="opacity:.8;">— active</span>
+                    }
+                </span>
+            </label>
+
+            @if (hasCategoryScope)
+            {
+                <label class="ui-check @(disableCat ? "ui-disabled" : "")">
+                    <input type="checkbox"
+                           name="NotifyCategory"
+                           value="true"
+                           @(defaultCat ? "checked=\"checked\"" : "")
+                           @(disableCat ? "disabled=\"disabled\"" : "") />
+                    <span>
+                        Category Sponsor
+                        @if (catOpenNow)
+                        {
+                            <span style="opacity:.8;">— open now</span>
+                        }
+                        else if (catActive)
+                        {
+                            <span style="opacity:.8;">— active</span>
+                        }
+                    </span>
+                </label>
+            }
+
+            @if (hasSubScope)
+            {
+                <label class="ui-check @(disableSub ? "ui-disabled" : "")">
+                    <input type="checkbox"
+                           name="NotifySubcategory"
+                           value="true"
+                           @(defaultSub ? "checked=\"checked\"" : "")
+                           @(disableSub ? "disabled=\"disabled\"" : "") />
+                    <span>
+                        Subcategory Sponsor
+                        @if (subOpenNow)
+                        {
+                            <span style="opacity:.8;">— open now</span>
+                        }
+                        else if (subActive)
+                        {
+                            <span style="opacity:.8;">— active</span>
+                        }
+                    </span>
+                </label>
+            }
+        </div>
+
+        <div style="margin-top:8px; opacity:.85;">
+            Tip: subscribing again updates your subscription (no duplicates) and refreshes your waitlist join date.
+        </div>
+    </form>
+
+    <hr style="margin: 18px 0;" />
+
+    <h2>Pick a sponsorship slot</h2>
+
+    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-top: 12px;">
+
+        @if (Model.Main != null)
+        {
+            @await Html.PartialAsync("_TypeOptionCard", new TypeOptionCardVm
+            {
+                Option = Model.Main,
+                DirectoryEntryId = Model.DirectoryEntryId,
+                TypeId = mainTypeId,
+                CanAdvertise = Model.CanAdvertise,
+                CheckoutUrl = checkoutUrl,
+                DetailsHtml = mainDetailsHtml
+            })
+        }
+
+        @if (Model.Category != null)
+        {
+            @await Html.PartialAsync("_TypeOptionCard", new TypeOptionCardVm
+            {
+                Option = Model.Category,
+                DirectoryEntryId = Model.DirectoryEntryId,
+                TypeId = categoryTypeId,
+                CanAdvertise = Model.CanAdvertise,
+                CheckoutUrl = checkoutUrl,
+                DetailsHtml = catDetailsHtml
+            })
+        }
+
+        @if (Model.Subcategory != null)
+        {
+            @await Html.PartialAsync("_TypeOptionCard", new TypeOptionCardVm
+            {
+                Option = Model.Subcategory,
+                DirectoryEntryId = Model.DirectoryEntryId,
+                TypeId = subcategoryTypeId,
+                CanAdvertise = Model.CanAdvertise,
+                CheckoutUrl = checkoutUrl,
+                DetailsHtml = subDetailsHtml
+            })
+        }
+
+    </div>
+
+    <hr style="margin: 18px 0;" />
+
+    @if (Model.WaitlistBoard != null)
+    {
+        <div style="margin: 18px 0;">
+            @await Html.PartialAsync("_WaitlistBoard", Model.WaitlistBoard)
+        </div>
+    }
+
+    @if (Model.RecentPaid != null)
+    {
+        <div style="margin: 18px 0;">
+            @await Html.PartialAsync("_RecentPaid", Model.RecentPaid)
+        </div>
+    }
+}

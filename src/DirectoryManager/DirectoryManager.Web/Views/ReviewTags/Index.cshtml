@@ -1,0 +1,48 @@
+﻿@using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Models.Reviews
+@model List<ReviewTag>
+@{
+    ViewData["Title"] = "Review Tags";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="container py-4">
+        <h1>Review Tags</h1>
+        <a class="btn btn-primary" asp-action="Create">Create Tag</a>
+        <hr />
+
+        @if (TempData["SuccessMessage"] is string msg)
+        {
+            <div class="alert alert-success">@msg</div>
+        }
+
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Slug</th>
+                    <th>Enabled</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in Model)
+                {
+                    <tr>
+                        <td>@t.Name</td>
+                        <td>@t.Slug</td>
+                        <td>@t.IsEnabled</td>
+                        <td class="text-end">
+                            <a class="btn btn-sm btn-secondary" asp-action="Edit" asp-route-id="@t.ReviewTagId">Edit</a>
+                            <form asp-action="Delete" asp-route-id="@t.ReviewTagId" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button class="btn btn-sm btn-danger" type="submit" onclick="return confirm('Delete tag?');">Delete</button>
+                            </form>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

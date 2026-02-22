@@ -18,28 +18,38 @@
         @Html.AntiForgeryToken()
         <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
         <input type="hidden" asp-for="DirectoryEntryId" />
- 
+
         <div class="mb-3">
-        <label asp-for="Rating" class="form-label"></label>
-        <select asp-for="Rating" class="form-select">
-                                    <option value="">— Select a rating —</option>
-                                    <option value="5">5 – Excellent</option>
-                                    <option value="4">4 – Good</option>
-                                    <option value="3">3 – Okay</option>
-                                    <option value="2">2 – Poor</option>
-                                    <option value="1">1 – Bad</option>
-        </select>
-        <span asp-validation-for="Rating" class="text-danger"></span>
+            <label asp-for="Rating" class="form-label"></label>
+            <select asp-for="Rating" class="form-control select-fit">
+                <option value="">— Select a rating —</option>
+                <option value="5">5 – Excellent</option>
+                <option value="4">4 – Good</option>
+                <option value="3">3 – Okay</option>
+                <option value="2">2 – Poor</option>
+                <option value="1">1 – Bad</option>
+            </select>
+            <span asp-validation-for="Rating" class="text-danger"></span>
         </div>
 
         <div class="mb-3">
             <label asp-for="Body" class="form-label">Your Review</label><br />
-            <textarea asp-for="Body" class="form-control" rows="8"></textarea>
+            <textarea asp-for="Body" class="form-control" cols="40" rows="20"></textarea>
             <span asp-validation-for="Body" class="text-danger"></span>
         </div>
 
-        <p class="text-muted"><i>Reviews are moderated before appearing publicly.</i></p>
+        <!-- ✅ Single textbox for either order id OR order URL -->
+        <div class="mb-3">
+            <label asp-for="OrderProof" class="form-label">Order Proof (optional)</label>
+            <input asp-for="OrderProof" class="form-control" maxlength="2048" />
+            <span asp-validation-for="OrderProof" class="text-danger"></span>
+            <div class="form-text">
+                Optional: paste an order ID or order URL for internal verification only. This will not be shown publicly. If provided, your review may go to moderation.
+            </div>
+        </div>
 
-        <button type="submit" class="btn btn-success">Submit Review</button>
+        <p class="text-muted"><i>Your review may be checked before it appears publicly.</i></p>
+
+        <button type="submit" class="btn btn-success btn-cta">Submit Review</button>
     </form>
 }

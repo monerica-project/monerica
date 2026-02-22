@@ -9,15 +9,12 @@ using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
     public class SiteMapController : Controller
     {
         private readonly ICacheService cacheService;
-        private readonly IMemoryCache memoryCache;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly ISubcategoryRepository subCategoryRepository;
@@ -26,15 +23,11 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISponsoredListingRepository sponsoredListingRepository;
         private readonly IDirectoryEntrySelectionRepository directoryEntrySelectionRepository;
         private readonly ITagRepository tagRepository;
-        private readonly IDirectoryEntryTagRepository entryTagRepository;
         private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
-
-        // ✅ NEW: comments/replies repo
         private readonly IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository;
 
         public SiteMapController(
             ICacheService cacheService,
-            IMemoryCache memoryCache,
             IDirectoryEntryRepository directoryEntryRepository,
             ICategoryRepository categoryRepository,
             ISubcategoryRepository subCategoryRepository,
@@ -43,12 +36,10 @@ namespace DirectoryManager.Web.Controllers
             ISponsoredListingRepository sponsoredListingRepository,
             IDirectoryEntrySelectionRepository directoryEntrySelectionRepository,
             ITagRepository tagRepository,
-            IDirectoryEntryTagRepository entryTagRepository,
             IDirectoryEntryReviewRepository directoryEntryReviewRepository,
             IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository)
         {
             this.cacheService = cacheService;
-            this.memoryCache = memoryCache;
             this.directoryEntryRepository = directoryEntryRepository;
             this.categoryRepository = categoryRepository;
             this.subCategoryRepository = subCategoryRepository;
@@ -57,9 +48,7 @@ namespace DirectoryManager.Web.Controllers
             this.sponsoredListingRepository = sponsoredListingRepository;
             this.directoryEntrySelectionRepository = directoryEntrySelectionRepository;
             this.tagRepository = tagRepository;
-            this.entryTagRepository = entryTagRepository;
             this.directoryEntryReviewRepository = directoryEntryReviewRepository;
-
             this.directoryEntryReviewCommentRepository = directoryEntryReviewCommentRepository;
         }
 
@@ -69,16 +58,17 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectPermanent("~/sitemap.xml");
         }
 
-
         [Route("sitemap.xml")]
         public async Task<IActionResult> IndexAsync()
         {
+            // -------------------------------------------------------
+            // 1) Site-wide last modified (small, cheap queries)
+            // -------------------------------------------------------
             var lastFeaturedDate = await this.directoryEntrySelectionRepository.GetMostRecentModifiedDateAsync();
             var lastDirectoryEntryDate = this.directoryEntryRepository.GetLastRevisionDate();
             var lastContentSnippetUpdate = this.contentSnippetRepository.GetLastUpdateDate();
             var lastPaidInvoiceUpdate = this.sponsoredListingInvoiceRepository.GetLastPaidInvoiceUpdateDate();
             var nextAdExpiration = await this.sponsoredListingRepository.GetNextExpirationDateAsync();
-            var sponsoredListings = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
             var lastSponsorExpiration = await this.sponsoredListingRepository.GetLastSponsorExpirationDateAsync();
 
             var mostRecentUpdateDate = this.GetLatestUpdateDate(
@@ -88,37 +78,32 @@ namespace DirectoryManager.Web.Controllers
                 nextAdExpiration,
                 lastSponsorExpiration);
 
-            // Sponsored listings last change
             var lastSponsoredListingChange = await this.sponsoredListingRepository.GetLastChangeDateForMainSponsorAsync();
-
-            // ✅ Latest APPROVED review date per entry (existing)
-            var latestApprovedReviewByEntry =
-                await this.directoryEntryReviewRepository.GetLatestApprovedReviewDatesByEntryAsync();
-
-            if (latestApprovedReviewByEntry != null && latestApprovedReviewByEntry.Count > 0)
+            if (lastSponsoredListingChange.HasValue && lastSponsoredListingChange.Value > mostRecentUpdateDate)
             {
-                var latestApprovedReviewDate = latestApprovedReviewByEntry.Values.Max();
+                mostRecentUpdateDate = lastSponsoredListingChange.Value;
+            }
+
+            // -------------------------------------------------------
+            // 2) Reviews + Replies (MINIMAL dictionaries only)
+            // -------------------------------------------------------
+            // ✅ Combined: approved review COUNT + LAST(modified) by entry
+            var approvedReviewStatsByEntry =
+                await this.directoryEntryReviewRepository.GetApprovedReviewStatsByEntryAsync(CancellationToken.None);
+
+            // ✅ Approved reply/comment LAST(modified) by entry
+            var latestApprovedReplyByEntry =
+                await this.directoryEntryReviewCommentRepository.GetApprovedReplyLastModifiedByEntryAsync(CancellationToken.None);
+
+            // bump site-wide date if reviews/replies are newer
+            if (approvedReviewStatsByEntry.Count > 0)
+            {
+                var latestApprovedReviewDate = approvedReviewStatsByEntry.Values.Max(x => x.Last);
                 if (latestApprovedReviewDate > mostRecentUpdateDate)
                 {
                     mostRecentUpdateDate = latestApprovedReviewDate;
                 }
             }
-
-            var latestApprovedReplyByEntry = await
-                (from c in this.directoryEntryReviewCommentRepository.Query()
-                 join r in this.directoryEntryReviewRepository.Query()
-                     on c.DirectoryEntryReviewId equals r.DirectoryEntryReviewId
-                 where c.ModerationStatus == ReviewModerationStatus.Approved
-                       && r.ModerationStatus == ReviewModerationStatus.Approved
-                 select new
-                 {
-                     r.DirectoryEntryId,
-                     Dt = c.UpdateDate ?? c.CreateDate
-                 })
-                .GroupBy(x => x.DirectoryEntryId)
-                .Select(g => new { EntryId = g.Key, Last = g.Max(x => x.Dt) })
-                .AsNoTracking()
-                .ToDictionaryAsync(x => x.EntryId, x => x.Last, CancellationToken.None);
 
             if (latestApprovedReplyByEntry.Count > 0)
             {
@@ -129,10 +114,9 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            mostRecentUpdateDate = lastSponsoredListingChange.HasValue && lastSponsoredListingChange > mostRecentUpdateDate
-                ? lastSponsoredListingChange.Value
-                : mostRecentUpdateDate;
-
+            // -------------------------------------------------------
+            // 3) Build sitemap
+            // -------------------------------------------------------
             var siteMapHelper = new SiteMapHelper();
             var domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
 
@@ -151,7 +135,6 @@ namespace DirectoryManager.Web.Controllers
 
             var categories = await this.categoryRepository.GetActiveCategoriesAsync();
             var subcategoryEntryCounts = await this.directoryEntryRepository.GetSubcategoryEntryCountsAsync();
-
             await this.AddCategoryPaginationAsync(mostRecentUpdateDate, siteMapHelper, categories, subcategoryEntryCounts, domain);
 
             var allCategoriesLastModified = await this.categoryRepository.GetAllCategoriesLastChangeDatesAsync();
@@ -176,11 +159,15 @@ namespace DirectoryManager.Web.Controllers
                     category);
             }
 
-            var allActiveEntries = await this.directoryEntryRepository.GetAllEntitiesAndPropertiesAsync();
+            // -------------------------------------------------------
+            // 4) Listing pages (+ paginated review pages) MINIMAL entries only
+            // -------------------------------------------------------
+            var entries = await this.directoryEntryRepository.GetSitemapEntriesAsync(CancellationToken.None);
 
-            foreach (var entry in allActiveEntries.Where(x => x.DirectoryStatus != DirectoryStatus.Removed))
+            foreach (var entry in entries)
             {
-                // Base last-mod (existing logic)
+                // If you want per-entry lastmod to be truly per-entry, remove "mostRecentUpdateDate" from baseLastMod.
+                // Keeping it here preserves your prior behavior.
                 var baseLastMod = new[]
                 {
                     entry.CreateDate,
@@ -188,46 +175,61 @@ namespace DirectoryManager.Web.Controllers
                     mostRecentUpdateDate
                 }.Max();
 
-                // Approved review last-mod (existing)
-                var reviewLastMod = (latestApprovedReviewByEntry != null
-                                     && latestApprovedReviewByEntry.TryGetValue(entry.DirectoryEntryId, out var rdt))
-                    ? rdt
+                var reviewLastMod = approvedReviewStatsByEntry.TryGetValue(entry.DirectoryEntryId, out var stats)
+                    ? stats.Last
                     : DateTime.MinValue;
 
-                // ✅ NEW: Approved reply/comment last-mod
                 var replyLastMod = latestApprovedReplyByEntry.TryGetValue(entry.DirectoryEntryId, out var cdt)
                     ? cdt
                     : DateTime.MinValue;
 
-                // ✅ final last-mod for listing = max(entry/review/reply/site-wide)
                 var directoryItemLastMod = new[] { baseLastMod, reviewLastMod, replyLastMod }.Max();
 
+                var listingPath = FormattingHelper.ListingPath(entry.DirectoryEntryKey);
+                var listingUrl = $"{domain}{listingPath}";
+
+                // Base listing URL
                 siteMapHelper.AddUrl(
-                    string.Format(
-                        "{0}{1}",
-                        WebRequestHelper.GetCurrentDomain(this.HttpContext),
-                        FormattingHelper.ListingPath(entry.DirectoryEntryKey)),
+                    listingUrl,
                     directoryItemLastMod,
                     ChangeFrequency.Weekly,
                     0.7);
+
+                // Paginated listing review pages: /site/{key}/page/{p}
+                if (approvedReviewStatsByEntry.TryGetValue(entry.DirectoryEntryId, out var st)
+                    && st.Count > IntegerConstants.ReviewsPageSize)
+                {
+                    int totalPages = (int)Math.Ceiling(st.Count / (double)IntegerConstants.ReviewsPageSize);
+
+                    for (int p = 2; p <= totalPages; p++)
+                    {
+                        siteMapHelper.AddUrl(
+                            $"{domain}{listingPath}/page/{p}",
+                            directoryItemLastMod,
+                            ChangeFrequency.Weekly,
+                            0.3);
+                    }
+                }
             }
 
-            // Countries pages use siteWideLastMod; you can keep it global,
-            // or (optional) enhance later to per-country max of listing lastmods.
+            // -------------------------------------------------------
+            // 5) Countries (MINIMAL counts only)
+            // -------------------------------------------------------
+            var countryCounts = await this.directoryEntryRepository.GetActiveCountryCountsForSitemapAsync(CancellationToken.None);
+
             this.AddCountriesToSitemap(
                 siteMapHelper,
                 domain,
-                allActiveEntries,
-                latestApprovedReviewByEntry,
+                countryCounts,
                 mostRecentUpdateDate);
 
             var xml = siteMapHelper.GenerateXml();
             return this.Content(xml, "text/xml");
         }
 
- 
-
-
+        // ==========================================================
+        // HTML sitemap page (your existing behavior)
+        // ==========================================================
         [Route("sitemap")]
         public async Task<IActionResult> SiteMap()
         {
@@ -240,7 +242,10 @@ namespace DirectoryManager.Web.Controllers
                 var categoryPages = new SectionPage()
                 {
                     AnchorText = category.Name,
-                    CanonicalUrl = string.Format("{0}/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), category.CategoryKey),
+                    CanonicalUrl = string.Format(
+                        "{0}/{1}",
+                        WebRequestHelper.GetCurrentDomain(this.HttpContext),
+                        category.CategoryKey),
                 };
 
                 var subCategories = await this.subCategoryRepository.GetActiveSubcategoriesAsync(category.CategoryId);
@@ -266,6 +271,9 @@ namespace DirectoryManager.Web.Controllers
             return this.View("Index", model);
         }
 
+        // ==========================================================
+        // TAGS
+        // ==========================================================
         private async Task AddTags(DateTime mostRecentUpdateDate, SiteMapHelper siteMapHelper, string domain)
         {
             var tagPageSize = IntegerConstants.MaxPageSize;
@@ -300,6 +308,33 @@ namespace DirectoryManager.Web.Controllers
                 0.3);
         }
 
+        private async Task AddAllTagsPaginationAsync(DateTime date, SiteMapHelper siteMapHelper)
+        {
+            var domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
+            int pageSize = IntegerConstants.MaxPageSize;
+
+            var pagedResult = await this.tagRepository.ListTagsWithCountsPagedAsync(1, int.MaxValue).ConfigureAwait(false);
+
+            int totalTags = pagedResult.TotalCount;
+            int totalPages = (totalTags + pageSize - 1) / pageSize;
+
+            for (int page = 1; page <= totalPages; page++)
+            {
+                string url = page == 1
+                    ? $"{domain}/tagged"
+                    : $"{domain}/tagged/page/{page}";
+
+                siteMapHelper.AddUrl(
+                    url,
+                    date,
+                    ChangeFrequency.Monthly,
+                    page == 1 ? 0.3 : 0.2);
+            }
+        }
+
+        // ==========================================================
+        // CATEGORIES + SUBCATEGORIES
+        // ==========================================================
         private async Task AddCategoryPages(
             DateTime lastFeaturedDate,
             DateTime mostRecentUpdateDate,
@@ -311,7 +346,7 @@ namespace DirectoryManager.Web.Controllers
             Dictionary<int, DateTime> allCategoryAds,
             Dictionary<int, int> subcategoryEntryCounts,
             string domain,
-            Data.Models.Category category)
+            DirectoryManager.Data.Models.Category category)
         {
             var lastChangeToCategory = allCategoriesLastModified.TryGetValue(category.CategoryId, out var categoryMod)
                 ? categoryMod
@@ -376,9 +411,9 @@ namespace DirectoryManager.Web.Controllers
             Dictionary<int, DateTime> allSubCategoriesItemsLastModified,
             Dictionary<int, DateTime> allSubCategoryAds,
             Dictionary<int, int> subcategoryEntryCounts,
-            Data.Models.Category category,
+            DirectoryManager.Data.Models.Category category,
             DateTime lastChangeToCategory,
-            Data.Models.Subcategory subCategory,
+            DirectoryManager.Data.Models.Subcategory subCategory,
             string domain)
         {
             int subCategoryId = subCategory.SubCategoryId;
@@ -430,6 +465,40 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
+        private async Task AddCategoryPaginationAsync(
+            DateTime date,
+            SiteMapHelper siteMapHelper,
+            IEnumerable<Category> categories,
+            Dictionary<int, int> subcategoryEntryCounts,
+            string domain)
+        {
+            int pageSize = IntegerConstants.DefaultPageSize;
+
+            var categoryCounts = await this.directoryEntryRepository.GetCategoryEntryCountsAsync();
+
+            foreach (var category in categories)
+            {
+                if (!categoryCounts.TryGetValue(category.CategoryId, out int totalCount) || totalCount == 0)
+                {
+                    continue;
+                }
+
+                int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+                for (int i = 1; i <= totalPages; i++)
+                {
+                    string url = i == 1
+                        ? $"{domain}/{category.CategoryKey}"
+                        : $"{domain}/{category.CategoryKey}/page/{i}";
+
+                    siteMapHelper.AddUrl(url, date, ChangeFrequency.Weekly, 0.4);
+                }
+            }
+        }
+
+        // ==========================================================
+        // NEWEST
+        // ==========================================================
         private async Task AddNewestPagesListAsync(DateTime date, SiteMapHelper siteMapHelper)
         {
             int totalEntries = await this.directoryEntryRepository.TotalActive();
@@ -448,38 +517,9 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
-        private async Task AddCategoryPaginationAsync(
-            DateTime date,
-            SiteMapHelper siteMapHelper,
-            IEnumerable<Category> categories,
-            Dictionary<int, int> subcategoryEntryCounts,
-            string domain)
-        {
-            int pageSize = IntegerConstants.DefaultPageSize;
-
-            // Get all counts at once
-            var categoryCounts = await this.directoryEntryRepository.GetCategoryEntryCountsAsync();
-
-            foreach (var category in categories)
-            {
-                if (!categoryCounts.TryGetValue(category.CategoryId, out int totalCount) || totalCount == 0)
-                {
-                    continue; // skip categories with no entries
-                }
-
-                int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
-
-                for (int i = 1; i <= totalPages; i++)
-                {
-                    string url = i == 1
-                        ? $"{domain}/{category.CategoryKey}"
-                        : $"{domain}/{category.CategoryKey}/page/{i}";
-
-                    siteMapHelper.AddUrl(url, date, ChangeFrequency.Weekly, 0.4);
-                }
-            }
-        }
-
+        // ==========================================================
+        // STATIC PAGES
+        // ==========================================================
         private async Task AddPagesAsync(DateTime date, SiteMapHelper siteMapHelper)
         {
             var contactHtmlConfig = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.ContactHtml);
@@ -534,24 +574,6 @@ namespace DirectoryManager.Web.Controllers
                 0.3);
 
             siteMapHelper.AddUrl(
-                string.Format("{0}/status/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), DirectoryStatus.Verified.ToString().ToLower()),
-                date,
-                ChangeFrequency.Weekly,
-                0.3);
-
-            siteMapHelper.AddUrl(
-                string.Format("{0}/status/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), DirectoryStatus.Scam.ToString().ToLower()),
-                date,
-                ChangeFrequency.Weekly,
-                0.3);
-
-            siteMapHelper.AddUrl(
-                string.Format("{0}/status/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), DirectoryStatus.Questionable.ToString().ToLower()),
-                date,
-                ChangeFrequency.Weekly,
-                0.3);
-
-            siteMapHelper.AddUrl(
                 string.Format("{0}/faq", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
                 date,
                 ChangeFrequency.Weekly,
@@ -564,59 +586,37 @@ namespace DirectoryManager.Web.Controllers
                 0.9);
         }
 
+        // ==========================================================
+        // COUNTRIES (MINIMAL: uses precomputed counts)
+        // ==========================================================
         private void AddCountriesToSitemap(
             SiteMapHelper siteMapHelper,
             string domain,
-            IEnumerable<DirectoryEntry> allEntries,
-            IReadOnlyDictionary<int, DateTime> latestApprovedReviewByEntry,
+            IReadOnlyList<DirectoryManager.Data.Models.TransferModels.CountryCountRow> countryCounts,
             DateTime siteWideLastMod)
         {
-            // Active statuses (mirror your definition)
-            static bool IsActive(DirectoryStatus s) =>
-                s == DirectoryStatus.Admitted
-                || s == DirectoryStatus.Verified
-                || s == DirectoryStatus.Scam
-                || s == DirectoryStatus.Questionable;
-
             var countriesMap = CountryHelper.GetCountries(); // ISO2 -> Full Name
 
-            // Only active entries with a known ISO2 code
-            var activeWithCountry = allEntries
-                .Where(e => e.DirectoryStatus != DirectoryStatus.Removed
-                            && IsActive(e.DirectoryStatus)
-                            && !string.IsNullOrWhiteSpace(e.CountryCode))
-                .Select(e => new
+            var byCountry = (countryCounts ?? Array.Empty<DirectoryManager.Data.Models.TransferModels.CountryCountRow>())
+                .Select(x => new
                 {
-                    Entry = e,
-                    Code = e.CountryCode!.Trim().ToUpperInvariant()
+                    Code = (x.CountryCode ?? string.Empty).Trim().ToUpperInvariant(),
+                    x.Count
                 })
-                .Where(x => countriesMap.ContainsKey(x.Code))
-                .ToList();
-
-            if (activeWithCountry.Count == 0)
-            {
-                return;
-            }
-
-            var byCountry = activeWithCountry
-                .GroupBy(x => x.Code)
-                .Select(g =>
+                .Where(x => x.Count > 0 && countriesMap.ContainsKey(x.Code))
+                .Select(x =>
                 {
-                    string code = g.Key;
-                    string name = CountryHelper.GetCountryName(code);
+                    string name = CountryHelper.GetCountryName(x.Code);
                     string slug = StringHelpers.UrlKey(name);
-                    int count = g.Count();
-
-                    return new
-                    {
-                        Code = code,
-                        Name = name,
-                        Slug = slug,
-                        Count = count
-                    };
+                    return new { x.Code, Name = name, Slug = slug, x.Count };
                 })
                 .OrderBy(x => x.Name)
                 .ToList();
+
+            if (byCountry.Count == 0)
+            {
+                return;
+            }
 
             // /countries index + pagination
             int countriesPageSize = IntegerConstants.MaxPageSize;
@@ -641,11 +641,6 @@ namespace DirectoryManager.Web.Controllers
 
             foreach (var c in byCountry)
             {
-                if (c.Count <= 0)
-                {
-                    continue;
-                }
-
                 int pages = (int)Math.Ceiling(c.Count / (double)countryEntriesPageSize);
 
                 siteMapHelper.AddUrl(
@@ -665,30 +660,9 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
-        private async Task AddAllTagsPaginationAsync(DateTime date, SiteMapHelper siteMapHelper)
-        {
-            var domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
-            int pageSize = IntegerConstants.MaxPageSize;
-
-            var pagedResult = await this.tagRepository.ListTagsWithCountsPagedAsync(1, int.MaxValue).ConfigureAwait(false);
-
-            int totalTags = pagedResult.TotalCount;
-            int totalPages = (totalTags + pageSize - 1) / pageSize;
-
-            for (int page = 1; page <= totalPages; page++)
-            {
-                string url = page == 1
-                    ? $"{domain}/tagged"
-                    : $"{domain}/tagged/page/{page}";
-
-                siteMapHelper.AddUrl(
-                    url,
-                    date,
-                    ChangeFrequency.Monthly,
-                    page == 1 ? 0.3 : 0.2);
-            }
-        }
-
+        // ==========================================================
+        // UTILS
+        // ==========================================================
         private DateTime GetLatestUpdateDate(
             DateTime? lastDirectoryEntryDate,
             DateTime? lastContentSnippetUpdate,

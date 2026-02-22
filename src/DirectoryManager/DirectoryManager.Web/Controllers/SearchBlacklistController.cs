@@ -1,7 +1,8 @@
 ﻿// Web/Controllers/SearchBlacklistController.cs
 using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
-using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
@@ -10,15 +11,21 @@ namespace DirectoryManager.Web.Controllers
 {
     [Authorize]
     [Route("admin/blacklist")]
-    public class SearchBlacklistController : Controller
+    public class SearchBlacklistController : BaseController
     {
         private readonly ISearchBlacklistRepository repo;
-        private readonly IMemoryCache cache;
+        private readonly ISearchBlacklistCache blacklistCache;
 
-        public SearchBlacklistController(ISearchBlacklistRepository repo, IMemoryCache cache)
+        public SearchBlacklistController(
+            ISearchBlacklistRepository repo,
+            ISearchBlacklistCache blacklistCache,
+            ITrafficLogRepository trafficLogRepository,
+            IUserAgentCacheService userAgentCacheService,
+            IMemoryCache cache)
+            : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.repo = repo;
-            this.cache = cache;
+            this.blacklistCache = blacklistCache;
         }
 
         [HttpGet("")]
@@ -43,37 +50,33 @@ namespace DirectoryManager.Web.Controllers
         public IActionResult Create() => this.View();
 
         [HttpPost("create")]
-        public async Task<IActionResult> CreatePost(string term)
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreatePost(string term, CancellationToken ct)
         {
             if (string.IsNullOrWhiteSpace(term))
             {
-                this.ModelState.AddModelError("", "Term is required.");
+                this.ModelState.AddModelError(string.Empty, "Term is required.");
                 return this.View("Create");
             }
 
             await this.repo.CreateAsync(term.Trim());
-            await this.RefreshCacheAsync();
+
+            // ensure Search + Reviews + Replies see the update immediately
+            this.blacklistCache.Invalidate();
+
             return this.RedirectToAction(nameof(this.Index));
         }
 
         [HttpPost("delete/{id:int}")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
+        public async Task<IActionResult> Delete(int id, CancellationToken ct)
         {
             await this.repo.DeleteAsync(id);
-            await this.RefreshCacheAsync();
+
+            // ensure Search + Reviews + Replies see the update immediately
+            this.blacklistCache.Invalidate();
+
             return this.RedirectToAction(nameof(this.Index));
-        }
-
-        private async Task RefreshCacheAsync()
-        {
-            var terms = await this.repo.GetAllTermsAsync();
-            var norm = new HashSet<string>(terms
-                .Where(t => !string.IsNullOrWhiteSpace(t))
-                .Select(t => t.Trim().ToLowerInvariant()));
-
-            _ = this.cache.Set(
-                StringConstants.CacheKeySearchBlacklistTerms, norm, new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6) });
         }
     }
 }

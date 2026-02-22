@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
+using DirectoryManager.Data.Models.TransferModels;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
 {
@@ -38,14 +39,10 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         Task<DateTime?> GetLastSponsorExpirationDateAsync();
 
-        /// <summary>
-        /// Gets the number of active sponsors **grouped by category**.
-        /// </summary>
         Task<Dictionary<int, int>> GetActiveSponsorCountByCategoryAsync(SponsorshipType type);
 
-        /// <summary>
-        /// Gets the number of active sponsors **grouped by subcategory**.
-        /// </summary>
         Task<Dictionary<int, int>> GetActiveSponsorCountBySubcategoryAsync(SponsorshipType type);
+
+        Task<List<SponsorTickerItemVm>> GetSponsorTickerItemsAsync();
     }
 }

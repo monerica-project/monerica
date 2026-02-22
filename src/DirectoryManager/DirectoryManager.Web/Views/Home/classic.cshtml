@@ -33,12 +33,7 @@
                 @directoryEntryRepository.GetLastRevisionDate().ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
             </p>
         </div>
-
-        <!-- Search Section -->
-        <div class="top-section search-section">
-            @await Html.PartialAsync("_SearchForm")
-        </div>
-
+ 
         <!-- Links Section -->
         <div class="top-section links-section">
         @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopMenuActionsHtml))

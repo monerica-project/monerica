@@ -1,6 +1,7 @@
 ﻿@using DirectoryManager.Data.Enums
 @using DirectoryManager.Data.Models
 @using DirectoryManager.Data.Repositories.Interfaces
+@using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Helpers
 @using DirectoryManager.Web.Models
@@ -48,34 +49,7 @@
 }
 
 @section PageContent {
-    <div class="top-section search-section search-top-align">
-        @{
-            // If you already have these IDs in ViewBag, use them
-            int? categoryId = ViewBag.CategoryId as int?;
-            int? subCategoryId = ViewBag.SubCategoryId as int?;
-
-            // Build the filter URL only when you have a category/subcategory context
-            string? filterUrl = null;
-            if (categoryId.HasValue && categoryId.Value > 0)
-            {
-                filterUrl = Url.Action("Index", "DirectoryFilter", new
-                {
-                    CategoryId = categoryId,
-                    SubCategoryId = subCategoryId,
-                    Page = 1,
-                    PageSize = 10
-                });
-            }
-
-            var searchVm = new DirectoryManager.Web.Models.SearchFormViewModel
-            {
-                FilterCategoryId = categoryId,
-                FilterSubCategoryId = subCategoryId
-            };
-        }
-
-        @await Html.PartialAsync("_SearchForm", searchVm)
-    </div>
+ 
 
     <div class="directory-entry-details container py-4">
         <h1 class="mb-3">@Model.Name</h1>
@@ -112,7 +86,6 @@
                             </td>
                         </tr>
 
-                        @* ✅ WEBSITE: if scam -> plain text of Model.Link (not LinkA). else -> clickable using finalLink *@
                         @if (!string.IsNullOrWhiteSpace(Model.Link))
                         {
                             <tr>
@@ -188,7 +161,9 @@
                         {
                             <tr>
                                 <th scope="row">Contact</th>
-                                <td><span class="multi-line-text">@Model.Contact</span></td>
+                                <td>
+                                    @Html.Raw(StringHelpers.RenderContactFieldHtml(Model.Contact, cssClass: "multi-line-text"))
+                                </td>
                             </tr>
                         }
                         @if (!string.IsNullOrEmpty(Model.Location) || !string.IsNullOrWhiteSpace(Model.CountryCode))
@@ -206,6 +181,13 @@
                             <tr>
                                 <th scope="row">Processor</th>
                                 <td>@Model.Processor</td>
+                            </tr>
+                        }
+                        @if (Model.FoundedDate.HasValue)
+                        {
+                            <tr>
+                                <th scope="row">Founded</th>
+                                <td>@Model.FoundedDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                             </tr>
                         }
                         <tr>
@@ -228,7 +210,7 @@
         @if (!isScam && !string.IsNullOrWhiteSpace(finalLink))
         {
             <br />
-            <a href="@finalLink" class="btn btn-primary" target="_blank">Visit Website</a>
+            <a href="@finalLink" class="btn btn-primary btn-cta" target="_blank">Visit Website</a>
             <br />
         }
 
@@ -245,7 +227,14 @@
         {
             <br />
             <div class="mb-4">
-                <h4>Note</h4>
+                @if (Model.DirectoryStatus == DirectoryStatus.Scam || Model.DirectoryStatus == DirectoryStatus.Questionable)
+                {
+                    <h4 class="warning-color">Note</h4>
+                }
+                else
+                {
+                    <h4>Note</h4>
+                }
                 <p><em>@Html.Raw(Model.Note)</em></p>
             </div>
         }
@@ -278,8 +267,24 @@
             </div>
         }
 
+        @if (Model.AdditionalLinks?.Any() ?? false)
+        {
+            <br />
+            <div class="entry-additional-links">
+                <strong>Related Links:</strong>
+                <ul class="mb-0">
+                    @foreach (var link in Model.AdditionalLinks)
+                    {
+                        <li>
+                            <a class="multi-line-text" href="@link" target="_blank" rel="nofollow noopener">@link</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+
         <br />
-        @await Html.PartialAsync("_EntryReviews", (DirectoryManager.Web.Models.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
+        @await Html.PartialAsync("_EntryReviews", (DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
 
     </div>
 
