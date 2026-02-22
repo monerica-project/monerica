@@ -413,8 +413,6 @@ public class DirectoryFilterController : Controller
     {
         cacheEntry.AbsoluteExpirationRelativeToNow = CacheAbsolute;
         cacheEntry.SlidingExpiration = CacheSliding;
-
-        // NEW: attach to prefix token so BaseController can expire by prefix
         cacheEntry.AddExpirationToken(CachePrefixManager.GetToken(prefix));
     }
 

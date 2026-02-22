@@ -149,24 +149,4 @@ public class SearchController : Controller
 
         return this.View(vmOut);
     }
-
-    private async Task<HashSet<string>> GetBlackTermsAsync()
-    {
-        if (this.memoryCache.TryGetValue(StringConstants.CacheKeySearchBlacklistTermsCacheKey, out HashSet<string>? set) && set is not null)
-        {
-            return set;
-        }
-
-        var terms = await this.blacklistRepository.GetAllTermsAsync();
-        var norm = new HashSet<string>(terms
-            .Where(t => !string.IsNullOrWhiteSpace(t))
-            .Select(t => t.Trim().ToLowerInvariant()));
-
-        _ = this.memoryCache.Set(
-            StringConstants.CacheKeySearchBlacklistTermsCacheKey,
-            norm,
-            new MemoryCacheEntryOptions { AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6) });
-
-        return norm;
-    }
 }
