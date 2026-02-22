@@ -2,19 +2,24 @@
 @using DirectoryManager.Data.Models
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Models
+@using DirectoryManager.Web.Services.Interfaces
+@using Microsoft.AspNetCore.Html
+@using Microsoft.Extensions.Caching.Memory
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor HttpContext
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheService
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService urlResolver
-@using Microsoft.Extensions.Caching.Memory
 @inject IMemoryCache MemoryCache
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepo
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository subCatRepo
+@inject IUrlResolutionService Urls
+
+@model SearchFormViewModel
 
 @{
     var currentCat = (string?)ViewData["CurrentCategoryKey"] ?? "";
     var currentSub = (string?)ViewData["CurrentSubCategoryKey"] ?? "";
 
-    // Cache ONLY the static data (cats + subs), not the "current" selection.
+    // Cache ONLY static data (cats + subs)
     var cached = await MemoryCache.GetOrCreateAsync<
         (IReadOnlyList<Category> Categories, Dictionary<int, List<Subcategory>> SubsByCategory)
     >(StringConstants.NavMenu, async entry =>
@@ -39,11 +44,191 @@
         CurrentSubCategoryKey = currentSub
     };
 
-    // Fetch logo URL once (don’t inline await in an attribute)
     var logoUrl = await cacheService.GetSnippetAsync(SiteConfigSetting.SiteLogoUrl);
-
     ViewData["NavModel"] = navModel;
+
+
+    // ... your existing cached/navModel setup above ...
+
+    // ✅ Infer CategoryId/SubCategoryId from current page keys (ViewData)
+    int? inferredCategoryId = null;
+    int? inferredSubCategoryId = null;
+
+    if (!string.IsNullOrWhiteSpace(currentCat))
+    {
+        inferredCategoryId = navModel.Categories
+            .FirstOrDefault(c => string.Equals(c.CategoryKey, currentCat, StringComparison.OrdinalIgnoreCase))
+            ?.CategoryId;
+
+        if (inferredCategoryId is > 0 && !string.IsNullOrWhiteSpace(currentSub))
+        {
+            if (navModel.SubsByCategory.TryGetValue(inferredCategoryId.Value, out var subsForCat)
+                && subsForCat != null)
+            {
+                inferredSubCategoryId = subsForCat
+                    .FirstOrDefault(s => string.Equals(s.SubCategoryKey, currentSub, StringComparison.OrdinalIgnoreCase))
+                    ?.SubCategoryId;
+            }
+        }
+    }
+
+    // ✅ Prefer explicit model values (when provided), otherwise use inferred values
+    int? effectiveCatId = (Model?.FilterCategoryId is > 0) ? Model!.FilterCategoryId : inferredCategoryId;
+    int? effectiveSubId = (Model?.FilterSubCategoryId is > 0) ? Model!.FilterSubCategoryId : inferredSubCategoryId;
+
+    string BuildFilterUrl()
+    {
+        if (effectiveCatId is > 0)
+        {
+            var routeVals = new Dictionary<string, object?>
+            {
+                ["CategoryId"] = effectiveCatId.Value,
+                ["Page"] = 1,
+                ["PageSize"] = 10
+            };
+
+            if (effectiveSubId is > 0)
+            {
+                routeVals["SubCategoryId"] = effectiveSubId.Value;
+            }
+
+            return Urls.ResolveToApp(Url.Action("Index", "DirectoryFilter", routeVals) ?? "/filter");
+        }
+
+        return Urls.ResolveToApp("/filter");
+    }
+
+    var filterUrl = BuildFilterUrl();
 }
+
+   
+
+
+@functions {
+    // ✅ Single source of truth for Search/Filter markup (reused twice)
+    private Microsoft.AspNetCore.Html.IHtmlContent RenderNavSearch(string filterUrl, IUrlResolutionService Urls)
+    {
+        return new HtmlString($@"
+<div class=""nav-search-wrap"">
+  <form method=""get"" action=""{Urls.ResolveToApp("/search")}"" class=""nav-search-form"" role=""search"" aria-label=""Search Monerica"">
+    <input type=""search"" name=""q"" class=""nav-search-input"" maxlength=""50"" aria-label=""Search""
+           placeholder=""Search directory..."" autocomplete=""off"" />
+    <button type=""submit"" class=""btn btn-primary nav-search-btn"">Search</button>
+    <a href=""{filterUrl}"" class=""btn btn-info nav-filter-btn"">Filter</a>
+  </form>
+</div>");
+    }
+}
+
+<style>
+    /* =========================================================
+       NAV SEARCH (shared for SIDEBAR + MOBILE NAV)
+       - One style block, no duplicates
+       ========================================================= */
+
+    /* Tokens (keeps it consistent & easy to tweak) */
+    :root {
+        --nav-gap: .35rem;
+        --nav-input-bg: rgba(10,10,10,.92);
+        --nav-input-bg-focus: rgba(12,12,12,.96);
+        --nav-input-text: #fff;
+        --nav-placeholder: rgba(255,255,255,.55);
+        --nav-border: rgba(255,255,255,.18);
+        --nav-border-focus: rgba(255,102,0,.60);
+        --nav-caret: #ff6600;
+        --nav-glow1: rgba(255,102,0,.35);
+        --nav-glow2: rgba(255,102,0,.30);
+        --nav-glow3: rgba(255,102,0,.16);
+    }
+
+    /* Wrapper spacing (context-specific tweaks below) */
+    .nav-search-wrap {
+        padding: 0 .35rem;
+        margin: 0 0 .6rem 0;
+    }
+
+    /* Layout */
+    .nav-search-form {
+        display: flex;
+        flex-wrap: wrap; /* allow wrap in narrow containers */
+        gap: var(--nav-gap);
+        width: 100%;
+    }
+
+    /* Input: black + glow (shared everywhere) */
+    .nav-search-input {
+        flex: 1 1 100%;
+        width: 100%;
+        min-width: 0;
+        height: 28px;
+        font-size: 12px;
+        padding: .15rem .5rem;
+        background: var(--nav-input-bg) !important;
+        color: var(--nav-input-text) !important;
+        border: 1px solid var(--nav-border) !important;
+        border-radius: 999px !important;
+        box-shadow: inset 0 0 0 1px rgba(0,0,0,.65) !important;
+        outline: none !important;
+        caret-color: var(--nav-caret) !important;
+    }
+
+        .nav-search-input::placeholder {
+            color: var(--nav-placeholder) !important;
+        }
+
+        .nav-search-input:focus {
+            background: var(--nav-input-bg-focus) !important;
+            border-color: var(--nav-border-focus) !important;
+            box-shadow: inset 0 0 0 1px rgba(0,0,0,.70), 0 0 0 1px var(--nav-glow1), 0 0 10px var(--nav-glow2), 0 0 18px var(--nav-glow3) !important;
+        }
+
+    /* Buttons: shared base sizing */
+    .nav-search-btn,
+    .nav-filter-btn {
+        flex: 1 1 calc(50% - (var(--nav-gap) / 2));
+        min-width: 0;
+        height: 26px;
+        padding: .10rem .45rem;
+        font-size: 11px;
+        line-height: 1;
+        border-radius: 7px;
+    }
+
+    /* =========================================================
+       CONTEXT OVERRIDES
+       ========================================================= */
+
+    /* Sidebar stays compact */
+    .sidebar .nav-search-wrap {
+        padding: 0 .35rem;
+    }
+
+    /* Mobile: input row 1 full width, buttons row 2 50/50 + slightly larger */
+    @@media (max-width: 768px) {
+        .mobile-nav .nav-search-wrap {
+            padding: .25rem .85rem .5rem;
+            margin: 0;
+        }
+
+        .mobile-nav .nav-search-form {
+            gap: .5rem;
+        }
+
+        .mobile-nav .nav-search-input {
+            height: 34px;
+            font-size: 14px;
+            padding: 0 12px;
+        }
+
+        .mobile-nav .nav-search-btn,
+        .mobile-nav .nav-filter-btn {
+            height: 32px;
+            padding: 0 12px;
+            font-size: 13px;
+            border-radius: 10px;
+        }
+    }
+</style>
 
 <details class="mobile-nav">
     <summary class="mobile-nav-summary">
@@ -53,6 +238,10 @@
             <img src="@urlResolver.ExtractPathFromFullUrl(logoUrl)" alt="logo" class="mobile-nav-home-logo">
         </a>
     </summary>
+
+    @* ✅ TOP OF MOBILE MENU *@
+    @RenderNavSearch(filterUrl, Urls)
+
     <ul>
         @foreach (var cat in navModel.Categories)
         {
@@ -66,7 +255,7 @@
                 <div class="cat-row" style="display:flex;align-items:center;gap:.5rem;">
                     <label for="@expanderIdMobile" class="expander" aria-label="Expand @cat.Name" style="cursor:pointer;">+</label>
                     <a class="no-app-link @(isCurrentCat ? "active" : "")"
-                       href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
+                           href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
                         @cat.Name
                     </a>
                 </div>
@@ -89,7 +278,7 @@
 </details>
 
 <nav class="sidebar">
-    <div class="logo-container text-center mb-4">
+    <div class="logo-container text-center mb-3">
         <a class="no-app-link" href="@urlResolver.ResolveToRoot("/")">
             @if (urlResolver.IsTor)
             {
@@ -101,6 +290,9 @@
             }
         </a>
     </div>
+
+    @* ✅ TOP OF SIDEBAR *@
+    @RenderNavSearch(filterUrl, Urls)
 
     <ul>
         @foreach (var cat in navModel.Categories)
@@ -114,14 +306,11 @@
             <li class="category-item">
                 <label for="@expanderId" class="expander">+</label>
                 <a class="no-app-link @(isCurrentCat ? "active" : "")"
-                   href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
+                       href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
                     @cat.Name
                 </a>
 
-                <input type="checkbox"
-                       id="@expanderId"
-                       class="hidden-toggle"
-                       @(isCurrentCat ? "checked" : "") />
+                <input type="checkbox" id="@expanderId" class="hidden-toggle" @(isCurrentCat ? "checked" : "") />
 
                 <div class="hidden">
                     <ul>

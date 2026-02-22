@@ -162,9 +162,7 @@
                 </p>
             </div>
 
-            <div class="top-section search-section">
-                @await Html.PartialAsync("_SearchForm")
-            </div>
+            
 
             <div class="top-section links-section">
                 @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopMenuActionsHtml))

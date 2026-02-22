@@ -48,16 +48,7 @@
 
 @BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
 
-    <div class="top-section search-section search-top-align">
-        @await Html.PartialAsync("_SearchForm",
-        new DirectoryManager.Web.Models.SearchFormViewModel
-        {
-            FilterCategoryId = Model.Category.CategoryId,
-            FilterSubCategoryId = Model.SubCategoryId
-        })
-
-    </div>
-
+    
 <h1>@Model.PageHeader</h1>
 
 <hr />

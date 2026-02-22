@@ -49,34 +49,7 @@
 }
 
 @section PageContent {
-    <div class="top-section search-section search-top-align">
-        @{
-            // If you already have these IDs in ViewBag, use them
-            int? categoryId = ViewBag.CategoryId as int?;
-            int? subCategoryId = ViewBag.SubCategoryId as int?;
-
-            // Build the filter URL only when you have a category/subcategory context
-            string? filterUrl = null;
-            if (categoryId.HasValue && categoryId.Value > 0)
-            {
-                filterUrl = Url.Action("Index", "DirectoryFilter", new
-                {
-                    CategoryId = categoryId,
-                    SubCategoryId = subCategoryId,
-                    Page = 1,
-                    PageSize = 10
-                });
-            }
-
-            var searchVm = new DirectoryManager.Web.Models.SearchFormViewModel
-            {
-                FilterCategoryId = categoryId,
-                FilterSubCategoryId = subCategoryId
-            };
-        }
-
-        @await Html.PartialAsync("_SearchForm", searchVm)
-    </div>
+ 
 
     <div class="directory-entry-details container py-4">
         <h1 class="mb-3">@Model.Name</h1>
