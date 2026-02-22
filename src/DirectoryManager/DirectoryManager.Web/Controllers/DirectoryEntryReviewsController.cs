@@ -5,6 +5,7 @@ using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Models.Reviews;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;

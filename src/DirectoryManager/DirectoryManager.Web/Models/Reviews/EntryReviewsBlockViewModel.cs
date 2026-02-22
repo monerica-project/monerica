@@ -1,6 +1,6 @@
 ﻿using DirectoryManager.Data.Models.Reviews;
 
-namespace DirectoryManager.Web.Models
+namespace DirectoryManager.Web.Models.Reviews
 {
     public class EntryReviewsBlockViewModel
     {

@@ -13,6 +13,7 @@ using DirectoryManager.Web.Charting;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Models.Reviews;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;

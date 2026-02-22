@@ -1,4 +1,4 @@
-﻿namespace DirectoryManager.Web.Models
+﻿namespace DirectoryManager.Web.Models.Reviews
 {
     public class ReviewReplyFlowState
     {
