@@ -1,0 +1,46 @@
+﻿@using DirectoryManager.Web.Constants
+@model List<DirectoryManager.Data.Models.Processor>
+
+@{
+    ViewData["Title"] = "Processors";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+
+<p>
+    <a class="btn btn-primary" href="~/processors/create">Add Processor</a>
+</p>
+
+@if (Model == null || Model.Count == 0)
+{
+    <p class="text-muted">No processors yet.</p>
+}
+else
+{
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th style="width:220px;"></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var p in Model)
+            {
+                <tr>
+                    <td>@p.Name</td>
+                    <td>
+                        <a class="btn btn-outline-secondary btn-sm" href="~/processors/edit/@p.ProcessorId">Edit</a>
+                        <a class="btn btn-outline-danger btn-sm" href="~/processors/delete/@p.ProcessorId">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+}

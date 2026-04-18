@@ -1,0 +1,24 @@
+﻿@model DirectoryManager.Data.Models.BlockedIP
+@using DirectoryManager.Web.Constants;
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Add Blocked IP";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+@using (Html.BeginForm("Create", "BlockedIPs", FormMethod.Post))
+{
+    <div class="form-group">
+        @Html.LabelFor(model => model.IpAddress)
+        @Html.TextBoxFor(model => model.IpAddress, new { @class = "form-control" })
+        @Html.ValidationMessageFor(model => model.IpAddress)
+    </div>
+    <button type="submit" class="btn btn-primary">Add IP</button>
+}
+}

@@ -1,0 +1,42 @@
+﻿@model IEnumerable<DirectoryManager.Data.Models.DirectoryEntrySelection>
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Directory Entry Selections";
+}
+@{
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<div class="table-wrapper">
+<table class="table">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Directory Entry</th>
+            <th>Selection Type</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.DirectoryEntrySelectionId</td>
+                <td>@item.DirectoryEntry?.Name</td> 
+                <td>@item.EntrySelectionType</td>
+                <td>                  
+                    <a asp-action="DeleteFromList" asp-route-id="@item.DirectoryEntrySelectionId">Remove</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+</div>
+
+<a asp-action="AddToList">Add to List</a>
+}

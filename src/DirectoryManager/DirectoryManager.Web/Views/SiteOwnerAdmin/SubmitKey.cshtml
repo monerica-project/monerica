@@ -1,0 +1,61 @@
+﻿@model DirectoryManager.Web.Controllers.SiteOwnerAdminController.SiteOwnerAdminLoginVm
+@using DirectoryManager.Web.Constants
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Owner Admin";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+<h1>Owner Admin</h1>
+<h4 style="margin-top:6px;">@Model.DirectoryEntryName</h4>
+
+@if (TempData["AdminMessage"] != null)
+{
+    <div class="alert alert-success mt-3">@TempData["AdminMessage"]</div>
+}
+@if (TempData["AdminError"] != null)
+{
+    <div class="alert alert-danger mt-3">@TempData["AdminError"]</div>
+}
+
+@if (!Model.HasPgpKey)
+{
+    <div class="alert alert-danger mt-3">
+        This listing has no PGP key set, so owner admin verification is disabled.
+    </div>
+}
+else
+{
+    <p class="mt-3">
+        Paste the <strong>public PGP key</strong> that matches the key on your listing.
+        You will decrypt a challenge to prove you control the private key.
+    </p>
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <form asp-action="SubmitKey"
+          asp-controller="SiteOwnerAdmin"
+          asp-route-directoryEntryKey="@Model.DirectoryEntryKey"
+          method="post">
+
+        @Html.AntiForgeryToken()
+
+        <!-- honeypot -->
+        <input type="text" name="website" value="" style="display:none" tabindex="-1" autocomplete="off" />
+
+        <textarea name="pgpArmored"
+                  class="form-control"
+                  rows="10"
+                  placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----&#10;..."></textarea>
+
+        <br />
+        <button class="btn btn-success btn-cta" type="submit">Generate Challenge</button>
+    </form>
+}
+
+<p class="mt-3">
+    <a href="/site/@Model.DirectoryEntryKey">Back to listing</a>
+</p>
+}

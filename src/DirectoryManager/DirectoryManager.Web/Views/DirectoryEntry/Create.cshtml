@@ -1,0 +1,38 @@
+﻿@using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Enums
+@model DirectoryManager.Web.Models.DirectoryEntryEditViewModel
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@using DirectoryManager.Web.Constants;
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+@{
+    Layout = "_CenteredLayout";
+}
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Create Directory Entry";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<form method="post" action="~/directoryentry/create">
+
+@if (!ViewData.ModelState.IsValid)
+{
+    <div class="alert alert-danger">
+        <ul>
+            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <li>@error.ErrorMessage</li>
+            }
+        </ul>
+    </div>
+}
+    <!-- Use the partial view for the form -->
+    @await Html.PartialAsync("_DirectoryEntryForm")
+
+    <button  class="btn btn-primary ui-submit btn-cta" type="submit">Create</button>
+</form>
+}

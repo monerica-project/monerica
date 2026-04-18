@@ -1,0 +1,25 @@
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Already Entered";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+    <hr />
+
+    <div class="alert alert-warning">
+        <h4 class="alert-heading">You already have an active raffle entry.</h4>
+        <p class="mb-0">
+            Only one entry per author is allowed at a time.
+            Your existing entry remains valid for the current raffle.
+            Once the current raffle ends and your entry is marked as ended,
+            you will be eligible to enter again with a new verified review.
+        </p>
+    </div>
+
+    @await Html.PartialAsync("_BackToHome")
+}

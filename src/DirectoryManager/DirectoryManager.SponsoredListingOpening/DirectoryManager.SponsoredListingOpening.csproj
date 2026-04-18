@@ -1,0 +1,35 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<OutputType>Exe</OutputType>
+		<TargetFramework>net10.0</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<Nullable>enable</Nullable>
+		<CodeAnalysisRuleSet>../StyleCop.Analyzers.ruleset</CodeAnalysisRuleSet>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<AdditionalFiles Include="..\stylecop.json" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<PackageReference Include="Microsoft.Extensions.Configuration.Binder" Version="10.0.6" />
+		<PackageReference Include="StyleCop.Analyzers" Version="1.1.118" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\DirectoryManager.Data\DirectoryManager.Data.csproj" />
+		<ProjectReference Include="..\DirectoryManager.Services\DirectoryManager.Services.csproj" />
+		<ProjectReference Include="..\DirectoryManager.Utilities\DirectoryManager.Utilities.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="appsettings.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="appsettings.template.json" TargetPath="data\appsettings.template.json">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+		</None>
+	</ItemGroup>
+</Project>

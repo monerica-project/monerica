@@ -1,0 +1,38 @@
+@using DirectoryManager.Web.Constants
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@model DirectoryManager.Web.Models.SuccessViewModel
+@{
+    ViewData[StringConstants.TitleHeader] = "Payment Received";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    <p>&#9989; Thank you for your payment via BTCPay Server. Your order ID is: <strong>@Model.OrderId</strong></p>
+
+    <br />
+
+    <p>Your listing is currently live and will remain displayed until: <b>@Model.ListingEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</b> UTC</p>
+
+    <br />
+
+    <div class="alert alert-info" role="alert">
+        <strong>Listing not active yet?</strong><br />
+        Monero requires <strong>10 confirmations</strong> before BTCPay considers a transaction settled. This
+        typically takes 20&ndash;30 minutes. Your listing will activate automatically once confirmed &mdash;
+        you do not need to stay on this page.
+        <br /><br />
+        <strong>&#9888; Do not see the outgoing transaction in your wallet?</strong><br />
+        If your sending wallet was not fully synced to the current blockchain height before you sent payment,
+        it will not display the outgoing transaction even after it has been broadcast and confirmed on-chain.
+        Open your wallet, let it fully sync, and the transaction will appear. This is a display issue on
+        your end only &mdash; it does not affect whether the payment reached the recipient.
+    </div>
+
+    @Html.Raw(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.InvoiceSuccessMessageHtml))
+}

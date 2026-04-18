@@ -1,0 +1,79 @@
+﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Web.Models
+@using DirectoryManager.Web.Models.Sponsorship
+@using Microsoft.Extensions.Caching.Memory
+@using DirectoryManager.Web.Models.SponsoredListing;
+@model SponsoredListingOffersViewModel
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
+@inject NowPayments.API.Interfaces.INowPaymentsService nowPaymentsService
+@inject IMemoryCache memoryCache
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Sponsored Listing Offers";
+    Layout = "_CenteredLayout";
+
+    var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(httpContextAccessor, memoryCache, nowPaymentsService);
+    var conversionRate = conversionResult.conversionRate;
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    <h2>Offers</h2>
+    <p>These are the current market rates for advertising. Rates change according to demand. The default prices are used unless there is a subcategory override.</p>
+    <p><a class="btn btn-primary" href="~/sponsoredlisting">Buy Advertising</a></p>
+
+    <hr />
+    <p>
+        <b>Find your listing to <a href="~/sponsorship">join the waitlist</a>.</b>
+    </p>
+    <hr />
+   
+    @if (Model.LastUpdatedDate.HasValue)
+    {
+        <p>Rates last updated on: 
+           @Model.LastUpdatedDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+        </p>
+    }
+    else
+    {
+        <p>Rates last updated on: (not available)</p>
+    }
+
+@await Html.PartialAsync(
+    "_SponsorshipOffersTable",
+    new SponsorshipOffersTableViewModel {
+        SponsorshipType = SponsorshipType.MainSponsor,
+        Offers = Model.MainSponsorshipOffers,
+        ConversionRate = conversionRate,
+        SelectedCurrency = "XMR"
+    })
+
+@* render CategorySponsor table *@
+@await Html.PartialAsync(
+    "_SponsorshipOffersTable",
+    new SponsorshipOffersTableViewModel {
+        SponsorshipType = SponsorshipType.CategorySponsor,
+        Offers = Model.CategorySponsorshipOffers,
+        ConversionRate = conversionRate,
+        SelectedCurrency = "XMR"
+    })
+
+@* render SubcategorySponsor table *@
+@await Html.PartialAsync(
+    "_SponsorshipOffersTable",
+    new SponsorshipOffersTableViewModel {
+        SponsorshipType = SponsorshipType.SubcategorySponsor,
+        Offers = Model.SubCategorySponsorshipOffers,
+        ConversionRate = conversionRate,
+        SelectedCurrency = "XMR"
+    })
+}

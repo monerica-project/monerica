@@ -1,0 +1,33 @@
+﻿@using DirectoryManager.Web.Constants
+@{
+    var purpose = (ViewBag.CaptchaPurpose as string)?.ToLowerInvariant();
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    ViewData[StringConstants.TitleHeader] =
+        purpose == "reply"
+            ? "Reply to Review – CAPTCHA"
+            : "Leave a Review – CAPTCHA";
+
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <form asp-action="@(ViewBag.PostAction ?? "CaptchaPost")"
+          asp-controller="@(ViewBag.PostController ?? "DirectoryEntryReviews")"
+          method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+
+        @await Html.PartialAsync(
+                "_CaptchaBlock",
+        (string)(ViewBag.CaptchaPurpose ?? "review")
+        )
+
+    <br />
+        <button type="submit" class="btn btn-primary btn-cta">Continue</button>
+</form>
+}

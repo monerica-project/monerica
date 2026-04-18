@@ -1,0 +1,218 @@
+﻿@model DirectoryManager.Web.Controllers.SiteOwnerAdminController.SiteOwnerAdminIndexVm
+@using System.Globalization
+@using DirectoryManager.Web.Constants
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Owner Admin";
+    Layout = "_CenteredLayout";
+
+    string PageUrl(int p) => p <= 1
+        ? $"/site/{Model.DirectoryEntryKey}/admin"
+        : $"/site/{Model.DirectoryEntryKey}/admin/page/{p}";
+}
+
+@functions {
+    private static string? GetPropString(object obj, params string[] names)
+    {
+        foreach (var n in names)
+        {
+            var p = obj.GetType().GetProperty(n);
+            if (p == null) continue;
+            var v = p.GetValue(obj)?.ToString();
+            if (!string.IsNullOrWhiteSpace(v)) return v;
+        }
+        return null;
+    }
+
+    private static int? GetPropInt(object obj, params string[] names)
+    {
+        foreach (var n in names)
+        {
+            var p = obj.GetType().GetProperty(n);
+            if (p == null) continue;
+
+            var v = p.GetValue(obj);
+            if (v is int i) return i;
+
+            if (v != null && int.TryParse(v.ToString(), out var parsed))
+            {
+                return parsed;
+            }
+        }
+        return null;
+    }
+}
+
+@section PageContent {
+
+<h1>Owner Admin</h1>
+<h4 style="margin-top:6px;">@Model.DirectoryEntryName</h4>
+
+@if (TempData["AdminMessage"] != null)
+{
+    <div class="alert alert-success mt-3">@TempData["AdminMessage"]</div>
+}
+@if (TempData["AdminError"] != null)
+{
+    <div class="alert alert-danger mt-3">@TempData["AdminError"]</div>
+}
+
+<div class="card p-3 mt-3">
+    <div><strong>Signed in as:</strong> <code>@Model.OwnerFingerprint</code></div>
+    <div class="mt-1"><strong>Session expires (UTC):</strong> @Model.SessionExpiresUtc.ToString("yyyy-MM-dd HH:mm")</div>
+
+    <form asp-action="Logout"
+          asp-controller="SiteOwnerAdmin"
+          asp-route-directoryEntryKey="@Model.DirectoryEntryKey"
+          method="post"
+          class="mt-3">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-danger">End Session (Logout)</button>
+        <a class="btn btn-secondary ms-2" href="/site/@Model.DirectoryEntryKey">View Public Listing</a>
+    </form>
+</div>
+
+<hr />
+
+@if (Model.Reviews == null || Model.Reviews.Count == 0)
+{
+    <p>No reviews found.</p>
+}
+else
+{
+    foreach (var r in Model.Reviews)
+    {
+        var effectiveDate = r.UpdateDate ?? r.CreateDate;
+
+        // Try to pull order info without hardcoding your exact property names
+        var orderId = GetPropString(r, "OrderId", "OrderIdentifier", "OrderNumber", "OrderRef");
+        var orderUrl = GetPropString(r, "OrderUrl", "OrderLink", "OrderPageUrl", "OrderDetailsUrl");
+        var orderAny = GetPropString(r, "OrderIdOrUrl", "OrderInfo", "OrderDetails");
+
+        var title = GetPropString(r, "Title", "Headline", "Subject");
+        var body = GetPropString(r, "Body", "Review", "Text", "Content", "Message", "Comment");
+        var rating = GetPropInt(r, "Rating");
+
+        <div id="review-@r.DirectoryEntryReviewId" class="card p-3 mb-3">
+            <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                <div>
+                    <strong>Review #@r.DirectoryEntryReviewId</strong>
+                    <span class="ms-2">@effectiveDate.ToString("yyyy-MM-dd HH:mm")</span>
+                </div>
+                <div>
+                    @if (rating.HasValue)
+                    {
+                        <span><strong>Rating:</strong> @rating</span>
+                    }
+                    <span class="ms-3"><strong>Status:</strong> @r.ModerationStatus</span>
+                </div>
+            </div>
+
+            <div class="mt-2">
+                <strong>Author:</strong>
+                <span>@(string.IsNullOrWhiteSpace(r.DisplayName) ? r.AuthorFingerprint : r.DisplayName)</span>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(title))
+            {
+                <div class="mt-2"><strong>@title</strong></div>
+            }
+
+            @if (!string.IsNullOrWhiteSpace(body))
+            {
+                <div class="mt-2" style="white-space:pre-wrap;">@body</div>
+            }
+
+            @* ✅ Admin-only order details *@
+            @if (!string.IsNullOrWhiteSpace(orderId) || !string.IsNullOrWhiteSpace(orderUrl) || !string.IsNullOrWhiteSpace(orderAny))
+            {
+                <div class="mt-3" style="border-top:1px solid #333; padding-top:10px;">
+                    <strong>Order Details (admin only)</strong>
+                    @if (!string.IsNullOrWhiteSpace(orderId))
+                    {
+                        <div class="mt-1"><strong>Order ID:</strong> <code>@orderId</code></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(orderUrl))
+                    {
+                        <div class="mt-1"><strong>Order URL:</strong> <a href="@orderUrl" target="_blank" rel="noopener">@orderUrl</a></div>
+                    }
+                    @if (!string.IsNullOrWhiteSpace(orderAny))
+                    {
+                        <div class="mt-1"><strong>Order Info:</strong> <code>@orderAny</code></div>
+                    }
+                </div>
+            }
+
+            <hr />
+
+            <h4>Replies</h4>
+
+            @{
+                Model.RepliesByReviewId.TryGetValue(r.DirectoryEntryReviewId, out var replies);
+                replies ??= new List<DirectoryManager.Data.Models.Reviews.DirectoryEntryReviewComment>();
+            }
+
+            @if (replies.Count == 0)
+            {
+                <p class="text-muted">No replies yet.</p>
+            }
+            else
+            {
+                foreach (var c in replies)
+                {
+                    <div class="card p-2 mb-2">
+                        <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                            <div>
+                                <strong>@(string.IsNullOrWhiteSpace(c.DisplayName) ? c.AuthorFingerprint : c.DisplayName)</strong>
+                                <span class="ms-2">@c.CreateDate.ToString("yyyy-MM-dd HH:mm")</span>
+                            </div>
+                            <div><strong>Status:</strong> @c.ModerationStatus</div>
+                        </div>
+                        <div class="mt-2" style="white-space:pre-wrap;">@c.Body</div>
+                    </div>
+                }
+            }
+
+            <div class="mt-3">
+                <h4>Leave a Reply</h4>
+
+                <form asp-action="Reply"
+                      asp-controller="SiteOwnerAdmin"
+                      asp-route-directoryEntryKey="@Model.DirectoryEntryKey"
+                      method="post">
+                    @Html.AntiForgeryToken()
+
+                    <input type="hidden" name="directoryEntryReviewId" value="@r.DirectoryEntryReviewId" />
+                    <input type="hidden" name="returnPage" value="@Model.CurrentPage" />
+
+                    <textarea name="body" class="form-control" rows="4" placeholder="Write your reply..."></textarea>
+
+                    <br />
+                    <button type="submit" class="btn btn-success btn-cta">Post Reply</button>
+                </form>
+            </div>
+        </div>
+    }
+
+    @* Pagination *@
+    <div class="card p-3 mt-3">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+            <div>
+                Page <strong>@Model.CurrentPage</strong> of <strong>@Model.TotalPages</strong>
+                <span class="ms-2 text-muted">(@Model.PageSize/page)</span>
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                @if (Model.CurrentPage > 1)
+                {
+                    <a class="btn btn-secondary" href="@PageUrl(Model.CurrentPage - 1)">Prev</a>
+                }
+                @if (Model.CurrentPage < Model.TotalPages)
+                {
+                    <a class="btn btn-secondary" href="@PageUrl(Model.CurrentPage + 1)">Next</a>
+                }
+            </div>
+        </div>
+    </div>
+}
+}

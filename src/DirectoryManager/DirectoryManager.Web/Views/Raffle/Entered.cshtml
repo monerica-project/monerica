@@ -1,0 +1,28 @@
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Raffle Entry Confirmed";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+    <hr />
+
+    <div class="alert alert-success">
+        <h4 class="alert-heading">You're in! 🎉</h4>
+        <p class="mb-0">
+            Your raffle entry has been recorded. We will reach out if you are selected as a winner.
+            Good luck!
+        </p>
+    </div>
+
+    <p class="text-muted">
+        You may only hold one active raffle entry at a time.
+        Once this raffle ends you will be eligible to enter again with a future verified review.
+    </p>
+
+    @await Html.PartialAsync("_BackToHome")
+}

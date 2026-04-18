@@ -1,0 +1,47 @@
+﻿@using DirectoryManager.Data.Models
+@model IEnumerable<DirectoryEntry>
+@using DirectoryManager.Data.Models.TransferModels
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Current Listings";
+    ViewData[StringConstants.IsIndexable] = false;
+}
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader] </h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+<hr />
+@await Html.PartialAsync("_BackToHome")<text> | </text><a href="~/submit">create new listing</a>
+<hr />
+
+<form method="get">
+        <select id="combinedFilter" name="subCategoryId" class="form-control select-fit">
+        <option value="">--Select: Category > Subcategory--</option>
+        @foreach (var subCategory in (IEnumerable<SubcategoryDto>)ViewBag.SubCategories)
+        {
+            <option value="@subCategory.SubcategoryId"
+                    selected="@(Context.Request.Query["subCategoryId"] == subCategory.SubcategoryId.ToString() ? "selected" : null)">@subCategory.CategoryName > @subCategory.Name</option>
+        }
+    </select>
+
+    <input type="submit" class="btn btn-primary btn-cta" value="Filter" />
+</form>
+
+<br />
+
+@foreach (var entry in Model)
+{
+    <div>
+        <a target="_blank" href="@entry.Link">@entry.Name</a> <text> - </text>
+        <a rel="nofollow" href="@Url.Action("SubmitEdit", new { id = entry.DirectoryEntryId })">Edit</a> |
+        <a rel="nofollow" href="@Url.Action("Audit", new { id = entry.DirectoryEntryId })">Audit</a>
+    </div>
+}
+
+}

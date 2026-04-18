@@ -1,0 +1,26 @@
+﻿@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Enter Public Key";
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+<h1>My Reviews</h1>
+
+<p>
+    Paste your <strong>PGP public key</strong>. We'll encrypt a short challenge code to that key.
+    Decrypt it with your private key to prove ownership.
+</p>
+
+<div asp-validation-summary="All" class="text-danger"></div>
+
+<form asp-action="SubmitKeyPost" asp-route-flowId="@ViewBag.FlowId" method="post">
+    @Html.AntiForgeryToken()
+
+    <textarea name="pgpArmored"
+              class="form-control"
+              rows="12"
+              placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----"></textarea>
+
+    <br />
+    <button type="submit" class="btn btn-success btn-cta">Send Challenge</button>
+</form>
+}

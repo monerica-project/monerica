@@ -1,0 +1,38 @@
+﻿@using DirectoryManager.Data.Models
+@model IEnumerable<SubcategoryDto>
+@using DirectoryManager.Data.Models.TransferModels
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Sub Categories";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<a href="~/subcategory/create">Create sub category</a>
+<hr />
+
+<form method="get">
+    <label for="categoryFilter">Filter by Category: </label>
+    <select id="categoryFilter" name="categoryId">
+        <option value="">--Select a Category--</option>
+        @foreach (var category in (IEnumerable<Category>)ViewBag.Categories)
+        {
+            <option value="@category.CategoryId">@category.Name</option>
+        }
+    </select>
+    <button class="btn" type="submit">Filter</button>
+</form>
+<br />
+@foreach (var subCategory in Model)
+{
+    <div>@subCategory.Name - Parent Category: @subCategory.CategoryName</div>
+    <a href="@Url.Action("Edit", new { id = subCategory.SubcategoryId })">Edit</a>
+}
+<br />
+
+<a href="@Url.Action("Create")">Create New: Subcategory</a>
+}

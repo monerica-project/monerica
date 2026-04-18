@@ -1,0 +1,22 @@
+﻿@using DirectoryManager.Web.Constants;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@{
+    ViewData[StringConstants.TitleHeader] = "Manage Reviews";
+}
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+<hr />
+@await Html.PartialAsync("_BackToHome")
+<hr />
+    <form action="~/userreviews/begin" method="post">
+        <input type="text" name="website" style="display:none" autocomplete="off" />
+        <button type="submit" class="btn btn-success btn-cta">Manage my reviews</button>
+    </form>
+}

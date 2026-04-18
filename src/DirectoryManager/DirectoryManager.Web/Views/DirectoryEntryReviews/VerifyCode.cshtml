@@ -1,0 +1,16 @@
+﻿@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Leave a Review – Verify Code";
+    Layout = "_CenteredLayout";
+
+    // This wrapper tells the shared partial where to post
+    ViewBag.PostController = "DirectoryEntryReviews";
+    ViewBag.PostAction = "VerifyCodePost";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    @await Html.PartialAsync("_PgpVerifyCode")
+}

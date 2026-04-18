@@ -1,0 +1,35 @@
+﻿@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Thank You";
+    Layout = "_CenteredLayout";
+
+    var msg = TempData["ReviewMessage"] as string;
+    var manualFlag = TempData["ReviewNeedsManualReview"] as string;
+
+    string finalMessage;
+
+    if (!string.IsNullOrWhiteSpace(msg))
+    {
+        finalMessage = msg;
+    }
+    else if (manualFlag == "1")
+    {
+        finalMessage = "Thanks! Your review will be manually reviewed before it appears publicly.";
+    }
+    else
+    {
+        finalMessage = "Thanks! Your review will go live shortly.";
+    }
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+    <hr />
+
+    <p><b>@finalMessage</b></p>
+
+    @await Html.PartialAsync("_BackToHome")
+}

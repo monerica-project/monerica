@@ -1,0 +1,304 @@
+﻿@model DirectoryManager.Data.Models.Submission
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Models
+@{
+    var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
+    ViewData[StringConstants.TitleHeader] = "Edit Submission";
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    ViewData[StringConstants.IsIndexable] = false;
+}
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+ 
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<form asp-action="Review" asp-route-id="@Model.SubmissionId" method="post">
+
+
+    @if (Model.DirectoryEntryId  != null)
+    {
+        @Html.HiddenFor(m => m.DirectoryEntryId)
+        
+        <p><b>Existing:</b>
+        <a href="~/directoryentry/edit/@Model.DirectoryEntryId">Edit</a>
+        </p>
+        <p><i>Differences:</i></p>
+        @Html.Raw(ViewBag.Differences)
+    }
+ 
+    <span>Link:</span> <a target="_blank" href="@Model.Link">@Model.Link</a>
+
+    @if (!string.IsNullOrEmpty(Model.ProofLink))
+    {
+        <br />
+        <span>Proof Link:</span>
+        <a target="_blank" href="@Model.ProofLink">@Model.ProofLink</a>
+    }
+    
+    @if (!string.IsNullOrEmpty(Model.VideoLink))
+    {
+        <br />
+        <span>Video Link:</span>
+        <a target="_blank" href="@Model.VideoLink">@Model.VideoLink</a>
+    }
+            
+    <br />
+    <br />
+    <div class="form-group">
+        <label asp-for="SubCategoryId">Subcategory</label>
+            <select class="form-control select-fit" asp-for="SubCategoryId" asp-items="@(new SelectList(ViewBag.SubCategories, "SubcategoryId", "DisplayName"))" required></select>
+    </div>
+ 
+    <div class="form-group">
+        <label asp-for="SuggestedSubCategory">Suggested Category</label>
+        <input autocomplete="off" asp-for="SuggestedSubCategory" class="form-control input-width" />
+        <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="DirectoryStatus">Directory Status:</label>
+            <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control select-fit">
+            @foreach (var status in Enum.GetValues(typeof(DirectoryStatus)))
+            {
+                if ((DirectoryStatus)status == DirectoryStatus.Unknown)
+                {
+                    continue;
+                }
+             
+                <option value="@((int)status)">@status.ToString()</option>
+            }
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Name">Name</label>
+        <input autocomplete="off" asp-for="Name" class="form-control input-width" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Link">Link</label>
+        <input autocomplete="off"  asp-for="Link" class="form-control input-width" />
+        <span asp-validation-for="Link" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+            <label asp-for="Link2">@await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name)</label>
+        <input autocomplete="off" asp-for="Link2" class="form-control input-width" />
+        <span asp-validation-for="Link2" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+            <label asp-for="Link3">@await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name)</label>
+        <input autocomplete="off" asp-for="Link3" class="form-control input-width" />
+        <span asp-validation-for="Link3" class="text-danger"></span>
+    </div>
+    
+    <div class="form-group">
+        <label asp-for="Description">Description</label>
+        <textarea rows="5" class="input-width input-width" cols="100" asp-for="Description"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Note">Note</label>
+        <textarea rows="5" class="input-width" cols="100" asp-for="Note"></textarea>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Contact">Contact</label>
+        <input autocomplete="off" asp-for="Contact" class="form-control input-width" />
+        <span asp-validation-for="Contact" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Processor">Processor</label>
+        <input autocomplete="off" asp-for="Processor" class="form-control input-width" />
+        <span asp-validation-for="Processor" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="Location">Location</label>
+        <input autocomplete="off" asp-for="Location" class="form-control input-width" />
+        <span asp-validation-for="Location" class="text-danger"></span>
+    </div>
+
+    <div class="form-group">
+        <label asp-for="CountryCode" class="control-label"></label>
+            <select asp-for="CountryCode" asp-items="ViewBag.CountryCode" class="form-control select-fit"></select>
+        <span asp-validation-for="CountryCode" class="text-danger"></span>
+    </div>
+
+        <div class="form-group">
+            <label asp-for="PgpKey">PGP Key</label>
+            <textarea class="form-control input-width" asp-for="PgpKey"></textarea>
+        </div>
+
+        <div class="form-group">
+            <label>Founded Date (YYYY MM DD)</label>
+
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <input class="form-control" style="width:110px;"
+                       name="FoundedYear"
+                       value="@(Model.FoundedDate?.Year.ToString("0000") ?? "")"
+                       autocomplete="off" inputmode="numeric" pattern="[0-9]*" maxlength="4"
+                       placeholder="YYYY" />
+
+                <input class="form-control" style="width:90px;"
+                       name="FoundedMonth"
+                       value="@(Model.FoundedDate?.Month.ToString("00") ?? "")"
+                       autocomplete="off" inputmode="numeric" pattern="[0-9]*" maxlength="2"
+                       placeholder="MM" />
+
+                <input class="form-control" style="width:90px;"
+                       name="FoundedDay"
+                       value="@(Model.FoundedDate?.Day.ToString("00") ?? "")"
+                       autocomplete="off" inputmode="numeric" pattern="[0-9]*" maxlength="2"
+                       placeholder="DD" />
+            </div>
+
+            <span class="text-danger">@Html.ValidationMessage("FoundedYear")</span>
+        </div>
+
+
+        <div class="form-group">
+            <label asp-for="ProofLink">Proof Link (where it shows acceptance on site)</label>
+            <input class="form-control input-width" asp-for="ProofLink" />
+        </div>
+
+        <div class="form-group">
+            <label asp-for="VideoLink">Video Link (where it shows using site)</label>
+            <input class="form-control input-width" asp-for="VideoLink" />
+        </div>
+
+        @{
+            var relatedLinks = Model.RelatedLinks ?? new List<string>();
+        }
+
+        <h3>Related / Additional Links (optional)</h3>
+        @if (relatedLinks.Count > 0)
+        {
+            <br />
+            <span>Related Links:</span>
+            <ul>
+                @foreach (var u in relatedLinks)
+                {
+                    <li>
+                        <a target="_blank" rel="nofollow noopener" href="@u">@u</a>
+                    </li>
+                }
+            </ul>
+        }
+
+        @{
+            var links = (Model.RelatedLinks ?? new List<string>()).Take(3).ToList();
+
+            // pad to exactly 3 so indexers are safe
+            while (links.Count < 3)
+            {
+                links.Add(string.Empty);
+            }
+        }
+
+
+        <p class="small-font"><i>Forum posts, proof articles, docs, reviews, etc. (not Tor/I2P links).</i></p>
+
+        <div class="form-group">
+            <label>Related Link 1</label>
+            <input class="form-control input-width" name="RelatedLinks[0]" value="@links[0]" autocomplete="off" />
+        </div>
+
+        <div class="form-group">
+            <label>Related Link 2</label>
+            <input class="form-control input-width" name="RelatedLinks[1]" value="@links[1]" autocomplete="off" />
+        </div>
+
+        <div class="form-group">
+            <label>Related Link 3</label>
+            <input class="form-control input-width" name="RelatedLinks[2]" value="@links[2]" autocomplete="off" />
+        </div>
+
+
+
+        @{
+            var allTags = ViewBag.AllTags as List<TagOptionVm> ?? new List<TagOptionVm>();
+            var selectedIds = ViewBag.SelectedTagIds as HashSet<int> ?? new HashSet<int>();
+        }
+
+        @if (allTags.Count > 0)
+        {
+            <div class="form-group">
+ 
+            <h3>Existing Tags (selected by user / editable)</h3>
+
+            <div class="tag-grid">
+                @foreach (var t in allTags)
+                {
+                    var isChecked = selectedIds.Contains(t.TagId);
+
+                    <label class="tag-pill">
+                        <input type="checkbox"
+                               name="selectedTagIds"
+                               value="@t.TagId"
+                               @(isChecked ? "checked" : "") />
+                        <span>@t.Name</span>
+                    </label>
+                }
+            </div>
+
+            </div>
+ 
+        }
+
+        <div class="form-group">
+            <label asp-for="Tags">Tag suggestions (not applied automatically)</label>
+            <input asp-for="Tags" class="form-control input-width" />
+            <span asp-validation-for="Tags" class="text-danger"></span>
+            <p class="small-font"><i>Suggestions only. Use the checkbox list above to apply real tags.</i></p>
+        </div>
+
+
+    <hr />
+
+    <h3>For Reviewer</h3>
+    <div class="form-group">
+        <label asp-for="NoteToAdmin">Note To Admin</label>
+        <textarea rows="10" asp-for="NoteToAdmin" class="form-control input-width"></textarea>
+        <span asp-validation-for="NoteToAdmin" class="text-danger"></span>
+    </div>
+
+    <span>IP Address:</span>
+    <span>@Model.IpAddress</span>
+    <br />
+    <br />
+
+
+    <!-- For SubmissionStatus Enum Dropdown -->
+    <div class="form-group">
+        <label asp-for="SubmissionStatus">Submission Status</label>
+            <select asp-for="SubmissionStatus" class="form-control select-fit">
+            @foreach (var status in submissionStatuses)
+            {
+                <option value="@status">@status</option>
+            }
+        </select>
+        <span asp-validation-for="SubmissionStatus" class="text-danger"></span>
+    </div>
+
+    <!-- Submit Button -->
+    <button type="submit" class="btn btn-primary">Update</button>
+</form>
+
+<br />
+<br />
+<hr />
+<a href="~/submission/delete/@Model.SubmissionId">Delete</a>
+
+        }

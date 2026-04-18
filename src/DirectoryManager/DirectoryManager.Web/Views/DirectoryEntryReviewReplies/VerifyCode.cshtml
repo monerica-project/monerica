@@ -1,0 +1,15 @@
+﻿@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Reply – Verify Code";
+    Layout = "_CenteredLayout";
+
+    ViewBag.PostController = "DirectoryEntryReviewReplies";
+    ViewBag.PostAction = "VerifyCodePost";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    @await Html.PartialAsync("_PgpVerifyCode")
+}

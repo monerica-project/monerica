@@ -1,0 +1,99 @@
+﻿@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Enums
+@model List<DirectoryManager.Data.Models.Affiliates.AffiliateCommission>
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Affiliate Commissions";
+    Layout = "_CenteredLayout";
+    var codeMap = ViewBag.AffiliateCodeById as IDictionary<int, string> ?? new Dictionary<int, string>();
+    int countAll = ViewBag.CountAll ?? 0;
+    int countPending = ViewBag.CountPending ?? 0;
+    int countPaid = ViewBag.CountPaid ?? 0;
+    int countCanceled = ViewBag.CountCanceled ?? 0;
+    CommissionPayoutStatus? filter = ViewBag.FilterStatus as CommissionPayoutStatus?;
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<p class="mb-2">
+    <strong>Filter:</strong>
+    <a class="app-link" href="~/admin/affiliates/commissions">All (@countAll)</a> |
+    <a class="app-link" href="~/admin/affiliates/commissions?status=Pending">Pending (@countPending)</a> |
+    <a class="app-link" href="~/admin/affiliates/commissions?status=Paid">Paid (@countPaid)</a> |
+    <a class="app-link" href="~/admin/affiliates/commissions?status=Canceled">Canceled (@countCanceled)</a>
+</p>
+
+@if (Model?.Any() ?? false)
+{ 
+    <div class="table-wrapper">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Affiliate</th>
+                <th>Commission Id</th>
+                <th>Invoice Id</th>
+                <th>Amount Due</th>
+                <th>Currency</th>
+                <th>Status</th>
+                <th>Tx Id</th>
+                <th>Created</th>
+                <th>Updated</th>
+                <th>Update</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var c in Model)
+        {
+            <tr>
+                <td>
+                    @{
+                        var code = codeMap.TryGetValue(c.AffiliateAccountId, out var rc) ? rc : $"#{c.AffiliateAccountId}";
+                    }
+                    <a class="app-link" href="~/admin/affiliates/@c.AffiliateAccountId">@code</a>
+                </td>
+                <td>@c.AffiliateCommissionId</td>
+                <td>@c.SponsoredListingInvoiceId</td>
+                <td>@c.AmountDue</td>
+                <td>@c.PayoutCurrency</td>
+                <td>@c.PayoutStatus</td>
+                <td>@(string.IsNullOrWhiteSpace(c.PayoutTransactionId) ? "-" : c.PayoutTransactionId)</td>
+                <td>@c.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                <td>@(c.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) ?? "-")</td>
+                <td>
+                    <form method="post" asp-controller="AffiliatesAdmin" asp-action="UpdateCommission">
+                        @Html.AntiForgeryToken()
+                        <input type="hidden" name="id" value="@c.AffiliateCommissionId" />
+                      
+                                        @Html.DropDownList(
+                                        "payoutStatus",
+                                                        new SelectList(
+                                                        Enum.GetValues(typeof(CommissionPayoutStatus))
+                                                        .Cast<CommissionPayoutStatus>()
+                                                        .Select(x => new { Value = x.ToString(), Text = x.ToString() }),
+                                                        "Value",
+                                                        "Text",
+                                                        c.PayoutStatus.ToString()   // selected value
+                                                        ),
+                                                        new { @class = "form-select form-select-sm" }
+                                                        )
+
+                        <input name="payoutTransactionId" class="form-control form-control-sm mt-1" value="@c.PayoutTransactionId" placeholder="Tx Id (optional)" />
+                        <button type="submit" class="btn btn-sm btn-primary mt-1">Save</button>
+                    </form>
+                </td>
+            </tr>
+        }
+        </tbody>
+    </table>
+    </div>
+}
+else
+{
+    <p><em>No commissions found for this filter.</em></p>
+}
+
+<p><a class="app-link" href="~/admin/affiliates">Back to Affiliates</a></p>
+}

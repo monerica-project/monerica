@@ -1,0 +1,456 @@
+﻿@using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Models.Reviews
+@using DirectoryManager.DisplayFormatting.Enums
+@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Models
+@using DirectoryManager.Utilities.Helpers
+@using Microsoft.AspNetCore.Html
+@using Microsoft.AspNetCore.Http
+@using DirectoryManager.Web.Services.Interfaces
+@using System.Net
+
+@model DirectoryManager.Data.Models.Category
+
+@inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository subCategoryRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntrySelectionRepository directoryEntrySelectionRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepo
+@inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository subCatRepo
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository reviewRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewCommentRepository commentRepository
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+@inject IHttpContextAccessor httpContextAccessor
+@inject IUrlResolutionService urlResolver
+
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@functions {
+    private static IHtmlContent RenderInlineRatingStars_NoCount_LinkToReview(double value, string reviewAnchorUrl)
+    {
+        const int totalStars = 5;
+        double percent = Math.Clamp(value / totalStars * 100, 0, 100);
+
+        var sb = new System.Text.StringBuilder();
+
+        sb.Append("<span class=\"rating-wrapper\" aria-label=\"");
+        sb.Append($"{value:0} out of 5 stars\">");
+
+        sb.Append("<span class=\"stars\">");
+        sb.Append("<span class=\"stars-fill\" style=\"width:");
+        sb.Append(percent.ToString("0.##", System.Globalization.CultureInfo.InvariantCulture));
+        sb.Append("%\"></span>");
+        sb.Append("</span>");
+
+        sb.Append("<a class=\"rating-text\" href=\"");
+        sb.Append(WebUtility.HtmlEncode(reviewAnchorUrl));
+        sb.Append("\"> ");
+        sb.Append(value.ToString("0", System.Globalization.CultureInfo.InvariantCulture));
+        sb.Append("/5</a>");
+
+        sb.Append("</span>");
+
+        return new HtmlString(sb.ToString());
+    }
+}
+
+@{
+    ViewData[StringConstants.TitleHeader] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageTitle));
+    ViewData[StringConstants.MetaContent] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageMetaTags));
+    ViewData["CurrentCategoryKey"] = null;
+    ViewData["CurrentSubCategoryKey"] = null;
+    Layout = "_LayoutWithNav";
+}
+
+@{
+    var root = await cacheHelper.GetSnippetAsync(SiteConfigSetting.FullRootUrl);
+    var isOnTor = httpContextAccessor.HttpContext?.Request.Host.Host.EndsWith(DirectoryManager.Web.Constants.StringConstants.TorDomain) ?? false;
+    var useRelative = isOnTor || string.IsNullOrWhiteSpace(root) || urlResolver.IsLocal;
+
+    string BuildListingUrlWithAnchorAndPage(string entryKey, int page, string anchor, string? queryString = null)
+    {
+        var basePath = UrlBuilder.ListingPath(entryKey);
+        if (!basePath.StartsWith("/")) basePath = "/" + basePath;
+
+        var qs = string.IsNullOrWhiteSpace(queryString)
+            ? string.Empty
+            : (queryString.StartsWith("?") ? queryString : "?" + queryString);
+
+        string rel = (page <= 1)
+            ? $"{basePath}{qs}#{anchor}"
+            : $"{basePath}/page/{page}{qs}#{anchor}";
+
+        if (useRelative) return rel;
+
+        var baseUrl = root.TrimEnd('/');
+        return $"{baseUrl}{rel}";
+    }
+}
+
+@{
+    var cats = await categoryRepo.GetActiveCategoriesAsync();
+}
+
+@{
+    var catSponsors = await sponsoredListingRepository
+        .GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
+
+    var subSponsors = await sponsoredListingRepository
+        .GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor);
+
+    var sponsorsBySubcategory = subSponsors
+        .Where(s => s.DirectoryEntry?.SubCategoryId != null)
+        .GroupBy(s => s.DirectoryEntry.SubCategoryId)
+        .ToDictionary(g => g.Key, g => g.Select(s => s.DirectoryEntry!).ToList());
+}
+
+@{
+    var subs = await subCategoryRepository.GetAllDtoAsync();
+
+    var subById = subs.ToDictionary(sc => sc.SubcategoryId, sc => sc);
+
+    var sponsorsByCategory = catSponsors
+        .Where(s => s.DirectoryEntry != null && subById.ContainsKey(s.DirectoryEntry.SubCategoryId))
+        .GroupBy(s => subById[s.DirectoryEntry.SubCategoryId].CategoryId)
+        .ToDictionary(
+            g => g.Key,
+            g => g.Select(s => s.DirectoryEntry!).ToList()
+        );
+}
+
+@{
+    var sponsorEntryIds = sponsorsByCategory.Values.SelectMany(x => x)
+        .Concat(sponsorsBySubcategory.Values.SelectMany(x => x))
+        .Where(e => e != null)
+        .Select(e => e.DirectoryEntryId)
+        .Distinct()
+        .ToList();
+
+    var sponsorRatings = sponsorEntryIds.Count == 0
+        ? new Dictionary<int, DirectoryManager.Data.Models.TransferModels.RatingSummaryDto>()
+        : await reviewRepository.GetRatingSummariesAsync(sponsorEntryIds);
+}
+
+@section PageContent {
+    <div>
+        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageDisplayHtml))
+        @await Html.PartialAsync("_SponsoredListingPartial")
+        <hr />
+
+        <p class="intro">
+            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TextIntro))
+        </p>
+        <hr />
+
+        <div class="top-container">
+            <div class="top-section update-section">
+                <p class="centered-text">
+                    <strong>Last Update:</strong>
+                    @directoryEntryRepository.GetLastRevisionDate().ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+                </p>
+            </div>
+
+            <div class="top-section links-section">
+                @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopMenuActionsHtml))
+            </div>
+        </div>
+        <hr />
+
+        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.DirectoryLegendHtml))
+
+        @{
+            var featuredEntries = await directoryEntrySelectionRepository.GetEntriesForSelection(EntrySelectionType.Featured);
+
+            var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
+        }
+        @if (featuredEntries?.Any() == true)
+        {
+            <hr />
+            <h3>Featured</h3>
+            <ul class="blank_list_item">
+                @{
+                    var vmList = ViewModelConverter.ConvertToViewModels(
+                        featuredEntries.ToList(),
+                        DateDisplayOption.NotDisplayed,
+                        ItemDisplayType.Featured,
+                        link2Name,
+                        link3Name);
+                }
+                @foreach (var vm in vmList)
+                {
+                    vm.LinkType = LinkType.ListingPage;
+                    @await Html.PartialAsync("_DirectoryEntryPartial", vm)
+                }
+            </ul>
+        }
+
+        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HtmlNotificationSnippet))
+
+        @{
+            var newest = await directoryEntryRepository.GetNewestAdditions(10);
+        }
+        @if (newest?.Any() == true)
+        {
+            <hr />
+            <h3>Newest Additions</h3>
+            <i>
+                See:
+                <a href="~/newest">all new additions</a>
+                or
+                <a class="no-app-link" href="~/rss/feed.xml">RSS</a>
+            </i>
+            <ul class="blank_list_item">
+                @{
+                    var vmList = ViewModelConverter.ConvertToViewModels(
+                        newest.ToList(),
+                        DateDisplayOption.DisplayCreateDate,
+                        ItemDisplayType.Normal,
+                        link2Name,
+                        link3Name);
+                }
+                @foreach (var vm in vmList)
+                {
+                    vm.LinkType = LinkType.ListingPage;
+                    @await Html.PartialAsync("_DirectoryEntryPartial", vm)
+                }
+            </ul>
+            <hr />
+        }
+
+        @{
+            var revisions = await directoryEntryRepository.GetNewestRevisions(15);
+            if (newest != null)
+            {
+                revisions = revisions.Except(newest).Take(5).ToList();
+            }
+        }
+        @if (revisions?.Any() == true)
+        {
+            <h3>Newest Revisions</h3>
+            <ul class="blank_list_item">
+                @{
+                    var vmList = ViewModelConverter.ConvertToViewModels(
+                        revisions.ToList(),
+                        DateDisplayOption.DisplayUpdateDate,
+                        ItemDisplayType.NewestRevions,
+                        link2Name,
+                        link3Name);
+                }
+                @foreach (var vm in vmList)
+                {
+                    vm.LinkType = LinkType.ListingPage;
+                    @await Html.PartialAsync("_DirectoryEntryPartial", vm)
+                }
+            </ul>
+            <hr />
+        }
+
+        <div class="sponsor-sections">
+            <section>
+                <h2 class="section-title sponsor-section-title">Category Sponsors</h2>
+                @foreach (var cat in cats)
+                {
+                    if (sponsorsByCategory.TryGetValue(cat.CategoryId, out var entries))
+                    {
+                        <h4>@cat.Name</h4>
+                        <ul class="blank_list_item">
+                            @foreach (var e in entries)
+                            {
+                                var vm = ViewModelConverter
+                                    .ConvertToViewModels(
+                                        new List<DirectoryEntry> { e },
+                                        DateDisplayOption.NotDisplayed,
+                                        ItemDisplayType.CategorySponsor,
+                                        link2Name, link3Name)
+                                    .First();
+
+                                vm.IsSponsored = true;
+
+                                if (sponsorRatings != null && sponsorRatings.TryGetValue(e.DirectoryEntryId, out var rs))
+                                {
+                                    vm.AverageRating = rs.AvgRating;
+                                    vm.ReviewCount = rs.ReviewCount;
+                                }
+
+                                @await Html.PartialAsync("_DirectoryEntryPartial", vm)
+                            }
+                        </ul>
+                    }
+                }
+            </section>
+
+            <section>
+                <h2 class="section-title sponsor-section-title">Subcategory Sponsors</h2>
+                @foreach (var sub in subs)
+                {
+                    if (sponsorsBySubcategory.TryGetValue(sub.SubcategoryId, out var entries))
+                    {
+                        <h4>@Html.Raw(FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name))</h4>
+                        <ul class="blank_list_item">
+                            @foreach (var e in entries)
+                            {
+                                var vm = ViewModelConverter
+                                    .ConvertToViewModels(
+                                        new List<DirectoryEntry> { e },
+                                        DateDisplayOption.NotDisplayed,
+                                        ItemDisplayType.SubcategorySponsor,
+                                        link2Name, link3Name)
+                                    .First();
+
+                                vm.IsSponsored = true;
+
+                                if (sponsorRatings != null && sponsorRatings.TryGetValue(e.DirectoryEntryId, out var rs))
+                                {
+                                    vm.AverageRating = rs.AvgRating;
+                                    vm.ReviewCount = rs.ReviewCount;
+                                }
+
+                                @await Html.PartialAsync("_DirectoryEntryPartial", vm)
+                            }
+                        </ul>
+                    }
+                }
+            </section>
+        </div>
+
+        @* ===========================
+           Latest Activity (Reviews + Replies unified stream, max 25)
+           =========================== *@
+        @{
+            var latestReviews = ViewBag.LatestReviews as IEnumerable<DirectoryEntryReview>
+                ?? await reviewRepository.ListLatestApprovedAsync(25);
+
+            var latestComments = ViewBag.LatestComments as IEnumerable<DirectoryEntryReviewComment>
+                ?? await commentRepository.ListLatestApprovedAsync(25);
+
+            var reviewIdsToMap =
+                (latestReviews?.Select(r => r.DirectoryEntryReviewId) ?? Enumerable.Empty<int>())
+                .Concat(latestComments?.Select(c => c.DirectoryEntryReviewId) ?? Enumerable.Empty<int>())
+                .Where(id => id > 0)
+                .Distinct()
+                .ToList();
+
+            var reviewsPageSize = IntegerConstants.ReviewsPageSize;
+
+            var reviewPageMap = reviewIdsToMap.Count == 0
+                ? new Dictionary<int, int>()
+                : await reviewRepository.GetApprovedReviewPageMapAsync(reviewIdsToMap, pageSize: reviewsPageSize);
+
+            var commentPageMap = (latestComments?.Any() == true)
+                ? await commentRepository.GetApprovedCommentPageMapAsync(
+                      latestComments.Select(c => c.DirectoryEntryReviewCommentId),
+                      pageSize: reviewsPageSize)
+                : new Dictionary<int, int>();
+
+            var reviewItems = (latestReviews ?? Enumerable.Empty<DirectoryEntryReview>())
+                .Select(r => (
+                    date: r.CreateDate,
+                    isReply: false,
+                    review: r,
+                    comment: (DirectoryEntryReviewComment?)null));
+
+            var commentItems = (latestComments ?? Enumerable.Empty<DirectoryEntryReviewComment>())
+                .Select(c => (
+                    date: c.CreateDate,
+                    isReply: true,
+                    review: (DirectoryEntryReview?)null,
+                    comment: c));
+
+            var activityStream = reviewItems
+                .Concat(commentItems)
+                .OrderByDescending(x => x.date)
+                .Take(25)
+                .ToList();
+        }
+
+        @if (activityStream.Any())
+        {
+            <hr />
+            <h3>Latest Activity</h3>
+            <ul class="blank_list_item">
+                @foreach (var item in activityStream)
+                {
+                    if (item.isReply)
+                    {
+                        var c = item.comment!;
+                        var parent = c.DirectoryEntryReview;
+                        var e = parent?.DirectoryEntry;
+
+                        if (e == null || e.SubCategory?.Category == null) { continue; }
+
+                        var listingName = e.Name ?? "Listing";
+                        var listingUrl = UrlResolver.ResolveToRoot(UrlBuilder.ListingPath(e.DirectoryEntryKey));
+                        var reviewPage = reviewPageMap.TryGetValue(c.DirectoryEntryReviewId, out var rp) ? rp : 1;
+                        var reviewAnchorUrl = BuildListingUrlWithAnchorAndPage(
+                                                e.DirectoryEntryKey,
+                                                reviewPage,
+                                                $"review-{c.DirectoryEntryReviewId}");
+
+                        var reviewSnippet = StringHelpers.TruncateAtWord(
+                                                StringHelpers.AnonymizeEmailsInText(
+                                                    (parent?.Body ?? string.Empty).ReplaceLineEndings(" ")),
+                                                100);
+
+                        var replySnippet = StringHelpers.TruncateAtWord(
+                                                StringHelpers.AnonymizeEmailsInText(
+                                                    (c.Body ?? string.Empty).ReplaceLineEndings(" ")),
+                                                100);
+
+                        var itemDate = item.date.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
+                        var statusIcon = DisplayMarkUpHelper.GetDirectoryStausIcon(e.DirectoryStatus);
+
+                        <li>
+                            <i>@itemDate</i>
+                            @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>
+                            @if (parent?.Rating.HasValue == true && parent.Rating.Value > 0)
+                            {
+                                @: — @RenderInlineRatingStars_NoCount_LinkToReview(parent.Rating.Value, reviewAnchorUrl)
+                            }
+                            — @reviewSnippet
+                            <br />
+                            &nbsp;&nbsp;↩ <em>Reply:</em> @replySnippet
+                        </li>
+                    }
+                    else
+                    {
+                        var r = item.review!;
+                        var e = r.DirectoryEntry;
+
+                        if (e == null || e.SubCategory?.Category == null) { continue; }
+
+                        var listingName = e.Name ?? "Listing";
+                        var listingUrl = UrlResolver.ResolveToRoot(UrlBuilder.ListingPath(e.DirectoryEntryKey));
+                        var pageNum = reviewPageMap.TryGetValue(r.DirectoryEntryReviewId, out var p) ? p : 1;
+                        var reviewAnchorUrl = BuildListingUrlWithAnchorAndPage(
+                                                e.DirectoryEntryKey,
+                                                pageNum,
+                                                $"review-{r.DirectoryEntryReviewId}");
+
+                        var reviewSnippet = StringHelpers.TruncateAtWord(
+                                                StringHelpers.AnonymizeEmailsInText(
+                                                    (r.Body ?? string.Empty).ReplaceLineEndings(" ")),
+                                                100);
+
+                        var itemDate = item.date.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
+                        var statusIcon = DisplayMarkUpHelper.GetDirectoryStausIcon(e.DirectoryStatus);
+
+                        <li>
+                            <i>@itemDate</i>
+                            @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>
+                            @if (r.Rating.HasValue && r.Rating.Value > 0)
+                            {
+                                @: — @RenderInlineRatingStars_NoCount_LinkToReview(r.Rating.Value, reviewAnchorUrl)
+                            }
+                            — @reviewSnippet
+                        </li>
+                    }
+                }
+            </ul>
+        }
+    </div>
+}

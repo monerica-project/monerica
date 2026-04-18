@@ -1,0 +1,138 @@
+﻿@model DirectoryManager.Web.Models.Submissions.SubmissionFindingListingVm
+@using DirectoryManager.Web.Constants;
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Find Listing To Edit";
+    ViewData[StringConstants.IsIndexable] = false;
+    Layout = "_CenteredLayout";
+
+    var q = (Model.Query ?? string.Empty).Trim();
+}
+
+@section PageContent {
+
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+
+    <hr />
+    @await Html.PartialAsync("_BackToHome")<text> | </text><a href="~/submit">create new listing</a>
+    <hr />
+
+    <p style="margin: 0 0 10px 0;">
+        <strong>Search and select the listing you want to edit.</strong><br />
+        This search includes <strong>Removed</strong> listings too. Results include <strong>Edit</strong> and <strong>Audit</strong>.
+    </p>
+
+    <!-- SEARCH (Sponsorship-style) -->
+    <form method="get" action="@Url.Action("FindingListing","Submission")" class="search-form" style="margin: 16px 0;">
+        <input type="search"
+               name="q"
+               value="@q"
+               placeholder="Search listings… (name, website, category, tags) — includes Removed"
+               class="form-control"
+               style="max-width: 520px; display: inline-block;" />
+
+        <input type="hidden" name="pageSize" value="@Model.PageSize" />
+
+        <button type="submit" class="btn btn-primary btn-cta">Search</button>
+    </form>
+
+    @if (Model.HasSearched)
+    {
+        <h2 style="margin-top: 18px;">Search results</h2>
+
+        <p style="margin: 6px 0 12px 0;">
+            @Model.TotalCount result@(Model.TotalCount == 1 ? "" : "s")
+            @if (Model.TotalPages > 1)
+            {
+                <span> — page @Model.Page of @Model.TotalPages</span>
+            }
+        </p>
+
+        @if (Model.Results != null && Model.Results.Any())
+        {
+            <div class="table-wrapper">
+                <table class="table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Listing</th>
+                            <th>Status</th>
+                            <th>Category</th>
+                            <th>Subcategory</th>
+                            <th>Age (days)</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in Model.Results)
+                        {
+                            <tr>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(r.Link))
+                                    {
+                                        <a href="@r.Link" target="_blank" rel="noopener">@r.Name</a>
+                                    }
+                                    else
+                                    {
+                                        @r.Name
+                                    }
+                                </td>
+                                <td>@r.Status</td>
+                                <td>@r.Category</td>
+                                <td>@r.Subcategory</td>
+                                <td>@r.AgeDays</td>
+                                <td style="white-space: nowrap;">
+                                    <a class="btn btn-info"
+                                           rel="nofollow"
+                                           href="~/submission/submitedit/@r.DirectoryEntryId">
+                                        Edit
+                                    </a>
+
+                                    <a class="btn btn-secondary"
+                                           style="margin-left:8px;"
+                                           rel="nofollow"
+                                           href="~/submission/audit/@r.DirectoryEntryId">
+                                        Audit
+                                    </a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model.TotalPages > 1)
+            {
+                <div style="margin: 12px 0 22px 0;">
+                    @{
+                        var prev = Model.Page > 1 ? Model.Page - 1 : (int?)null;
+                        var next = Model.Page < Model.TotalPages ? Model.Page + 1 : (int?)null;
+                    }
+
+                    @if (prev.HasValue)
+                    {
+                        <a class="btn btn-secondary"
+                               href="@Url.Action("FindingListing", "Submission", new { q = q, page = prev.Value, pageSize = Model.PageSize })">
+                            ← Prev
+                        </a>
+                    }
+
+                    @if (next.HasValue)
+                    {
+                        <a class="btn btn-secondary"
+                               style="margin-left: 8px;"
+                               href="@Url.Action("FindingListing", "Submission", new { q = q, page = next.Value, pageSize = Model.PageSize })">
+                            Next →
+                        </a>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <p>No results.</p>
+        }
+    }
+}

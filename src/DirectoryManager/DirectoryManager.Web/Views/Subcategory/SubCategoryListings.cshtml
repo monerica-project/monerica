@@ -1,0 +1,247 @@
+﻿@model DirectoryManager.Web.Models.CategorySubCategoriesViewModel
+@using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Repositories.Interfaces
+@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Data.Enums;
+@using DirectoryManager.Web.Enums
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Web.Models
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@inject ICategoryRepository categoryRepo
+@inject ISubcategoryRepository subCatRepo
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository directoryEntryReviewRepository
+
+@{
+    ViewData[StringConstants.TitleHeader] = string.Format(
+        "{0}: {1}{2}",
+        await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName),
+        Model.PageTitle,
+        Model.CurrentPage > 1 ? $" (Page {Model.CurrentPage})" : ""
+    );
+    ViewData[StringConstants.MetaDescription] = Model.MetaDescription;
+    var categoryKey = ViewBag.CategoryKey as string;
+    var subCategoryKey = ViewBag.SubCategoryKey as string;
+    var categoryName = ViewBag.CategoryName as string;
+    var subCategoryName = ViewBag.SubCategoryName as string;
+    var domain = await cacheHelper.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
+
+    // Build your breadcrumb list dynamically based on page context
+    var breadcrumbs = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
+        new BreadcrumbItem { Position = 2, Name = @categoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}") },
+        new BreadcrumbItem { Position = 3, Name = @subCategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}")  }
+    };
+}
+
+@{
+    ViewData["CurrentCategoryKey"] = Model.Category.CategoryKey;
+    ViewData["CurrentSubCategoryKey"] = Model.SubCategoryKey;
+    Layout = "_LayoutWithNav";
+}
+
+  @section PageContent {
+
+@BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
+
+    
+<h1>@Model.PageHeader</h1>
+
+<hr />
+
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item">
+            <a class="no-app-link" href="@UrlResolver.ResolveToRoot("~/")">Home</a>
+        </li>
+        <li class="breadcrumb-item">
+                <a class="no-app-link" href="@UrlResolver.ResolveToRoot(Model.CategoryRelativePath)">@Model.CategoryName</a>
+        </li>
+        <li class="breadcrumb-item" aria-current="page">
+            @Model.SubcategoryName
+        </li>
+    </ol>
+</nav>
+
+@if (!string.IsNullOrWhiteSpace(Model.PageDetails))
+{
+    <p>@Html.Raw(Model.PageDetails)</p>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.Note))
+{
+    <p><i>Note: @Html.Raw(Model.Note)</i></p>
+}
+
+    @{
+        var subCategorySponsors = await this.sponsoredListingRepository.GetSponsoredListingsForSubCategory(Model.SubCategoryId);
+        var link2Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
+        var link3Name = await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
+
+        var viewModelList = Model.EntryViewModels
+            ?? new List<DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel>();
+
+        var subCategorySponsor = subCategorySponsors.FirstOrDefault();
+        var activeEntries = await directoryEntryRepository.GetActiveEntriesBySubcategoryAsync(Model.SubCategoryId);
+
+        // ✅ Pull rating summary for subcategory sponsor (AvgRating + ReviewCount)
+        DirectoryManager.Data.Models.TransferModels.RatingSummaryDto? sponsorRating = null;
+
+        if (subCategorySponsor?.DirectoryEntry != null)
+        {
+            var sponsorId = subCategorySponsor.DirectoryEntry.DirectoryEntryId;
+
+            var ratingDict = await directoryEntryReviewRepository.GetRatingSummariesAsync(new[] { sponsorId });
+
+            if (ratingDict.TryGetValue(sponsorId, out var dto))
+            {
+                sponsorRating = dto;
+            }
+        }
+
+        var subCategorySponsorModel = new DirectoryManager.Web.Models.SubcategorySponsorModel
+        {
+            SubCategoryId = Model.SubCategoryId,
+            TotalActiveSubCategoryListings = activeEntries.Count(),
+            DirectoryEntry = (subCategorySponsor?.DirectoryEntry != null)
+                ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
+                {
+                    CountryCode = subCategorySponsor.DirectoryEntry.CountryCode,
+
+                    DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
+
+                    Link = subCategorySponsor.DirectoryEntry.Link,
+                    LinkA = subCategorySponsor.DirectoryEntry.LinkA,
+
+                    Name = subCategorySponsor.DirectoryEntry.Name,
+                    Contact = subCategorySponsor.DirectoryEntry.Contact,
+                    Description = subCategorySponsor.DirectoryEntry.Description,
+                    DirectoryEntryId = subCategorySponsor.DirectoryEntry.DirectoryEntryId,
+                    DirectoryEntryKey = subCategorySponsor.DirectoryEntry.DirectoryEntryKey,
+                    DirectoryStatus = subCategorySponsor.DirectoryEntry.DirectoryStatus,
+
+                    Link2 = subCategorySponsor.DirectoryEntry.Link2,
+                    Link2A = subCategorySponsor.DirectoryEntry.Link2A,
+                    Link3 = subCategorySponsor.DirectoryEntry.Link3,
+                    Link3A = subCategorySponsor.DirectoryEntry.Link3A,
+
+                    Location = subCategorySponsor.DirectoryEntry.Location,
+                    Note = subCategorySponsor.DirectoryEntry.Note,
+                    Processor = subCategorySponsor.DirectoryEntry.Processor,
+                    SubCategoryId = subCategorySponsor.DirectoryEntry.SubCategoryId,
+
+                    CreateDate = subCategorySponsor.DirectoryEntry.CreateDate,
+                    UpdateDate = subCategorySponsor.DirectoryEntry.UpdateDate,
+
+                    LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage,
+                    IsSponsored = true,
+                    DisplayAsSponsoredItem = false,
+
+                    Link2Name = link2Name,
+                    Link3Name = link3Name,
+
+                    // ✅ needed if rating count links to #reviews
+                    ItemPath = "/site/" + subCategorySponsor.DirectoryEntry.DirectoryEntryKey,
+
+                    // ✅ ratings from RatingSummaryDto
+                    AverageRating = (sponsorRating != null && sponsorRating.ReviewCount > 0)
+                        ? sponsorRating.AvgRating
+                        : null,
+
+                    ReviewCount = (sponsorRating != null && sponsorRating.ReviewCount > 0)
+                        ? sponsorRating.ReviewCount
+                        : null
+                }
+                : null
+        };
+    }
+
+
+    @* THIS must stay to keep the CTA *@
+    @await Html.PartialAsync("_SponsoredListingSubCategoryPartial", subCategorySponsorModel)
+
+    @{
+        // build highlight set: MainSponsor + CategorySponsor (for THIS category)
+        var mainSponsors = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
+        var categorySponsors = await sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.CategorySponsor);
+        var currentCategoryId = Model.Category.CategoryId;
+
+        var highlightIds = new HashSet<int>(
+            (mainSponsors ?? Enumerable.Empty<DirectoryManager.Data.Models.SponsoredListings.SponsoredListing>())
+                .Select(s => s.DirectoryEntryId)
+            .Concat(
+                (categorySponsors ?? Enumerable.Empty<DirectoryManager.Data.Models.SponsoredListings.SponsoredListing>())
+                    .Where(s => (s.CategoryId ?? s.DirectoryEntry?.SubCategory?.CategoryId) == currentCategoryId)
+                    .Select(s => s.DirectoryEntryId)
+            )
+        );
+
+        // do not double-highlight the subcategory sponsor that’s already shown above
+        int? subSponsorEntryId = subCategorySponsorModel.DirectoryEntry?.DirectoryEntryId;
+    }
+
+    <ul class="blank_list_item">
+        @foreach (var viewModel in viewModelList)
+        {
+            viewModel.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
+
+            if (highlightIds.Contains(viewModel.DirectoryEntryId) ||
+            (subSponsorEntryId.HasValue && viewModel.DirectoryEntryId == subSponsorEntryId.Value))
+            {
+                viewModel.IsSponsored = true;
+                viewModel.DisplayAsSponsoredItem = true;
+            }
+
+            @await Html.PartialAsync("_DirectoryEntryPartial", viewModel)
+        }
+    </ul>
+
+    @{
+        int totalPages = (int)Math.Ceiling(Model.PagedEntries.TotalCount / (double)Model.PageSize);
+        int currentPage = Model.CurrentPage < 1 ? 1 : Model.CurrentPage;
+
+        string categoryKey2 = Model.Category.CategoryKey;
+        string subCategoryKey2 = Model.SubCategoryKey;
+    }
+
+    @if (totalPages > 1)
+    {
+        <nav aria-label="Pagination">
+            <ul class="pagination">
+                @for (int p = 1; p <= totalPages; p++)
+                {
+                    string rawPath = (p == 1)
+                        ? $"/{categoryKey2}/{subCategoryKey2}"
+                        : $"/{categoryKey2}/{subCategoryKey2}/page/{p}";
+
+                    string href = (p == 1)
+                        ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
+                        : UrlResolver.ResolveToApp(rawPath);
+
+                    var isActive = (p == currentPage);
+
+                    <li class="page-item @(isActive ? "active" : "")">
+                        @if (isActive)
+                        {
+                            <span class="page-link" aria-current="page">@p</span>
+                        }
+                        else
+                        {
+                            <a class="page-link no-app-link" href="@href">@p</a>
+                        }
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+
+
+<hr />
+
+@await Html.PartialAsync("_SponsoredListingPartial")
+
+ }

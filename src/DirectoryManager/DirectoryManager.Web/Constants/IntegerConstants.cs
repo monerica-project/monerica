@@ -1,0 +1,26 @@
+﻿namespace DirectoryManager.Web.Constants
+{
+    public class IntegerConstants
+    {
+        public const int DefaultPageSize = 25;
+        public const int MediumPageSize = 50;
+        public const int MaxPageSize = 100;
+        public const int CacheDurationSeconds = 86400; // 24 hours
+        public const int ReservationMinutes = 60;
+        public const int NewestRevisionsToDisplay = 3;
+        public const int DefaultAlternativePort = 8081;
+        public const int DefaultRemoteHttpPort = 80;
+        public const int DefaultRemoteHttpsPort = 443;
+        public const int DefaultDebuggingHttpPort = 5007;
+        public const int DefaultDebuggingHttpsPort = 7145;
+        public const int UnverifiedMinimumDaysListedBeforeAdvertising = 180;
+        public const int MinLengthCommentChars = 35;
+        public const int MaxAdditionalLinks = 3;
+        public const int ReviewsPageSize = 10;
+        public const int ReviewCountToShowOnHomepage = 25;
+        public const int CommentCountToShowOnHomepage = 10;
+        public const int SessinExpiresMinutes = 20;
+        public const int ChallengeLength = 10;
+        public const int MaxVerifyAttempts = 10;
+    }
+}

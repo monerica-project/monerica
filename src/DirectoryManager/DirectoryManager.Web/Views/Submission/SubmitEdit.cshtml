@@ -1,0 +1,48 @@
+﻿@model DirectoryManager.Web.Models.SubmissionRequest
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants;
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@{
+    var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
+    ViewData[StringConstants.TitleHeader] = "Edit Listing";
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader] </h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+<hr />
+    <a href="~/submission/findinglisting">&lt; find listing to edit</a>
+<hr />
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            <strong>There were errors with your submission</strong>
+            @* include property errors by passing false *@
+            @Html.ValidationSummary(false, "", new { @class = "text-danger" })
+        </div>
+    }
+ 
+
+<form asp-action="Create" method="post">
+    <!-- Use the partial view for the form -->
+    @await Html.PartialAsync("_SubmissionForm")
+
+    <button type="submit" class="btn btn-primary">Preview Submission</button>
+</form>
+
+@if (Model.DirectoryEntryId != null)
+{
+    <a style="float:right;" href="~/submission/audit/@Model.DirectoryEntryId">History for @Model.Name</a>
+}
+
+}
+

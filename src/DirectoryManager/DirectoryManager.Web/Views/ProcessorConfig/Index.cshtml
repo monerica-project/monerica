@@ -1,0 +1,45 @@
+﻿@using DirectoryManager.Data.Enums;
+@using DirectoryManager.Data.Models.SponsoredListings;
+@using DirectoryManager.Web.Constants;
+@model IEnumerable<ProcessorConfig>
+@{
+    ViewData[StringConstants.TitleHeader] = "Processor Configurations";
+}
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<div class="table-wrapper">
+    <table class="table">
+        <thead>
+        <tr>
+            <th>Payment Processor</th>
+            <th>Use Processor</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var item in Model)
+        {
+            <tr>
+                <td>@item.PaymentProcessor</td>
+                <td>@item.UseProcessor</td>
+                <td>
+                    <a asp-action="Edit" asp-route-paymentProcessor="@item.PaymentProcessor">Edit</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+</div>            
+
+<div>
+    <a asp-action="Create">Create new</a>
+</div>
+}

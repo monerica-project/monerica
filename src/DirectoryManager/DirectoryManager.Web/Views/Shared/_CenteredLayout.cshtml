@@ -1,0 +1,10 @@
+﻿@{
+    Layout = "_BaseLayout";
+}
+
+@section ChromeAfterMain {
+
+    <div class="main-content-centered">
+        @RenderSection("PageContent", required: true)
+    </div>
+}

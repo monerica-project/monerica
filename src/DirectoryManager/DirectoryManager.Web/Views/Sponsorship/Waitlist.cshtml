@@ -1,0 +1,98 @@
+﻿@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Models.Sponsorship
+@model SponsorshipWaitlistVm
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Waitlist";
+    Layout = "_CenteredLayout";
+    var pageStr = this.Context.Request.Query["page"].ToString();
+    int pageNumber = 1;
+    if (!string.IsNullOrWhiteSpace(pageStr) && int.TryParse(pageStr, out var p) && p > 0)
+    {
+        pageNumber = p;
+    }
+
+    // Controller uses WaitlistPageSize = 25. Keep in sync.
+    const int pageSize = 25;
+
+    var totalPages = (int)Math.Ceiling(Model.TotalCount / (double)pageSize);
+    if (totalPages < 1) totalPages = 1;
+
+    var prev = Math.Max(1, pageNumber - 1);
+    var next = Math.Min(totalPages, pageNumber + 1);
+}
+
+
+
+@section PageContent {
+   
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader] </h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+<hr />
+@await Html.PartialAsync("_BackToHome")
+<hr />
+ 
+
+<p style="opacity:.9;">
+    <strong>@Model.ScopeLabel</strong> — <strong>@Model.TotalCount</strong> total signup(s)
+</p>
+
+<div style="margin: 10px 0;">
+    <a class="btn btn-info" href="@Url.Action("Index", "Sponsorship")">Back to sponsorship search</a>
+</div>
+
+@if (Model.Items == null || Model.Items.Count == 0)
+{
+    <p>No waitlist signups yet.</p>
+}
+else
+{
+       <div class="table-wrapper">
+    <div class="card" style="padding:14px; border-radius:12px; margin-top: 12px;">
+        <table class="table" style="width:100%;">
+            <thead>
+                <tr>
+                    <th style="text-align:left;">Listing</th>
+                    <th style="text-align:left;">Joined (UTC)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.Items)
+                {
+                    <tr>
+                        <td>
+                            @if (!string.IsNullOrWhiteSpace(row.ListingUrl))
+                            {
+                                <a href="@row.ListingUrl" target="_blank" rel="nofollow noopener">@row.ListingName</a>
+                            }
+                            else
+                            {
+                                @row.ListingName
+                            }
+                        </td>
+                        <td>@row.JoinedUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        </div>
+    </div>
+
+    @if (totalPages > 1)
+    {
+        <div style="display:flex; gap:10px; align-items:center; margin-top: 18px; flex-wrap:wrap;">
+            <a class="btn btn-info" href="@Url.Action("Waitlist", "Sponsorship", new { type = Model.SponsorshipType, typeId = Model.TypeId, page = 1 })">First</a>
+            <a class="btn btn-info" href="@Url.Action("Waitlist", "Sponsorship", new { type = Model.SponsorshipType, typeId = Model.TypeId, page = prev })">Prev</a>
+
+            <span style="opacity:.9;">
+                Page <strong>@pageNumber</strong> / <strong>@totalPages</strong>
+            </span>
+
+            <a class="btn btn-info" href="@Url.Action("Waitlist", "Sponsorship", new { type = Model.SponsorshipType, typeId = Model.TypeId, page = next })">Next</a>
+            <a class="btn btn-info" href="@Url.Action("Waitlist", "Sponsorship", new { type = Model.SponsorshipType, typeId = Model.TypeId, page = totalPages })">Last</a>
+        </div>
+    }
+}
+}

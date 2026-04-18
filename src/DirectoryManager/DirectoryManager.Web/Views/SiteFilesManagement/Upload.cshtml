@@ -1,0 +1,43 @@
+﻿ @{
+    ViewBag.Title = "Upload";
+}
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewBag.Title</h1>
+        
+@await Html.PartialAsync("_AdminMenu")
+
+<section>
+    <div class="container">
+ 
+        <h3>@ViewBag.Title</h3>
+
+@using (Html.BeginForm( "UploadAsync", "SiteFilesManagement", FormMethod.Post,
+                new { enctype = "multipart/form-data" }))
+{
+    @Html.AntiForgeryToken()
+
+    if (ViewBag.UploadFolderPath != null)
+    {
+        <input type="hidden" name="folderPath" value="@ViewBag.UploadFolderPath" />
+    }
+
+    <fieldset>
+        <legend>Upload a file</legend>
+        <div class="editor-field">
+     
+            <input type="file" class="multiple" name="files" multiple />
+            <br /><br />
+        </div>
+        <div class="editor-field">
+            <input class="btn btn-success" type="submit" value="Upload" />
+        </div>
+    </fieldset>
+}
+    </div>
+</section>
+}

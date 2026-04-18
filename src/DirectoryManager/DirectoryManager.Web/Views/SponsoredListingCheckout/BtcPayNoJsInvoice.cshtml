@@ -1,0 +1,314 @@
+@using DirectoryManager.Web.Models.Sponsorship
+@model BtcPayNoJsInvoiceViewModel
+@{
+    ViewData["Title"] = "Pay with Monero";
+    bool shouldRefresh = !Model.IsPaid && !Model.IsExpired;
+    var qrUrl = Url.Action("BtcPayNoJsQr", "SponsoredListingCheckout", new { processorInvoiceId = Model.ProcessorInvoiceId });
+    var refreshUrl = Url.Action("BtcPayNoJsInvoice", "SponsoredListingCheckout", new { processorInvoiceId = Model.ProcessorInvoiceId, orderId = Model.OrderId });
+    bool txDetected = !string.IsNullOrWhiteSpace(Model.TxId);
+}
+
+@if (shouldRefresh)
+{
+    <meta http-equiv="refresh" content="20">
+}
+
+<style>
+    .invoice-wrap {
+        max-width: 585px;
+        margin: 2rem auto;
+        font-family: monospace;
+        padding: 1rem;
+        background: #111;
+        color: #e8e8e8;
+    }
+
+    .invoice-wrap h2 { font-family: sans-serif; color: #f0f0f0; }
+
+    .qr-section {
+        text-align: center;
+        margin: 1.5rem 0;
+        background: #1a1a1a;
+        padding: 1rem;
+        border: 1px solid #333;
+    }
+
+    .qr-img {
+        display: block;
+        margin: 0 auto;
+        border: 4px solid #fff;
+        background: #fff;
+        image-rendering: pixelated;
+    }
+
+    .qr-img-wrap {
+        position: relative;
+        display: inline-block;
+    }
+
+    .qr-img-wrap.detected .qr-img {
+        opacity: 0.18;
+        filter: grayscale(100%);
+    }
+
+    .qr-paid-overlay {
+        display: none;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 5rem;
+        line-height: 1;
+        color: #81c784;
+        text-shadow: 0 0 12px #000;
+        pointer-events: none;
+    }
+
+    .qr-img-wrap.detected .qr-paid-overlay {
+        display: block;
+    }
+
+    .qr-fallback {
+        font-size: 0.8rem;
+        color: #aaa;
+        margin-top: 0.5rem;
+        font-family: sans-serif;
+    }
+
+    .payment-details {
+        background: #1a1a1a;
+        border: 1px solid #333;
+        padding: 1rem;
+        margin: 1rem 0;
+        word-break: break-all;
+        color: #e8e8e8;
+    }
+
+    .field { margin-bottom: 0.75rem; }
+
+    .label {
+        display: block;
+        font-weight: bold;
+        font-size: 0.85rem;
+        color: #aaa;
+        font-family: sans-serif;
+    }
+
+    .value { display: block; font-size: 0.9rem; color: #e8e8e8; }
+
+    .amount {
+        font-size: 1.4rem;
+        font-weight: bold;
+        color: #ff6b35;
+    }
+
+    .address {
+        font-size: 0.75rem;
+        letter-spacing: 0.02em;
+        background: #222;
+        padding: 4px;
+        color: #e8e8e8;
+    }
+
+    .wallet-link { font-size: 0.9rem; color: #5b9bd5; }
+
+    .instructions {
+        margin: 1rem 0;
+        font-size: 0.9rem;
+        line-height: 1.6;
+        font-family: sans-serif;
+        color: #ccc;
+    }
+
+    .expiry { color: #ff6b35; font-weight: bold; }
+
+    .refresh-link {
+        display: inline-block;
+        margin-top: 0.75rem;
+        font-size: 0.85rem;
+        color: #5b9bd5;
+        font-family: sans-serif;
+    }
+
+    .invoice-status {
+        padding: 1rem;
+        margin: 1rem 0;
+        border-radius: 4px;
+        font-size: 1rem;
+        font-family: sans-serif;
+    }
+
+    .invoice-status.paid    { background: #0d2b0d; border: 1px solid #2e7d32; color: #81c784; }
+    .invoice-status.pending { background: #2b2200; border: 1px solid #f0a500; color: #ffd54f; }
+    .invoice-status.expired { background: #2b0a0a; border: 1px solid #c62828; color: #ef9a9a; }
+
+    .txid-label { font-weight: bold; margin-top: 0.75rem; margin-bottom: 0.25rem; }
+
+    .txid {
+        font-size: 0.72rem;
+        word-break: break-all;
+        background: #222;
+        padding: 0.25rem;
+        color: #ccc;
+    }
+
+    .refresh-note { font-size: 0.8rem; color: #888; margin-top: 0.75rem; }
+</style>
+
+<div class="invoice-wrap">
+
+    @* ── PAID ── *@
+    @if (Model.IsPaid)
+    {
+        <h2>Pay with Monero (XMR)</h2>
+
+        <div class="payment-details">
+            <div class="field">
+                <span class="label">Order ID:</span>
+                <span class="value" style="font-size:0.8rem;color:#aaa;">@Model.OrderId</span>
+            </div>
+
+            @if (!string.IsNullOrWhiteSpace(Model.ListingName))
+{
+    <div class="field">
+        <span class="label">Listing:</span>
+        <span class="value">@Model.ListingName</span>
+    </div>
+}
+
+            @if (!string.IsNullOrWhiteSpace(Model.InvoiceDescription))
+            {
+                <div class="field" style="margin-bottom:0;">
+                    <span class="label">Description:</span>
+                    <span class="value">@Model.InvoiceDescription</span>
+                </div>
+            }
+        </div>
+
+        <div class="invoice-status paid">
+            <p>&#10003; Payment confirmed. Thank you!</p>
+            @if (!string.IsNullOrWhiteSpace(Model.TxId))
+            {
+                <p class="txid-label">Transaction ID:</p>
+                <p class="txid">@Model.TxId</p>
+            }
+            <p style="margin-top:0.75rem;">
+                <a href="@Url.Action("BtcPaySuccess", "SponsoredListingCheckout", new { orderId = Model.OrderId })" style="color:#81c784;">
+                    Continue &rarr;
+                </a>
+            </p>
+        </div>
+    }
+
+    @* ── EXPIRED ── *@
+    else if (Model.IsExpired)
+    {
+        <div class="invoice-status expired">
+            <p>&#10007; This invoice has expired.</p>
+            <a href="@Url.Action("SelectListing", "SponsoredListingCheckout")" style="color:#ef9a9a;">Start over &rarr;</a>
+        </div>
+    }
+
+    @* ── AWAITING / PENDING ── *@
+    else
+    {
+        <h2>Pay with Monero (XMR)</h2>
+
+        <div class="payment-details">
+            <div class="field">
+                <span class="label">Order ID:</span>
+                <span class="value" style="font-size:0.8rem;color:#aaa;">@Model.OrderId</span>
+            </div>
+
+            
+@if (!string.IsNullOrWhiteSpace(Model.ListingName))
+{
+    <div class="field">
+        <span class="label">Listing:</span>
+        <span class="value">@Model.ListingName</span>
+    </div>
+}
+            @if (!string.IsNullOrWhiteSpace(Model.InvoiceDescription))
+            {
+                <div class="field" style="margin-bottom:0;">
+                    <span class="label">Description:</span>
+                    <span class="value">@Model.InvoiceDescription</span>
+                </div>
+            }
+        </div>
+
+        @* QR + amount + address — hidden once tx is detected *@
+        @if (!string.IsNullOrWhiteSpace(Model.Address))
+        {
+            <div class="qr-section">
+                <div class="qr-img-wrap @(txDetected ? "detected" : "")">
+                    <img src="@qrUrl"
+                         alt="Monero payment QR code"
+                         width="240"
+                         height="240"
+                         class="qr-img" />
+                    <div class="qr-paid-overlay">&#10003;</div>
+                </div>
+                @if (!txDetected)
+                {
+                    <div class="qr-fallback">Scan with your Monero wallet</div>
+                }
+                else
+                {
+                    <div class="qr-fallback" style="color:#ffd54f;">Payment received &mdash; awaiting confirmation</div>
+                }
+            </div>
+
+            @if (!txDetected)
+            {
+                <div class="payment-details">
+                    <div class="field">
+                        <span class="label">Amount (XMR):</span>
+                        <span class="value amount">@Model.AmountDue</span>
+                    </div>
+                    <div class="field">
+                        <span class="label">Address:</span>
+                        <span class="value address">@Model.Address</span>
+                    </div>
+                    @if (!string.IsNullOrWhiteSpace(Model.PaymentUri))
+                    {
+                        <div class="field" style="margin-bottom:0;">
+                            <span class="label">Open in wallet app:</span>
+                            <a href="@Model.PaymentUri" class="wallet-link">Open Monero wallet</a>
+                        </div>
+                    }
+                </div>
+
+                <div class="instructions">
+                    <p>Send exactly <strong>@Model.AmountDue XMR</strong> to the address above.</p>
+                    <p>Do not close this page. It refreshes automatically once payment is detected.</p>
+                    @if (Model.ExpiresAt.HasValue)
+                    {
+                        <p class="expiry">Invoice expires in: @Model.FormattedTimeRemaining</p>
+                    }
+                    <a href="@refreshUrl" class="refresh-link">&#8635; Refresh page manually</a>
+                </div>
+            }
+        }
+        else
+        {
+            <p style="font-family:sans-serif;color:#ccc;">
+                Loading payment details&hellip;
+                <a href="@refreshUrl" style="color:#5b9bd5;">Refresh page</a>
+            </p>
+        }
+
+        @* TxId — always outside the address block so it renders even if address is empty *@
+        @if (txDetected)
+        {
+            <div class="invoice-status pending">
+                <p>&#8987; Payment detected &mdash; waiting for confirmation.</p>
+                <p class="txid-label">Transaction ID:</p>
+                <p class="txid">@Model.TxId</p>
+                <p class="refresh-note">This page refreshes automatically every 20 seconds.</p>
+                <a href="@refreshUrl" class="refresh-link">&#8635; Refresh page manually</a>
+            </div>
+        }
+    }
+
+</div>

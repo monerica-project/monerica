@@ -1,0 +1,30 @@
+﻿@using DirectoryManager.Web.Constants
+@model DirectoryManager.Web.Models.Processors.ProcessorEditVm
+
+@{
+    ViewData["Title"] = "Edit Processor";
+ 
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+
+<form method="post" action="/processors/edit/@Model.ProcessorId">
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label class="form-label">Name</label>
+        <input class="form-control" asp-for="Name" />
+        <span class="text-danger" asp-validation-for="Name"></span>
+    </div>
+
+    <button class="btn btn-primary" type="submit">Save</button>
+    <a class="btn btn-link" href="/processors">Cancel</a>
+</form>
+
+ 
+}

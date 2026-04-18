@@ -1,0 +1,71 @@
+﻿@model DirectoryManager.Web.Models.SubmissionPagedList
+@using DirectoryManager.Web.Constants;
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Pending Submission Requests";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+
+    <div style="margin: 12px 0 18px 0;">
+        <a asp-action="Index" asp-controller="Submission">All</a>
+        <span style="padding:0 8px;">|</span>
+        <a asp-action="Pending" asp-controller="Submission"><b>Pending</b></a>
+    </div>
+
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Submission Status</th>
+                    <th>Create Date</th>
+                    <th>Update Date</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var submission in Model.Items)
+                {
+                    <tr>
+                        <td>@submission.Name</td>
+                        <td><b>@submission.SubmissionStatus</b></td>
+                        <td>@submission.CreateDate</td>
+                        <td>
+                            @if (submission?.UpdateDate == null)
+                            {
+                                <text> -- </text>
+                            }
+                            else
+                            {
+                                @submission.UpdateDate
+                            }
+                        </td>
+                        <td>
+                            <a asp-action="Review" asp-controller="Submission" asp-route-id="@submission?.SubmissionId">Edit</a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+
+    <div>
+        @for (int i = 1; i <= Model.TotalPages; i++)
+        {
+            if (i == Model.PageNumber)
+            {
+                <text>@i </text>
+            }
+            else
+            {
+                <a href="@Url.Action("Pending", "Submission", new { page = i })">@i </a>
+            }
+        }
+    </div>
+}

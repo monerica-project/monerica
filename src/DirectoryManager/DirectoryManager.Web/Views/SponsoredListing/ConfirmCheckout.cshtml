@@ -1,0 +1,182 @@
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Models
+@using System.Globalization
+@using DirectoryManager.Data.Enums
+@model DirectoryManager.Web.Models.ConfirmSelectionViewModel
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
+@using DirectoryManager.Utilities.Helpers
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
+@inject NowPayments.API.Interfaces.INowPaymentsService nowPaymentsService
+@using DirectoryManager.Web.Helpers
+@using Microsoft.Extensions.Caching.Memory
+@inject IMemoryCache memoryCache
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Confirm Selection";
+    Layout = "_CenteredLayout";
+
+    Guid? reservationGuid = ViewBag.ReservationGuid is Guid g ? g : (Guid?)null;
+    DateTime? reservationExpiresUtc = ViewBag.ReservationExpiresUtc is DateTime d ? d : (DateTime?)null;
+
+    int? minutesLeft = reservationExpiresUtc.HasValue
+        ? (int?)Math.Max(0, (int)Math.Ceiling((reservationExpiresUtc.Value - DateTime.UtcNow).TotalMinutes))
+        : null;
+
+    var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(httpContextAccessor, memoryCache, nowPaymentsService);
+    bool showConverted = conversionResult.showConverted;
+    decimal conversionRate = conversionResult.conversionRate;
+
+    Model.SelectedDirectoryEntry.IsSponsored = true;
+
+    var prefillReferral = ViewBag.ReferralCode as string ?? string.Empty;
+    var prefillEmail = ViewBag.PrefillEmail as string ?? string.Empty;
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    @if (reservationGuid.HasValue && reservationExpiresUtc.HasValue)
+    {
+        <div class="alert alert-warning" role="alert">
+            <strong>Reserved checkout:</strong>
+            Your slot is held until
+            <b>@reservationExpiresUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</b> UTC
+            (@minutesLeft minute@(minutesLeft == 1 ? "" : "s") left).
+            Complete purchase before it expires to keep your place in line.
+        </div>
+    }
+
+    <div>
+        @if (Model.CanCreateSponsoredListing)
+        {
+            <h2>Selected Listing</h2>
+            <ul class="blank_list_item">
+                @await Html.PartialAsync("_DirectoryEntryPartial", Model.SelectedDirectoryEntry)
+            </ul>
+
+            <hr />
+            <h2>Your Order</h2>
+            <br />
+            <table>
+                <tr>
+                    <td><b>Sponsorship Type:</b></td>
+                    <td>@DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.Offer.SponsorshipType)</td>
+                </tr>
+                <tr>
+                    <td><b>Days:</b></td>
+                    <td>@Model.Offer.Days</td>
+                </tr>
+                <tr>
+                    <td><b>Description:</b></td>
+                    <td>@Model.Offer.Description</td>
+                </tr>
+                <tr>
+                    <td><b>Price:</b></td>
+                    <td>
+                        @Model.Offer.USDPrice.ToString(
+                            DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
+                            new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure))
+                        @Currency.USD
+                        <i>
+                            (Approximately:
+                            @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
+                                Model.Offer.USDPrice,
+                                conversionRate,
+                                conversionResult.selectedCurrency,
+                                true))
+                        </i>
+                    </td>
+                </tr>
+            </table>
+
+            @if (Model.IsExtension)
+            {
+                <br />
+                <p>These days will be added to the current sponsored listing.</p>
+            }
+
+            <form method="post" action="~/sponsoredlisting/confirmcheckout">
+                @Html.AntiForgeryToken()
+
+                <hr />
+                <h3>Payment Method</h3>
+                <p>Both options accept XMR (Monero).</p>
+
+                <div class="form-check" style="margin-bottom:8px;">
+                    <label class="form-check-label">
+                        <input class="form-check-input" type="radio" name="selectedProcessor" value="BTCPayServer" checked />
+                        <strong>BTCPay Server</strong> &mdash; self-hosted, XMR direct
+                    </label>
+                </div>
+                <div class="form-check" style="margin-bottom:16px;">
+                    <label class="form-check-label">
+                        <input class="form-check-input" type="radio" name="selectedProcessor" value="NOWPayments" />
+                        <strong>NOWPayments</strong> &mdash; hosted checkout, multiple networks
+                    </label>
+                </div>
+
+                <div class="alert alert-info" role="alert">
+                    <strong>&#9888; Important &mdash; Monero wallet sync</strong><br />
+                    Before sending any XMR payment, make sure your Monero wallet is <strong>fully synced to the current blockchain height</strong>.
+                    Both processors generate a unique subaddress per invoice. An unsynced wallet will not see the incoming
+                    transaction and your payment may appear to be missing even after it confirms on-chain.
+                    Sync your wallet <em>before</em> you scan the QR code or copy the address.
+                </div>
+
+                <hr />
+                <h3>Optional</h3>
+                <div class="form-group">
+                    <p>Receive a reminder before your listing expires so you can renew in time.</p>
+                    <label>Email (optional)</label>
+                    <input style="width:18%;"
+                           name="email"
+                           type="email"
+                           value="@prefillEmail"
+                           placeholder="yourname@email.com"
+                           autocomplete="off" />
+                    <div class="text-danger">@Html.ValidationMessage("Email")</div>
+                </div>
+
+                <div class="form-group">
+                    <label>Referral code (optional)</label>
+                    <input style="width:18%;"
+                           name="referralCode"
+                           type="text"
+                           value="@prefillReferral"
+                           placeholder="e.g. alice"
+                           maxlength="12"
+                           inputmode="latin"
+                           pattern="^[A-Za-z0-9]{3,12}$"
+                           title="Letters and numbers only, 3-12 characters."
+                           autocomplete="off" />
+                </div>
+
+                <hr />
+
+                <div>
+                    @await Html.PartialAsync("_CaptchaBlock", "sponsoredlisting-confirmcheckout")
+                    <div class="text-danger" style="margin-top:4px;">
+                        @Html.ValidationMessage("Captcha")
+                    </div>
+                </div>
+
+                <hr />
+
+                <input name="rsvId" type="hidden" value="@reservationGuid" />
+                <input type="hidden" name="directoryEntryId" value="@Model.SelectedDirectoryEntry.DirectoryEntryId" />
+                <input type="hidden" name="selectedOfferId" value="@Model.Offer.SponsoredListingOfferId" />
+
+                <button class="btn btn-cta" type="submit">Purchase Listing</button>
+            </form>
+        }
+        else
+        {
+            @await Html.PartialAsync("_AdSpaceFull", new ListingInventoryModel
+            {
+                CanCreateSponsoredListing = Model.CanCreateSponsoredListing,
+                NextListingExpiration = Model.NextListingExpiration
+            })
+        }
+    </div>
+}

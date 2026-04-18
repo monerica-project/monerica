@@ -1,0 +1,47 @@
+﻿{
+  "iisSettings": {
+    "windowsAuthentication": false,
+    "anonymousAuthentication": true,
+    "iisExpress": {
+      "applicationUrl": "http://localhost:13970",
+      "sslPort": 44351
+    }
+  },
+  "profiles": {
+    "RunLikeCLI (https)": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "workingDirectory": "$(ProjectDir)",
+      "commandLineArgs": "run --no-build --urls \"https://localhost:7145;http://localhost:5007\"",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_PREVENTHOSTINGSTARTUP": "true",
+        "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "",
+        "DOTNET_WATCH": "0",
+        "DOTNET_MODIFIABLE_ASSEMBLIES": "none"
+      }
+    },
+    "RunLikeCLI (http)": {
+      "commandName": "Executable",
+      "executablePath": "dotnet",
+      "workingDirectory": "$(ProjectDir)",
+      "commandLineArgs": "run --no-build --urls \"http://localhost:5007\"",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_PREVENTHOSTINGSTARTUP": "true",
+        "ASPNETCORE_HOSTINGSTARTUPASSEMBLIES": "",
+        "DOTNET_WATCH": "0",
+        "DOTNET_MODIFIABLE_ASSEMBLIES": "none"
+      }
+    },
+    "IIS Express": {
+      "commandName": "IISExpress",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      }
+    }
+  }
+}

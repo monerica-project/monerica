@@ -1,0 +1,26 @@
+﻿@using DirectoryManager.Data.Models
+@model Subcategory
+@using DirectoryManager.Web.Constants;
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Edit Subcategory";
+}
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<form method="post" action="~/subcategory/edit">
+    @Html.AntiForgeryToken()
+    <input type="hidden" name="SubCategoryId" value="@Model.SubCategoryId" />
+
+    @await Html.PartialAsync("_SubcategoryForm", Model)
+
+    <button type="submit" class="btn btn-primary">Update</button>
+</form>
+}

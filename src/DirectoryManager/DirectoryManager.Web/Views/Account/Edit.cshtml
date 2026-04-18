@@ -1,0 +1,79 @@
+﻿@using DirectoryManager.Data.Models
+@using DirectoryManager.Web.Constants;
+@model DirectoryManager.Data.Models.Category
+@inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository subCategoryRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
+
+@addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Directory Entries";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+ 
+@await Html.PartialAsync("_AdminMenu")
+
+<p><b id="categories">Categories</b></p>
+
+<ul id="categories_list">
+
+    @foreach (var category in await categoryRepository.GetAllAsync())
+    {
+        <li>
+            <label for="@string.Format("{0}_checkbox", category.CategoryKey)">+</label>
+            <a href="#@category.CategoryKey">@category.Name</a>
+            <input type="checkbox" id="@string.Format("{0}_checkbox", category.CategoryKey)" />
+            <div class="hidden">
+             <ul>
+            @foreach (var subCategory in await subCategoryRepository.GetByCategoryAsync(category.CategoryId))
+            {
+                <li>
+                    <a href="#@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</a>
+                </li>
+            }
+            </ul>
+            </div>
+        </li>
+        }
+    </ul>
+
+@foreach (var category in await categoryRepository.GetAllAsync())
+{
+    <h2 id="@category.CategoryKey">@category.Name</h2> <a href="~/category/edit/@category.CategoryId">Edit</a>
+
+    <i>@category.Note</i>
+
+    @foreach (var subCategory in await subCategoryRepository.GetByCategoryAsync(category.CategoryId))
+    {
+    <h3 id="@category.CategoryKey-@subCategory.SubCategoryKey">@subCategory.Name</h3> <a href="~/subcategory/edit/?id=@subCategory.SubCategoryId">Edit</a>
+        <i>@subCategory.Note</i>
+
+        <ul>
+            @foreach (var directoryEntry in await directoryEntryRepository.GetAllBySubCategoryIdAsync(subCategory.SubCategoryId))
+            {
+                <li>
+                    @if (string.IsNullOrWhiteSpace(directoryEntry.Description))
+                    {
+                         <a href="~/directoryentry/edit/@directoryEntry.DirectoryEntryId">Edit</a> <text>-</text> <a target="_blank" href="@directoryEntry.Link">@directoryEntry.Name</a> 
+                    }
+                    else
+                    {
+                        <a href="~/directoryentry/edit/@directoryEntry.DirectoryEntryId">Edit</a> <text>-</text> <a target="_blank" href="@directoryEntry.Link">@directoryEntry.Name</a> <span>- @directoryEntry.Description</span>  
+                    }
+                </li>
+            }
+        </ul>
+    }
+
+    <p class="right">
+        <a href="#categories">&#x2191; Categories</a>
+    </p>
+
+    <hr />
+}
+
+}

@@ -1,0 +1,39 @@
+﻿@model ProcessorConfig;
+@using DirectoryManager.Data.Enums;
+@using DirectoryManager.Data.Models.SponsoredListings;
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Edit Processor Configuration";
+}
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="ProcessorConfigId" />
+    <div class="form-group">
+        <label asp-for="PaymentProcessor"></label>
+        <select asp-for="PaymentProcessor" asp-items="Html.GetEnumSelectList<PaymentProcessor>()" class="form-control"></select>
+    </div>
+    <div class="form-group">
+        <label asp-for="UseProcessor"></label>
+        <input asp-for="UseProcessor" class="form-control" />
+    </div>
+    <div class="form-group">
+        <label asp-for="Configuration"></label>
+        <textarea asp-for="Configuration" class="form-control"></textarea>
+    </div>
+    <button type="submit" class="btn btn-primary">Update</button>
+</form>
+
+<div>
+    <a asp-action="Index">Back to List</a>
+</div>
+}

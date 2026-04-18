@@ -1,0 +1,32 @@
+@using DirectoryManager.Web.Constants;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@model DirectoryManager.Web.Models.SuccessViewModel
+@{
+    ViewData[StringConstants.TitleHeader] = "Payment Received";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    <p>&#9989; Thank you for your payment via NOWPayments. Your order ID is: <strong>@Model.OrderId</strong></p>
+
+    <br />
+
+    <p>Your listing is currently live and will remain displayed until: <b>@Model.ListingEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</b> UTC</p>
+
+    <br />
+
+    <div class="alert alert-info" role="alert">
+        <strong>Payment not confirmed yet?</strong><br />
+        If you have just sent your payment, it may take a few minutes to appear.
+        Once the network confirms your transaction, your listing will activate automatically.
+        You do not need to stay on this page &mdash; the system will update in the background.
+    </div>
+
+    @Html.Raw(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.InvoiceSuccessMessageHtml))
+}

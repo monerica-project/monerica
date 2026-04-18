@@ -1,0 +1,26 @@
+﻿@model DirectoryManager.Data.Models.Category
+@using DirectoryManager.Web.Constants;
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Create Category";
+}
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<form method="post">
+    @Html.AntiForgeryToken()
+    @await Html.PartialAsync("_CategoryForm", Model)
+
+    <div>
+        <button type="submit" class="btn btn-primary">Create</button>
+    </div>
+</form>
+}

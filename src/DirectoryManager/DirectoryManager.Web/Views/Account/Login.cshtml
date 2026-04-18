@@ -1,0 +1,29 @@
+﻿@model DirectoryManager.Web.Models.LoginViewModel
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Login";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<hr />
+
+<form method="post">
+    <div class="form-group">
+        <label asp-for="Username"></label>
+        <input asp-for="Username" class="form-control input-width" />
+        <span asp-validation-for="Username" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <label asp-for="Password"></label>
+        <input asp-for="Password" class="form-control input-width" />
+        <span asp-validation-for="Password" class="text-danger"></span>
+    </div>
+    <div class="form-group">
+        <input asp-for="RememberMe" />
+        <label asp-for="RememberMe"></label>
+    </div>
+    <button type="submit" class="btn btn-primary">Login</button>
+</form>
+}

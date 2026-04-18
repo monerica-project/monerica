@@ -1,0 +1,375 @@
+﻿@model DirectoryManager.Web.Models.Sponsorship.SponsorshipIndexVm
+@using System.Globalization
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.Utilities.Helpers
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Common.Constants
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
+@inject NowPayments.API.Interfaces.INowPaymentsService nowPaymentsService
+@inject Microsoft.Extensions.Caching.Memory.IMemoryCache memoryCache
+@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Sponsorship";
+    Layout = "_CenteredLayout";
+
+    var q = (Model.Query ?? string.Empty).Trim();
+    var usd = CultureInfo.GetCultureInfo(DirectoryManager.Web.Constants.StringConstants.EnglishUS);
+
+    var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(
+        httpContextAccessor, memoryCache, nowPaymentsService);
+    var conversionRate = conversionResult.conversionRate;
+}
+
+@section PageContent {
+
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SponsoredListingSteps))
+    <p style="margin: 0 0 10px 0;">
+        <strong>Search your listing to see prices, pick your spot — or join the waitlist.</strong><br />
+        Every listing has up to 3 sponsorship placements, each available in different durations and at different prices.
+        Search below to find yours and see what's available.
+        If the spot you want is already taken, join the waitlist and we'll notify you when it opens.
+    </p>
+
+    <!-- SEARCH -->
+    <form method="get" action="@Url.Action("Index", "Sponsorship")" class="search-form" style="margin: 16px 0;">
+        <input type="search"
+               name="q"
+               value="@q"
+               placeholder="Search listings… (name, website)"
+               class="form-control"
+               style="max-width: 520px; display: inline-block;" />
+        <button type="submit" class="btn btn-primary btn-cta">Search</button>
+    </form>
+
+    @if (Model.HasSearched)
+    {
+        <h2 style="margin-top: 18px;">Search results</h2>
+
+        <p style="margin: 6px 0 12px 0;">
+            @Model.TotalCount result@(Model.TotalCount == 1 ? "" : "s")
+            @if (Model.TotalPages > 1)
+            {
+                <span> — page @Model.Page of @Model.TotalPages</span>
+            }
+        </p>
+
+        @if (Model.Results != null && Model.Results.Any())
+        {
+            <div class="table-wrapper">
+                <table class="table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Listing</th>
+                            <th>Status</th>
+                            <th>Category</th>
+                            <th>Subcategory</th>
+                            <th>Age (days)</th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in Model.Results)
+                        {
+                            <tr>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(r.Link))
+                                    {
+                                        <a href="@r.Link" target="_blank" rel="noopener">@r.Name</a>
+                                    }
+                                    else
+                                    {
+                                        @r.Name
+                                    }
+
+                                    @if (!r.CanAdvertise && r.Reasons != null && r.Reasons.Any())
+                                    {
+                                        <ul style="margin: 6px 0 0 18px; opacity: .9;">
+                                            @foreach (var reason in r.Reasons)
+                                            {
+                                                <li>@reason</li>
+                                            }
+                                        </ul>
+                                    }
+                                </td>
+                                <td>@r.Status</td>
+                                <td>@r.Category</td>
+                                <td>@r.Subcategory</td>
+                                <td>@r.AgeDays</td>
+                                <td style="white-space: nowrap;">
+                                    <form method="post" action="@Url.Action("Select", "Sponsorship")">
+                                        @Html.AntiForgeryToken()
+                                        <input type="hidden" name="directoryEntryId" value="@r.DirectoryEntryId" />
+                                        <button type="submit" class="btn btn-info">Select &amp; Join</button>
+                                    </form>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+
+            @if (Model.TotalPages > 1)
+            {
+                <div style="margin: 12px 0 22px 0;">
+                    @{
+                        var prev = Model.Page > 1 ? Model.Page - 1 : (int?)null;
+                        var next = Model.Page < Model.TotalPages ? Model.Page + 1 : (int?)null;
+                    }
+                    @if (prev.HasValue)
+                    {
+                        <a class="btn btn-secondary" href="@Url.Action("Index", "Sponsorship", new { q = q, page = prev.Value })">← Prev</a>
+                    }
+                    @if (next.HasValue)
+                    {
+                        <a class="btn btn-secondary" style="margin-left: 8px;" href="@Url.Action("Index", "Sponsorship", new { q = q, page = next.Value })">Next →</a>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <p>No results.</p>
+        }
+    }
+
+    <!-- PACKAGE DETAILS -->
+    <hr />
+
+    @* MAIN SPONSOR OPEN / NEXT OPENING *@
+    @if (Model.MainSponsorIsOpen)
+    {
+        <p class="orange-text" style="margin: 0 0 10px 0; font-weight: 800;">
+            Main Sponsor is OPEN — find your listing above and claim your spot.
+        </p>
+    }
+    else if (Model.MainSponsorInventory != null)
+    {
+        <div class="adspace-full" style="margin: 0 0 12px 0;">
+            <p>
+                Sorry, the maximum number of <b>@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</b> listings has been reached!
+            </p>
+            <p>
+                Next opening:
+                <b>@Model.MainSponsorInventory.NextListingExpiration.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</b>
+            </p>
+            <p>Come back in @Model.MainSponsorInventory.TimeUntilNextMessage</p>
+            <p>Search for your listing to <b>join the waitlist!</b></p>
+        </div>
+    }
+
+    <details style="margin: 10px 0 18px 0;">
+        <summary style="cursor:pointer;"><strong>What's included in each sponsorship package?</strong></summary>
+        <div style="margin-top: 12px;">
+            <h3 style="margin: 14px 0 6px 0;">@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</h3>
+            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.MainSponsoredListingDetails))
+
+            <h3 style="margin: 18px 0 6px 0;">@EnumHelper.GetDescription(SponsorshipType.CategorySponsor)</h3>
+            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.CategorySponsoredListingDetails))
+
+            <h3 style="margin: 18px 0 6px 0;">@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</h3>
+            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SubcategorySponsoredListingDetails))
+        </div>
+    </details>
+
+    <!-- WAITLIST -->
+    @if (Model.WaitlistBoard != null)
+    {
+        <h2>Waitlist activity</h2>
+
+        var preview = (Model.WaitlistBoard?.MainPreview ?? new List<DirectoryManager.Web.Models.Sponsorship.WaitlistPreviewRowVm>())
+            .OrderByDescending(x => x.JoinedUtc)
+            .ToList();
+
+        var shown = preview.Count;
+        var total = Model.WaitlistBoard?.MainWaitlistCount ?? 0;
+        var remaining = Math.Max(0, total - shown);
+
+        <p style="margin: 6px 0 10px 0;">
+            Main Sponsor waitlist: <strong>@total</strong> waiting
+            <span style="opacity:.85;">— newest signups shown first.</span>
+        </p>
+
+        @if (shown > 0)
+        {
+            <p style="margin-bottom: 6px;">
+                Preview: <span style="opacity:.85;">showing @shown of @total</span>
+            </p>
+            <ul style="margin-top: 0;">
+                @foreach (var row in preview)
+                {
+                    <li>
+                        @if (!string.IsNullOrWhiteSpace(row.ListingUrl))
+                        {
+                            <a href="@row.ListingUrl" target="_blank" rel="noopener">@row.ListingName</a>
+                        }
+                        else
+                        {
+                            @row.ListingName
+                        }
+                        — joined @row.JoinedUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) (UTC)
+                    </li>
+                }
+            </ul>
+
+            @if (!string.IsNullOrWhiteSpace(Model.WaitlistBoard.BrowseWaitlistUrl))
+            {
+                <div style="margin-top: 10px;">
+                    <a class="btn btn-info" href="@Model.WaitlistBoard.BrowseWaitlistUrl">
+                        Browse waitlists@(remaining > 0 ? $" (+{remaining} more)" : "")
+                    </a>
+                </div>
+            }
+        }
+        else
+        {
+            <p style="opacity:.85; margin-top: 8px;">No one is waiting yet.</p>
+            @if (!string.IsNullOrWhiteSpace(Model.WaitlistBoard.BrowseWaitlistUrl))
+            {
+                <div style="margin-top: 10px;">
+                    <a class="btn btn-info" href="@Model.WaitlistBoard.BrowseWaitlistUrl">Browse waitlists</a>
+                </div>
+            }
+        }
+    }
+
+    <!-- PRICING SUMMARY -->
+    @if (Model.PricingSummaries != null && Model.PricingSummaries.Any())
+    {
+        <h2 style="margin-top: 28px;">Pricing</h2>
+        <p style="margin: 6px 0 14px 0;">
+            Current advertising rates by placement type. Prices are denominated in USD and paid in XMR at the time of checkout. All prices subject to change with market demand.
+            <a href="~/sponsoredlisting/offers">View full offer table →</a>
+        </p>
+
+        <div class="table-wrapper">
+            <table class="table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Type</th>
+                        <th style="text-align:right;">Days</th>
+                        <th style="text-align:right;">USD</th>
+                        <th style="text-align:right;">XMR</th>
+                        <th style="text-align:right;">$/day</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model.PricingSummaries)
+                    {
+                        var daysLabel = s.MinDays == s.MaxDays
+                            ? $"{s.MinDays}"
+                            : $"{s.MinDays} – {s.MaxDays}";
+
+                        var usdLabel = s.MinPriceUsd == s.MaxPriceUsd
+                            ? s.MinPriceUsd.ToString("C0", usd)
+                            : $"{s.MinPriceUsd.ToString("C0", usd)} – {s.MaxPriceUsd.ToString("C0", usd)}";
+
+                        var xmrMin = conversionRate > 0
+                            ? Math.Round(s.MinPriceUsd * conversionRate, 4)
+                            : (decimal?)null;
+                        var xmrMax = conversionRate > 0
+                            ? Math.Round(s.MaxPriceUsd * conversionRate, 4)
+                            : (decimal?)null;
+
+                        var xmrLabel = xmrMin == null
+                            ? "—"
+                            : xmrMin == xmrMax
+                                ? $"{xmrMin}"
+                                : $"{xmrMin} – {xmrMax}";
+
+                        var usdDayLabel = s.MinUsdPerDay == s.MaxUsdPerDay
+                            ? s.MinUsdPerDay.ToString("C2", usd)
+                            : $"{s.MinUsdPerDay.ToString("C2", usd)} – {s.MaxUsdPerDay.ToString("C2", usd)}";
+
+                        <tr>
+                            <td><strong>@s.Label</strong></td>
+                            <td style="text-align:right;">@daysLabel</td>
+                            <td style="text-align:right;">@usdLabel</td>
+                            <td style="text-align:right;">@xmrLabel</td>
+                            <td style="text-align:right;">@usdDayLabel</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+
+    <!-- RECENT PAID -->
+    @if (Model.RecentPaid != null)
+    {
+        <h2 style="margin-top: 22px;">Recent Paid Sponsorships</h2>
+        <p style="margin: 6px 0 12px 0;">
+            Recent sponsorships from businesses investing in visibility.
+        </p>
+
+        @if (Model.RecentPaid.Items != null && Model.RecentPaid.Items.Any())
+        {
+            <div class="table-wrapper">
+                <table class="table" style="width: 100%;">
+                    <thead>
+                        <tr>
+                            <th>Paid</th>
+                            <th>Type</th>
+                            <th>Listing</th>
+                            <th style="text-align:right;">Days</th>
+                            <th style="text-align:right;">Paid (@Currency.XMR.ToString())</th>
+                            <th style="text-align:right;">USD</th>
+                            <th style="text-align:right;">Expires</th>
+                            <th style="text-align:right;">$/day</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model.RecentPaid.Items)
+                        {
+                            <tr>
+                                <td>@item.PaidUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(item.PlacementUrl))
+                                    {
+                                        <a href="@item.PlacementUrl">@item.SponsorshipType</a>
+                                    }
+                                    else
+                                    {
+                                        @item.SponsorshipType
+                                    }
+                                </td>
+                                <td>
+                                    @if (!string.IsNullOrWhiteSpace(item.ListingUrl))
+                                    {
+                                        <a href="@item.ListingUrl" target="_blank" rel="noopener">@item.ListingName</a>
+                                    }
+                                    else
+                                    {
+                                        @item.ListingName
+                                    }
+                                </td>
+                                <td style="text-align:right;">@item.Days</td>
+                                <td style="text-align:right;">
+                                    @item.PaidAmount.ToString(DirectoryManager.Common.Constants.StringConstants.RoundingFormatCrypto)
+                                </td>
+                                <td style="text-align:right;">@item.AmountUsd.ToString("C2", usd)</td>
+                                <td style="text-align:right;">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
+                                <td style="text-align:right;">@item.PricePerDayUsd.ToString("C2", usd)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+        else
+        {
+            <p style="opacity:.85;">No paid sponsorships yet.</p>
+        }
+    }
+
+}

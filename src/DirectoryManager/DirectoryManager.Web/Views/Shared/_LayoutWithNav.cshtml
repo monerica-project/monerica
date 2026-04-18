@@ -1,0 +1,26 @@
+﻿@using DirectoryManager.Web.Models
+@using DirectoryManager.Web.Services.Interfaces
+
+@inject ISponsorTickerService sponsorTickerService
+
+@{
+    Layout = "_BaseLayout";
+    var nav = ViewData["NavModel"] as DirectoryManager.Web.Models.NavigationViewModel;
+}
+
+@section ChromeBeforeMain {
+    @await Html.PartialAsync("_SidebarNav", nav)
+}
+
+<div id="main-content">
+    @{
+        // Keep this async call here (presentation decides links, repo does not)
+        var items = await sponsorTickerService.GetItemsAsync();
+    }
+
+    @await Html.PartialAsync("_SponsorTickerPartial", items)
+
+    <main class="main">
+        @RenderSection("PageContent", required: true)
+    </main>
+</div>

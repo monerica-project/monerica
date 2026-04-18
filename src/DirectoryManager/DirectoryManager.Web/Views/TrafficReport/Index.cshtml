@@ -1,0 +1,44 @@
+﻿@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Models.Reports
+@model TrafficReportViewModel
+@{
+    ViewData[StringConstants.TitleHeader] = "Traffic Report";
+}
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<!-- Add these links for predefined report durations -->
+<div>
+    <a href="~/trafficreport/last24hours">Last 24 Hours</a> |
+    <a href="~/trafficreport/lastweek">Last Week</a> |
+    <a href="~/trafficreport/lastmonth">Last 30 Days</a>
+</div>
+<hr />
+
+<form method="get">
+    <div>
+        <label for="start">Start Date:</label>
+        <input type="date" id="start" name="start" value="@Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)">
+
+        <label for="end">End Date:</label>
+        <input type="date" id="end" name="end" value="@Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)">
+
+        <button type="submit">Generate Report</button>
+    </div>
+</form>
+
+<h3>Report Summary</h3>
+<div>
+    <strong>Unique IPs:</strong> @Model.UniqueIPCount
+</div>
+<div>
+    <strong>Total Log Requests:</strong> @Model.TotalLogCount
+</div>
+}

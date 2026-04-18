@@ -1,0 +1,102 @@
+﻿@model IEnumerable<DirectoryManager.Data.Models.DirectoryEntriesAudit>
+@using DirectoryManager.DisplayFormatting.Enums
+@using DirectoryManager.DisplayFormatting.Models
+@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Enums
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Web.Models
+@{
+    var firstOrDefault = Model.FirstOrDefault();
+
+    if (firstOrDefault == null)
+    {
+        return;
+    }
+
+    ViewData[StringConstants.TitleHeader] = string.Format("{0} - Audit: {1}", firstOrDefault.Name, @firstOrDefault.DirectoryEntryId);
+
+}
+@{
+    Layout = "_CenteredLayout";
+    ViewData[StringConstants.IsIndexable] = false;
+}
+
+@section PageContent {
+    @await Html.PartialAsync("_SiteLogo")
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+<hr />
+@{
+    if (firstOrDefault  != null)
+    {
+        <a href="~/submission/submitedit/@firstOrDefault.DirectoryEntryId">edit</a>
+    }
+}
+|
+<a href="~/submission/findexisting">all listings</a>
+|
+@await Html.PartialAsync("_BackToHome")
+
+<hr />
+
+@{
+    var selectedDirectoryEntry = (DirectoryEntryViewModel)ViewBag.SelectedDirectoryEntry;
+    selectedDirectoryEntry.LinkType = LinkType.ListingPage;
+}
+
+@if (((DirectoryEntryViewModel)ViewBag.SelectedDirectoryEntry).DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Removed)
+{
+    <i>Removed</i>
+}
+else 
+{
+
+<ul class="blank_list_item">
+    @await Html.PartialAsync("_DirectoryEntryPartial", selectedDirectoryEntry)
+</ul>
+}
+<hr />
+<div class="table-wrapper">
+    <table class="table">
+    <thead>
+        <tr>
+            <th>Status</th>
+            <th>Name</th>
+            <th>Link</th>
+            <th>Description</th>
+            <th>Location</th>
+            <th>Note</th>
+            <th>Contact</th>
+            <th>Processor</th>
+            <th>Subcategory</th>
+            <th>Created Date</th>
+            <th>Updated Date</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var audit in Model)
+        {
+            <tr>
+                <td>
+                        @audit.DirectoryStatus.ToHtmlIcon()
+                </td>
+                <td>@audit.Name</td>
+                <td>@audit.Link</td>
+                <td>@audit.Description</td>
+                <td>@audit.Location</td>
+                <td>@audit.Note</td>
+                <td>@audit.Contact</td>
+                <td>@audit.Processor</td>
+                <td>@audit.SubCategoryName</td>
+                <td>@audit.CreateDate</td>
+                <td>@audit.UpdateDate</td>
+            </tr>
+        }
+    </tbody>
+</table>
+</div>
+
+<hr />
+
+@await Html.PartialAsync("_SponsoredListingPartial")
+}

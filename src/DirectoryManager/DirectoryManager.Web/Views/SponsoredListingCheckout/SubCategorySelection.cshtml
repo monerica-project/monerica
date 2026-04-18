@@ -1,0 +1,54 @@
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models
+@using DirectoryManager.Web.Constants
+@model IEnumerable<DirectoryEntry>
+
+@{
+    ViewData[StringConstants.IsIndexable]  = false;
+    ViewData[StringConstants.TitleHeader]  = "Select Listing";
+    Layout = "_CenteredLayout";
+
+    int subCategoryId = ViewBag.SubCategoryId ?? 0;
+
+    Guid? reservationGuid  = ViewBag.ReservationGuid is Guid g ? g : (Guid?)null;
+    DateTime? reservationExpiry = ViewBag.ReservationExpiresUtc is DateTime d ? d : (DateTime?)null;
+    int? minutesLeft = reservationExpiry.HasValue
+        ? (int?)Math.Max(0, (int)Math.Ceiling((reservationExpiry.Value - DateTime.UtcNow).TotalMinutes))
+        : null;
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    <hr />
+    <a href="~/sponsoredlisting">&lt; back</a>
+    <hr />
+
+    @if (reservationGuid.HasValue && reservationExpiry.HasValue)
+    {
+        <div class="alert alert-warning" role="alert">
+            <strong>Reserved checkout:</strong>
+            Your slot is held until
+            <b>@reservationExpiry.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</b> UTC
+            (@minutesLeft minute@(minutesLeft == 1 ? "" : "s") left).
+            Selecting a listing will continue under this reservation.
+        </div>
+    }
+
+    @foreach (var entry in Model)
+    {
+        <div style="display:flex; gap:.5rem; align-items:center;">
+            <form method="post" action="~/sponsoredlisting/selectlisting" style="display:inline;">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="directoryEntryId" value="@entry.DirectoryEntryId" />
+                <input type="hidden" name="sponsorshipType"  value="@SponsorshipType.SubcategorySponsor" />
+                <input type="hidden" name="subCategoryId"    value="@subCategoryId" />
+                <input type="hidden" name="rsvId"            value="@reservationGuid" />
+                <button class="btn" type="submit" style="margin:2px;">Select</button>
+            </form>
+            <a target="_blank" href="@entry.Link">@entry.Name</a>
+        </div>
+    }
+
+    <br />
+}

@@ -1,0 +1,25 @@
+@using DirectoryManager.Web.Constants
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@model DirectoryManager.Web.Models.SuccessViewModel
+@{
+    ViewData[StringConstants.TitleHeader] = "Successful Sponsored Listing";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    <p>&#9989; Thank you for your payment. Your order ID is: @Model.OrderId</p>
+
+    <br />
+
+    <p>Your listing is currently live and will remain displayed until: <b>@Model.ListingEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</b></p>
+
+    <br />
+
+    @Html.Raw(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.InvoiceSuccessMessageHtml))
+}

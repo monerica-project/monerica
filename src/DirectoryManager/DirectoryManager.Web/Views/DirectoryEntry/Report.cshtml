@@ -1,0 +1,21 @@
+﻿@using DirectoryManager.Data.Models
+@model IEnumerable<DirectoryEntry>
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Directory Entries - Report";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+ 
+<img style="width:100%" src="@Url.Action("MonthlyPlotImage", "DirectoryEntry")" alt="Cumulative Totals Plot" />
+
+<img style="width:100%" src="@Url.Action("CategoryPieChartImage", "DirectoryEntry")" alt="Cumulative Totals Pie Chart" />
+
+<img style="width:100%" src="@Url.Action("SubmissionMonthlyPlotImage", "DirectoryEntry")" alt="Cumulative Totals Pie Chart" />
+
+<img style="width:100%" src="@Url.Action("CountryPlotImage", "DirectoryEntry")" alt="Cumulative Totals Pie Chart" />
+}

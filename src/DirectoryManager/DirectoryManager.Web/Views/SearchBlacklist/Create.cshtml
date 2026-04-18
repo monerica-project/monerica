@@ -1,0 +1,17 @@
+﻿@* Views/SearchBlacklist/Create.cshtml *@
+@{
+    Layout = "_CenteredLayout";
+    ViewData["Title"] = "Add blacklisted term";
+}
+@section PageContent {
+    <h1>Add Blacklisted Term</h1>
+    @await Html.PartialAsync("_AdminMenu")
+    <form method="post" action="~/admin/blacklist/create">
+        <div class="mb-3">
+            <label class="form-label">Term</label>
+            <input autocomplete="off" name="term" class="form-control" maxlength="200" placeholder="e.g., buy stolen data" />
+        </div>
+        <button class="btn btn-primary" type="submit">Add</button>
+        <a class="btn btn-link" href="~/admin/blacklist">Back</a>
+    </form>
+}

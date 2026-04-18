@@ -1,0 +1,68 @@
+﻿@model DirectoryManager.Web.Models.SubscribeViewModel
+@using DirectoryManager.Utilities.Helpers
+@using DirectoryManager.Web.Constants
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Join Sponsored Listing Waitlist";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+@if (!string.IsNullOrEmpty(Model.ErrorMessage))
+{
+    <div class="alert alert-danger">@Model.ErrorMessage</div>
+}
+@if (!string.IsNullOrEmpty(Model.SuccessMessage))
+{
+    <div class="alert alert-success">@Model.SuccessMessage</div>
+}
+
+@if (string.IsNullOrEmpty(Model.SuccessMessage))
+{
+
+        <p>
+            Sponsorship Type:
+            <strong>@EnumHelper.GetDescription(Model.SponsorshipType)</strong>
+        </p>
+
+        @if (!string.IsNullOrEmpty(Model.CategoryOrSubcategoryName))
+        {
+            <p>
+                Subscribing for:
+                <strong>@Model.CategoryOrSubcategoryName</strong>
+            </p>
+        }
+
+       <form asp-action="Subscribe" method="post">
+            <input type="hidden" asp-for="SponsorshipType" />
+            <input type="hidden" asp-for="TypeId" />
+
+            <div class="form-group">
+                <label asp-for="Email">Email Address:</label>
+                <input asp-for="Email" class="form-control" style="width:18%;" />
+                <span asp-validation-for="Email" class="text-danger"></span>
+            </div>
+
+            <br />
+
+            <div>
+                <!-- Shared, no-JS CAPTCHA block (context = "sponsoredlistingnotification") -->
+                @await Html.PartialAsync("_CaptchaBlock", "sponsoredlistingnotification")
+                <div class="text-danger" style="margin-top:4px;">
+                    @Html.ValidationMessage("Captcha")
+                </div>
+            </div>
+
+            <button type="submit" class="btn btn-primary">Subscribe</button>
+        </form>
+
+}
+}

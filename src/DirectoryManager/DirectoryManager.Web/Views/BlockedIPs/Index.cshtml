@@ -1,0 +1,35 @@
+﻿@model IEnumerable<DirectoryManager.Data.Models.BlockedIP>
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Add Blocked IP";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+ 
+<a href="~/blockedips/create">Create</a>
+<hr />
+
+<div class="table-wrapper">
+    <table class="table">
+    <tr>
+        <th>IP Address</th>
+        <th>Actions</th>
+    </tr>
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td>@Html.DisplayFor(modelItem => item.IpAddress)</td>
+            <td>
+                @Html.ActionLink("Delete", "Delete", new { id = item.BlockedIPId }, 
+                new { onclick = "return confirm('Are you sure you want to delete this IP?');" })
+            </td>
+        </tr>
+    }
+</table>
+</div>
+}

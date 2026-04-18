@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+	  <CodeAnalysisRuleSet>../StyleCop.Analyzers.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+
+  <ItemGroup>
+	  <AdditionalFiles Include="..\stylecop.json" />
+  </ItemGroup>
+ 
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="10.0.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="10.0.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.6">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.6" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="10.0.6">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.Extensions.Configuration" Version="10.0.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.FileExtensions" Version="10.0.6" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Json" Version="10.0.6" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+ 
+  <ItemGroup>
+    <ProjectReference Include="..\DirectoryManager.Common\DirectoryManager.Common.csproj" />
+    <ProjectReference Include="..\DirectoryManager.Utilities\DirectoryManager.Utilities.csproj" />
+  </ItemGroup>
+
+	<!-- For DirectoryManager.Data.csproj -->
+	<ItemGroup>
+		<None Update="appsettings.template.json" TargetPath="data\appsettings.json">
+		  <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		  <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			<TargetPath>data\appsettings.template.json</TargetPath>
+		</None>
+		<None Update="appsettings.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+			<CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
+			<TargetPath>data\appsettings.json</TargetPath>
+		</None>
+	</ItemGroup>
+
+
+</Project>

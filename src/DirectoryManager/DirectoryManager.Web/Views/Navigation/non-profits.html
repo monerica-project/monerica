@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Monerica Directory – Non-Profits › Operating Systems</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <style>
+    body {
+      margin: 0;
+      display: flex;
+      font-family: Helvetica, sans-serif;
+      background: #111;
+      color: #EEE;
+    }
+    /* Desktop sidebar */
+    .sidebar {
+      width: 220px;
+      background: #1E1E1E;
+      padding: 1rem 0;
+      height: 100vh;
+      position: fixed;
+      overflow-y: auto;
+      box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+    }
+    .sidebar ul { list-style: none; margin: 0; padding: 0; }
+    .sidebar li { margin: 0; }
+    .sidebar a {
+      display: block;
+      padding: 0.5rem 1rem;
+      color: #EEE;
+      text-decoration: none;
+    }
+    .sidebar a:hover { background: #333; }
+    .sidebar .active > a {
+      background: #00AAFF;
+      color: #000;
+      font-weight: bold;
+    }
+    .subs { display: none; }
+    .cat.active .subs { display: block; }
+    .subs a {
+      padding-left: 1.5rem;
+      font-size: 0.9rem;
+      color: #EEE;
+    }
+
+    /* Mobile nav (accordion) */
+    .mobile-nav { display: none; background: #1E1E1E; color: #EEE; }
+    .mobile-nav summary {
+      padding: 1rem;
+      font-size: 1rem;
+      cursor: pointer;
+      list-style: none;
+      background: #333;
+    }
+    .mobile-nav ul { list-style: none; margin: 0; padding: 0 1rem; }
+    .mobile-nav li a { padding: 0.5rem 0; display: block; }
+    .mobile-nav .subs { margin-left: 1rem; }
+
+    /* Main content */
+    .main {
+      margin-left: 220px;
+      padding: 1.5rem;
+      flex: 1;
+    }
+    .breadcrumb {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      font-size: 0.9rem;
+    }
+    .breadcrumb li + li:before {
+      content: ">";
+      padding: 0 0.5rem;
+      color: #777;
+    }
+    .breadcrumb a { color: #00AAFF; text-decoration: none; }
+    .breadcrumb .active { color: #EEE; }
+    h1 {
+      margin: 0;
+      color: #EEE;
+      font-size: 1.6rem;
+    }
+    .subcategory-desc {
+      margin: 0.5rem 0 1.5rem;
+      font-size: 1rem;
+      color: #CCC;
+      max-width: 800px;
+      line-height: 1.4;
+    }
+    .advertise a {
+      color: #00AAFF;
+      text-decoration: none;
+      font-weight: bold;
+    }
+    ul.entries { list-style: none; padding: 0; }
+    ul.entries li {
+      margin: 1rem 0;
+      border-bottom: 1px solid #444;
+      padding-bottom: 1rem;
+    }
+    ul.entries li a {
+      color: #00AAFF;
+      text-decoration: none;
+      font-size: 1.1rem;
+    }
+    ul.entries li a:hover { text-decoration: underline; }
+    .entry-desc {
+      margin: 0.5rem 0 0;
+      font-size: 0.9rem;
+      color: #CCC;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+      body { display: block; }
+      .sidebar { display: none; }
+      .mobile-nav { display: block; }
+      .main {
+        margin-left: 0;
+        padding: 1rem;
+      }
+      .breadcrumb { font-size: 0.8rem; }
+      h1 { font-size: 1.4rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Mobile navigation accordion -->
+  <details class="mobile-nav">
+    <summary>Menu</summary>
+    <ul>
+      <li class="cat"><a href="#">Businesses</a></li>
+      <li class="cat"><a href="#">Communities</a></li>
+      <li class="cat"><a href="#">Education</a></li>
+      <li class="cat"><a href="#">Exchanges</a></li>
+      <li class="cat"><a href="#">Finance</a></li>
+      <li class="cat"><a href="#">Freelancers</a></li>
+      <li class="cat"><a href="#">Jobs</a></li>
+      <li class="cat"><a href="#">Media</a></li>
+      <li class="cat"><a href="#">Merchant Services</a></li>
+      <li class="cat"><a href="#">Mining</a></li>
+      <li class="cat active">
+        <a href="#">Non-Profits</a>
+        <ul class="subs">
+          <li class="sub"><a href="#">Activism</a></li>
+          <li class="sub"><a href="#">Individuals</a></li>
+          <li class="sub"><a href="#">Institutes</a></li>
+          <li class="sub"><a href="#">Knowledge</a></li>
+          <li class="sub"><a href="#">Media</a></li>
+          <li class="sub"><a href="#">Medical</a></li>
+          <li class="sub"><a href="#">Miscellaneous</a></li>
+          <li class="sub active"><a href="#">Operating Systems</a></li>
+          <li class="sub"><a href="#">Research</a></li>
+          <li class="sub"><a href="#">Science</a></li>
+          <li class="sub"><a href="#">Security</a></li>
+          <li class="sub"><a href="#">Technologies</a></li>
+        </ul>
+      </li>
+      <li class="cat"><a href="#">Official Sites</a></li>
+      <li class="cat"><a href="#">Onions</a></li>
+      <li class="cat"><a href="#">Other Directories</a></li>
+      <li class="cat"><a href="#">Utilities</a></li>
+      <li class="cat"><a href="#">VPN Companies</a></li>
+      <li class="cat"><a href="#">Wallets</a></li>
+      <li class="cat"><a href="#">Web Hosting</a></li>
+    </ul>
+  </details>
+
+  <!-- Desktop sidebar -->
+  <nav class="sidebar">
+    <ul>
+      <li class="cat"><a href="#">Businesses</a></li>
+      <li class="cat"><a href="#">Communities</a></li>
+      <li class="cat"><a href="#">Education</a></li>
+      <li class="cat"><a href="#">Exchanges</a></li>
+      <li class="cat"><a href="#">Finance</a></li>
+      <li class="cat"><a href="#">Freelancers</a></li>
+      <li class="cat"><a href="#">Jobs</a></li>
+      <li class="cat"><a href="#">Media</a></li>
+      <li class="cat"><a href="#">Merchant Services</a></li>
+      <li class="cat"><a href="#">Mining</a></li>
+      <li class="cat active">
+        <a href="#">Non-Profits</a>
+        <ul class="subs">
+          <li class="sub"><a href="#">Activism</a></li>
+          <li class="sub"><a href="#">Individuals</a></li>
+          <li class="sub"><a href="#">Institutes</a></li>
+          <li class="sub"><a href="#">Knowledge</a></li>
+          <li class="sub"><a href="#">Media</a></li>
+          <li class="sub"><a href="#">Medical</a></li>
+          <li class="sub"><a href="#">Miscellaneous</a></li>
+          <li class="sub active"><a href="#">Operating Systems</a></li>
+          <li class="sub"><a href="#">Research</a></li>
+          <li class="sub"><a href="#">Science</a></li>
+          <li class="sub"><a href="#">Security</a></li>
+          <li class="sub"><a href="#">Technologies</a></li>
+        </ul>
+      </li>
+      <li class="cat"><a href="#">Official Sites</a></li>
+      <li class="cat"><a href="#">Onions</a></li>
+      <li class="cat"><a href="#">Other Directories</a></li>
+      <li class="cat"><a href="#">Utilities</a></li>
+      <li class="cat"><a href="#">VPN Companies</a></li>
+      <li class="cat"><a href="#">Wallets</a></li>
+      <li class="cat"><a href="#">Web Hosting</a></li>
+    </ul>
+  </nav>
+
+  <!-- Main content -->
+  <main class="main">
+    <ol class="breadcrumb" aria-label="Breadcrumb">
+      <li><a href="#">Home</a></li>
+      <li><a href="#">All Categories</a></li>
+      <li><a href="#">Non-Profits</a></li>
+      <li class="active">Operating Systems</li>
+    </ol>
+
+    <h1>Non-Profits › Operating Systems</h1>
+    <p class="subcategory-desc">Learn about non-profit operating systems that enhance Monero’s privacy and security.</p>
+
+    <p class="advertise"><a href="#">Advertise here</a></p>
+
+    <ul class="entries">
+      <li>
+        <a href="#" target="_blank">Artix Linux</a>
+        <p class="entry-desc">Rolling-release distribution based on Arch Linux that uses inits such as OpenRC, runit, s6 or Dinit.</p>
+      </li>
+      <li>
+        <a href="#" target="_blank">CalyxOS</a>
+        <p class="entry-desc">An Android mobile OS that puts privacy and security into the hands of everyday users. <em>(Note: see donations page and Calyx Institute)</em></p>
+      </li>
+      <li>
+        <a href="#" target="_blank">GrapheneOS</a>
+        <p class="entry-desc">Private and secure mobile operating system with Android app compatibility.</p>
+      </li>
+      <li>
+        <a href="#" target="_blank">Kicksecure</a>
+        <p class="entry-desc">A secure-by-default OS always based on the latest security research.</p>
+      </li>
+      <li>
+        <a href="#" target="_blank">Linux Mint</a>
+        <p class="entry-desc">An OS for desktop & laptop, designed to work out-of-the-box with apps most people need.</p>
+      </li>
+      <li>
+        <a href="#" target="_blank">Qubes</a>
+        <p class="entry-desc">A reasonably secure operating system.</p>
+      </li>
+      <li>
+        <a href="#" target="_blank">Tails</a>
+        <p class="entry-desc">Privacy-focused operating system.</p>
+      </li>
+      <li>
+        <a href="#" target="_blank">Whonix</a>
+        <p class="entry-desc">Software that can anonymize everything you do online.</p>
+      </li>
+    </ul>
+  </main>
+</body>
+</html>

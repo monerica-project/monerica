@@ -1,0 +1,44 @@
+@model DirectoryManager.Web.Models.Reviews.RaffleEnterInputModel
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Enter the Raffle";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    <p>
+        Your verified review makes you eligible for our raffle.
+        Enter your Monero address below and we will contact you if you win.
+    </p>
+
+    <div class="alert alert-info">
+        <strong>One entry per author.</strong>
+        You can only have one active raffle entry at a time.
+        Once the current raffle ends you will be eligible to enter again with a future review.
+    </div>
+
+    <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+    <form asp-action="EnterPost" asp-controller="Raffle" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="token" value="@ViewBag.Token" />
+        <input type="hidden" name="CryptoType" value="XMR" />
+
+        <div class="mb-3">
+            <label asp-for="CryptoAddress" class="form-label"></label>
+            <input asp-for="CryptoAddress" class="form-control" maxlength="512"
+                   placeholder="4..." autocomplete="off" spellcheck="false" />
+            <span asp-validation-for="CryptoAddress" class="text-danger"></span>
+            <div class="form-text">
+                Must start with <code>4</code> or <code>8</code> and be 95 or 106 characters.
+                Double-check your address — we cannot recover funds sent to a wrong address.
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-success btn-cta">Submit Entry</button>
+        <a href="@Url.Action("Thanks", "DirectoryEntryReviews")" class="btn btn-secondary ms-2">Skip</a>
+    </form>
+}

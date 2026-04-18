@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+	  <CodeAnalysisRuleSet>../StyleCop.Analyzers.ruleset</CodeAnalysisRuleSet>
+  </PropertyGroup>
+
+
+	<ItemGroup>
+		<AdditionalFiles Include="..\stylecop.json" />
+	</ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+	<PackageReference Include="StyleCop.Analyzers" Version="1.1.118" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\DirectoryManager.Utilities\DirectoryManager.Utilities.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,6 @@
+﻿@using DirectoryManager.Data.Enums
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheService
+
+@{var message = await cacheService.GetSnippetAsync(SiteConfigSetting.PgpInstructionsHtml); }
+
+@Html.Raw(message)

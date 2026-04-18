@@ -1,0 +1,17 @@
+﻿@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Verify Code";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+<h1>Decrypt & verify</h1>
+
+@{
+    ViewBag.PostAction = "VerifyCodePost";
+    ViewBag.PostController = "MyReviews";
+}
+
+<partial name="_pgpVerifycode" />
+
+}

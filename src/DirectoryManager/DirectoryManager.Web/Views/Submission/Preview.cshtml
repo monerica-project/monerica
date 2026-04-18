@@ -1,0 +1,91 @@
+﻿@model DirectoryManager.Web.Models.SubmissionPreviewModel
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Preview";
+}
+
+@{
+    Layout = "_CenteredLayout";
+}
+@section PageContent {
+
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader] </h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+<hr />
+<div class="submission-guidelines">
+    <p><b class="text-danger">NOT SUBMITTED YET!</b></p>
+</div>
+ 
+@if (Model.DirectoryEntryViewModel.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Removed)
+{
+    <p><i>You want the listing below to be removed from the directory.</i></p>
+}
+
+@if (!string.IsNullOrWhiteSpace(Model.SubcategoryName))
+{
+    <p><b>Categorization:</b> @Model.SubcategoryName</p>
+}
+
+<ul class="blank_list_item">
+    @await Html.PartialAsync("_DirectoryEntryPartial", Model.DirectoryEntryViewModel)
+</ul>
+
+@if (Model.DirectoryEntryViewModel.Tags != null && Model.DirectoryEntryViewModel.Tags.Any())
+{
+    <h4>Tags</h4>
+
+    <p>
+        @{
+            var csvSafe = string.Join(
+            ", ",
+                Model.DirectoryEntryViewModel.Tags.Select(t => System.Net.WebUtility.HtmlEncode(t))
+            );
+        }
+
+        @csvSafe
+     </p>
+ 
+}
+
+    @{
+        var relatedLinks = Model.RelatedLinks ?? new List<string>();
+    }
+
+    @if (relatedLinks.Any())
+    {
+        <h4>Related Links</h4>
+        <ul>
+            @foreach (var u in relatedLinks)
+            {
+                <li><a href="@u" target="_blank" rel="nofollow noopener">@u</a></li>
+            }
+        </ul>
+    }
+
+
+<hr />
+
+@if (!string.IsNullOrWhiteSpace(Model.NoteToAdmin))
+{
+    <h4>Note To Admin (private)</h4>
+
+    <p>@Model.NoteToAdmin</p>
+
+    <hr />
+}
+
+<br />
+
+<div style="display: flex; align-items: center; gap: 25px;">
+   
+    <form asp-action="Confirm" method="post" style="margin: 0;">
+        @Html.HiddenFor(x => x.SubmissionId)
+            <button type="submit" class="btn btn-primary btn-cta">Submit</button>
+    </form>
+</div>
+<br />
+<a href="~/submit?submissionid=@Model.SubmissionId">Edit submission</a>
+
+}

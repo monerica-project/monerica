@@ -1,0 +1,65 @@
+﻿@using System.Globalization;
+@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Web.Services.Interfaces
+@inject IUrlResolutionService UrlResolver
+@model IEnumerable<DirectoryManager.Data.Models.GroupedDirectoryEntry>
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Newest Additions";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+    @await Html.PartialAsync("_SponsoredListingPartial")
+    <hr />
+
+    @{
+        var htmlOutput = DisplayMarkUpHelper.GenerateGroupedDirectoryEntryHtml(Model);
+    }
+
+    @Html.Raw(htmlOutput)
+
+    @{
+        int totalPages = ViewBag.TotalPages;
+        int currentPage = ViewBag.PageNumber;
+    }
+
+    @if (totalPages > 1)
+    {
+        <nav aria-label="Pagination">
+            <ul class="pagination">
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    // Use /newest for page 1, and /newest/page/2+ for others
+                    string rawPath = i == 1 ? "/newest" : $"/newest/page/{i}";
+
+                    // Use app link for pages 2+, root for page 1
+                    string href = i == 1
+                    ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
+                    : UrlResolver.ResolveToApp(rawPath);
+
+                    string linkClass = i == 1 ? "no-app-link" : "no-app-link";
+
+                    <li class="page-item @(i == currentPage ? "active" : "")">
+                        <a class="page-link @linkClass" href="@href">@i</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+
+    <p>Total: @ViewBag.TotalEntries</p>
+
+    <hr />
+    @await Html.PartialAsync("_SponsoredListingPartial")
+}

@@ -1,0 +1,24 @@
+﻿@using DirectoryManager.Data.Models
+@model IEnumerable<Category>
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Categories";
+}
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+@foreach (var category in Model)
+{
+    <div>@category.Name</div>
+    <!-- You can add Edit & Delete links here -->
+    <a href="@Url.Action("Edit", new { id = category.CategoryId })">Edit</a> 
+} 
+
+
+}

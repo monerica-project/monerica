@@ -1,0 +1,895 @@
+﻿using System.Globalization;
+using System.Net;
+using System.Text;
+using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models;
+using DirectoryManager.DisplayFormatting.Enums;
+using DirectoryManager.DisplayFormatting.Models;
+using DirectoryManager.Utilities.Helpers;
+
+namespace DirectoryManager.DisplayFormatting.Helpers
+{
+    public class DisplayMarkUpHelper
+    {
+        // ----------------------------
+        // Public API
+        // ----------------------------
+        public static string GenerateDirectoryEntryHtml(
+            DirectoryEntryViewModel model,
+            string? rootUrl = null,
+            bool sponsorInlineHeader = false,
+            bool skipLinksBlock = false)
+        {
+            var sb = new StringBuilder();
+
+            AppendDirectoryEntryOpenLi(sb, model);
+            sb.Append("<p>");
+
+            AppendOptionalDate(sb, model);
+
+            var effectiveLinkType = GetEffectiveLinkTypeForDirectoryEntryRender(model);
+
+            if (sponsorInlineHeader)
+            {
+                // Name | Tor (if exists) | I2P (if exists) Flag
+                AppendSponsorInlineHeader(sb, model, rootUrl, effectiveLinkType);
+            }
+            else
+            {
+                AppendStatusAndPrimaryLink(sb, model, rootUrl, effectiveLinkType);
+
+                if (!skipLinksBlock)
+                {
+                    AppendDirectoryEntryLinksBlock(sb, model, rootUrl, effectiveLinkType);
+                }
+
+                AppendOptionalFlag(sb, model, rootUrl);
+            }
+
+            // Category/Subcategory sponsor block (not the normal sponsored list item)
+            bool isSponsorBlock = model.IsSponsored && !model.DisplayAsSponsoredItem;
+
+            if (isSponsorBlock)
+            {
+                // ⭐ stars next
+                AppendInlineStarRating(sb, model, rootUrl);
+
+                // ✅ always force new line after stars for sponsor blocks
+                if ((model.AverageRating ?? 0) > 0 && (model.ReviewCount ?? 0) > 0)
+                {
+                    sb.Append("<br />");
+                }
+
+                // description / note after stars
+                AppendOptionalDescriptionAndNote(sb, model, suppressLeadingBreak: true);
+            }
+            else
+            {
+                // default behavior unchanged
+                AppendOptionalDescriptionAndNote(sb, model, suppressLeadingBreak: false);
+                AppendInlineStarRating(sb, model, rootUrl);
+            }
+
+            sb.Append("</p>");
+            sb.Append("</li>");
+
+            return sb.ToString();
+        }
+
+        public static string GenerateGroupedDirectoryEntryHtml(IEnumerable<GroupedDirectoryEntry> groupedEntries)
+        {
+            var sb = new StringBuilder();
+            sb.Append("<ul class=\"newest_items\">");
+
+            foreach (var group in groupedEntries)
+            {
+                AppendGroupedDateHeader(sb, group);
+
+                sb.Append("<ul>");
+                foreach (var entry in group.Entries)
+                {
+                    AppendGroupedEntry(sb, entry);
+                }
+
+                sb.Append("</ul>");
+
+                sb.Append("</li>");
+                sb.AppendLine();
+            }
+
+            sb.Append("</ul>");
+            return sb.ToString();
+        }
+
+        public static string GenerateSearchResultHtml(DirectoryEntryViewModel model, string rootUrl)
+        {
+            string domain = (rootUrl ?? string.Empty).TrimEnd('/');
+
+            var liClasses = model.IsSponsored
+                ? "search-result-item sponsored"
+                : "search-result-item";
+
+            var sb = new StringBuilder();
+            sb.Append($"<li class=\"{liClasses}\">");
+
+            var encodedName = WebUtility.HtmlEncode(model.Name);
+            var profUrl = BuildProfileUrl(domain, model.ItemPath);
+            var reviewsUrl = $"{profUrl}#reviews";
+
+            sb.Append("<p>");
+
+            sb.Append(GetDirectoryStausIcon(model.DirectoryStatus));
+            AppendProfileName(sb, encodedName, profUrl);
+            AppendFlagAfterName(sb, model, rootUrl);
+
+            sb.Append(" — ");
+
+            // Website | Tor | I2P on SAME line (only those which exist)
+            AppendSearchResultLinksLine(sb, model);
+
+            // stars + "x.x/5" + clickable "(count)" -> profile#reviews
+            AppendSearchResultRating(sb, model, reviewsUrl);
+
+            sb.Append("</p>");
+
+            AppendCategoryBreadcrumbLine(sb, model, domain);
+            AppendDescriptionNoteLine(sb, model);
+
+            sb.Append("</li>");
+            return sb.ToString();
+        }
+
+        // ----------------------------
+        // DirectoryEntryHtml helpers
+        // ----------------------------
+        private static void AppendSponsorInlineHeader(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            string? rootUrl,
+            LinkType effectiveLinkType)
+        {
+            // Name (main link)
+            string? primary = GetPrimaryUrlForDisplay(model);
+
+            // Scam behavior preserved (del)
+            if (model.DirectoryStatus == DirectoryStatus.Scam)
+            {
+                sb.Append("&#10060; <del>");
+                AppendPrimaryLinkForDirectoryEntry(sb, model, primary, rootUrl, isScam: true, effectiveLinkType);
+                sb.Append("</del>");
+            }
+            else if (model.DirectoryStatus == DirectoryStatus.Verified)
+            {
+                // keep the verified checkmark (matches your normal rendering)
+                sb.Append("&#9989; ");
+                AppendPrimaryLinkForDirectoryEntry(sb, model, primary, rootUrl, isScam: false, effectiveLinkType);
+            }
+            else if (model.DirectoryStatus == DirectoryStatus.Questionable)
+            {
+                sb.Append("&#10067; ");
+                AppendPrimaryLinkForDirectoryEntry(sb, model, primary, rootUrl, isScam: false, effectiveLinkType);
+            }
+            else
+            {
+                AppendPrimaryLinkForDirectoryEntry(sb, model, primary, rootUrl, isScam: false, effectiveLinkType);
+            }
+
+            // Tor
+            if (!string.IsNullOrWhiteSpace(model.Link2))
+            {
+                sb.Append(" | ");
+                var label = string.IsNullOrWhiteSpace(model.Link2Name) ? "Tor" : model.Link2Name;
+                sb.Append("<a rel=\"sponsored\" href=\"");
+                sb.Append(WebUtility.HtmlEncode(model.Link2.Trim()));
+                sb.Append("\" target=\"_blank\">");
+                sb.Append(WebUtility.HtmlEncode(label));
+                sb.Append("</a>");
+            }
+
+            // I2P
+            if (!string.IsNullOrWhiteSpace(model.Link3))
+            {
+                sb.Append(" | ");
+                var label = string.IsNullOrWhiteSpace(model.Link3Name) ? "I2P" : model.Link3Name;
+                sb.Append("<a rel=\"sponsored\" href=\"");
+                sb.Append(WebUtility.HtmlEncode(model.Link3.Trim()));
+                sb.Append("\" target=\"_blank\">");
+                sb.Append(WebUtility.HtmlEncode(label));
+                sb.Append("</a>");
+            }
+
+            // Flag last
+            if (model.ItemDisplayType != ItemDisplayType.Email)
+            {
+                sb.Append("&nbsp;");
+                sb.Append(BuildFlagImgTag(model.CountryCode, rootUrl));
+            }
+        }
+
+        private static void AppendOptionalDescriptionAndNote(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            bool suppressLeadingBreak)
+        {
+            bool hasText =
+                !string.IsNullOrWhiteSpace(model.Description) ||
+                !string.IsNullOrWhiteSpace(model.Note);
+
+            if (model.IsSponsored && hasText && !suppressLeadingBreak)
+            {
+                sb.Append("<br />");
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Description))
+            {
+                if (!model.IsSponsored)
+                {
+                    sb.Append(" · ");
+                }
+                else
+                {
+                    sb.Append(" ");
+                }
+
+                sb.Append(model.Description);
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Note))
+            {
+                bool isBad = model.DirectoryStatus == DirectoryStatus.Questionable
+                          || model.DirectoryStatus == DirectoryStatus.Scam;
+
+                sb.Append(" <i>(");
+                if (isBad)
+                {
+                    sb.Append("<span class=\"warning-color\">Note:</span> ");
+                }
+                else
+                {
+                    sb.Append("Note:");
+                }
+
+                sb.Append(" ");
+                sb.Append(model.Note); // keep existing behavior (raw HTML if that's what you want)
+                sb.Append(")</i> ");
+            }
+        }
+
+        private static void AppendGroupedDateHeader(StringBuilder sb, GroupedDirectoryEntry group)
+        {
+            sb.Append("<li>");
+            sb.AppendFormat(
+                "<pre>{0}:</pre>",
+                DateTime.ParseExact(group.Date, Common.Constants.StringConstants.DateFormat, CultureInfo.InvariantCulture)
+                    .ToString(Common.Constants.StringConstants.DateFormat));
+        }
+
+        private static void AppendGroupedEntry(StringBuilder sb, DirectoryEntry entry)
+        {
+            sb.Append("<li>");
+            sb.Append("<p class=\"small-font text-inline\">");
+
+            AppendGroupedStatusLabel(sb, entry.DirectoryStatus);
+
+            sb.Append(WebUtility.HtmlEncode(entry.Name));
+            sb.Append("</p>");
+            sb.Append(" - ");
+
+            // Use LinkA as href if available, otherwise fall back to Link, but display Link text
+            var href = !string.IsNullOrWhiteSpace(entry.LinkA) ? entry.LinkA : entry.Link;
+            bool entryUsingAffiliate = !string.IsNullOrWhiteSpace(entry.LinkA);
+            string entryRelAttr = entryUsingAffiliate ? " rel=\"sponsored\"" : string.Empty;
+
+            sb.AppendFormat(
+                "<a target=\"_blank\"{2} class=\"multi-line-text small-font\" href=\"{0}\">{1}</a>",
+                WebUtility.HtmlEncode(href),
+                WebUtility.HtmlEncode(entry.Link),
+                entryRelAttr);
+
+            if (!string.IsNullOrWhiteSpace(entry.Description))
+            {
+                sb.Append(" - ");
+                sb.AppendFormat(
+                    "<p class=\"small-font text-inline\">{0}</p>",
+                    WebUtility.HtmlEncode(entry.Description));
+            }
+
+            sb.Append("</li>");
+        }
+
+        private static void AppendDirectoryEntryOpenLi(StringBuilder sb, DirectoryEntryViewModel model)
+        {
+            sb.Append("<li");
+            if (model.IsSponsored && model.DisplayAsSponsoredItem)
+            {
+                sb.Append(@" class=""sponsored"" ");
+            }
+
+            sb.Append(">");
+        }
+
+        private static void AppendOptionalDate(StringBuilder sb, DirectoryEntryViewModel model)
+        {
+            if (model.DateOption == DateDisplayOption.DisplayCreateDate)
+            {
+                sb.AppendFormat(
+                    "<i>{0}</i> ",
+                    model.CreateDate.ToString(Common.Constants.StringConstants.DateFormat));
+            }
+            else if (model.DateOption == DateDisplayOption.DisplayUpdateDate)
+            {
+                sb.AppendFormat(
+                    "<i>{0}</i> ",
+                    (model.UpdateDate ?? model.CreateDate).ToString(Common.Constants.StringConstants.DateFormat));
+            }
+        }
+
+        /// <summary>
+        /// When IsSubCategorySponsor is true, render like category sponsor (ListingPage style).
+        /// </summary>
+        private static LinkType GetEffectiveLinkTypeForDirectoryEntryRender(DirectoryEntryViewModel model)
+        {
+            return model.IsSubCategorySponsor ? LinkType.Direct : model.LinkType;
+        }
+
+        private static void AppendStatusAndPrimaryLink(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            string? rootUrl,
+            LinkType effectiveLinkType)
+        {
+            string? primary = GetPrimaryUrlForDisplay(model);
+
+            if (model.DirectoryStatus == DirectoryStatus.Verified)
+            {
+                sb.Append("&#9989; ");
+                AppendPrimaryLinkForDirectoryEntry(sb, model, primary, rootUrl, isScam: false, effectiveLinkType);
+            }
+            else if (model.DirectoryStatus == DirectoryStatus.Admitted)
+            {
+                AppendPrimaryLinkForDirectoryEntry(sb, model, primary, rootUrl, isScam: false, effectiveLinkType);
+            }
+            else if (model.DirectoryStatus == DirectoryStatus.Questionable)
+            {
+                sb.Append("&#10067; ");
+                AppendPrimaryLinkForDirectoryEntry(sb, model, primary, rootUrl, isScam: false, effectiveLinkType);
+            }
+            else if (model.DirectoryStatus == DirectoryStatus.Scam)
+            {
+                sb.Append("&#10060; <del>");
+                AppendLink(sb, model, model.Link, isScam: true, rootUrl: rootUrl, effectiveLinkType: effectiveLinkType);
+                sb.Append("</del>");
+            }
+        }
+
+        private static void AppendPrimaryLinkForDirectoryEntry(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            string? primaryUrl,
+            string? rootUrl,
+            bool isScam,
+            LinkType effectiveLinkType)
+        {
+            // Preserve your existing sponsorship/affiliate rules
+            if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
+            {
+                AppendLink(sb, model, model.Link, isScam: isScam, rootUrl: rootUrl, effectiveLinkType: effectiveLinkType);
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.LinkA))
+            {
+                // Non-sponsored but has affiliate link — mark as affiliate
+                AppendLink(sb, model, model.LinkA, isScam: isScam, rootUrl: rootUrl, effectiveLinkType: effectiveLinkType, isAffiliate: true);
+                return;
+            }
+
+            AppendLink(sb, model, primaryUrl ?? model.Link, isScam: isScam, rootUrl: rootUrl, effectiveLinkType: effectiveLinkType);
+        }
+
+        private static void AppendDirectoryEntryLinksBlock(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            string? rootUrl,
+            LinkType effectiveLinkType)
+        {
+            // For directory list view:
+            // - Non ListingPage: show Link2 | Link3 inline
+            // - ListingPage: show external link icon
+            if (effectiveLinkType != LinkType.ListingPage)
+            {
+                AppendAdditionalLinks(sb, model);
+            }
+            else
+            {
+                AppendExternalLinkIcon(sb, model);
+            }
+        }
+
+        private static void AppendOptionalFlag(StringBuilder sb, DirectoryEntryViewModel model, string? rootUrl)
+        {
+            if (model.ItemDisplayType != ItemDisplayType.Email)
+            {
+                sb.Append(BuildFlagImgTag(model.CountryCode, rootUrl));
+            }
+        }
+
+        // ----------------------------
+        // SearchResult helpers
+        // ----------------------------
+        private static string BuildProfileUrl(string domain, string? itemPath)
+        {
+            var path = (itemPath ?? string.Empty).Trim();
+            if (!path.StartsWith("/"))
+            {
+                path = "/" + path;
+            }
+
+            return string.IsNullOrEmpty(domain) ? path : $"{domain}{path}";
+        }
+
+        private static void AppendProfileName(StringBuilder sb, string encodedName, string profUrl)
+        {
+            sb.AppendFormat(
+                "<strong><a class=\"no-app-link\" href=\"{1}\">{0}</a></strong>",
+                encodedName,
+                WebUtility.HtmlEncode(profUrl));
+        }
+
+        private static void AppendFlagAfterName(StringBuilder sb, DirectoryEntryViewModel model, string rootUrl)
+        {
+            if (model.ItemDisplayType != ItemDisplayType.Email)
+            {
+                sb.Append("&nbsp;");
+                sb.Append(BuildFlagImgTag(model.CountryCode, rootUrl));
+            }
+        }
+
+        /// <summary>
+        /// Emits: Website | Tor | I2P (only those which exist).
+        /// </summary>
+        private static void AppendSearchResultLinksLine(StringBuilder sb, DirectoryEntryViewModel model)
+        {
+            bool wroteAny = false;
+
+            // Website uses affiliate (LinkA) when NOT sponsored (your current rule)
+            bool websiteUsingAffiliate = !string.IsNullOrWhiteSpace(model.LinkA) && !model.IsSponsored;
+            var websiteUrl = websiteUsingAffiliate
+                ? model.LinkA!.Trim()
+                : (model.Link ?? string.Empty).Trim();
+
+            if (!string.IsNullOrWhiteSpace(websiteUrl))
+            {
+                AppendInlineLink(sb, "Website", websiteUrl, ref wroteAny, model.IsSponsored || websiteUsingAffiliate);
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Link2))
+            {
+                var label = string.IsNullOrWhiteSpace(model.Link2Name) ? "Tor" : model.Link2Name;
+                bool link2UsingAffiliate = !string.IsNullOrWhiteSpace(model.Link2A) && !model.IsSponsored;
+                var link2Url = link2UsingAffiliate ? model.Link2A!.Trim() : model.Link2.Trim();
+                AppendInlineLink(sb, label, link2Url, ref wroteAny, model.IsSponsored || link2UsingAffiliate);
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.Link3))
+            {
+                var label = string.IsNullOrWhiteSpace(model.Link3Name) ? "I2P" : model.Link3Name;
+                bool link3UsingAffiliate = !string.IsNullOrWhiteSpace(model.Link3A) && !model.IsSponsored;
+                var link3Url = link3UsingAffiliate ? model.Link3A!.Trim() : model.Link3.Trim();
+                AppendInlineLink(sb, label, link3Url, ref wroteAny, model.IsSponsored || link3UsingAffiliate);
+            }
+        }
+
+        private static void AppendInlineLink(StringBuilder sb, string label, string url, ref bool wroteAny, bool isSponsored = false)
+        {
+            if (wroteAny)
+            {
+                sb.Append(" | ");
+            }
+
+            string relAttr = isSponsored ? " rel=\"sponsored\"" : string.Empty;
+
+            sb.Append("<a href=\"");
+            sb.Append(WebUtility.HtmlEncode(url));
+            sb.Append($"\"{relAttr} target=\"_blank\">");
+            sb.Append(WebUtility.HtmlEncode(label));
+            sb.Append("</a>");
+
+            wroteAny = true;
+        }
+
+        private static void AppendSearchResultRating(StringBuilder sb, DirectoryEntryViewModel model, string reviewsUrl)
+        {
+            if (model.AverageRating.HasValue && model.ReviewCount.HasValue && model.ReviewCount.Value > 0)
+            {
+                sb.Append("&nbsp;");
+                AppendRatingStars(sb, model.AverageRating.Value, model.ReviewCount.Value, reviewsUrl);
+            }
+        }
+
+        private static void AppendCategoryBreadcrumbLine(StringBuilder sb, DirectoryEntryViewModel model, string domain)
+        {
+            if (model.SubCategory == null)
+            {
+                return;
+            }
+
+            string catKey = WebUtility.HtmlEncode(model.SubCategory.Category.CategoryKey);
+            string subKey = WebUtility.HtmlEncode(model.SubCategory.SubCategoryKey);
+            string catName = WebUtility.HtmlEncode(model.SubCategory.Category.Name);
+            string subName = WebUtility.HtmlEncode(model.SubCategory.Name);
+
+            var catUrl = $"{domain}/{catKey}";
+            var subUrl = $"{domain}/{catKey}/{subKey}";
+
+            sb.AppendFormat($"<p><a class=\"no-app-link\" href=\"{WebUtility.HtmlEncode(catUrl)}\">{catName}</a> &rsaquo; <a class=\"no-app-link\" href=\"{WebUtility.HtmlEncode(subUrl)}\">{subName}</a></p>");
+        }
+
+        private static void AppendDescriptionNoteLine(StringBuilder sb, DirectoryEntryViewModel model)
+        {
+            if (string.IsNullOrWhiteSpace(model.Description))
+            {
+                return;
+            }
+
+            var desc = WebUtility.HtmlEncode(model.Description);
+            sb.AppendFormat("<p>{0}", desc);
+
+            if (!string.IsNullOrWhiteSpace(model.Note))
+            {
+                bool isBad = model.DirectoryStatus == DirectoryStatus.Questionable
+                          || model.DirectoryStatus == DirectoryStatus.Scam;
+
+                sb.Append(" <i>");
+                if (isBad)
+                {
+                    sb.Append("<span class=\"warning-color\">Note:</span> ");
+                }
+                else
+                {
+                    sb.Append("Note: ");
+                }
+
+                sb.Append(model.Note); // raw HTML on purpose (your current behavior)
+                sb.Append("</i>");
+            }
+
+            sb.Append("</p>");
+        }
+
+        // ----------------------------
+        // Shared helpers (status, stars, links, flags)
+        // ----------------------------
+        private static void AppendGroupedStatusLabel(StringBuilder sb, DirectoryStatus status)
+        {
+            if (status == DirectoryStatus.Scam)
+            {
+                sb.Append("<strong>Scam!</strong> - ");
+            }
+            else if (status == DirectoryStatus.Questionable)
+            {
+                sb.Append("<strong>Questionable!</strong> - ");
+            }
+            else if (status == DirectoryStatus.Verified)
+            {
+                sb.Append("<strong>Verified</strong> - ");
+            }
+        }
+
+        public static string GetDirectoryStausIcon(DirectoryStatus directoryStatus)
+        {
+            return directoryStatus switch
+            {
+                DirectoryStatus.Verified => "&#9989; ",
+                DirectoryStatus.Questionable => "&#10067; ",
+                DirectoryStatus.Scam => "&#10060;",
+                _ => string.Empty
+            };
+        }
+
+        private static void AppendExternalLinkIcon(StringBuilder sb, DirectoryEntryViewModel model)
+        {
+            if (model.DirectoryStatus == DirectoryStatus.Scam)
+            {
+                return;
+            }
+
+            // Use affiliate link when not a sponsor (same rule as elsewhere)
+            bool usingAffiliate = !string.IsNullOrWhiteSpace(model.LinkA) && !model.IsSponsored;
+            var link = usingAffiliate ? model.LinkA : model.Link;
+
+            bool needsSponsored = model.IsSponsored || model.IsSubCategorySponsor || usingAffiliate;
+            bool needsNoFollow = model.DirectoryStatus == DirectoryStatus.Questionable;
+
+            var relParts = new List<string>();
+            if (needsNoFollow)
+            {
+                relParts.Add("nofollow");
+            }
+
+            if (needsSponsored)
+            {
+                relParts.Add("sponsored");
+            }
+
+            string relAttr = relParts.Count > 0
+                ? $" rel=\"{string.Join(" ", relParts)}\""
+                : string.Empty;
+
+            sb.AppendFormat(
+                @" <a target=""_blank""{0} class=""external-link"" title=""{1}"" href=""{1}""></a> ",
+                relAttr,
+                WebUtility.HtmlEncode(link));
+        }
+
+        /// <summary>
+        /// Stars: stars x.x/5 (count)
+        /// where ONLY (count) is a link to the internal profile #reviews.
+        /// </summary>
+        private static void AppendInlineStarRating(StringBuilder sb, DirectoryEntryViewModel model, string? rootUrl = null)
+        {
+            var count = model.ReviewCount ?? 0;
+
+            if (!model.AverageRating.HasValue || count <= 0)
+            {
+                if (model.IsSponsored)
+                {
+                    sb.Append("<br />");
+                }
+
+                return;
+            }
+
+            string? reviewsUrl = BuildReviewsUrl(rootUrl, model.ItemPath);
+            sb.Append("&nbsp;");
+
+            if (model.IsSponsored)
+            {
+                sb.Append("<br />");
+            }
+
+            AppendRatingStars(sb, model.AverageRating.Value, count, reviewsUrl);
+        }
+
+        private static string? BuildReviewsUrl(string? rootUrl, string? itemPath)
+        {
+            if (string.IsNullOrWhiteSpace(itemPath))
+            {
+                return null;
+            }
+
+            var baseUrl = (rootUrl ?? string.Empty).TrimEnd('/');
+            var path = itemPath.StartsWith("/") ? itemPath : "/" + itemPath;
+
+            return string.IsNullOrEmpty(baseUrl)
+                ? $"{path}#reviews"
+                : $"{baseUrl}{path}#reviews";
+        }
+
+        // Links ONLY the (count) to #reviews when url provided
+        private static void AppendRatingStars(StringBuilder sb, double avg, int count, string? reviewsUrl)
+        {
+            const int totalStars = 5;
+            double percent = Math.Clamp(avg / totalStars * 100, 0, 100);
+
+            sb.Append("<span class=\"rating-wrapper\" aria-label=\"");
+            sb.Append($"{avg:0.0} out of 5 stars from {count} reviews\">");
+
+            sb.Append("<span class=\"stars\">");
+            sb.Append("<span class=\"stars-fill\" style=\"width:");
+            sb.Append(percent.ToString("0.##", CultureInfo.InvariantCulture));
+            sb.Append("%\"></span>");
+            sb.Append("</span>");
+
+            // x.x/5 (NOT a link)
+            sb.AppendFormat(
+                CultureInfo.InvariantCulture,
+                "<span class=\"rating-text\"> {0:0.0}</span>",
+                avg);
+
+            // (count) is a link if we have a URL
+            if (!string.IsNullOrWhiteSpace(reviewsUrl))
+            {
+                sb.Append("<a class=\"rating-count-link\" href=\"");
+                sb.Append(WebUtility.HtmlEncode(reviewsUrl));
+                sb.Append("\">(");
+                sb.Append(count.ToString(CultureInfo.InvariantCulture));
+                sb.Append(")</a>");
+            }
+            else
+            {
+                sb.Append("<span class=\"rating-count\">(");
+                sb.Append(count.ToString(CultureInfo.InvariantCulture));
+                sb.Append(")</span>");
+            }
+
+            sb.Append("</span>");
+        }
+
+        private static string? GetPrimaryUrlForDisplay(DirectoryEntryViewModel model)
+        {
+            // Mirrors your earlier logic: prefer LinkA in some cases, else Link
+            if ((model.IsSponsored || model.IsSubCategorySponsor) && !string.IsNullOrWhiteSpace(model.LinkA))
+            {
+                return model.Link; // sponsored/sub-sponsor display uses Link (non-affiliate) for visible click
+            }
+
+            if (!string.IsNullOrWhiteSpace(model.LinkA))
+            {
+                return model.LinkA;
+            }
+
+            return model.Link;
+        }
+
+        /// <summary>
+        /// Appends the main link (supports ListingPage relative + rel attributes for sponsored/scam/affiliate).
+        /// effectiveLinkType overrides model.LinkType when needed (subcategory sponsor render).
+        /// isAffiliate: pass true when the caller has resolved that LinkA is being used directly.
+        /// </summary>
+        private static void AppendLink(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            string? link,
+            bool isScam = false,
+            string? rootUrl = null,
+            LinkType? effectiveLinkType = null,
+            bool isAffiliate = false)
+        {
+            if (string.IsNullOrWhiteSpace(link))
+            {
+                return;
+            }
+
+            var lt = effectiveLinkType ?? model.LinkType;
+
+            string finalLink = lt == LinkType.ListingPage
+                ? $"{rootUrl ?? string.Empty}{model.ItemPath}"
+                : link;
+
+            string target = lt == LinkType.Direct ? "target=\"_blank\"" : string.Empty;
+            string name = WebUtility.HtmlEncode(model.Name);
+
+            // build rel attribute
+            var relParts = new List<string>();
+            if (isScam)
+            {
+                relParts.Add("nofollow");
+            }
+
+            if (model.IsSponsored || model.IsSubCategorySponsor || isAffiliate)
+            {
+                relParts.Add("sponsored");
+            }
+
+            string relAttr = relParts.Count > 0
+                ? $"rel=\"{string.Join(" ", relParts)}\""
+                : string.Empty;
+
+            if (isScam)
+            {
+                sb.AppendFormat($"<a {relAttr} href=\"{WebUtility.HtmlEncode(finalLink)}\" {target}>{name}</a>");
+            }
+            else
+            {
+                if (lt == LinkType.ListingPage)
+                {
+                    sb.AppendFormat(
+                        "<a {3} title=\"Profile: {2}\" href=\"{0}\" {1}>{2}</a>",
+                        WebUtility.HtmlEncode(finalLink),
+                        target,
+                        name,
+                        relAttr);
+                }
+                else
+                {
+                    sb.AppendFormat(
+                        "<a {3} title=\"{2}\" href=\"{0}\" {1}>{2}</a>",
+                        WebUtility.HtmlEncode(finalLink),
+                        target,
+                        name,
+                        relAttr);
+                }
+            }
+        }
+
+        private static void AppendLinkWithSeparator(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            string? link,
+            string? affiliateLink,
+            string linkName,
+            bool isScam)
+        {
+            if (string.IsNullOrWhiteSpace(link))
+            {
+                return;
+            }
+
+            sb.Append(" | ");
+
+            bool isSponsoredOrSub = model.IsSponsored || model.IsSubCategorySponsor;
+
+            // Sponsored/sub-sponsor: show canonical link (not affiliate).
+            // Everyone else: use affiliate link if available.
+            bool usingAffiliate = !isSponsoredOrSub && !string.IsNullOrWhiteSpace(affiliateLink);
+            var finalUrl = isSponsoredOrSub && !string.IsNullOrWhiteSpace(affiliateLink)
+                ? link
+                : affiliateLink ?? link;
+
+            // build rel attribute
+            var relParts = new List<string>();
+            if (isScam)
+            {
+                relParts.Add("nofollow");
+            }
+
+            if (isSponsoredOrSub || usingAffiliate)
+            {
+                relParts.Add("sponsored");
+            }
+
+            string relAttr = relParts.Count > 0
+                ? $"rel=\"{string.Join(" ", relParts)}\""
+                : string.Empty;
+
+            if (isScam)
+            {
+                sb.AppendFormat(
+                    "<del><a {2} href=\"{0}\" target=\"_blank\">{1}</a></del>",
+                    WebUtility.HtmlEncode(finalUrl),
+                    WebUtility.HtmlEncode(linkName),
+                    relAttr);
+            }
+            else
+            {
+                sb.AppendFormat(
+                    "<a {2} href=\"{0}\" target=\"_blank\">{1}</a>",
+                    WebUtility.HtmlEncode(finalUrl),
+                    WebUtility.HtmlEncode(linkName),
+                    relAttr);
+            }
+        }
+
+        /// <summary>
+        /// Appends additional links (Link2 and Link3) for the directory list view (non-search).
+        /// </summary>
+        private static void AppendAdditionalLinks(StringBuilder sb, DirectoryEntryViewModel model)
+        {
+            var isScam = model.DirectoryStatus == DirectoryStatus.Scam;
+
+            AppendLinkWithSeparator(sb, model, model.Link2, model.Link2A, model.Link2Name, isScam);
+            AppendLinkWithSeparator(sb, model, model.Link3, model.Link3A, model.Link3Name, isScam);
+        }
+
+        private static string BuildFlagImgTag(string? countryCode, string? rootUrl = null)
+        {
+            if (string.IsNullOrWhiteSpace(countryCode))
+            {
+                return string.Empty;
+            }
+
+            var code = countryCode.Trim();
+            var countryName = CountryHelper.GetCountryName(code);
+            var file = code.ToLowerInvariant();
+
+            // rootUrl is either null (preferred) or "https://domain.com"
+            var baseUrl = (rootUrl ?? string.Empty).TrimEnd('/');
+
+            // If baseUrl is empty => "/images/flags/us.png"
+            // Else => "https://domain.com/images/flags/us.png"
+            var src = string.IsNullOrEmpty(baseUrl)
+                ? $"/images/flags/{file}.png"
+                : $"{baseUrl}/images/flags/{file}.png";
+
+            var safeSrc = WebUtility.HtmlEncode(src);
+            var safeName = WebUtility.HtmlEncode(countryName);
+
+            return "<img class=\"country-flag\""
+                 + $" src=\"{safeSrc}\""
+                 + $" alt=\"Flag of {safeName}\""
+                 + $" title=\"{safeName}\""
+                 + " />";
+        }
+    }
+}

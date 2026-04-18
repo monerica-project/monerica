@@ -1,0 +1,39 @@
+﻿@using DirectoryManager.Data.Models
+@model IEnumerable<DirectoryEntry>
+@using DirectoryManager.Data.Models.TransferModels
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Directory Entries";
+}
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<a href="~/directoryentry/create">Create directory entry</a>
+<hr />
+
+<form method="get">
+    <label for="combinedFilter">Category > Subcategory: </label>
+        <select class="form-control ui-select" id="combinedFilter" name="subCategoryId">
+        <option value="">--Select a Category > SubCategory--</option>
+        @foreach (var subCategory in (IEnumerable<SubcategoryDto>)ViewBag.SubCategories)
+        {
+            <option value="@subCategory.SubcategoryId">@subCategory.CategoryName > @subCategory.Name</option>
+        }
+    </select>
+
+        <input type="submit" class="btn btn-primary ui-submit btn-cta" value="Filter" />
+</form>
+
+@foreach (var entry in Model)
+{
+    <div>
+        <a href="@entry.Link">@entry.Name</a> - <a href="@Url.Action("Edit", new { id = entry.DirectoryEntryId })">Edit</a>
+    </div>
+}
+}

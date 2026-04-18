@@ -1,0 +1,38 @@
+﻿@using DirectoryManager.Web.Constants;
+
+@{
+    ViewData["Title"] = "Unsubscribe";
+}
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+
+@if (string.IsNullOrWhiteSpace(Model))
+{
+    <p>Please enter your email to unsubscribe</p>
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="alert alert-danger">
+            @Html.ValidationSummary()
+        </div>
+    }
+    <form asp-controller="EmailSubscription" asp-action="Unsubscribe" method="post">
+
+        <input name="formEmail" type="email" id="inlineFormInput" placeholder="yourname@email.com" required>
+
+            <button type="submit" class="btn btn-primary ui-submit btn-cta">Unsubscribe</button>
+    </form>
+}
+else
+{
+    <p>The email <strong>@Model</strong> has been successfully unsubscribed.</p>
+}
+}

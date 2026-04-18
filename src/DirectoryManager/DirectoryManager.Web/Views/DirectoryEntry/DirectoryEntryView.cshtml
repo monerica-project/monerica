@@ -1,0 +1,319 @@
+﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models
+@using DirectoryManager.Data.Repositories.Interfaces
+@using DirectoryManager.Utilities.Helpers
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Web.Models
+@using DirectoryManager.Web.Services.Interfaces
+@model DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@inject ICategoryRepository categoryRepo
+@inject ISubcategoryRepository subCatRepo
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+@inject IUrlResolutionService Urls
+
+@{
+    ViewData[StringConstants.TitleHeader] = Model.Name;
+    var categoryKey = ViewBag.CategoryKey as string;
+    var subCategoryKey = ViewBag.SubCategoryKey as string;
+    var categoryName = ViewBag.CategoryName as string;
+    var subCategoryName = ViewBag.SubCategoryName as string;
+
+    ViewData["CurrentCategoryKey"] = categoryKey;
+    ViewData["CurrentSubCategoryKey"] = subCategoryKey;
+
+    // ✅ scam flag
+    var isScam = Model.DirectoryStatus == DirectoryStatus.Scam;
+
+    // Determine which links to use based on the availability of "A" versions
+    // NOTE: For scams, we will NOT use these for outbound website linking (we show plain text Model.Link instead)
+    var finalLink = !string.IsNullOrEmpty(Model.LinkA) && !Model.IsSponsored ? Model.LinkA : Model.Link;
+    var finalLink2 = !string.IsNullOrEmpty(Model.Link2A) && !Model.IsSponsored ? Model.Link2A : Model.Link2;
+    var finalLink3 = !string.IsNullOrEmpty(Model.Link3A) && !Model.IsSponsored ? Model.Link3A : Model.Link3;
+
+    // Suppress the main Website row if Link2 or Link3 is the same URL
+    var mainLinkIsDuplicate =
+        (!string.IsNullOrEmpty(Model.Link2) && string.Equals(Model.Link, Model.Link2, StringComparison.OrdinalIgnoreCase)) ||
+        (!string.IsNullOrEmpty(Model.Link3) && string.Equals(Model.Link, Model.Link3, StringComparison.OrdinalIgnoreCase));
+
+    // Mark as sponsored if the listing is a paid sponsor OR if the resolved link is an affiliate ("A") variant
+    var isQuestionable = Model.DirectoryStatus == DirectoryStatus.Questionable;
+
+    var finalLinkRel = string.Join(" ", new[]
+    {
+    isQuestionable ? "nofollow" : "",
+    (Model.IsSponsored || !string.IsNullOrEmpty(Model.LinkA)) ? "sponsored" : ""
+}.Where(s => !string.IsNullOrEmpty(s)));
+
+    var finalLink2Rel = string.Join(" ", new[]
+    {
+    isQuestionable ? "nofollow" : "",
+    (Model.IsSponsored || !string.IsNullOrEmpty(Model.Link2A)) ? "sponsored" : ""
+}.Where(s => !string.IsNullOrEmpty(s)));
+
+    var finalLink3Rel = string.Join(" ", new[]
+    {
+    isQuestionable ? "nofollow" : "",
+    (Model.IsSponsored || !string.IsNullOrEmpty(Model.Link3A)) ? "sponsored" : ""
+}.Where(s => !string.IsNullOrEmpty(s)));
+
+    var domain = await cacheHelper.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
+
+    // Build your breadcrumb list dynamically based on page context
+    var breadcrumbs = new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(domain,"/") },
+        new BreadcrumbItem { Position = 2, Name = @categoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}") },
+        new BreadcrumbItem { Position = 3, Name = @subCategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}")  },
+        new BreadcrumbItem { Position = 4, Name = Model.Name, Url = UrlHelper.MakeFullUrl(domain, UrlBuilder.ListingPath(@Model.DirectoryEntryKey))  }
+    };
+}
+
+@{
+    Layout = "_LayoutWithNav";
+}
+
+@section PageContent {
+
+ 
+    <div class="directory-entry-details container py-4">
+        <h1 class="mb-3">@Model.Name</h1>
+        <hr />
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item">
+                    <a class="no-app-link" href="@UrlResolver.ResolveToRoot("/")">Home</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a class="no-app-link" href="@UrlResolver.ResolveToRoot($"/{categoryKey}")">@categoryName</a>
+                </li>
+                <li class="breadcrumb-item">
+                    <a class="no-app-link" href="@UrlResolver.ResolveToRoot($"/{categoryKey}/{subCategoryKey}")">@subCategoryName</a>
+                </li>
+                <li class="breadcrumb-item" aria-current="page">
+                    @Model.Name
+                </li>
+            </ol>
+        </nav>
+
+        @{
+            var sponsoredClass = Model.IsSponsored ? "sponsor-card" : "";
+        }
+
+        <div class="card mb-4 ">
+            <div class="card-body">
+                <table class="table table-borderless mb-0">
+                    <tbody>
+                        <tr>
+                            <th scope="row">Name</th>
+                            <td>
+                                <div class="@sponsoredClass">@Model.Name</div>
+                            </td>
+                        </tr>
+
+                        @if (!string.IsNullOrWhiteSpace(Model.Link) && !mainLinkIsDuplicate)
+                        {
+                            <tr>
+                                <th scope="row">Website</th>
+                                <td>
+                                    @if (isScam)
+                                    {
+                                        <span class="multi-line-text">@Model.Link</span>
+                                    }
+                                    else
+                                    {
+                                        <a class="multi-line-text" href="@finalLink" target="_blank" @(string.IsNullOrEmpty(finalLinkRel) ? "" : $" rel=\"{finalLinkRel}\"")>@Model.Link</a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+
+                        @if (!string.IsNullOrEmpty(finalLink2))
+                        {
+                            <tr>
+                                <th scope="row">@Model.Link2Name</th>
+                              
+                                <td>
+                                    @if (isScam)
+                                    {
+                                        <span class="multi-line-text">@Model.Link2</span>
+                                    }
+                                    else
+                                    {
+                                        <a class="multi-line-text" href="@finalLink2" target="_blank" @(string.IsNullOrEmpty(finalLink2Rel) ? "" : $" rel=\"{finalLink2Rel}\"")>@Model.Link2</a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+
+                        @if (!string.IsNullOrEmpty(finalLink3))
+                        {
+                            <tr>
+                                <th scope="row">@Model.Link3Name</th>
+                              
+                                <td>
+                                    @if (isScam)
+                                    {
+                                        <span class="multi-line-text">@Model.Link3</span>
+                                    }
+                                    else
+                                    {
+                                        <a class="multi-line-text" href="@finalLink3" target="_blank" @(string.IsNullOrEmpty(finalLink3Rel) ? "" : $" rel=\"{finalLink3Rel}\"")>@Model.Link3</a>
+                                    }
+                                </td>
+                            </tr>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.ProofLink))
+                        {
+                            <tr>
+                                <th scope="row">Proof</th>
+                                <td><a class="multi-line-text" href="@Model.ProofLink" target="_blank">@Model.ProofLink</a></td>
+                            </tr>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.VideoLink))
+                        {
+                            <tr>
+                                <th scope="row">Video</th>
+                                <td><a class="multi-line-text" href="@Model.VideoLink" target="_blank">@Model.VideoLink</a></td>
+                            </tr>
+                        }
+                        <tr>
+                            <th scope="row">Status</th>
+                            <td>@Model.DirectoryStatus.ToHtmlIcon() @Model.DirectoryStatus</td>
+                        </tr>
+                        @if (!string.IsNullOrEmpty(Model.Contact))
+                        {
+                            <tr>
+                                <th scope="row">Contact</th>
+                                <td>
+                                    @Html.Raw(StringHelpers.RenderContactFieldHtml(Model.Contact, cssClass: "multi-line-text"))
+                                </td>
+                            </tr>
+                        }
+                        @if (!string.IsNullOrEmpty(Model.Location) || !string.IsNullOrWhiteSpace(Model.CountryCode))
+                        {
+                            <tr>
+                                <th scope="row">Location</th>
+                                <td>
+                                    @Html.Raw(Model.FormattedLocation)
+                                </td>
+                            </tr>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.Processor))
+                        {
+                            <tr>
+                                <th scope="row">Processor</th>
+                                <td>@Model.Processor</td>
+                            </tr>
+                        }
+                        @if (Model.FoundedDate.HasValue)
+                        {
+                            <tr>
+                                <th scope="row">Founded</th>
+                                <td>@Model.FoundedDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                            </tr>
+                        }
+                        <tr>
+                            <th scope="row">Added On</th>
+                            <td>@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                        </tr>
+                        @if (Model.UpdateDate.HasValue)
+                        {
+                            <tr>
+                                <th scope="row">Last Updated</th>
+                                <td>@Model.UpdateDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        @* ✅ Button removed for scams *@
+        @if (!isScam && !string.IsNullOrWhiteSpace(finalLink))
+        {
+            <br />
+            <a href="@finalLink" class="btn btn-primary btn-cta" target="_blank" @(string.IsNullOrEmpty(finalLinkRel) ? "" : $" rel=\"{finalLinkRel}\"")>Visit Website</a>
+            <br />
+        }
+
+        @if (!string.IsNullOrEmpty(Model.Description))
+        {
+            <br />
+            <div class="mb-4">
+                <h3>Description</h3>
+                <p>@Model.Description</p>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.Note))
+        {
+            <br />
+            <div class="mb-4">
+                @if (Model.DirectoryStatus == DirectoryStatus.Scam || Model.DirectoryStatus == DirectoryStatus.Questionable)
+                {
+                    <h4 class="warning-color">Note</h4>
+                }
+                else
+                {
+                    <h4>Note</h4>
+                }
+                <p><em>@Html.Raw(Model.Note)</em></p>
+            </div>
+        }
+
+        @if (!string.IsNullOrEmpty(Model.PgpKey))
+        {
+            <br />
+            <h4>PGP Key</h4>
+<pre class="pgp-key">
+@Model.PgpKey
+</pre>
+        }
+
+        @if (Model.TagsAndKeys?.Any() ?? false)
+        {
+            <br />
+            <div class="entry-tags">
+                <strong>Tags:</strong>
+                @{
+                    // materialize to list so we can test "last" easily
+                    var tags = Model.TagsAndKeys.ToList();
+                }
+                @for (int i = 0; i < tags.Count; i++)
+                {
+                    var key = tags[i].Key;     // slug / url-key
+                    var name = tags[i].Value;  // display name
+
+                    <a class="no-app-link" href="~/tagged/@key">@name</a>@(i < tags.Count - 1 ? ", " : "")
+                }
+            </div>
+        }
+
+        @if (Model.AdditionalLinks?.Any() ?? false)
+        {
+            <br />
+            <div class="entry-additional-links">
+                <strong>Related Links:</strong>
+                <ul class="mb-0">
+                    @foreach (var link in Model.AdditionalLinks)
+                    {
+                        <li>
+                            <a class="multi-line-text" href="@link" target="_blank" rel="nofollow noopener">@link</a>
+                        </li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <br />
+        @await Html.PartialAsync("_EntryReviews", (DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
+
+    </div>
+
+    <hr />
+    @await Html.PartialAsync("_SponsoredListingPartial")
+}

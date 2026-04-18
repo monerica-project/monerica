@@ -1,0 +1,24 @@
+﻿@model DirectoryManager.Data.Models.DirectoryEntrySelection
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Delete From List";
+}
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<h2>Are you sure you want to remove this entry from the list?</h2>
+<p>@ViewBag.EntryDeletedFromList.Name</p>
+
+<form asp-action="DeleteFromListConfirmed" method="post">
+    <input type="hidden" asp-for="DirectoryEntrySelectionId" />
+    <button type="submit">Yes, Remove</button>
+    <a href="@Url.Action("Index")">Cancel</a>
+</form>
+}

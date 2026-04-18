@@ -1,0 +1,693 @@
+﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.DisplayFormatting.Helpers;
+using DirectoryManager.Utilities.Helpers;
+using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Enums;
+using DirectoryManager.Web.Helpers;
+using DirectoryManager.Web.Models;
+using DirectoryManager.Web.Services.Interfaces;
+using Microsoft.AspNetCore.Mvc;
+
+namespace DirectoryManager.Web.Controllers
+{
+    public class SiteMapController : Controller
+    {
+        private readonly ICacheService cacheService;
+        private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly ICategoryRepository categoryRepository;
+        private readonly ISubcategoryRepository subCategoryRepository;
+        private readonly IContentSnippetRepository contentSnippetRepository;
+        private readonly ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository;
+        private readonly ISponsoredListingRepository sponsoredListingRepository;
+        private readonly IDirectoryEntrySelectionRepository directoryEntrySelectionRepository;
+        private readonly ITagRepository tagRepository;
+        private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
+        private readonly IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository;
+
+        public SiteMapController(
+            ICacheService cacheService,
+            IDirectoryEntryRepository directoryEntryRepository,
+            ICategoryRepository categoryRepository,
+            ISubcategoryRepository subCategoryRepository,
+            IContentSnippetRepository contentSnippetRepository,
+            ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository,
+            ISponsoredListingRepository sponsoredListingRepository,
+            IDirectoryEntrySelectionRepository directoryEntrySelectionRepository,
+            ITagRepository tagRepository,
+            IDirectoryEntryReviewRepository directoryEntryReviewRepository,
+            IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository)
+        {
+            this.cacheService = cacheService;
+            this.directoryEntryRepository = directoryEntryRepository;
+            this.categoryRepository = categoryRepository;
+            this.subCategoryRepository = subCategoryRepository;
+            this.contentSnippetRepository = contentSnippetRepository;
+            this.sponsoredListingInvoiceRepository = sponsoredListingInvoiceRepository;
+            this.sponsoredListingRepository = sponsoredListingRepository;
+            this.directoryEntrySelectionRepository = directoryEntrySelectionRepository;
+            this.tagRepository = tagRepository;
+            this.directoryEntryReviewRepository = directoryEntryReviewRepository;
+            this.directoryEntryReviewCommentRepository = directoryEntryReviewCommentRepository;
+        }
+
+        [Route("sitemap_index.xml")]
+        public IActionResult SiteMapIndex()
+        {
+            return this.RedirectPermanent("~/sitemap.xml");
+        }
+
+        [Route("sitemap.xml")]
+        public async Task<IActionResult> IndexAsync()
+        {
+            // -------------------------------------------------------
+            // 1) Site-wide last modified (small, cheap queries)
+            // -------------------------------------------------------
+            var lastFeaturedDate = await this.directoryEntrySelectionRepository.GetMostRecentModifiedDateAsync();
+            var lastDirectoryEntryDate = this.directoryEntryRepository.GetLastRevisionDate();
+            var lastContentSnippetUpdate = this.contentSnippetRepository.GetLastUpdateDate();
+            var lastPaidInvoiceUpdate = this.sponsoredListingInvoiceRepository.GetLastPaidInvoiceUpdateDate();
+            var nextAdExpiration = await this.sponsoredListingRepository.GetNextExpirationDateAsync();
+            var lastSponsorExpiration = await this.sponsoredListingRepository.GetLastSponsorExpirationDateAsync();
+
+            var mostRecentUpdateDate = this.GetLatestUpdateDate(
+                lastDirectoryEntryDate,
+                lastContentSnippetUpdate,
+                lastPaidInvoiceUpdate,
+                nextAdExpiration,
+                lastSponsorExpiration);
+
+            var lastSponsoredListingChange = await this.sponsoredListingRepository.GetLastChangeDateForMainSponsorAsync();
+            if (lastSponsoredListingChange.HasValue && lastSponsoredListingChange.Value > mostRecentUpdateDate)
+            {
+                mostRecentUpdateDate = lastSponsoredListingChange.Value;
+            }
+
+            // -------------------------------------------------------
+            // 2) Reviews + Replies (MINIMAL dictionaries only)
+            // -------------------------------------------------------
+            // ✅ Combined: approved review COUNT + LAST(modified) by entry
+            var approvedReviewStatsByEntry =
+                await this.directoryEntryReviewRepository.GetApprovedReviewStatsByEntryAsync(CancellationToken.None);
+
+            // ✅ Approved reply/comment LAST(modified) by entry
+            var latestApprovedReplyByEntry =
+                await this.directoryEntryReviewCommentRepository.GetApprovedReplyLastModifiedByEntryAsync(CancellationToken.None);
+
+            // bump site-wide date if reviews/replies are newer
+            if (approvedReviewStatsByEntry.Count > 0)
+            {
+                var latestApprovedReviewDate = approvedReviewStatsByEntry.Values.Max(x => x.Last);
+                if (latestApprovedReviewDate > mostRecentUpdateDate)
+                {
+                    mostRecentUpdateDate = latestApprovedReviewDate;
+                }
+            }
+
+            if (latestApprovedReplyByEntry.Count > 0)
+            {
+                var latestApprovedReplyDate = latestApprovedReplyByEntry.Values.Max();
+                if (latestApprovedReplyDate > mostRecentUpdateDate)
+                {
+                    mostRecentUpdateDate = latestApprovedReplyDate;
+                }
+            }
+
+            // -------------------------------------------------------
+            // 3) Build sitemap
+            // -------------------------------------------------------
+            var siteMapHelper = new SiteMapHelper();
+            var domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
+
+            await this.AddTags(mostRecentUpdateDate, siteMapHelper, domain);
+
+            // Root
+            siteMapHelper.AddUrl(
+                WebRequestHelper.GetCurrentDomain(this.HttpContext),
+                mostRecentUpdateDate,
+                ChangeFrequency.Daily,
+                1.0);
+
+            await this.AddNewestPagesListAsync(mostRecentUpdateDate, siteMapHelper);
+            await this.AddPagesAsync(mostRecentUpdateDate, siteMapHelper);
+            await this.AddAllTagsPaginationAsync(mostRecentUpdateDate, siteMapHelper);
+
+            var categories = await this.categoryRepository.GetActiveCategoriesAsync();
+            var subcategoryEntryCounts = await this.directoryEntryRepository.GetSubcategoryEntryCountsAsync();
+            await this.AddCategoryPaginationAsync(mostRecentUpdateDate, siteMapHelper, categories, subcategoryEntryCounts, domain);
+
+            var allCategoriesLastModified = await this.categoryRepository.GetAllCategoriesLastChangeDatesAsync();
+            var allSubcategoriesLastModified = await this.subCategoryRepository.GetAllSubCategoriesLastChangeDatesAsync();
+            var allSubCategoriesItemsLastModified = await this.directoryEntryRepository.GetLastModifiedDatesBySubCategoryAsync();
+            var allSubcategoryAds = await this.sponsoredListingRepository.GetLastChangeDatesBySubcategoryAsync();
+            var allCategoryAds = await this.sponsoredListingRepository.GetLastChangeDatesByCategoryAsync();
+
+            foreach (var category in categories)
+            {
+                await this.AddCategoryPages(
+                    lastFeaturedDate,
+                    mostRecentUpdateDate,
+                    siteMapHelper,
+                    allCategoriesLastModified,
+                    allSubcategoriesLastModified,
+                    allSubCategoriesItemsLastModified,
+                    allSubcategoryAds,
+                    allCategoryAds,
+                    subcategoryEntryCounts,
+                    domain,
+                    category);
+            }
+
+            // -------------------------------------------------------
+            // 4) Listing pages (+ paginated review pages) MINIMAL entries only
+            // -------------------------------------------------------
+            var entries = await this.directoryEntryRepository.GetSitemapEntriesAsync(CancellationToken.None);
+
+            foreach (var entry in entries)
+            {
+                // If you want per-entry lastmod to be truly per-entry, remove "mostRecentUpdateDate" from baseLastMod.
+                // Keeping it here preserves your prior behavior.
+                var baseLastMod = new[]
+                {
+                    entry.CreateDate,
+                    entry.UpdateDate ?? entry.CreateDate,
+                    mostRecentUpdateDate
+                }.Max();
+
+                var reviewLastMod = approvedReviewStatsByEntry.TryGetValue(entry.DirectoryEntryId, out var stats)
+                    ? stats.Last
+                    : DateTime.MinValue;
+
+                var replyLastMod = latestApprovedReplyByEntry.TryGetValue(entry.DirectoryEntryId, out var cdt)
+                    ? cdt
+                    : DateTime.MinValue;
+
+                var directoryItemLastMod = new[] { baseLastMod, reviewLastMod, replyLastMod }.Max();
+
+                var listingPath = UrlBuilder.ListingPath(entry.DirectoryEntryKey);
+                var listingUrl = $"{domain}{listingPath}";
+
+                // Base listing URL
+                siteMapHelper.AddUrl(
+                    listingUrl,
+                    directoryItemLastMod,
+                    ChangeFrequency.Weekly,
+                    0.7);
+
+                // Paginated listing review pages: /site/{key}/page/{p}
+                if (approvedReviewStatsByEntry.TryGetValue(entry.DirectoryEntryId, out var st)
+                    && st.Count > IntegerConstants.ReviewsPageSize)
+                {
+                    int totalPages = (int)Math.Ceiling(st.Count / (double)IntegerConstants.ReviewsPageSize);
+
+                    for (int p = 2; p <= totalPages; p++)
+                    {
+                        siteMapHelper.AddUrl(
+                            $"{domain}{listingPath}/page/{p}",
+                            directoryItemLastMod,
+                            ChangeFrequency.Weekly,
+                            0.3);
+                    }
+                }
+            }
+
+            // -------------------------------------------------------
+            // 5) Countries (MINIMAL counts only)
+            // -------------------------------------------------------
+            var countryCounts = await this.directoryEntryRepository.GetActiveCountryCountsForSitemapAsync(CancellationToken.None);
+
+            this.AddCountriesToSitemap(
+                siteMapHelper,
+                domain,
+                countryCounts,
+                mostRecentUpdateDate);
+
+            var xml = siteMapHelper.GenerateXml();
+            return this.Content(xml, "text/xml");
+        }
+
+        // ==========================================================
+        // HTML sitemap page (your existing behavior)
+        // ==========================================================
+        [Route("sitemap")]
+        public async Task<IActionResult> SiteMap()
+        {
+            var model = new HtmlSiteMapModel();
+
+            var categories = await this.categoryRepository.GetActiveCategoriesAsync();
+
+            foreach (var category in categories)
+            {
+                var categoryPages = new SectionPage()
+                {
+                    AnchorText = category.Name,
+                    CanonicalUrl = string.Format(
+                        "{0}/{1}",
+                        WebRequestHelper.GetCurrentDomain(this.HttpContext),
+                        category.CategoryKey),
+                };
+
+                var subCategories = await this.subCategoryRepository.GetActiveSubcategoriesAsync(category.CategoryId);
+
+                foreach (var subCategory in subCategories)
+                {
+                    categoryPages.ChildPages.Add(new SectionPage()
+                    {
+                        AnchorText = subCategory.Name,
+                        CanonicalUrl = string.Format(
+                            "{0}/{1}/{2}",
+                            WebRequestHelper.GetCurrentDomain(this.HttpContext),
+                            category.CategoryKey,
+                            subCategory.SubCategoryKey),
+                    });
+                }
+
+                model.SectionPages.Add(categoryPages);
+            }
+
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
+            this.ViewData[Constants.StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "sitemap");
+            return this.View("Index", model);
+        }
+
+        // ==========================================================
+        // TAGS
+        // ==========================================================
+        private async Task AddTags(DateTime mostRecentUpdateDate, SiteMapHelper siteMapHelper, string domain)
+        {
+            var tagPageSize = IntegerConstants.MaxPageSize;
+            var tagsWithInfo = await this.tagRepository.ListTagsWithSitemapInfoAsync();
+
+            foreach (var tag in tagsWithInfo)
+            {
+                int totalPages = (int)Math.Ceiling((double)tag.EntryCount / tagPageSize);
+
+                for (int i = 1; i <= totalPages; i++)
+                {
+                    string url = i == 1
+                        ? $"{domain}/tagged/{tag.Slug}"
+                        : $"{domain}/tagged/{tag.Slug}/page/{i}";
+
+                    var lastMod = tag.LastModified > mostRecentUpdateDate
+                        ? tag.LastModified
+                        : mostRecentUpdateDate;
+
+                    siteMapHelper.AddUrl(
+                        url,
+                        lastMod,
+                        ChangeFrequency.Weekly,
+                        i == 1 ? 0.5 : 0.3);
+                }
+            }
+
+            siteMapHelper.AddUrl(
+                string.Format("{0}/tagged", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                mostRecentUpdateDate,
+                ChangeFrequency.Monthly,
+                0.3);
+        }
+
+        private async Task AddAllTagsPaginationAsync(DateTime date, SiteMapHelper siteMapHelper)
+        {
+            var domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
+            int pageSize = IntegerConstants.MaxPageSize;
+
+            var pagedResult = await this.tagRepository.ListTagsWithCountsPagedAsync(1, int.MaxValue).ConfigureAwait(false);
+
+            int totalTags = pagedResult.TotalCount;
+            int totalPages = (totalTags + pageSize - 1) / pageSize;
+
+            for (int page = 1; page <= totalPages; page++)
+            {
+                string url = page == 1
+                    ? $"{domain}/tagged"
+                    : $"{domain}/tagged/page/{page}";
+
+                siteMapHelper.AddUrl(
+                    url,
+                    date,
+                    ChangeFrequency.Monthly,
+                    page == 1 ? 0.3 : 0.2);
+            }
+        }
+
+        // ==========================================================
+        // CATEGORIES + SUBCATEGORIES
+        // ==========================================================
+        private async Task AddCategoryPages(
+            DateTime lastFeaturedDate,
+            DateTime mostRecentUpdateDate,
+            SiteMapHelper siteMapHelper,
+            Dictionary<int, DateTime> allCategoriesLastModified,
+            Dictionary<int, DateTime> allSubcategoriesLastModified,
+            Dictionary<int, DateTime> allSubCategoriesItemsLastModified,
+            Dictionary<int, DateTime> allSubCategoryAds,
+            Dictionary<int, DateTime> allCategoryAds,
+            Dictionary<int, int> subcategoryEntryCounts,
+            string domain,
+            DirectoryManager.Data.Models.Category category)
+        {
+            var lastChangeToCategory = allCategoriesLastModified.TryGetValue(category.CategoryId, out var categoryMod)
+                ? categoryMod
+                : DateTime.MinValue;
+
+            lastChangeToCategory = mostRecentUpdateDate > lastChangeToCategory
+                ? mostRecentUpdateDate
+                : lastChangeToCategory;
+
+            var subCategories = await this.subCategoryRepository.GetActiveSubcategoriesAsync(category.CategoryId);
+
+            DateTime mostRecentSubcategoryDate = subCategories
+                .Select(sub => new[]
+                {
+                    allSubcategoriesLastModified.TryGetValue(sub.SubCategoryId, out var subMod) ? subMod : DateTime.MinValue,
+                    allSubCategoriesItemsLastModified.TryGetValue(sub.SubCategoryId, out var itemMod) ? itemMod : DateTime.MinValue,
+                    allSubCategoryAds.TryGetValue(sub.SubCategoryId, out var adMod) ? adMod : DateTime.MinValue
+                }.Max())
+                .DefaultIfEmpty(DateTime.MinValue)
+                .Max();
+
+            DateTime mostRecentCategoryAdDate = allCategoryAds.TryGetValue(category.CategoryId, out var catAdMod)
+                ? catAdMod
+                : DateTime.MinValue;
+
+            var lastChangeForCategoryOrSubcategory = new[]
+            {
+                lastChangeToCategory,
+                mostRecentSubcategoryDate,
+                mostRecentCategoryAdDate,
+                mostRecentUpdateDate
+            }.Max();
+
+            siteMapHelper.AddUrl(
+                $"{domain}/{category.CategoryKey}",
+                lastChangeForCategoryOrSubcategory,
+                ChangeFrequency.Weekly,
+                0.6);
+
+            foreach (var subCategory in subCategories)
+            {
+                this.AddSubcategoriesAsync(
+                    lastFeaturedDate,
+                    mostRecentUpdateDate,
+                    siteMapHelper,
+                    allSubcategoriesLastModified,
+                    allSubCategoriesItemsLastModified,
+                    allSubCategoryAds,
+                    subcategoryEntryCounts,
+                    category,
+                    lastChangeToCategory,
+                    subCategory,
+                    domain);
+            }
+        }
+
+        private void AddSubcategoriesAsync(
+            DateTime lastFeaturedDate,
+            DateTime mostRecentUpdateDate,
+            SiteMapHelper siteMapHelper,
+            Dictionary<int, DateTime> allSubcategoriesLastModified,
+            Dictionary<int, DateTime> allSubCategoriesItemsLastModified,
+            Dictionary<int, DateTime> allSubCategoryAds,
+            Dictionary<int, int> subcategoryEntryCounts,
+            DirectoryManager.Data.Models.Category category,
+            DateTime lastChangeToCategory,
+            DirectoryManager.Data.Models.Subcategory subCategory,
+            string domain)
+        {
+            int subCategoryId = subCategory.SubCategoryId;
+
+            DateTime lastChangeToSubcategory = allSubcategoriesLastModified.TryGetValue(subCategoryId, out var subMod)
+                ? subMod
+                : lastChangeToCategory;
+
+            DateTime lastChangeToSubcategoryItem = allSubCategoriesItemsLastModified.TryGetValue(subCategoryId, out var itemMod)
+                ? itemMod
+                : lastChangeToSubcategory;
+
+            DateTime lastChangeToSubcategoryAd = allSubCategoryAds.TryGetValue(subCategoryId, out var adMod)
+                ? adMod
+                : lastChangeToSubcategoryItem;
+
+            DateTime lastModified = new[]
+            {
+                lastFeaturedDate,
+                lastChangeToSubcategory,
+                lastChangeToSubcategoryItem,
+                lastChangeToSubcategoryAd,
+                mostRecentUpdateDate
+            }.Max();
+
+            // Base subcategory page
+            siteMapHelper.AddUrl(
+                $"{domain}/{category.CategoryKey}/{subCategory.SubCategoryKey}",
+                lastModified,
+                ChangeFrequency.Weekly,
+                0.5);
+
+            // Paginated subcategory pages
+            if (!subcategoryEntryCounts.TryGetValue(subCategoryId, out var entryCount))
+            {
+                return;
+            }
+
+            int pageSize = IntegerConstants.DefaultPageSize;
+            int totalPages = (int)Math.Ceiling(entryCount / (double)pageSize);
+
+            for (int i = 2; i <= totalPages; i++)
+            {
+                siteMapHelper.AddUrl(
+                    $"{domain}/{category.CategoryKey}/{subCategory.SubCategoryKey}/page/{i}",
+                    lastModified,
+                    ChangeFrequency.Weekly,
+                    0.3);
+            }
+        }
+
+        private async Task AddCategoryPaginationAsync(
+            DateTime date,
+            SiteMapHelper siteMapHelper,
+            IEnumerable<Category> categories,
+            Dictionary<int, int> subcategoryEntryCounts,
+            string domain)
+        {
+            int pageSize = IntegerConstants.DefaultPageSize;
+
+            var categoryCounts = await this.directoryEntryRepository.GetCategoryEntryCountsAsync();
+
+            foreach (var category in categories)
+            {
+                if (!categoryCounts.TryGetValue(category.CategoryId, out int totalCount) || totalCount == 0)
+                {
+                    continue;
+                }
+
+                int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
+
+                for (int i = 1; i <= totalPages; i++)
+                {
+                    string url = i == 1
+                        ? $"{domain}/{category.CategoryKey}"
+                        : $"{domain}/{category.CategoryKey}/page/{i}";
+
+                    siteMapHelper.AddUrl(url, date, ChangeFrequency.Weekly, 0.4);
+                }
+            }
+        }
+
+        // ==========================================================
+        // NEWEST
+        // ==========================================================
+        private async Task AddNewestPagesListAsync(DateTime date, SiteMapHelper siteMapHelper)
+        {
+            int totalEntries = await this.directoryEntryRepository.TotalActive();
+            int pageSize = IntegerConstants.MaxPageSize;
+            int totalPages = (int)Math.Ceiling((double)totalEntries / pageSize);
+
+            string domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
+
+            for (int i = 1; i <= totalPages; i++)
+            {
+                string url = i == 1
+                    ? $"{domain}/newest"
+                    : $"{domain}/newest/page/{i}";
+
+                siteMapHelper.AddUrl(url, date, ChangeFrequency.Daily, 0.4);
+            }
+        }
+
+        // ==========================================================
+        // STATIC PAGES
+        // ==========================================================
+        private async Task AddPagesAsync(DateTime date, SiteMapHelper siteMapHelper)
+        {
+            var contactHtmlConfig = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.ContactHtml);
+
+            if (contactHtmlConfig != null && !string.IsNullOrWhiteSpace(contactHtmlConfig.Content))
+            {
+                var contactHtmlLastModified = new[] { contactHtmlConfig?.UpdateDate, contactHtmlConfig?.CreateDate, date }
+                    .Where(d => d.HasValue)
+                    .Max() ?? date;
+
+                siteMapHelper.AddUrl(
+                    string.Format("{0}/contact", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                    contactHtmlLastModified,
+                    ChangeFrequency.Monthly,
+                    0.8);
+            }
+
+            var aboutHtmlConfig = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.AboutHtml);
+
+            if (aboutHtmlConfig != null && !string.IsNullOrWhiteSpace(aboutHtmlConfig.Content))
+            {
+                var aboutHtmlLastModified = new[] { aboutHtmlConfig?.UpdateDate, aboutHtmlConfig?.CreateDate, date }
+                    .Where(d => d.HasValue)
+                    .Max() ?? date;
+
+                siteMapHelper.AddUrl(
+                    string.Format("{0}/about", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                    aboutHtmlLastModified,
+                    ChangeFrequency.Monthly,
+                    0.6);
+            }
+
+            var donationHtmlConfig = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.DonationHtml);
+
+            if (donationHtmlConfig != null && !string.IsNullOrWhiteSpace(donationHtmlConfig.Content))
+            {
+                var donationHtmlLastModified = new[] { donationHtmlConfig?.UpdateDate, donationHtmlConfig?.CreateDate, date }
+                    .Where(d => d != null)
+                    .Max() ?? date;
+
+                siteMapHelper.AddUrl(
+                    string.Format("{0}/donate", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                    donationHtmlLastModified,
+                    ChangeFrequency.Monthly,
+                    0.2);
+            }
+
+            siteMapHelper.AddUrl(
+                string.Format("{0}/sitemap", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                date,
+                ChangeFrequency.Daily,
+                0.3);
+
+            siteMapHelper.AddUrl(
+                string.Format("{0}/faq", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                date,
+                ChangeFrequency.Weekly,
+                0.3);
+
+            siteMapHelper.AddUrl(
+                string.Format("{0}/rss/feed.xml", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                date,
+                ChangeFrequency.Daily,
+                0.9);
+        }
+
+        // ==========================================================
+        // COUNTRIES (MINIMAL: uses precomputed counts)
+        // ==========================================================
+        private void AddCountriesToSitemap(
+            SiteMapHelper siteMapHelper,
+            string domain,
+            IReadOnlyList<DirectoryManager.Data.Models.TransferModels.CountryCountRow> countryCounts,
+            DateTime siteWideLastMod)
+        {
+            var countriesMap = CountryHelper.GetCountries(); // ISO2 -> Full Name
+
+            var byCountry = (countryCounts ?? Array.Empty<DirectoryManager.Data.Models.TransferModels.CountryCountRow>())
+                .Select(x => new
+                {
+                    Code = (x.CountryCode ?? string.Empty).Trim().ToUpperInvariant(),
+                    x.Count
+                })
+                .Where(x => x.Count > 0 && countriesMap.ContainsKey(x.Code))
+                .Select(x =>
+                {
+                    string name = CountryHelper.GetCountryName(x.Code);
+                    string slug = StringHelpers.UrlKey(name);
+                    return new { x.Code, Name = name, Slug = slug, x.Count };
+                })
+                .OrderBy(x => x.Name)
+                .ToList();
+
+            if (byCountry.Count == 0)
+            {
+                return;
+            }
+
+            // /countries index + pagination
+            int countriesPageSize = IntegerConstants.MaxPageSize;
+            int countriesTotal = byCountry.Count;
+            int countriesPages = (int)Math.Ceiling(countriesTotal / (double)countriesPageSize);
+
+            for (int page = 1; page <= countriesPages; page++)
+            {
+                string url = page == 1
+                    ? $"{domain}/countries"
+                    : $"{domain}/countries/page/{page}";
+
+                siteMapHelper.AddUrl(
+                    url,
+                    siteWideLastMod,
+                    ChangeFrequency.Monthly,
+                    page == 1 ? 0.3 : 0.2);
+            }
+
+            // /countries/{slug} + pagination
+            int countryEntriesPageSize = IntegerConstants.DefaultPageSize;
+
+            foreach (var c in byCountry)
+            {
+                int pages = (int)Math.Ceiling(c.Count / (double)countryEntriesPageSize);
+
+                siteMapHelper.AddUrl(
+                    $"{domain}/countries/{c.Slug}",
+                    siteWideLastMod,
+                    ChangeFrequency.Weekly,
+                    0.5);
+
+                for (int i = 2; i <= pages; i++)
+                {
+                    siteMapHelper.AddUrl(
+                        $"{domain}/countries/{c.Slug}/page/{i}",
+                        siteWideLastMod,
+                        ChangeFrequency.Weekly,
+                        0.3);
+                }
+            }
+        }
+
+        // ==========================================================
+        // UTILS
+        // ==========================================================
+        private DateTime GetLatestUpdateDate(
+            DateTime? lastDirectoryEntryDate,
+            DateTime? lastContentSnippetUpdate,
+            DateTime? lastPaidInvoiceUpdate,
+            DateTime? nextAdExpiration,
+            DateTime? lastSponsorExpiration)
+        {
+            var now = DateTime.UtcNow;
+            var candidates = new List<DateTime>();
+
+            void AddIfPast(DateTime? dt)
+            {
+                if (dt.HasValue && dt.Value <= now)
+                {
+                    candidates.Add(dt.Value);
+                }
+            }
+
+            AddIfPast(lastDirectoryEntryDate);
+            AddIfPast(lastContentSnippetUpdate);
+            AddIfPast(lastPaidInvoiceUpdate);
+            AddIfPast(nextAdExpiration);
+            AddIfPast(lastSponsorExpiration);
+
+            return candidates.Count > 0 ? candidates.Max() : DateTime.MinValue;
+        }
+    }
+}

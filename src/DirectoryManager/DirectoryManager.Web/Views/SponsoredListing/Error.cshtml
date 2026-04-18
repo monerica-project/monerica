@@ -1,0 +1,8 @@
+﻿@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Error";
+}
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_BackToHome")
+<hr />

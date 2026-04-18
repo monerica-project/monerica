@@ -1,0 +1,136 @@
+﻿@model DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice
+@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.DisplayFormatting.Models
+@using DirectoryManager.Utilities.Helpers
+@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Models
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Invoice Details";
+    Layout = "_CenteredLayout";
+}
+
+@{
+    var totalDaysRaw = (Model.CampaignEndDate.Date - Model.CampaignStartDate.Date).TotalDays;
+    var totalDays = totalDaysRaw <= 0 ? 1 : (int)totalDaysRaw;   // protect against div/zero or bad dates
+    var avgUsdPerDay = Math.Round(Model.Amount / totalDays, 2);     // 2 decimals
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<div>
+    <h4>Invoice Details</h4>
+    <hr />
+    <dl class="row">
+
+        <dt>Sponsored Listing Invoice ID</dt>
+        <dd>@Model.SponsoredListingInvoiceId</dd>
+
+        <dt>Sponsored Listing ID</dt>
+        <dd><a href="~/sponsoredlisting/edit/@Model.SponsoredListingId">@Model.SponsoredListingId</a></dd>
+
+        <dt>Invoice ID</dt>
+        <dd>@Model.InvoiceId</dd>
+
+        <dt>Directory Entry ID</dt>
+        <dd> <a href="~/directoryentry/edit/@Model.DirectoryEntryId">@Model.DirectoryEntryId</a> (<a href="~/sponsoredlistinginvoice/advertiser?directoryEntryId=@Model.DirectoryEntryId">see all invoices</a>)</dd>
+
+        <dt>Invoice Description</dt>
+        <dd>@Model.InvoiceDescription</dd>
+
+        <dt>Sponsorship Type</dt>
+        <dd>@Model.SponsorshipType</dd>
+
+        @if (Model.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.SubcategorySponsor && ViewBag.Subcategory != null)
+        {
+            <dt>Subcategory</dt>
+            <dd>@FormattingHelper.SubcategoryFormatting(ViewBag.Subcategory.Category.Name, @ViewBag.SubCategory.Name)</dd>
+        }
+
+        @if (Model.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.CategorySponsor && ViewBag.Category != null)
+        {
+            <dt>Category</dt>
+            <dd>@ViewBag.Category.Name</dd>
+        }
+
+        <dt>Amount</dt>
+        <dd>@Model.Amount</dd>
+
+        <dt>Currency</dt>
+        <dd>@Model.Currency</dd>
+
+        <dt>Paid Amount</dt>
+        <dd>@Model.PaidAmount</dd>
+
+        <dt>Outcome Amount</dt>
+        <dd>@Model.OutcomeAmount</dd>
+
+        <dt>Paid In Currency</dt>
+        <dd>@Model.PaidInCurrency</dd>
+
+        <dt>Payment Status</dt>
+        <dd>@EnumHelper.GetDescription(Model.PaymentStatus)</dd>
+
+        <dt>Total Days</dt>
+        <dd>@totalDays</dd>
+
+        <dt>Avg USD / Day</dt>
+        <dd>@avgUsdPerDay.ToString("0.00")</dd>
+
+        <dt>Create Date</dt>
+        <dd>@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</dd>
+
+        <dt>Update Date</dt>
+        <dd>@Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</dd>
+
+        <dt>Campaign Start Date</dt>
+        <dd>@Model.CampaignStartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</dd>
+
+        <dt>Campaign End Date</dt>
+        <dd>@Model.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</dd>
+
+        <dt>Payment Processor</dt>
+        <dd>@Model.PaymentProcessor</dd>
+
+        <dt>Invoice Response</dt>
+        <dd><pre class="payment-response">@Model.InvoiceResponse</pre></dd>
+
+        @if (!string.IsNullOrWhiteSpace(Model.PaymentResponse))
+        {
+            <dt>Payment Response</dt>
+            <dd><pre class="payment-response">@Model.PaymentResponse</pre></dd>
+        }
+
+        <dt>Processor Invoice Id</dt>
+        <dd>@Model.ProcessorInvoiceId</dd>
+
+        @if (!string.IsNullOrWhiteSpace(Model.Email))
+        {
+            <dt>Email</dt>
+            <dd>@Model.Email</dd>
+
+            <dt>Is Reminder Sent</dt>
+            <dd>@Model.IsReminderSent</dd>
+        }
+
+            @if (!string.IsNullOrWhiteSpace(Model.ReferralCodeUsed))
+            {
+                <dt>Referral Code</dt>
+                <dd>@Model.ReferralCodeUsed</dd>
+            }
+    </dl>
+    <hr />
+    <h3>Listing</h3>
+<ul class="blank_list_item">
+        @await Html.PartialAsync("_DirectoryEntryPartial", (DirectoryEntryViewModel)ViewBag.SelectedDirectoryEntry)
+</ul>
+    <hr />
+</div>
+
+<div>
+    <a href="@Url.Action("Index")">Back to List</a>
+</div>
+}

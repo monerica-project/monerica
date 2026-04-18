@@ -1,0 +1,232 @@
+﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants
+@model DirectoryManager.Web.Models.SubmissionRequest
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+
+<!-- Hidden fields for Submission and DirectoryEntry Ids -->
+@Html.HiddenFor(x => x.SubmissionId)
+@Html.HiddenFor(x => x.DirectoryEntryId)
+
+<h3>Required Information</h3>
+
+@if (Model.DirectoryEntryId != null)
+{
+    <div class="form-group">
+        <label asp-for="DirectoryStatus">Directory Status</label>
+        <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control select-fit">
+            @foreach (var status in Enum.GetValues(typeof(DirectoryManager.Data.Enums.DirectoryStatus)))
+            {
+                if ((DirectoryManager.Data.Enums.DirectoryStatus)status == DirectoryManager.Data.Enums.DirectoryStatus.Unknown)
+                {
+                    continue;
+                }
+                <option value="@((int)status)">@status.ToString()</option>
+            }
+        </select>
+    </div>
+}
+
+<div class="form-group">
+    <label asp-for="SubCategoryId">Subcategory</label>
+    <select asp-for="SubCategoryId"
+    class="form-control select-fit"
+            asp-items="@(new SelectList(ViewBag.SubCategories, "SubcategoryId", "DisplayName"))"
+            required></select>
+</div>
+
+<div class="form-group">
+    <label asp-for="Name">Name</label>
+    <input autocomplete="off" asp-for="Name" class="form-control input-width" />
+    <span asp-validation-for="Name" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Link">Link</label>
+    <input autocomplete="off" asp-for="Link" class="form-control input-width" />
+    <span asp-validation-for="Link" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Description">Description</label>
+    <textarea asp-for="Description" class="form-control input-width"></textarea>
+    <span asp-validation-for="Description" class="text-danger"></span>
+</div>
+
+<hr />
+
+<h3>Optional Information</h3>
+
+<div class="form-group">
+    <label asp-for="Link2">@await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name)</label>
+    <input autocomplete="off" asp-for="Link2" class="form-control input-width" />
+    <span asp-validation-for="Link2" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Link3">@await cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name)</label>
+    <input autocomplete="off" asp-for="Link3" class="form-control input-width" />
+    <span asp-validation-for="Link3" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="ProofLink">Proof Link</label>
+    <input autocomplete="off" asp-for="ProofLink" class="form-control input-width" />
+    <span asp-validation-for="ProofLink" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="VideoLink">Video Link</label>
+    <input autocomplete="off" asp-for="VideoLink" class="form-control input-width" />
+    <span asp-validation-for="VideoLink" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Contact">Contact</label>
+    <input autocomplete="off" asp-for="Contact" class="form-control input-width" />
+    <span asp-validation-for="Contact" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Processor">Payment Processor</label>
+    <select asp-for="Processor"
+            class="form-control select-fit"
+            asp-items="ViewBag.ProcessorOptions">
+    </select>
+    <span asp-validation-for="Processor" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Location">Location</label>
+    <input autocomplete="off" asp-for="Location" class="form-control input-width" />
+    <span asp-validation-for="Location" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="CountryCode" class="control-label"></label>
+    <select asp-for="CountryCode" asp-items="ViewBag.CountryCode" class="form-control select-fit"></select>
+    <span asp-validation-for="CountryCode" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Note">Note</label>
+    <textarea asp-for="Note" class="form-control input-width"></textarea>
+    <span asp-validation-for="Note" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label>Founded Date (YYYY MM DD)</label>
+
+    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+        <input asp-for="FoundedYear"
+               class="form-control"
+               style="width:110px;"
+               autocomplete="off"
+               inputmode="numeric"
+               pattern="[0-9]*"
+               maxlength="4"
+               placeholder="YYYY" />
+
+        <input asp-for="FoundedMonth"
+               class="form-control"
+               style="width:90px;"
+               autocomplete="off"
+               inputmode="numeric"
+               pattern="[0-9]*"
+               maxlength="2"
+               placeholder="MM" />
+
+        <input asp-for="FoundedDay"
+               class="form-control"
+               style="width:90px;"
+               autocomplete="off"
+               inputmode="numeric"
+               pattern="[0-9]*"
+               maxlength="2"
+               placeholder="DD" />
+    </div>
+
+    <span class="text-danger">
+        @Html.ValidationMessage(nameof(Model.FoundedYear))
+    </span>
+</div>
+
+
+<div class="form-group">
+    <label asp-for="PgpKey">PGP Key</label>
+    <textarea class="input-width" asp-for="PgpKey"></textarea>
+</div>
+
+@{
+    var allTags = ViewBag.AllTags as IEnumerable<dynamic>;
+}
+
+@if (allTags != null && allTags.Any())
+{
+    <h4 style="margin-bottom:8px;">Tags</h4>
+
+    <div class="tag-grid">
+        @foreach (var t in allTags)
+        {
+            var id = (int)t.TagId;
+
+            // ✅ support BOTH flows:
+            // - existing listing edit (Model.SelectedTagIds)
+            // - submission review page (ViewBag.SelectedTagIds is a HashSet<int>)
+            var selectedSet = ViewBag.SelectedTagIds as HashSet<int>;
+            var isChecked =
+            (selectedSet != null && selectedSet.Contains(id)) ||
+            (Model.SelectedTagIds != null && Model.SelectedTagIds.Contains(id));
+
+            <label class="tag-chip">
+                <input type="checkbox"
+                       name="SelectedTagIds"
+                       value="@id"
+                       @(isChecked ? "checked" : "") />
+                <span>@t.Name</span>
+            </label>
+        }
+    </div>
+}
+
+<div class="form-group">
+    <label asp-for="Tags">Suggested Tags (if choice not provided) <i>comma-separated</i></label>
+    <input maxlength="100" asp-for="Tags" class="form-control input-width" />
+    <span asp-validation-for="Tags" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="SuggestedSubCategory">Suggested Category (if choice not provided)</label>
+    <input autocomplete="off" asp-for="SuggestedSubCategory" class="form-control input-width" />
+    <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
+</div>
+
+<h4>Related Links</h4>
+<p class="text-muted">Forum posts, docs, reviews, etc. (not Tor/I2P links)</p>
+
+<!-- ✅ make sure these bind + post back correctly -->
+<div class="form-group">
+    <label asp-for="RelatedLink1"></label>
+    <input autocomplete="off" asp-for="RelatedLink1" class="form-control input-width" />
+    <span asp-validation-for="RelatedLink1" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="RelatedLink2"></label>
+    <input autocomplete="off" asp-for="RelatedLink2" class="form-control input-width" />
+    <span asp-validation-for="RelatedLink2" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="RelatedLink3"></label>
+    <input autocomplete="off" asp-for="RelatedLink3" class="form-control input-width" />
+    <span asp-validation-for="RelatedLink3" class="text-danger"></span>
+</div>
+
+<hr />
+
+<h3>To Reviewer</h3>
+<div class="form-group">
+    <label asp-for="NoteToAdmin">Note To Admin (private)</label>
+    <textarea asp-for="NoteToAdmin" class="form-control input-width"></textarea>
+    <span asp-validation-for="NoteToAdmin" class="text-danger"></span>
+</div>

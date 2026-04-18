@@ -1,0 +1,48 @@
+﻿@model DirectoryManager.Web.Models.ContentSnippet.ContentSnippetEditListModel
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Content Snippets";
+}
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<a href="~/ContentSnippetManagement/create">Create new</a>
+<hr />
+
+@if (Model != null && Model.Items.Count() > 0)
+{
+<div class="table-wrapper">
+<table class="table">
+        <thead>
+            <tr>
+                <th>Key</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var item in Model.Items)
+            {
+                <tr>
+                    <td>
+                        @item.SnippetType
+                    </td>
+                    <td>
+                        <a href="~/ContentSnippetManagement/edit?ContentSnippetId=@item.ContentSnippetId">Edit</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    </div>
+}
+else
+{
+    <i>No content</i>
+}
+}

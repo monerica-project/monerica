@@ -1,0 +1,54 @@
+﻿@model DirectoryManager.Web.Models.Emails.EmailSubscribeModel
+@using DirectoryManager.Web.Constants;
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Join Email Newsletter";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+
+    <hr />
+
+    @if (this.ViewBag.NewsletterSummaryHtml != null)
+    {
+        @Html.Raw(this.ViewBag.NewsletterSummaryHtml)
+    }
+
+    <!-- Validation summary (server-side errors show here) -->
+    <div class="text-danger">
+        @Html.ValidationSummary(excludePropertyErrors: false)
+    </div>
+
+    <form asp-controller="EmailSubscription" asp-action="Subscribe" method="post">
+        @Html.AntiForgeryToken()
+
+        <p>Email:</p>
+        <input name="Email"
+               type="email"
+               autocomplete="off"
+               id="inlineFormInput"
+               placeholder="yourname@email.com"
+               class="form-control input-width"
+               value="@(Model?.Email ?? string.Empty)" />
+        <div class="text-danger" style="margin-top:4px;">
+            @Html.ValidationMessage("Email")
+        </div>
+
+        <br />
+
+        <div>
+            <!-- Shared, no-JS CAPTCHA block (context = "newsletter") -->
+            @await Html.PartialAsync("_CaptchaBlock", "newsletter")
+            <div class="text-danger" style="margin-top:4px;">
+                @Html.ValidationMessage("Captcha")
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary ui-submit btn-cta">Subscribe</button>
+    </form>
+}
