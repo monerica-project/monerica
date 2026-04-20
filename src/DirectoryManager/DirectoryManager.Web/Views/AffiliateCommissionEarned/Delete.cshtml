@@ -1,0 +1,44 @@
+﻿@model DirectoryManager.Data.Models.AffiliateCommissionEarned
+@{
+    ViewData["Title"] = "Delete Affiliate Commission";
+    Layout = "_CenteredLayout";
+}
+
+ @section PageContent {
+
+<h1>Delete Affiliate Commission</h1>
+    @await Html.PartialAsync("_AdminMenu")
+<p class="text-danger"><strong>Are you sure you want to delete this commission?</strong></p>
+
+<dl>
+    <dt>Date</dt>
+    <dd>@Model.CommissionDate.ToString("yyyy-MM-dd HH:mm") UTC</dd>
+
+    <dt>Directory Entry</dt>
+    <dd>@(Model.DirectoryEntry?.Name ?? $"#{Model.DirectoryEntryId}")</dd>
+
+    <dt>USD Value</dt>
+    <dd>@Model.UsdValue.ToString("C")</dd>
+
+    <dt>Payment</dt>
+    <dd>@Model.PaymentCurrencyAmount.ToString("0.########") @Model.PaymentCurrency</dd>
+
+    @if (!string.IsNullOrWhiteSpace(Model.TransactionId))
+    {
+        <dt>Transaction ID</dt>
+        <dd><code>@Model.TransactionId</code></dd>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(Model.Note))
+    {
+        <dt>Note</dt>
+        <dd>@Model.Note</dd>
+    }
+</dl>
+
+<form asp-action="DeleteConfirmed" asp-route-id="@Model.AffiliateCommissionEarnedId" method="post">
+    @Html.AntiForgeryToken()
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>
+}

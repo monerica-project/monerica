@@ -1,0 +1,66 @@
+﻿@model DirectoryManager.Web.Models.AffiliateCommissionPaid.AffiliateCommissionEarnedTotalsViewModel
+@{
+    ViewData["Title"] = "Commission Totals by Directory Entry";
+    Layout = "_CenteredLayout";
+}
+
+ @section PageContent {
+<h1>Commission Totals by Directory Entry</h1>
+    @await Html.PartialAsync("_AdminMenu")
+<p>
+    <a asp-action="Index">&laquo; Back to list</a>
+</p>
+
+<form method="get" asp-action="Totals">
+    <fieldset>
+        <legend>Date range (optional)</legend>
+
+        <label>Start:</label>
+        <input type="date" name="startDate"
+               value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
+
+        <label>End:</label>
+        <input type="date" name="endDate"
+               value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
+
+        <button type="submit" class="btn btn-primary">Apply</button>
+        <a asp-action="Totals" class="btn btn-secondary">Reset</a>
+    </fieldset>
+</form>
+
+<p><strong>Grand total USD:</strong> @Model.GrandTotalUsd.ToString("C")</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Directory Entry</th>
+            <th style="text-align:right;">Total USD</th>
+            <th style="text-align:right;"># Commissions</th>
+            <th>First</th>
+            <th>Last</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (!Model.Totals.Any())
+        {
+            <tr>
+                <td colspan="6"><em>No commissions in range.</em></td>
+            </tr>
+        }
+        @foreach (var t in Model.Totals)
+        {
+            <tr>
+                <td>@t.DirectoryEntryName</td>
+                <td style="text-align:right;">@t.TotalUsdValue.ToString("C")</td>
+                <td style="text-align:right;">@t.CommissionCount</td>
+                <td>@(t.FirstCommissionDate?.ToString("yyyy-MM-dd"))</td>
+                <td>@(t.LastCommissionDate?.ToString("yyyy-MM-dd"))</td>
+                <td>
+                    <a asp-action="Index" asp-route-directoryEntryId="@t.DirectoryEntryId">View &raquo;</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+}

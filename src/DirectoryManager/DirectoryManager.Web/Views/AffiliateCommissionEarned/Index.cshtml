@@ -1,0 +1,132 @@
+﻿@model DirectoryManager.Web.Models.AffiliateCommissionPaid.AffiliateCommissionEarnedListViewModel
+@{
+    ViewData["Title"] = "Affiliate Commissions Earned";
+    Layout = "_CenteredLayout";
+}
+
+ @section PageContent {
+
+<h1>Affiliate Commissions Earned</h1>
+    @await Html.PartialAsync("_AdminMenu")
+@if (TempData["Message"] != null)
+{
+    <p class="text-success"><strong>@TempData["Message"]</strong></p>
+}
+
+<p>
+    <a asp-action="Create" class="btn btn-primary">+ New Commission</a>
+    <a asp-action="Totals" class="btn btn-secondary">Totals by Entry</a>
+</p>
+
+<form method="get" asp-action="Index">
+    <fieldset>
+        <legend>Filter</legend>
+
+        <label>Directory Entry:</label>
+        <select name="directoryEntryId" asp-items="Model.DirectoryEntries">
+            <option value="">— All —</option>
+        </select>
+
+        <label>Start:</label>
+        <input type="date" name="startDate"
+               value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
+
+        <label>End:</label>
+        <input type="date" name="endDate"
+               value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
+
+        <label>Page size:</label>
+        <input type="number" name="pageSize" value="@Model.PageSize" min="1" max="200" style="width:6em;" />
+
+        <button type="submit" class="btn btn-primary">Apply</button>
+        <a asp-action="Index" class="btn btn-secondary">Reset</a>
+    </fieldset>
+</form>
+
+<p>
+    <strong>Total rows:</strong> @Model.TotalCount
+    &nbsp;|&nbsp;
+    <strong>Total USD:</strong> @Model.TotalUsdValue.ToString("C")
+</p>
+
+<table class="table">
+    <thead>
+        <tr>
+            <th>Date (UTC)</th>
+            <th>Directory Entry</th>
+            <th style="text-align:right;">USD</th>
+            <th>Currency</th>
+            <th style="text-align:right;">Amount</th>
+            <th>Transaction ID</th>
+            <th>Note</th>
+            <th></th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (!Model.Items.Any())
+        {
+            <tr>
+                <td colspan="8"><em>No commissions recorded.</em></td>
+            </tr>
+        }
+        @foreach (var c in Model.Items)
+        {
+            <tr>
+                <td>@c.CommissionDate.ToString("yyyy-MM-dd HH:mm")</td>
+                <td>@(c.DirectoryEntry?.Name ?? $"#{c.DirectoryEntryId}")</td>
+                <td style="text-align:right;">@c.UsdValue.ToString("C")</td>
+                <td>@c.PaymentCurrency</td>
+                <td style="text-align:right;">@c.PaymentCurrencyAmount.ToString("0.########")</td>
+                <td>
+                    @if (!string.IsNullOrWhiteSpace(c.TransactionId))
+                    {
+                        <code>@c.TransactionId</code>
+                    }
+                </td>
+                <td>@c.Note</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@c.AffiliateCommissionEarnedId">Edit</a>
+                    |
+                    <a asp-action="Delete" asp-route-id="@c.AffiliateCommissionEarnedId">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (Model.TotalPages > 1)
+{
+    <nav>
+        <p>
+            Page @Model.Page of @Model.TotalPages
+            &nbsp;
+
+            @if (Model.HasPrevious)
+            {
+                <a asp-action="Index"
+                   asp-route-page="@(Model.Page - 1)"
+                   asp-route-pageSize="@Model.PageSize"
+                   asp-route-directoryEntryId="@Model.DirectoryEntryId"
+                   asp-route-startDate="@(Model.StartDate?.ToString("yyyy-MM-dd"))"
+                   asp-route-endDate="@(Model.EndDate?.ToString("yyyy-MM-dd"))">
+                    &laquo; Previous
+                </a>
+            }
+
+            &nbsp;
+
+            @if (Model.HasNext)
+            {
+                <a asp-action="Index"
+                   asp-route-page="@(Model.Page + 1)"
+                   asp-route-pageSize="@Model.PageSize"
+                   asp-route-directoryEntryId="@Model.DirectoryEntryId"
+                   asp-route-startDate="@(Model.StartDate?.ToString("yyyy-MM-dd"))"
+                   asp-route-endDate="@(Model.EndDate?.ToString("yyyy-MM-dd"))">
+                    Next &raquo;
+                </a>
+            }
+        </p>
+    </nav>
+}
+}

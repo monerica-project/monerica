@@ -61,6 +61,7 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IProcessorRepository, ProcessorRepository>();
 
             services.AddScoped<IDirectoryEntryReviewRaffleEntryRepository, DirectoryEntryReviewRaffleEntryRepository>();
+            services.AddScoped<IAffiliateCommissionEarnedRepository, AffiliateCommissionEarnedRepository>();
 
             return services;
         }

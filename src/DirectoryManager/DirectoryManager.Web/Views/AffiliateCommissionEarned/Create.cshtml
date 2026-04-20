@@ -1,0 +1,23 @@
+﻿@model DirectoryManager.Web.Models.AffiliateCommissionPaid.AffiliateCommissionEarnedEditViewModel
+@{
+    ViewData["Title"] = "New Affiliate Commission";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>New Affiliate Commission</h1>
+    @await Html.PartialAsync("_AdminMenu")
+
+    <p><a asp-action="Index">&laquo; Back to list</a></p>
+
+    <form asp-action="Create" method="post">
+        <div asp-validation-summary="All" class="text-danger"></div>
+
+        <partial name="_AffiliateCommissionEarnedFormFields" model="Model" />
+
+        <p>
+            <button type="submit" class="btn btn-primary">Create</button>
+            <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+        </p>
+    </form>
+}

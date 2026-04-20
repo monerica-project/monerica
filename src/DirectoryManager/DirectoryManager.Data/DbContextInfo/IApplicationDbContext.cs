@@ -42,6 +42,7 @@ namespace DirectoryManager.Data.DbContextInfo
         DbSet<DirectoryEntryReviewComment> DirectoryEntryReviewComments { get; }
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
+        public DbSet<AffiliateCommissionEarned> AffiliateCommissionsEarned { get; set; }
         public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
         public DbSet<AdditionalLink> AdditionalLinks { get; set; }
         public DbSet<ReviewTag> ReviewTags { get; set; }

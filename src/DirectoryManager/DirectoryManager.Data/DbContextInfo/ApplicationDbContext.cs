@@ -55,8 +55,8 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<ReviewTag> ReviewTags { get; set; }
         public DbSet<DirectoryEntryReviewTag> DirectoryEntryReviewTags { get; set; }
         public DbSet<DirectoryEntryReviewRaffleEntry> DirectoryEntryReviewRaffleEntries { get; set; }
-
         public DbSet<Processor> Processors { get; set; }
+        public DbSet<AffiliateCommissionEarned> AffiliateCommissionsEarned { get; set; }
 
         public override int SaveChanges()
         {
@@ -80,6 +80,7 @@ namespace DirectoryManager.Data.DbContextInfo
             ConfigureIndexes(builder);                // ✅ ALL HasIndex() calls
             ConfigureKeysAndRelationships(builder);   // ✅ keys + relationships only (no HasIndex)
             ConfigurePropertyMappings(builder);       // ✅ column types, max lengths, table names, etc. (no HasIndex)
+            ConfigureAffiliateCommissionEarnedIndexes(builder);
         }
 
         // =========================================================
@@ -512,6 +513,35 @@ namespace DirectoryManager.Data.DbContextInfo
                    .WithMany()
                    .HasForeignKey(x => x.DirectoryEntryReviewId)
                    .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<AffiliateCommissionEarned>(ace =>
+            {
+                ace.HasOne(x => x.DirectoryEntry)
+                   .WithMany()
+                   .HasForeignKey(x => x.DirectoryEntryId)
+                   .OnDelete(DeleteBehavior.Restrict);
+            });
+        }
+
+        private static void ConfigureAffiliateCommissionEarnedIndexes(ModelBuilder builder)
+        {
+            builder.Entity<AffiliateCommissionEarned>(e =>
+            {
+                // Fast lookup of commissions per directory entry, ordered by date (for paging / totals views)
+                e.HasIndex(x => new { x.DirectoryEntryId, x.CommissionDate })
+                 .IsDescending(false, true)
+                 .HasDatabaseName("IX_AffiliateCommissionEarned_Entry_Date");
+
+                // Fast date-range reporting across all entries
+                e.HasIndex(x => x.CommissionDate)
+                 .IsDescending(true)
+                 .HasDatabaseName("IX_AffiliateCommissionEarned_Date");
+
+                // Optional: speed up transaction id lookups (dedup checks, etc.)
+                e.HasIndex(x => x.TransactionId)
+                 .HasDatabaseName("IX_AffiliateCommissionEarned_TransactionId")
+                 .HasFilter("[TransactionId] IS NOT NULL");
+            });
         }
 
         // =========================================================
