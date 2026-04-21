@@ -32,13 +32,20 @@ var torPort = int.TryParse(config[TorProxyPortKey], out var p) ? p : 9050;
 var torExePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tor", "tor.exe");
 bool torAvailable = await TorWebPageChecker.TryStartTorAsync(torExePath, torHost, torPort);
 
+// ── Diagnostic logger ─────────────────────────────────────────────────────
+var logDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "logs");
+var logPath = Path.Combine(logDir, "sitecheck-diag.log");
+var diagLogger = new DiagnosticLogger(logPath);
+Console.WriteLine($"Diagnostic log: {logPath}");
+
 // Register services
 var serviceProvider = new ServiceCollection()
     .AddDbContext<ApplicationDbContext>(options =>
         options.UseSqlServer(config.GetConnectionString(StringConstants.DefaultConnection)))
     .AddDbRepositories()
-    .AddSingleton(new WebPageChecker(userAgentHeader))
-    .AddSingleton(new TorWebPageChecker(userAgentHeader, torHost, torPort))
+    .AddSingleton(diagLogger)
+    .AddSingleton(new WebPageChecker(userAgentHeader, timeout: null, logger: diagLogger))
+    .AddSingleton(new TorWebPageChecker(userAgentHeader, torHost, torPort, timeout: null, logger: diagLogger))
     .BuildServiceProvider();
 
 var entriesRepo = serviceProvider.GetRequiredService<IDirectoryEntryRepository>();
@@ -67,6 +74,8 @@ await Task.WhenAll(tasks);
 
 Console.WriteLine("-----------------");
 Console.WriteLine("Done.");
+
+diagLogger.Dispose();
 
 // ── Helpers ───────────────────────────────────────────────────────────────
 
