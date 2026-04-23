@@ -517,5 +517,25 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     .ThenInclude(rt => rt.ReviewTag)
                 .FirstOrDefaultAsync(r => r.DirectoryEntryReviewId == id, ct);
         }
+
+        public async Task<bool> ExistsByBodyAsync(string body, int? excludeReviewId = null, CancellationToken ct = default)
+        {
+            if (string.IsNullOrWhiteSpace(body))
+            {
+                return false;
+            }
+
+            var normalized = body.Trim();
+
+            var q = this.Set.AsNoTracking()
+                .Where(r => r.Body != null && r.Body.Trim() == normalized);
+
+            if (excludeReviewId.HasValue)
+            {
+                q = q.Where(r => r.DirectoryEntryReviewId != excludeReviewId.Value);
+            }
+
+            return await q.AnyAsync(ct);
+        }
     }
 }

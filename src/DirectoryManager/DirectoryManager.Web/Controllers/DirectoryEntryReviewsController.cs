@@ -289,6 +289,23 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("Compose", input);
             }
 
+            // 🚫 Duplicate body guard — blocks the same review text from being posted twice,
+            // even by the same author (same PGP fingerprint).
+            var normalizedBody = (input.Body ?? string.Empty).Trim();
+            if (await this.directoryEntryReviewRepository.ExistsByBodyAsync(normalizedBody, null, ct))
+            {
+                SubmittedFlows.TryRemove(flowId, out _);
+                this.ModelState.AddModelError(
+                    nameof(input.Body),
+                    "A review with this exact message has already been submitted. Please write something original.");
+
+                var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
+                this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
+                return this.View("Compose", input);
+            }
+
             var mod = await this.moderation.EvaluateReviewAsync(input.Body, ct);
 
             var entity = new DirectoryEntryReview
@@ -399,6 +416,15 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!this.ModelState.IsValid)
             {
+                return this.View(input);
+            }
+
+            var normalizedBody = (input.Body ?? string.Empty).Trim();
+            if (await this.directoryEntryReviewRepository.ExistsByBodyAsync(normalizedBody, null, ct))
+            {
+                this.ModelState.AddModelError(
+                    nameof(input.Body),
+                    "A review with this exact message already exists.");
                 return this.View(input);
             }
 

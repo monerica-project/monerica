@@ -52,5 +52,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         Task<Dictionary<string, int>> GetApprovedReviewCountsByAuthorAsync(CancellationToken ct = default);
         Task EnsureTagAsync(int directoryEntryReviewId, int reviewTagId, CancellationToken ct);
+        Task<bool> ExistsByBodyAsync(string body, int? excludeReviewId = null, CancellationToken ct = default);
     }
 }
