@@ -20,6 +20,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly SignInManager<ApplicationUser> signInManager;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IAffiliateCommissionRepository affiliateCommissionRepository;
+        public readonly ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository;
 
         public AccountController(
             SignInManager<ApplicationUser> signInManager,
@@ -31,6 +32,7 @@ namespace DirectoryManager.Web.Controllers
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IAffiliateCommissionRepository affiliateCommissionRepository,
+            ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository,
             IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
@@ -41,6 +43,7 @@ namespace DirectoryManager.Web.Controllers
             this.directoryEntryReviewRepository = directoryEntryReviewRepository;
             this.directoryEntryReviewCommentRepository = directoryEntryReviewCommentRepository;
             this.affiliateCommissionRepository = affiliateCommissionRepository;
+            this.sponsoredListingInvoiceRepository = sponsoredListingInvoiceRepository;
         }
 
         [HttpGet]
@@ -100,6 +103,8 @@ namespace DirectoryManager.Web.Controllers
 
             // ✅ keep your existing name, but now includes BOTH
             this.ViewBag.TotalPendingReviews = totalPendingReviewItems;
+
+            this.ViewBag.LastInvoicePaidUtc = this.sponsoredListingInvoiceRepository.GetLastPaidInvoiceUpdateDate();
 
             // ✅ optional breakdown (use if you want)
             this.ViewBag.TotalPendingReviewReviews = pendingReviews;

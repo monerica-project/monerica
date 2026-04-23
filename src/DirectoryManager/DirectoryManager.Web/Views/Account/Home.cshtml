@@ -6,6 +6,36 @@
     Layout = "_CenteredLayout";
 }
 
+@functions {
+    // Smallest-unit compact relative time: 45m / 3h / 2d.
+    // Only one unit is shown, whichever is the current "bucket".
+    static string FormatAgoCompact(DateTime? utc)
+    {
+        if (!utc.HasValue)
+        {
+            return string.Empty;
+        }
+
+        var diff = DateTime.UtcNow - utc.Value;
+        if (diff.TotalSeconds < 60)
+        {
+            return "just now";
+        }
+
+        if (diff.TotalMinutes < 60)
+        {
+            return $"{(int)diff.TotalMinutes}m ago";
+        }
+
+        if (diff.TotalHours < 24)
+        {
+            return $"{(int)diff.TotalHours}h ago";
+        }
+
+        return $"{(int)diff.TotalDays}d ago";
+    }
+}
+
 @section PageContent {
 
     <h1>@ViewData[StringConstants.TitleHeader]</h1>
@@ -16,211 +46,174 @@
 
     <hr />
 
-    <h3>User Submission</h3>
+    @* =============================================================
+       DAILY TASKS — pinned at top.
+       ============================================================= *@
+    <h3>Daily Tasks</h3>
     <ul>
         <li>
+            <b>Moderation:</b>
             <a href="~/admin/reviews">Reviews (@ViewBag.TotalPendingReviews)</a>
-        </li>
-        <li>
+            &middot;
             <a href="~/submission/index">Submissions (@ViewBag.TotalPendingSubmissions)</a>
         </li>
-
         <li>
-            <a href="~/review-tags">Review Tags</a>
+            <b>Invoicing:</b>
+            <a href="~/sponsoredlistinginvoice">Sponsors</a>
+            @if (ViewBag.LastInvoicePaidUtc is DateTime lastPaid)
+            {
+                <small style="color:#888;">&nbsp;(last paid @FormatAgoCompact(lastPaid))</small>
+            }
+        </li>
+        <li>
+            <b>Search logs:</b>
+            <a href="~/searchlog/report">Search logs report</a>
         </li>
     </ul>
 
+    <hr />
+
+    @* ------------------- Content ------------------- *@
+    <h3>Content</h3>
     <ul>
         <li>
-            Affiliates
+            Reviews
             <ul>
-                <li>
-                    <a href="~/admin/affiliates">List all</a>
-                </li>
-                <li>
-                    <a href="~/admin/affiliates/commissions">Commissions (@(ViewBag.PendingAffiliateCommissions ?? 0))</a>
-                </li>
+                <li><a href="~/admin/reviews">Pending reviews (@ViewBag.TotalPendingReviews)</a></li>
+                <li><a href="~/directory-entry-reviews">All reviews</a></li>
+                <li><a href="~/review-tags">Review tags</a></li>
+            </ul>
+        </li>
+        <li>
+            Submissions
+            <ul>
+                <li><a href="~/submission/index">Pending submissions (@ViewBag.TotalPendingSubmissions)</a></li>
+            </ul>
+        </li>
+        <li>
+            Raffles
+            <ul>
+                <li><a href="~/raffles">All raffles</a></li>
+                <li><a href="~/raffles/create">New raffle</a></li>
             </ul>
         </li>
     </ul>
 
-    <h3>Affiliate Commissions Earned</h3>
+    @* ------------------- Sponsored Listings ------------------- *@
+    <h3>Sponsored Listings</h3>
     <ul>
         <li>
-            <a href="~/affiliatecommissionearned">Commissions (all)</a>
+            <a href="~/sponsoredlistinginvoice">Invoices</a>
+            @if (ViewBag.LastInvoicePaidUtc is DateTime lastPaid2)
+            {
+                <small style="color:#888;">&nbsp;(last paid @FormatAgoCompact(lastPaid2))</small>
+            }
         </li>
-        <li>
-            <a href="~/affiliatecommissionearned/create">New commission</a>
-        </li>
-        <li>
-            <a href="~/affiliatecommissionearned/totals">Totals by directory entry</a>
-        </li>
+        <li><a href="~/sponsoredlisting/list">Active listings</a></li>
+        <li><a href="~/sponsoredlistingoffer/index">Offers</a></li>
+        <li><a href="~/sponsoredlistingnotification/list">Expiry notifications</a></li>
     </ul>
 
+    @* ------------------- Search & Logs ------------------- *@
+    <h3>Search &amp; Logs</h3>
+    <ul>
+        <li><a href="~/searchlog/report">Search logs</a></li>
+        <li><a href="~/admin/blacklist">Search blacklist</a></li>
+        <li><a href="~/TrafficReport/index">Traffic report</a></li>
+    </ul>
+
+    @* ------------------- Listing Management ------------------- *@
     <h3>Listing Management</h3>
     <ul>
         <li>
+            Directory entries
+            <ul>
+                <li><a href="~/directoryentry/index">All entries</a></li>
+                <li><a href="~/directoryentry/create">Create entry</a></li>
+                <li><a href="~/account/edit">Edit from page</a></li>
+                <li><a href="~/directoryentry/report">Active entries report</a></li>
+                <li><a href="~/directoryentry/subcategory-trends">Subcategory report</a></li>
+            </ul>
+        </li>
+        <li>
             Categories
             <ul>
-                <li>
-                    <a href="~/category/create">Create category</a>
-                </li>
-                <li>
-                    <a href="~/category/index">Categories</a>
-                </li>
+                <li><a href="~/category/index">All categories</a></li>
+                <li><a href="~/category/create">Create category</a></li>
             </ul>
         </li>
-
         <li>
-            Sub Categories
+            Subcategories
             <ul>
-                <li>
-                    <a href="~/subcategory/create">Create subcategory</a>
-                </li>
-                <li>
-                    <a href="~/subcategory/index">Sub categories</a>
-                </li>
+                <li><a href="~/subcategory/index">All subcategories</a></li>
+                <li><a href="~/subcategory/create">Create subcategory</a></li>
             </ul>
         </li>
-
         <li>
             Tags
             <ul>
-                <li>
-                    <a href="~/manage/tags/create">Create tag</a>
-                </li>
-                <li>
-                    <a href="~/manage/tags">Manage tags (all)</a>
-                </li>
+                <li><a href="~/manage/tags">All tags</a></li>
+                <li><a href="~/manage/tags/create">Create tag</a></li>
             </ul>
         </li>
-
         <li>
-            Directory Entries
+            Featured
             <ul>
-                <li>
-                    <a href="~/directoryentry/create">Create directory entry</a>
-                </li>
-
-                <li>
-                    <a href="~/directoryentry/index">Directory entries (all)</a>
-                </li>
-
-                <li>
-                    <a href="~/account/edit">Edit from page</a>
-                </li>
-
-                <li>
-                    Reports
-                    <ul>
-                        <li>
-                            <a href="~/directoryentry/report">Active entries report</a>
-                        </li>
-                        <li>
-                            <a href="~/directoryentry/subcategory-trends">Subcategory report</a>
-                        </li>
-                    </ul>
-                </li>
+                <li><a href="~/directoryentryselection/index">Directory entry selections</a></li>
             </ul>
         </li>
+    </ul>
 
+    @* ------------------- Affiliates ------------------- *@
+    <h3>Affiliates</h3>
+    <ul>
         <li>
-            Search
+            Affiliates program
             <ul>
-                <li>
-                    <a href="~/admin/blacklist">Search blacklist</a>
-                </li>
-                <li>
-                    Reports
-                    <ul>
-                        <li>
-                            <a href="~/searchlog/report">Search logs</a>
-                        </li>
-                    </ul>
-                </li>
+                <li><a href="~/admin/affiliates">All affiliates</a></li>
+                <li><a href="~/admin/affiliates/commissions">Commissions (@(ViewBag.PendingAffiliateCommissions ?? 0))</a></li>
+            </ul>
+        </li>
+        <li>
+            Commissions earned
+            <ul>
+                <li><a href="~/affiliatecommissionearned">All commissions</a></li>
+                <li><a href="~/affiliatecommissionearned/create">New commission</a></li>
+                <li><a href="~/affiliatecommissionearned/totals">Totals by directory entry</a></li>
             </ul>
         </li>
     </ul>
 
-    <h3>Email Management</h3>
+    @* ------------------- Email ------------------- *@
+    <h3>Email</h3>
     <ul>
+        <li><a href="~/account/emailcampaignmanagement">Campaigns</a></li>
+        <li><a href="~/account/emailmessagemanagement">Messages</a></li>
+        <li><a href="~/account/emailsubscriptionmanagement">Subscriptions</a></li>
+        <li><a href="~/account/emailsubscriptionmanagement/upload">Upload subscriptions</a></li>
+        <li><a href="~/email/sentrecords">Send records</a></li>
+        <li><a href="~/email/testemail">Test email</a></li>
+    </ul>
+
+    @* ------------------- Site & Infra ------------------- *@
+    <h3>Site &amp; Infrastructure</h3>
+    <ul>
+        <li><a href="~/contentsnippetmanagement">Content snippets</a></li>
+        <li><a href="~/sitefilesmanagement">Site file management</a></li>
+        <li><a href="~/blockedips/index">Blocked IPs</a></li>
         <li>
-            <a href="~/account/emailcampaignmanagement">Email campaigns</a>
-        </li>
-        <li>
-            <a href="~/account/emailmessagemanagement">Email messages</a>
-        </li>
-        <li>
-            <a href="~/account/emailsubscriptionmanagement">Email subscriptions</a>
-        </li>
-        <li>
-            <a href="~/email/sentrecords">Send records</a>
-        </li>
-        <li>
-            <a href="~/sponsoredlistingnotification/list">Sponsored listing notification</a>
-        </li>
-        <li>
-            <a href="~/email/testemail">Test email</a>
-        </li>
-        <li>
-            <a href="~/account/emailsubscriptionmanagement/upload">Upload</a>
+            Payment processors
+            <ul>
+                <li><a href="~/processors">Processors (all)</a></li>
+                <li><a href="~/processorconfig/index">Processor configs</a></li>
+            </ul>
         </li>
     </ul>
 
-    <h3>Processors</h3>
+    @* ------------------- Account ------------------- *@
+    <h3>Account</h3>
     <ul>
-        <li>
-            <a href="~/processors">Processors (all)</a>
-        </li>
-        <li>
-            <a href="~/processors">Processors (create)</a>
-        </li>
-    </ul>
-
-    <h3>Site Management</h3>
-    <ul>
-        <li>
-            <a href="~/blockedips/index">Blocked IP management</a>
-        </li>
-        <li>
-            <a href="~/contentsnippetmanagement">Content snippets</a>
-        </li>
-        <li>
-            <a href="~/directoryentryselection/index">Directory entry selections <i>(featured listings)</i></a>
-        </li>
-        <li>
-            <a href="~/processorconfig/index">Processor configs</a>
-        </li>
-        <li>
-            <a href="~/sitefilesmanagement">Site file management</a>
-        </li>
-    </ul>
-
-    <h3>Sponsored Listing Management</h3>
-    <ul>
-        <li>
-            <a href="~/sponsoredlistingoffer/index">Sponsored listing offers</a>
-        </li>
-        <li>
-            <a href="~/sponsoredlisting/list">Sponsored listings</a>
-        </li>
-        <li>
-            <a href="~/sponsoredlistinginvoice">Sponsored listings invoices</a>
-        </li>
-    </ul>
-
-    <h3>Site Statistics</h3>
-    <ul>
-        <li>
-            <a href="~/TrafficReport/index">Traffic report</a>
-        </li>
-    </ul>
-
-    <h3>Account Management</h3>
-    <ul>
-        <li>
-            <a href="~/account/changepassword">Change password</a>
-        </li>
+        <li><a href="~/account/changepassword">Change password</a></li>
     </ul>
 
     <hr />

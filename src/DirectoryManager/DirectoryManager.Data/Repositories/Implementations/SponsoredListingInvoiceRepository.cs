@@ -172,15 +172,28 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public DateTime? GetLastPaidInvoiceUpdateDate()
         {
-            var latestCreateDate = this.context.SponsoredListingInvoices
-                                   .Where(e => e.PaymentStatus == Enums.PaymentStatus.Paid)
-                                   .Max(e => (DateTime?)e.CreateDate);
+            var paid = this.context.SponsoredListingInvoices
+                .Where(e => e.PaymentStatus == Enums.PaymentStatus.Paid);
 
-            var latestUpdateDate = this.context.SponsoredListingInvoices
-                                   .Where(e => e.PaymentStatus == Enums.PaymentStatus.Paid)
-                                   .Max(e => e.UpdateDate) ?? DateTime.MinValue;
+            var latestCreate = paid.Max(e => (DateTime?)e.CreateDate);
+            var latestUpdate = paid.Max(e => e.UpdateDate);
 
-            return (DateTime)(latestCreateDate > latestUpdateDate ? latestCreateDate : latestUpdateDate);
+            if (latestCreate is null && latestUpdate is null)
+            {
+                return null;
+            }
+
+            if (latestCreate is null)
+            {
+                return latestUpdate;
+            }
+
+            if (latestUpdate is null)
+            {
+                return latestCreate;
+            }
+
+            return latestCreate > latestUpdate ? latestCreate : latestUpdate;
         }
 
         public async Task<(IEnumerable<SponsoredListingInvoice> Invoices, int TotalCount)>
