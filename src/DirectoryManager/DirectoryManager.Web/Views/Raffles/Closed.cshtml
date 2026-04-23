@@ -1,0 +1,22 @@
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Raffle Closed";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    <p>
+        Thanks for leaving a review! There's no raffle currently running,
+        so there's nothing to enter right now.
+    </p>
+
+    <p>
+        Your review has been saved. Check back later for the next raffle —
+        future verified reviews will be eligible to enter.
+    </p>
+
+    @await Html.PartialAsync("_BackToHome")
+}

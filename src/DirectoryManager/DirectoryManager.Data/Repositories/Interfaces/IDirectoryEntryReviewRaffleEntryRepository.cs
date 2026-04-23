@@ -36,5 +36,13 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task DeleteAsync(int id, CancellationToken ct = default);
 
         Task SetStatusAsync(int id, RaffleEntryStatus status, CancellationToken ct = default);
+
+        Task<List<DirectoryEntryReviewRaffleEntry>> ListByRaffleAsync(
+            int raffleId,
+            int page = 1,
+            int pageSize = 50,
+            CancellationToken ct = default);
+
+        Task<int> CountByRaffleAsync(int raffleId, CancellationToken ct = default);
     }
 }

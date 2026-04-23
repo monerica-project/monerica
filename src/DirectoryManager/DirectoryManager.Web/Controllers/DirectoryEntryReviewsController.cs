@@ -35,6 +35,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IUserContentModerationService moderation;
         private readonly IHttpClientFactory httpClientFactory;
         private readonly IReviewTagRepository reviewTagRepository;
+        private readonly IRaffleRepository raffleRepository;
 
         public DirectoryEntryReviewsController(
             IDirectoryEntryReviewRepository repo,
@@ -46,7 +47,8 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryRepository directoryEntryRepository,
             IUserContentModerationService moderation,
             IHttpClientFactory httpClientFactory,
-            IReviewTagRepository reviewTagRepository)
+            IReviewTagRepository reviewTagRepository,
+            IRaffleRepository raffleRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.directoryEntryReviewRepository = repo;
@@ -57,6 +59,7 @@ namespace DirectoryManager.Web.Controllers
             this.moderation = moderation;
             this.httpClientFactory = httpClientFactory;
             this.reviewTagRepository = reviewTagRepository;
+            this.raffleRepository = raffleRepository;
         }
 
         [HttpGet("begin")]
@@ -326,8 +329,11 @@ namespace DirectoryManager.Web.Controllers
                 this.TempData["ReviewMessage"] = mod.ThankYouMessage;
                 this.cache.Remove(CacheKey(flowId));
 
-                var raffleToken = this.CreateRaffleToken(entity.DirectoryEntryReviewId, flow.PgpFingerprint);
-                return this.RedirectToAction("Enter", "Raffle", new { token = raffleToken });
+                // Only send them to the raffle entry page if there's actually a live raffle.
+                return await this.RedirectToRaffleOrThanksAsync(
+                    entity.DirectoryEntryReviewId,
+                    flow.PgpFingerprint,
+                    ct);
             }
 
             ApplyOrderProof(entity, input.OrderProof);
@@ -374,8 +380,10 @@ namespace DirectoryManager.Web.Controllers
             this.ClearCachedItems();
             this.cache.Remove(CacheKey(flowId));
 
-            var raffleTokenFinal = this.CreateRaffleToken(entity.DirectoryEntryReviewId, flow.PgpFingerprint);
-            return this.RedirectToAction("Enter", "Raffle", new { token = raffleTokenFinal });
+            return await this.RedirectToRaffleOrThanksAsync(
+                entity.DirectoryEntryReviewId,
+                flow.PgpFingerprint,
+                ct);
         }
 
         [HttpGet("thanks")]
@@ -537,6 +545,26 @@ namespace DirectoryManager.Web.Controllers
 
             this.cache.Set(RaffleTokenCacheKey(token), state, state.ExpiresUtc);
             return token;
+        }
+
+        /// <summary>
+        /// If a raffle is currently active (enabled + within its [StartDate, EndDate] window),
+        /// mint a token and send the user to the raffle address-entry page. Otherwise send them
+        /// to the Thanks page so they never see a way to submit a payout address for a closed raffle.
+        /// </summary>
+        private async Task<IActionResult> RedirectToRaffleOrThanksAsync(
+            int reviewId,
+            string fingerprint,
+            CancellationToken ct)
+        {
+            var active = await this.raffleRepository.GetActiveAsync(DateTime.UtcNow, ct);
+            if (active is null)
+            {
+                return this.RedirectToAction(nameof(this.Thanks));
+            }
+
+            var token = this.CreateRaffleToken(reviewId, fingerprint);
+            return this.RedirectToAction("Enter", "Raffle", new { token });
         }
 
         // =========================

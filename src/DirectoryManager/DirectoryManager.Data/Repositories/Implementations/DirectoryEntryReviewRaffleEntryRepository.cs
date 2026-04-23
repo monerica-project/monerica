@@ -51,8 +51,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<List<DirectoryEntryReviewRaffleEntry>> ListAsync(int page = 1, int pageSize = 50, CancellationToken ct = default)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 50;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 50;
+            }
 
             return await this.Set.AsNoTracking()
                 .OrderByDescending(x => x.CreateDate)
@@ -65,8 +72,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<List<DirectoryEntryReviewRaffleEntry>> ListByStatusAsync(
             RaffleEntryStatus status, int page = 1, int pageSize = 50, CancellationToken ct = default)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 50;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 50;
+            }
 
             return await this.Set.AsNoTracking()
                 .Where(x => x.Status == status)
@@ -101,7 +115,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var existing = await this.Set.FindAsync(new object[] { id }, ct);
-            if (existing is null) return;
+            if (existing is null)
+            {
+                return;
+            }
 
             this.Set.Remove(existing);
             await this.context.SaveChangesAsync(ct);
@@ -110,11 +127,45 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task SetStatusAsync(int id, RaffleEntryStatus status, CancellationToken ct = default)
         {
             var entry = await this.Set.FindAsync(new object[] { id }, ct);
-            if (entry is null) return;
+            if (entry is null)
+            {
+                return;
+            }
 
             entry.Status = status;
             entry.UpdateDate = DateTime.UtcNow;
             await this.context.SaveChangesAsync(ct);
         }
+
+
+        public async Task<List<DirectoryEntryReviewRaffleEntry>> ListByRaffleAsync(
+            int raffleId,
+            int page = 1,
+            int pageSize = 50,
+            CancellationToken ct = default)
+        {
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 50;
+            }
+
+            return await this.Set.AsNoTracking()
+                .Include(x => x.DirectoryEntryReview)
+                .Where(x => x.RaffleId == raffleId)
+                .OrderByDescending(x => x.CreateDate)
+                .ThenByDescending(x => x.DirectoryEntryReviewRaffleEntryId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(ct);
+        }
+
+        public Task<int> CountByRaffleAsync(int raffleId, CancellationToken ct = default) =>
+            this.Set.Where(x => x.RaffleId == raffleId).CountAsync(ct);
+
     }
 }

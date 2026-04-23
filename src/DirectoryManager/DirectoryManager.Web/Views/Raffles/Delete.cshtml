@@ -1,0 +1,48 @@
+@model DirectoryManager.Data.Models.Reviews.Raffle
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Delete Raffle";
+    var entryTotal = (int)(ViewBag.EntryTotal ?? 0);
+    Layout = "_CenteredLayout";
+}
+
+
+@section PageContent {
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<hr />
+    @await Html.PartialAsync("_AdminMenu")
+<div class="alert alert-warning">
+    <b>Are you sure you want to delete this raffle?</b>
+    @if (entryTotal > 0)
+    {
+        <div class="mt-2">
+            This raffle has <b>@entryTotal</b> associated entries and cannot be deleted
+            until those entries are reassigned or removed. Consider disabling the raffle instead.
+        </div>
+    }
+</div>
+
+<dl class="row">
+    <dt class="col-sm-3">Name</dt>
+    <dd class="col-sm-9">@Model.Name</dd>
+
+    <dt class="col-sm-3">Start (UTC)</dt>
+    <dd class="col-sm-9">@Model.StartDate.ToString("yyyy-MM-dd HH:mm")</dd>
+
+    <dt class="col-sm-3">End (UTC)</dt>
+    <dd class="col-sm-9">@Model.EndDate.ToString("yyyy-MM-dd HH:mm")</dd>
+
+    <dt class="col-sm-3">Enabled</dt>
+    <dd class="col-sm-9">@(Model.IsEnabled ? "Yes" : "No")</dd>
+
+    <dt class="col-sm-3">Entries</dt>
+    <dd class="col-sm-9">@entryTotal</dd>
+</dl>
+
+<form asp-action="DeleteConfirmed" asp-route-id="@Model.RaffleId" method="post">
+    @Html.AntiForgeryToken()
+    <button type="submit" class="btn btn-danger" @(entryTotal > 0 ? "disabled" : null)>Delete</button>
+    <a asp-action="Details" asp-route-id="@Model.RaffleId" class="btn btn-link">Cancel</a>
+</form>
+}

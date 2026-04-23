@@ -1,0 +1,173 @@
+@model DirectoryManager.Data.Models.Reviews.Raffle
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models.Reviews
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = Model.Name;
+    var entries = (List<DirectoryEntryReviewRaffleEntry>)ViewBag.Entries;
+    var entryTotal = (int)(ViewBag.EntryTotal ?? 0);
+    var page = (int)(ViewBag.Page ?? 1);
+    var pageSize = (int)(ViewBag.PageSize ?? 50);
+    var totalPages = (int)Math.Ceiling(entryTotal / (double)pageSize);
+
+    var nowUtc = DateTime.UtcNow;
+    var live = Model.IsEnabled && Model.StartDate <= nowUtc && Model.EndDate >= nowUtc;
+    var upcoming = Model.IsEnabled && Model.StartDate > nowUtc;
+    var ended = Model.EndDate < nowUtc;
+    Layout = "_CenteredLayout";
+}
+
+
+@section PageContent {
+
+<h1>Raffle: @Model.Name</h1>
+<hr />
+    @await Html.PartialAsync("_AdminMenu")
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<dl class="row">
+    <dt class="col-sm-3">State</dt>
+    <dd class="col-sm-9">
+        @if (!Model.IsEnabled)
+        {
+            <span class="badge bg-secondary">Disabled</span>
+        }
+        else if (live)
+        {
+            <span class="badge bg-success">Active</span>
+        }
+        else if (upcoming)
+        {
+            <span class="badge bg-info">Upcoming</span>
+        }
+        else if (ended)
+        {
+            <span class="badge bg-dark">Ended</span>
+        }
+    </dd>
+
+    <dt class="col-sm-3">Start (UTC)</dt>
+    <dd class="col-sm-9">@Model.StartDate.ToString("yyyy-MM-dd HH:mm")</dd>
+
+    <dt class="col-sm-3">End (UTC)</dt>
+    <dd class="col-sm-9">@Model.EndDate.ToString("yyyy-MM-dd HH:mm")</dd>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Description))
+    {
+        <dt class="col-sm-3">Description</dt>
+        <dd class="col-sm-9">@Model.Description</dd>
+    }
+
+    <dt class="col-sm-3">Total entries</dt>
+    <dd class="col-sm-9"><b>@entryTotal</b></dd>
+</dl>
+
+<p>
+    <a class="btn btn-primary" asp-action="Edit" asp-route-id="@Model.RaffleId">Edit</a>
+    <a class="btn btn-danger" asp-action="Delete" asp-route-id="@Model.RaffleId">Delete</a>
+    <a class="btn btn-link" asp-action="Index">← Back to Raffles</a>
+</p>
+
+<h2>Entries</h2>
+
+@if (entries == null || entries.Count == 0)
+{
+    <p><i>No entries yet.</i></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>Review</th>
+                <th>Fingerprint</th>
+                <th>Crypto</th>
+                <th>Address</th>
+                <th>Status</th>
+                <th>Payment Ref</th>
+                <th>Created (UTC)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var e in entries)
+            {
+                <tr>
+                    <td>@e.DirectoryEntryReviewRaffleEntryId</td>
+                    <td>
+                        <a asp-controller="DirectoryEntryReviews"
+                           asp-action="Details"
+                           asp-route-id="@e.DirectoryEntryReviewId">
+                            #@e.DirectoryEntryReviewId
+                        </a>
+                    </td>
+                    <td><code style="font-size:.8em;">@(e.DirectoryEntryReview?.AuthorFingerprint ?? "—")</code></td>
+                    <td>@e.CryptoType</td>
+                    <td style="max-width:260px;overflow-wrap:anywhere;">
+                        <code style="font-size:.8em;">@e.CryptoAddress</code>
+                    </td>
+                    <td>
+                        @switch (e.Status)
+                        {
+                            case RaffleEntryStatus.Pending:
+                                <span class="badge bg-warning text-dark">Pending</span>
+                                break;
+                            case RaffleEntryStatus.Eligible:
+                                <span class="badge bg-primary">Eligible</span>
+                                break;
+                            case RaffleEntryStatus.Paid:
+                                <span class="badge bg-success">Paid</span>
+                                break;
+                            case RaffleEntryStatus.Disqualified:
+                                <span class="badge bg-danger">Disqualified</span>
+                                break;
+                            case RaffleEntryStatus.Ended:
+                                <span class="badge bg-dark">Ended</span>
+                                break;
+                            default:
+                                <span class="badge bg-secondary">@e.Status</span>
+                                break;
+                        }
+                    </td>
+                    <td>
+                        @if (!string.IsNullOrWhiteSpace(e.PaymentReference))
+                        {
+                            <code style="font-size:.8em;">@e.PaymentReference</code>
+                        }
+                        else
+                        {
+                            <span class="text-muted">—</span>
+                        }
+                    </td>
+                    <td>@e.CreateDate.ToString("yyyy-MM-dd HH:mm")</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (totalPages > 1)
+    {
+        <nav>
+            <ul class="pagination">
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    <li class="page-item @(i == page ? "active" : "")">
+                        <a class="page-link"
+                           asp-action="Details"
+                           asp-route-id="@Model.RaffleId"
+                           asp-route-page="@i"
+                           asp-route-pageSize="@pageSize">@i</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+}
+}

@@ -8,6 +8,7 @@ namespace DirectoryManager.Data.Models.Reviews
     /// <summary>
     /// Stores a crypto payout address for a raffle tied to a single review.
     /// One entry per review (enforced via unique index on DirectoryEntryReviewId).
+    /// Associated to a single Raffle via RaffleId.
     /// </summary>
     public class DirectoryEntryReviewRaffleEntry : UserStateInfo
     {
@@ -19,6 +20,12 @@ namespace DirectoryManager.Data.Models.Reviews
         public int DirectoryEntryReviewId { get; set; }
 
         public DirectoryEntryReview DirectoryEntryReview { get; set; } = null!;
+
+        // FK → Raffle (nullable for back-compat with pre-existing rows; enforce
+        // non-null in application code for all newly created entries going forward).
+        public int? RaffleId { get; set; }
+
+        public Raffle? Raffle { get; set; }
 
         // Crypto type identifier, e.g. "XMR", "BTC", "ETH"
         [Required]

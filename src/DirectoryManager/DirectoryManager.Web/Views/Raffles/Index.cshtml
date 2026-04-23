@@ -1,0 +1,117 @@
+@model List<DirectoryManager.Data.Models.TransferModels.RaffleSummaryDto>
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Raffles";
+    var page = (int)(ViewBag.Page ?? 1);
+    var pageSize = (int)(ViewBag.PageSize ?? 50);
+    var total = (int)(ViewBag.Total ?? 0);
+    var totalPages = (int)Math.Ceiling(total / (double)pageSize);
+    var nowUtc = DateTime.UtcNow;
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<hr />
+    @await Html.PartialAsync("_AdminMenu")
+@if (TempData["SuccessMessage"] != null)
+{
+    <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+}
+@if (TempData["ErrorMessage"] != null)
+{
+    <div class="alert alert-danger">@TempData["ErrorMessage"]</div>
+}
+
+<p>
+    <a class="btn btn-success" asp-action="Create">+ New Raffle</a>
+</p>
+
+<p><b>@total</b> raffle(s)</p>
+
+@if (Model.Count == 0)
+{
+    <p><i>No raffles yet.</i></p>
+}
+else
+{
+    <table class="table table-striped">
+        <thead>
+            <tr>
+                <th>Name</th>
+                <th>Window (UTC)</th>
+                <th>State</th>
+                <th class="text-end">Total</th>
+                <th class="text-end">Pending</th>
+                <th class="text-end">Eligible</th>
+                <th class="text-end">Paid</th>
+                <th class="text-end">DQ</th>
+                <th class="text-end">Ended</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var r in Model)
+            {
+                var live = r.IsEnabled && r.StartDate <= nowUtc && r.EndDate >= nowUtc;
+                var upcoming = r.IsEnabled && r.StartDate > nowUtc;
+                var ended = r.EndDate < nowUtc;
+
+                <tr>
+                    <td>
+                        <a asp-action="Details" asp-route-id="@r.RaffleId">@r.Name</a>
+                    </td>
+                    <td>
+                        @r.StartDate.ToString("yyyy-MM-dd HH:mm")
+                        &nbsp;→&nbsp;
+                        @r.EndDate.ToString("yyyy-MM-dd HH:mm")
+                    </td>
+                    <td>
+                        @if (!r.IsEnabled)
+                        {
+                            <span class="badge bg-secondary">Disabled</span>
+                        }
+                        else if (live)
+                        {
+                            <span class="badge bg-success">Active</span>
+                        }
+                        else if (upcoming)
+                        {
+                            <span class="badge bg-info">Upcoming</span>
+                        }
+                        else if (ended)
+                        {
+                            <span class="badge bg-dark">Ended</span>
+                        }
+                    </td>
+                    <td class="text-end"><b>@r.TotalEntries</b></td>
+                    <td class="text-end">@r.PendingCount</td>
+                    <td class="text-end">@r.EligibleCount</td>
+                    <td class="text-end">@r.PaidCount</td>
+                    <td class="text-end">@r.DisqualifiedCount</td>
+                    <td class="text-end">@r.EndedCount</td>
+                    <td>
+                        <a asp-action="Edit" asp-route-id="@r.RaffleId">Edit</a>
+                        &middot;
+                        <a asp-action="Delete" asp-route-id="@r.RaffleId">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+
+    @if (totalPages > 1)
+    {
+        <nav>
+            <ul class="pagination">
+                @for (int i = 1; i <= totalPages; i++)
+                {
+                    <li class="page-item @(i == page ? "active" : "")">
+                        <a class="page-link" asp-action="Index" asp-route-page="@i" asp-route-pageSize="@pageSize">@i</a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+}
+}

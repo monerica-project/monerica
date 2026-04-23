@@ -57,6 +57,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<DirectoryEntryReviewRaffleEntry> DirectoryEntryReviewRaffleEntries { get; set; }
         public DbSet<Processor> Processors { get; set; }
         public DbSet<AffiliateCommissionEarned> AffiliateCommissionsEarned { get; set; }
+        public DbSet<Raffle> Raffles { get; set; }
 
         public override int SaveChanges()
         {
@@ -114,7 +115,30 @@ namespace DirectoryManager.Data.DbContextInfo
             ConfigureProcessorIndexes(builder);
             ConfigureRaffleEntryIndexes(builder);
 
+            ConfigureRaffleIndexes(builder);
         }
+
+        private static void ConfigureRaffleIndexes(ModelBuilder builder)
+        {
+            builder.Entity<Raffle>(e =>
+            {
+                e.HasIndex(x => x.IsEnabled)
+                 .HasDatabaseName("IX_Raffle_IsEnabled");
+
+                e.HasIndex(x => new { x.StartDate, x.EndDate })
+                 .HasDatabaseName("IX_Raffle_StartEnd");
+
+                e.HasIndex(x => x.Name)
+                 .IsUnique()
+                 .HasDatabaseName("UX_Raffle_Name");
+            });
+
+            // Entry -> Raffle relationship + supporting index on the FK
+            builder.Entity<DirectoryEntryReviewRaffleEntry>()
+                .HasIndex(x => x.RaffleId)
+                .HasDatabaseName("IX_RaffleEntry_RaffleId");
+        }
+
 
         private static void ConfigureRaffleEntryIndexes(ModelBuilder builder)
         {
@@ -521,6 +545,12 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasForeignKey(x => x.DirectoryEntryId)
                    .OnDelete(DeleteBehavior.Restrict);
             });
+
+            builder.Entity<DirectoryEntryReviewRaffleEntry>()
+                    .HasOne(x => x.Raffle)
+                    .WithMany(r => r.Entries)
+                    .HasForeignKey(x => x.RaffleId)
+                    .OnDelete(DeleteBehavior.Restrict);
         }
 
         private static void ConfigureAffiliateCommissionEarnedIndexes(ModelBuilder builder)
@@ -617,6 +647,14 @@ namespace DirectoryManager.Data.DbContextInfo
                 e.Property(x => x.CryptoType).HasMaxLength(20).IsRequired();
                 e.Property(x => x.CryptoAddress).HasMaxLength(512).IsRequired();
                 e.Property(x => x.PaymentReference).HasMaxLength(256);
+            });
+
+            builder.Entity<Raffle>(e =>
+            {
+                e.ToTable("Raffles");
+                e.Property(x => x.RowVersion).IsRowVersion();
+                e.Property(x => x.Name).HasMaxLength(200).IsRequired();
+                e.Property(x => x.Description).HasMaxLength(1000);
             });
         }
 

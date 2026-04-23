@@ -1,0 +1,53 @@
+@model DirectoryManager.Data.Models.Reviews.Raffle
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "New Raffle";
+    Layout = "_CenteredLayout";
+}
+
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<hr />
+    @await Html.PartialAsync("_AdminMenu")
+<div asp-validation-summary="All" class="text-danger"></div>
+
+<form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+
+    <div class="mb-3">
+        <label asp-for="Name" class="form-label"></label>
+        <input asp-for="Name" class="form-control" maxlength="200" />
+        <span asp-validation-for="Name" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Description" class="form-label"></label>
+        <textarea asp-for="Description" class="form-control" rows="3" maxlength="1000"></textarea>
+        <span asp-validation-for="Description" class="text-danger"></span>
+    </div>
+
+    <div class="row">
+        <div class="col-md-6 mb-3">
+            <label asp-for="StartDate" class="form-label">Start date (UTC)</label>
+            <input asp-for="StartDate" type="datetime-local" class="form-control"
+                   value="@Model.StartDate.ToString("yyyy-MM-ddTHH:mm")" />
+            <span asp-validation-for="StartDate" class="text-danger"></span>
+        </div>
+        <div class="col-md-6 mb-3">
+            <label asp-for="EndDate" class="form-label">End date (UTC)</label>
+            <input asp-for="EndDate" type="datetime-local" class="form-control"
+                   value="@Model.EndDate.ToString("yyyy-MM-ddTHH:mm")" />
+            <span asp-validation-for="EndDate" class="text-danger"></span>
+        </div>
+    </div>
+
+    <div class="form-check mb-3">
+        <input asp-for="IsEnabled" class="form-check-input" />
+        <label asp-for="IsEnabled" class="form-check-label">Enabled</label>
+    </div>
+
+    <button type="submit" class="btn btn-success">Create</button>
+    <a asp-action="Index" class="btn btn-link">Cancel</a>
+</form>
+}

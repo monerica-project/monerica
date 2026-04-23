@@ -14,25 +14,28 @@ namespace DirectoryManager.Web.Controllers
         private const string TokenExpiredMessage = "This raffle link has expired or is invalid. Please check your review confirmation.";
 
         private readonly IMemoryCache cache;
-        private readonly IDirectoryEntryReviewRaffleEntryRepository raffleRepository;
+        private readonly IDirectoryEntryReviewRaffleEntryRepository raffleEntryRepository;
         private readonly IDirectoryEntryReviewRepository reviewRepository;
+        private readonly IRaffleRepository raffleRepository;
 
         public RaffleController(
             IMemoryCache cache,
-            IDirectoryEntryReviewRaffleEntryRepository raffleRepository,
+            IDirectoryEntryReviewRaffleEntryRepository raffleEntryRepository,
             IDirectoryEntryReviewRepository reviewRepository,
+            IRaffleRepository raffleRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.cache = cache;
-            this.raffleRepository = raffleRepository;
+            this.raffleEntryRepository = raffleEntryRepository;
             this.reviewRepository = reviewRepository;
+            this.raffleRepository = raffleRepository;
         }
 
         // ------------------------------------------------------------------
         // GET /raffle/enter?token=<guid>
-        // Shows the address entry form, or redirects to AlreadyEntered.
+        // Shows the address entry form, or redirects to AlreadyEntered / Closed.
         // ------------------------------------------------------------------
         [HttpGet("enter")]
         public async Task<IActionResult> Enter(Guid token, CancellationToken ct = default)
@@ -42,8 +45,15 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(TokenExpiredMessage);
             }
 
+            // 🚫 No active raffle = no way to enter an address.
+            var active = await this.raffleRepository.GetActiveAsync(DateTime.UtcNow, ct);
+            if (active is null)
+            {
+                return this.RedirectToAction(nameof(this.Closed));
+            }
+
             // Is the author already in an active raffle entry?
-            var existing = await this.raffleRepository.GetActiveEntryByFingerprintAsync(state.Fingerprint, ct);
+            var existing = await this.raffleEntryRepository.GetActiveEntryByFingerprintAsync(state.Fingerprint, ct);
             if (existing is not null)
             {
                 return this.RedirectToAction(nameof(this.AlreadyEntered));
@@ -51,6 +61,8 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.Token = token;
             this.ViewBag.ReviewId = state.ReviewId;
+            this.ViewBag.RaffleName = active.Name;
+            this.ViewBag.RaffleEndsUtc = active.EndDate;
             return this.View(new RaffleEnterInputModel());
         }
 
@@ -66,15 +78,24 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(TokenExpiredMessage);
             }
 
+            // 🚫 Re-check: raffle could have ended between render and submit.
+            var active = await this.raffleRepository.GetActiveAsync(DateTime.UtcNow, ct);
+            if (active is null)
+            {
+                return this.RedirectToAction(nameof(this.Closed));
+            }
+
             if (!this.ModelState.IsValid)
             {
                 this.ViewBag.Token = token;
                 this.ViewBag.ReviewId = state.ReviewId;
+                this.ViewBag.RaffleName = active.Name;
+                this.ViewBag.RaffleEndsUtc = active.EndDate;
                 return this.View("Enter", input);
             }
 
             // Re-check: still no active entry for this author?
-            var existing = await this.raffleRepository.GetActiveEntryByFingerprintAsync(state.Fingerprint, ct);
+            var existing = await this.raffleEntryRepository.GetActiveEntryByFingerprintAsync(state.Fingerprint, ct);
             if (existing is not null)
             {
                 return this.RedirectToAction(nameof(this.AlreadyEntered));
@@ -90,12 +111,13 @@ namespace DirectoryManager.Web.Controllers
             var entry = new DirectoryEntryReviewRaffleEntry
             {
                 DirectoryEntryReviewId = state.ReviewId,
+                RaffleId = active.RaffleId, // ← ties this entry to the currently-active raffle
                 CryptoType = input.CryptoType.Trim().ToUpperInvariant(),
                 CryptoAddress = input.CryptoAddress.Trim(),
                 Status = RaffleEntryStatus.Pending
             };
 
-            await this.raffleRepository.AddAsync(entry, ct);
+            await this.raffleEntryRepository.AddAsync(entry, ct);
 
             // Burn the token so it can't be used again
             this.cache.Remove(DirectoryEntryReviewsController.RaffleTokenCacheKey(token));
@@ -114,6 +136,12 @@ namespace DirectoryManager.Web.Controllers
         // ------------------------------------------------------------------
         [HttpGet("already-entered")]
         public IActionResult AlreadyEntered() => this.View();
+
+        // ------------------------------------------------------------------
+        // GET /raffle/closed  — no raffle is currently active
+        // ------------------------------------------------------------------
+        [HttpGet("closed")]
+        public IActionResult Closed() => this.View();
 
         // ------------------------------------------------------------------
         // Helpers
