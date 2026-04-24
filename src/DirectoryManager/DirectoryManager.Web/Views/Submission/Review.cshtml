@@ -34,7 +34,21 @@
         @Html.Raw(ViewBag.Differences)
     }
  
-    <span>Link:</span> <a target="_blank" href="@Model.Link">@Model.Link</a>
+        @{
+            var darknetLinks = new[] { Model.Link2, Model.Link3 }
+                .Where(u => !string.IsNullOrWhiteSpace(u) &&
+                            (u.Contains(".onion", StringComparison.OrdinalIgnoreCase) ||
+                             u.Contains(".i2p", StringComparison.OrdinalIgnoreCase)))
+                .ToList();
+        }
+
+        <span>Link:</span> <a target="_blank" rel="noopener" href="@Model.Link">@Model.Link</a>
+        @foreach (var u in darknetLinks)
+        {
+            var label = u.Contains(".onion", StringComparison.OrdinalIgnoreCase) ? "Tor" : "I2P";
+            <text> | </text>
+            <a target="_blank" rel="nofollow noopener" href="@u">@label</a>
+        }
 
     @if (!string.IsNullOrEmpty(Model.ProofLink))
     {
