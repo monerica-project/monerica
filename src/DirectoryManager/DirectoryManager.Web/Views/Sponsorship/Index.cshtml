@@ -8,7 +8,7 @@
 @using DirectoryManager.Common.Constants
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
-@inject NowPayments.API.Interfaces.INowPaymentsService nowPaymentsService
+@inject DirectoryManager.Common.Interfaces.IRateConversionService rateConversionService
 @inject Microsoft.Extensions.Caching.Memory.IMemoryCache memoryCache
 @{
     ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Sponsorship";
@@ -18,7 +18,7 @@
     var usd = CultureInfo.GetCultureInfo(DirectoryManager.Web.Constants.StringConstants.EnglishUS);
 
     var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(
-        httpContextAccessor, memoryCache, nowPaymentsService);
+        httpContextAccessor, memoryCache, rateConversionService);
     var conversionRate = conversionResult.conversionRate;
 }
 

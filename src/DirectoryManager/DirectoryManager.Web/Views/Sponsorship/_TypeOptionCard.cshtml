@@ -1,23 +1,22 @@
 ﻿@model DirectoryManager.Web.Models.Sponsorship.TypeOptionCardVm
 @using System.Globalization
 @using DirectoryManager.Web.Helpers
-@inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
-@inject NowPayments.API.Interfaces.INowPaymentsService nowPaymentsService
-@using Microsoft.Extensions.Caching.Memory
-@inject IMemoryCache memoryCache
 @using DirectoryManager.Data.Enums
+@using Microsoft.Extensions.Caching.Memory
+@inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
+@inject DirectoryManager.Common.Interfaces.IRateConversionService rateConversionService
+@inject IMemoryCache memoryCache
 
 @{
     var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(
         httpContextAccessor,
         memoryCache,
-        nowPaymentsService
+        rateConversionService
     );
 
     bool showConverted = conversionResult.showConverted;
     decimal conversionRate = conversionResult.conversionRate;
 }
-
 
 @functions {
     private static string FormatUtcFull(DateTime utc) =>
@@ -40,29 +39,22 @@
         ? opt.ScopeLabel
         : opt.SponsorshipType.ToString();
 
-    // Determine scope ids from the one TypeId we pass in
     int? categoryId = opt.SponsorshipType == SponsorshipType.CategorySponsor ? Model.TypeId : null;
     int? subCategoryId = opt.SponsorshipType == SponsorshipType.SubcategorySponsor ? Model.TypeId : null;
 
-    // eligibility
     var eligible = Model.CanAdvertise;
 
-    // Pool capacity from controller counts
     var poolHasCapacity =
         opt.PoolMaxSlots > 0 &&
         opt.PoolActiveCount < opt.PoolMaxSlots;
 
-    // Main-per-subcategory cap only applies to MainSponsor
     var blockedByMainSubCap = opt.BlockedByMainSubcategoryCap;
 
-    // available now
     var availableNow = eligible && !opt.IsExtension && poolHasCapacity && !blockedByMainSubCap;
 
-    // POST endpoint that starts checkout/reservation flow
     var postStartCheckoutUrl =
         Url.Action("SelectListing", "SponsoredListing") ?? "/sponsoredlisting/selectlisting";
 
-    // EXTEND: go straight to SelectDuration
     var extendHref =
         Url.Action("SelectDuration", "SponsoredListing", new
         {
@@ -70,8 +62,6 @@
             sponsorshipType = opt.SponsorshipType
         }) ?? "/sponsoredlisting/selectduration";
 
-    // Waitlist logic:
-    // Only show "View waitlist" if Count > 0.
     var hasWaitlist = opt.Waitlist != null && opt.Waitlist.Count > 0;
 
     var waitlistUrl =
@@ -79,7 +69,6 @@
             ? opt.Waitlist.BrowseUrl
             : (Url.Action("Waitlist", "Sponsorship", new { type = opt.SponsorshipType, typeId = Model.TypeId }) ?? "");
 
-    // Next to expire (in-scope) for "Next expiration" summary line
     var nextExpire = (opt.ActiveSlots != null && opt.ActiveSlots.Any())
         ? opt.ActiveSlots.OrderBy(x => x.CampaignEndUtc).FirstOrDefault()
         : null;
@@ -99,7 +88,8 @@
                 {
                     <span><strong>Active</strong> — you can extend anytime.</span>
                     @if (opt.YourActiveUntilUtc.HasValue)
-                    {<text>(</text><span style="opacity:.85;">until <strong>@FormatUtcFull(opt.YourActiveUntilUtc.Value)</strong></span><text>)</text>
+                    {
+                        <text>(</text><span style="opacity:.85;">until <strong>@FormatUtcFull(opt.YourActiveUntilUtc.Value)</strong></span><text>)</text>
                     }
                 }
                 else if (availableNow)
@@ -165,7 +155,6 @@
                 <button type="submit" class="btn btn-primary btn-cta">Checkout</button>
             </form>
 
-            @* Only show if there are people actually on the waitlist *@
             @if (hasWaitlist && !string.IsNullOrWhiteSpace(waitlistUrl))
             {
                 <a class="btn btn-info" href="@waitlistUrl">View waitlist</a>
@@ -173,7 +162,6 @@
         }
         else
         {
-            @* Only show view waitlist if there are people on it *@
             @if (hasWaitlist && !string.IsNullOrWhiteSpace(waitlistUrl))
             {
                 <a class="btn btn-info" href="@waitlistUrl">View waitlist</a>
@@ -181,7 +169,6 @@
         }
     </div>
 
-    @* Package details *@
     @if (!string.IsNullOrWhiteSpace(Model.DetailsHtml))
     {
         <details style="margin-top: 12px;">
@@ -192,7 +179,6 @@
         </details>
     }
 
-    @* Offers *@
     @if (opt.Offers != null && opt.Offers.Any())
     {
         <div style="margin-top: 14px;">
@@ -203,7 +189,10 @@
                         <tr>
                             <th style="width:90px;">Days</th>
                             <th style="text-align:right;">USD</th>
-                            <th style="text-align:right;">XMR</th>
+                            @if (showConverted)
+                            {
+                                <th style="text-align:right;">XMR</th>
+                            }
                             <th style="text-align:right;">$/day</th>
                         </tr>
                     </thead>
@@ -213,14 +202,17 @@
                             <tr>
                                 <td>@o.Days</td>
                                 <td style="text-align:right;">@o.PriceUsd.ToString("C2", usd)</td>
-                                <td style="text-align:right;">
-                                    @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
-                                        o.PriceUsd,
-                                        conversionRate,
-                                        conversionResult.selectedCurrency,
-                                        false
-                                    )
-                                </td>
+                                @if (showConverted)
+                                {
+                                    <td style="text-align:right;">
+                                        @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
+                                            o.PriceUsd,
+                                            conversionRate,
+                                            conversionResult.selectedCurrency,
+                                            false
+                                        )
+                                    </td>
+                                }
                                 <td style="text-align:right;">@o.PricePerDay.ToString("C2", usd)</td>
                             </tr>
                         }
@@ -228,7 +220,6 @@
                 </table>
             </div>
 
-            @* Next expiration summary (below the pricing table) *@
             @if (nextExpire != null && nextExpire.CampaignEndUtc > nowUtc)
             {
                 <div style="margin-top:10px; padding:10px; border-radius:10px; background: rgba(255,255,255,0.03);">
@@ -246,7 +237,6 @@
         </div>
     }
 
-    @* Active slots *@
     @if (opt.ActiveSlots != null && opt.ActiveSlots.Any())
     {
         <div style="margin-top: 14px;">
@@ -288,7 +278,6 @@
         </div>
     }
 
-    @* Waitlist preview: ONLY show if Count > 0 *@
     @if (hasWaitlist)
     {
         var joinRank = Math.Max(1, opt.Waitlist!.JoinWouldBeRank);

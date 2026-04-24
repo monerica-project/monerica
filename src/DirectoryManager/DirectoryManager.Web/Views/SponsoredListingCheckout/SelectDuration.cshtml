@@ -2,14 +2,14 @@
 @using DirectoryManager.Web.Models
 @using System.Globalization
 @using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Web.Models.SponsoredListing
+@using Microsoft.Extensions.Caching.Memory
 @model IEnumerable<SponsoredListingOfferModel>
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 @using DirectoryManager.Utilities.Helpers
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
-@inject NowPayments.API.Interfaces.INowPaymentsService nowPaymentsService
-@using DirectoryManager.Web.Helpers
-@using DirectoryManager.Web.Models.SponsoredListing
-@using Microsoft.Extensions.Caching.Memory
+@inject DirectoryManager.Common.Interfaces.IRateConversionService rateConversionService
 @inject IMemoryCache memoryCache
 
 @{
@@ -20,7 +20,6 @@
     var offersList = Model.ToList();
     int defaultChoiceIndex = 0;
 
-    // Reservation context (set by controller if a valid reservation exists)
     Guid? reservationGuid = ViewBag.ReservationGuid is Guid g ? g : (Guid?)null;
     DateTime? reservationExpiresUtc = ViewBag.ReservationExpiresUtc is DateTime d ? d : (DateTime?)null;
 
@@ -28,18 +27,16 @@
         ? (int?)Math.Max(0, (int)Math.Ceiling((reservationExpiresUtc.Value - DateTime.UtcNow).TotalMinutes))
         : null;
 
-    // Currency conversion context
-    var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(httpContextAccessor, memoryCache, nowPaymentsService);
+    var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(
+        httpContextAccessor, memoryCache, rateConversionService);
     bool showConverted = conversionResult.showConverted;
     decimal conversionRate = conversionResult.conversionRate;
 
-    // Build back URL and only include rsvId if we have one
     var backUrl = Url.Content($"~/sponsoredlisting/selectlisting?sponsorshipType={ViewBag.SponsorshipType}"
         + (ViewBag.SubCategoryId != null ? $"&subCategoryId={ViewBag.SubCategoryId}" : string.Empty)
         + (ViewBag.CategoryId != null ? $"&categoryId={ViewBag.CategoryId}" : string.Empty)
         + (reservationGuid.HasValue ? $"&rsvId={reservationGuid}" : string.Empty));
 
-    // Baseline "market" price is the first rendered row (per-day comparisons)
     decimal? baselineUsd = offersList.Count > 0 ? offersList[0].USDPrice : (decimal?)null;
     var usdCulture = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
 
@@ -84,7 +81,6 @@
         @Html.AntiForgeryToken()
 
         <input type="hidden" name="directoryEntryId" value="@ViewBag.DirectoryEntryId" />
-        @* Only send rsvId if we actually have one *@
         @if (reservationGuid.HasValue)
         {
             <input type="hidden" name="rsvId" value="@reservationGuid" />
@@ -97,15 +93,14 @@
             {
                 var offer = offersList[i];
 
-                // Offer per-day and discount vs baseline per-day
                 decimal? offerPerDay = offer.Days > 0 ? offer.USDPrice / offer.Days : (decimal?)null;
                 decimal? usdDiscountPerDay = (i > 0 && baselinePerDay.HasValue && offerPerDay.HasValue)
-                ? (baselinePerDay.Value - offerPerDay.Value)
-                : (decimal?)null;
+                    ? (baselinePerDay.Value - offerPerDay.Value)
+                    : (decimal?)null;
 
                 decimal? pctDiscountPerDay = (usdDiscountPerDay.HasValue && baselinePerDay > 0)
-                ? Math.Round((usdDiscountPerDay.Value / baselinePerDay.Value) * 100m, 1)
-                : (decimal?)null;
+                    ? Math.Round((usdDiscountPerDay.Value / baselinePerDay.Value) * 100m, 1)
+                    : (decimal?)null;
 
                 <div class="form-check" style="margin-bottom:8px;">
                     <label class="form-check-label" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -120,20 +115,18 @@
                             @offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture) @Currency.USD
                         </span>
 
-                        @* Converted currency (optional) *@
                         @if (showConverted)
                         {
                             <span>
                                 &mdash;
                                 @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
-                                offer.USDPrice,
-                                        conversionRate,
-                                        conversionResult.selectedCurrency,
-                                        true)
+                                    offer.USDPrice,
+                                    conversionRate,
+                                    conversionResult.selectedCurrency,
+                                    true)
                             </span>
                         }
 
-                        @* Show per-day for clarity *@
                         @if (offerPerDay.HasValue)
                         {
                             <span style="opacity:.8;">
@@ -141,7 +134,6 @@
                             </span>
                         }
 
-                        @* Discount text (only for rows after the first and only if cheaper per day) *@
                         @if (usdDiscountPerDay.HasValue && usdDiscountPerDay.Value > 0)
                         {
                             <span class="text-danger" style="margin-left:6px;">

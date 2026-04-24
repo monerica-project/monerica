@@ -2,6 +2,7 @@
 using BtcPayServer.API.Implementations;
 using BtcPayServer.API.Interfaces;
 using BtcPayServer.API.Models;
+using DirectoryManager.Common.Interfaces;
 using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
@@ -59,18 +60,13 @@ namespace DirectoryManager.Web.Extensions
             services.AddHttpClient();
             services.AddTransient<ICaptchaService, CaptchaService>();
 
-            // 🔧 Lifetimes: CacheService should be Scoped (it uses a repo/DbContext)
+            // Lifetimes: CacheService should be Scoped (it uses a repo/DbContext)
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>()
                     .AddScoped<IUrlResolutionService, UrlResolutionService>();
             services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
             services.AddScoped<ICacheService, CacheService>();
 
-            // Captcha + Http
-            services.Configure<CaptchaOptions>(config.GetSection("Captcha"));
-            services.AddHttpClient();
-            services.AddTransient<ICaptchaService, CaptchaService>();
-
-            // ✅ Domain registration date lookup (RDAP -> WHOIS fallback)
+            // Domain registration date lookup (RDAP -> WHOIS fallback)
             services.AddHttpClient<IDomainRegistrationDateService, DomainRegistrationDateService>(client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(10);
@@ -83,7 +79,7 @@ namespace DirectoryManager.Web.Extensions
             services.AddScoped<IRssFeedService, RssFeedService>();
             services.AddScoped<IDirectoryEntriesAuditService, DirectoryEntriesAuditService>();
 
-            // ✅ EmailService: sync DI factory, block on async at the edge
+            // EmailService: sync DI factory, block on async at the edge
             services.AddScoped<IEmailService>(provider =>
             {
                 var cacheService = provider.GetRequiredService<ICacheService>();
@@ -106,7 +102,7 @@ namespace DirectoryManager.Web.Extensions
 
             services.AddScoped<ISearchBlacklistCache, Services.SearchBlacklistCache>();
 
-            // ✅ NOWPayments: avoid .Wait() (AggregateException). Use GetAwaiter().GetResult().
+            // NOWPayments: config loaded from DB via IProcessorConfigRepository
             services.AddScoped<INowPaymentsService>(provider =>
             {
                 var configRepo = provider.GetRequiredService<IProcessorConfigRepository>();
@@ -120,7 +116,10 @@ namespace DirectoryManager.Web.Extensions
                 return new NowPaymentsService(nowPaymentsConfig);
             });
 
-            services.AddScoped<IBtcPayServerService>(provider =>
+            // BtcPayServerService: config loaded from DB via IProcessorConfigRepository.
+            // Registered once as the concrete class, then aliased to both interfaces
+            // so each scope gets ONE instance serving IBtcPayServerService AND IRateConversionService.
+            services.AddScoped<BtcPayServerService>(provider =>
             {
                 var configRepo = provider.GetRequiredService<IProcessorConfigRepository>();
                 var processorConfig = configRepo.GetByProcessorAsync(PaymentProcessor.BTCPayServer)
@@ -133,11 +132,14 @@ namespace DirectoryManager.Web.Extensions
                 return new BtcPayServerService(btcPayConfig);
             });
 
+            services.AddScoped<IBtcPayServerService>(sp => sp.GetRequiredService<BtcPayServerService>());
+            services.AddScoped<IRateConversionService>(sp => sp.GetRequiredService<BtcPayServerService>());
+
             services.AddScoped<ISearchBlacklistRepository, SearchBlacklistRepository>();
             services.AddScoped<IChurnService, ChurnService>();
             services.AddScoped<IUserContentModerationService, UserContentModerationService>();
 
-            // ✅ BlobService singleton with a short-lived scope to access scoped services
+            // BlobService singleton with a short-lived scope to access scoped services
             services.AddSingleton<IBlobService>(provider =>
             {
                 using var scope = provider.CreateScope();
@@ -149,12 +151,9 @@ namespace DirectoryManager.Web.Extensions
 
                 var blobServiceClient = new BlobServiceClient(azureStorageConnection);
 
-                // If CreateAsync truly must run before use, block here once.
                 return BlobService.CreateAsync(blobServiceClient).GetAwaiter().GetResult();
             });
 
-
-            // add once
             services.AddHttpClient("OrderProofVerifier", client =>
             {
                 client.Timeout = TimeSpan.FromSeconds(6);

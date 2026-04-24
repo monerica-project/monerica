@@ -2,13 +2,13 @@
 @using DirectoryManager.Web.Models
 @using System.Globalization
 @using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Helpers
+@using Microsoft.Extensions.Caching.Memory
 @model DirectoryManager.Web.Models.ConfirmSelectionViewModel
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 @using DirectoryManager.Utilities.Helpers
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
-@inject NowPayments.API.Interfaces.INowPaymentsService nowPaymentsService
-@using DirectoryManager.Web.Helpers
-@using Microsoft.Extensions.Caching.Memory
+@inject DirectoryManager.Common.Interfaces.IRateConversionService rateConversionService
 @inject IMemoryCache memoryCache
 
 @{
@@ -22,14 +22,13 @@
         ? (int?)Math.Max(0, (int)Math.Ceiling((reservationExpiresUtc.Value - DateTime.UtcNow).TotalMinutes))
         : null;
 
-    var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(httpContextAccessor, memoryCache, nowPaymentsService);
+    var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(
+        httpContextAccessor, memoryCache, rateConversionService);
     bool showConverted = conversionResult.showConverted;
     decimal conversionRate = conversionResult.conversionRate;
 
-    // show sponsored preview
     Model.SelectedDirectoryEntry.IsSponsored = true;
 
-    // referral (if controller passed one via ViewBag)
     var prefillReferral = ViewBag.ReferralCode as string ?? string.Empty;
 }
 
@@ -76,22 +75,25 @@
                     <td><b>Price:</b></td>
                     <td>
                         @Model.Offer.USDPrice.ToString(
-                        DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
-                                new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure))
-                @Currency.USD
-                <i>
-                    (Approximately:
-                    @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
-                                        Model.Offer.USDPrice,
-                                        conversionRate,
-                                        conversionResult.selectedCurrency,
-                                        true))
-                </i>
-            </td>
-        </tr>
-    </table>
+                            DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
+                            new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure))
+                        @Currency.USD
+                        @if (showConverted)
+                        {
+                            <i>
+                                (Approximately:
+                                @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
+                                    Model.Offer.USDPrice,
+                                    conversionRate,
+                                    conversionResult.selectedCurrency,
+                                    true))
+                            </i>
+                        }
+                    </td>
+                </tr>
+            </table>
 
-    @if (Model.IsExtension)
+            @if (Model.IsExtension)
             {
                 <br />
                 <p>These days will be added to the current sponsored listing.</p>
@@ -124,7 +126,6 @@
                 <hr />
 
                 <div>
-                    <!-- Shared, no-JS CAPTCHA block (context = "sponsoredlisting-confirmnowpayments") -->
                     @await Html.PartialAsync("_CaptchaBlock", "sponsoredlisting-confirmnowpayments")
                     <div class="text-danger" style="margin-top:4px;">
                         @Html.ValidationMessage("Captcha")
@@ -133,22 +134,20 @@
 
                 <hr />
 
-
                 <input name="rsvId" type="hidden" value="@reservationGuid" />
                 <input type="hidden" name="directoryEntryId" value="@Model.SelectedDirectoryEntry.DirectoryEntryId" />
                 <input type="hidden" name="selectedOfferId" value="@Model.Offer.SponsoredListingOfferId" />
 
                 <button class="btn btn-cta" type="submit">Purchase Listing</button>
             </form>
-     
         }
         else
         {
             @await Html.PartialAsync("_AdSpaceFull", new ListingInventoryModel
             {
                 CanCreateSponsoredListing = Model.CanCreateSponsoredListing,
-        NextListingExpiration = Model.NextListingExpiration
-        })
+                NextListingExpiration = Model.NextListingExpiration
+            })
         }
     </div>
 }

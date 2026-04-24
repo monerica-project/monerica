@@ -4,11 +4,13 @@ using System.Text;
 using BtcPayServer.API.Constants;
 using BtcPayServer.API.Interfaces;
 using BtcPayServer.API.Models;
+using DirectoryManager.Common.Interfaces;
+using DirectoryManager.Common.Models;
 using Newtonsoft.Json;
 
 namespace BtcPayServer.API.Implementations
 {
-    public class BtcPayServerService : IBtcPayServerService
+    public class BtcPayServerService : IBtcPayServerService, IRateConversionService
     {
         private readonly string storeId;
         private readonly string webhookSecret;
@@ -190,6 +192,62 @@ namespace BtcPayServer.API.Implementations
             return rate.Rate;
         }
 
+        public async Task<ConversionEstimate> GetEstimatedConversionAsync(
+            decimal amount,
+            string fromCurrency,
+            string toCurrency)
+        {
+            if (string.IsNullOrWhiteSpace(fromCurrency))
+                throw new ArgumentNullException(nameof(fromCurrency));
+            if (string.IsNullOrWhiteSpace(toCurrency))
+                throw new ArgumentNullException(nameof(toCurrency));
+
+            fromCurrency = fromCurrency.Trim().ToUpperInvariant();
+            toCurrency = toCurrency.Trim().ToUpperInvariant();
+
+            if (string.Equals(fromCurrency, toCurrency, StringComparison.Ordinal))
+            {
+                return new ConversionEstimate
+                {
+                    EstimatedAmount = amount,
+                    FromCurrency = fromCurrency,
+                    ToCurrency = toCurrency,
+                };
+            }
+
+            // Try the direct pair first (e.g. XMR_USD when converting XMR -> USD).
+            var direct = await this.TryGetRateAsync(fromCurrency, toCurrency)
+                .ConfigureAwait(false);
+
+            if (direct.HasValue)
+            {
+                return new ConversionEstimate
+                {
+                    EstimatedAmount = amount * direct.Value,
+                    FromCurrency = fromCurrency,
+                    ToCurrency = toCurrency,
+                };
+            }
+
+            // Fall back to the inverse pair (e.g. XMR_USD when converting USD -> XMR).
+            var inverse = await this.TryGetRateAsync(toCurrency, fromCurrency)
+                .ConfigureAwait(false);
+
+            if (inverse.HasValue && inverse.Value > 0m)
+            {
+                return new ConversionEstimate
+                {
+                    EstimatedAmount = amount / inverse.Value,
+                    FromCurrency = fromCurrency,
+                    ToCurrency = toCurrency,
+                };
+            }
+
+            throw new InvalidOperationException(
+                $"BTCPay could not resolve a rate for " +
+                $"{fromCurrency}->{toCurrency} (tried both directions).");
+        }
+
         public bool IsWebhookValid(
             string requestBody,
             string btcPaySigHeader,
@@ -232,6 +290,30 @@ namespace BtcPayServer.API.Implementations
 
             errorMsg = "HMAC signature does not match.";
             return false;
+        }
+
+        private async Task<decimal?> TryGetRateAsync(
+            string baseCurrency,
+            string quoteCurrency)
+        {
+            try
+            {
+                var rate = await this.GetStoreRateAsync(baseCurrency, quoteCurrency)
+                    .ConfigureAwait(false);
+
+                if (rate is null)
+                    return null;
+                if (rate.Errors is not null && rate.Errors.Count > 0)
+                    return null;
+                if (rate.Rate <= 0m)
+                    return null;
+
+                return rate.Rate;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
         private static string ComputeHmacSha256(string data, string secret)

@@ -12,5 +12,7 @@ namespace DirectoryManager.Web.Models.Sponsorship
         public decimal ConversionRate { get; set; }
 
         public string SelectedCurrency { get; set; } = "XMR";
+
+        public bool ShowConverted { get; set; }
     }
 }

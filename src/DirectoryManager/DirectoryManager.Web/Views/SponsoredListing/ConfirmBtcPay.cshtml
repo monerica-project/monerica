@@ -2,13 +2,13 @@
 @using DirectoryManager.Web.Models
 @using System.Globalization
 @using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Helpers
+@using Microsoft.Extensions.Caching.Memory
 @model DirectoryManager.Web.Models.ConfirmSelectionViewModel
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 @using DirectoryManager.Utilities.Helpers
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
-@inject NowPayments.API.Interfaces.INowPaymentsService nowPaymentsService
-@using DirectoryManager.Web.Helpers
-@using Microsoft.Extensions.Caching.Memory
+@inject DirectoryManager.Common.Interfaces.IRateConversionService rateConversionService
 @inject IMemoryCache memoryCache
 
 @{
@@ -22,7 +22,8 @@
         ? (int?)Math.Max(0, (int)Math.Ceiling((reservationExpiresUtc.Value - DateTime.UtcNow).TotalMinutes))
         : null;
 
-    var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(httpContextAccessor, memoryCache, nowPaymentsService);
+    var conversionResult = await CurrencyConversionHelper.GetConversionContextAsync(
+        httpContextAccessor, memoryCache, rateConversionService);
     bool showConverted = conversionResult.showConverted;
     decimal conversionRate = conversionResult.conversionRate;
 
@@ -78,14 +79,17 @@
                             DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
                             new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure))
                         @Currency.USD
-                        <i>
-                            (Approximately:
-                            @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
-                                Model.Offer.USDPrice,
-                                conversionRate,
-                                conversionResult.selectedCurrency,
-                                true))
-                        </i>
+                        @if (showConverted)
+                        {
+                            <i>
+                                (Approximately:
+                                @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
+                                    Model.Offer.USDPrice,
+                                    conversionRate,
+                                    conversionResult.selectedCurrency,
+                                    true))
+                            </i>
+                        }
                     </td>
                 </tr>
             </table>
