@@ -11,7 +11,7 @@
     <div class="container py-4">
         <h1 class="mb-3">Review Details</h1>
         <hr />
-
+        @await Html.PartialAsync("_AdminMenu")
         <div class="card mb-4">
             <div class="card-body">
                 <table class="table table-borderless mb-0">
@@ -58,7 +58,7 @@
 
                         <tr>
                             <th>Body</th>
-                            <td><pre class="mb-0">@Model.Body</pre></td>
+                            <td><span>@Model.Body</span></td>
                         </tr>
 
                         @if (!string.IsNullOrWhiteSpace(Model.RejectionReason))

@@ -10,7 +10,7 @@
     <div class="container py-4">
         <h1 class="mb-3">Create Review</h1>
         <hr />
-
+        @await Html.PartialAsync("_AdminMenu")
         <form asp-controller="DirectoryEntryReviews"
               asp-action="Create"
               method="post">

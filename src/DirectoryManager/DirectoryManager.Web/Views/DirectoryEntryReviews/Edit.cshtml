@@ -11,7 +11,7 @@
     <div class="container py-4">
         <h1 class="mb-3">Edit Review</h1>
         <hr />
-
+        @await Html.PartialAsync("_AdminMenu")
         <form asp-action="Edit" asp-route-id="@Model.DirectoryEntryReviewId" method="post">
             @Html.AntiForgeryToken()
             <input type="hidden" asp-for="DirectoryEntryReviewId" />
