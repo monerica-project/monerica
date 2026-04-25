@@ -183,6 +183,7 @@ namespace DirectoryManager.Web.Controllers
 
         [AllowAnonymous]
         [Route("sponsoredlisting/activesponsorjson")]
+        [Route("sponsoredlisting/activesponsor.json")]
         [HttpGet]
         public async Task<IActionResult> ActiveSponsorJsonAsync()
         {
@@ -198,7 +199,9 @@ namespace DirectoryManager.Web.Controllers
             try
             {
                 if (sponsorJsonCache != null && DateTimeOffset.UtcNow - sponsorJsonCachedAt < SponsorJsonTtl)
+                {
                     return this.Json(sponsorJsonCache);
+                }
 
                 sponsorJsonCache = await this.BuildActiveSponsorJsonAsync(ct);
                 sponsorJsonCachedAt = DateTimeOffset.UtcNow;
