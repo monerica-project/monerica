@@ -111,7 +111,7 @@
         Func<DirectoryStatus, IHtmlContent> statusIcon = status => status.ToHtmlIcon();
     }
 
- 
+
     @if (vms.Any())
     {
         <section class="sponsors">
@@ -144,8 +144,8 @@
 
                     <div class="sponsor-card">
                         <!-- Status icon + Title: left-aligned, larger name -->
-                        <div class="sponsor-header" style="display:flex; align-items:center; justify-content:flex-start; gap:6px; text-align:left;">
-                            <span class="status" style="flex-shrink:0;">@Html.Raw(statusIcon(vm.DirectoryStatus))</span>
+                        <div class="sponsor-header sponsor-header--start">
+                            <span class="status">@Html.Raw(statusIcon(vm.DirectoryStatus))</span>
                             <a rel="sponsored"
                                href="@(vm.Link)"
                                target="_blank"
@@ -155,7 +155,7 @@
                         @* Rating on left, flag on right *@
                         @if (hasRating || hasLinks || hasFlag)
                         {
-                            <div class="sponsor-meta-row" style="display:flex; align-items:center; justify-content:space-between;">
+                            <div class="sponsor-meta-row">
                                 <div class="sponsor-rating">
                                     @if (hasRating)
                                     {
@@ -177,15 +177,15 @@
             </div>
         </section>
 
-        <div style="clear:both"></div>
+        <div class="clear-both"></div>
 
         
-            var maxMain = DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings;
-            var activeCount = sponsoredListings.Count();
-            var openings = Math.Max(0, maxMain - activeCount);
-            var displayCount = Math.Min(activeCount, maxMain);
-        
+        var maxMain = DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings;
+        var activeCount = sponsoredListings.Count();
+        var openings = Math.Max(0, maxMain - activeCount);
+        var displayCount = Math.Min(activeCount, maxMain);
 
+        
         <p class="create-sponsored-listing">
             @if (openings > 0)
             {
@@ -214,5 +214,5 @@
         <p><a class="app-link" href="~/sponsoredlisting">Advertise here</a></p>
     }
 
- 
+
 </cache-content>
