@@ -28,6 +28,8 @@
         <a asp-action="All" asp-route-status="Approved">Approved</a> |
         <a asp-action="All" asp-route-status="Rejected">Rejected</a> |
         <a asp-action="All">All</a>
+        &nbsp;|&nbsp;
+        <a asp-action="LowRated"><strong>Low-rated (1–2★)</strong></a>
     </p>
 
     <p class="text-muted mb-0">
@@ -69,7 +71,9 @@
                         var proof = r.OrderUrl ?? r.OrderId;
 
                         <tr>
-                            <td>@r.DirectoryEntryReviewId</td>
+                            <td>
+                                <a asp-action="Show" asp-route-id="@r.DirectoryEntryReviewId">@r.DirectoryEntryReviewId</a>
+                            </td>
                             <td>@r.ModerationStatus</td>
                             <td>@r.DirectoryEntryId</td>
                             <td>@(r.Rating?.ToString() ?? "-")</td>

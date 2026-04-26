@@ -106,6 +106,47 @@ namespace DirectoryManager.Web.Controllers
             return this.View("All", vm);
         }
 
+        [HttpGet("low-rated")]
+        public async Task<IActionResult> LowRated(
+            int maxRating = 2,
+            ReviewModerationStatus? status = ReviewModerationStatus.Approved,
+            int page = 1,
+            int pageSize = 50,
+            CancellationToken ct = default)
+        {
+            if (maxRating < 1) maxRating = 1;
+            if (maxRating > 5) maxRating = 5;
+
+            var query = this.repo.Query()
+                .Include(r => r.DirectoryEntry)
+                .Where(r => r.Rating != null && r.Rating <= maxRating);
+
+            if (status.HasValue)
+            {
+                query = query.Where(r => r.ModerationStatus == status.Value);
+            }
+
+            var total = await query.CountAsync(ct);
+
+            var items = await query
+                .OrderByDescending(r => r.CreateDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(ct);
+
+            var vm = new LowRatedReviewsViewModel
+            {
+                Reviews = items,
+                Total = total,
+                Page = page,
+                PageSize = pageSize,
+                MaxRating = maxRating,
+                Status = status
+            };
+
+            return this.View("LowRated", vm);
+        }
+
         // -------- Reviews --------
 
         // GET /admin/reviews/123
@@ -196,7 +237,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (string.IsNullOrWhiteSpace(reason))
             {
-                this.ModelState.AddModelError("reason", "A rejection reason is required."); // ← add this
+                this.ModelState.AddModelError("reason", "A rejection reason is required.");
                 return await this.Show(id, ct);
             }
 

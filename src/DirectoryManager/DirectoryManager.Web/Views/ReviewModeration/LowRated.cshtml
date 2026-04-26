@@ -1,0 +1,159 @@
+﻿@using DirectoryManager.Data.Models.Reviews
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Enums
+@model DirectoryManager.Web.Models.Reviews.LowRatedReviewsViewModel
+
+@{
+    Layout = "_CenteredLayout";
+    ViewData[StringConstants.TitleHeader] = $"Low-Rated Reviews ({Model.MaxRating}★ and below)";
+
+    int LastPage() => Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Model.PageSize));
+
+    static string TimeAgo(DateTime utcDate)
+    {
+        var ts = DateTime.UtcNow - utcDate;
+        if (ts.TotalDays >= 365) return $"{(int)(ts.TotalDays / 365)}y ago";
+        if (ts.TotalDays >= 30) return $"{(int)(ts.TotalDays / 30)}mo ago";
+        if (ts.TotalDays >= 1) return $"{(int)ts.TotalDays}d ago";
+        if (ts.TotalHours >= 1) return $"{(int)ts.TotalHours}h ago";
+        if (ts.TotalMinutes >= 1) return $"{(int)ts.TotalMinutes}m ago";
+        return "just now";
+    }
+
+    static string Stars(int? rating)
+    {
+        if (!rating.HasValue) return "-";
+        var n = Math.Clamp(rating.Value, 0, 5);
+        return new string('★', n) + new string('☆', 5 - n);
+    }
+
+    static string Excerpt(string? body, int max = 180)
+    {
+        if (string.IsNullOrWhiteSpace(body)) return "-";
+        var oneLine = System.Text.RegularExpressions.Regex.Replace(body, @"\s+", " ").Trim();
+        return oneLine.Length > max ? oneLine[..max] + "…" : oneLine;
+    }
+}
+
+@section PageContent {
+
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+
+    <p class="mb-2">
+        <strong>Rating:</strong>
+        <a asp-action="LowRated" asp-route-maxRating="1" asp-route-status="@(Model.Status?.ToString())">1★</a> |
+        <a asp-action="LowRated" asp-route-maxRating="2" asp-route-status="@(Model.Status?.ToString())">1–2★</a> |
+        <a asp-action="LowRated" asp-route-maxRating="3" asp-route-status="@(Model.Status?.ToString())">1–3★</a>
+        &nbsp;&nbsp;<strong>Status:</strong>
+        <a asp-action="LowRated" asp-route-maxRating="@Model.MaxRating" asp-route-status="Approved">Approved</a> |
+        <a asp-action="LowRated" asp-route-maxRating="@Model.MaxRating" asp-route-status="Pending">Pending</a> |
+        <a asp-action="LowRated" asp-route-maxRating="@Model.MaxRating" asp-route-status="Rejected">Rejected</a> |
+        <a asp-action="LowRated" asp-route-maxRating="@Model.MaxRating">All</a>
+        &nbsp;|&nbsp;
+        <a asp-action="All">← Back to All Moderation</a>
+    </p>
+
+    <p class="text-muted mb-2">
+        <small>Total: <strong>@Model.Total</strong> @(Model.Status.HasValue ? $"({Model.Status})" : "(all statuses)") rated @Model.MaxRating★ or below</small>
+    </p>
+
+    @if (!Model.Reviews.Any())
+    {
+        <p><i>No low-rated reviews found.</i></p>
+    }
+    else
+    {
+        <div class="table-wrapper" style="overflow-x:auto;">
+            <table class="table table-striped table-sm align-middle" style="white-space: nowrap;">
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Rating</th>
+                        <th>Status</th>
+                        <th>Listing</th>
+                        <th>Age</th>
+                        <th>Created</th>
+                        <th style="white-space:normal;">Title</th>
+                        <th style="white-space:normal; min-width:300px;">Message</th>
+                        <th>Proof</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Reviews)
+                    {
+                        var proof = r.OrderUrl ?? r.OrderId;
+                        var rowClass = r.Rating == 1 ? "table-danger"
+                                     : r.Rating == 2 ? "table-warning"
+                                     : "";
+                        var entryName = r.DirectoryEntry?.Name ?? $"Entry #{r.DirectoryEntryId}";
+
+                        <tr class="@rowClass">
+                            <td>
+                                <a asp-action="Show" asp-route-id="@r.DirectoryEntryReviewId">@r.DirectoryEntryReviewId</a>
+                            </td>
+                            <td title="@r.Rating">@Stars(r.Rating)</td>
+                            <td>@r.ModerationStatus</td>
+                            <td>
+                                <a href="~/directoryentry/edit/@r.DirectoryEntryId"
+                                   title="Edit listing #@r.DirectoryEntryId">
+                                    @entryName
+                                </a>
+                            </td>
+                            <td><strong>@TimeAgo(r.CreateDate)</strong></td>
+                            <td>@r.CreateDate.ToString("yyyy-MM-dd")</td>
+                            <td style="white-space:normal;">@(string.IsNullOrWhiteSpace(r.Title) ? "-" : r.Title)</td>
+                            <td style="white-space:normal; max-width: 480px;" title="@r.Body">
+                                @Excerpt(r.Body)
+                            </td>
+                            <td>
+                                @if (string.IsNullOrWhiteSpace(proof))
+                                {
+                                    <span class="text-muted">—</span>
+                                }
+                                else if (!string.IsNullOrWhiteSpace(r.OrderUrl))
+                                {
+                                    <a href="@r.OrderUrl" target="_blank" rel="noopener">link</a>
+                                }
+                                else
+                                {
+                                    @r.OrderId
+                                }
+                            </td>
+                            <td>
+                                <a asp-action="Show" asp-route-id="@r.DirectoryEntryReviewId">View</a>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        var last = LastPage();
+
+        <div class="mt-3">
+            <span>Page @Model.Page of @last (@Model.Total total)</span>
+            <div>
+                @if (Model.Page > 1)
+                {
+                    <a asp-action="LowRated"
+                       asp-route-maxRating="@Model.MaxRating"
+                       asp-route-status="@(Model.Status?.ToString())"
+                       asp-route-page="@(Model.Page - 1)"
+                       asp-route-pageSize="@Model.PageSize">Prev</a>
+                    @: |
+                }
+                @if (Model.Page < last)
+                {
+                    <a asp-action="LowRated"
+                       asp-route-maxRating="@Model.MaxRating"
+                       asp-route-status="@(Model.Status?.ToString())"
+                       asp-route-page="@(Model.Page + 1)"
+                       asp-route-pageSize="@Model.PageSize">Next</a>
+                }
+            </div>
+        </div>
+    }
+}
