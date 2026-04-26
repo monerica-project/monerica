@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Services.Interfaces;
+﻿using DirectoryManager.Services.Exceptions;
+using DirectoryManager.Services.Interfaces;
 using DirectoryManager.Services.Models;
 using SendGrid;
 using SendGrid.Helpers.Mail;
@@ -61,23 +62,23 @@ namespace DirectoryManager.Services.Implementations
             }
             else
             {
-                // Add recipients as BCC for bulk sending
                 var emailAddresses = recipients.Select(recipient => new EmailAddress(recipient)).ToList();
                 msg.AddBccs(emailAddresses);
-
-                // todo: add unsub for here
             }
 
-            try
+            var response = await this.client.SendEmailAsync(msg);
+            var statusCode = (int)response.StatusCode;
+            var body = await response.Body.ReadAsStringAsync();
+
+            // SendGrid returns 202 Accepted on success. Anything outside 2xx is a failure
+            // that the SDK does NOT throw for. We must surface it ourselves so the
+            // caller can decide whether to retry or skip logging the delivery.
+            if (statusCode < 200 || statusCode >= 300)
             {
-                var response = await this.client.SendEmailAsync(msg);
-                Console.WriteLine(response.StatusCode);
-                Console.WriteLine(await response.Body.ReadAsStringAsync());
+                throw new SendGridDeliveryException(statusCode, body);
             }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Failed to send email: {ex.Message}");
-            }
+
+            Console.WriteLine($"SendGrid accepted message ({statusCode}) for {string.Join(",", recipients)}");
         }
 
         public void AddUnsubscribeHeaders(string recipientEmail, SendGridMessage msg)
@@ -87,13 +88,8 @@ namespace DirectoryManager.Services.Implementations
                 return;
             }
 
-            // Generate unsubscribe link using the dynamic recipient email
             var unsubscribeUrl = string.Format(this.unsubscribeUrlFormat, Uri.EscapeDataString(recipientEmail));
-
-            // Add List-Unsubscribe header with both mailto and HTTPS options
             msg.AddHeader("List-Unsubscribe", $"<mailto:{this.unsubscribeEmail}>, <{unsubscribeUrl}>");
-
-            // Add List-Unsubscribe-Post header for one-click unsubscribe
             msg.AddHeader("List-Unsubscribe-Post", "List-Unsubscribe=One-Click");
         }
     }
