@@ -44,5 +44,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<Dictionary<int, int>> GetActiveSponsorCountBySubcategoryAsync(SponsorshipType type);
 
         Task<List<SponsorTickerItemVm>> GetSponsorTickerItemsAsync();
+         
     }
 }

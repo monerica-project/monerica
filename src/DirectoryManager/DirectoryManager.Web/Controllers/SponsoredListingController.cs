@@ -65,6 +65,171 @@ namespace DirectoryManager.Web.Controllers
         }
 
         // =====================================================================
+        // CREATE (admin, no invoice)
+        // =====================================================================
+
+        [Route("sponsoredlisting/create")]
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> CreateAsync()
+        {
+            var entries = (await this.directoryEntryRepository.GetAllowableAdvertisers().ConfigureAwait(false))
+                .OrderBy(e => e.Name)
+                .ToList();
+
+            var subcategories = (await this.subCategoryRepository.GetAllActiveSubCategoriesAsync().ConfigureAwait(false))
+                .OrderBy(s => s.Category.Name).ThenBy(s => s.Name)
+                .ToList();
+
+            var categories = (await this.categoryRepository.GetAllAsync().ConfigureAwait(false))
+                .OrderBy(c => c.Name)
+                .ToList();
+
+            this.ViewBag.DirectoryEntries = entries;
+            this.ViewBag.Subcategories = subcategories;
+            this.ViewBag.Categories = categories;
+
+            var now = DateTime.UtcNow;
+            return this.View(new CreateListingViewModel
+            {
+                CampaignStartDate = now,
+                CampaignEndDate = now.AddDays(30),
+                SponsorshipType = SponsorshipType.MainSponsor,
+            });
+        }
+
+        [Route("sponsoredlisting/create")]
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> CreateAsync(CreateListingViewModel model)
+        {
+            if (model.CampaignEndDate <= model.CampaignStartDate)
+            {
+                this.ModelState.AddModelError(nameof(model.CampaignEndDate), "End date must be after start date.");
+            }
+
+            var entry = await this.directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId).ConfigureAwait(false);
+            if (entry == null)
+            {
+                this.ModelState.AddModelError(nameof(model.DirectoryEntryId), "Directory entry not found.");
+            }
+
+            if (model.SponsorshipType == SponsorshipType.SubcategorySponsor && !model.SubCategoryId.HasValue)
+            {
+                this.ModelState.AddModelError(nameof(model.SubCategoryId), "Subcategory is required for Subcategory Sponsor.");
+            }
+
+            if (model.SponsorshipType == SponsorshipType.CategorySponsor && !model.CategoryId.HasValue)
+            {
+                this.ModelState.AddModelError(nameof(model.CategoryId), "Category is required for Category Sponsor.");
+            }
+
+            if (!this.ModelState.IsValid || entry == null)
+            {
+                await this.PopulateCreateDropdownsAsync();
+                return this.View(model);
+            }
+
+            int? subCategoryId = model.SponsorshipType == SponsorshipType.SubcategorySponsor
+                ? model.SubCategoryId
+                : entry.SubCategoryId;
+
+            int? categoryId = model.SponsorshipType == SponsorshipType.CategorySponsor
+                ? model.CategoryId
+                : entry.SubCategory?.CategoryId;
+
+            var listing = new SponsoredListing
+            {
+                DirectoryEntryId = entry.DirectoryEntryId,
+                SponsorshipType = model.SponsorshipType,
+                CampaignStartDate = DateTime.SpecifyKind(model.CampaignStartDate, DateTimeKind.Utc),
+                CampaignEndDate = DateTime.SpecifyKind(model.CampaignEndDate, DateTimeKind.Utc),
+                SubCategoryId = subCategoryId,
+                CategoryId = categoryId,
+                SponsoredListingInvoiceId = 0, // no invoice — admin-created
+            };
+
+            var created = await this.sponsoredListingRepository.CreateAsync(listing).ConfigureAwait(false);
+            this.ClearCachedItems();
+
+            var admin = this.User?.Identity?.Name ?? "(unknown)";
+            this.logger.LogInformation(
+                "Sponsored listing {ListingId} created by {Admin} with no invoice (entry {EntryId}, type {Type}, {Start:yyyy-MM-dd} -> {End:yyyy-MM-dd}).",
+                created.SponsoredListingId, admin, entry.DirectoryEntryId, model.SponsorshipType,
+                listing.CampaignStartDate, listing.CampaignEndDate);
+
+            return this.RedirectToAction(nameof(this.List));
+        }
+
+        // =====================================================================
+        // DELETE
+        // =====================================================================
+
+        [Route("sponsoredlisting/delete/{sponsoredListingId:int}")]
+        [HttpGet]
+        [Authorize]
+        public async Task<IActionResult> DeleteAsync(int sponsoredListingId)
+        {
+            var listing = await this.sponsoredListingRepository.GetByIdAsync(sponsoredListingId).ConfigureAwait(false);
+            if (listing == null)
+            {
+                return this.NotFound();
+            }
+
+            var entry = await this.directoryEntryRepository.GetByIdAsync(listing.DirectoryEntryId).ConfigureAwait(false);
+
+            return this.View(new EditListingViewModel
+            {
+                Id = listing.SponsoredListingId,
+                CampaignStartDate = listing.CampaignStartDate,
+                CampaignEndDate = listing.CampaignEndDate,
+                SponsorshipType = listing.SponsorshipType,
+                Name = entry?.Name ?? "(unknown)",
+                SponsoredListingInvoiceId = listing.SponsoredListingInvoiceId,
+            });
+        }
+
+        [Route("sponsoredlisting/delete/{sponsoredListingId:int}")]
+        [HttpPost]
+        [Authorize]
+        [ValidateAntiForgeryToken]
+        [ActionName("Delete")]
+        public async Task<IActionResult> DeleteConfirmedAsync(int sponsoredListingId)
+        {
+            var listing = await this.sponsoredListingRepository.GetByIdAsync(sponsoredListingId).ConfigureAwait(false);
+            if (listing == null)
+            {
+                return this.NotFound();
+            }
+
+            await this.sponsoredListingRepository.DeleteAsync(sponsoredListingId).ConfigureAwait(false);
+            this.ClearCachedItems();
+
+            var admin = this.User?.Identity?.Name ?? "(unknown)";
+            this.logger.LogWarning(
+                "Sponsored listing {ListingId} deleted by {Admin} (entry {EntryId}, type {Type}, invoice {InvoiceId}).",
+                sponsoredListingId, admin, listing.DirectoryEntryId, listing.SponsorshipType, listing.SponsoredListingInvoiceId);
+
+            return this.RedirectToAction(nameof(this.List));
+        }
+
+        private async Task PopulateCreateDropdownsAsync()
+        {
+            this.ViewBag.DirectoryEntries = (await this.directoryEntryRepository.GetAllowableAdvertisers().ConfigureAwait(false))
+                .OrderBy(e => e.Name)
+                .ToList();
+
+            this.ViewBag.Subcategories = (await this.subCategoryRepository.GetAllActiveSubCategoriesAsync().ConfigureAwait(false))
+                .OrderBy(s => s.Category.Name).ThenBy(s => s.Name)
+                .ToList();
+
+            this.ViewBag.Categories = (await this.categoryRepository.GetAllAsync().ConfigureAwait(false))
+                .OrderBy(c => c.Name)
+                .ToList();
+        }
+
+        // =====================================================================
         // INDEX
         // =====================================================================
 

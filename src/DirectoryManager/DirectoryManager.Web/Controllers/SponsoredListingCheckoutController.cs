@@ -459,31 +459,39 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> NowPaymentsSuccess([FromQuery] string NP_id)
         {
             var processorInvoice = await this.paymentService.GetPaymentStatusAsync(NP_id);
-            if (processorInvoice?.OrderId == null)
+            if (processorInvoice?.OrderId == null
+                || !Guid.TryParse(processorInvoice.OrderId, out var orderGuid))
             {
                 return this.BadRequest(new { Error = StringConstants.InvoiceNotFound });
             }
 
-            var invoice = await this.sponsoredListingInvoiceRepository.GetByInvoiceIdAsync(Guid.Parse(processorInvoice.OrderId)).ConfigureAwait(false);
+            var invoice = await this.sponsoredListingInvoiceRepository
+                .GetByInvoiceIdAsync(orderGuid)
+                .ConfigureAwait(false);
             if (invoice == null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvoiceNotFound });
             }
 
-            if (invoice.PaymentStatus == PaymentStatus.Canceled)
+            if (string.IsNullOrWhiteSpace(invoice.ProcessorInvoiceId))
             {
-                invoice.PaymentResponse = NP_id;
-                await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
+                invoice.ProcessorInvoiceId = NP_id;
+                await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice).ConfigureAwait(false);
             }
-            else if (invoice.PaymentStatus != PaymentStatus.Paid)
+            else if (!string.Equals(invoice.ProcessorInvoiceId, NP_id, StringComparison.Ordinal))
             {
-                invoice.PaymentStatus = PaymentStatus.Paid;
-                invoice.PaymentResponse = NP_id;
-                await this.CreateNewSponsoredListingAsync(invoice);
-                await this.TryCreateAffiliateCommissionAsync(invoice);
+                this.logger.LogWarning(
+                    "NowPaymentsSuccess: NP_id {Np} does not match stored ProcessorInvoiceId {DbId} for order {OrderId}.",
+                    NP_id, invoice.ProcessorInvoiceId, invoice.InvoiceId);
+                return this.NotFound();
             }
 
-            return this.View("NowPaymentsSuccess", new SuccessViewModel { OrderId = invoice.InvoiceId, ListingEndDate = invoice.CampaignEndDate });
+            this.ViewBag.IsPending = invoice.PaymentStatus != PaymentStatus.Paid;
+            return this.View("NowPaymentsSuccess", new SuccessViewModel
+            {
+                OrderId = invoice.InvoiceId,
+                ListingEndDate = invoice.CampaignEndDate,
+            });
         }
 
         // =====================================================================
@@ -539,30 +547,24 @@ namespace DirectoryManager.Web.Controllers
         [Route("sponsoredlisting/btcpaysuccess")]
         public async Task<IActionResult> BtcPaySuccess([FromQuery] Guid? orderId)
         {
-            // orderId is our internal GUID embedded in the RedirectUrl we supplied to BTCPay.
-            // Lookup by primary key — reliable regardless of redirect timing.
             if (!orderId.HasValue || orderId.Value == Guid.Empty)
             {
                 this.logger.LogWarning("BtcPaySuccess reached without a valid orderId.");
                 return this.View("BtcPaySuccess", new SuccessViewModel { OrderId = Guid.Empty, ListingEndDate = DateTime.MinValue });
             }
 
-            var invoice = await this.sponsoredListingInvoiceRepository.GetByInvoiceIdAsync(orderId.Value).ConfigureAwait(false);
+            var invoice = await this.sponsoredListingInvoiceRepository
+                .GetByInvoiceIdAsync(orderId.Value)
+                .ConfigureAwait(false);
             if (invoice == null || invoice.PaymentProcessor != PaymentProcessor.BTCPayServer)
             {
                 this.logger.LogWarning("BtcPaySuccess: no BTCPay invoice found for orderId {OrderId}", orderId);
                 return this.View("BtcPaySuccess", new SuccessViewModel { OrderId = Guid.Empty, ListingEndDate = DateTime.MinValue });
             }
 
-            // Verify payment with BTCPay using the DB-stored processor invoice ID.
-            // The URL is never trusted for this — only the value we persisted at checkout.
-            if (!SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus)
-                && !string.IsNullOrWhiteSpace(invoice.ProcessorInvoiceId))
-            {
-                await this.TryConfirmBtcPayInvoiceAsync(invoice, invoice.ProcessorInvoiceId);
-            }
-
-            // Underpayment → dedicated page explaining what happened and how to resolve it.
+            // Display-only. PaymentStatus changes happen in the BTCPay webhook
+            // (BtcPayCallbackAsync), which is signature-validated and authoritative.
+            // Underpayment → dedicated page.
             if (invoice.PaymentStatus == PaymentStatus.UnderPayment)
             {
                 return this.View("PartialPayment", new SuccessViewModel
@@ -573,7 +575,11 @@ namespace DirectoryManager.Web.Controllers
             }
 
             this.ViewBag.IsPending = !SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus);
-            return this.View("BtcPaySuccess", new SuccessViewModel { OrderId = invoice.InvoiceId, ListingEndDate = invoice.CampaignEndDate });
+            return this.View("BtcPaySuccess", new SuccessViewModel
+            {
+                OrderId = invoice.InvoiceId,
+                ListingEndDate = invoice.CampaignEndDate,
+            });
         }
 
         [HttpGet]
@@ -635,17 +641,13 @@ namespace DirectoryManager.Web.Controllers
                         ? DateTimeOffset.FromUnixTimeSeconds(btcInvoice.ExpirationTime).UtcDateTime
                         : (DateTime?)null;
 
-                    // If BTCPay says settled/complete but our DB hasn't caught up yet
-                    // (webhook delay), update it now so the next refresh goes to success.
-                    if (btcInvoice.IsSettled && !SponsoredListingCheckoutHelper.IsPaidOrOverpaid(dbInvoice.PaymentStatus))
+                    // If BTCPay says settled, redirect to the success page.
+                    // We don't write PaymentStatus here — that's the webhook's job.
+                    // If the webhook hasn't landed yet, the success page will show "pending"
+                    // until the webhook updates the DB, then a refresh will show "paid".
+                    if (btcInvoice.IsSettled)
                     {
-                        await this.TryConfirmBtcPayInvoiceAsync(dbInvoice, processorInvoiceId)
-                            .ConfigureAwait(false);
-
-                        if (SponsoredListingCheckoutHelper.IsPaidOrOverpaid(dbInvoice.PaymentStatus))
-                        {
-                            return this.RedirectToAction("BtcPaySuccess", new { orderId });
-                        }
+                        return this.RedirectToAction("BtcPaySuccess", new { orderId });
                     }
 
                     // Expired with partial payment → route through BtcPaySuccess, which now

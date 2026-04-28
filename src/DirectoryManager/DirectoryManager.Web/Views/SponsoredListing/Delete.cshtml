@@ -1,0 +1,58 @@
+﻿@using DirectoryManager.Web.Constants
+@model DirectoryManager.Web.Models.EditListingViewModel
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Delete Sponsored Listing";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+
+    <p>
+        You are about to <strong>permanently delete</strong> the following sponsored listing.
+        This cannot be undone.
+    </p>
+
+    <hr />
+
+    <dl class="row">
+        <dt>Listing</dt>
+        <dd>@Model.Name</dd>
+
+        <dt>Sponsorship Type</dt>
+        <dd>@Model.SponsorshipType</dd>
+
+        <dt>Campaign Start</dt>
+        <dd>@Model.CampaignStartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</dd>
+
+        <dt>Campaign End</dt>
+        <dd>@Model.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</dd>
+
+        <dt>Linked Invoice</dt>
+        <dd>
+            @if (Model.SponsoredListingInvoiceId > 0)
+            {
+                <a href="~/sponsoredlistinginvoice/details?id=@Model.SponsoredListingInvoiceId">@Model.SponsoredListingInvoiceId</a>
+                <span> &mdash; deleting this listing will not delete or refund the invoice.</span>
+            }
+            else
+            {
+                <span>(none — admin-created)</span>
+            }
+        </dd>
+    </dl>
+
+    <hr />
+
+    <form method="post" asp-action="Delete" asp-route-sponsoredListingId="@Model.Id">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn"
+                onclick="return confirm('Permanently delete this sponsored listing? This cannot be undone.');">
+            Delete Permanently
+        </button>
+        <a href="@Url.Action("List")">Cancel</a>
+    </form>
+}

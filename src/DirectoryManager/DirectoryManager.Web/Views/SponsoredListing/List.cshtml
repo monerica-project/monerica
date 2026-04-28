@@ -50,7 +50,11 @@
                                 <text>&#128308;</text>
                             }
                         </td>
-                        <td><a href="@Url.Action("Edit", "SponsoredListing", new { id = listing.Id })">Edit</a></td>
+                        <td>
+                            <a href="@Url.Action("Edit", new { sponsoredListingId = listing.Id })">Edit</a>
+                            &nbsp;|&nbsp;
+                            <a href="@Url.Action("Delete", new { sponsoredListingId = listing.Id })">Delete</a>
+                        </td>
                     </tr>
                 }
             </tbody>
@@ -83,4 +87,8 @@
             &raquo;
         </a>
     </div>
+
+    <p>
+        <a href="@Url.Action("Create")">Create New Listing</a>
+    </p>
 }

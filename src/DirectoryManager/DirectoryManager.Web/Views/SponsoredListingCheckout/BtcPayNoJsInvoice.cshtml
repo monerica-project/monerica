@@ -96,6 +96,11 @@
 
     .value { display: block; font-size: 0.9rem; color: #e8e8e8; }
 
+    .description {
+        word-break: normal;
+        overflow-wrap: anywhere;
+    }
+
     .amount {
         font-size: 1.4rem;
         font-weight: bold;
@@ -180,7 +185,7 @@
             {
                 <div class="field" style="margin-bottom:0;">
                     <span class="label">Description:</span>
-                    <span class="value">@Model.InvoiceDescription</span>
+                    <span class="value description">@Model.InvoiceDescription</span>
                 </div>
             }
         </div>
@@ -232,7 +237,7 @@
             {
                 <div class="field" style="margin-bottom:0;">
                     <span class="label">Description:</span>
-                    <span class="value">@Model.InvoiceDescription</span>
+                    <span class="value description">@Model.InvoiceDescription</span>
                 </div>
             }
         </div>

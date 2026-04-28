@@ -1,0 +1,136 @@
+﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models
+@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.Web.Constants
+@model DirectoryManager.Web.Models.CreateListingViewModel
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Create Sponsored Listing";
+    Layout = "_CenteredLayout";
+
+    var entries = (List<DirectoryEntry>)ViewBag.DirectoryEntries;
+    var subcategories = (List<Subcategory>)ViewBag.Subcategories;
+    var categories = (List<Category>)ViewBag.Categories;
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+
+    <p>
+        Use this form to create a sponsored listing directly, without an invoice.
+        For paid checkouts, use the normal flow — this is for manual / comp listings only.
+    </p>
+
+    <hr />
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="error">
+            @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <p>@err.ErrorMessage</p>
+            }
+        </div>
+    }
+
+    <form method="post">
+        @Html.AntiForgeryToken()
+
+        <div class="form-group">
+            <label for="DirectoryEntryId">Directory Entry</label>
+            <select id="DirectoryEntryId" name="DirectoryEntryId" required>
+                <option value="">-- Select listing --</option>
+                @foreach (var e in entries)
+                {
+                    if (Model.DirectoryEntryId == e.DirectoryEntryId)
+                    {
+                        <option value="@e.DirectoryEntryId" selected="selected">@e.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@e.DirectoryEntryId">@e.Name</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="SponsorshipType">Sponsorship Type</label>
+            <select id="SponsorshipType" name="SponsorshipType" required>
+                @foreach (var st in Enum.GetValues(typeof(SponsorshipType)).Cast<SponsorshipType>().Where(x => x != SponsorshipType.Unknown))
+                {
+                    if (Model.SponsorshipType == st)
+                    {
+                        <option value="@st" selected="selected">@st</option>
+                    }
+                    else
+                    {
+                        <option value="@st">@st</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="SubCategoryId">Subcategory (only required for Subcategory Sponsor)</label>
+            <select id="SubCategoryId" name="SubCategoryId">
+                <option value="">-- None --</option>
+                @foreach (var s in subcategories)
+                {
+                    var label = FormattingHelper.SubcategoryFormatting(s.Category.Name, s.Name);
+                    if (Model.SubCategoryId == s.SubCategoryId)
+                    {
+                        <option value="@s.SubCategoryId" selected="selected">@label</option>
+                    }
+                    else
+                    {
+                        <option value="@s.SubCategoryId">@label</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="CategoryId">Category (only required for Category Sponsor)</label>
+            <select id="CategoryId" name="CategoryId">
+                <option value="">-- None --</option>
+                @foreach (var c in categories)
+                {
+                    if (Model.CategoryId == c.CategoryId)
+                    {
+                        <option value="@c.CategoryId" selected="selected">@c.Name</option>
+                    }
+                    else
+                    {
+                        <option value="@c.CategoryId">@c.Name</option>
+                    }
+                }
+            </select>
+        </div>
+
+        <div class="form-group">
+            <label for="CampaignStartDate">Campaign Start (UTC)</label>
+            <input type="datetime-local"
+                   id="CampaignStartDate"
+                   name="CampaignStartDate"
+                   value="@Model.CampaignStartDate.ToString("yyyy-MM-ddTHH:mm")"
+                   required />
+        </div>
+
+        <div class="form-group">
+            <label for="CampaignEndDate">Campaign End (UTC)</label>
+            <input type="datetime-local"
+                   id="CampaignEndDate"
+                   name="CampaignEndDate"
+                   value="@Model.CampaignEndDate.ToString("yyyy-MM-ddTHH:mm")"
+                   required />
+        </div>
+
+        <hr />
+
+        <button class="btn" type="submit">Create Listing</button>
+        <a href="@Url.Action("List")">Cancel</a>
+    </form>
+}
