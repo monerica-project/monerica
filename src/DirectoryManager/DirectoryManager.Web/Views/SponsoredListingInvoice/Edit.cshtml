@@ -1,0 +1,82 @@
+﻿@model DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice
+@using DirectoryManager.Web.Constants
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Edit Invoice";
+    Layout = "_CenteredLayout";
+    var statusOptions = (List<Microsoft.AspNetCore.Mvc.Rendering.SelectListItem>)ViewBag.PaymentStatusOptions;
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+
+    <p>
+        Editing invoice <strong>@Model.InvoiceId</strong>
+        (DB id @Model.SponsoredListingInvoiceId).
+    </p>
+
+    <p>
+        <em>Note:</em> changing the status here will not auto-activate or deactivate
+        the sponsored listing. Manage the listing separately if needed.
+    </p>
+
+    <hr />
+
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="error">
+            @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            {
+                <p>@err.ErrorMessage</p>
+            }
+        </div>
+    }
+
+    <form method="post" asp-action="Edit" asp-route-id="@Model.SponsoredListingInvoiceId">
+        @Html.AntiForgeryToken()
+
+        <dl class="row">
+            <dt>Amount</dt>
+            <dd>@Model.Amount @Model.Currency</dd>
+
+            <dt>Sponsorship Type</dt>
+            <dd>@Model.SponsorshipType</dd>
+
+            <dt>Campaign</dt>
+            <dd>
+                @Model.CampaignStartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+                &mdash;
+                @Model.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+            </dd>
+
+            <dt><label for="paymentStatus">Payment Status</label></dt>
+            <dd>
+                <select id="paymentStatus" name="paymentStatus">
+                    @foreach (var o in statusOptions)
+                    {
+                        if (o.Selected)
+                        {
+                            <option value="@o.Value" selected="selected">@o.Text</option>
+                        }
+                        else
+                        {
+                            <option value="@o.Value">@o.Text</option>
+                        }
+                    }
+                </select>
+            </dd>
+
+            <dt><label for="email">Email</label></dt>
+            <dd>
+                <input type="email" id="email" name="email" value="@Model.Email" maxlength="320" />
+            </dd>
+        </dl>
+
+        <hr />
+
+        <button type="submit">Save</button>
+        <a href="@Url.Action("Details", new { id = Model.SponsoredListingInvoiceId })">Cancel</a>
+    </form>
+}

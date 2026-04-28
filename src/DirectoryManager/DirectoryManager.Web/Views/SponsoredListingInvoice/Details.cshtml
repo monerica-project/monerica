@@ -130,7 +130,9 @@
     <hr />
 </div>
 
-<div>
-    <a href="@Url.Action("Index")">Back to List</a>
-</div>
+    <div>
+        <a href="@Url.Action("Edit", new { id = Model.SponsoredListingInvoiceId })">Edit</a>
+        &nbsp;|&nbsp;
+        <a href="@Url.Action("Index")">Back to List</a>
+    </div>
 }

@@ -1,16 +1,45 @@
-﻿@using DirectoryManager.Web.Constants;
-@{
-    ViewData[StringConstants.TitleHeader] = "Partial Payment of Sponsored Listings";
-}
+﻿@model DirectoryManager.Web.Models.SuccessViewModel
+@using DirectoryManager.Web.Constants
 
 @{
+    ViewData[StringConstants.TitleHeader] = "Partial Payment Received";
     Layout = "_CenteredLayout";
 }
+
 @section PageContent {
 
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
-<hr />
-@await Html.PartialAsync("_BackToHome")
-<hr />
+    <hr />
+
+    <p>
+        We received a partial payment for your sponsored listing order, but the
+        invoice expired before the full amount arrived. Because the payment was
+        incomplete, your listing has <strong>not</strong> been activated.
+    </p>
+
+    <p>
+        Your order ID is <strong>@Model.OrderId</strong>. Please save this — you'll
+        need it if you contact support.
+    </p>
+
+    <h2>What happens next</h2>
+
+    <p>
+        Please reach out so we can resolve this. We can either:
+    </p>
+
+    <ul>
+        <li>Apply your partial payment as credit toward a new order, or</li>
+        <li>Refund the partial payment to a Monero address you provide.</li>
+    </ul>
+
+    <p>
+        Contact us through the <a asp-controller="Contact" asp-action="Index">contact page</a>
+        and include your order ID above.
+    </p>
+
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+
 }

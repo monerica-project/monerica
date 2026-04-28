@@ -2,7 +2,6 @@ using Newtonsoft.Json;
 
 namespace BtcPayServer.API.Models
 {
-
     public class BtcPayWebhookPayload
     {
         [JsonProperty("deliveryId")]
@@ -38,5 +37,21 @@ namespace BtcPayServer.API.Models
         /// </summary>
         [JsonProperty("payment")]
         public BtcPayWebhookPayment? Payment { get; set; }
+
+        /// <summary>True on InvoiceExpired when partial payments were received before expiry.</summary>
+        [JsonProperty("partiallyPaid")]
+        public bool PartiallyPaid { get; set; }
+
+        /// <summary>True on InvoiceSettled / InvoiceProcessing when the invoice received more than expected.</summary>
+        [JsonProperty("overPaid")]
+        public bool OverPaid { get; set; }
+
+        /// <summary>True on InvoiceSettled / InvoiceInvalid when manually marked by an admin.</summary>
+        [JsonProperty("manuallyMarked")]
+        public bool ManuallyMarked { get; set; }
+
+        /// <summary>True on InvoiceReceivedPayment / InvoicePaymentSettled if the payment arrived after expiry.</summary>
+        [JsonProperty("afterExpiration")]
+        public bool AfterExpiration { get; set; }
     }
 }

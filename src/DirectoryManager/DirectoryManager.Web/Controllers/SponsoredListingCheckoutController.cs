@@ -556,12 +556,23 @@ namespace DirectoryManager.Web.Controllers
 
             // Verify payment with BTCPay using the DB-stored processor invoice ID.
             // The URL is never trusted for this — only the value we persisted at checkout.
-            if (invoice.PaymentStatus != PaymentStatus.Paid && !string.IsNullOrWhiteSpace(invoice.ProcessorInvoiceId))
+            if (!SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus)
+                && !string.IsNullOrWhiteSpace(invoice.ProcessorInvoiceId))
             {
                 await this.TryConfirmBtcPayInvoiceAsync(invoice, invoice.ProcessorInvoiceId);
             }
 
-            this.ViewBag.IsPending = invoice.PaymentStatus != PaymentStatus.Paid;
+            // Underpayment → dedicated page explaining what happened and how to resolve it.
+            if (invoice.PaymentStatus == PaymentStatus.UnderPayment)
+            {
+                return this.View("PartialPayment", new SuccessViewModel
+                {
+                    OrderId = invoice.InvoiceId,
+                    ListingEndDate = invoice.CampaignEndDate,
+                });
+            }
+
+            this.ViewBag.IsPending = !SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus);
             return this.View("BtcPaySuccess", new SuccessViewModel { OrderId = invoice.InvoiceId, ListingEndDate = invoice.CampaignEndDate });
         }
 
@@ -626,15 +637,22 @@ namespace DirectoryManager.Web.Controllers
 
                     // If BTCPay says settled/complete but our DB hasn't caught up yet
                     // (webhook delay), update it now so the next refresh goes to success.
-                    if (btcInvoice.IsSettled && dbInvoice.PaymentStatus != PaymentStatus.Paid)
+                    if (btcInvoice.IsSettled && !SponsoredListingCheckoutHelper.IsPaidOrOverpaid(dbInvoice.PaymentStatus))
                     {
                         await this.TryConfirmBtcPayInvoiceAsync(dbInvoice, processorInvoiceId)
                             .ConfigureAwait(false);
 
-                        if (dbInvoice.PaymentStatus == PaymentStatus.Paid)
+                        if (SponsoredListingCheckoutHelper.IsPaidOrOverpaid(dbInvoice.PaymentStatus))
                         {
                             return this.RedirectToAction("BtcPaySuccess", new { orderId });
                         }
+                    }
+
+                    // Expired with partial payment → route through BtcPaySuccess, which now
+                    // dispatches UnderPayment to the PartialPayment view.
+                    if (dbInvoice.PaymentStatus == PaymentStatus.UnderPayment)
+                    {
+                        return this.RedirectToAction("BtcPaySuccess", new { orderId });
                     }
                 }
             }
@@ -1148,27 +1166,27 @@ namespace DirectoryManager.Web.Controllers
         {
             invoice.PaymentResponse = JsonConvert.SerializeObject(payload);
 
-            var proposed = payload.Type switch
-            {
-                "InvoiceSettled" or "InvoicePaymentSettled" => PaymentStatus.Paid,
-                "InvoiceProcessing" or "InvoiceReceivedPayment" => PaymentStatus.Pending,
-                "InvoiceExpired" => PaymentStatus.Expired,
-                "InvoiceInvalid" => PaymentStatus.Failed,
-                _ => invoice.PaymentStatus,
-            };
+            var proposed = SponsoredListingCheckoutHelper.MapBtcPayEventToInternalStatus(
+                payload.Type,
+                partiallyPaid: payload.PartiallyPaid,
+                overPaid: payload.OverPaid);
 
-            if (!SponsoredListingCheckoutHelper.IsTerminal(invoice.PaymentStatus) &&
-                SponsoredListingCheckoutHelper.StatusRank[proposed] > SponsoredListingCheckoutHelper.StatusRank[invoice.PaymentStatus])
+            if (proposed != PaymentStatus.Unknown
+                && !SponsoredListingCheckoutHelper.IsTerminal(invoice.PaymentStatus)
+                && SponsoredListingCheckoutHelper.StatusRank[proposed] >
+                   SponsoredListingCheckoutHelper.StatusRank[invoice.PaymentStatus])
             {
                 invoice.PaymentStatus = proposed;
             }
 
-            if (invoice.PaymentStatus is PaymentStatus.Paid or PaymentStatus.Pending)
+            // Capture XMR amount whenever we're at or past Pending — covers Pending, UnderPayment,
+            // Paid, and OverPayment. InvoiceReceivedPayment and InvoicePaymentSettled carry payment.value
+            // directly; InvoiceSettled is aggregate and needs the payment-methods endpoint.
+            if (invoice.PaymentStatus is PaymentStatus.Pending
+                                      or PaymentStatus.UnderPayment
+                                      or PaymentStatus.Paid
+                                      or PaymentStatus.OverPayment)
             {
-                // InvoiceReceivedPayment and InvoicePaymentSettled carry payment.value directly
-                // in the webhook body — use it immediately, no extra API call needed.
-                // InvoiceSettled is an aggregate event with no per-payment detail, so fall back
-                // to the payment-methods endpoint for that case.
                 var ns = System.Globalization.NumberStyles.Any;
                 var ci = System.Globalization.CultureInfo.InvariantCulture;
 
@@ -1183,7 +1201,6 @@ namespace DirectoryManager.Web.Controllers
                 }
                 else
                 {
-                    // InvoiceSettled or webhook fired without payment detail — query the API.
                     await this.PopulateBtcPayPaymentAmountsAsync(invoice, payload.InvoiceId);
                 }
             }
@@ -1194,7 +1211,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             await this.CreateNewSponsoredListingAsync(invoice);
-            if (invoice.PaymentStatus == PaymentStatus.Paid)
+            if (SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus))
             {
                 await this.TryCreateAffiliateCommissionAsync(invoice);
             }
@@ -1207,7 +1224,13 @@ namespace DirectoryManager.Web.Controllers
                 var status = await this.btcPayServerService.GetInvoiceAsync(processorInvoiceId).ConfigureAwait(false);
                 if (status.Status is "Settled" or "Complete")
                 {
-                    invoice.PaymentStatus = PaymentStatus.Paid;
+                    // Don't clobber an existing OverPayment with Paid — the webhook is authoritative
+                    // for over/under detection. We only upgrade from non-settled states here.
+                    if (!SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus))
+                    {
+                        invoice.PaymentStatus = PaymentStatus.Paid;
+                    }
+
                     invoice.PaymentResponse = JsonConvert.SerializeObject(status);
                     await this.PopulateBtcPayPaymentAmountsAsync(invoice, processorInvoiceId);
                     await this.CreateNewSponsoredListingAsync(invoice);
@@ -1522,7 +1545,7 @@ namespace DirectoryManager.Web.Controllers
         private async Task CreateNewSponsoredListingAsync(SponsoredListingInvoice invoice)
         {
             if (!await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice).ConfigureAwait(false)) return;
-            if (invoice.PaymentStatus != PaymentStatus.Paid) return;
+            if (!SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus)) return;
 
             if (await this.sponsoredListingRepository.GetByInvoiceIdAsync(invoice.SponsoredListingInvoiceId).ConfigureAwait(false) != null) return;
 
@@ -1720,7 +1743,9 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task TryCreateAffiliateCommissionAsync(SponsoredListingInvoice invoice, CancellationToken ct = default)
         {
-            if (invoice?.PaymentStatus != PaymentStatus.Paid || string.IsNullOrWhiteSpace(invoice.ReferralCodeUsed))
+            if (invoice == null
+                || !SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus)
+                || string.IsNullOrWhiteSpace(invoice.ReferralCodeUsed))
             {
                 return;
             }

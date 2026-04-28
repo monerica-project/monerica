@@ -13,6 +13,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Net.Http.Headers;
+using Microsoft.Extensions.Logging;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -25,6 +26,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubcategoryRepository subCategoryRepository;
         private readonly ICacheService cacheService;
         private readonly IChurnService churnService;
+        private readonly ILogger<SponsoredListingInvoiceController> logger;
 
         public SponsoredListingInvoiceController(
             ISponsoredListingInvoiceRepository invoiceRepository,
@@ -32,7 +34,8 @@ namespace DirectoryManager.Web.Controllers
             ICategoryRepository categoryRepository,
             ISubcategoryRepository subCategoryRepository,
             ICacheService cacheService,
-            IChurnService churnService)
+            IChurnService churnService,
+            ILogger<SponsoredListingInvoiceController> logger)
         {
             this.invoiceRepository = invoiceRepository;
             this.directoryEntryRepository = directoryEntryRepository;
@@ -40,6 +43,7 @@ namespace DirectoryManager.Web.Controllers
             this.subCategoryRepository = subCategoryRepository;
             this.cacheService = cacheService;
             this.churnService = churnService ?? throw new ArgumentNullException(nameof(churnService));
+            this.logger = logger;
         }
 
         [Route("sponsoredlistinginvoice")]
@@ -157,6 +161,74 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(invoice);
         }
+
+        [Route("sponsoredlistinginvoice/edit/{id:int}")]
+        [HttpGet]
+        public async Task<IActionResult> Edit(int id)
+        {
+            var invoice = await this.invoiceRepository.GetByIdAsync(id).ConfigureAwait(false);
+            if (invoice == null)
+            {
+                return this.NotFound();
+            }
+
+            this.ViewBag.PaymentStatusOptions = BuildPaymentStatusOptions(invoice.PaymentStatus);
+            return this.View(invoice);
+        }
+
+        [Route("sponsoredlistinginvoice/edit/{id:int}")]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(int id, PaymentStatus paymentStatus, string? email)
+        {
+            var invoice = await this.invoiceRepository.GetByIdAsync(id).ConfigureAwait(false);
+            if (invoice == null)
+            {
+                return this.NotFound();
+            }
+
+            var oldStatus = invoice.PaymentStatus;
+            var oldEmail = invoice.Email;
+
+            invoice.PaymentStatus = paymentStatus;
+            invoice.Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
+
+            var ok = await this.invoiceRepository.UpdateAsync(invoice).ConfigureAwait(false);
+            if (!ok)
+            {
+                this.ModelState.AddModelError(string.Empty, "Failed to update the invoice.");
+                this.ViewBag.PaymentStatusOptions = BuildPaymentStatusOptions(invoice.PaymentStatus);
+                return this.View(invoice);
+            }
+
+            var admin = this.User?.Identity?.Name ?? "(unknown)";
+            if (oldStatus != paymentStatus)
+            {
+                this.logger.LogInformation(
+                    "Invoice {InvoiceId} (id {Id}) PaymentStatus changed by {Admin}: {Old} -> {New}",
+                    invoice.InvoiceId, invoice.SponsoredListingInvoiceId, admin, oldStatus, paymentStatus);
+            }
+
+            if (!string.Equals(oldEmail ?? string.Empty, invoice.Email ?? string.Empty, StringComparison.Ordinal))
+            {
+                this.logger.LogInformation(
+                    "Invoice {InvoiceId} (id {Id}) Email changed by {Admin}.",
+                    invoice.InvoiceId, invoice.SponsoredListingInvoiceId, admin);
+            }
+
+            return this.RedirectToAction(nameof(this.Details), new { id });
+        }
+
+        private static List<SelectListItem> BuildPaymentStatusOptions(PaymentStatus current) =>
+            Enum.GetValues(typeof(PaymentStatus))
+                .Cast<PaymentStatus>()
+                .Select(s => new SelectListItem
+                {
+                    Value = ((int)s).ToString(CultureInfo.InvariantCulture),
+                    Text = s.ToString(),
+                    Selected = s == current,
+                })
+                .ToList();
 
         [Route("report")]
         [HttpGet]
