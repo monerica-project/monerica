@@ -156,8 +156,8 @@ namespace DirectoryManager.Web.Controllers
         // ⚠️ Remove or re-add [Authorize] before production. For now it's open
         //    so you can hit it from a fresh browser without dealing with auth.
         // ─────────────────────────────────────────────────────────────────────
+        [Authorize]
         [HttpGet("/debug/url-resolver")]
-        [AllowAnonymous]
         public async Task<IActionResult> DebugUrlResolverAsync()
         {
             // Raw cache values (BEFORE any TrimEnd / processing)
