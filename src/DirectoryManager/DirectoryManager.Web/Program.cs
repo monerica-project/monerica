@@ -6,6 +6,7 @@ using DirectoryManager.Web.Middleware;
 using DirectoryManager.Web.Models;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.DataProtection;
+using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Rewrite;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
@@ -44,6 +45,20 @@ builder.Logging.AddSerilog(logger);
 builder.Services.Configure<AppSettings>(
     builder.Configuration
            .GetSection("Logging:TrafficLogging"));
+
+// Trust X-Forwarded-* headers from nginx so Request.Scheme/Host/IP are correct.
+// Must be configured before Build() and applied as the FIRST middleware below.
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor
+                             | ForwardedHeaders.XForwardedProto
+                             | ForwardedHeaders.XForwardedHost;
+
+    // nginx is on loopback / private IP and we don't enumerate it, so clear the
+    // default known-proxy list to accept the headers from any upstream.
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 // Configure application services
 builder.Services.AddApplicationServices(builder.Configuration);
@@ -86,24 +101,8 @@ builder.WebHost.ConfigureKestrel(options =>
 
 var app = builder.Build();
 
-// Middleware for HTTPS redirection
-app.Use(async (context, next) =>
-{
-    // Redirect HTTP requests (skip if behind a proxy that already terminated HTTPS)
-    var forwardedProto = context.Request.Headers["X-Forwarded-Proto"].ToString();
-    if (context.Connection.LocalPort == IntegerConstants.DefaultRemoteHttpPort
-        && !context.Request.IsHttps
-        && !string.Equals(forwardedProto, "https", StringComparison.OrdinalIgnoreCase)
-        && !context.Request.Host.Host.EndsWith(StringConstants.TorDomain, StringComparison.OrdinalIgnoreCase))
-    {
-        var httpsUrl = $"https://{context.Request.Host.Host}{context.Request.Path}{context.Request.QueryString}";
-        context.Response.Redirect(httpsUrl, permanent: true);
-        return;
-    }
-
-    // Allow requests on TorPort to remain HTTP-only
-    await next();
-});
+// MUST be first: applies X-Forwarded-Proto/For/Host before anything else inspects the request.
+app.UseForwardedHeaders();
 
 // Exception handling
 if (app.Environment.IsDevelopment())
@@ -127,10 +126,45 @@ else
             }
         });
     });
+
+    app.UseHsts();
 }
 
-// Additional Middleware and Route Configurations
+// HTTP -> HTTPS redirect (skips Tor and anything already https via forwarded headers).
+app.Use(async (context, next) =>
+{
+    if (context.Connection.LocalPort == IntegerConstants.DefaultRemoteHttpPort
+        && !context.Request.IsHttps
+        && !context.Request.Host.Host.EndsWith(StringConstants.TorDomain, StringComparison.OrdinalIgnoreCase))
+    {
+        var httpsUrl = $"https://{context.Request.Host.Host}{context.Request.Path}{context.Request.QueryString}";
+        context.Response.Redirect(httpsUrl, permanent: true);
+        return;
+    }
+
+    await next();
+});
+
+// Swallow client-disconnect noise; log real IO errors instead of hiding them.
+app.Use(async (ctx, next) =>
+{
+    try
+    {
+        await next();
+    }
+    catch (OperationCanceledException) when (ctx.RequestAborted.IsCancellationRequested)
+    {
+        // client went away mid-request, nothing to do
+    }
+    catch (IOException ex)
+    {
+        ctx.RequestServices.GetRequiredService<ILogger<Program>>()
+            .LogDebug(ex, "IO error in request pipeline for {Path}", ctx.Request.Path);
+    }
+});
+
 app.UseResponseCaching();
+app.UseStatusCodePagesWithRedirects("/errors/{0}");
 app.UseStaticFiles();
 
 // Apply ETag only to static paths
@@ -143,13 +177,6 @@ app.UseWhen(
        ctx.Request.Path.StartsWithSegments("/fonts", StringComparison.OrdinalIgnoreCase),
     branch => branch.UseMiddleware<ETagMiddleware>());
 
-app.Use(async (ctx, next) =>
-{
-    try { await next(); }
-    catch (OperationCanceledException) { }
-    catch (IOException) { }
-});
-
 // Configure URL rewriting for Production
 if (!app.Environment.IsDevelopment())
 {
@@ -157,10 +184,9 @@ if (!app.Environment.IsDevelopment())
     app.UseRewriter(rewriteOptions);
 }
 
-app.UseSession();
-app.UseStatusCodePagesWithRedirects("/errors/{0}");
 app.UseRouting();
 app.UseAuthentication();
 app.UseAuthorization();
+app.UseSession();
 app.MapDefaultControllerRoute();
 app.Run();
