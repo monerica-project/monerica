@@ -1,13 +1,31 @@
+using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Web.AppRules;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Middleware;
 using DirectoryManager.Web.Models;
 using Microsoft.AspNetCore.Diagnostics;
+using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Rewrite;
+using Microsoft.EntityFrameworkCore;
 using Serilog;
 
 var builder = WebApplication.CreateBuilder(args);
+
+// --migrate-only flag: run EF migrations and exit. Used by deploy script.
+if (args.Contains("--migrate-only"))
+{
+    builder.Services.AddDbContext<ApplicationDbContext>(opts =>
+        opts.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+    using var migrateApp = builder.Build();
+    using var scope = migrateApp.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+    Console.WriteLine("Applying migrations...");
+    db.Database.Migrate();
+    Console.WriteLine("Migrations complete.");
+    return;
+}
 
 // Load application settings with TorPort fallback if missing
 var appSettings = builder.Configuration.GetSection("ApplicationSettings").Get<ApplicationSettings>()
@@ -29,6 +47,16 @@ builder.Services.Configure<AppSettings>(
 
 // Configure application services
 builder.Services.AddApplicationServices(builder.Configuration);
+
+// Persist data protection keys outside the deploy dir so auth cookies survive deploys.
+if (!builder.Environment.IsDevelopment())
+{
+    var keysDir = new DirectoryInfo(Environment.GetEnvironmentVariable("DATAPROTECTION_KEYS_DIR") ?? "/var/keys/dm-web");
+    keysDir.Create();
+    builder.Services.AddDataProtection()
+        .PersistKeysToFileSystem(keysDir)
+        .SetApplicationName("dm-web");
+}
 
 // Configure Kestrel based on environment and certificate availability
 builder.WebHost.ConfigureKestrel(options =>
@@ -61,8 +89,12 @@ var app = builder.Build();
 // Middleware for HTTPS redirection
 app.Use(async (context, next) =>
 {
-    // Redirect HTTP requests
-    if (context.Connection.LocalPort == IntegerConstants.DefaultRemoteHttpPort && !context.Request.IsHttps)
+    // Redirect HTTP requests (skip if behind a proxy that already terminated HTTPS)
+    var forwardedProto = context.Request.Headers["X-Forwarded-Proto"].ToString();
+    if (context.Connection.LocalPort == IntegerConstants.DefaultRemoteHttpPort
+        && !context.Request.IsHttps
+        && !string.Equals(forwardedProto, "https", StringComparison.OrdinalIgnoreCase)
+        && !context.Request.Host.Host.EndsWith(StringConstants.TorDomain, StringComparison.OrdinalIgnoreCase))
     {
         var httpsUrl = $"https://{context.Request.Host.Host}{context.Request.Path}{context.Request.QueryString}";
         context.Response.Redirect(httpsUrl, permanent: true);

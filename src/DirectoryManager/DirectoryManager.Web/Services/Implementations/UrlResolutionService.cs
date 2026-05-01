@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Services.Interfaces;
+using Microsoft.Extensions.Logging;
 
 namespace DirectoryManager.Web.Services.Implementations
 {
@@ -8,26 +9,38 @@ namespace DirectoryManager.Web.Services.Implementations
     {
         private readonly IHttpContextAccessor http;
         private readonly ICacheService cache;
+        private readonly IWebHostEnvironment env;
+        private readonly ILogger<UrlResolutionService> logger;
         private readonly string torSuffix;
-        private readonly string appDomain;
-        private readonly string canonicalDomain;
 
         public UrlResolutionService(
             IHttpContextAccessor httpContextAccessor,
-            ICacheService cacheService)
+            ICacheService cacheService,
+            IWebHostEnvironment env,
+            ILogger<UrlResolutionService> logger)
         {
             this.http = httpContextAccessor;
             this.cache = cacheService;
+            this.env = env;
+            this.logger = logger;
             this.torSuffix = StringConstants.TorDomain;
+        }
 
-            // Block at the constructor boundary (DI factories are sync)
-            var app = this.cache.GetSnippetAsync(SiteConfigSetting.AppDomain)
-                           .GetAwaiter().GetResult();
-            this.appDomain = (app ?? string.Empty).TrimEnd('/');
+        private string AppDomain => this.GetSetting(SiteConfigSetting.AppDomain);
+        private string CanonicalDomain => this.GetSetting(SiteConfigSetting.CanonicalDomain);
 
-            var cd = this.cache.GetSnippetAsync(SiteConfigSetting.CanonicalDomain)
-                          .GetAwaiter().GetResult();
-            this.canonicalDomain = (cd ?? string.Empty).TrimEnd('/');
+        private string GetSetting(SiteConfigSetting key)
+        {
+            try
+            {
+                var v = this.cache.GetSnippetAsync(key).GetAwaiter().GetResult();
+                return (v ?? string.Empty).TrimEnd('/');
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "[UrlResolver] failed to read setting {Key}", key);
+                return string.Empty;
+            }
         }
 
         public bool IsTor
@@ -39,119 +52,116 @@ namespace DirectoryManager.Web.Services.Implementations
             }
         }
 
-        public string BaseUrl
-        {
-            get
-            {
-                if (this.IsTor || this.IsLocal)
-                {
-                    return string.Empty;
-                }
-
-                return this.canonicalDomain; // already trimmed in ctor
-            }
-        }
-
         public bool IsLocal
         {
             get
             {
+                if (!this.env.IsDevelopment())
+                {
+                    return false;
+                }
+
                 var host = this.http.HttpContext?.Request.Host.Host ?? string.Empty;
                 return host.Equals("localhost", StringComparison.OrdinalIgnoreCase)
                     || host.StartsWith("127.0.0.1", StringComparison.OrdinalIgnoreCase);
             }
         }
 
+        public string BaseUrl => (this.IsTor || this.IsLocal) ? string.Empty : this.CanonicalDomain;
+
         public string ResolveToApp(string path)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                return string.Empty;
-            }
+{
+    if (string.IsNullOrWhiteSpace(path))
+    {
+        return string.Empty;
+    }
 
-            if (Uri.TryCreate(path, UriKind.Absolute, out _))
-            {
-                return path;
-            }
+    // FIX: only treat as absolute if scheme is http/https.
+    // On Linux, "/foo/bar" parses as a valid absolute file:// URI.
+    if (Uri.TryCreate(path, UriKind.Absolute, out var abs) &&
+        (abs.Scheme == Uri.UriSchemeHttp || abs.Scheme == Uri.UriSchemeHttps))
+    {
+        return path;
+    }
 
-            if (!path.StartsWith("/"))
-            {
-                path = "/" + path;
-            }
+    if (!path.StartsWith("/"))
+    {
+        path = "/" + path;
+    }
 
-            if (this.IsTor || this.IsLocal)
-            {
-                return path;
-            }
+    if (this.IsTor || this.IsLocal)
+    {
+        return path;
+    }
 
-            // If appDomain is empty (missing snippet), fall back to relative
-            return string.IsNullOrEmpty(this.appDomain) ? path : $"{this.appDomain}{path}";
-        }
+    if (string.IsNullOrEmpty(this.AppDomain))
+    {
+        return path;
+    }
 
-        public string ResolveToRoot(string path)
-        {
-            if (string.IsNullOrWhiteSpace(path))
-            {
-                return string.Empty;
-            }
+    return $"{this.AppDomain}{path}";
+}
 
-            if (path == "~/")
-            {
-                path = "/";
-            }
+public string ResolveToRoot(string path)
+{
+    if (string.IsNullOrWhiteSpace(path))
+    {
+        return string.Empty;
+    }
 
-            if (Uri.TryCreate(path, UriKind.Absolute, out _))
-            {
-                return path;
-            }
+    if (path == "~/")
+    {
+        path = "/";
+    }
 
-            path = "/" + path.Trim('/');
+    // FIX: same scheme guard.
+    if (Uri.TryCreate(path, UriKind.Absolute, out var abs) &&
+        (abs.Scheme == Uri.UriSchemeHttp || abs.Scheme == Uri.UriSchemeHttps))
+    {
+        return path;
+    }
 
-            if (this.IsTor || this.IsLocal)
-            {
-                return path;
-            }
+    path = "/" + path.Trim('/');
 
-            // If canonicalDomain is empty, fall back to relative
-            return string.IsNullOrEmpty(this.canonicalDomain) ? path : $"{this.canonicalDomain}{path}";
-        }
+    if (this.IsTor || this.IsLocal)
+    {
+        return path;
+    }
 
-        public string ExtractPathFromFullUrl(string url)
-        {
-            if (string.IsNullOrWhiteSpace(url))
-            {
-                return string.Empty;
-            }
+    return string.IsNullOrEmpty(this.CanonicalDomain) ? path : $"{this.CanonicalDomain}{path}";
+}
 
-            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri))
-            {
-                // Not an absolute URL — treat it as a relative path and normalize
-                return "/" + url.TrimStart('/');
-            }
+public string ExtractPathFromFullUrl(string url)
+{
+    if (string.IsNullOrWhiteSpace(url))
+    {
+        return string.Empty;
+    }
 
-            // Normalize domains (ctor already trimmed)
-            var domains = new[]
-            {
-                this.appDomain,
-                this.canonicalDomain
-            }
-            .Where(d => !string.IsNullOrEmpty(d))
-            .Select(d => d.Replace("https://", "")
-                         .Replace("http://", "")
-                         .TrimEnd('/'))
-            .ToList();
+    // FIX: same scheme guard.
+    if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
+        (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+    {
+        return "/" + url.TrimStart('/');
+    }
 
-            var host = uri.Host;
+    var domains = new[]
+    {
+        this.AppDomain,
+        this.CanonicalDomain
+    }
+    .Where(d => !string.IsNullOrEmpty(d))
+    .Select(d => d.Replace("https://", string.Empty)
+                  .Replace("http://", string.Empty)
+                  .TrimEnd('/'))
+    .ToList();
 
-            // If URL matches one of the known domains → return only the path
-            if (domains.Any(d => host.Equals(d, StringComparison.OrdinalIgnoreCase)))
-            {
-                // uri.AbsolutePath ALWAYS starts with "/"
-                return uri.AbsolutePath;
-            }
+    if (domains.Any(d => uri.Host.Equals(d, StringComparison.OrdinalIgnoreCase)))
+    {
+        return uri.AbsolutePath;
+    }
 
-            // If it's some other domain → return original URL (or choose different behavior)
-            return url;
-        }
+    return url;
+}
     }
 }

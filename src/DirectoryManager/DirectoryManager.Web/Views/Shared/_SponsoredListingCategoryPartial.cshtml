@@ -9,7 +9,7 @@
     var link3Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
     var categoryId = Model?.CategoryId ?? 0;
-    var advertiseHref = Url.Content($"~/sponsoredlisting/selectlisting?categoryId={categoryId}&sponsorshipType={SponsorshipType.CategorySponsor}");
+    var advertiseHref = Url.Action("SelectListing", "SponsoredListing", new { categoryId, sponsorshipType = SponsorshipType.CategorySponsor });
 
     var vm = Model?.DirectoryEntry; // DisplayFormatting.Models.DirectoryEntryViewModel
 }

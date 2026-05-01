@@ -46,7 +46,7 @@ NS2/YMNdWztHoUWGKo+fdHNgAgFPWERd2Ac=
         public void IsValid_MissingBeginHeader_ReturnsFalse()
         {
             var noBegin = SampleValidKey
-                .Replace("-----BEGIN PGP PUBLIC KEY BLOCK-----\r\n", "");
+                .Replace("-----BEGIN PGP PUBLIC KEY BLOCK-----", "");
             Assert.False(PgpKeyValidator.IsValid(noBegin));
         }
 
@@ -54,7 +54,7 @@ NS2/YMNdWztHoUWGKo+fdHNgAgFPWERd2Ac=
         public void IsValid_MissingEndFooter_ReturnsFalse()
         {
             var noEnd = SampleValidKey
-                .Replace("\r\n-----END PGP PUBLIC KEY BLOCK-----", "");
+                .Replace("-----END PGP PUBLIC KEY BLOCK-----", "");
             Assert.False(PgpKeyValidator.IsValid(noEnd));
         }
 

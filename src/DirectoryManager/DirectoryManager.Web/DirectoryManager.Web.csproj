@@ -2,9 +2,11 @@
 
   <PropertyGroup>
     <TargetFramework>net10.0</TargetFramework>
+ <RuntimeIdentifiers>linux-x64</RuntimeIdentifiers>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	  <CodeAnalysisRuleSet>../StyleCop.Analyzers.ruleset</CodeAnalysisRuleSet>
+    <UserSecretsId>2a0c4d91-c378-4a0f-8efd-52219f1e3ce5</UserSecretsId>
   </PropertyGroup>
 
   <ItemGroup>
@@ -19,6 +21,8 @@
     <PackageReference Include="Microsoft.AspNetCore.Mvc.Razor.RuntimeCompilation" Version="10.0.7" />
  
 	  <PackageReference Include="BouncyCastle.Cryptography" Version="2.6.2" />
+ 
+	  <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="10.0.7" />
  
 	  <PackageReference Include="QRCoder" Version="1.8.0" />
 	  <PackageReference Include="ScottPlot" Version="5.1.58" />
