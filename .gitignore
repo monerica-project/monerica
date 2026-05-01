@@ -109,3 +109,6 @@ rcf/
 /src/DirectoryManager/DirectoryManager.SponsoredListingOpening/appsettings.json
 /src/DirectoryManager/DirectoryManager.NewsletterSender/appsettings.json
 /src/DirectoryManager/DirectoryManager.EmailMessageMaker/appsettings.json
+publish/
+CI/deploy-config.sh
+CI/services/web.conf
