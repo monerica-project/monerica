@@ -161,8 +161,27 @@ EOF
 task_set_configs() {
     write_task "SetConfigs"
 
+    # Some console projects (SiteChecker, etc.) only ship appsettings.template.json
+    # in source — devs are expected to copy template → real after cloning. For
+    # production deploys we need a real appsettings.json so ASP.NET's config
+    # loader is happy, even though appsettings.Production.json is what carries
+    # the actual values. Create a minimal stub if the project doesn't have one.
+    local base_settings="$PROJECT_DIR/appsettings.json"
+    if [[ ! -f "$base_settings" ]]; then
+        # Prefer the project's own template if one exists — preserves the shape
+        # the C# code expects (correct top-level keys with empty values).
+        if [[ -f "$PROJECT_DIR/appsettings.template.json" ]]; then
+            cp "$PROJECT_DIR/appsettings.template.json" "$base_settings"
+            write_ok "Created $base_settings (copied from appsettings.template.json)"
+        else
+            echo '{}' > "$base_settings"
+            write_ok "Created minimal $base_settings (no template found)"
+        fi
+    fi
+
     # appsettings.Production.json bundled into publish output. Same pattern as
     # the web deploy: never committed, always regenerated from deploy-config.sh.
+    # ASP.NET overlays this on top of appsettings.json at runtime.
     local prod_settings="$PROJECT_DIR/appsettings.Production.json"
 
     # Build the JSON additively. ConnectionStrings is always present (so jobs
@@ -197,14 +216,26 @@ task_set_configs() {
 
     if [[ "${NEEDS_TOR:-0}" -eq 1 ]]; then
         jq_args+=(--arg torhost "${TOR_SOCKS_HOST:-127.0.0.1}" \
-                  --arg torport "${TOR_SOCKS_PORT:-9050}")
-        # SiteChecker should route requests to .onion hosts (and ideally all
-        # hosts, for IP-leak-resistance) through this SOCKS5 proxy.
+                  --arg torport "${TOR_SOCKS_PORT:-9050}" \
+                  --arg ua "${USER_AGENT_HEADER:-Mozilla/5.0 (compatible; MonericaSiteChecker/1.0; +https://monerica.com)}")
+        # The C# Program.cs reads these exact keys: TorProxy:Host, TorProxy:Port.
+        # On Linux production, TryStartTorAsync first calls IsTorAvailable() which
+        # probes 127.0.0.1:9050 — if the system tor@default daemon is already
+        # listening (it is, because of `./deploy.sh web --task tor`), it returns
+        # true immediately without trying to launch the bundled tor.exe. So no
+        # extra Linux-specific flag is needed; the original code path already
+        # does the right thing.
+        #
+        # UserAgent:Header is also required by SiteChecker (Program.cs throws
+        # if missing). Inject a sensible default; override via deploy-config.sh
+        # if you want a different UA string.
         jq_filter+=' + {
-            Tor: {
-                Enabled: true,
-                SocksHost: $torhost,
-                SocksPort: ($torport|tonumber)
+            TorProxy: {
+                Host: $torhost,
+                Port: ($torport|tonumber)
+            },
+            UserAgent: {
+                Header: $ua
             }
         }'
     fi
@@ -263,6 +294,23 @@ task_create_package() {
         --self-contained false \
         --no-build
     popd >/dev/null
+
+    # Force-copy appsettings.Production.json into the publish output. The
+    # console projects' .csproj files only declare <None Update="appsettings.json">
+    # rules — they don't know about the Production overlay we generate at deploy
+    # time. Without this explicit copy, MSBuild silently drops the Production
+    # file during publish, the deploy ships only the empty-placeholder
+    # appsettings.json, and runtime crashes on missing values (UserAgent, DB
+    # connection string, SendGrid key — depending on the job).
+    local prod_src="$PROJECT_DIR/appsettings.Production.json"
+    if [[ -f "$prod_src" ]]; then
+        cp "$prod_src" "$PUBLISH_OUT/appsettings.Production.json"
+        write_ok "Copied appsettings.Production.json into publish output"
+    else
+        write_err "appsettings.Production.json missing at $prod_src — task_set_configs should have written it"
+        exit 1
+    fi
+
     write_ok "Package built: $PUBLISH_OUT"
 }
 

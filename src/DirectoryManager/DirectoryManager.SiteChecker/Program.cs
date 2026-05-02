@@ -16,10 +16,18 @@ const string TorProxyHostKey = "TorProxy:Host";
 const string TorProxyPortKey = "TorProxy:Port";
 const string SiteOfflineMessage = "site offline";
 
-// Build configuration
+// Build configuration. appsettings.{Environment}.json (e.g. Production)
+// auto-overlays appsettings.json — that's how deploy-jobs.sh injects the
+// real DB connection and TorProxy settings on the server without touching
+// the committed appsettings.json. Environment is set by the systemd unit
+// (DOTNET_ENVIRONMENT=Production).
+var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+    ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
+
 var config = new ConfigurationBuilder()
     .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
-    .AddJsonFile(DirectoryManager.Common.Constants.StringConstants.AppSettingsFileName)
+    .AddJsonFile(DirectoryManager.Common.Constants.StringConstants.AppSettingsFileName, optional: false, reloadOnChange: false)
+    .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: false)
     .Build();
 
 var userAgentHeader = config[UserAgentHeader]
@@ -28,7 +36,12 @@ var userAgentHeader = config[UserAgentHeader]
 var torHost = config[TorProxyHostKey] ?? "127.0.0.1";
 var torPort = int.TryParse(config[TorProxyPortKey], out var p) ? p : 9050;
 
-// ── Tor setup ─────────────────────────────────────────────────────────────
+// TryStartTorAsync's first check is IsTorAvailable(host, port) — a TCP probe.
+// On Linux production, system tor@default is already listening on 9050, so
+// this short-circuits and returns true without ever launching tor.exe (which
+// is fine, because tor.exe wouldn't run on Linux anyway).
+// On Windows dev, IsTorAvailable returns false, so it proceeds to start the
+// bundled tor.exe from the publish output.
 var torExePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tor", "tor.exe");
 bool torAvailable = await TorWebPageChecker.TryStartTorAsync(torExePath, torHost, torPort);
 
