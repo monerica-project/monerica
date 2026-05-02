@@ -414,29 +414,31 @@ task_set_configs() {
     # Production overrides live in appsettings.Production.json — generated here,
     # bundled into the publish output, deployed to the server. Never committed.
     # appsettings.json stays clean in git.
-
+    #
+    # WHAT GOES IN HERE (and what doesn't):
+    #
+    # - ConnectionStrings: yes — different per environment (dev → prod).
+    #
+    # - Site (CustomDomain, RequestProtocol): yes — environment-specific
+    #   (dev uses localhost:5xxxx, prod uses monerica.com).
+    #
+    # - SendGrid keys: NO. The web app reads SendGrid creds at runtime from
+    #   the DB via cacheService.GetSnippetAsync(SiteConfigSetting.SendGridApiKey)
+    #   — see Web/Extensions/ServiceExtensions.cs. Source of truth is the
+    #   ContentSnippet table; rotate keys via admin UI or direct DB update.
+    #   Injecting a "SendGrid" block here would be ignored by the C# code.
+    #
+    # - Neutrino API: NO. Removed — service is no longer used.
     local prod_settings="$WEB_PROJECT_DIR/appsettings.Production.json"
     jq -n \
         --arg conn   "$DB_CONNECTION_STRING" \
-        --arg neuId  "${NEUTRINO_API_USER_ID:-}" \
-        --arg neuKey "${NEUTRINO_API_API_KEY:-}" \
         --arg domain "${CUSTOM_DOMAIN:-}" \
         --arg proto  "${REQUEST_PROTOCOL:-https://}" \
         '{
             ConnectionStrings: { DefaultConnection: $conn },
-            NeutrinoApi:       { UserId: $neuId, ApiKey: $neuKey },
             Site:              { CustomDomain: $domain, RequestProtocol: $proto }
         }' > "$prod_settings"
     write_ok "Wrote $prod_settings"
-
-    # Same for the data project if the service uses one
-    if [[ -n "${DATA_APPSETTINGS:-}" ]]; then
-        local data_prod="${DATA_APPSETTINGS%.json}.Production.json"
-        jq -n --arg conn "$DB_CONNECTION_STRING" \
-            '{ ConnectionStrings: { DefaultConnection: $conn } }' \
-            > "$data_prod"
-        write_ok "Wrote $data_prod"
-    fi
 }
 
 task_restore_packages() {
@@ -827,7 +829,6 @@ deploy_service() {
     [[ -f "$conf" ]] || { write_err "Service config not found: $conf"; exit 1; }
 
     unset USES_DB USES_TOR STAGING_DOMAIN MIGRATION_MODE \
-          NEUTRINO_API_USER_ID NEUTRINO_API_API_KEY \
           DATA_PROJECT_SOURCE_PATH TEST_SOLUTION_SOURCE_PATH \
           TOR_KEYS_DIR
     # shellcheck disable=SC1090
@@ -837,8 +838,6 @@ deploy_service() {
     DATA_PROJECT_DIR="$SCRIPT_DIR/${DATA_PROJECT_SOURCE_PATH:-}"
     TEST_SOLUTION_PATH="$SCRIPT_DIR/${TEST_SOLUTION_SOURCE_PATH:-}"
     PUBLISH_OUT="$SCRIPT_DIR/../publish/$svc"
-    WEB_APPSETTINGS="$WEB_PROJECT_DIR/appsettings.json"
-    DATA_APPSETTINGS="${DATA_PROJECT_DIR:+$DATA_PROJECT_DIR/appsettings.json}"
 
     if [[ -n "$SINGLE_TASK" ]]; then
         case "$SINGLE_TASK" in
@@ -876,7 +875,7 @@ deploy_service() {
         write_warn "Skipping build (--skip-build)"
         [[ -d "$PUBLISH_OUT" ]] || { write_err "$PUBLISH_OUT missing — nothing to deploy"; exit 1; }
     fi
-task_sync_files
+    task_sync_files
     task_configure_nginx
     if [[ $DO_TOR -eq 1 ]]; then
         task_migrate_tor

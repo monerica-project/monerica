@@ -11,6 +11,11 @@
 # All jobs share the same DB_CONNECTION_STRING from deploy-config.sh,
 # so they hit the same monerica_db as the web app.
 #
+# Email-using jobs (NewsletterSender, SponsoredListing*) read SendGrid
+# credentials from the DB at runtime via ContentSnippetRepository — same
+# pattern as the web app. Rotate the API key in the admin UI (or directly
+# in the ContentSnippet table); no redeploy needed.
+#
 # === ROUTINE DEPLOY =========================================================
 #   ./deploy-jobs.sh                              # deploy newsletter-sender (default)
 #   ./deploy-jobs.sh newsletter-sender            # deploy a single job
@@ -182,37 +187,30 @@ task_set_configs() {
     # appsettings.Production.json bundled into publish output. Same pattern as
     # the web deploy: never committed, always regenerated from deploy-config.sh.
     # ASP.NET overlays this on top of appsettings.json at runtime.
+    #
+    # WHAT GOES IN HERE (and what doesn't):
+    #
+    # - ConnectionStrings: yes — only value that legitimately differs between
+    #   dev (empty/localhost) and production (monerica_db on the VPS).
+    #
+    # - SendGrid keys: NO. Each email-using job builds its SendGridConfig at
+    #   runtime by reading from the DB via ContentSnippetRepository.GetValue(
+    #   SiteConfigSetting.SendGridApiKey/SenderEmail/SenderName). Same pattern
+    #   as the web app. Source of truth is the ContentSnippet table; rotate
+    #   keys via admin UI or direct DB update. Injecting a "SendGrid" block
+    #   here would be ignored by the C# code — pure noise in the deploy.
+    #
+    # - Job-specific config (EmailKeys, NotificationLinkTemplate*,
+    #   RenewalLinkTemplate, ExpirationHours, EmailCampaignKey): NO. Each job's
+    #   source appsettings.json already has these populated with production
+    #   values that travel with the code. No deploy-time injection needed.
+    #
+    # - TorProxy + UserAgent (site-checker only): yes — these are truly
+    #   environment-specific (tor port, identifying UA string).
     local prod_settings="$PROJECT_DIR/appsettings.Production.json"
 
-    # Build the JSON additively. ConnectionStrings is always present (so jobs
-    # talk to the same monerica_db); other blocks gated by job capabilities.
     local jq_args=(-n --arg conn "$DB_CONNECTION_STRING")
     local jq_filter='{ ConnectionStrings: { DefaultConnection: $conn } }'
-
-    if [[ "${NEEDS_EMAIL:-0}" -eq 1 ]]; then
-        # Email is sent via SendGrid's HTTPS API (not SMTP). The DirectoryManager
-        # console projects expect a top-level "SendGrid" section with these three
-        # keys — this matches the shape of appsettings.template.json in each
-        # email-using project (NewsletterSender, SponsoredListingOpening,
-        # SponsoredListingReminder).
-        : "${SENDGRID_API_KEY:?SENDGRID_API_KEY required for jobs with NEEDS_EMAIL=1 (set in deploy-config.sh)}"
-        : "${SENDGRID_SENDER_EMAIL:?SENDGRID_SENDER_EMAIL required (must be a verified SendGrid sender)}"
-        jq_args+=(--arg sgkey   "$SENDGRID_API_KEY" \
-                  --arg sgemail "$SENDGRID_SENDER_EMAIL" \
-                  --arg sgname  "${SENDGRID_SENDER_NAME:-Monerica}" \
-                  --arg ssite   "${CUSTOM_DOMAIN:-monerica.com}")
-        jq_filter+=' + {
-            SendGrid: {
-                ApiKey:      $sgkey,
-                SenderEmail: $sgemail,
-                SenderName:  $sgname
-            },
-            Site: {
-                CustomDomain:    $ssite,
-                RequestProtocol: "https://"
-            }
-        }'
-    fi
 
     if [[ "${NEEDS_TOR:-0}" -eq 1 ]]; then
         jq_args+=(--arg torhost "${TOR_SOCKS_HOST:-127.0.0.1}" \
@@ -301,7 +299,7 @@ task_create_package() {
     # time. Without this explicit copy, MSBuild silently drops the Production
     # file during publish, the deploy ships only the empty-placeholder
     # appsettings.json, and runtime crashes on missing values (UserAgent, DB
-    # connection string, SendGrid key — depending on the job).
+    # connection string — depending on the job).
     local prod_src="$PROJECT_DIR/appsettings.Production.json"
     if [[ -f "$prod_src" ]]; then
         cp "$prod_src" "$PUBLISH_OUT/appsettings.Production.json"
@@ -475,6 +473,11 @@ deploy_job() {
     local conf="$JOBS_DIR/$job.conf"
     [[ -f "$conf" ]] || { write_err "Job config not found: $conf"; exit 1; }
 
+    # NEEDS_EMAIL is no longer consumed by task_set_configs (SendGrid comes
+    # from the DB), but we still unset it here so a stale value from a
+    # previous job's conf doesn't leak into this iteration. Leave the
+    # NEEDS_EMAIL=1 line in jobs/*.conf as a documentation hint about what
+    # the job does — it's harmless and informative.
     unset NEEDS_EMAIL NEEDS_TOR ON_CALENDAR SCHEDULE_DESCRIPTION MAX_RUNTIME \
           TEST_SOLUTION_SOURCE_PATH TIMER_PERSISTENT
     # shellcheck disable=SC1090

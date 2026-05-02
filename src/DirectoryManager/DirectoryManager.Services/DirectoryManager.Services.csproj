@@ -11,23 +11,6 @@
 		<AdditionalFiles Include="..\stylecop.json" />
 	</ItemGroup>
 	
-	<ItemGroup>
-	  <Content Include="appsettings.json">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-	    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-	  </Content>
-	  <Content Include="appsettings.template.json">
-	    <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-	    <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-	    <CopyToPublishDirectory>PreserveNewest</CopyToPublishDirectory>
-	  </Content>
-	</ItemGroup>
-
-	<ItemGroup>
-	  <None Remove="appsettings.json" />
-	  <None Remove="appsettings.template.json" />
-	</ItemGroup>
 
   <ItemGroup>
 	  <PackageReference Include="StyleCop.Analyzers" Version="1.1.118">
