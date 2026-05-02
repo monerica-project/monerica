@@ -115,3 +115,9 @@ CI/services/web.conf
 src/DirectoryManager/DirectoryManager.Data/appsettings.Production.json
 src/DirectoryManager/DirectoryManager.Web/appsettings.Production.json
 publish-jobs/
+CI/deploy-config.sh.backup
+src/DirectoryManager/DirectoryManager.EmailMessageMaker/appsettings.Production.json
+src/DirectoryManager/DirectoryManager.NewsletterSender/appsettings.Production.json
+src/DirectoryManager/DirectoryManager.SiteChecker/appsettings.Production.json
+src/DirectoryManager/DirectoryManager.SponsoredListingOpening/appsettings.Production.json
+src/DirectoryManager/DirectoryManager.SponsoredListingReminder/appsettings.Production.json
