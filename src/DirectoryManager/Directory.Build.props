@@ -1,0 +1,33 @@
+<Project>
+  <!--
+    appsettings.template.json files are dev scaffolding — empty templates
+    that live next to each csproj so a new dev knows what to copy. They
+    must NEVER ship in publish output. When publishing a project that
+    references DirectoryManager.Data, MSBuild tries to copy BOTH the
+    publishing project's template file AND Data's template file to the
+    output directory under the same name → NETSDK1152.
+
+    The fix: actively REMOVE these files from the publish item set after
+    they've been collected, regardless of whether the source csproj
+    included them as <None>, <Content>, or via SDK globbing.
+  -->
+  <Target Name="StripTemplateFilesFromPublish"
+          BeforeTargets="ComputeFilesToPublish">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)"
+                             Condition="'%(Filename)%(Extension)' == 'appsettings.template.json'" />
+    </ItemGroup>
+  </Target>
+
+  <!-- Belt-and-suspenders: also strip from regular build output, so they
+       don't show up in bin/ either. Pure cleanliness. -->
+  <Target Name="StripTemplateFilesFromBuild"
+          BeforeTargets="_CopyFilesMarkedCopyLocal;CopyFilesToOutputDirectory">
+    <ItemGroup>
+      <ContentWithTargetPath Remove="@(ContentWithTargetPath)"
+                             Condition="'%(Filename)%(Extension)' == 'appsettings.template.json'" />
+      <_NoneWithTargetPath Remove="@(_NoneWithTargetPath)"
+                           Condition="'%(Filename)%(Extension)' == 'appsettings.template.json'" />
+    </ItemGroup>
+  </Target>
+</Project>
