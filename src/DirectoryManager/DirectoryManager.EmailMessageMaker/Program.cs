@@ -12,10 +12,25 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        // Build configuration
+        // Build configuration. Layer order matters — later sources override earlier ones:
+        //   1. appsettings.json            (base, committed to git, may have empty placeholders)
+        //   2. appsettings.{env}.json      (deploy-time overlay with real connection string,
+        //                                   written by deploy-jobs.sh from deploy-config.sh)
+        //   3. environment variables       (allows ConnectionStrings__DefaultConnection or
+        //                                   any other key to override at runtime)
+        //
+        // The default ConfigurationBuilder does NOT auto-load the environment overlay the way
+        // ASP.NET's Host.CreateDefaultBuilder does — we have to add it explicitly. systemd
+        // sets DOTNET_ENVIRONMENT=Production for the unit; we read that here.
+        var environment = Environment.GetEnvironmentVariable("DOTNET_ENVIRONMENT")
+            ?? Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT")
+            ?? "Production";
+
         var config = new ConfigurationBuilder()
             .SetBasePath(AppDomain.CurrentDomain.BaseDirectory)
             .AddJsonFile(StringConstants.AppSettingsFileName, optional: true, reloadOnChange: true)
+            .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: true)
+            .AddEnvironmentVariables()
             .Build();
 
         var emailCampaignKey = config["EmailCampaignKey"];
