@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # verify-jobs.sh — sanity-check every deployed background job WITHOUT firing it.
 #
-# Catches the "deploy looked successful but runtime would crash" class of bug
-# we hit with site-checker. For each of the five jobs, validates:
+# Catches the "deploy looked successful but runtime would crash" class of bug.
+# For each of the five jobs, validates:
 #
 #   1. systemd .service and .timer units exist and are properly installed
 #   2. Timer is enabled and active (will fire at its scheduled time)
@@ -10,10 +10,15 @@
 #   4. appsettings.json AND appsettings.Production.json BOTH exist
 #   5. Production overlay has the keys that job actually needs:
 #        - ConnectionStrings.DefaultConnection (every job)
-#        - SendGrid.ApiKey (newsletter-sender, sponsored-listing-*)
-#        - TorProxy.Host (site-checker)
-#        - UserAgent.Header (site-checker)
-#   6. None of those values are empty strings (the bug we just hit)
+#        - TorProxy.Host + TorProxy.Port + UserAgent.Header (site-checker)
+#   6. None of those values are empty strings
+#   7. Last systemd invocation result was success (or never fired yet)
+#
+# IMPORTANT: SendGrid keys are NOT checked. The email-using jobs read SendGrid
+# credentials from the DB at runtime via ContentSnippetRepository, NOT from
+# appsettings. Source of truth is the ContentSnippet table; rotate via admin
+# UI. There's no Production-overlay SendGrid block to verify here. (Same
+# pattern as the web app's Web/Extensions/ServiceExtensions.cs.)
 #
 # Run from the CI directory: ./verify-jobs.sh
 # Exits 0 if all jobs pass, non-zero (with red FAIL lines) if anything's wrong.
@@ -46,13 +51,17 @@ SSH_TARGET="${SSH_USER:+$SSH_USER@}$SSH_HOST"
 ssh_q() { "${SSH_PREFIX[@]}" ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "sudo bash -c '$1'" 2>/dev/null | tr -d '\r'; }
 
 # === Per-job expectations ====================================================
-# Each job lists which top-level config keys MUST exist with non-empty values.
-# Anything not listed is allowed to be missing or empty.
+# Each job lists which top-level config keys MUST exist with non-empty values
+# in appsettings.Production.json. This is intentionally a thin list — most
+# job-specific config (EmailKeys, RenewalLinkTemplate, etc.) ships hardcoded
+# in the source appsettings.json with sensible production values, and SendGrid
+# creds come from the DB at runtime. The Production overlay only carries
+# the genuinely environment-specific bits.
 declare -A REQUIRED_KEYS=(
     [email-message-maker]="ConnectionStrings.DefaultConnection"
-    [newsletter-sender]="ConnectionStrings.DefaultConnection SendGrid.ApiKey SendGrid.SenderEmail"
-    [sponsored-listing-opening]="ConnectionStrings.DefaultConnection SendGrid.ApiKey SendGrid.SenderEmail"
-    [sponsored-listing-reminder]="ConnectionStrings.DefaultConnection SendGrid.ApiKey SendGrid.SenderEmail"
+    [newsletter-sender]="ConnectionStrings.DefaultConnection"
+    [sponsored-listing-opening]="ConnectionStrings.DefaultConnection"
+    [sponsored-listing-reminder]="ConnectionStrings.DefaultConnection"
     [site-checker]="ConnectionStrings.DefaultConnection TorProxy.Host TorProxy.Port UserAgent.Header"
 )
 
@@ -161,7 +170,7 @@ verify_job() {
     if [[ "$(ssh_q "test -f $deploy_path/appsettings.Production.json && echo y || echo n")" == "y" ]]; then
         check "appsettings.Production.json present" pass
     else
-        check "appsettings.Production.json present" fail "this is the bug we just hit — redeploy with the fixed deploy-jobs.sh"
+        check "appsettings.Production.json present" fail "redeploy with deploy-jobs.sh — task_create_package should force-copy this"
         return  # No point checking individual keys if the file is missing
     fi
 
@@ -187,7 +196,7 @@ verify_job() {
         fi
     done
 
-    # ---- 7. timer schedule & last result
+    # ---- 7. last invocation result
     local last_result
     last_result=$(ssh_q "systemctl show ${unit}.service --property=Result --value 2>/dev/null")
     case "$last_result" in
