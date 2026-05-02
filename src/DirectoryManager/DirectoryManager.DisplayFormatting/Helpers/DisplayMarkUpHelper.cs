@@ -76,6 +76,14 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             return sb.ToString();
         }
 
+        /// <summary>
+        /// Builds an HTML img tag for the country flag corresponding to the given country code.
+        /// Returns an empty string when the country code is missing.
+        /// rootUrl may be null/empty for relative paths (e.g. on Tor).
+        /// </summary>
+        public static string BuildCountryFlagImgTag(string? countryCode, string? rootUrl = null)
+            => BuildFlagImgTag(countryCode, rootUrl);
+
         public static string GenerateGroupedDirectoryEntryHtml(IEnumerable<GroupedDirectoryEntry> groupedEntries)
         {
             var sb = new StringBuilder();

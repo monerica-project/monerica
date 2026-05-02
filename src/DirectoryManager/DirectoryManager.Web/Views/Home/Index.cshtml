@@ -403,10 +403,13 @@
 
                         var itemDate = item.date.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
                         var statusIcon = DisplayMarkUpHelper.GetDirectoryStausIcon(e.DirectoryStatus);
+                        var flagTag = useRelative
+                            ? DisplayMarkUpHelper.BuildCountryFlagImgTag(e.CountryCode)
+                            : DisplayMarkUpHelper.BuildCountryFlagImgTag(e.CountryCode, root);
 
                         <li>
                             <i>@itemDate</i>
-                            @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>
+                            @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>&nbsp;@Html.Raw(flagTag)
                             @if (parent?.Rating.HasValue == true && parent.Rating.Value > 0)
                             {
                                 @: — @RenderInlineRatingStars_NoCount_LinkToReview(parent.Rating.Value, reviewAnchorUrl)
@@ -438,10 +441,13 @@
 
                         var itemDate = item.date.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat);
                         var statusIcon = DisplayMarkUpHelper.GetDirectoryStausIcon(e.DirectoryStatus);
+                        var flagTag = useRelative
+                            ? DisplayMarkUpHelper.BuildCountryFlagImgTag(e.CountryCode)
+                            : DisplayMarkUpHelper.BuildCountryFlagImgTag(e.CountryCode, root);
 
                         <li>
                             <i>@itemDate</i>
-                            @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>
+                            @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>&nbsp;@Html.Raw(flagTag)
                             @if (r.Rating.HasValue && r.Rating.Value > 0)
                             {
                                 @: — @RenderInlineRatingStars_NoCount_LinkToReview(r.Rating.Value, reviewAnchorUrl)
