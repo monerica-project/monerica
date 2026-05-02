@@ -114,3 +114,4 @@ CI/deploy-config.sh
 CI/services/web.conf
 src/DirectoryManager/DirectoryManager.Data/appsettings.Production.json
 src/DirectoryManager/DirectoryManager.Web/appsettings.Production.json
+publish-jobs/
