@@ -1,4 +1,4 @@
-﻿@model DirectoryManager.Web.Models.LoginViewModel
+@model DirectoryManager.Web.Models.LoginViewModel
 @using DirectoryManager.Web.Constants;
 
 @{
@@ -64,6 +64,10 @@
             {
                 <small style="color:#888;">&nbsp;(last paid @FormatAgoCompact(lastPaid))</small>
             }
+            @if (ViewBag.LastInvoicePendingUtc is DateTime lastPending)
+            {
+                <small style="color:#c0392b;">&nbsp;⚠ pending @FormatAgoCompact(lastPending)</small>
+            }
         </li>
         <li>
             <b>Search logs:</b>
@@ -107,6 +111,10 @@
             @if (ViewBag.LastInvoicePaidUtc is DateTime lastPaid2)
             {
                 <small style="color:#888;">&nbsp;(last paid @FormatAgoCompact(lastPaid2))</small>
+            }
+            @if (ViewBag.LastInvoicePendingUtc is DateTime lastPending2)
+            {
+                <small style="color:#c0392b;">&nbsp;⚠ pending @FormatAgoCompact(lastPending2)</small>
             }
         </li>
         <li><a href="~/sponsoredlisting/list">Active listings</a></li>

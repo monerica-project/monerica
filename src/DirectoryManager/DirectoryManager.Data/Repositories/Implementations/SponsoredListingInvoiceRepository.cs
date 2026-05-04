@@ -170,6 +170,22 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     $"No SponsoredListingInvoice found for the provided {nameof(processorInvoiceId)}.");
         }
 
+        public DateTime? GetLastPaidInvoiceCreateDate()
+        {
+            return this.context.SponsoredListingInvoices
+                .AsNoTracking()
+                .Where(e => e.PaymentStatus == Enums.PaymentStatus.Paid)
+                .Max(e => (DateTime?)e.CreateDate);
+        }
+        
+        public DateTime? GetLastPendingInvoiceCreateDate()
+        {
+            return this.context.SponsoredListingInvoices
+                .AsNoTracking()
+                .Where(e => e.PaymentStatus == Enums.PaymentStatus.Pending)
+                .Max(e => (DateTime?)e.CreateDate);
+        }
+
         public DateTime? GetLastPaidInvoiceUpdateDate()
         {
             var paid = this.context.SponsoredListingInvoices

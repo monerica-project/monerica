@@ -104,7 +104,10 @@ namespace DirectoryManager.Web.Controllers
             // ✅ keep your existing name, but now includes BOTH
             this.ViewBag.TotalPendingReviews = totalPendingReviewItems;
 
-            this.ViewBag.LastInvoicePaidUtc = this.sponsoredListingInvoiceRepository.GetLastPaidInvoiceUpdateDate();
+            this.ViewBag.LastInvoicePaidUtc = this.sponsoredListingInvoiceRepository.GetLastPaidInvoiceCreateDate();
+
+            // null when no pending invoices exist — view should only render this row when set
+            this.ViewBag.LastInvoicePendingUtc = this.sponsoredListingInvoiceRepository.GetLastPendingInvoiceCreateDate();
 
             // ✅ optional breakdown (use if you want)
             this.ViewBag.TotalPendingReviewReviews = pendingReviews;
