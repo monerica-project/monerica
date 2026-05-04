@@ -11,6 +11,9 @@
 @using DirectoryManager.Web.Services.Interfaces
 @using System.Net
 
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Data.Enums
+
 @model DirectoryManager.Data.Models.Category
 
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepository
@@ -30,6 +33,42 @@
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
 @functions {
+
+ private static IHtmlContent RenderReviewTags(DirectoryEntryReview? review)
+{
+    if (review?.ReviewTags == null || review.ReviewTags.Count == 0)
+    {
+        return HtmlString.Empty;
+    }
+
+    var tags = review.ReviewTags
+        .Where(rt => rt.ReviewTag != null && !string.IsNullOrWhiteSpace(rt.ReviewTag.Name))
+        .Select(rt => rt.ReviewTag!)
+        .GroupBy(t => t.ReviewTagId)
+        .Select(g => g.First())
+        .OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    if (tags.Count == 0)
+    {
+        return HtmlString.Empty;
+    }
+
+    var sb = new System.Text.StringBuilder();
+    sb.Append(" <span class=\"review-tags\">");
+    foreach (var t in tags)
+    {
+        var cls = ReviewTagUiHelper.BadgeClass(t.Level);
+        sb.Append("<span class=\"badge ");
+        sb.Append(WebUtility.HtmlEncode(cls));
+        sb.Append("\">");
+        sb.Append(WebUtility.HtmlEncode(t.Name!.Trim()));
+        sb.Append("</span>");
+    }
+    sb.Append("</span>");
+    return new HtmlString(sb.ToString());
+}
+
     private static IHtmlContent RenderInlineRatingStars_NoCount_LinkToReview(double value, string reviewAnchorUrl)
     {
         const int totalStars = 5;
@@ -136,6 +175,8 @@
 }
 
 @section PageContent {
+
+
     <div>
         @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageDisplayHtml))
         @await Html.PartialAsync("_SponsoredListingPartial")
@@ -407,17 +448,18 @@
                             ? DisplayMarkUpHelper.BuildCountryFlagImgTag(e.CountryCode)
                             : DisplayMarkUpHelper.BuildCountryFlagImgTag(e.CountryCode, root);
 
-                        <li>
-                            <i>@itemDate</i>
-                            @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>&nbsp;@Html.Raw(flagTag)
-                            @if (parent?.Rating.HasValue == true && parent.Rating.Value > 0)
-                            {
-                                @: — @RenderInlineRatingStars_NoCount_LinkToReview(parent.Rating.Value, reviewAnchorUrl)
-                            }
-                            — @reviewSnippet
-                            <br />
-                            &nbsp;&nbsp;↩ <em>Reply:</em> @replySnippet
-                        </li>
+<li>
+    <i>@itemDate</i>
+    @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>&nbsp;@Html.Raw(flagTag)
+    @RenderReviewTags(parent)
+    @if (parent?.Rating.HasValue == true && parent.Rating.Value > 0)
+    {
+        @: — @RenderInlineRatingStars_NoCount_LinkToReview(parent.Rating.Value, reviewAnchorUrl)
+    }
+    — @reviewSnippet
+    <br />
+    &nbsp;&nbsp;↩ <em>Reply:</em> @replySnippet
+</li>
                     }
                     else
                     {
@@ -445,15 +487,16 @@
                             ? DisplayMarkUpHelper.BuildCountryFlagImgTag(e.CountryCode)
                             : DisplayMarkUpHelper.BuildCountryFlagImgTag(e.CountryCode, root);
 
-                        <li>
-                            <i>@itemDate</i>
-                            @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>&nbsp;@Html.Raw(flagTag)
-                            @if (r.Rating.HasValue && r.Rating.Value > 0)
-                            {
-                                @: — @RenderInlineRatingStars_NoCount_LinkToReview(r.Rating.Value, reviewAnchorUrl)
-                            }
-                            — @reviewSnippet
-                        </li>
+<li>
+    <i>@itemDate</i>
+    @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>&nbsp;@Html.Raw(flagTag)
+    @RenderReviewTags(r)
+    @if (r.Rating.HasValue && r.Rating.Value > 0)
+    {
+        @: — @RenderInlineRatingStars_NoCount_LinkToReview(r.Rating.Value, reviewAnchorUrl)
+    }
+    — @reviewSnippet
+</li>
                     }
                 }
             </ul>
