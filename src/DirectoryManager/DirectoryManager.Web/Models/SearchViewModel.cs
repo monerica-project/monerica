@@ -9,5 +9,7 @@ namespace DirectoryManager.Web.Models
         public int PageSize { get; set; }
         public int TotalCount { get; set; }
         public IList<DirectoryEntryViewModel> Entries { get; set; } = Array.Empty<DirectoryEntryViewModel>();
+
+        public bool ShowDonatePin { get; set; }
     }
 }

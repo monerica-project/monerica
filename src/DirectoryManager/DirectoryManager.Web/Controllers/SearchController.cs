@@ -3,17 +3,21 @@ using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.Utilities.Validation;
-using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Extensions;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
+using System.Text.RegularExpressions;
 
 public class SearchController : Controller
 {
+    private static readonly Regex DonateRegex = new (
+        @"\b(donate|donates|donating|donation|donations)\b",
+        RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
     private readonly IDirectoryEntryRepository entryRepo;
-    private readonly IDirectoryEntryReviewRepository reviewRepo; // ✅ use repository for ratings
+    private readonly IDirectoryEntryReviewRepository reviewRepo;
     private readonly ICacheService cacheService;
     private readonly ISearchLogRepository searchLogRepository;
     private readonly ISponsoredListingRepository sponsoredListingRepository;
@@ -39,7 +43,6 @@ public class SearchController : Controller
         this.sponsoredListingRepository = sponsoredListingRepository;
         this.blacklistRepository = blacklistRepository;
         this.memoryCache = memoryCache;
-
         this.blacklistCache = blacklistCache;
     }
 
@@ -62,10 +65,10 @@ public class SearchController : Controller
         var black = await this.blacklistCache.GetTermsAsync();
 
         string? hit = black.FirstOrDefault(term =>
-            System.Text.RegularExpressions.Regex.IsMatch(
+            Regex.IsMatch(
                 qNorm,
-                $@"\b{System.Text.RegularExpressions.Regex.Escape(term)}\b",
-                System.Text.RegularExpressions.RegexOptions.IgnoreCase | System.Text.RegularExpressions.RegexOptions.CultureInvariant));
+                $@"\b{Regex.Escape(term)}\b",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant));
 
         if (hit is not null)
         {
@@ -74,6 +77,9 @@ public class SearchController : Controller
                 ? this.Redirect(blackListUrl)
                 : this.NotFound();
         }
+
+        // 💜 Donate pin: only on first page, when query matches donate-family terms
+        bool showDonatePin = page <= 1 && DonateRegex.IsMatch(qNorm);
 
         if (page < 1)
         {
@@ -122,14 +128,13 @@ public class SearchController : Controller
             {
                 if (ratingMap.TryGetValue(vm.DirectoryEntryId, out var rs) && rs.ReviewCount > 0)
                 {
-                    vm.AverageRating = rs.AvgRating;     // e.g. 4.8
-                    vm.ReviewCount = rs.ReviewCount;     // e.g. 4
+                    vm.AverageRating = rs.AvgRating;
+                    vm.ReviewCount = rs.ReviewCount;
                 }
                 else
                 {
-                    // no approved ratings
                     vm.AverageRating = null;
-                    vm.ReviewCount = null; // or 0 if you prefer non-null
+                    vm.ReviewCount = null;
                 }
             }
         }
@@ -143,7 +148,8 @@ public class SearchController : Controller
             Page = page,
             PageSize = pageSize,
             TotalCount = result.TotalCount,
-            Entries = vmList
+            Entries = vmList,
+            ShowDonatePin = showDonatePin
         };
 
         return this.View(vmOut);
