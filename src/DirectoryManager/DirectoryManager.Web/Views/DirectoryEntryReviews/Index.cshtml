@@ -15,13 +15,7 @@
         <h1 class="mb-3">Directory Entry Reviews</h1>
         <hr />
         @await Html.PartialAsync("_AdminMenu")
-        <nav aria-label="breadcrumb">
-            <ol class="breadcrumb">
-                <li class="breadcrumb-item"><a class="no-app-link" href="@UrlResolver.ResolveToRoot("/")">Home</a></li>
-                <li class="breadcrumb-item" aria-current="page">Reviews</li>
-            </ol>
-        </nav>
-
+ 
         <p>
             <a class="btn btn-primary" asp-action="Create">New Review</a>
         </p>
@@ -49,8 +43,7 @@
                                 <td>@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                                 <td>@(r.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))</td>
                                 <td>
-                                    <a asp-action="Details" asp-route-id="@r.DirectoryEntryReviewId">Details</a> |
-                                    <a asp-action="Edit" asp-route-id="@r.DirectoryEntryReviewId">Edit</a> |
+                                    <a asp-action="Details" asp-route-id="@r.DirectoryEntryReviewId">Details</a> |                                  
                                     <a asp-action="Delete" asp-route-id="@r.DirectoryEntryReviewId">Delete</a>
                                 </td>
                             </tr>
