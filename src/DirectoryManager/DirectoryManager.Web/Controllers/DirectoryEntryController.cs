@@ -1149,72 +1149,72 @@ namespace DirectoryManager.Web.Controllers
             return (vm, page);
         }
 
-private async Task SetProcessorLinksAsync(DirectoryEntry entry)
-{
-    var processorRaw = entry.Processor?.Trim();
-    if (string.IsNullOrWhiteSpace(processorRaw))
-    {
-        return;
-    }
-
-    var parts = processorRaw
-        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
-        .ToList();
-
-    if (parts.Count == 0)
-    {
-        return;
-    }
-
-    // Cached map: processor-name -> DirectoryEntryKey, built once from the
-    // intersection of the Processor vocabulary and all active DirectoryEntries.
-    // Case- and whitespace-insensitive.
-    var processorNameToEntryKey = await this.cache.GetOrCreateAsync(
-        "ProcessorNameToEntryKey_v1",
-        async cacheEntry =>
+        private async Task SetProcessorLinksAsync(DirectoryEntry entry)
         {
-            cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
-
-            var processors = await this.processorRepository.ListAllAsync();
-            var processorNameSet = (processors ?? new List<Processor>())
-                .Where(p => !string.IsNullOrWhiteSpace(p.Name))
-                .Select(p => p.Name.Trim())
-                .ToHashSet(StringComparer.OrdinalIgnoreCase);
-
-            if (processorNameSet.Count == 0)
+            var processorRaw = entry.Processor?.Trim();
+            if (string.IsNullOrWhiteSpace(processorRaw))
             {
-                return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                return;
             }
-
-            var entries = await this.directoryEntryRepository.GetAllActiveEntries();
-
-            return (entries ?? Enumerable.Empty<DirectoryEntry>())
-                .Where(e => !string.IsNullOrWhiteSpace(e.Name)
-                         && processorNameSet.Contains(e.Name.Trim()))
-                .GroupBy(e => e.Name.Trim(), StringComparer.OrdinalIgnoreCase)
-                .ToDictionary(
-                    g => g.Key,
-                    g => g.First().DirectoryEntryKey,
-                    StringComparer.OrdinalIgnoreCase);
-        }) ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-
-    var resolved = new List<ProcessorPart>(parts.Count);
-
-    foreach (var part in parts)
-    {
-        string entryKey = string.Empty;
-
-        if (!string.Equals(part, entry.Name, StringComparison.OrdinalIgnoreCase)
-            && processorNameToEntryKey.TryGetValue(part, out var key))
-        {
-            entryKey = key;
+        
+            var parts = processorRaw
+                .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                .ToList();
+        
+            if (parts.Count == 0)
+            {
+                return;
+            }
+        
+            // Cached map: processor-name -> DirectoryEntryKey, built once from the
+            // intersection of the Processor vocabulary and all active DirectoryEntries.
+            // Case- and whitespace-insensitive.
+            var processorNameToEntryKey = await this.cache.GetOrCreateAsync(
+                "ProcessorNameToEntryKey_v1",
+                async cacheEntry =>
+                {
+                    cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+        
+                    var processors = await this.processorRepository.ListAllAsync();
+                    var processorNameSet = (processors ?? new List<Processor>())
+                        .Where(p => !string.IsNullOrWhiteSpace(p.Name))
+                        .Select(p => p.Name.Trim())
+                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        
+                    if (processorNameSet.Count == 0)
+                    {
+                        return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                    }
+        
+                    var entries = await this.directoryEntryRepository.GetAllActiveEntries();
+        
+                    return (entries ?? Enumerable.Empty<DirectoryEntry>())
+                        .Where(e => !string.IsNullOrWhiteSpace(e.Name)
+                                 && processorNameSet.Contains(e.Name.Trim()))
+                        .GroupBy(e => e.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+                        .ToDictionary(
+                            g => g.Key,
+                            g => g.First().DirectoryEntryKey,
+                            StringComparer.OrdinalIgnoreCase);
+                }) ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        
+            var resolved = new List<ProcessorPart>(parts.Count);
+        
+            foreach (var part in parts)
+            {
+                string entryKey = string.Empty;
+        
+                if (!string.Equals(part, entry.Name, StringComparison.OrdinalIgnoreCase)
+                    && processorNameToEntryKey.TryGetValue(part, out var key))
+                {
+                    entryKey = key;
+                }
+        
+                resolved.Add(new ProcessorPart { Display = part, EntryKey = entryKey });
+            }
+        
+            this.ViewBag.ProcessorParts = resolved;
         }
-
-        resolved.Add(new ProcessorPart { Display = part, EntryKey = entryKey });
-    }
-
-    this.ViewBag.ProcessorParts = resolved;
-}
 
         private void ApplyOwnerDisplayNames(DirectoryEntry entry, List<DirectoryEntryReview> reviews)
         {
