@@ -1,0 +1,28 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "kill-stray-web",
+      "type": "shell",
+      "command": "fuser -k 5007/tcp 7145/tcp 2>/dev/null || true; pkill -f DirectoryManager.Web 2>/dev/null || true; sleep 1; exit 0",
+      "presentation": { "reveal": "silent", "panel": "shared", "close": true },
+      "problemMatcher": []
+    },
+    {
+      "label": "build-web",
+      "type": "shell",
+      "command": "dotnet",
+      "args": [
+        "build",
+        "${workspaceFolder}/src/DirectoryManager/DirectoryManager.Web/DirectoryManager.Web.csproj",
+        "/property:GenerateFullPaths=true",
+        "/consoleloggerparameters:NoSummary"
+      ],
+      "group": "build",
+      "presentation": { "reveal": "silent", "panel": "shared" },
+      "problemMatcher": "$msCompile",
+      "dependsOn": "kill-stray-web",
+      "dependsOrder": "sequence"
+    }
+  ]
+}

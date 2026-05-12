@@ -68,6 +68,8 @@
         new BreadcrumbItem { Position = 3, Name = @subCategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}")  },
         new BreadcrumbItem { Position = 4, Name = Model.Name, Url = UrlHelper.MakeFullUrl(domain, UrlBuilder.ListingPath(@Model.DirectoryEntryKey))  }
     };
+
+    var processorParts = ViewBag.ProcessorParts as List<DirectoryManager.Web.Models.ProcessorPart>;
 }
 
 @{
@@ -169,14 +171,32 @@
                         {
                             <tr>
                                 <th scope="row">Proof</th>
-                                <td><a class="multi-line-text" href="@Model.ProofLink" target="_blank">@Model.ProofLink</a></td>
+                                <td>
+                                    @if (isScam)
+                                    {
+                                        <span class="multi-line-text">@Model.ProofLink</span>
+                                    }
+                                    else
+                                    {
+                                        <a class="multi-line-text" href="@Model.ProofLink" target="_blank">@Model.ProofLink</a>
+                                    }
+                                </td>
                             </tr>
                         }
                         @if (!string.IsNullOrEmpty(Model.VideoLink))
                         {
                             <tr>
                                 <th scope="row">Video</th>
-                                <td><a class="multi-line-text" href="@Model.VideoLink" target="_blank">@Model.VideoLink</a></td>
+                                <td>
+                                    @if (isScam)
+                                    {
+                                        <span class="multi-line-text">@Model.VideoLink</span>
+                                    }
+                                    else
+                                    {
+                                        <a class="multi-line-text" href="@Model.VideoLink" target="_blank">@Model.VideoLink</a>
+                                    }
+                                </td>
                             </tr>
                         }
                         <tr>
@@ -206,9 +226,36 @@
                         {
                             <tr>
                                 <th scope="row">Processor</th>
-                                <td>@Model.Processor</td>
+                                <td>
+                                    @if (processorParts != null && processorParts.Count > 0)
+                                    {
+                                        for (int i = 0; i < processorParts.Count; i++)
+                                        {
+                                            var p = processorParts[i];
+
+                                            if (!string.IsNullOrEmpty(p.EntryKey))
+                                            {
+                                                <a class="no-app-link" href="@UrlResolver.ResolveToRoot(UrlBuilder.ListingPath(p.EntryKey))">@p.Display</a>
+                                            }
+                                            else
+                                            {
+                                                @p.Display
+                                            }
+
+                                            if (i < processorParts.Count - 1)
+                                            {
+                                                @:, 
+                                            }
+                                        }
+                                    }
+                                    else
+                                    {
+                                        @Model.Processor
+                                    }
+                                </td>
                             </tr>
                         }
+
                         @if (Model.FoundedDate.HasValue)
                         {
                             <tr>

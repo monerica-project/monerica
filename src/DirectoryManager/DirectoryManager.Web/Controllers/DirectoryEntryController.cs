@@ -47,6 +47,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IUrlResolutionService urlResolver;
         private readonly IDirectoryEntryReviewCommentRepository reviewCommentRepository;
         private readonly IAdditionalLinkRepository additionalLinkRepo;
+        private readonly IProcessorRepository processorRepository;
 
         // -------------------------------------------------------------------------
         // Constructor
@@ -69,7 +70,8 @@ namespace DirectoryManager.Web.Controllers
             ISubmissionRepository submissionRepository,
             IUrlResolutionService urlResolver,
             IDirectoryEntryReviewCommentRepository reviewCommentRepository,
-            IAdditionalLinkRepository additionalLinkRepo)
+            IAdditionalLinkRepository additionalLinkRepo,
+            IProcessorRepository processorRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -87,6 +89,7 @@ namespace DirectoryManager.Web.Controllers
             this.urlResolver = urlResolver;
             this.reviewCommentRepository = reviewCommentRepository;
             this.additionalLinkRepo = additionalLinkRepo;
+            this.processorRepository = processorRepository;
         }
 
         // -------------------------------------------------------------------------
@@ -624,6 +627,8 @@ namespace DirectoryManager.Web.Controllers
 
             await this.SetCategoryContextViewBagAsync(entry.SubCategoryId);
 
+            await this.SetProcessorLinksAsync(entry);
+
             return this.View("DirectoryEntryView", model);
         }
 
@@ -1143,6 +1148,73 @@ namespace DirectoryManager.Web.Controllers
 
             return (vm, page);
         }
+
+private async Task SetProcessorLinksAsync(DirectoryEntry entry)
+{
+    var processorRaw = entry.Processor?.Trim();
+    if (string.IsNullOrWhiteSpace(processorRaw))
+    {
+        return;
+    }
+
+    var parts = processorRaw
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToList();
+
+    if (parts.Count == 0)
+    {
+        return;
+    }
+
+    // Cached map: processor-name -> DirectoryEntryKey, built once from the
+    // intersection of the Processor vocabulary and all active DirectoryEntries.
+    // Case- and whitespace-insensitive.
+    var processorNameToEntryKey = await this.cache.GetOrCreateAsync(
+        "ProcessorNameToEntryKey_v1",
+        async cacheEntry =>
+        {
+            cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
+
+            var processors = await this.processorRepository.ListAllAsync();
+            var processorNameSet = (processors ?? new List<Processor>())
+                .Where(p => !string.IsNullOrWhiteSpace(p.Name))
+                .Select(p => p.Name.Trim())
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (processorNameSet.Count == 0)
+            {
+                return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+            }
+
+            var entries = await this.directoryEntryRepository.GetAllActiveEntries();
+
+            return (entries ?? Enumerable.Empty<DirectoryEntry>())
+                .Where(e => !string.IsNullOrWhiteSpace(e.Name)
+                         && processorNameSet.Contains(e.Name.Trim()))
+                .GroupBy(e => e.Name.Trim(), StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(
+                    g => g.Key,
+                    g => g.First().DirectoryEntryKey,
+                    StringComparer.OrdinalIgnoreCase);
+        }) ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+    var resolved = new List<ProcessorPart>(parts.Count);
+
+    foreach (var part in parts)
+    {
+        string entryKey = string.Empty;
+
+        if (!string.Equals(part, entry.Name, StringComparison.OrdinalIgnoreCase)
+            && processorNameToEntryKey.TryGetValue(part, out var key))
+        {
+            entryKey = key;
+        }
+
+        resolved.Add(new ProcessorPart { Display = part, EntryKey = entryKey });
+    }
+
+    this.ViewBag.ProcessorParts = resolved;
+}
 
         private void ApplyOwnerDisplayNames(DirectoryEntry entry, List<DirectoryEntryReview> reviews)
         {

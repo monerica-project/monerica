@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug DirectoryManager.Web",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build-web",
+      "program": "${workspaceFolder}/src/DirectoryManager/DirectoryManager.Web/bin/Debug/net10.0/DirectoryManager.Web.dll",
+      "args": [],
+      "cwd": "${workspaceFolder}/src/DirectoryManager/DirectoryManager.Web",
+      "stopAtEntry": false,
+      "console": "internalConsole",
+      "serverReadyAction": {
+        "action": "openExternally",
+        "pattern": "\\bNow listening on:\\s+(https?://\\S+)"
+      },
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "https://localhost:7145;http://localhost:5007"
+      }
+    }
+  ]
+}
