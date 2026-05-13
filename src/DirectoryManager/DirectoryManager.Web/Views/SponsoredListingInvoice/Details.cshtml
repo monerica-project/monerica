@@ -9,11 +9,16 @@
     ViewData[StringConstants.TitleHeader] = "Invoice Details";
     Layout = "_CenteredLayout";
 }
-
+ 
 @{
     var totalDaysRaw = (Model.CampaignEndDate.Date - Model.CampaignStartDate.Date).TotalDays;
     var totalDays = totalDaysRaw <= 0 ? 1 : (int)totalDaysRaw;   // protect against div/zero or bad dates
     var avgUsdPerDay = Math.Round(Model.Amount / totalDays, 2);     // 2 decimals
+
+    var hasPaidAmount = Model.PaidAmount > 0m;
+    var effectiveRate = hasPaidAmount
+        ? Math.Round(Model.Amount / Model.PaidAmount, 2)
+        : 0m;
 }
 
 @section PageContent {
@@ -70,6 +75,18 @@
 
         <dt>Paid In Currency</dt>
         <dd>@Model.PaidInCurrency</dd>
+
+        <dt>Paid In Currency</dt>
+        <dd>@Model.PaidInCurrency</dd>
+        
+        @if (hasPaidAmount)
+        {
+            <dt>Effective Rate</dt>
+            <dd>@effectiveRate.ToString("0.00") @Model.Currency / @Model.PaidInCurrency</dd>
+        }
+        
+        <dt>Payment Status</dt>
+        <dd>@EnumHelper.GetDescription(Model.PaymentStatus)</dd>
 
         <dt>Payment Status</dt>
         <dd>@EnumHelper.GetDescription(Model.PaymentStatus)</dd>
