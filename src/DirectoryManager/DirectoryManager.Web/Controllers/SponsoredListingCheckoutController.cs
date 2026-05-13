@@ -1167,12 +1167,22 @@ namespace DirectoryManager.Web.Controllers
         private async Task ApplyBtcPayWebhookUpdateAsync(SponsoredListingInvoice invoice, BtcPayWebhookPayload payload)
         {
             invoice.PaymentResponse = JsonConvert.SerializeObject(payload);
-
+        
+            // Surface overpayments to the log even though we now treat them as Paid.
+            // The full payload is in invoice.PaymentResponse and BTCPay shows the real amounts.
+            if (payload.OverPaid)
+            {
+                this.logger.LogInformation(
+                    "BTCPay reported OverPaid=true for processor invoice {ProcessorId} (order {OrderId}). " +
+                    "Treating as Paid. Inspect BTCPay or invoice.PaymentResponse for actual amounts.",
+                    payload.InvoiceId,
+                    invoice.InvoiceId);
+            }
+        
             var proposed = SponsoredListingCheckoutHelper.MapBtcPayEventToInternalStatus(
                 payload.Type,
-                partiallyPaid: payload.PartiallyPaid,
-                overPaid: payload.OverPaid);
-
+                partiallyPaid: payload.PartiallyPaid);
+        
             if (proposed != PaymentStatus.Unknown
                 && !SponsoredListingCheckoutHelper.IsTerminal(invoice.PaymentStatus)
                 && SponsoredListingCheckoutHelper.StatusRank[proposed] >
@@ -1180,10 +1190,11 @@ namespace DirectoryManager.Web.Controllers
             {
                 invoice.PaymentStatus = proposed;
             }
-
+        
             // Capture XMR amount whenever we're at or past Pending — covers Pending, UnderPayment,
-            // Paid, and OverPayment. InvoiceReceivedPayment and InvoicePaymentSettled carry payment.value
-            // directly; InvoiceSettled is aggregate and needs the payment-methods endpoint.
+            // Paid, and any OverPayment that might be set by another code path. InvoiceReceivedPayment
+            // and InvoicePaymentSettled carry payment.value directly; InvoiceSettled is aggregate
+            // and needs the payment-methods endpoint.
             if (invoice.PaymentStatus is PaymentStatus.Pending
                                       or PaymentStatus.UnderPayment
                                       or PaymentStatus.Paid
@@ -1191,7 +1202,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 var ns = System.Globalization.NumberStyles.Any;
                 var ci = System.Globalization.CultureInfo.InvariantCulture;
-
+        
                 if (payload.Payment != null
                     && !string.IsNullOrWhiteSpace(payload.Payment.Value)
                     && decimal.TryParse(payload.Payment.Value, ns, ci, out var webhookXmr)
@@ -1206,18 +1217,18 @@ namespace DirectoryManager.Web.Controllers
                     await this.PopulateBtcPayPaymentAmountsAsync(invoice, payload.InvoiceId);
                 }
             }
-
+        
             if (SponsoredListingCheckoutHelper.HoldExtendingStatuses.Contains(invoice.PaymentStatus))
             {
                 await this.EnsureHoldFromInvoiceAsync(invoice, TimeSpan.FromHours(2), TimeSpan.FromHours(3));
             }
-
+        
             await this.CreateNewSponsoredListingAsync(invoice);
             if (SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus))
             {
                 await this.TryCreateAffiliateCommissionAsync(invoice);
             }
-        }
+        }      
 
         private async Task TryConfirmBtcPayInvoiceAsync(SponsoredListingInvoice invoice, string processorInvoiceId)
         {
