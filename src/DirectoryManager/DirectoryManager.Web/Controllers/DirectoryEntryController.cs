@@ -1166,36 +1166,44 @@ namespace DirectoryManager.Web.Controllers
                 return;
             }
         
-            // Cached map: processor-name -> DirectoryEntryKey, built once from the
-            // intersection of the Processor vocabulary and all active DirectoryEntries.
-            // Case- and whitespace-insensitive.
-            var processorNameToEntryKey = await this.cache.GetOrCreateAsync(
-                "ProcessorNameToEntryKey_v1",
+            // Cached lookup: processor-part -> DirectoryEntryKey.
+            // Built from all active entries, indexed under BOTH the trimmed Name AND
+            // the URL slug, so a processor-field value resolves regardless of small
+            // formatting differences. The previous version intersected this against
+            // the Processor table, which silently dropped any DirectoryEntry whose
+            // Name didn't *also* exist in the Processor table — that's why
+            // "CoinPayments" never resolved.
+            var lookup = await this.cache.GetOrCreateAsync(
+                "ProcessorPartToEntryKey_v2",
                 async cacheEntry =>
                 {
                     cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
         
-                    var processors = await this.processorRepository.ListAllAsync();
-                    var processorNameSet = (processors ?? new List<Processor>())
-                        .Where(p => !string.IsNullOrWhiteSpace(p.Name))
-                        .Select(p => p.Name.Trim())
-                        .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        
-                    if (processorNameSet.Count == 0)
-                    {
-                        return new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-                    }
-        
                     var entries = await this.directoryEntryRepository.GetAllActiveEntries();
         
-                    return (entries ?? Enumerable.Empty<DirectoryEntry>())
-                        .Where(e => !string.IsNullOrWhiteSpace(e.Name)
-                                 && processorNameSet.Contains(e.Name.Trim()))
-                        .GroupBy(e => e.Name.Trim(), StringComparer.OrdinalIgnoreCase)
-                        .ToDictionary(
-                            g => g.Key,
-                            g => g.First().DirectoryEntryKey,
-                            StringComparer.OrdinalIgnoreCase);
+                    var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+        
+                    foreach (var e in entries ?? Enumerable.Empty<DirectoryEntry>())
+                    {
+                        if (string.IsNullOrWhiteSpace(e.Name) || string.IsNullOrWhiteSpace(e.DirectoryEntryKey))
+                        {
+                            continue;
+                        }
+        
+                        var nameKey = e.Name.Trim();
+                        if (!map.ContainsKey(nameKey))
+                        {
+                            map[nameKey] = e.DirectoryEntryKey;
+                        }
+        
+                        var slugKey = StringHelpers.UrlKey(e.Name);
+                        if (!string.IsNullOrWhiteSpace(slugKey) && !map.ContainsKey(slugKey))
+                        {
+                            map[slugKey] = e.DirectoryEntryKey;
+                        }
+                    }
+        
+                    return map;
                 }) ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         
             var resolved = new List<ProcessorPart>(parts.Count);
@@ -1204,10 +1212,24 @@ namespace DirectoryManager.Web.Controllers
             {
                 string entryKey = string.Empty;
         
-                if (!string.Equals(part, entry.Name, StringComparison.OrdinalIgnoreCase)
-                    && processorNameToEntryKey.TryGetValue(part, out var key))
+                // Don't link an entry's own processor row back to itself.
+                if (!string.Equals(part, entry.Name, StringComparison.OrdinalIgnoreCase))
                 {
-                    entryKey = key;
+                    if (lookup.TryGetValue(part, out var byName))
+                    {
+                        entryKey = byName;
+                    }
+                    else
+                    {
+                        // Fallback: match by URL slug. Catches "CoinPayments" vs
+                        // "Coin Payments", trailing punctuation differences, etc.
+                        var partSlug = StringHelpers.UrlKey(part);
+                        if (!string.IsNullOrWhiteSpace(partSlug)
+                            && lookup.TryGetValue(partSlug, out var bySlug))
+                        {
+                            entryKey = bySlug;
+                        }
+                    }
                 }
         
                 resolved.Add(new ProcessorPart { Display = part, EntryKey = entryKey });
