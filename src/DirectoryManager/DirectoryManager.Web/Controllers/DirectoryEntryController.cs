@@ -285,7 +285,8 @@ namespace DirectoryManager.Web.Controllers
                 FoundedMonth = entry.FoundedDate?.Month.ToString("00"),
                 FoundedDay = entry.FoundedDate?.Day.ToString("00"),
                 SelectedTagIds = selectedIds.ToList(),
-                AdditionalLinks = additionalLinks
+                AdditionalLinks = additionalLinks,
+                ReviewsDisabled = entry.ReviewsDisabled,
             };
 
             return this.View(vm);
@@ -347,6 +348,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.CountryCode = vm.CountryCode;
             existingEntry.PgpKey = vm.PgpKey?.Trim();
             existingEntry.FoundedDate = foundedDate;
+            existingEntry.ReviewsDisabled = vm.ReviewsDisabled;
 
             await this.directoryEntryRepository.UpdateAsync(existingEntry);
             await this.SyncAdditionalLinksAsync(id, normalizedAdditional);
@@ -1143,7 +1145,8 @@ namespace DirectoryManager.Web.Controllers
                 CurrentPage = page,
                 TotalPages = totalPages,
                 PageSize = IntegerConstants.ReviewsPageSize,
-                AuthorPostCountsByFingerprint = authorCounts
+                AuthorPostCountsByFingerprint = authorCounts,
+                ReviewsDisabled = entry.ReviewsDisabled
             };
 
             return (vm, page);

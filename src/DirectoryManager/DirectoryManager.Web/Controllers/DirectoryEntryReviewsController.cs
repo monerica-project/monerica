@@ -67,11 +67,17 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpPost("begin")]
         [IgnoreAntiforgeryToken]
-        public IActionResult Begin([FromForm] int directoryEntryId, [FromForm] string? website)
+        public async Task<IActionResult> Begin([FromForm] int directoryEntryId, [FromForm] string? website)
         {
             if (!string.IsNullOrWhiteSpace(website))
             {
                 return this.BadRequest();
+            }
+
+            var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
+            if (entry is null || entry.ReviewsDisabled)
+            {
+                return this.NotFound();
             }
 
             var flowId = this.CreateFlow(directoryEntryId);
@@ -281,6 +287,14 @@ namespace DirectoryManager.Web.Controllers
             }
 
             input.DirectoryEntryId = flow.DirectoryEntryId;
+
+            var gateEntry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
+            if (gateEntry is null || gateEntry.ReviewsDisabled)
+            {
+                SubmittedFlows.TryRemove(flowId, out _);
+                this.cache.Remove(CacheKey(flowId));
+                return this.NotFound();
+            }
 
             if (!this.ModelState.IsValid)
             {

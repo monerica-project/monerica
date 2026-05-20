@@ -75,6 +75,12 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            var entry = await this.entryRepo.GetByIdAsync(review.DirectoryEntryId);
+            if (entry is null || entry.ReviewsDisabled)
+            {
+                return this.NotFound();
+            }
+
             var flowId = this.CreateFlow(review.DirectoryEntryReviewId, review.DirectoryEntryId);
             return this.RedirectToAction(nameof(this.Captcha), new { flowId });
         }
@@ -268,6 +274,14 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var entry = await this.entryRepo.GetByIdAsync(state.DirectoryEntryId);
+
+            var gateEntry = await this.entryRepo.GetByIdAsync(state.DirectoryEntryId);
+            if (gateEntry is null || gateEntry.ReviewsDisabled)
+            {
+                SubmittedFlows.TryRemove(flowId, out _);
+                this.cache.Remove(CacheKey(flowId));
+                return this.NotFound();
+            }
 
             this.ViewBag.FlowId = flowId;
             this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";

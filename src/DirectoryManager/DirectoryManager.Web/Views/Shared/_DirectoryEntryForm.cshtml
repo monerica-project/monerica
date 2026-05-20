@@ -211,3 +211,15 @@
            placeholder="e.g. privacy, wallet, exchange" />
     <span asp-validation-for="NewTagsCsv" class="text-danger"></span>
 </div>
+
+<div class="form-group">
+    <div class="form-check">
+        <input asp-for="ReviewsDisabled" class="form-check-input" type="checkbox" />
+        <label asp-for="ReviewsDisabled" class="form-check-label">
+            Disable reviews and replies
+        </label>
+    </div>
+    <small class="text-muted">
+        Existing reviews remain visible. New reviews and replies will be blocked.
+    </small>
+</div>

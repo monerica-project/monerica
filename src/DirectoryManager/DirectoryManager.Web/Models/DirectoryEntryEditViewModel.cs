@@ -40,6 +40,7 @@ namespace DirectoryManager.Web.Models
         public string? FoundedMonth { get; set; }
         public string? FoundedDay { get; set; }
 
+        public bool ReviewsDisabled { get; set; }
 
         // ✅ Existing tags chosen via checkboxes (these are what get persisted)
         public List<int> SelectedTagIds { get; set; } = new ();

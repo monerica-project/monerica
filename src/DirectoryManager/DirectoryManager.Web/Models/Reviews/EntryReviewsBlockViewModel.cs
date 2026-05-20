@@ -6,6 +6,8 @@ namespace DirectoryManager.Web.Models.Reviews
     {
         public int DirectoryEntryId { get; set; }
 
+        public bool ReviewsDisabled { get; set; }
+
         // Used by _EntryReviews.cshtml
         public int ReviewCount { get; set; }
         public double? AverageRating { get; set; }

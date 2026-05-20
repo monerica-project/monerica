@@ -24,6 +24,8 @@
     int totalPages = Model?.TotalPages ?? 1;
     string entryKey = Model?.DirectoryEntryKey ?? string.Empty;
 
+    bool reviewsDisabled = Model?.ReviewsDisabled ?? false;
+
     // ✅ Hover shows exact time to the minute
     string HoverMinute(DateTime dt) => dt.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4, CultureInfo.InvariantCulture);
 
@@ -44,6 +46,14 @@
 
 <div class="reviews-block mt-4">
     <h3 id="reviews" class="mb-3">Reviews</h3>
+
+    @if (reviewsDisabled)
+    {
+        <div class="alert alert-secondary reviews-disabled-notice" role="status">
+            <strong>Reviews are closed for this listing.</strong>
+            Existing reviews remain visible, but new reviews and replies are not being accepted.
+        </div>
+    }
 
     @if (Model.ReviewCount > 0)
     {
@@ -148,14 +158,17 @@
                         </time>
                     </div>
 
-                    <div class="mt-3">
-                        <form action="@Urls.ResolveToApp("/directory-entry-review-replies/begin")"
-                              method="post" class="d-inline" rel="nofollow">
-                            <input type="hidden" name="directoryEntryReviewId" value="@r.DirectoryEntryReviewId" />
-                            <input type="text" name="website" value="" style="display:none" />
-                            <button class="btn review-btn btn-sm btn-outline-secondary" type="submit">Reply</button>
-                        </form>
-                    </div>
+                    @if (!reviewsDisabled)
+                    {
+                        <div class="mt-3">
+                            <form action="@Urls.ResolveToApp("/directory-entry-review-replies/begin")"
+                                  method="post" class="d-inline" rel="nofollow">
+                                <input type="hidden" name="directoryEntryReviewId" value="@r.DirectoryEntryReviewId" />
+                                <input type="text" name="website" value="" style="display:none" />
+                                <button class="btn review-btn btn-sm btn-outline-secondary" type="submit">Reply</button>
+                            </form>
+                        </div>
+                    }
 
                     @if (replies.Any())
                     {
@@ -235,11 +248,14 @@
         <p class="text-muted">No reviews yet.</p>
     }
 
-    <form action="@Urls.ResolveToApp("/directory-entry-reviews/begin")"
-          method="post"
-          class="d-inline"
-          rel="nofollow">
-        <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
-        <button class="btn review-btn" type="submit">Leave a review</button>
-    </form>
+    @if (!reviewsDisabled)
+    {
+        <form action="@Urls.ResolveToApp("/directory-entry-reviews/begin")"
+              method="post"
+              class="d-inline"
+              rel="nofollow">
+            <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
+            <button class="btn review-btn" type="submit">Leave a review</button>
+        </form>
+    }
 </div>

@@ -96,6 +96,8 @@ namespace DirectoryManager.Data.Models
         [NotMapped]
         public string? Tags { get; set; }
 
+        public bool ReviewsDisabled { get; set; }
+
         public ICollection<DirectoryEntryTag> EntryTags { get; set; }
            = new List<DirectoryEntryTag>();
 
