@@ -230,6 +230,48 @@
             </ul>
         }
 
+        @* ===========================
+           Category Sponsors (moved above Newest Additions / Revisions)
+           =========================== *@
+        @if (sponsorsByCategory.Any())
+        {
+            <hr />
+            <div class="sponsor-sections">
+                <section>
+                    <h2 class="section-title sponsor-section-title">Category Sponsors</h2>
+                    @foreach (var cat in cats)
+                    {
+                        if (sponsorsByCategory.TryGetValue(cat.CategoryId, out var entries))
+                        {
+                            <h4>@cat.Name</h4>
+                            <ul class="blank_list_item">
+                                @foreach (var e in entries)
+                                {
+                                    var vm = ViewModelConverter
+                                        .ConvertToViewModels(
+                                            new List<DirectoryEntry> { e },
+                                            DateDisplayOption.NotDisplayed,
+                                            ItemDisplayType.CategorySponsor,
+                                            link2Name, link3Name)
+                                        .First();
+
+                                    vm.IsSponsored = true;
+
+                                    if (sponsorRatings != null && sponsorRatings.TryGetValue(e.DirectoryEntryId, out var rs))
+                                    {
+                                        vm.AverageRating = rs.AvgRating;
+                                        vm.ReviewCount = rs.ReviewCount;
+                                    }
+
+                                    @await Html.PartialAsync("_DirectoryEntryPartial", vm)
+                                }
+                            </ul>
+                        }
+                    }
+                </section>
+            </div>
+        }
+
         @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HtmlNotificationSnippet))
 
         @{
@@ -291,73 +333,46 @@
             <hr />
         }
 
-        <div class="sponsor-sections">
-            <section>
-                <h2 class="section-title sponsor-section-title">Category Sponsors</h2>
-                @foreach (var cat in cats)
-                {
-                    if (sponsorsByCategory.TryGetValue(cat.CategoryId, out var entries))
+        @* ===========================
+           Subcategory Sponsors (kept in original position, below Newest Revisions)
+           =========================== *@
+        @if (sponsorsBySubcategory.Any())
+        {
+            <div class="sponsor-sections">
+                <section>
+                    <h2 class="section-title sponsor-section-title">Subcategory Sponsors</h2>
+                    @foreach (var sub in subs)
                     {
-                        <h4>@cat.Name</h4>
-                        <ul class="blank_list_item">
-                            @foreach (var e in entries)
-                            {
-                                var vm = ViewModelConverter
-                                    .ConvertToViewModels(
-                                        new List<DirectoryEntry> { e },
-                                        DateDisplayOption.NotDisplayed,
-                                        ItemDisplayType.CategorySponsor,
-                                        link2Name, link3Name)
-                                    .First();
-
-                                vm.IsSponsored = true;
-
-                                if (sponsorRatings != null && sponsorRatings.TryGetValue(e.DirectoryEntryId, out var rs))
+                        if (sponsorsBySubcategory.TryGetValue(sub.SubcategoryId, out var entries))
+                        {
+                            <h4>@Html.Raw(FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name))</h4>
+                            <ul class="blank_list_item">
+                                @foreach (var e in entries)
                                 {
-                                    vm.AverageRating = rs.AvgRating;
-                                    vm.ReviewCount = rs.ReviewCount;
+                                    var vm = ViewModelConverter
+                                        .ConvertToViewModels(
+                                            new List<DirectoryEntry> { e },
+                                            DateDisplayOption.NotDisplayed,
+                                            ItemDisplayType.SubcategorySponsor,
+                                            link2Name, link3Name)
+                                        .First();
+
+                                    vm.IsSponsored = true;
+
+                                    if (sponsorRatings != null && sponsorRatings.TryGetValue(e.DirectoryEntryId, out var rs))
+                                    {
+                                        vm.AverageRating = rs.AvgRating;
+                                        vm.ReviewCount = rs.ReviewCount;
+                                    }
+
+                                    @await Html.PartialAsync("_DirectoryEntryPartial", vm)
                                 }
-
-                                @await Html.PartialAsync("_DirectoryEntryPartial", vm)
-                            }
-                        </ul>
+                            </ul>
+                        }
                     }
-                }
-            </section>
-
-            <section>
-                <h2 class="section-title sponsor-section-title">Subcategory Sponsors</h2>
-                @foreach (var sub in subs)
-                {
-                    if (sponsorsBySubcategory.TryGetValue(sub.SubcategoryId, out var entries))
-                    {
-                        <h4>@Html.Raw(FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name))</h4>
-                        <ul class="blank_list_item">
-                            @foreach (var e in entries)
-                            {
-                                var vm = ViewModelConverter
-                                    .ConvertToViewModels(
-                                        new List<DirectoryEntry> { e },
-                                        DateDisplayOption.NotDisplayed,
-                                        ItemDisplayType.SubcategorySponsor,
-                                        link2Name, link3Name)
-                                    .First();
-
-                                vm.IsSponsored = true;
-
-                                if (sponsorRatings != null && sponsorRatings.TryGetValue(e.DirectoryEntryId, out var rs))
-                                {
-                                    vm.AverageRating = rs.AvgRating;
-                                    vm.ReviewCount = rs.ReviewCount;
-                                }
-
-                                @await Html.PartialAsync("_DirectoryEntryPartial", vm)
-                            }
-                        </ul>
-                    }
-                }
-            </section>
-        </div>
+                </section>
+            </div>
+        }
 
         @* ===========================
            Latest Activity (Reviews + Replies unified stream, max 25)
