@@ -20,6 +20,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly SignInManager<ApplicationUser> signInManager;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IAffiliateCommissionRepository affiliateCommissionRepository;
+        private readonly ICaptchaService captchaService;
         public readonly ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository;
 
         public AccountController(
@@ -33,6 +34,7 @@ namespace DirectoryManager.Web.Controllers
             IUserAgentCacheService userAgentCacheService,
             IAffiliateCommissionRepository affiliateCommissionRepository,
             ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository,
+            ICaptchaService captchaService,
             IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
@@ -44,6 +46,7 @@ namespace DirectoryManager.Web.Controllers
             this.directoryEntryReviewCommentRepository = directoryEntryReviewCommentRepository;
             this.affiliateCommissionRepository = affiliateCommissionRepository;
             this.sponsoredListingInvoiceRepository = sponsoredListingInvoiceRepository;
+            this.captchaService = captchaService;
         }
 
         [HttpGet]
@@ -63,7 +66,29 @@ namespace DirectoryManager.Web.Controllers
                 return this.View();
             }
 
-            var result = await this.signInManager.PasswordSignInAsync(username, password, rememberMe, false);
+            // 🔒 CAPTCHA — bot/credential-stuffing brake
+            if (!this.captchaService.IsValid(this.Request))
+            {
+                this.ModelState.AddModelError("", "Invalid CAPTCHA. Please try again.");
+                return this.View();
+            }
+
+            // 🔒 lockoutOnFailure: true engages Identity's failed-attempt counter
+            var result = await this.signInManager.PasswordSignInAsync(
+                username, password, rememberMe, lockoutOnFailure: true);
+
+            if (result.IsLockedOut)
+            {
+                // Generic message — don't reveal whether the user exists
+                this.ModelState.AddModelError("", "Too many attempts. Please try again later.");
+                return this.View();
+            }
+
+            if (result.IsNotAllowed)
+            {
+                this.ModelState.AddModelError("", "Login not allowed.");
+                return this.View();
+            }
 
             if (result.Succeeded)
             {
@@ -100,19 +125,11 @@ namespace DirectoryManager.Web.Controllers
                 await this.affiliateCommissionRepository.CountByStatusAsync(CommissionPayoutStatus.Pending);
 
             this.ViewBag.TotalPendingSubmissions = totalPendingSubmissions;
-
-            // ✅ keep your existing name, but now includes BOTH
             this.ViewBag.TotalPendingReviews = totalPendingReviewItems;
-
             this.ViewBag.LastInvoicePaidUtc = this.sponsoredListingInvoiceRepository.GetLastPaidInvoiceCreateDate();
-
-            // null when no pending invoices exist — view should only render this row when set
             this.ViewBag.LastInvoicePendingUtc = this.sponsoredListingInvoiceRepository.GetLastPendingInvoiceCreateDate();
-
-            // ✅ optional breakdown (use if you want)
             this.ViewBag.TotalPendingReviewReviews = pendingReviews;
             this.ViewBag.TotalPendingReviewComments = pendingReviewComments;
-
             this.ViewBag.PendingAffiliateCommissions = pendingAffiliateCommissions;
 
             return this.View();
@@ -161,7 +178,10 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction("Home", "Account");
         }
 
+        // 🔒 POST-only so CSRF (now globally enforced) protects logout.
         [Route("account/logout")]
+        [HttpPost]
+        [Authorize]
         public async Task<IActionResult> Logout()
         {
             await this.signInManager.SignOutAsync();

@@ -413,6 +413,7 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpPost]
         [AllowAnonymous]
+        [IgnoreAntiforgeryToken]
         [Route("sponsoredlisting/nowpaymentscallback")]
         public async Task<IActionResult> NowPaymentsCallBackAsync()
         {
@@ -500,6 +501,7 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpPost]
         [AllowAnonymous]
+        [IgnoreAntiforgeryToken]
         [Route("sponsoredlisting/btcpaycallback")]
         public async Task<IActionResult> BtcPayCallbackAsync()
         {

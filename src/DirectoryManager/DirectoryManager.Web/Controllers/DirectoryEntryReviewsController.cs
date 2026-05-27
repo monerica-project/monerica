@@ -479,47 +479,11 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
+        // Old edit path — now lives in ReviewModerationController.
+        // Keep a redirect so any existing Edit buttons / bookmarks still work.
         [HttpGet("{id:int}/edit")]
-        public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
-        {
-            var item = await this.directoryEntryReviewRepository.GetByIdAsync(id, ct);
-            if (item is null)
-            {
-                return this.NotFound();
-            }
-
-            item.OrderId = item.OrderId;
-            item.OrderUrl = item.OrderUrl;
-
-            return this.View(item);
-        }
-
-        [HttpPost("{id:int}/edit")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, DirectoryEntryReview model, [FromForm] string? orderProof, CancellationToken ct = default)
-        {
-            var pk = model.DirectoryEntryReviewId;
-            if (id != pk)
-            {
-                return this.BadRequest();
-            }
-
-            if (!this.ModelState.IsValid)
-            {
-                return this.View(model);
-            }
-
-            ApplyOrderProof(model, orderProof);
-
-            var hasProof = !string.IsNullOrWhiteSpace(model.OrderId) || !string.IsNullOrWhiteSpace(model.OrderUrl);
-            if (hasProof && model.ModerationStatus == ReviewModerationStatus.Approved)
-            {
-                model.ModerationStatus = ReviewModerationStatus.Pending;
-            }
-
-            await this.directoryEntryReviewRepository.UpdateAsync(model, ct);
-            return this.RedirectToAction(nameof(this.Index));
-        }
+        public IActionResult Edit(int id)
+            => this.RedirectToAction("Edit", "ReviewModeration", new { id });
 
         [HttpPost("{id:int}/delete")]
         public async Task<IActionResult> Delete(int id, CancellationToken ct = default)

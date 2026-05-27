@@ -78,41 +78,55 @@ namespace NowPayments.API.Implementations
         public bool IsIpnRequestValid(string requestBody, string paymentSignature, out string errorMsg)
         {
             errorMsg = "Unknown error";
-            bool authOk = false;
 
-            var receivedHmac = paymentSignature;
-
-            if (!string.IsNullOrEmpty(receivedHmac))
-            {
-                var requestData = JsonConvert.DeserializeObject<Dictionary<string, object>>(requestBody);
-
-                if (requestData != null && requestData.Count != 0)
-                {
-                    var sortedRequestData = requestData.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
-                    var sortedRequestJson = JsonConvert.SerializeObject(sortedRequestData);
-
-                    var hmac = CalculateHMAC(sortedRequestJson, this.ipnSecretKey);
-
-                    if (string.Equals(hmac, receivedHmac, StringComparison.OrdinalIgnoreCase))
-                    {
-                        authOk = true;
-                    }
-                    else
-                    {
-                        errorMsg = "HMAC signature does not match";
-                    }
-                }
-                else
-                {
-                    errorMsg = "Error reading POST data";
-                }
-            }
-            else
+            if (string.IsNullOrEmpty(paymentSignature))
             {
                 errorMsg = "No HMAC signature sent.";
+                return false;
             }
 
-            return authOk;
+            var requestData = JsonConvert.DeserializeObject<Dictionary<string, object>>(requestBody);
+            if (requestData == null || requestData.Count == 0)
+            {
+                errorMsg = "Error reading POST data";
+                return false;
+            }
+
+            var sortedRequestData = requestData.OrderBy(x => x.Key).ToDictionary(x => x.Key, x => x.Value);
+            var sortedRequestJson = JsonConvert.SerializeObject(sortedRequestData);
+
+            var computed = CalculateHMAC(sortedRequestJson, this.ipnSecretKey);
+
+            if (FixedTimeHexEquals(computed, paymentSignature))
+            {
+                errorMsg = string.Empty;
+                return true;
+            }
+
+            errorMsg = "HMAC signature does not match";
+            return false;
+        }
+
+        /// <summary>
+        /// Constant-time comparison of two hex strings, case-insensitive.
+        /// </summary>
+        private static bool FixedTimeHexEquals(string a, string b)
+        {
+            if (a is null || b is null || a.Length != b.Length || (a.Length % 2) != 0)
+            {
+                return false;
+            }
+
+            try
+            {
+                var aBytes = Convert.FromHexString(a);
+                var bBytes = Convert.FromHexString(b);
+                return CryptographicOperations.FixedTimeEquals(aBytes, bBytes);
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
         }
 
         public async Task<PaymentStatusResponse> GetPaymentStatusAsync(string paymentId)

@@ -18,7 +18,9 @@ using DirectoryManager.Services.Models;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Newtonsoft.Json;
 using NowPayments.API.Implementations;
@@ -33,13 +35,38 @@ namespace DirectoryManager.Web.Extensions
             this IServiceCollection services,
             IConfiguration config)
         {
-            services.AddSession();
+            // Session cookie hardening
+            services.AddSession(options =>
+            {
+                options.Cookie.HttpOnly = true;
+                options.Cookie.IsEssential = true;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+            });
+
             services.AddResponseCaching();
-            services.AddControllersWithViews();
+
+            // 🔒 Global antiforgery: every unsafe (POST/PUT/PATCH/DELETE) action
+            // is automatically validated. Mark webhook endpoints with
+            // [IgnoreAntiforgeryToken] to allow third-party callbacks.
+            services.AddControllersWithViews(options =>
+            {
+                options.Filters.Add(new AutoValidateAntiforgeryTokenAttribute());
+            });
+
             services.AddRazorPages();
             services.AddMemoryCache();
             services.AddMvc();
             services.AddHttpContextAccessor();
+
+            // Antiforgery cookie hardening
+            services.AddAntiforgery(options =>
+            {
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.HeaderName = "X-XSRF-TOKEN";
+            });
 
             services.AddDbContext<ApplicationDbContext>(options =>
                 options.UseSqlServer(
@@ -170,9 +197,37 @@ namespace DirectoryManager.Web.Extensions
 
             services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
 
-            services.AddIdentity<ApplicationUser, IdentityRole>()
+            services.AddIdentity<ApplicationUser, IdentityRole>(options =>
+            {
+                // 🔒 Lockout
+                options.Lockout.MaxFailedAccessAttempts = 5;
+                options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(15);
+                options.Lockout.AllowedForNewUsers = true;
+
+                // Password policy (current Identity defaults made explicit + stronger min length)
+                options.Password.RequiredLength = 12;
+                options.Password.RequireDigit = true;
+                options.Password.RequireUppercase = true;
+                options.Password.RequireLowercase = true;
+                options.Password.RequireNonAlphanumeric = true;
+
+                // User
+                options.User.RequireUniqueEmail = true;
+            })
                 .AddEntityFrameworkStores<ApplicationDbContext>()
                 .AddDefaultTokenProviders();
+
+            // 🔒 Auth cookie hardening
+            services.ConfigureApplicationCookie(options =>
+            {
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.ExpireTimeSpan = TimeSpan.FromHours(8);
+                options.SlidingExpiration = true;
+                options.LoginPath = "/account/login";
+                options.LogoutPath = "/account/logout";
+            });
 
             return services;
         }

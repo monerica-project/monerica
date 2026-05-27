@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Models.Reviews;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -180,6 +181,99 @@ namespace DirectoryManager.Web.Controllers
             };
 
             return this.View("Show", vm);
+        }
+
+        // GET /admin/reviews/123/edit
+[HttpGet("{id:int}/edit")]
+public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
+{
+    var review = await this.repo.Query()
+        .Include(r => r.ReviewTags)
+            .ThenInclude(rt => rt.ReviewTag)
+        .FirstOrDefaultAsync(r => r.DirectoryEntryReviewId == id, ct);
+
+    if (review is null)
+    {
+        return this.NotFound();
+    }
+
+    var allTags = await this.reviewTagRepository.ListAllAsync(ct);
+
+    var vm = new EditDirectoryEntryReviewAdminViewModel
+    {
+        DirectoryEntryReviewId = review.DirectoryEntryReviewId,
+        DirectoryEntryId       = review.DirectoryEntryId,
+        Rating                 = review.Rating,
+        Body                   = review.Body ?? string.Empty,
+        OrderProof             = review.OrderUrl ?? review.OrderId,
+        ModerationStatus       = review.ModerationStatus,
+        RejectionReason        = review.RejectionReason,
+        SelectedTagIds         = review.ReviewTags.Select(x => x.ReviewTagId).ToList(),
+        AllTags = allTags.Select(t => new EditDirectoryEntryReviewAdminViewModel.TagOption
+        {
+            Id        = t.ReviewTagId,
+            Name      = t.Name,
+            IsEnabled = t.IsEnabled
+        }).ToList()
+    };
+
+    return this.View("Edit", vm);
+}
+
+        // POST /admin/reviews/123/edit
+        [HttpPost("{id:int}/edit")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Edit(
+            int id,
+            EditDirectoryEntryReviewAdminViewModel input,
+            CancellationToken ct = default)
+        {
+            if (id != input.DirectoryEntryReviewId)
+            {
+                return this.BadRequest();
+            }
+        
+            if (!this.ModelState.IsValid)
+            {
+                // Reload tag options so the view renders correctly on validation error
+                var allTags = await this.reviewTagRepository.ListAllAsync(ct);
+                input.AllTags = allTags.Select(t => new EditDirectoryEntryReviewAdminViewModel.TagOption
+                {
+                    Id        = t.ReviewTagId,
+                    Name      = t.Name,
+                    IsEnabled = t.IsEnabled
+                }).ToList();
+                return this.View("Edit", input);
+            }
+        
+            var review = await this.repo.GetByIdAsync(id, ct);
+            if (review is null)
+            {
+                return this.NotFound();
+            }
+        
+            // 🧹 The actual reason we're here: scrub the body
+            review.Body            = (input.Body ?? string.Empty).Trim();
+            review.Rating          = input.Rating;
+            review.ModerationStatus = input.ModerationStatus;
+            review.RejectionReason = string.IsNullOrWhiteSpace(input.RejectionReason)
+                ? null
+                : input.RejectionReason.Trim();
+        
+            ApplyOrderProof(review, input.OrderProof);
+        
+            await this.repo.UpdateAsync(review, ct);
+        
+            var tagIds = (input.SelectedTagIds ?? new List<int>()).Distinct().ToArray();
+            await this.reviewTagLinkRepository.SetTagsForReviewAsync(
+                review.DirectoryEntryReviewId,
+                tagIds,
+                userId: this.User?.Identity?.Name ?? "admin",
+                ct);
+        
+            this.ClearCachedItems();
+            this.TempData["SuccessMessage"] = "Review updated.";
+            return this.RedirectToAction(nameof(this.Show), new { id });
         }
 
         // POST /admin/reviews/123/update

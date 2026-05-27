@@ -279,10 +279,7 @@ namespace BtcPayServer.API.Implementations
 
             var computed = ComputeHmacSha256(requestBody, this.webhookSecret);
 
-            if (string.Equals(
-                    computed,
-                    receivedHex,
-                    StringComparison.OrdinalIgnoreCase))
+            if (FixedTimeHexEquals(computed, receivedHex))
             {
                 errorMsg = string.Empty;
                 return true;
@@ -290,6 +287,29 @@ namespace BtcPayServer.API.Implementations
 
             errorMsg = "HMAC signature does not match.";
             return false;
+        }
+
+        /// <summary>
+        /// Constant-time comparison of two hex strings, case-insensitive.
+        /// Returns false (without leaking timing info) on length mismatch or invalid hex.
+        /// </summary>
+        private static bool FixedTimeHexEquals(string a, string b)
+        {
+            if (a is null || b is null || a.Length != b.Length || (a.Length % 2) != 0)
+            {
+                return false;
+            }
+
+            try
+            {
+                var aBytes = Convert.FromHexString(a);
+                var bBytes = Convert.FromHexString(b);
+                return CryptographicOperations.FixedTimeEquals(aBytes, bBytes);
+            }
+            catch (FormatException)
+            {
+                return false;
+            }
         }
 
         private async Task<decimal?> TryGetRateAsync(

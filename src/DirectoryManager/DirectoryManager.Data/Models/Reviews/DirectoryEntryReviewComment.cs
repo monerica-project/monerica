@@ -33,15 +33,15 @@ namespace DirectoryManager.Data.Models.Reviews
         [MaxLength(800)]
         public string? RejectionReason { get; set; }
 
-        // Keep consistent with review’s invariant: uppercase, no spaces (normalize before saving)
+        // Keep consistent with review's invariant: uppercase, no spaces (normalize before saving)
         [Required]
         [MaxLength(64)]
         public string AuthorFingerprint { get; set; } = string.Empty;
 
         // Optional navigation for nested children
+        [InverseProperty(nameof(ParentComment))]
         public ICollection<DirectoryEntryReviewComment>? Children { get; set; }
 
-        public ICollection<DirectoryEntryReviewComment>? Comments { get; set; }
         [NotMapped]
         public string? DisplayName { get; set; }
     }

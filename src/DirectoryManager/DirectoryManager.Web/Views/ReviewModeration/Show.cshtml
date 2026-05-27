@@ -154,6 +154,10 @@
             </form>
         }
 
+        <a asp-action="Edit" asp-route-id="@Model.Review.DirectoryEntryReviewId" class="btn btn-warning">
+            Edit body / fields
+        </a>
+
         <form asp-action="Reject"
               asp-route-id="@r.DirectoryEntryReviewId"
               method="post"
