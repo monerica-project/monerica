@@ -1,6 +1,8 @@
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Models.Reviews;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -152,6 +154,89 @@ namespace DirectoryManager.Web.Controllers
             catch (Microsoft.EntityFrameworkCore.DbUpdateException)
             {
                 this.ModelState.AddModelError(string.Empty, "Could not save changes. A raffle with this name may already exist.");
+                return this.View(model);
+            }
+        }
+
+        // ---------------------------
+        // Edit a single entry (status + payment reference / txid)
+        // ---------------------------
+        [HttpGet("{raffleId:int}/entries/{entryId:int}/edit")]
+        public async Task<IActionResult> EditEntry(int raffleId, int entryId, CancellationToken ct = default)
+        {
+            var entry = await this.entryRepository.GetByIdAsync(entryId, ct);
+            if (entry is null || entry.RaffleId != raffleId)
+            {
+                return this.NotFound();
+            }
+
+            var model = new RaffleEntryEditInputModel
+            {
+                DirectoryEntryReviewRaffleEntryId = entry.DirectoryEntryReviewRaffleEntryId,
+                RaffleId = raffleId,
+                DirectoryEntryReviewId = entry.DirectoryEntryReviewId,
+                CreateDate = entry.CreateDate,
+                CryptoType = entry.CryptoType,
+                CryptoAddress = entry.CryptoAddress,
+                Status = entry.Status,
+                PaymentReference = entry.PaymentReference,
+            };
+
+            return this.View(model);
+        }
+
+        [HttpPost("{raffleId:int}/entries/{entryId:int}/edit")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditEntry(int raffleId, int entryId, RaffleEntryEditInputModel model, CancellationToken ct = default)
+        {
+            if (entryId != model.DirectoryEntryReviewRaffleEntryId || raffleId != model.RaffleId)
+            {
+                return this.BadRequest();
+            }
+
+            model.CryptoType = (model.CryptoType ?? string.Empty).Trim();
+            model.CryptoAddress = (model.CryptoAddress ?? string.Empty).Trim();
+            model.PaymentReference = string.IsNullOrWhiteSpace(model.PaymentReference)
+                ? null
+                : model.PaymentReference.Trim();
+
+            // A payout reference (txid) is required whenever an entry is marked Paid.
+            if (model.Status == RaffleEntryStatus.Paid && string.IsNullOrWhiteSpace(model.PaymentReference))
+            {
+                this.ModelState.AddModelError(
+                    nameof(model.PaymentReference),
+                    "A payment reference (txid) is required when marking an entry as Paid.");
+            }
+
+            if (!this.ModelState.IsValid)
+            {
+                return this.View(model);
+            }
+
+            // Load the tracked entity and mutate it so the existing RowVersion is used
+            // for the concurrency check.
+            var entry = await this.entryRepository.GetByIdAsync(entryId, ct);
+            if (entry is null || entry.RaffleId != raffleId)
+            {
+                return this.NotFound();
+            }
+
+            entry.CryptoType = model.CryptoType;
+            entry.CryptoAddress = model.CryptoAddress;
+            entry.Status = model.Status;
+            entry.PaymentReference = model.PaymentReference;
+
+            try
+            {
+                await this.entryRepository.UpdateAsync(entry, ct);
+                this.TempData["SuccessMessage"] = $"Entry #{entryId} updated.";
+                return this.RedirectToAction(nameof(this.Details), new { id = raffleId });
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException)
+            {
+                this.ModelState.AddModelError(
+                    string.Empty,
+                    "This entry was modified by another process. Reload the page and try again.");
                 return this.View(model);
             }
         }

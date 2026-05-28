@@ -1,0 +1,77 @@
+@model DirectoryManager.Web.Models.Reviews.RaffleEntryEditInputModel
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = $"Edit Entry #{Model.DirectoryEntryReviewRaffleEntryId}";
+    Layout = "_CenteredLayout";
+
+    var statusOptions = Enum.GetValues<RaffleEntryStatus>()
+        .Where(s => s != RaffleEntryStatus.Unknown)
+        .Select(s => new Microsoft.AspNetCore.Mvc.Rendering.SelectListItem
+        {
+            Text = s.ToString(),
+            Value = s.ToString(),
+            Selected = s == Model.Status,
+        })
+        .ToList();
+}
+
+@section PageContent {
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<hr />
+    @await Html.PartialAsync("_AdminMenu")
+<div asp-validation-summary="All" class="text-danger"></div>
+
+<dl class="row">
+    <dt class="col-sm-3">Review</dt>
+    <dd class="col-sm-9">
+        <a asp-controller="DirectoryEntryReviews"
+           asp-action="Details"
+           asp-route-id="@Model.DirectoryEntryReviewId">#@Model.DirectoryEntryReviewId</a>
+    </dd>
+
+    <dt class="col-sm-3">Created (UTC)</dt>
+    <dd class="col-sm-9">@Model.CreateDate.ToString("yyyy-MM-dd HH:mm")</dd>
+</dl>
+
+<form asp-action="EditEntry"
+      asp-route-raffleId="@Model.RaffleId"
+      asp-route-entryId="@Model.DirectoryEntryReviewRaffleEntryId"
+      method="post">
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="DirectoryEntryReviewRaffleEntryId" />
+    <input type="hidden" asp-for="RaffleId" />
+    <input type="hidden" asp-for="DirectoryEntryReviewId" />
+    <input type="hidden" asp-for="CreateDate" />
+
+    <div class="mb-3">
+        <label asp-for="CryptoType" class="form-label"></label>
+        <input asp-for="CryptoType" class="form-control" maxlength="20" />
+        <span asp-validation-for="CryptoType" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="CryptoAddress" class="form-label"></label>
+        <textarea asp-for="CryptoAddress" class="form-control" rows="2" maxlength="512"></textarea>
+        <span asp-validation-for="CryptoAddress" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="Status" class="form-label"></label>
+        <select asp-for="Status" asp-items="statusOptions" class="form-select"></select>
+        <span asp-validation-for="Status" class="text-danger"></span>
+    </div>
+
+    <div class="mb-3">
+        <label asp-for="PaymentReference" class="form-label"></label>
+        <input asp-for="PaymentReference" class="form-control" maxlength="256"
+               placeholder="Transaction id / txid" />
+        <span asp-validation-for="PaymentReference" class="text-danger"></span>
+        <div class="form-text">Required when status is set to <b>Paid</b>.</div>
+    </div>
+
+    <button type="submit" class="btn btn-success">Save</button>
+    <a asp-action="Details" asp-route-id="@Model.RaffleId" class="btn btn-link">Cancel</a>
+</form>
+}

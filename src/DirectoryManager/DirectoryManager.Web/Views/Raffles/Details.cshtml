@@ -94,6 +94,7 @@ else
                 <th>Status</th>
                 <th>Payment Ref</th>
                 <th>Created (UTC)</th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -147,6 +148,12 @@ else
                         }
                     </td>
                     <td>@e.CreateDate.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        <a class="btn btn-sm btn-primary"
+                           asp-action="EditEntry"
+                           asp-route-raffleId="@Model.RaffleId"
+                           asp-route-entryId="@e.DirectoryEntryReviewRaffleEntryId">Edit</a>
+                    </td>
                 </tr>
             }
         </tbody>
