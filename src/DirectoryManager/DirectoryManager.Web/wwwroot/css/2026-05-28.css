@@ -245,18 +245,18 @@ li p { margin: 0; margin-left: -20px; }
   background: rgba(0, 0, 0, 0.25);
 }
 .table-wrapper table {
-  width: auto !important;
-  min-width: 100%;
+  width: 100%;
+  min-width: auto;
   border-collapse: separate;
   border-spacing: 0;
-  white-space: nowrap;
   margin: 0 !important;
 }
 .table-wrapper th,
 .table-wrapper td {
-  padding: 10px 14px !important;
+  padding: 8px 10px !important;
   border-bottom: 1px solid var(--border);
   vertical-align: middle;
+  white-space: nowrap;
 }
 .table-wrapper thead th {
   background: rgba(255, 255, 255, 0.025);
@@ -270,7 +270,7 @@ li p { margin: 0; margin-left: -20px; }
 .table-wrapper tbody tr:last-child td {
   border-bottom: 0;
 }
-.table td { padding: 10px 14px; }
+.table td { padding: 8px 10px; }
 table tbody tr:nth-child(even) {
   background-color: rgba(255, 255, 255, 0.025);
   color: var(--fg);
@@ -351,22 +351,20 @@ section.sponsors .sponsor-card:focus-within,
 .sponsored-section {
   position: relative;
   background-color: var(--bg-card-2);
-  border: 1px solid var(--orange);
+  border: 2px solid var(--orange);
   border-radius: var(--radius);
   padding: 12px;
+  transition: box-shadow 0.18s ease, border-color 0.15s ease;
 }
-.sponsored-section::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: var(--radius);
-  padding: 1px;
-  background: linear-gradient(135deg, var(--orange), transparent 60%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  pointer-events: none;
+.sponsored-section:hover,
+.sponsored-section:focus-within {
+  border-color: var(--orange-bright);
+  box-shadow:
+    0 0 0 1px rgba(255, 102, 0, 0.30),
+    0 0 16px rgba(255, 102, 0, 0.22),
+    0 0 34px rgba(255, 102, 0, 0.10);
 }
+.sponsored-section::before { content: none; }
 .sponsored-section ul.blank_list_item { font-size: 18px; }
 .sponsored-section a { font-weight: 600; }
 .sponsored-section p { margin: 0; padding-bottom: 0; }
@@ -385,12 +383,21 @@ section.sponsors .sponsor-card:focus-within,
 
 li.sponsored {
   background-color: var(--bg-card-2);
-  border: 1px solid var(--orange);
+  border: 2px solid var(--orange);
   padding: 8px 10px;
   margin: 3px 0;
   font-size: 18px;
   border-radius: var(--radius);
   margin-left: -25px;
+  transition: box-shadow 0.18s ease, border-color 0.15s ease;
+}
+li.sponsored:hover,
+li.sponsored:focus-within {
+  border-color: var(--orange-bright);
+  box-shadow:
+    0 0 0 1px rgba(255, 102, 0, 0.30),
+    0 0 16px rgba(255, 102, 0, 0.22),
+    0 0 34px rgba(255, 102, 0, 0.10);
 }
 li.sponsored p { margin-left: 0; }
 
@@ -2257,14 +2264,50 @@ a.btn.disabled,
   box-shadow: none !important;
 }
 
+/* Unclassed buttons / submit inputs (e.g. admin logout) — match secondary btn look */
+button[type="submit"]:not(.btn),
+button:not(.btn):not(.review-btn):not(.expander):not(summary),
+input[type="submit"]:not(.btn),
+input[type="button"]:not(.btn) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 16px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--fg);
+  background: var(--bg-card-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.06s;
+}
+button[type="submit"]:not(.btn):hover,
+button:not(.btn):not(.review-btn):not(.expander):not(summary):hover,
+input[type="submit"]:not(.btn):hover,
+input[type="button"]:not(.btn):hover {
+  color: var(--orange-bright);
+  border-color: var(--orange);
+  box-shadow: 0 0 0 1px rgba(255, 102, 0, 0.30), 0 0 12px rgba(255, 102, 0, 0.18);
+}
+button[type="submit"]:not(.btn):active,
+input[type="submit"]:not(.btn):active,
+input[type="button"]:not(.btn):active {
+  transform: translateY(1px);
+}
 button[type="submit"]:not(.btn):focus,
-button[type="submit"]:not(.btn):focus-visible {
+button[type="submit"]:not(.btn):focus-visible,
+input[type="submit"]:not(.btn):focus,
+input[type="button"]:not(.btn):focus {
   outline: none;
-  border-color: var(--orange-glow);
+  border-color: var(--orange);
   box-shadow:
-    0 0 0 1px rgba(255, 102, 0, 0.45),
-    0 0 14px rgba(255, 102, 0, 0.28),
-    0 0 24px rgba(255, 102, 0, 0.12);
+    0 0 0 2px rgba(255, 102, 0, 0.22);
 }
 
 button[type="submit"].btn-cta,
