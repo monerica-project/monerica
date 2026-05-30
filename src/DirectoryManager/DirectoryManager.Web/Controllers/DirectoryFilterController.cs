@@ -122,7 +122,6 @@ public class DirectoryFilterController : Controller
         {
             q.Statuses = new List<DirectoryStatus>
             {
-                DirectoryStatus.Admitted,
                 DirectoryStatus.Verified
             };
         }
