@@ -174,34 +174,34 @@
                 </div>
             }
 
-            @if (Model.Query.CategoryId.HasValue && Model.Query.CategoryId.Value > 0)
-            {
+            @{
                 var selectedTagIds = new HashSet<int>(Model.Query.TagIds ?? new List<int>());
-
-                <div class="form-group">
-                    <label class="ui-label-text">Tags (in this category)</label>
-
-                    @if (Model.CategoryTagOptions == null || Model.CategoryTagOptions.Count == 0)
-                    {
-                        <div class="ui-empty"><i>No tags found for this category.</i></div>
-                    }
-                    else
-                    {
-                        <div class="ui-checks">
-                            @foreach (var t in Model.CategoryTagOptions)
-                            {
-                                <label class="ui-check">
-                                    <input type="checkbox"
-                                           name="TagIds"
-                                           value="@t.Id"
-                                    @(selectedTagIds.Contains(t.Id) ? "checked=\"checked\"" : null) />
-                                    <span>@t.Name</span>
-                                </label>
-                            }
-                        </div>
-                    }
-                </div>
+                var hasCategoryForTags = Model.Query.CategoryId.HasValue && Model.Query.CategoryId.Value > 0;
             }
+
+            <div class="form-group">
+                <label class="ui-label-text">@(hasCategoryForTags ? "Tags (in this category)" : "Tags")</label>
+
+                @if (Model.CategoryTagOptions == null || Model.CategoryTagOptions.Count == 0)
+                {
+                    <div class="ui-empty"><i>@(hasCategoryForTags ? "No tags found for this category." : "No tags found.")</i></div>
+                }
+                else
+                {
+                    <div class="ui-checks">
+                        @foreach (var t in Model.CategoryTagOptions)
+                        {
+                            <label class="ui-check">
+                                <input type="checkbox"
+                                       name="TagIds"
+                                       value="@t.Id"
+                                @(selectedTagIds.Contains(t.Id) ? "checked=\"checked\"" : null) />
+                                <span>@t.Name</span>
+                            </label>
+                        }
+                    </div>
+                }
+            </div>
         </fieldset>
 
 

@@ -241,9 +241,11 @@ public class DirectoryFilterController : Controller
     // -------------------------
     private async Task<List<IdNameOption>> GetCategoryTagOptionsAsync(int? categoryId)
     {
+        // No category selected => show every tag that applies to an active entry,
+        // so a visitor can filter by tag alone.
         if (!(categoryId is > 0))
         {
-            return new List<IdNameOption>();
+            return await this.GetAllActiveTagOptionsAsync();
         }
 
         int catId = categoryId.Value;
@@ -256,6 +258,26 @@ public class DirectoryFilterController : Controller
                 SetCachePolicy(cacheEntry, StringConstants.PrefixActiveTagsByCat);
 
                 var tags = await this.tagRepo.ListTagsForCategoryAsync(catId);
+
+                return tags
+                    .Select(t => new IdNameOption { Id = t.TagId, Name = t.Name })
+                    .OrderBy(x => x.Name, StringComparer.OrdinalIgnoreCase)
+                    .ToList();
+            }) ?? new List<IdNameOption>();
+    }
+
+    // -------------------------
+    // Options: All tags on active entries (cached, no category)
+    // -------------------------
+    private async Task<List<IdNameOption>> GetAllActiveTagOptionsAsync()
+    {
+        return await this.memoryCache.GetOrCreateAsync(
+            StringConstants.ActiveTagsAllCacheName,
+            async cacheEntry =>
+            {
+                SetCachePolicy(cacheEntry, StringConstants.PrefixActiveTagsByCat);
+
+                var tags = await this.tagRepo.ListActiveTagsAsync();
 
                 return tags
                     .Select(t => new IdNameOption { Id = t.TagId, Name = t.Name })
@@ -451,29 +473,41 @@ public class DirectoryFilterController : Controller
     // -------------------------
     private async Task SanitizeTagIdsForCategoryAsync(DirectoryFilterQuery q)
     {
-        if (!(q.CategoryId is > 0))
-        {
-            q.TagIds = new List<int>();
-            return;
-        }
-
         if (q.TagIds is null || q.TagIds.Count == 0)
         {
             return;
         }
 
-        int catId = q.CategoryId.Value;
-        string idCacheKey = StringConstants.ActiveTagIdsByCategoryCachePrefix + catId;
+        HashSet<int> allowedIds;
 
-        var allowedIds = await this.memoryCache.GetOrCreateAsync(
-            idCacheKey,
-            async cacheEntry =>
-            {
-                SetCachePolicy(cacheEntry, StringConstants.PrefixActiveTagIdsByCat);
+        if (q.CategoryId is > 0)
+        {
+            int catId = q.CategoryId.Value;
+            string idCacheKey = StringConstants.ActiveTagIdsByCategoryCachePrefix + catId;
 
-                var tags = await this.tagRepo.ListTagsForCategoryAsync(catId);
-                return tags.Select(t => t.TagId).ToHashSet();
-            }) ?? new HashSet<int>();
+            allowedIds = await this.memoryCache.GetOrCreateAsync(
+                idCacheKey,
+                async cacheEntry =>
+                {
+                    SetCachePolicy(cacheEntry, StringConstants.PrefixActiveTagIdsByCat);
+
+                    var tags = await this.tagRepo.ListTagsForCategoryAsync(catId);
+                    return tags.Select(t => t.TagId).ToHashSet();
+                }) ?? new HashSet<int>();
+        }
+        else
+        {
+            // No category selected: allow any tag attached to an active entry.
+            allowedIds = await this.memoryCache.GetOrCreateAsync(
+                StringConstants.ActiveTagIdsAllCacheName,
+                async cacheEntry =>
+                {
+                    SetCachePolicy(cacheEntry, StringConstants.PrefixActiveTagsByCat);
+
+                    var tags = await this.tagRepo.ListActiveTagsAsync();
+                    return tags.Select(t => t.TagId).ToHashSet();
+                }) ?? new HashSet<int>();
+        }
 
         var cleaned = q.TagIds
             .Where(id => id > 0 && allowedIds.Contains(id))

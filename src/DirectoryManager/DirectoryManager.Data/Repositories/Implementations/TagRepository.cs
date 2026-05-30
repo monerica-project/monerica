@@ -109,6 +109,26 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await query.ToListAsync().ConfigureAwait(false);
         }
 
+        public async Task<IReadOnlyList<TagCount>> ListActiveTagsAsync()
+        {
+            // Every tag used by at least one non-removed entry (any category),
+            // consistent with ListTagsForCategoryAsync's "exclude Removed" rule.
+            var query = this.context.DirectoryEntryTags
+                .AsNoTracking()
+                .Where(et => et.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed)
+                .GroupBy(et => new { et.TagId, et.Tag.Name, et.Tag.Key })
+                .Select(g => new TagCount
+                {
+                    TagId = g.Key.TagId,
+                    Name = g.Key.Name,
+                    Key = g.Key.Key,
+                    Count = g.Count()
+                })
+                .OrderBy(x => x.Name);
+
+            return await query.ToListAsync().ConfigureAwait(false);
+        }
+
         public async Task<PagedResult<Tag>> ListAllPagedAsync(int page, int pageSize)
         {
             if (page < 1)

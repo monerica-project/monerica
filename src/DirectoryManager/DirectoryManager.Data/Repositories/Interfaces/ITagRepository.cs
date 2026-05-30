@@ -29,5 +29,12 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<PagedResult<Tag>> ListAllPagedAsync(int page, int pageSize);
 
         Task<IReadOnlyList<TagCount>> ListTagsForCategoryAsync(int categoryId);
+
+        /// <summary>
+        /// Returns every tag attached to at least one non-removed entry, with usage counts,
+        /// across all categories. Used for the unscoped (no category selected) filter page.
+        /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
+        Task<IReadOnlyList<TagCount>> ListActiveTagsAsync();
     }
 }

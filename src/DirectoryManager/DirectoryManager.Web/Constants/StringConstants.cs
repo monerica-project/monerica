@@ -54,6 +54,8 @@
         public const string ActiveSubcategoriesByCategoryCachePrefix = "ActiveSubcategoriesByCategoryCachePrefix_";
         public const string ActiveTagsByCategoryCachePrefix = "ActiveTagsByCategoryCachePrefix_";
         public const string ActiveTagIdsByCategoryCachePrefix = "active-tag-ids-by-category-";
+        public const string ActiveTagsAllCacheName = "ActiveTagsAll";
+        public const string ActiveTagIdsAllCacheName = "active-tag-ids-all";
         public const string CodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         public const string CacheKeyAuthorPostCounts = "AuthorPostCounts:Approved:Reviews+Replies:v1";
     }
