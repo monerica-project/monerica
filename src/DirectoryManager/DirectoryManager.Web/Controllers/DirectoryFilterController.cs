@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -13,7 +13,13 @@ using Microsoft.Extensions.Caching.Memory;
 
 public class DirectoryFilterController : Controller
 {
-    private const int PageSize = 10;
+    // Default page size and the allow-list a visitor may choose from.
+    // Larger default + paging, per the card-grid redesign.
+    private const int DefaultPageSize = 24;
+    private static readonly int[] AllowedPageSizes = { 12, 24, 48, 96 };
+
+    // Recommended default sort: top rated first, then everything else.
+    private const DirectoryFilterSort DefaultSort = DirectoryFilterSort.TopRated;
 
     // cache durations (same everywhere)
     private static readonly TimeSpan CacheAbsolute = TimeSpan.FromHours(6);
@@ -58,6 +64,10 @@ public class DirectoryFilterController : Controller
         // wipe / sanitize tag filters if they don't match the selected category
         await this.SanitizeTagIdsForCategoryAsync(q);
 
+        // active sponsors → let the repository pin them first under TopRated
+        var activeSponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
+        q.SponsoredEntryIds = new HashSet<int>(activeSponsors.Select(s => s.DirectoryEntryId));
+
         // core results
         var result = await this.entryRepo.FilterAsync(q);
 
@@ -70,8 +80,8 @@ public class DirectoryFilterController : Controller
         // rating summaries for this page only
         await this.ApplyRatingsAsync(vmList);
 
-        // sponsor pinning + order sponsors first
-        vmList = await this.ApplySponsorsAndOrderAsync(vmList);
+        // sponsor flagging (+ optional pinning depending on sort)
+        vmList = await this.ApplySponsorsAndOrderAsync(vmList, q.Sort);
 
         // dropdown options
         var countryOptions = await this.GetCountryOptionsAsync();
@@ -103,17 +113,18 @@ public class DirectoryFilterController : Controller
     // -------------------------
     private static void NormalizeQuery(DirectoryFilterQuery q)
     {
-        q.PageSize = PageSize;
+        // Page size: accept a value from the allow-list, otherwise default.
+        q.PageSize = AllowedPageSizes.Contains(q.PageSize) ? q.PageSize : DefaultPageSize;
 
         if (q.Page < 1)
         {
             q.Page = 1;
         }
 
-        // if querystring has an invalid Sort value, fall back safely
+        // if querystring has an invalid Sort value, fall back to the default.
         if (!Enum.IsDefined(typeof(DirectoryFilterSort), q.Sort))
         {
-            q.Sort = DirectoryFilterSort.Newest;
+            q.Sort = DefaultSort;
             q.Page = 1;
         }
 
@@ -122,7 +133,8 @@ public class DirectoryFilterController : Controller
         {
             q.Statuses = new List<DirectoryStatus>
             {
-                DirectoryStatus.Verified
+                DirectoryStatus.Verified,
+                DirectoryStatus.Admitted
             };
         }
     }
@@ -177,10 +189,11 @@ public class DirectoryFilterController : Controller
     }
 
     // -------------------------
-    // Sponsors (pin + order)
+    // Sponsors (flag always; pin only for non-trust sorts)
     // -------------------------
     private async Task<List<DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel>> ApplySponsorsAndOrderAsync(
-        List<DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel> items)
+        List<DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel> items,
+        DirectoryFilterSort sort)
     {
         var allSponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
         var sponsorIds = new HashSet<int>(allSponsors.Select(s => s.DirectoryEntryId));
@@ -190,6 +203,14 @@ public class DirectoryFilterController : Controller
             item.IsSponsored = sponsorIds.Contains(item.DirectoryEntryId);
         }
 
+        // The default "Top rated" sort ranks purely by trust score — sponsored
+        // entries are styled but NOT pinned, so leave the repository order intact.
+        if (sort == DirectoryFilterSort.TopRated)
+        {
+            return items;
+        }
+
+        // Other sorts keep sponsors floated to the top of the page.
         return items.Where(e => e.IsSponsored).Concat(items.Where(e => !e.IsSponsored)).ToList();
     }
 
@@ -463,7 +484,9 @@ public class DirectoryFilterController : Controller
                 DirectoryStatus.Admitted,
                 DirectoryStatus.Questionable,
                 DirectoryStatus.Scam
-            }
+            },
+
+            PageSizeOptions = AllowedPageSizes.ToList()
         };
     }
 

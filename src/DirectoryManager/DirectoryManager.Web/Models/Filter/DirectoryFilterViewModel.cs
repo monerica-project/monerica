@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Data.Models.TransferModels;
+using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.DisplayFormatting.Models;
 
 namespace DirectoryManager.Web.Models
@@ -22,5 +22,8 @@ namespace DirectoryManager.Web.Models
         public SubcategorySponsorModel? SubcategorySponsorModel { get; set; }
 
         public List<IdNameOption> CategoryTagOptions { get; set; } = new ();
+
+        // Page-size selector values offered to the visitor (e.g. 12 / 24 / 48 / 96).
+        public List<int> PageSizeOptions { get; set; } = new ();
     }
 }

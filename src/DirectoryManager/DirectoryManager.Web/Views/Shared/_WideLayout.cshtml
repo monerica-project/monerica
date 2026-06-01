@@ -1,0 +1,12 @@
+@{
+    Layout = "_BaseLayout";
+}
+
+@section ChromeAfterMain {
+
+    @* Full-bleed shell for the directory grid. Unlike _CenteredLayout (max 75rem),
+       this expands to the full viewport width with responsive side padding. *@
+    <div class="main-content-wide">
+        @RenderSection("PageContent", required: true)
+    </div>
+}

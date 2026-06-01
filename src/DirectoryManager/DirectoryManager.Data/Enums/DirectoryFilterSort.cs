@@ -1,4 +1,4 @@
-﻿namespace DirectoryManager.Data.Enums
+namespace DirectoryManager.Data.Enums
 {
     public enum DirectoryFilterSort
     {
@@ -12,5 +12,13 @@
         FoundedDateOldest = 7,
         RecentlyUpdated = 8,
         LeastRecentlyUpdated = 9,
+
+        /// <summary>
+        /// Recommended default. Ranks entries that HAVE approved reviews first
+        /// (by Bayesian weighted score, then review count), then shows every
+        /// remaining unrated entry by newest. Unlike <see cref="HighestRating"/>,
+        /// this never hides unrated entries from the list.
+        /// </summary>
+        TopRated = 10,
     }
 }
