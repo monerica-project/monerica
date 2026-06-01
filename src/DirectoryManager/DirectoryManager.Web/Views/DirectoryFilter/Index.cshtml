@@ -454,7 +454,7 @@
                         var cardClasses = "dir-card";
                         if (e.IsSponsored)
                         {
-                            cardClasses += " is-sponsored";
+                            cardClasses += " is-featured";
                         }
 
                         if (isScam)
@@ -523,16 +523,13 @@
                         var catUrl = domain + "/" + catKey;
                         var subUrl = domain + "/" + catKey + "/" + subKey;
 
-                        // Meta chips.
+                        // Meta chips. Location/city is intentionally omitted —
+                        // it's rarely meaningful for online services and often
+                        // overflows the chip row.
                         var metaBits = new List<string>();
                         if (e.FoundedDate.HasValue)
                         {
                             metaBits.Add("Est. " + e.FoundedDate.Value.Year.ToString());
-                        }
-
-                        if (!string.IsNullOrWhiteSpace(e.Location))
-                        {
-                            metaBits.Add(e.Location);
                         }
 
                         if (!string.IsNullOrWhiteSpace(e.Processor))
@@ -561,7 +558,7 @@
                                     </span>
                                     @if (e.IsSponsored)
                                     {
-                                        <span class="dir-badge-sponsored">Sponsored</span>
+                                        <span class="dir-badge-featured">Sponsored</span>
                                     }
                                 </div>
 

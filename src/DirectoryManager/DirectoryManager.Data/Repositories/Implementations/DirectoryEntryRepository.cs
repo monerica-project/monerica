@@ -907,12 +907,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
             DirectoryStatus.Scam         => 3,
             _                            => 4,
         };
-
-        /// <summary>
+ 
+ /// <summary>
         /// Computes the trust-ranked id list in memory.
-        ///   trust = (BayesianRating / 5) * 0.5 + ageScore * 0.5
+        ///   trust = (BayesianRating / 5) * 0.8 + ageScore * 0.2
         ///   ageScore = ageDays / (ageDays + 730)   // ~24-month half-saturation
-        /// Unrated entries fall back to the prior mean (3.0) so they rank mid-pack.
+        /// Within each status tier, entries with real reviews scoring above the
+        /// prior mean (3.0) are floated ahead of unrated entries, so a genuinely
+        /// well-rated entry can never be leapfrogged by an unrated one on the age
+        /// component alone. Unrated entries fall back to the prior mean (3.0) for
+        /// their trust score, so they still rank mid-pack rather than last.
         /// Two small SQL projections are materialised, then blended client-side —
         /// this avoids EF's inability to translate the grouped-aggregate LEFT JOIN
         /// plus a computed-score ORDER BY into one statement.
@@ -922,7 +926,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             HashSet<int>? sponsoredIds = null)
         {
             // 1) lightweight candidate projection (id + create date) — translatable
-              var candidates = await baseQ
+            var candidates = await baseQ
                 .Select(e => new { e.DirectoryEntryId, e.CreateDate, e.DirectoryStatus })
                 .ToListAsync()
                 .ConfigureAwait(false);
@@ -961,19 +965,26 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     double ageScore = ageDays / (ageDays + ageHalfLifeDays);
                     double trust = ((bayes / 5.0) * ratingWeight) + (ageScore * ageWeight);
 
-                    bool isSponsored = sponsoredIds != null && sponsoredIds.Contains(c.DirectoryEntryId);
+                    // 0 = has real reviews AND scores above the neutral prior (3.0);
+                    // 1 = unrated, or rated at/below the prior. Class 0 always sorts
+                    // ahead of class 1 within the same status tier, so a genuinely
+                    // well-rated entry can never be leapfrogged by an unrated one
+                    // (which would otherwise win on the age component alone).
+                    int ratingClass = (reviewCount > 0 && bayes > RatingPriorMean) ? 0 : 1;
 
                     return new
                     {
                         c.DirectoryEntryId,
                         c.CreateDate,
                         Tier = StatusTierRank(c.DirectoryStatus),
+                        RatingClass = ratingClass,
                         Trust = trust,
                         ReviewCount = reviewCount,
                     };
                 })
                 .OrderBy(x => x.Tier)                       // Verified → Admitted → Questionable → Scam
-                .ThenByDescending(x => x.Trust)             // blended trust within the tier
+                .ThenBy(x => x.RatingClass)                 // rated >3.0 ahead of unrated within the tier
+                .ThenByDescending(x => x.Trust)             // blended trust within the class
                 .ThenByDescending(x => x.ReviewCount)
                 .ThenByDescending(x => x.CreateDate)
                 .ThenByDescending(x => x.DirectoryEntryId)
