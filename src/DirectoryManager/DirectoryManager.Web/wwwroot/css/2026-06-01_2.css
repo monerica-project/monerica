@@ -351,22 +351,20 @@ section.sponsors .sponsor-card:focus-within,
 .sponsored-section {
   position: relative;
   background-color: var(--bg-card-2);
-  border: 1px solid var(--orange);
+  border: 2px solid var(--orange);
   border-radius: var(--radius);
   padding: 12px;
+  transition: box-shadow 0.18s ease, border-color 0.15s ease;
 }
-.sponsored-section::before {
-  content: "";
-  position: absolute;
-  inset: -1px;
-  border-radius: var(--radius);
-  padding: 1px;
-  background: linear-gradient(135deg, var(--orange), transparent 60%);
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-          mask-composite: exclude;
-  pointer-events: none;
+.sponsored-section:hover,
+.sponsored-section:focus-within {
+  border-color: var(--orange-bright);
+  box-shadow:
+    0 0 0 1px rgba(255, 102, 0, 0.30),
+    0 0 16px rgba(255, 102, 0, 0.22),
+    0 0 34px rgba(255, 102, 0, 0.10);
 }
+.sponsored-section::before { content: none; }
 .sponsored-section ul.blank_list_item { font-size: 18px; }
 .sponsored-section a { font-weight: 600; }
 .sponsored-section p { margin: 0; padding-bottom: 0; }
@@ -385,12 +383,21 @@ section.sponsors .sponsor-card:focus-within,
 
 li.sponsored {
   background-color: var(--bg-card-2);
-  border: 1px solid var(--orange);
+  border: 2px solid var(--orange);
   padding: 8px 10px;
   margin: 3px 0;
   font-size: 18px;
   border-radius: var(--radius);
   margin-left: -25px;
+  transition: box-shadow 0.18s ease, border-color 0.15s ease;
+}
+li.sponsored:hover,
+li.sponsored:focus-within {
+  border-color: var(--orange-bright);
+  box-shadow:
+    0 0 0 1px rgba(255, 102, 0, 0.30),
+    0 0 16px rgba(255, 102, 0, 0.22),
+    0 0 34px rgba(255, 102, 0, 0.10);
 }
 li.sponsored p { margin-left: 0; }
 
@@ -1003,6 +1010,37 @@ ul.search-results li.sponsored {
   text-decoration: none;
 }
 .review-btn:active { transform: translateY(1px); }
+
+/* "Leave a review" — the full-size review-btn (Reply buttons carry .btn-sm).
+   Make it clearly an action so users notice they can post a review. */
+.review-btn:not(.btn-sm) {
+  height: 34px;
+  width: auto;
+  padding: 0 16px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  margin-top: 8px;
+  background: linear-gradient(180deg, var(--orange-bright), var(--orange));
+  border: 1px solid var(--orange-bright);
+  color: #fff;
+  box-shadow:
+    0 0 0 1px rgba(255, 102, 0, 0.25),
+    0 0 10px rgba(255, 102, 0, 0.18);
+}
+.review-btn:not(.btn-sm)::before {
+  content: "\270E";          /* pencil glyph */
+  margin-right: 7px;
+  font-size: 13px;
+  line-height: 1;
+}
+.review-btn:not(.btn-sm):hover,
+.review-btn:not(.btn-sm):focus {
+  filter: brightness(1.08);
+  box-shadow:
+    0 0 0 1px rgba(255, 102, 0, 0.45),
+    0 0 20px rgba(255, 102, 0, 0.45),
+    0 0 40px rgba(255, 102, 0, 0.20);
+}
 
 .pagination {
   display: flex;
@@ -2257,14 +2295,50 @@ a.btn.disabled,
   box-shadow: none !important;
 }
 
+/* Unclassed buttons / submit inputs (e.g. admin logout) — match secondary btn look */
+button[type="submit"]:not(.btn),
+button:not(.btn):not(.review-btn):not(.expander):not(summary),
+input[type="submit"]:not(.btn),
+input[type="button"]:not(.btn) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: 34px;
+  padding: 0 16px;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  line-height: 1;
+  color: var(--fg);
+  background: var(--bg-card-2);
+  border: 1px solid var(--border-strong);
+  border-radius: 999px;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, box-shadow 0.15s, transform 0.06s;
+}
+button[type="submit"]:not(.btn):hover,
+button:not(.btn):not(.review-btn):not(.expander):not(summary):hover,
+input[type="submit"]:not(.btn):hover,
+input[type="button"]:not(.btn):hover {
+  color: var(--orange-bright);
+  border-color: var(--orange);
+  box-shadow: 0 0 0 1px rgba(255, 102, 0, 0.30), 0 0 12px rgba(255, 102, 0, 0.18);
+}
+button[type="submit"]:not(.btn):active,
+input[type="submit"]:not(.btn):active,
+input[type="button"]:not(.btn):active {
+  transform: translateY(1px);
+}
 button[type="submit"]:not(.btn):focus,
-button[type="submit"]:not(.btn):focus-visible {
+button[type="submit"]:not(.btn):focus-visible,
+input[type="submit"]:not(.btn):focus,
+input[type="button"]:not(.btn):focus {
   outline: none;
-  border-color: var(--orange-glow);
+  border-color: var(--orange);
   box-shadow:
-    0 0 0 1px rgba(255, 102, 0, 0.45),
-    0 0 14px rgba(255, 102, 0, 0.28),
-    0 0 24px rgba(255, 102, 0, 0.12);
+    0 0 0 2px rgba(255, 102, 0, 0.22);
 }
 
 button[type="submit"].btn-cta,
@@ -2585,4 +2659,593 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   width: 28px;
   height: 28px;
   object-fit: contain;
+}
+
+/* =============================================================================
+   Directory Filter — card grid redesign (2026-05-31)
+   Append to your main stylesheet (2026-05-28_3.css) or load as a 2nd <link>.
+   Reuses existing theme tokens: --orange, --green, --bg-card, --border, etc.
+   ============================================================================= */
+
+:root {
+  --filter-sidebar-w: 230px;
+  --card-min: 300px;
+  --card-gap: 12px;
+}
+
+/* ---- Full-bleed shell: use the entire viewport width like kycnot.me ---- */
+.main-content-wide {
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
+  padding: 1rem clamp(12px, 1.5vw, 24px) 2rem;
+}
+.filter-shell { width: 100%; }
+
+/* ---- Two-column layout: sidebar + results ---- */
+.filter-layout {
+  display: grid;
+  grid-template-columns: var(--filter-sidebar-w) minmax(0, 1fr);
+  gap: clamp(16px, 2vw, 28px);
+  align-items: start;
+  margin-top: 0.5rem;
+}
+
+/* =========================================================================
+   Sidebar
+   ========================================================================= */
+.filter-sidebar {
+  position: sticky;
+  top: 12px;
+  align-self: start;
+  max-height: calc(100vh - 24px);
+  overflow-y: auto;
+  overflow-x: hidden;            /* never show a horizontal scrollbar */
+  background: var(--bg-panel, #181818);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-lg, 12px);
+  padding: 14px;
+  scrollbar-width: thin;
+  box-sizing: border-box;
+}
+/* every child stays within the sidebar width */
+.filter-sidebar * { box-sizing: border-box; max-width: 100%; }
+/* fieldsets default to min-inline-size:min-content, which refuses to shrink
+   below their content's intrinsic width (e.g. the search box) and causes the
+   horizontal scrollbar. Force them to be allowed to shrink. */
+.filter-sidebar .ui-fieldset {
+  min-width: 0;
+  min-inline-size: 0;
+  background: rgba(10, 10, 10, 0.35);
+}
+.filter-sidebar .ui-fieldset:last-of-type { margin-bottom: 0 !important; }
+.filter-sidebar .ui-legend { white-space: nowrap; }
+
+.filter-sidebar-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-divider);
+}
+.filter-sidebar-title {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  font-size: 0.85rem;
+  color: var(--orange);
+}
+
+/* Stacked (vertical) checkboxes for the narrow sidebar */
+.ui-checks-stack { flex-direction: column; gap: 8px; align-items: stretch; }
+
+/* Tags: show the first 6, expand to the rest via a pure-CSS toggle (no scroll). */
+.dir-tags { flex-direction: column; gap: 8px; align-items: stretch; }
+.dir-tags .ui-check:nth-child(n+7) { display: none; }
+#show-all-tags:checked ~ .dir-tags .ui-check { display: inline-flex; }
+
+.dir-tags-toggle { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; }
+.dir-tags-more {
+  display: inline-block;
+  margin-top: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  color: var(--cyan);
+}
+.dir-tags-more::before { content: "+ Show all tags"; }
+#show-all-tags:checked ~ .dir-tags-more::before { content: "\2212 Show fewer"; }
+.dir-tags-more:hover { color: var(--cyan-hover); text-decoration: underline; }
+
+/* Full-width selects inside the sidebar */
+.filter-sidebar .ui-select-wrap { min-width: 0; width: 100%; }
+.filter-sidebar select.ui-select,
+.filter-sidebar select.select-fit { width: 100%; max-width: 100%; min-width: 0; }
+
+/* Guarantee the custom dropdown caret shows (some browsers/overrides drop the
+   theme's background-image arrow; re-assert it here with !important). */
+.filter-sidebar select.ui-select {
+  appearance: none;
+  -webkit-appearance: none;
+  padding-right: 36px !important;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 20 20'%3E%3Cpath fill='%23ff6600' d='M5.5 7.5 10 12l4.5-4.5 1.4 1.4L10 14.8 4.1 8.9z'/%3E%3C/svg%3E") !important;
+  background-repeat: no-repeat !important;
+  background-position: right 12px center !important;
+  background-size: 13px 13px !important;
+}
+
+.filter-actions { margin-top: 14px; }
+.filter-actions .btn-cta { width: 100%; justify-content: center; }
+
+/* Sidebar search box — must shrink to fit the column (size="1" + min-width:0). */
+.dir-search-input {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  height: 30px;
+  padding: 0 10px;
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.02em;
+  color: var(--fg);
+  background: var(--bg-overlay, rgba(18,18,18,0.92));
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm, 5px);
+  outline: none;
+  caret-color: var(--orange);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.55);
+  -webkit-appearance: none;
+  appearance: none;
+}
+/* hide the native search "clear" control that can overflow the small box */
+.dir-search-input::-webkit-search-cancel-button { -webkit-appearance: none; appearance: none; }
+.dir-search-input::-webkit-search-decoration { -webkit-appearance: none; appearance: none; }
+.dir-search-input::placeholder { color: var(--fg-dim); }
+.dir-search-input:focus {
+  border-color: var(--orange);
+  box-shadow: inset 0 0 0 1px rgba(0,0,0,0.5), 0 0 0 2px rgba(255,102,0,0.20);
+}
+
+/* Active-search chip in the results bar */
+.results-search-chip {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  color: var(--orange);
+  background: var(--orange-soft);
+  border: 1px solid var(--orange-mid);
+  border-radius: var(--radius-pill, 999px);
+  padding: 2px 10px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.results-search-chip:hover { color: var(--orange-bright); border-color: var(--orange); text-decoration: none; }
+
+/* =========================================================================
+   Results column header bar
+   ========================================================================= */
+.filter-results { min-width: 0; }
+
+.results-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin: 0 0 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-divider);
+}
+.results-count {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--fg);
+}
+.results-page {
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+  color: var(--fg-dim);
+}
+/* No-JS toggle: the hidden checkbox carries the open/closed state; the
+   <label class="filter-toggle"> flips it, and a :checked sibling selector
+   (see the media query below) reveals the sidebar. No script required. */
+.filter-open-toggle { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; }
+
+.filter-toggle {
+  display: none;                 /* shown only on small screens */
+  align-items: center;
+  margin-left: auto;
+  height: var(--ui-h, 32px);
+  padding: 0 14px;
+  border-radius: var(--radius-pill, 999px);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--orange);
+  background: var(--orange-soft);
+  border: 1px solid var(--orange-mid);
+  cursor: pointer;
+  user-select: none;
+}
+#filter-open:checked ~ .filter-results .filter-toggle { color: var(--fg); background: rgba(255,255,255,0.06); }
+
+.results-empty {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--fg-muted);
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-lg, 12px);
+}
+
+/* =========================================================================
+   Card grid
+   ========================================================================= */
+:root {
+  --card-height: 296px;   /* every card is exactly this tall */
+}
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(var(--card-min), 1fr));
+  grid-auto-rows: var(--card-height);   /* uniform row height across the whole grid */
+  gap: var(--card-gap);
+  align-items: stretch;
+}
+
+/* Each card exposes a single --accent (solid) + --accent-rgb (triple). Status
+   classes override them. The border, the resting ring, AND the hover glow all
+   read these vars, so the hover effect is identical in mechanism for every
+   card — sponsored, verified, admitted, whatever — and can never be clobbered
+   by a competing :hover rule. */
+.dir-card {
+  --accent: var(--border-strong);
+  --accent-rgb: 255, 102, 0;     /* default glow = orange */
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 13px 11px;
+  height: 100%;            /* fill the fixed grid row */
+  overflow: hidden;        /* clip any content beyond the fixed height */
+  background: var(--bg-card, #1d1d1d);
+  border: 1px solid var(--border);
+  border-radius: var(--radius, 8px);
+  transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.08s ease;
+}
+
+/* Resting status accent: coloured border + faint ring. */
+.dir-card.is-verified     { --accent: var(--green); --accent-rgb: 24, 255, 109; }
+.dir-card.is-admitted     { --accent: var(--blue);  --accent-rgb: 42, 168, 255; }
+.dir-card.is-questionable { --accent: var(--red);   --accent-rgb: 255, 77, 77; }
+.dir-card.is-scam         { --accent: var(--red);   --accent-rgb: 255, 77, 77; }
+
+.dir-card.is-verified,
+.dir-card.is-admitted,
+.dir-card.is-questionable,
+.dir-card.is-scam {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.18);
+}
+.dir-card.is-scam { opacity: 0.72; }
+
+/* HOVER — one rule, every card. Strong, clearly visible coloured glow that
+   uses the card's own --accent-rgb (orange by default, green for verified,
+   etc.). Because it's a single selector at the same specificity applied to all
+   cards, nothing overrides it. */
+.dir-card:hover {
+  border-color: var(--accent);
+  box-shadow:
+    0 0 0 1px rgba(var(--accent-rgb), 0.55),
+    0 0 18px -2px rgba(var(--accent-rgb), 0.55),
+    0 10px 28px -10px rgba(var(--accent-rgb), 0.6);
+  transform: translateY(-2px);
+}
+
+/* Sponsored ring drawn as a pseudo-element so it NEVER competes with the
+   box-shadow hover glow. The card keeps its status colour + status hover glow,
+   and also shows this orange inner ring + the SPONSORED badge. */
+.dir-card.is-featured::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  box-shadow: inset 0 0 0 2px rgba(255, 102, 0, 0.55);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* The theme stylesheet applies an entrance animation / opacity reveal to
+   sponsor elements (the network-independent ~0.5s "pop-in" of sponsored cards
+   in the grid is a CSS animation, not a load delay). The grid's sponsored
+   cards are matching that rule. Kill ONLY the inherited animation so they
+   render in place immediately — without disturbing the hover lift (transform)
+   or the scam-dimming (opacity), which are intentional. */
+.card-grid .dir-card.is-featured {
+  animation: none !important;
+}
+.card-grid .dir-card.is-featured:not(.is-scam) {
+  opacity: 1 !important;
+}
+
+/* Sponsored badge — now sits inline in the title row (under the name on wrap),
+   not absolutely positioned over the score chip. */
+.dir-badge-featured {
+  flex: 0 0 auto;
+  font-family: var(--font-mono);
+  font-size: 0.58rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--orange);
+  background: var(--orange-soft);
+  border: 1px solid var(--orange-mid);
+  padding: 2px 7px;
+  border-radius: var(--radius-pill, 999px);
+  line-height: 1.4;
+}
+
+/* header: title + score chip */
+.dir-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+.dir-title-wrap {
+  display: flex;
+  flex-direction: column;   /* name row, then the Sponsored badge underneath */
+  align-items: flex-start;
+  gap: 5px;
+  min-width: 0;
+  padding-right: 4px;
+}
+.dir-name-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  min-width: 0;
+}
+.dir-status-icon { font-size: 1rem; line-height: 1; }
+.dir-name {
+  font-weight: 700;
+  font-size: 1.04rem;       /* slightly bigger than before */
+  letter-spacing: 0.01em;
+  word-break: break-word;
+}
+.dir-name:hover { text-decoration: underline; text-underline-offset: 2px; }
+.dir-card.is-verified .dir-name { color: var(--green); }
+.dir-card.is-admitted .dir-name { color: var(--blue); }
+.dir-card.is-questionable .dir-name { color: var(--red); }
+.dir-name.is-scam-name { color: var(--fg-dim); }
+/* Explicit dimensions (not just max-height) so the browser reserves the flag's
+   box BEFORE the image downloads. With no width/height, each <img> is a
+   zero-size box until the PNG loads, then it grows and everything reflows —
+   that's the "snap into place after load" glitch. Flag PNGs are 4:3. */
+.dir-title-wrap .country-flag {
+  width: 18px;
+  height: 13px;
+  object-fit: contain;
+  vertical-align: middle;
+}
+
+/* score chip (top-right) */
+.dir-score {
+  flex-shrink: 0;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius, 8px);
+  background: linear-gradient(160deg, rgba(255, 102, 0, 0.22), rgba(255, 102, 0, 0.06));
+  border: 1px solid var(--orange-mid);
+}
+.dir-score.is-none {
+  background: rgba(255, 255, 255, 0.04);
+  border-color: var(--border);
+}
+.dir-score-num {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  font-size: 1rem;
+  line-height: 1;
+  color: var(--orange);
+}
+.dir-score.is-none .dir-score-num { color: var(--fg-dim); }
+
+/* rating row under the title */
+.dir-rating-link { text-decoration: none; display: inline-flex; }
+.dir-rating-link:hover .rating-count { text-decoration: underline; }
+.dir-rating-link .rating-wrapper { padding-bottom: 0; }
+.dir-rating-link .rating-count { font-size: 0.78rem; color: var(--fg-dim); }
+
+/* breadcrumb / category chips */
+.dir-breadcrumb {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 4px 6px;
+  font-size: 0.78rem;
+}
+.dir-chip {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.02em;
+  color: var(--cyan);
+  text-decoration: none;
+  padding: 2px 8px;
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--border);
+  background: rgba(0, 216, 255, 0.06);
+}
+.dir-chip:hover { color: var(--cyan-hover); border-color: var(--cyan-glow); text-decoration: none; }
+.dir-chip-sep { color: var(--fg-dim); }
+
+/* meta chips (founded / location / processor) — single clipped row */
+.dir-meta {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 6px;
+  overflow: hidden;
+  max-height: 22px;
+}
+.dir-meta-chip {
+  flex: 0 0 auto;
+  white-space: nowrap;
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--fg-muted);
+  padding: 2px 7px;
+  border-radius: var(--radius-sm, 5px);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-divider);
+}
+
+/* description — clamp to keep cards even height */
+.dir-desc {
+  margin: 2px 0 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+  color: var(--fg-muted);
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.dir-note {
+  margin: 0;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--fg-dim);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;      /* truncate at the nearest line, keep cards even */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dir-note .dir-note-label { font-style: normal; font-weight: 600; }
+.dir-note.is-warning { color: var(--red); }
+.dir-note.is-warning .dir-note-label { color: var(--red); }
+
+/* Footer link buttons — pinned to the bottom; uniform fixed-width buttons that
+   pack left and wrap cleanly. Every "Website"/"Tor"/"I2P"/"Details" button is
+   the same size across all cards, so they line up column-to-column when counts
+   match and never leave a lone stretched button on its own row. */
+.dir-card-foot {
+  display: flex;
+  flex-wrap: wrap;
+  flex-shrink: 0;            /* never compress the action row */
+  gap: 6px;
+  margin-top: auto;          /* pushes the row to the bottom */
+  padding-top: 10px;
+  border-top: 1px solid var(--border-divider);
+}
+.dir-link-btn {
+  flex: 0 0 auto;
+  min-width: 66px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.04em;
+  text-decoration: none;
+  padding: 5px 12px;
+  border-radius: var(--radius-pill, 999px);
+  color: var(--fg);
+  background: var(--ui-btn-bg2, #141414);
+  border: 1px solid var(--border-strong);
+  transition: color 0.12s, border-color 0.12s, background-color 0.12s, box-shadow 0.12s;
+}
+.dir-link-btn:hover {
+  color: var(--orange);
+  border-color: var(--orange-glow);
+  background: var(--orange-soft);
+  text-decoration: none;
+  box-shadow: 0 0 10px -2px rgba(255, 102, 0, 0.4);
+}
+.dir-link-tor:hover { color: var(--cyan); border-color: var(--cyan-glow); background: var(--cyan-soft); box-shadow: 0 0 10px -2px var(--cyan-glow); }
+
+/* =========================================================================
+   Responsive: collapse the sidebar into a toggle on small screens
+   ========================================================================= */
+@media (max-width: 900px) {
+  .filter-layout { grid-template-columns: 1fr; }
+
+  .filter-toggle { display: inline-flex; align-items: center; }
+
+  .filter-sidebar {
+    position: static;
+    max-height: none;
+    overflow: visible;
+    display: none;
+    order: 2;          /* render below the results bar when opened */
+  }
+  .filter-results { order: 1; }
+
+  #filter-open:checked ~ .filter-sidebar { display: block; margin-top: 14px; }
+}
+
+@media (max-width: 480px) {
+  :root { --card-min: 100%; }
+  .card-grid { grid-auto-rows: auto; }   /* single column: size to content */
+  .dir-card { height: auto; }
+  .main-content-wide { padding-left: 10px; padding-right: 10px; }
+}
+
+/* =========================================================================
+   Main Sponsors block on the FILTER page
+   -------------------------------------------------------------------------
+   The filter page is full-bleed (.main-content-wide = 100% width), but the
+   homepage renders the sponsors inside a ~75rem content column. Left
+   unconstrained, the same .sponsors-grid stretches its 5 cards far wider here
+   than on the homepage. Cap the sponsors section to the homepage's column
+   width and pin each card to its natural size so both pages look identical.
+   Scoped to .main-content-wide so the homepage is unaffected.
+   ========================================================================= */
+.main-content-wide section.sponsors {
+  max-width: 75rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+/* Use an explicit grid instead of a growing flexbox. Flexbox with flex-grow
+   resolves widths in a second layout pass, which is what makes the cards
+   visibly "snap" into place a beat after the page paints. CSS grid computes
+   the final column widths in one pass, so there's no settling/jump. Five equal
+   columns matches the 5-slot Main Sponsors layout; it collapses responsively. */
+.main-content-wide .sponsors-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  justify-content: center;
+  align-items: stretch;
+}
+.main-content-wide .sponsors-grid .sponsor-card {
+  flex: none;          /* override the theme's flex: 1 1 0 growing behavior */
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+}
+@media (max-width: 1100px) {
+  .main-content-wide .sponsors-grid { grid-template-columns: repeat(3, 1fr); }
+}
+@media (max-width: 760px) {
+  .main-content-wide .sponsors-grid { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 480px) {
+  .main-content-wide .sponsors-grid { grid-template-columns: 1fr; }
+}
+
+/* Sponsor-card flags: same reflow fix. The theme renders these with no
+   width/height, so reserve their box explicitly. Scoped to the filter page. */
+.main-content-wide .sponsor-card .country-flag {
+  width: 18px;
+  height: 13px;
+  object-fit: contain;
+  vertical-align: middle;
 }
