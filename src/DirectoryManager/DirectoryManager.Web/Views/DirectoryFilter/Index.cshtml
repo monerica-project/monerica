@@ -257,8 +257,11 @@
     <div class="filter-layout">
 
         @* No-JS mobile toggle: a hidden checkbox + the label below drive the
-           sidebar's visibility purely through CSS (:checked sibling selector). *@
+           sidebar's visibility purely through CSS (:checked sibling selector).
+           On mobile the sidebar becomes a slide-in drawer; the backdrop label
+           closes it when the dimmed area is tapped. *@
         <input type="checkbox" id="filter-open" class="filter-open-toggle" hidden />
+        <label for="filter-open" class="filter-backdrop" aria-hidden="true"></label>
 
         @* ============================ SIDEBAR ============================ *@
         <aside class="filter-sidebar" id="filter-sidebar">
@@ -267,6 +270,7 @@
                 <div class="filter-sidebar-head">
                     <span class="filter-sidebar-title">Filters</span>
                     <a class="no-app-link ui-clear" href="@clearUrl">Clear</a>
+                    <label for="filter-open" class="filter-drawer-close" aria-label="Close filters" title="Close">&times;</label>
                 </div>
 
                 <!-- Search -->

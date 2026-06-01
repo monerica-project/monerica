@@ -2661,6 +2661,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   object-fit: contain;
 }
 
+
 /* =============================================================================
    Directory Filter — card grid redesign (2026-05-31)
    Append to your main stylesheet (2026-05-28_3.css) or load as a 2nd <link>.
@@ -3170,24 +3171,89 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 }
 .dir-link-tor:hover { color: var(--cyan); border-color: var(--cyan-glow); background: var(--cyan-soft); box-shadow: 0 0 10px -2px var(--cyan-glow); }
 
+/* Drawer backdrop + close button: hidden on desktop, enabled in the mobile
+   media query below. The backdrop and close are both <label for="filter-open">,
+   so tapping either toggles the same checkbox that the Filters button drives. */
+.filter-backdrop { display: none; }
+.filter-drawer-close {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  margin-left: 8px;
+  border-radius: var(--radius-sm, 5px);
+  border: 1px solid var(--border-strong);
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--fg-muted);
+  font-size: 1.1rem;
+  line-height: 1;
+  cursor: pointer;
+  user-select: none;
+  flex: 0 0 auto;
+}
+.filter-drawer-close:hover {
+  color: var(--orange);
+  border-color: var(--orange-glow);
+  background: var(--orange-soft);
+}
+
 /* =========================================================================
-   Responsive: collapse the sidebar into a toggle on small screens
+   Responsive: turn the sidebar into a slide-in drawer on small screens.
+   On mobile the filters used to render BELOW the results (order: 2), so you
+   had to scroll to the bottom to reach them. Instead, the "Filters" button now
+   opens an off-canvas drawer that slides in from the left over the content,
+   with a tap-to-close backdrop. Pure CSS via the #filter-open checkbox hack.
    ========================================================================= */
 @media (max-width: 900px) {
   .filter-layout { grid-template-columns: 1fr; }
 
   .filter-toggle { display: inline-flex; align-items: center; }
 
+  /* Drawer: fixed, full-height, parked off-canvas to the left until opened. */
   .filter-sidebar {
-    position: static;
-    max-height: none;
-    overflow: visible;
-    display: none;
-    order: 2;          /* render below the results bar when opened */
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(86vw, 340px);
+    height: 100dvh;
+    max-height: 100dvh;
+    margin: 0;
+    border-radius: 0;
+    border-top: 0;
+    border-bottom: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    z-index: 1001;
+    transform: translateX(-100%);
+    transition: transform 0.24s ease;
+    box-shadow: 8px 0 40px rgba(0, 0, 0, 0.55);
   }
-  .filter-results { order: 1; }
+  #filter-open:checked ~ .filter-sidebar { transform: translateX(0); }
 
-  #filter-open:checked ~ .filter-sidebar { display: block; margin-top: 14px; }
+  /* Backdrop: a full-screen label that closes the drawer when tapped. */
+  .filter-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(0, 0, 0, 0.55);
+    -webkit-backdrop-filter: blur(2px);
+    backdrop-filter: blur(2px);
+    cursor: pointer;
+  }
+  #filter-open:checked ~ .filter-backdrop { display: block; }
+
+  /* Close (×) button shown only inside the mobile drawer. */
+  .filter-drawer-close { display: inline-flex; }
+}
+
+/* Lock background scroll while the drawer is open (modern browsers). */
+@supports selector(body:has(*)) {
+  @media (max-width: 900px) {
+    body:has(#filter-open:checked) { overflow: hidden; }
+  }
 }
 
 @media (max-width: 480px) {
