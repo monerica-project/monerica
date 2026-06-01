@@ -967,21 +967,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     {
                         c.DirectoryEntryId,
                         c.CreateDate,
-                        IsSponsored = isSponsored,
                         Tier = StatusTierRank(c.DirectoryStatus),
                         Trust = trust,
                         ReviewCount = reviewCount,
                     };
                 })
-                .OrderByDescending(x => x.IsSponsored)     // sponsors first, ahead of everyone
-                .ThenBy(x => x.Tier)                        // then Verified → Admitted → Questionable → Scam
-                .ThenByDescending(x => x.Trust)             // then blended trust within the tier
+                .OrderBy(x => x.Tier)                       // Verified → Admitted → Questionable → Scam
+                .ThenByDescending(x => x.Trust)             // blended trust within the tier
                 .ThenByDescending(x => x.ReviewCount)
                 .ThenByDescending(x => x.CreateDate)
                 .ThenByDescending(x => x.DirectoryEntryId)
                 .Select(x => x.DirectoryEntryId)
                 .ToList();
-
         }
 
         public async Task<PagedResult<DirectoryEntry>> SearchByAuthorPostsAsync(
