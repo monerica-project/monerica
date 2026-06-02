@@ -2661,7 +2661,6 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   object-fit: contain;
 }
 
-
 /* =============================================================================
    Directory Filter — card grid redesign (2026-05-31)
    Append to your main stylesheet (2026-05-28_3.css) or load as a 2nd <link>.
@@ -2956,7 +2955,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   position: absolute;
   inset: 0;
   border-radius: inherit;
-  box-shadow: inset 0 0 0 2px rgba(255, 102, 0, 0.55);
+  box-shadow: inset 0 0 0 3px rgba(255, 102, 0, 0.55);
   pointer-events: none;
   z-index: 1;
 }
