@@ -274,34 +274,35 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
         private static void AppendGroupedEntry(StringBuilder sb, DirectoryEntry entry)
         {
-            sb.Append("<li>");
-            sb.Append("<p class=\"small-font text-inline\">");
-
+            sb.Append("<li class=\"small-font\">");
+        
             AppendGroupedStatusLabel(sb, entry.DirectoryStatus);
-
+        
+            sb.Append("<span class=\"text-inline\">");
             sb.Append(WebUtility.HtmlEncode(entry.Name));
-            sb.Append("</p>");
-            sb.Append(" - ");
-
+            sb.Append("</span>");
+        
+            sb.Append(" &ndash; ");
+        
             // Use LinkA as href if available, otherwise fall back to Link, but display Link text
             var href = !string.IsNullOrWhiteSpace(entry.LinkA) ? entry.LinkA : entry.Link;
             bool entryUsingAffiliate = !string.IsNullOrWhiteSpace(entry.LinkA);
             string entryRelAttr = entryUsingAffiliate ? " rel=\"sponsored\"" : string.Empty;
-
+        
             sb.AppendFormat(
                 "<a target=\"_blank\"{2} class=\"multi-line-text small-font\" href=\"{0}\">{1}</a>",
                 WebUtility.HtmlEncode(href),
                 WebUtility.HtmlEncode(entry.Link),
                 entryRelAttr);
-
+        
             if (!string.IsNullOrWhiteSpace(entry.Description))
             {
-                sb.Append(" - ");
-                sb.AppendFormat(
-                    "<p class=\"small-font text-inline\">{0}</p>",
-                    WebUtility.HtmlEncode(entry.Description));
+                sb.Append(" &ndash; ");
+                sb.Append("<span class=\"text-inline\">");
+                sb.Append(WebUtility.HtmlEncode(entry.Description));
+                sb.Append("</span>");
             }
-
+        
             sb.Append("</li>");
         }
 
