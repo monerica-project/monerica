@@ -10,8 +10,25 @@ namespace DirectoryManager.Utilities.Validation
         private static readonly Regex ScriptTagRegex =
             new Regex(@"<\s*/?\s*script\b", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+        // Opening or closing tag for any element that can execute script,
+        // load remote content, or break out of an attribute/textarea context.
+        // Name-based so harmless tags (e.g. <div>, <b>) and "a < b" text do NOT match.
+        private static readonly Regex DangerousTagRegex =
+            new Regex(
+                @"<\s*/?\s*(script|img|svg|iframe|object|embed|link|base|meta|style|form|textarea|video|audio|source|math|details|template|body|html|input|button|marquee|set|animate|frame|frameset|applet|portal)\b",
+                RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        // Inline event handlers: onerror=, onload=, onclick=, onmouseover=, etc.
+        private static readonly Regex EventHandlerRegex =
+            new Regex(@"\bon[a-z]+\s*=", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        // Dangerous URI schemes inside attributes/text.
+        private static readonly Regex DangerousUriRegex =
+            new Regex(@"(javascript|vbscript|data)\s*:", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
         /// <summary>
-        /// Checks a raw string for the presence of a script tag (including HTML-encoded variants).
+        /// Original narrow check: presence of a literal &lt;script&gt; tag
+        /// (including HTML-encoded variants). Retained for back-compat.
         /// </summary>
         public static bool ContainsScriptTag(string? input)
         {
@@ -25,11 +42,40 @@ namespace DirectoryManager.Utilities.Validation
             return ScriptTagRegex.IsMatch(decoded);
         }
 
-        /// <summary>
-        /// Checks an object. If it's a string, checks the string. Otherwise scans all public string properties.
-        /// Also walks simple IEnumerable collections.
-        /// </summary>
         public static bool ContainsScriptTag(object? obj)
+        {
+            return ScanObject(obj, ContainsScriptTag);
+        }
+
+        /// <summary>
+        /// Broader check used to reject submissions. Catches script tags AND the
+        /// markup-injection patterns that a script-tag-only filter misses:
+        /// dangerous tags (e.g. &lt;img&gt;, &lt;/textarea&gt;, &lt;svg&gt;),
+        /// inline event handlers (onerror=, onload=...), and javascript:/data: URIs.
+        /// </summary>
+        public static bool ContainsSuspiciousMarkup(string? input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return false;
+            }
+
+            string decoded = MultiDecode(input, 3);
+
+            return ScriptTagRegex.IsMatch(decoded)
+                || DangerousTagRegex.IsMatch(decoded)
+                || EventHandlerRegex.IsMatch(decoded)
+                || DangerousUriRegex.IsMatch(decoded);
+        }
+
+        public static bool ContainsSuspiciousMarkup(object? obj)
+        {
+            return ScanObject(obj, ContainsSuspiciousMarkup);
+        }
+
+        // Walks a string, a collection, or all public string properties of an object,
+        // applying the supplied per-string predicate.
+        private static bool ScanObject(object? obj, System.Func<string?, bool> stringCheck)
         {
             if (obj is null)
             {
@@ -38,29 +84,27 @@ namespace DirectoryManager.Utilities.Validation
 
             if (obj is string s)
             {
-                return ContainsScriptTag(s);
+                return stringCheck(s);
             }
 
-            // If the object is a collection, scan elements
-            if (obj is IEnumerable enumerable && obj is not string)
+            if (obj is IEnumerable enumerable)
             {
                 foreach (var item in enumerable)
                 {
-                    if (ContainsScriptTag(item))
+                    if (ScanObject(item, stringCheck))
                     {
                         return true;
                     }
                 }
             }
 
-            // Scan public instance string properties
             var props = obj.GetType().GetProperties(BindingFlags.Instance | BindingFlags.Public);
             foreach (var prop in props)
             {
                 if (prop.PropertyType == typeof(string))
                 {
                     var value = prop.GetValue(obj) as string;
-                    if (ContainsScriptTag(value))
+                    if (stringCheck(value))
                     {
                         return true;
                     }
@@ -71,7 +115,7 @@ namespace DirectoryManager.Utilities.Validation
                     {
                         foreach (var str in strings)
                         {
-                            if (ContainsScriptTag(str))
+                            if (stringCheck(str))
                             {
                                 return true;
                             }

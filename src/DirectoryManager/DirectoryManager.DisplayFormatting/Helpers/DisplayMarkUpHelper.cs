@@ -239,7 +239,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                     sb.Append(" ");
                 }
 
-                sb.Append(model.Description);
+                sb.Append(WebUtility.HtmlEncode(model.Description));
             }
 
             if (!string.IsNullOrWhiteSpace(model.Note))
@@ -258,7 +258,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 }
 
                 sb.Append(" ");
-                sb.Append(model.Note); // keep existing behavior (raw HTML if that's what you want)
+                sb.Append(WebUtility.HtmlEncode(model.Note));
                 sb.Append(")</i> ");
             }
         }
@@ -559,7 +559,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                     sb.Append("Note: ");
                 }
 
-                sb.Append(model.Note); // raw HTML on purpose (your current behavior)
+                sb.Append(WebUtility.HtmlEncode(model.Note));
                 sb.Append("</i>");
             }
 

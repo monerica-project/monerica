@@ -1,8 +1,10 @@
 ﻿using DirectoryManager.Data.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
+    [Authorize]
     public class SentEmailRecordController : Controller
     {
         private readonly ISentEmailRecordRepository sentEmailRecordRepository;

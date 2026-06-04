@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using DirectoryManager.Data.Models;
 
 namespace DirectoryManager.Web.Helpers
@@ -29,16 +30,22 @@ namespace DirectoryManager.Web.Helpers
                 return !string.Equals(NormalizeString(a), NormalizeString(b), StringComparison.OrdinalIgnoreCase);
             }
 
+            static string Enc(string? value)
+            {
+                return WebUtility.HtmlEncode(value ?? string.Empty);
+            }
+
             static string FormatValue(object? value)
             {
-                return value?.ToString() ?? "null";
+                return value is null ? "null" : Enc(value.ToString());
             }
 
             static string FormatLink(string? value)
             {
                 var url = value?.Trim();
                 if (string.IsNullOrWhiteSpace(url)) return "null";
-                return $"<a href=\"{url}\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">{url}</a>";
+                var safe = Enc(url);
+                return $"<a href=\"{safe}\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">{safe}</a>";
             }
 
             static List<string> NormalizeLinks(IEnumerable<string?>? links, int max = 3)
@@ -181,14 +188,14 @@ namespace DirectoryManager.Web.Helpers
 
                 string entryTagsDisplay = entrySet.Count == 0
                     ? "<i>(none)</i>"
-                    : string.Join(", ", entrySet.OrderBy(x => x));
+                    : string.Join(", ", entrySet.OrderBy(x => x).Select(Enc));
 
                 string selectedTagsDisplay = selectedSet.Count == 0
                     ? "<i>(none)</i>"
-                    : string.Join(", ", selectedSet.OrderBy(x => x));
+                    : string.Join(", ", selectedSet.OrderBy(x => x).Select(Enc));
 
-                string addedDisplay = added.Count == 0 ? "<i>(none)</i>" : string.Join(", ", added);
-                string removedDisplay = removed.Count == 0 ? "<i>(none)</i>" : string.Join(", ", removed);
+                string addedDisplay = added.Count == 0 ? "<i>(none)</i>" : string.Join(", ", added.Select(Enc));
+                string removedDisplay = removed.Count == 0 ? "<i>(none)</i>" : string.Join(", ", removed.Select(Enc));
 
                 differences.Add(
                     "<p><strong>Tags:</strong><br>" +
@@ -215,21 +222,21 @@ namespace DirectoryManager.Web.Helpers
                 string entryDisplay = entryLinks.Count == 0
                     ? "<i>(none)</i>"
                     : string.Join("<br>", entryLinks.Select(x =>
-                        $"<a href=\"{x}\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">{x}</a>"));
+                        $"<a href=\"{Enc(x)}\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">{Enc(x)}</a>"));
 
                 string submissionDisplay = submissionLinks.Count == 0
                     ? "<i>(none)</i>"
                     : string.Join("<br>", submissionLinks.Select(x =>
-                        $"<a href=\"{x}\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">{x}</a>"));
+                        $"<a href=\"{Enc(x)}\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">{Enc(x)}</a>"));
 
                 string addedDisplay = added.Count == 0
                     ? "<i>(none)</i>"
                     : string.Join("<br>", added.Select(x =>
-                        $"<a href=\"{x}\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">{x}</a>"));
+                        $"<a href=\"{Enc(x)}\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">{Enc(x)}</a>"));
 
                 string removedDisplay = removed.Count == 0
                     ? "<i>(none)</i>"
-                    : string.Join("<br>", removed.Select(x => $"<span>{x}</span>"));
+                    : string.Join("<br>", removed.Select(x => $"<span>{Enc(x)}</span>"));
 
                 differences.Add(
                     "<p><strong>Related Links:</strong><br>" +

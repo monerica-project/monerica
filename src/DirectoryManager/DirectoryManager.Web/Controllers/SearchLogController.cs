@@ -2,10 +2,12 @@
 using DirectoryManager.Web.Charting;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
+    [Authorize]
     public class SearchLogController : Controller
     {
         private readonly ISearchLogRepository searchLogRepository;
