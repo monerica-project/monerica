@@ -422,21 +422,26 @@ task_set_configs() {
     # - Site (CustomDomain, RequestProtocol): yes — environment-specific
     #   (dev uses localhost:5xxxx, prod uses monerica.com).
     #
-    # - SendGrid keys: NO. The web app reads SendGrid creds at runtime from
-    #   the DB via cacheService.GetSnippetAsync(SiteConfigSetting.SendGridApiKey)
-    #   — see Web/Extensions/ServiceExtensions.cs. Source of truth is the
-    #   ContentSnippet table; rotate keys via admin UI or direct DB update.
-    #   Injecting a "SendGrid" block here would be ignored by the C# code.
+    # - SendGrid keys: YES. The web app now reads SendGrid creds from the
+    #   "SendGrid" config section at startup (see Web/Extensions/ServiceExtensions.cs:
+    #   config.GetSection("SendGrid").Get<SendGridConfig>()). Source of truth is
+    #   deploy-config.sh (SENDGRID_API_KEY / SENDGRID_SENDER_EMAIL /
+    #   SENDGRID_SENDER_NAME); never committed. Rotate by editing deploy-config.sh
+    #   and re-running this task.
     #
     # - Neutrino API: NO. Removed — service is no longer used.
     local prod_settings="$WEB_PROJECT_DIR/appsettings.Production.json"
     jq -n \
-        --arg conn   "$DB_CONNECTION_STRING" \
-        --arg domain "${CUSTOM_DOMAIN:-}" \
-        --arg proto  "${REQUEST_PROTOCOL:-https://}" \
+        --arg conn    "$DB_CONNECTION_STRING" \
+        --arg domain  "${CUSTOM_DOMAIN:-}" \
+        --arg proto   "${REQUEST_PROTOCOL:-https://}" \
+        --arg sgkey   "${SENDGRID_API_KEY:-}" \
+        --arg sgemail "${SENDGRID_SENDER_EMAIL:-}" \
+        --arg sgname  "${SENDGRID_SENDER_NAME:-}" \
         '{
             ConnectionStrings: { DefaultConnection: $conn },
-            Site:              { CustomDomain: $domain, RequestProtocol: $proto }
+            Site:              { CustomDomain: $domain, RequestProtocol: $proto },
+            SendGrid:          { ApiKey: $sgkey, SenderEmail: $sgemail, SenderName: $sgname }
         }' > "$prod_settings"
     write_ok "Wrote $prod_settings"
 }

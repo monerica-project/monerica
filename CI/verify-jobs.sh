@@ -14,11 +14,11 @@
 #   6. None of those values are empty strings
 #   7. Last systemd invocation result was success (or never fired yet)
 #
-# IMPORTANT: SendGrid keys are NOT checked. The email-using jobs read SendGrid
-# credentials from the DB at runtime via ContentSnippetRepository, NOT from
-# appsettings. Source of truth is the ContentSnippet table; rotate via admin
-# UI. There's no Production-overlay SendGrid block to verify here. (Same
-# pattern as the web app's Web/Extensions/ServiceExtensions.cs.)
+# SendGrid keys ARE checked for email-using jobs (newsletter-sender,
+# sponsored-listing-opening, sponsored-listing-reminder). Those jobs now read
+# SendGrid credentials from the "SendGrid" config section at runtime, injected
+# into appsettings.Production.json by deploy-jobs.sh from deploy-config.sh.
+# (Same pattern as the web app's Web/Extensions/ServiceExtensions.cs.)
 #
 # Run from the CI directory: ./verify-jobs.sh
 # Exits 0 if all jobs pass, non-zero (with red FAIL lines) if anything's wrong.
@@ -54,14 +54,14 @@ ssh_q() { "${SSH_PREFIX[@]}" ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "sudo bash -c '$
 # Each job lists which top-level config keys MUST exist with non-empty values
 # in appsettings.Production.json. This is intentionally a thin list — most
 # job-specific config (EmailKeys, RenewalLinkTemplate, etc.) ships hardcoded
-# in the source appsettings.json with sensible production values, and SendGrid
-# creds come from the DB at runtime. The Production overlay only carries
-# the genuinely environment-specific bits.
+# in the source appsettings.json with sensible production values. The Production
+# overlay carries the environment-specific bits plus SendGrid creds for the
+# email-using jobs.
 declare -A REQUIRED_KEYS=(
     [email-message-maker]="ConnectionStrings.DefaultConnection"
-    [newsletter-sender]="ConnectionStrings.DefaultConnection"
-    [sponsored-listing-opening]="ConnectionStrings.DefaultConnection"
-    [sponsored-listing-reminder]="ConnectionStrings.DefaultConnection"
+    [newsletter-sender]="ConnectionStrings.DefaultConnection SendGrid.ApiKey SendGrid.SenderEmail SendGrid.SenderName"
+    [sponsored-listing-opening]="ConnectionStrings.DefaultConnection SendGrid.ApiKey SendGrid.SenderEmail SendGrid.SenderName"
+    [sponsored-listing-reminder]="ConnectionStrings.DefaultConnection SendGrid.ApiKey SendGrid.SenderEmail SendGrid.SenderName"
     [site-checker]="ConnectionStrings.DefaultConnection TorProxy.Host TorProxy.Port UserAgent.Header"
 )
 

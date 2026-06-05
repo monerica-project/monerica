@@ -193,12 +193,12 @@ task_set_configs() {
     # - ConnectionStrings: yes — only value that legitimately differs between
     #   dev (empty/localhost) and production (monerica_db on the VPS).
     #
-    # - SendGrid keys: NO. Each email-using job builds its SendGridConfig at
-    #   runtime by reading from the DB via ContentSnippetRepository.GetValue(
-    #   SiteConfigSetting.SendGridApiKey/SenderEmail/SenderName). Same pattern
-    #   as the web app. Source of truth is the ContentSnippet table; rotate
-    #   keys via admin UI or direct DB update. Injecting a "SendGrid" block
-    #   here would be ignored by the C# code — pure noise in the deploy.
+    # - SendGrid keys: YES, for email-using jobs (NEEDS_EMAIL=1). Each job now
+    #   reads its SendGridConfig from the "SendGrid" config section at startup
+    #   (config.GetSection("SendGrid").Get<SendGridConfig>()), same pattern as the
+    #   web app. Source of truth is deploy-config.sh (SENDGRID_API_KEY /
+    #   SENDGRID_SENDER_EMAIL / SENDGRID_SENDER_NAME); never committed. Non-email
+    #   jobs (e.g. SiteChecker) skip the block entirely.
     #
     # - Job-specific config (EmailKeys, NotificationLinkTemplate*,
     #   RenewalLinkTemplate, ExpirationHours, EmailCampaignKey): NO. Each job's
@@ -211,6 +211,22 @@ task_set_configs() {
 
     local jq_args=(-n --arg conn "$DB_CONNECTION_STRING")
     local jq_filter='{ ConnectionStrings: { DefaultConnection: $conn } }'
+
+    if [[ "${NEEDS_EMAIL:-0}" -eq 1 ]]; then
+        jq_args+=(--arg sgkey   "${SENDGRID_API_KEY:-}" \
+                  --arg sgemail "${SENDGRID_SENDER_EMAIL:-}" \
+                  --arg sgname  "${SENDGRID_SENDER_NAME:-}")
+        # The C# code reads SendGrid:ApiKey / SenderEmail / SenderName via
+        # config.GetSection("SendGrid").Get<SendGridConfig>(). EmailService throws
+        # if ApiKey is empty, so a missing deploy-config.sh value fails fast.
+        jq_filter+=' + {
+            SendGrid: {
+                ApiKey:      $sgkey,
+                SenderEmail: $sgemail,
+                SenderName:  $sgname
+            }
+        }'
+    fi
 
     if [[ "${NEEDS_TOR:-0}" -eq 1 ]]; then
         jq_args+=(--arg torhost "${TOR_SOCKS_HOST:-127.0.0.1}" \
@@ -473,11 +489,10 @@ deploy_job() {
     local conf="$JOBS_DIR/$job.conf"
     [[ -f "$conf" ]] || { write_err "Job config not found: $conf"; exit 1; }
 
-    # NEEDS_EMAIL is no longer consumed by task_set_configs (SendGrid comes
-    # from the DB), but we still unset it here so a stale value from a
-    # previous job's conf doesn't leak into this iteration. Leave the
-    # NEEDS_EMAIL=1 line in jobs/*.conf as a documentation hint about what
-    # the job does — it's harmless and informative.
+    # NEEDS_EMAIL gates SendGrid config injection in task_set_configs (email
+    # jobs read SendGrid from the "SendGrid" config section). We unset it here
+    # first so a stale value from a previous job's conf doesn't leak into this
+    # iteration; jobs/*.conf re-sets NEEDS_EMAIL=1 for the email-using jobs.
     unset NEEDS_EMAIL NEEDS_TOR ON_CALENDAR SCHEDULE_DESCRIPTION MAX_RUNTIME \
           TEST_SOLUTION_SOURCE_PATH TIMER_PERSISTENT
     # shellcheck disable=SC1090
