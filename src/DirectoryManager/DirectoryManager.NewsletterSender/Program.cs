@@ -48,12 +48,8 @@ public class Program
                 using var scope = provider.CreateScope();
                 var contentSnippetRepo = scope.ServiceProvider.GetRequiredService<IContentSnippetRepository>();
 
-                var emailConfig = new SendGridConfig
-                {
-                    ApiKey = contentSnippetRepo.GetValue(SiteConfigSetting.SendGridApiKey),
-                    SenderEmail = contentSnippetRepo.GetValue(SiteConfigSetting.SendGridSenderEmail),
-                    SenderName = contentSnippetRepo.GetValue(SiteConfigSetting.SendGridSenderName)
-                };
+                var emailConfig = config.GetSection("SendGrid").Get<SendGridConfig>()
+                    ?? throw new Exception("SendGrid configuration section is missing. Add a \"SendGrid\" section to appsettings.");
 
                 var emailSettings = new EmailSettings
                 {

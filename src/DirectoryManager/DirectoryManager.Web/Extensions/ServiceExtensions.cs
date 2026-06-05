@@ -106,17 +106,17 @@ namespace DirectoryManager.Web.Extensions
             services.AddScoped<IRssFeedService, RssFeedService>();
             services.AddScoped<IDirectoryEntriesAuditService, DirectoryEntriesAuditService>();
 
-            // EmailService: sync DI factory, block on async at the edge
+            // EmailService: sync DI factory, block on async at the edge.
+            // SendGrid credentials come from configuration (the "SendGrid" section of
+            // appsettings.json / appsettings.{env}.json), bound once at startup.
+            // EmailSettings (unsubscribe) still come from the DB-backed snippet cache.
+            var sendGridConfig = config.GetSection("SendGrid").Get<SendGridConfig>()
+                ?? throw new InvalidOperationException(
+                    "SendGrid configuration section is missing. Add a \"SendGrid\" section to appsettings.");
+
             services.AddScoped<IEmailService>(provider =>
             {
                 var cacheService = provider.GetRequiredService<ICacheService>();
-
-                var emailConfig = new SendGridConfig
-                {
-                    ApiKey = cacheService.GetSnippetAsync(SiteConfigSetting.SendGridApiKey).GetAwaiter().GetResult(),
-                    SenderEmail = cacheService.GetSnippetAsync(SiteConfigSetting.SendGridSenderEmail).GetAwaiter().GetResult(),
-                    SenderName = cacheService.GetSnippetAsync(SiteConfigSetting.SendGridSenderName).GetAwaiter().GetResult(),
-                };
 
                 var emailSettings = new EmailSettings
                 {
@@ -124,7 +124,7 @@ namespace DirectoryManager.Web.Extensions
                     UnsubscribeEmail = cacheService.GetSnippetAsync(SiteConfigSetting.EmailSettingUnsubscribeEmail).GetAwaiter().GetResult(),
                 };
 
-                return new EmailService(emailConfig, emailSettings);
+                return new EmailService(sendGridConfig, emailSettings);
             });
 
             services.AddScoped<ISearchBlacklistCache, Services.SearchBlacklistCache>();

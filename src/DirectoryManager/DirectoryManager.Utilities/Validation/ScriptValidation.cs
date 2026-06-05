@@ -26,6 +26,13 @@ namespace DirectoryManager.Utilities.Validation
         private static readonly Regex DangerousUriRegex =
             new Regex(@"(javascript|vbscript|data)\s*:", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+        // Tab, CR, LF, form-feed, and NUL are stripped from URLs by browsers
+        // before the scheme is parsed, so "java&#9;script:" / "java\tscript:"
+        // still executes as "javascript:". Remove them before the URI check
+        // so a split scheme name cannot bypass DangerousUriRegex.
+        private static readonly Regex UriIgnoredCharsRegex =
+            new Regex(@"[\t\r\n\f\u0000]", RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
         /// <summary>
         /// Original narrow check: presence of a literal &lt;script&gt; tag
         /// (including HTML-encoded variants). Retained for back-compat.
@@ -62,10 +69,15 @@ namespace DirectoryManager.Utilities.Validation
 
             string decoded = MultiDecode(input, 3);
 
+            // Copy with URL-ignorable characters removed, so schemes split by an
+            // embedded tab/newline (e.g. "java\tscript:") are still caught.
+            string schemeNormalized = UriIgnoredCharsRegex.Replace(decoded, string.Empty);
+
             return ScriptTagRegex.IsMatch(decoded)
                 || DangerousTagRegex.IsMatch(decoded)
                 || EventHandlerRegex.IsMatch(decoded)
-                || DangerousUriRegex.IsMatch(decoded);
+                || DangerousUriRegex.IsMatch(decoded)
+                || DangerousUriRegex.IsMatch(schemeNormalized);
         }
 
         public static bool ContainsSuspiciousMarkup(object? obj)

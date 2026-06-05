@@ -157,10 +157,42 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [Route("contentsnippetmanagement/delete")]
-        [HttpPost]
+        [HttpGet]
         public IActionResult Delete(int contentSnippetId)
         {
-            this.contentSnippetRepository.Delete(contentSnippetId);
+            var dbModel = this.contentSnippetRepository.Get(contentSnippetId);
+
+            if (dbModel == null)
+            {
+                return this.RedirectToAction("index");
+            }
+
+            var model = new ContentSnippetEditModel()
+            {
+                Content = dbModel.Content,
+                ContentSnippetId = dbModel.ContentSnippetId,
+                SnippetType = dbModel.SnippetType,
+            };
+
+            return this.View(model);
+        }
+
+        [Route("contentsnippetmanagement/delete")]
+        [HttpPost]
+        [ActionName("Delete")]
+        [ValidateAntiForgeryToken]
+        public IActionResult DeleteConfirmed(int contentSnippetId)
+        {
+            var dbModel = this.contentSnippetRepository.Get(contentSnippetId);
+
+            if (dbModel != null)
+            {
+                this.contentSnippetRepository.Delete(contentSnippetId);
+
+                this.contentSnippetHelper.ClearSnippetCache(dbModel.SnippetType);
+
+                this.ClearCachedItems();
+            }
 
             return this.RedirectToAction("index");
         }

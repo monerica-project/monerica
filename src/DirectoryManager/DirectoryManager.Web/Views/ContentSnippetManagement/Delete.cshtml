@@ -1,0 +1,38 @@
+@model DirectoryManager.Web.Models.ContentSnippet.ContentSnippetEditModel
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Delete Snippet";
+}
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<p>Are you sure you want to delete the <b>@Model.SnippetType</b> snippet? This cannot be undone.</p>
+
+<div class="table-wrapper">
+    <table class="table">
+        <tbody>
+            <tr>
+                <th>Key</th>
+                <td>@Model.SnippetType</td>
+            </tr>
+            <tr>
+                <th>Content</th>
+                <td><pre>@Model.Content</pre></td>
+            </tr>
+        </tbody>
+    </table>
+</div>
+
+<form asp-controller="ContentSnippetManagement" asp-action="Delete" method="post">
+    <input type="hidden" asp-for="ContentSnippetId" />
+    <button type="submit">Delete</button>
+    &nbsp;
+    <a href="~/contentsnippetmanagement">Cancel</a>
+</form>
+}

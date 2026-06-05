@@ -22,7 +22,7 @@
         <thead>
             <tr>
                 <th>Key</th>
-                <th></th>
+                <th>Actions</th>
             </tr>
         </thead>
         <tbody>
@@ -34,6 +34,8 @@
                     </td>
                     <td>
                         <a href="~/ContentSnippetManagement/edit?ContentSnippetId=@item.ContentSnippetId">Edit</a>
+                        &nbsp;|&nbsp;
+                        <a href="~/ContentSnippetManagement/delete?contentSnippetId=@item.ContentSnippetId">Delete</a>
                     </td>
                 </tr>
             }
