@@ -11,8 +11,8 @@ namespace DirectoryManager.Utilities.Validation
     /// One central place so that EVERY string field on a form is covered automatically
     /// (including fields added later) without per-field attributes. Detection reuses the
     /// existing parser/regex utilities:
-    ///   - HtmlValidation.ContainsHtmlTag        -> any HTML tag, incl. encoded variants
-    ///   - ScriptValidation.ContainsSuspiciousMarkup -> &lt;script&gt;/&lt;style&gt; and other
+    ///   - <see cref="HtmlValidation.ContainsHtmlTag"/>        -> any HTML tag, incl. encoded variants
+    ///   - <see cref="ScriptValidation.ContainsSuspiciousMarkup"/> -> &lt;script&gt;/&lt;style&gt; and other
     ///       executable tags, inline on* event handlers, and javascript:/vbscript:/data: URIs
     ///       (this is where CSS injection is caught: &lt;style&gt; and style= live inside tags).
     ///
@@ -21,12 +21,24 @@ namespace DirectoryManager.Utilities.Validation
     /// </summary>
     public static class InputHtmlGuard
     {
+        /// <summary>
+        /// True if the supplied string contains HTML, CSS (&lt;style&gt;/style=), or
+        /// scripting (script tags, on* handlers, javascript:/data: URIs).
+        /// Null/whitespace is considered clean.
+        /// </summary>
         public static bool ContainsMarkup(string? input)
         {
             return HtmlValidation.ContainsHtmlTag(input)
                 || ScriptValidation.ContainsSuspiciousMarkup(input);
         }
 
+        /// <summary>
+        /// Scans every public, readable string (and IEnumerable&lt;string&gt;) property on
+        /// <paramref name="model"/> and yields one <see cref="ValidationResult"/> per field
+        /// that contains markup. Properties decorated with <see cref="AllowHtmlAttribute"/>
+        /// are skipped. The result's member name is the property name so the message renders
+        /// next to the field (asp-validation-for) and in the validation summary.
+        /// </summary>
         public static IEnumerable<ValidationResult> Validate(object? model)
         {
             if (model is null)
@@ -44,6 +56,7 @@ namespace DirectoryManager.Utilities.Validation
                     continue;
                 }
 
+                // Explicitly allowed to contain markup (e.g. content snippet / HTML email).
                 if (prop.IsDefined(typeof(AllowHtmlAttribute), inherit: true))
                 {
                     continue;
@@ -66,7 +79,7 @@ namespace DirectoryManager.Utilities.Validation
                             if (ContainsMarkup(str))
                             {
                                 yield return Violation(prop);
-                                break;
+                                break; // one error per field is enough
                             }
                         }
                     }
