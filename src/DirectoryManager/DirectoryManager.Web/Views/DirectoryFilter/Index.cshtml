@@ -616,7 +616,7 @@
                             {
                                 var noteClass = (isScam || isQuestionable) ? "dir-note is-warning" : "dir-note";
                                 <p class="@noteClass">
-                                    <span class="dir-note-label">Note:</span> @Html.Raw(e.Note)
+                                    <span class="dir-note-label">Note:</span> @Html.Raw(ContentSanitizer.Sanitize(e.Note))
                                 </p>
                             }
 
