@@ -1,10 +1,10 @@
 /* =========================================================================
-   Monerica â€” Cyber Terminal Theme
+   Monerica — Cyber Terminal Theme
    Drop-in CSS replacement. No JS, no markup changes. Keeps all functionality.
    ========================================================================= */
 
 :root {
-  /* Palette â€” IDE-like dark grays, same orange/cyan accents */
+  /* Palette — IDE-like dark grays, same orange/cyan accents */
   --bg-base: #131313;
   --bg-deep: #0f0f0f;
   --bg-panel: #181818;
@@ -40,7 +40,7 @@
   --blue: #2aa8ff;
   --red: #ff4d4d;
 
-  /* Geometry â€” sharper, more cyber */
+  /* Geometry — sharper, more cyber */
   --sidebar-w: 220px;
   --ticker-h: 48px;
   --ticker-speed: 70s;
@@ -74,7 +74,7 @@
 
   --sponsor-accent: #ff6600;
 
-  /* Fonts â€” mono-forward for cyber feel */
+  /* Fonts — mono-forward for cyber feel */
   --font-mono: "JetBrains Mono", "Fira Code", "IBM Plex Mono", "SF Mono", Consolas, Menlo, Monaco, "Courier New", monospace;
   --font-sans: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
@@ -281,10 +281,10 @@ table tbody tr:nth-child(even) {
 .form-check { margin-bottom: 5px; margin-top: 5px; }
 
 /* =========================================================================
-   Sponsor cards (homepage main row) â€” chamfered, glowing
+   Sponsor cards (homepage main row) — chamfered, glowing
    ========================================================================= */
 
-/* Bare .sponsor-card (e.g. inside a table cell on profile pages) â€” minimal treatment, just highlight the name */
+/* Bare .sponsor-card (e.g. inside a table cell on profile pages) — minimal treatment, just highlight the name */
 .sponsor-card {
   display: inline;
   padding: 0;
@@ -563,7 +563,7 @@ footer {
 .footer-nav a:hover { text-decoration: underline; }
 
 /* =========================================================================
-   Breadcrumbs â€” terminal path style
+   Breadcrumbs — terminal path style
    ========================================================================= */
 
 .breadcrumb {
@@ -707,10 +707,17 @@ section.sponsors ul.blank_list_item > li .hidden {
 .logo { display: block; margin: 0 auto 0.5rem; max-height: 80px; }
 
 div.centered { text-align: center; }
+
+/* -------------------------------------------------------------------------
+   Centered content column (search results, submit, contact, donate, etc.)
+   More generous edge buffer so content never hugs the viewport / column
+   edges. max-width keeps a comfortable reading column; the clamp() side
+   padding scales from 28px on narrow screens up to 120px on wide ones.
+   ------------------------------------------------------------------------- */
 .main-content-centered {
-  max-width: 75rem;
+  max-width: 70rem;
   margin: 0 auto;
-  padding: 1.5rem clamp(20px, 4vw, 64px) 2rem;
+  padding: 1.5rem clamp(20px, 3vw, 56px) 2rem;
 }
 
 /* Sponsor card (5-card homepage row) content */
@@ -967,22 +974,42 @@ section.sponsors .sponsor-card .sponsor-desc,
   text-transform: uppercase;
 }
 
-ul.search-results { list-style: none; margin: 0; padding: 0; }
-ul.search-results li.search-result-item {
-  margin-bottom: 1.5rem;
-  padding-left: 1rem;
-  border-left: 2px solid var(--border-strong);
+/* Each result is a bordered card with real internal padding (buffer) so the
+   items breathe and read as distinct boxes. */
+ul.search-results {
   list-style: none;
-  transition: border-color 0.12s ease, box-shadow 0.12s ease;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+ul.search-results li.search-result-item {
+  margin: 0;
+  padding: 14px 18px;
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: rgba(255, 255, 255, 0.015);
+  list-style: none;
+  transition: border-color 0.12s ease, box-shadow 0.12s ease, transform 0.08s ease, background-color 0.12s ease;
 }
 ul.search-results li.search-result-item:hover {
+  border-color: var(--orange-glow);
   border-left-color: var(--orange);
-  box-shadow: -4px 0 14px -4px rgba(255, 102, 0, 0.45);
+  background: rgba(255, 102, 0, 0.04);
+  box-shadow:
+    0 0 0 1px rgba(255, 102, 0, 0.25),
+    0 8px 22px -10px rgba(255, 102, 0, 0.5);
+  transform: translateY(-1px);
 }
 ul.search-results li.search-result-item p { margin: 0.3em 0; }
+ul.search-results li.search-result-item p:first-child { margin-top: 0; }
+ul.search-results li.search-result-item p:last-child { margin-bottom: 0; }
 ul.search-results li.sponsored {
   margin-left: 0;
-  border-left: 2px solid var(--orange);
+  border: 2px solid var(--orange);
+  border-left: 3px solid var(--orange);
   font-size: 16px;
 }
 
@@ -1015,7 +1042,7 @@ ul.search-results li.sponsored {
 }
 .review-btn:active { transform: translateY(1px); }
 
-/* "Leave a review" â€” the full-size review-btn (Reply buttons carry .btn-sm).
+/* "Leave a review" — the full-size review-btn (Reply buttons carry .btn-sm).
    Make it clearly an action so users notice they can post a review. */
 .review-btn:not(.btn-sm) {
   height: 34px;
@@ -1100,7 +1127,7 @@ ul.search-results li.sponsored {
 }
 
 /* =========================================================================
-   Sidebar â€” terminal style
+   Sidebar — terminal style
    ========================================================================= */
 
 @media (max-width: 768px) {
@@ -1740,7 +1767,7 @@ li.category-item ul { font-size: 13px; }
 }
 
 /* =========================================================================
-   Sponsor ticker â€” terminal scroll
+   Sponsor ticker — terminal scroll
    ========================================================================= */
 
 @media (min-width: 992px) {
@@ -1970,7 +1997,7 @@ section.sponsors .sponsor-card .country-flag {
   color: #4a4a4a;
   font-family: inherit;
 }
-.stars::before { content: "â˜…â˜…â˜…â˜…â˜…"; }
+.stars::before { content: "★★★★★"; }
 .stars-fill {
   position: absolute;
   top: 0;
@@ -1981,7 +2008,7 @@ section.sponsors .sponsor-card .country-flag {
   color: var(--orange);
   text-shadow: none;
 }
-.stars-fill::before { content: "â˜…â˜…â˜…â˜…â˜…"; }
+.stars-fill::before { content: "★★★★★"; }
 .rating-text {
   font-weight: 600;
   opacity: 0.95;
@@ -2070,7 +2097,7 @@ section.sponsors .sponsor-card .country-flag {
 .reply-meta { margin-top: 8px; }
 
 /* =========================================================================
-   Forms â€” search, filters
+   Forms — search, filters
    ========================================================================= */
 
 .input-width,
@@ -2188,7 +2215,7 @@ section.sponsors .sponsor-card .country-flag {
 }
 
 /* =========================================================================
-   Buttons â€” sharper, more glow
+   Buttons — sharper, more glow
    ========================================================================= */
 
 .btn,
@@ -2299,7 +2326,7 @@ a.btn.disabled,
   box-shadow: none !important;
 }
 
-/* Unclassed buttons / submit inputs (e.g. admin logout) â€” match secondary btn look */
+/* Unclassed buttons / submit inputs (e.g. admin logout) — match secondary btn look */
 button[type="submit"]:not(.btn),
 button:not(.btn):not(.review-btn):not(.expander):not(summary),
 input[type="submit"]:not(.btn),
@@ -2666,7 +2693,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 }
 
 /* =============================================================================
-   Directory Filter â€” card grid redesign (2026-05-31)
+   Directory Filter — card grid redesign (2026-05-31)
    Append to your main stylesheet (2026-05-28_3.css) or load as a 2nd <link>.
    Reuses existing theme tokens: --orange, --green, --bg-card, --border, etc.
    ============================================================================= */
@@ -2785,7 +2812,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 .filter-actions { margin-top: 14px; }
 .filter-actions .btn-cta { width: 100%; justify-content: center; }
 
-/* Sidebar search box â€” must shrink to fit the column (size="1" + min-width:0). */
+/* Sidebar search box — must shrink to fit the column (size="1" + min-width:0). */
 .dir-search-input {
   display: block;
   width: 100%;
@@ -2905,7 +2932,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 /* Each card exposes a single --accent (solid) + --accent-rgb (triple). Status
    classes override them. The border, the resting ring, AND the hover glow all
    read these vars, so the hover effect is identical in mechanism for every
-   card â€” sponsored, verified, admitted, whatever â€” and can never be clobbered
+   card — sponsored, verified, admitted, whatever — and can never be clobbered
    by a competing :hover rule. */
 .dir-card {
   --accent: var(--border-strong);
@@ -2938,7 +2965,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 }
 .dir-card.is-scam { opacity: 0.72; }
 
-/* HOVER â€” one rule, every card. Strong, clearly visible coloured glow that
+/* HOVER — one rule, every card. Strong, clearly visible coloured glow that
    uses the card's own --accent-rgb (orange by default, green for verified,
    etc.). Because it's a single selector at the same specificity applied to all
    cards, nothing overrides it. */
@@ -2968,7 +2995,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
    sponsor elements (the network-independent ~0.5s "pop-in" of sponsored cards
    in the grid is a CSS animation, not a load delay). The grid's sponsored
    cards are matching that rule. Kill ONLY the inherited animation so they
-   render in place immediately â€” without disturbing the hover lift (transform)
+   render in place immediately — without disturbing the hover lift (transform)
    or the scam-dimming (opacity), which are intentional. */
 .card-grid .dir-card.is-featured {
   animation: none !important;
@@ -2977,7 +3004,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   opacity: 1 !important;
 }
 
-/* Sponsored badge â€” now sits inline in the title row (under the name on wrap),
+/* Sponsored badge — now sits inline in the title row (under the name on wrap),
    not absolutely positioned over the score chip. */
 .dir-badge-featured {
   flex: 0 0 auto;
@@ -3030,7 +3057,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 .dir-name.is-scam-name { color: var(--fg-dim); }
 /* Explicit dimensions (not just max-height) so the browser reserves the flag's
    box BEFORE the image downloads. With no width/height, each <img> is a
-   zero-size box until the PNG loads, then it grows and everything reflows â€”
+   zero-size box until the PNG loads, then it grows and everything reflows —
    that's the "snap into place after load" glitch. Flag PNGs are 4:3. */
 .dir-title-wrap .country-flag {
   width: 18px;
@@ -3091,7 +3118,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 .dir-chip:hover { color: var(--cyan-hover); border-color: var(--cyan-glow); text-decoration: none; }
 .dir-chip-sep { color: var(--fg-dim); }
 
-/* meta chips (founded / location / processor) â€” single clipped row */
+/* meta chips (founded / location / processor) — single clipped row */
 .dir-meta {
   display: flex;
   flex-wrap: nowrap;
@@ -3111,7 +3138,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   border: 1px solid var(--border-divider);
 }
 
-/* description â€” clamp to keep cards even height */
+/* description — clamp to keep cards even height */
 .dir-desc {
   margin: 2px 0 0;
   font-size: 0.82rem;
@@ -3137,7 +3164,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 .dir-note.is-warning { color: var(--red); }
 .dir-note.is-warning .dir-note-label { color: var(--red); }
 
-/* Footer link buttons â€” pinned to the bottom; uniform fixed-width buttons that
+/* Footer link buttons — pinned to the bottom; uniform fixed-width buttons that
    pack left and wrap cleanly. Every "Website"/"Tor"/"I2P"/"Details" button is
    the same size across all cards, so they line up column-to-column when counts
    match and never leave a lone stretched button on its own row. */
@@ -3248,7 +3275,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   }
   #filter-open:checked ~ .filter-backdrop { display: block; }
 
-  /* Close (Ã—) button shown only inside the mobile drawer. */
+  /* Close (×) button shown only inside the mobile drawer. */
   .filter-drawer-close { display: inline-flex; }
 }
 
@@ -3320,24 +3347,24 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 }
 
 /* =============================================================================
-   Monerica â€” Directory Filter card & sidebar refinements (2026-06-02)
+   Monerica — Directory Filter card & sidebar refinements (2026-06-02)
    -----------------------------------------------------------------------------
-   APPEND this AFTER the "Directory Filter â€” card grid redesign (2026-05-31)"
+   APPEND this AFTER the "Directory Filter — card grid redesign (2026-05-31)"
    block in your main stylesheet. It deliberately overrides those rules (same
    selectors, later position = wins). Then re-minify, OR load it as a 2nd
    <link> placed after your existing min.css.
 
    What it changes:
-   â€¢ Status (verified / admitted / questionable / scam) is shown ONLY by the
+   • Status (verified / admitted / questionable / scam) is shown ONLY by the
      LEFT edge ribbon colour + the icon by the name. No more full coloured
      border or status ring.
-   â€¢ Sponsored is shown ONLY by an orange bar along the TOP edge. The old orange
+   • Sponsored is shown ONLY by an orange bar along the TOP edge. The old orange
      inset ring (which overlapped the green status colour) is gone, so orange
      and green never fight.
-   â€¢ Listing names are ALWAYS blue (link colour) â€” never green/blue/red.
-   â€¢ The filter sidebar is more compact (smaller text/checkboxes/spacing) so it
+   • Listing names are ALWAYS blue (link colour) — never green/blue/red.
+   • The filter sidebar is more compact (smaller text/checkboxes/spacing) so it
      fits without scrolling on short screens.
-   â€¢ Fewer tags shown by default (5, then "Show all tags").
+   • Fewer tags shown by default (5, then "Show all tags").
    ============================================================================= */
 
 /* -----------------------------------------------------------------------------
@@ -3366,7 +3393,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 .dir-card.is-questionable { --accent: var(--red);   --accent-rgb: 255, 77, 77; }
 .dir-card.is-scam         { --accent: var(--red);   --accent-rgb: 255, 77, 77; }
 
-/* LEFT status ribbon â€” replaces the coloured border. One side, every card. */
+/* LEFT status ribbon — replaces the coloured border. One side, every card. */
 .dir-card::before {
   content: "";
   position: absolute;
@@ -3409,7 +3436,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 }
 
 /* -----------------------------------------------------------------------------
-   2. Listing names are ALWAYS blue (the link colour) â€” status comes from the
+   2. Listing names are ALWAYS blue (the link colour) — status comes from the
       icon + the side ribbon, not the text colour.
    ----------------------------------------------------------------------------- */
 .dir-name,
@@ -3423,7 +3450,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 .dir-name:hover { color: var(--cyan-hover); }
 
 /* -----------------------------------------------------------------------------
-   3. Compact filter sidebar â€” smaller text, checkboxes and spacing so the whole
+   3. Compact filter sidebar — smaller text, checkboxes and spacing so the whole
       panel fits taller viewports without scrolling.
    ----------------------------------------------------------------------------- */
 :root { --filter-sidebar-w: 200px; }
