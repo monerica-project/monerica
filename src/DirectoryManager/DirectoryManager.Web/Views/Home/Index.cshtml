@@ -187,6 +187,9 @@
         </p>
         <hr />
 
+                @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HtmlNotificationSnippet))
+
+
         <div class="top-container">
             <div class="top-section update-section">
                 <p class="centered-text">
@@ -271,8 +274,6 @@
                 </section>
             </div>
         }
-
-        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HtmlNotificationSnippet))
 
         @{
             var newest = await directoryEntryRepository.GetNewestAdditions(10);

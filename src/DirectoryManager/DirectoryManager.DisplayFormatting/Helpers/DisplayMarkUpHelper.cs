@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+﻿﻿using System.Globalization;
 using System.Net;
 using System.Text;
 using DirectoryManager.Data.Enums;
@@ -239,7 +239,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                     sb.Append(" ");
                 }
 
-                sb.Append(WebUtility.HtmlEncode(model.Description));
+                sb.Append(ContentSanitizer.Sanitize(model.Description));
             }
 
             if (!string.IsNullOrWhiteSpace(model.Note))
@@ -258,7 +258,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 }
 
                 sb.Append(" ");
-                sb.Append(WebUtility.HtmlEncode(model.Note));
+                sb.Append(ContentSanitizer.Sanitize(model.Note));
                 sb.Append(")</i> ");
             }
         }
@@ -299,7 +299,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             {
                 sb.Append(" &ndash; ");
                 sb.Append("<span class=\"text-inline\">");
-                sb.Append(WebUtility.HtmlEncode(entry.Description));
+                sb.Append(ContentSanitizer.Sanitize(entry.Description));
                 sb.Append("</span>");
             }
         
@@ -541,7 +541,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 return;
             }
 
-            var desc = WebUtility.HtmlEncode(model.Description);
+            var desc = ContentSanitizer.Sanitize(model.Description);
             sb.AppendFormat("<p>{0}", desc);
 
             if (!string.IsNullOrWhiteSpace(model.Note))
@@ -559,7 +559,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                     sb.Append("Note: ");
                 }
 
-                sb.Append(WebUtility.HtmlEncode(model.Note));
+                sb.Append(ContentSanitizer.Sanitize(model.Note));
                 sb.Append("</i>");
             }
 

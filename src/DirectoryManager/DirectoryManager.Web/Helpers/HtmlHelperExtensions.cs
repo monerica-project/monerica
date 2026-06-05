@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Text.Encodings.Web;
+using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.Utilities.Helpers;
 using HtmlAgilityPack;
 using Microsoft.AspNetCore.Html;
@@ -9,6 +10,17 @@ namespace DirectoryManager.Web.Helpers
 {
     public static class HtmlHelperExtensions
     {
+        /// <summary>
+        /// Renders author-written markup (Note/Description) with scripts and event
+        /// handlers stripped via the allowlist <see cref="ContentSanitizer"/>.
+        /// Use this in views INSTEAD of @Html.Raw(...) for any field that may contain
+        /// HTML you wrote. Safe to call on plain text too.
+        /// </summary>
+        public static IHtmlContent SafeHtml(this IHtmlHelper htmlHelper, string? value)
+        {
+            return new HtmlString(ContentSanitizer.Sanitize(value));
+        }
+
         /// <summary>
         /// Truncates HTML (or plain text) to a maximum of <paramref name="maxLength"/> text characters.
         /// - If the source is plain text (no HTML elements), truncates at the nearest word using TextHelper.TruncateAtWord().

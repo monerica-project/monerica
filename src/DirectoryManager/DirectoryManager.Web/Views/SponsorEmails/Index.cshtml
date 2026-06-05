@@ -1,0 +1,104 @@
+@using DirectoryManager.Web.Constants;
+@model DirectoryManager.Web.Models.Sponsorship.SponsorEmailsViewModel
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Sponsor Emails";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+<h1>Sponsor Emails</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<a href="@Url.Action("Index", new { paidOnly = true })">Paid only</a> |
+<a href="@Url.Action("Index", new { paidOnly = false })">All invoices</a> |
+<a href="@Url.Action("DownloadCsv", new { paidOnly = Model.PaidOnly })">Download CSV</a>
+
+<hr />
+
+<p>
+    <strong>@Model.DistinctEmailCount</strong> distinct
+    @(Model.PaidOnly ? "paid sponsor" : "sponsor") email@(Model.DistinctEmailCount == 1 ? "" : "s").
+</p>
+
+<p>
+    <label for="emailsBox">Copy all (one per line):</label><br />
+    <textarea id="emailsBox" rows="6" style="width:100%;" readonly>@Model.EmailsNewlineSeparated</textarea>
+</p>
+
+<p>
+    <label for="emailsCsvBox">Copy all (comma separated, e.g. BCC):</label><br />
+    <textarea id="emailsCsvBox" rows="3" style="width:100%;" readonly>@Model.EmailsCommaSeparated</textarea>
+</p>
+
+<button type="button" id="copyEmailsBtn" data-target="emailsBox">Copy newline list</button>
+<button type="button" id="copyCsvBtn" data-target="emailsCsvBox">Copy comma list</button>
+
+<hr />
+
+<div class="table-wrapper">
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Email</th>
+                <th>Listing</th>
+                <th>Invoices</th>
+                <th>Paid</th>
+                <th>Total Paid</th>
+                <th>Last Invoice</th>
+                <th>Last Campaign End</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var row in Model.Rows)
+            {
+                <tr>
+                    <td><a href="mailto:@row.Email">@row.Email</a></td>
+                    <td>@row.ListingName</td>
+                    <td>@row.InvoiceCount</td>
+                    <td>@row.PaidInvoiceCount</td>
+                    <td>@row.TotalPaid.ToString("0.00")</td>
+                    <td>@row.LastInvoiceDate.ToString("yyyy-MM-dd")</td>
+                    <td>@row.LastCampaignEndDate.ToString("yyyy-MM-dd")</td>
+                </tr>
+            }
+            @if (Model.DistinctEmailCount == 0)
+            {
+                <tr>
+                    <td colspan="7">No sponsor emails found.</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<script>
+    (function () {
+        function wire(btnId) {
+            var btn = document.getElementById(btnId);
+            if (!btn) { return; }
+            btn.addEventListener("click", function () {
+                var box = document.getElementById(btn.getAttribute("data-target"));
+                if (!box) { return; }
+                box.focus();
+                box.select();
+                try {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        navigator.clipboard.writeText(box.value);
+                    } else {
+                        document.execCommand("copy");
+                    }
+                    var original = btn.textContent;
+                    btn.textContent = "Copied";
+                    setTimeout(function () { btn.textContent = original; }, 1500);
+                } catch (e) { /* fall back to manual selection */ }
+            });
+        }
+        wire("copyEmailsBtn");
+        wire("copyCsvBtn");
+    })();
+</script>
+
+}
