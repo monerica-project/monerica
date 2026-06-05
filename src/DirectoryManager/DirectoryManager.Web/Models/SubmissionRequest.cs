@@ -1,9 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Utilities.Validation;
 
 namespace DirectoryManager.Web.Models
 {
-    public class SubmissionRequest
+    public class SubmissionRequest : IValidatableObject
     {
         public int? SubmissionId { get; set; }
 
@@ -105,6 +106,9 @@ namespace DirectoryManager.Web.Models
 
         [MaxLength(2)]
         public string? FoundedDay { get; set; }
+
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+            => InputHtmlGuard.Validate(this);
 
         public List<string> GetRelatedLinksNormalized(int max = 3)
         {

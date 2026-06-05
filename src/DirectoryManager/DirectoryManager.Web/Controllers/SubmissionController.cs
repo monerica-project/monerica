@@ -157,7 +157,7 @@ namespace DirectoryManager.Web.Controllers
 
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
 
-            if (ScriptValidation.ContainsScriptTag(model) || this.blockedIPRepository.IsBlockedIp(ipAddress))
+            if (this.blockedIPRepository.IsBlockedIp(ipAddress))
             {
                 return this.RedirectToAction("Success", "Submission");
             }
