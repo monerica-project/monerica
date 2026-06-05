@@ -163,6 +163,9 @@ app.Use(async (ctx, next) =>
     }
 });
 
+// Advertise the .onion mirror via an Onion-Location header (parity with the meta tag).
+app.UseMiddleware<OnionLocationMiddleware>();
+
 app.UseResponseCaching();
 app.UseStatusCodePagesWithRedirects("/errors/{0}");
 app.UseStaticFiles();

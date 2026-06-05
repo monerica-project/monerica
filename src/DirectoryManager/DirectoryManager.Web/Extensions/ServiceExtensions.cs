@@ -41,7 +41,12 @@ namespace DirectoryManager.Web.Extensions
                 options.Cookie.HttpOnly = true;
                 options.Cookie.IsEssential = true;
                 options.Cookie.SameSite = SameSiteMode.Lax;
-                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+
+                // SameAsRequest, not Always: the .onion mirror is served over plain HTTP,
+                // so an Always (Secure) cookie never round-trips there and breaks the
+                // session (e.g. CAPTCHA). Clearnet is HTTPS-only (redirect + HSTS), so
+                // this still yields a Secure cookie on clearnet.
+                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
             });
 
             services.AddResponseCaching();
@@ -64,7 +69,12 @@ namespace DirectoryManager.Web.Extensions
             {
                 options.Cookie.HttpOnly = true;
                 options.Cookie.SameSite = SameSiteMode.Lax;
-                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+
+                // SameAsRequest, not Always: the .onion mirror is served over plain HTTP.
+                // An Always (Secure) antiforgery cookie is dropped over HTTP, so the token
+                // is missing on POST and AutoValidateAntiforgeryToken rejects every form
+                // submission from Tor. Clearnet stays HTTPS-only, so the cookie is still Secure there.
+                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
                 options.HeaderName = "X-XSRF-TOKEN";
             });
 
@@ -222,7 +232,10 @@ namespace DirectoryManager.Web.Extensions
             {
                 options.Cookie.HttpOnly = true;
                 options.Cookie.SameSite = SameSiteMode.Lax;
-                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+
+                // SameAsRequest, not Always: allow login/auth over the HTTP .onion mirror.
+                // Clearnet is HTTPS-only (redirect + HSTS), so the cookie stays Secure there.
+                options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
                 options.ExpireTimeSpan = TimeSpan.FromHours(8);
                 options.SlidingExpiration = true;
                 options.LoginPath = "/account/login";
