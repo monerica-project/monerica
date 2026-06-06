@@ -640,6 +640,10 @@ namespace DirectoryManager.Web.Controllers
                     resp.StatusCode == HttpStatusCode.MethodNotAllowed ||
                     resp.StatusCode == HttpStatusCode.Forbidden) return true;
 
+                // Redirects are not followed (AllowAutoRedirect=false) to block SSRF via a
+                // redirect hop. A 3xx still proves the URL exists, which is all we need.
+                if ((int)resp.StatusCode >= 300 && (int)resp.StatusCode < 400) return true;
+
                 if (resp.StatusCode == HttpStatusCode.NotFound ||
                     resp.StatusCode == HttpStatusCode.Gone) return false;
 
@@ -659,7 +663,8 @@ namespace DirectoryManager.Web.Controllers
                 return resp2.StatusCode == HttpStatusCode.OK ||
                        resp2.StatusCode == HttpStatusCode.PartialContent ||
                        resp2.StatusCode == HttpStatusCode.ServiceUnavailable ||
-                       resp2.StatusCode == HttpStatusCode.Forbidden;
+                       resp2.StatusCode == HttpStatusCode.Forbidden ||
+                       ((int)resp2.StatusCode >= 300 && (int)resp2.StatusCode < 400);
             }
             catch { return false; }
         }
