@@ -46,12 +46,6 @@ builder.Services.Configure<AppSettings>(
     builder.Configuration
            .GetSection("Logging:TrafficLogging"));
 
-// Bind SecurityHeaders config (CSP nonce policy + admin no-script enforcement).
-// Optional: with no "SecurityHeaders" section present, defaults apply
-// (public pages report-only, admin pages always enforced no-script).
-builder.Services.Configure<SecurityHeadersOptions>(
-    builder.Configuration.GetSection(SecurityHeadersOptions.SectionName));
-
 // Trust X-Forwarded-* headers from nginx so Request.Scheme/Host/IP are correct.
 // Must be configured before Build() and applied as the FIRST middleware below.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -129,15 +123,10 @@ else
                 logger.LogError(exception, StringConstants.GenericExceptionMessage);
 
                 // This terminal handler short-circuits the pipeline, so the request never
-                // reaches SecurityHeadersMiddleware (registered after UseRouting). Apply the
-                // strict hardening set here so 500 responses aren't served bare. The error
-                // body has no script, so script-src 'none' is always correct on this path.
+                // reaches SecurityHeadersMiddleware. Reuse the same CSP constant so the policy
+                // can't drift between the two paths, and 500s aren't served bare.
                 var headers = context.Response.Headers;
-                headers["Content-Security-Policy"] =
-                    "default-src 'self'; base-uri 'self'; object-src 'none'; " +
-                    "frame-ancestors 'none'; frame-src 'none'; form-action 'self'; " +
-                    "script-src 'none'; style-src 'self' 'unsafe-inline'; " +
-                    "img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'";
+                headers["Content-Security-Policy"] = SecurityHeadersMiddleware.Csp;
                 headers["X-Content-Type-Options"] = "nosniff";
                 headers["X-Frame-Options"] = "DENY";
                 headers["Referrer-Policy"] = "no-referrer";
@@ -151,6 +140,11 @@ else
 
     app.UseHsts();
 }
+
+// Site-wide security headers. The no-JS policy (script-src 'none') is identical for
+// every response, so this runs early — before static files — and never needs the
+// matched endpoint, so it no longer sits after UseRouting.
+app.UseSecurityHeaders();
 
 // HTTP -> HTTPS redirect (skips Tor and anything already https via forwarded headers).
 app.Use(async (context, next) =>
@@ -210,10 +204,6 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
-
-// AFTER UseRouting so the matched endpoint's [Authorize] metadata is available:
-// emits CSP (+ hardening headers) and forces script-src 'none' on admin endpoints.
-app.UseMiddleware<SecurityHeadersMiddleware>();
 
 app.UseAuthentication();
 app.UseAuthorization();
