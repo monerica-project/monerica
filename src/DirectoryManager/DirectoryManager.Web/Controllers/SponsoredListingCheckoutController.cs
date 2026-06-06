@@ -507,7 +507,7 @@ namespace DirectoryManager.Web.Controllers
         {
             this.Request.EnableBuffering();
             var rawBody = await this.ReadBodyAsync(leaveOpen: true);
-            this.logger.LogInformation("BTCPay webhook received: {Payload}", rawBody);
+            this.logger.LogDebug("BTCPay webhook received ({Bytes} bytes).", rawBody?.Length ?? 0);
 
             var sig = this.Request.Headers["BTCPay-Sig"].FirstOrDefault() ?? string.Empty;
             if (!this.btcPayServerService.IsWebhookValid(rawBody, sig, out var sigError))

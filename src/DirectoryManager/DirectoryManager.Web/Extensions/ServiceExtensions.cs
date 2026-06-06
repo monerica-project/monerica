@@ -61,7 +61,6 @@ namespace DirectoryManager.Web.Extensions
 
             services.AddRazorPages();
             services.AddMemoryCache();
-            services.AddMvc();
             services.AddHttpContextAccessor();
 
             // Antiforgery cookie hardening

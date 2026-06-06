@@ -1,0 +1,15 @@
+@{
+    this.ViewData["Title"] = "Expire cache";
+    var cleared = (this.TempData["CacheCleared"] as bool?) ?? false;
+}
+
+<h1>Expire cache</h1>
+
+@if (cleared)
+{
+    <p>Cached items were cleared.</p>
+}
+
+<form asp-controller="Home" asp-action="ExpireCacheConfirmed" method="post">
+    <button type="submit">Clear cached items</button>
+</form>

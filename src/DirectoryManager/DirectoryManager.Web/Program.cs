@@ -137,8 +137,6 @@ else
             }
         });
     });
-
-    app.UseHsts();
 }
 
 // Site-wide security headers. The no-JS policy (script-src 'none') is identical for
