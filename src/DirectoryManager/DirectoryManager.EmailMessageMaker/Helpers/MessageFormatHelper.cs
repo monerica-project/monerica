@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.Net;
+using System.Text;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.DisplayFormatting.Enums;
@@ -113,7 +114,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             }
             else
             {
-                result.AppendLine($"<h1>{siteName} - Directory Updates</h1>");
+                result.AppendLine($"<h1>{WebUtility.HtmlEncode(siteName)} - Directory Updates</h1>");
             }
 
             result.AppendLine("</div>");
@@ -130,12 +131,12 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
 
                 foreach (var categoryGroup in groupedEntries)
                 {
-                    result.AppendLine($"<h2>{categoryGroup.Key}</h2>");
+                    result.AppendLine($"<h2>{WebUtility.HtmlEncode(categoryGroup.Key)}</h2>");
                     foreach (var subCategoryGroup in categoryGroup
                         .GroupBy(e => e.SubCategory!.Name)
                         .OrderBy(g => g.Key))
                     {
-                        result.AppendLine($"<h3>{subCategoryGroup.Key}</h3>");
+                        result.AppendLine($"<h3>{WebUtility.HtmlEncode(subCategoryGroup.Key)}</h3>");
                         result.AppendLine("<ul class=\"blank_list_item\">");
                         foreach (var entry in subCategoryGroup.OrderBy(e => e.Name))
                         {
@@ -398,7 +399,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
 
                 foreach (var group in groupedSponsors)
                 {
-                    result.AppendLine($"<h2>{group.Key.Category}</h2>");
+                    result.AppendLine($"<h2>{WebUtility.HtmlEncode(group.Key.Category)}</h2>");
                     result.AppendLine("<ul>");
 
                     foreach (var sponsor in group)
@@ -435,7 +436,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
 
                 foreach (var group in groupedSponsors)
                 {
-                    result.AppendLine($"<h2>{group.Key.Category} &rsaquo; {group.Key.SubCategory}</h2>");
+                    result.AppendLine($"<h2>{WebUtility.HtmlEncode(group.Key.Category)} &rsaquo; {WebUtility.HtmlEncode(group.Key.SubCategory)}</h2>");
                     result.AppendLine("<ul>");
 
                     foreach (var sponsor in group)

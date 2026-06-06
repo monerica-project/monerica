@@ -198,7 +198,10 @@ namespace DirectoryManager.Web.Extensions
             })
             .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
             {
-                AllowAutoRedirect = true,
+                // Do NOT follow redirects: SSRF validation runs on the initial URL only,
+                // so a validated public host that 30x-redirects to an internal IP must not
+                // be followed. UrlReturns200Async treats a 3xx as "exists" without following.
+                AllowAutoRedirect = false,
                 AutomaticDecompression = System.Net.DecompressionMethods.GZip |
                                          System.Net.DecompressionMethods.Deflate |
                                          System.Net.DecompressionMethods.Brotli
