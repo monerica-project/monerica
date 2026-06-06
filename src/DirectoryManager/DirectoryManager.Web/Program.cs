@@ -127,6 +127,22 @@ else
             {
                 var logger = app.Services.GetRequiredService<ILogger<Program>>();
                 logger.LogError(exception, StringConstants.GenericExceptionMessage);
+
+                // This terminal handler short-circuits the pipeline, so the request never
+                // reaches SecurityHeadersMiddleware (registered after UseRouting). Apply the
+                // strict hardening set here so 500 responses aren't served bare. The error
+                // body has no script, so script-src 'none' is always correct on this path.
+                var headers = context.Response.Headers;
+                headers["Content-Security-Policy"] =
+                    "default-src 'self'; base-uri 'self'; object-src 'none'; " +
+                    "frame-ancestors 'none'; frame-src 'none'; form-action 'self'; " +
+                    "script-src 'none'; style-src 'self' 'unsafe-inline'; " +
+                    "img-src 'self' data: https:; font-src 'self' data:; connect-src 'self'";
+                headers["X-Content-Type-Options"] = "nosniff";
+                headers["X-Frame-Options"] = "DENY";
+                headers["Referrer-Policy"] = "no-referrer";
+                headers["Cross-Origin-Opener-Policy"] = "same-origin";
+
                 context.Response.StatusCode = 500;
                 await context.Response.WriteAsync(StringConstants.GenericExceptionMessage);
             }
