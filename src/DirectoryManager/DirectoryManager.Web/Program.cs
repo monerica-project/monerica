@@ -46,6 +46,12 @@ builder.Services.Configure<AppSettings>(
     builder.Configuration
            .GetSection("Logging:TrafficLogging"));
 
+// Bind SecurityHeaders config (CSP nonce policy + admin no-script enforcement).
+// Optional: with no "SecurityHeaders" section present, defaults apply
+// (public pages report-only, admin pages always enforced no-script).
+builder.Services.Configure<SecurityHeadersOptions>(
+    builder.Configuration.GetSection(SecurityHeadersOptions.SectionName));
+
 // Trust X-Forwarded-* headers from nginx so Request.Scheme/Host/IP are correct.
 // Must be configured before Build() and applied as the FIRST middleware below.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
@@ -188,6 +194,11 @@ if (!app.Environment.IsDevelopment())
 }
 
 app.UseRouting();
+
+// AFTER UseRouting so the matched endpoint's [Authorize] metadata is available:
+// emits CSP (+ hardening headers) and forces script-src 'none' on admin endpoints.
+app.UseMiddleware<SecurityHeadersMiddleware>();
+
 app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();

@@ -8,8 +8,17 @@ namespace DirectoryManager.Web.Middleware
     /// </summary>
     public static class ContentSecurityPolicyBuilder
     {
-        public static string Build(SecurityHeadersOptions options, string nonce)
+        /// <param name="noScript">
+        /// When true, emit <c>script-src 'none'</c> and ignore the nonce / ExtraScriptSources —
+        /// the browser refuses ALL JavaScript (external, inline, and on*= handlers). Used to
+        /// force a no-JavaScript surface for the authenticated admin area.
+        /// </param>
+        public static string Build(SecurityHeadersOptions options, string nonce, bool noScript = false)
         {
+            var scriptSrc = noScript
+                ? "script-src 'none'"
+                : Join($"script-src 'self' 'nonce-{nonce}'", options.ExtraScriptSources);
+
             var directives = new List<string>
             {
                 "default-src 'self'",
@@ -18,7 +27,7 @@ namespace DirectoryManager.Web.Middleware
                 "frame-ancestors 'none'",
                 "frame-src 'none'",
                 "form-action 'self'",
-                Join($"script-src 'self' 'nonce-{nonce}'", options.ExtraScriptSources),
+                scriptSrc,
                 Join("style-src 'self' 'unsafe-inline'", options.ExtraStyleSources),
                 Join("img-src 'self' data: https:", options.ExtraImageSources),
                 Join("font-src 'self' data:", options.ExtraFontSources),

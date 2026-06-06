@@ -232,12 +232,9 @@ namespace DirectoryManager.Web.Extensions
             {
                 options.Cookie.HttpOnly = true;
                 options.Cookie.SameSite = SameSiteMode.Lax;
-
-                // SameAsRequest, not Always: allow login/auth over the HTTP .onion mirror.
-                // Clearnet is HTTPS-only (redirect + HSTS), so the cookie stays Secure there.
                 options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
-                options.ExpireTimeSpan = TimeSpan.FromHours(8);
-                options.SlidingExpiration = true;
+                options.ExpireTimeSpan = TimeSpan.FromDays(30);   // was FromHours(8)
+                options.SlidingExpiration = true;                 // renews on activity, so active use never expires
                 options.LoginPath = "/account/login";
                 options.LogoutPath = "/account/logout";
             });
