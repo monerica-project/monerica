@@ -319,8 +319,8 @@
                     <thead>
                         <tr>
                             <th>Paid</th>
+                            <th>Sponsor</th>
                             <th>Type</th>
-                            <th>Listing</th>
                             <th style="text-align:right;">Days</th>
                             <th style="text-align:right;">Paid (@Currency.XMR.ToString())</th>
                             <th style="text-align:right;">USD</th>
@@ -333,17 +333,7 @@
                         {
                             <tr>
                                 <td>@item.PaidUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
-                                <td>
-                                    @if (!string.IsNullOrWhiteSpace(item.PlacementUrl))
-                                    {
-                                        <a href="@item.PlacementUrl">@item.SponsorshipType</a>
-                                    }
-                                    else
-                                    {
-                                        @item.SponsorshipType
-                                    }
-                                </td>
-                                <td>
+                                 <td>
                                     @if (!string.IsNullOrWhiteSpace(item.ListingUrl))
                                     {
                                         <a href="@item.ListingUrl" target="_blank" rel="noopener">@item.ListingName</a>
@@ -353,6 +343,10 @@
                                         @item.ListingName
                                     }
                                 </td>
+                                <td>
+                                    @item.SponsorshipType
+                                </td>
+                               
                                 <td style="text-align:right;">@item.Days</td>
                                 <td style="text-align:right;">
                                     @item.PaidAmount.ToString(DirectoryManager.Common.Constants.StringConstants.RoundingFormatCrypto)
@@ -379,7 +373,7 @@
     </p>
     <p style="margin: 0 0 12px 0; opacity:.85;">
         Current time:
-        <strong>@Model.CurrentUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat) (UTC)</strong>
+        <strong>@Model.CurrentUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4) (UTC)</strong>
     </p>
 
     @if (Model.CurrentSponsors != null && Model.CurrentSponsors.Any())
@@ -409,7 +403,7 @@
                                 }
                             </td>
                             <td>@item.SponsorshipType</td>
-                            <td style="text-align:right;">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
+                            <td style="text-align:right;">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
                             <td style="text-align:right;">
                                 @if (!string.IsNullOrWhiteSpace(item.RenewUrl))
                                 {
