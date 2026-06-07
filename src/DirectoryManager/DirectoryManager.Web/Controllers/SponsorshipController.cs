@@ -1,4 +1,4 @@
-﻿﻿using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Models.TransferModels;
@@ -24,7 +24,7 @@ namespace DirectoryManager.Web.Controllers
         private const int SearchPageSize = 20;
         private const int WaitlistPreviewTake = 10;
         private const int WaitlistPageSize = 25;
-        private const int RecentPaidTake = 20;
+        private const int RecentPaidTake = 10;
 
         private readonly IDirectoryEntryRepository entryRepo;
         private readonly ICategoryRepository categoryRepo;
