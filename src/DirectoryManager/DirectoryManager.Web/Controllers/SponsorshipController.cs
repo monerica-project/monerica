@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Data.Enums;
+﻿﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Models.TransferModels;
@@ -89,6 +89,8 @@ namespace DirectoryManager.Web.Controllers
             vm.RecentPaid = await this.BuildRecentPaidAsync();
             await this.PopulateMainSponsorInventoryAsync(vm);
             vm.PricingSummaries = await this.BuildPricingSummariesAsync();
+            vm.CurrentUtc = DateTime.UtcNow;
+            vm.CurrentSponsors = await this.BuildCurrentSponsorsAsync();
 
             return this.View("Index", vm);
         }
@@ -962,6 +964,43 @@ namespace DirectoryManager.Web.Controllers
             return sections
                 .OrderBy(x => x.ScopeLabel,
                     StringComparer.OrdinalIgnoreCase)
+                .ToList();
+        }
+
+        private async Task<List<CurrentSponsorItemVm>>
+            BuildCurrentSponsorsAsync()
+        {
+            var now = DateTime.UtcNow;
+
+            var active = await this.sponsoredListingRepo
+                .GetAllActiveSponsorsAsync();
+
+            return active
+                .Where(x => x.CampaignEndDate > now)
+                .OrderBy(x => x.CampaignEndDate)
+                .ThenBy(x => x.DirectoryEntry?.Name,
+                    StringComparer.OrdinalIgnoreCase)
+                .Select(x => new CurrentSponsorItemVm
+                {
+                    DirectoryEntryId = x.DirectoryEntryId,
+                    ListingName =
+                        !string.IsNullOrWhiteSpace(
+                            x.DirectoryEntry?.Name)
+                            ? x.DirectoryEntry!.Name!
+                            : "Listing",
+                    ListingUrl = x.DirectoryEntry?.Link ?? string.Empty,
+                    SponsorshipTypeEnum = x.SponsorshipType,
+                    SponsorshipType =
+                        EnumHelper.GetDescription(x.SponsorshipType),
+                    ExpiresUtc = x.CampaignEndDate,
+                    RenewUrl =
+                        x.DirectoryEntryId > 0
+                        && x.SponsorshipType != SponsorshipType.Unknown
+                            ? "/sponsoredlisting/selectduration"
+                                + $"?directoryEntryId={x.DirectoryEntryId}"
+                                + $"&sponsorshipType={x.SponsorshipType}"
+                            : string.Empty,
+                })
                 .ToList();
         }
 

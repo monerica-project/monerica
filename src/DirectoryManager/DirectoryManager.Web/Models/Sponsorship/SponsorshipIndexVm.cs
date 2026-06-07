@@ -30,5 +30,12 @@ namespace DirectoryManager.Web.Models.Sponsorship
         public ListingInventoryModel? MainSponsorInventory { get; set; }
 
         public List<SponsorshipPricingSummaryVm> PricingSummaries { get; set; } = new ();
+
+        // ==========================================
+        // Current (active) sponsors list
+        // ==========================================
+        public DateTime CurrentUtc { get; set; } = DateTime.UtcNow;
+
+        public List<CurrentSponsorItemVm> CurrentSponsors { get; set; } = new ();
     }
 }

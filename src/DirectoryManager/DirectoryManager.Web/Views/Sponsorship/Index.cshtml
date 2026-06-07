@@ -372,4 +372,59 @@
         }
     }
 
+    <!-- CURRENT SPONSORS -->
+    <h2 style="margin-top: 22px;">Current Sponsors</h2>
+    <p style="margin: 6px 0 4px 0;">
+        All active sponsorships and when each one expires.
+    </p>
+    <p style="margin: 0 0 12px 0; opacity:.85;">
+        Current time:
+        <strong>@Model.CurrentUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat) (UTC)</strong>
+    </p>
+
+    @if (Model.CurrentSponsors != null && Model.CurrentSponsors.Any())
+    {
+        <div class="table-wrapper">
+            <table class="table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Sponsor</th>
+                        <th>Type</th>
+                        <th style="text-align:right;">Expires (UTC)</th>
+                        <th style="text-align:right;">Renew</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.CurrentSponsors)
+                    {
+                        <tr>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(item.ListingUrl))
+                                {
+                                    <a href="@item.ListingUrl" target="_blank" rel="noopener">@item.ListingName</a>
+                                }
+                                else
+                                {
+                                    @item.ListingName
+                                }
+                            </td>
+                            <td>@item.SponsorshipType</td>
+                            <td style="text-align:right;">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
+                            <td style="text-align:right;">
+                                @if (!string.IsNullOrWhiteSpace(item.RenewUrl))
+                                {
+                                    <a href="@item.RenewUrl">Renew</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+    else
+    {
+        <p style="opacity:.85;">No active sponsors right now.</p>
+    }
+
 }
