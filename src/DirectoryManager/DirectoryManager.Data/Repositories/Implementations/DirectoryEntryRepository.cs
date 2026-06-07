@@ -33,6 +33,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
         /// </summary>
         private const double RatingPriorMean = 3.0;
 
+        private const double RatingWeight          = 0.80;
+        private const double FoundedAgeWeight       = 0.10;
+        private const double DirectoryAgeWeight     = 0.10;
+
+        // Saturating half-life: score = days / (days + K). Founding spans decades,
+        // so it gets a longer half-life to differentiate; listing age is shorter-lived.
+        private const double FoundedAgeHalfLifeDays   = 1825.0; // ~5 years
+        private const double DirectoryAgeHalfLifeDays = 730.0;  // ~2 years
+
         /// <summary>
         /// Initializes a new instance of the <see cref="DirectoryEntryRepository"/> class.
         /// </summary>
@@ -907,27 +916,26 @@ namespace DirectoryManager.Data.Repositories.Implementations
             DirectoryStatus.Scam         => 3,
             _                            => 4,
         };
- 
- /// <summary>
+
+        /// <summary>
         /// Computes the trust-ranked id list in memory.
-        ///   trust = (BayesianRating / 5) * 0.8 + ageScore * 0.2
-        ///   ageScore = ageDays / (ageDays + 730)   // ~24-month half-saturation
-        /// Within each status tier, entries with real reviews scoring above the
-        /// prior mean (3.0) are floated ahead of unrated entries, so a genuinely
-        /// well-rated entry can never be leapfrogged by an unrated one on the age
-        /// component alone. Unrated entries fall back to the prior mean (3.0) for
-        /// their trust score, so they still rank mid-pack rather than last.
-        /// Two small SQL projections are materialised, then blended client-side —
-        /// this avoids EF's inability to translate the grouped-aggregate LEFT JOIN
-        /// plus a computed-score ORDER BY into one statement.
+        ///   trust = (BayesianRating / 5) * 0.70   // weighted rating
+        ///         +  foundedAgeScore      * 0.20   // age since FoundedDate
+        ///         +  directoryAgeScore    * 0.10   // age since listed on Monerica (CreateDate)
+        ///   foundedAgeScore   = foundedDays / (foundedDays + FoundedAgeHalfLifeDays)
+        ///   directoryAgeScore = dirDays     / (dirDays     + DirectoryAgeHalfLifeDays)
+        /// When FoundedDate is null it falls back to CreateDate, so an entry is never
+        /// penalised purely for missing founding data. Within each status tier, entries
+        /// with real reviews above the prior mean (3.0) are floated ahead of unrated
+        /// entries, so a well-rated entry can't be leapfrogged on the age terms alone.
         /// </summary>
         private async Task<List<int>> BuildTopRatedOrderedIdsAsync(
             IQueryable<DirectoryEntry> baseQ,
             HashSet<int>? sponsoredIds = null)
         {
-            // 1) lightweight candidate projection (id + create date) — translatable
+            // 1) lightweight candidate projection — translatable
             var candidates = await baseQ
-                .Select(e => new { e.DirectoryEntryId, e.CreateDate, e.DirectoryStatus })
+                .Select(e => new { e.DirectoryEntryId, e.CreateDate, e.FoundedDate, e.DirectoryStatus })
                 .ToListAsync()
                 .ConfigureAwait(false);
 
@@ -936,7 +944,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return new List<int>();
             }
 
-            // 2) rated aggregate (only entries that have approved ratings) — translatable on its own
+            // 2) rated aggregate (only entries with approved ratings) — translatable on its own
             var rated = await this.BuildRatedAggregate(baseQ)
                 .Select(r => new { r.DirectoryEntryId, r.BayesianScore, r.ReviewCount })
                 .ToListAsync()
@@ -945,9 +953,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var ratedById = rated.ToDictionary(x => x.DirectoryEntryId, x => x);
 
             var nowUtc = DateTime.UtcNow;
-            const double ageHalfLifeDays = 730.0;
-            const double ratingWeight = 0.8;
-            const double ageWeight = 0.2;
 
             return candidates
                 .Select(c =>
@@ -956,20 +961,35 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     double bayes = ra != null ? ra.BayesianScore : RatingPriorMean;
                     int reviewCount = ra != null ? ra.ReviewCount : 0;
 
-                    double ageDays = (nowUtc - c.CreateDate).TotalDays;
-                    if (ageDays < 0)
+                    // Directory age: time listed on Monerica.
+                    double dirDays = (nowUtc - c.CreateDate).TotalDays;
+                    if (dirDays < 0)
                     {
-                        ageDays = 0;
+                        dirDays = 0;
                     }
 
-                    double ageScore = ageDays / (ageDays + ageHalfLifeDays);
-                    double trust = ((bayes / 5.0) * ratingWeight) + (ageScore * ageWeight);
+                    // Founded age: time since the business was founded. Fall back to the
+                    // listing date when FoundedDate is unknown (DateOnly? -> DateTime).
+                    DateTime foundedAnchor = c.FoundedDate.HasValue
+                        ? c.FoundedDate.Value.ToDateTime(TimeOnly.MinValue)
+                        : c.CreateDate;
+                    double foundedDays = (nowUtc - foundedAnchor).TotalDays;
+                    if (foundedDays < 0)
+                    {
+                        foundedDays = 0;
+                    }
+
+                    double directoryAgeScore = dirDays / (dirDays + DirectoryAgeHalfLifeDays);
+                    double foundedAgeScore   = foundedDays / (foundedDays + FoundedAgeHalfLifeDays);
+
+                    double trust =
+                        ((bayes / 5.0) * RatingWeight)
+                        + (foundedAgeScore * FoundedAgeWeight)
+                        + (directoryAgeScore * DirectoryAgeWeight);
 
                     // 0 = has real reviews AND scores above the neutral prior (3.0);
-                    // 1 = unrated, or rated at/below the prior. Class 0 always sorts
-                    // ahead of class 1 within the same status tier, so a genuinely
-                    // well-rated entry can never be leapfrogged by an unrated one
-                    // (which would otherwise win on the age component alone).
+                    // 1 = unrated, or rated at/below the prior. Class 0 sorts ahead of
+                    // class 1 within the same status tier.
                     int ratingClass = (reviewCount > 0 && bayes > RatingPriorMean) ? 0 : 1;
 
                     return new
@@ -984,7 +1004,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 })
                 .OrderBy(x => x.Tier)                       // Verified → Admitted → Questionable → Scam
                 .ThenBy(x => x.RatingClass)                 // rated >3.0 ahead of unrated within the tier
-                .ThenByDescending(x => x.Trust)             // blended trust within the class
+                .ThenByDescending(x => x.Trust)             // blended 70/20/10 trust
                 .ThenByDescending(x => x.ReviewCount)
                 .ThenByDescending(x => x.CreateDate)
                 .ThenByDescending(x => x.DirectoryEntryId)
@@ -1698,20 +1718,25 @@ namespace DirectoryManager.Data.Repositories.Implementations
             {
                 IQueryable<RatedAggRow> ratedForTrust = this.BuildRatedAggregate(baseQ);
                 var nowUtc = DateTime.UtcNow;
-                const double ageHalfLifeDays = 730.0; // ~24 months, in days
-                const double ratingWeight = 0.5;
-                const double ageWeight = 0.5;
+                var nowDate = DateOnly.FromDateTime(nowUtc);
 
                 var joined =
                     from e in baseQ
                     join ra in ratedForTrust
                         on e.DirectoryEntryId equals ra.DirectoryEntryId into gj
                     from ra in gj.DefaultIfEmpty()
-                    // DateDiffDay translates to T-SQL DATEDIFF(day, ...); TimeSpan math does not.
-                    let ageDays = (double)EF.Functions.DateDiffDay(e.CreateDate, nowUtc)
+                    // DateDiffDay translates to T-SQL DATEDIFF(day, ...).
+                    let dirDays = (double)EF.Functions.DateDiffDay(e.CreateDate, nowUtc)
+                    // FoundedDate is DateOnly?; fall back to CreateDate (cast to date) when null.
+                    let foundedDays = (double)(e.FoundedDate.HasValue
+                        ? EF.Functions.DateDiffDay(e.FoundedDate.Value, nowDate)
+                        : EF.Functions.DateDiffDay(DateOnly.FromDateTime(e.CreateDate), nowDate))
                     let bayes = ra != null ? ra.BayesianScore : RatingPriorMean
-                    let ageScore = ageDays / (ageDays + ageHalfLifeDays)
-                    let trust = ((bayes / 5.0) * ratingWeight) + (ageScore * ageWeight)
+                    let directoryAgeScore = dirDays / (dirDays + DirectoryAgeHalfLifeDays)
+                    let foundedAgeScore   = foundedDays / (foundedDays + FoundedAgeHalfLifeDays)
+                    let trust = ((bayes / 5.0) * RatingWeight)
+                              + (foundedAgeScore * FoundedAgeWeight)
+                              + (directoryAgeScore * DirectoryAgeWeight)
                     select new
                     {
                         e.DirectoryEntryId,
