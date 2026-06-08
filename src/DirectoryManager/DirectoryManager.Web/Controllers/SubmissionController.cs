@@ -525,7 +525,8 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [Authorize]
-        [HttpGet("submission/delete/{id}")]
+        [HttpPost("submission/delete/{id}")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
             await this.submissionRepository.DeleteAsync(id);

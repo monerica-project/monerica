@@ -236,7 +236,8 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [Route("sitefilesmanagement/DeleteFileAsync")]
-        [HttpGet]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> DeleteFileAsync(string fileUrl)
         {
             await this.siteFilesRepository.DeleteFileAsync(fileUrl);
@@ -245,7 +246,8 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [Route("sitefilesmanagement/DeleteFolderAsync")]
-        [HttpGet]
+        [HttpPost]
+        [ValidateAntiForgeryToken]
         public async Task<ActionResult> DeleteFolderAsync(string folderUrl)
         {
             await this.siteFilesRepository.DeleteFolderAsync(folderUrl);

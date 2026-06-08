@@ -197,7 +197,8 @@ namespace DirectoryManager.Web.Controllers
             return this.View(category);
         }
 
-        [Route("category/delete")]
+        [HttpPost("category/delete")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
             await this.categoryRepository.DeleteAsync(id);
