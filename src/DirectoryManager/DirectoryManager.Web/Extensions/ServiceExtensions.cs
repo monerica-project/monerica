@@ -197,7 +197,7 @@ namespace DirectoryManager.Web.Extensions
                 client.DefaultRequestHeaders.UserAgent.ParseAdd("MonericaReviewVerifier/1.0");
                 client.DefaultRequestHeaders.Accept.ParseAdd("*/*");
             })
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
+            .ConfigurePrimaryHttpMessageHandler(() => new SocketsHttpHandler
             {
                 // Do NOT follow redirects: SSRF validation runs on the initial URL only,
                 // so a validated public host that 30x-redirects to an internal IP must not
@@ -205,7 +205,12 @@ namespace DirectoryManager.Web.Extensions
                 AllowAutoRedirect = false,
                 AutomaticDecompression = System.Net.DecompressionMethods.GZip |
                                          System.Net.DecompressionMethods.Deflate |
-                                         System.Net.DecompressionMethods.Brotli
+                                         System.Net.DecompressionMethods.Brotli,
+
+                // Pin DNS: validate the resolved IP(s) and connect only to that exact set,
+                // closing the rebinding/TOCTOU gap between up-front host validation and the
+                // socket connect. Shared logic lives in PrivateNetworkGuard.
+                ConnectCallback = DirectoryManager.Web.Helpers.PrivateNetworkGuard.SafeConnectAsync
             });
 
             services.Configure<RouteOptions>(options => options.LowercaseUrls = true);

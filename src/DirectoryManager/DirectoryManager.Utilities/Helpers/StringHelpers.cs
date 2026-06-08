@@ -95,21 +95,25 @@ namespace DirectoryManager.Utilities.Helpers
 
         private static readonly Regex UrlRegex = new (
             @"(?:(?:https?://)|(?:www\.))[\w\-\.]+(?:\.[a-z]{2,})(?:[^\s<>]*)?",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled,
+            TimeSpan.FromMilliseconds(100));
 
         private static readonly Regex EmailRegex = new (
             @"(?<![\w.+-])([A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,})(?![\w.+-])",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled,
+            TimeSpan.FromMilliseconds(100));
 
         // Combined URL or standard email matcher.
         private static readonly Regex UrlOrEmailRegex = new (
             @"(?<url>(?:(?:https?://)|(?:www\.))[\w\-\.]+(?:\.[a-z]{2,})(?:[^\s<>]*)?)|(?<email>(?<![\w.+-])([A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,})(?![\w.+-]))",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled,
+            TimeSpan.FromMilliseconds(100));
 
         // Matches obfuscated emails: user [at] domain.com / user(at)domain.com / user AT domain.com
         private static readonly Regex ObfuscatedEmailRegex = new (
             @"(?<![\w.+-])([A-Z0-9._%+\-]+)\s*(?:\[at\]|\(at\)|(?<!\w)at(?!\w))\s*([A-Z0-9.\-]+\.[A-Z]{2,})(?![\w.+-])",
-            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled,
+            TimeSpan.FromMilliseconds(100));
 
         // =========================
         // Private helpers

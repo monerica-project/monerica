@@ -37,13 +37,41 @@ namespace DirectoryManager.Web.Controllers
         {
             try
             {
+                // Reject a traversal/absolute/control-char folder path outright.
+                if (!IsSafeFolderPath(folderPath))
+                {
+                    return this.RedirectToAction("Index");
+                }
+
                 foreach (var file in files)
                 {
-                    if (file != null && file.Length > 0)
+                    if (file == null || file.Length <= 0)
                     {
-                        using var stream = file.OpenReadStream();
-                        await this.siteFilesRepository.UploadAsync(stream, file.FileName, folderPath);
+                        continue;
                     }
+
+                    // Size cap.
+                    if (file.Length > MaxUploadBytes)
+                    {
+                        continue;
+                    }
+
+                    // Strip any directory portion the client may have sent, then validate.
+                    var safeName = Path.GetFileName(file.FileName ?? string.Empty);
+                    if (!IsSafeFileName(safeName))
+                    {
+                        continue;
+                    }
+
+                    // Extension allowlist.
+                    var ext = Path.GetExtension(safeName);
+                    if (string.IsNullOrEmpty(ext) || !AllowedUploadExtensions.Contains(ext))
+                    {
+                        continue;
+                    }
+
+                    using var stream = file.OpenReadStream();
+                    await this.siteFilesRepository.UploadAsync(stream, safeName, folderPath);
                 }
 
                 return this.RedirectToAction("Index");
@@ -52,6 +80,80 @@ namespace DirectoryManager.Web.Controllers
             {
                 return this.RedirectToAction("Index");
             }
+        }
+
+        // 25 MB ceiling per file.
+        private const long MaxUploadBytes = 25 * 1024 * 1024;
+
+        // Extensions an admin may upload. Intentionally narrow; widen here if a real asset
+        // type is missing. NOTE: blobs are served from a separate storage/CDN origin and the
+        // app enforces script-src 'none', so .svg is low-risk here, but drop it from the list
+        // if you never serve admin-uploaded SVGs.
+        private static readonly HashSet<string> AllowedUploadExtensions =
+            new(StringComparer.OrdinalIgnoreCase)
+            {
+                ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".svg",
+                ".pdf", ".txt", ".csv", ".json", ".xml",
+                ".css", ".webmanifest",
+                ".woff", ".woff2", ".ttf", ".otf", ".eot",
+            };
+
+        private static bool IsSafeFileName(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return false;
+            }
+
+            if (name.Contains("..", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (name.IndexOf('/') >= 0 || name.IndexOf('\\') >= 0)
+            {
+                return false;
+            }
+
+            if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsSafeFolderPath(string? folderPath)
+        {
+            if (string.IsNullOrWhiteSpace(folderPath))
+            {
+                return true; // null/empty == root, allowed
+            }
+
+            if (folderPath.Contains("..", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (folderPath.Contains('\\'))
+            {
+                return false;
+            }
+
+            if (folderPath.StartsWith('/'))
+            {
+                return false; // no rooted/absolute paths; '/' is only an inner separator
+            }
+
+            foreach (var ch in folderPath)
+            {
+                if (char.IsControl(ch))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         [Route("sitefilesmanagement/CreateFolderAsync")]

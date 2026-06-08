@@ -308,7 +308,7 @@
                 {
                     <h4>Note</h4>
                 }
-                <p><em>@Html.Raw(Model.Note)</em></p>
+                <p><em>@Html.Raw(ContentSanitizer.Sanitize(Model.Note))</em></p>
             </div>
         }
 
