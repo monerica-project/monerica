@@ -69,12 +69,12 @@
 
 @if (!string.IsNullOrWhiteSpace(Model.PageDetails))
 {
-    <p>@Html.Raw(Model.PageDetails)</p>
+    <p>@Html.Raw(ContentSanitizer.Sanitize(Model.PageDetails))</p>
 }
 
 @if (!string.IsNullOrWhiteSpace(Model.Note))
 {
-    <p><i>Note: @Html.Raw(Model.Note)</i></p>
+    <p><i>Note: @Html.Raw(ContentSanitizer.Sanitize(Model.Note))</i></p>
 }
 
     @{
