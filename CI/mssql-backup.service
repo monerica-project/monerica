@@ -1,0 +1,15 @@
+[Unit]
+Description=Daily SQL Server -> Azure Blob backup (GFS rotation)
+Documentation=https://github.com/monerica-project/monerica
+After=docker.service network-online.target
+Requires=docker.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+EnvironmentFile=/etc/mssql-backup/backup.env
+Environment=HOME=/root
+ExecStart=/usr/local/bin/mssql-backup.sh
+Nice=10
+IOSchedulingClass=idle
+TimeoutStartSec=3600
