@@ -409,7 +409,8 @@ namespace DirectoryManager.Web.Controllers
             return this.View(audits);
         }
 
-        [HttpGet("directoryentry/delete/{id}")]
+        [HttpPost("directoryentry/delete/{id}")]
+        [ValidateAntiForgeryToken]
         public async Task<IActionResult> Delete(int id)
         {
             await this.directoryEntryRepository.DeleteAsync(id);

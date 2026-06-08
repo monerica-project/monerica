@@ -1,9 +1,11 @@
 ﻿using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
+    [Authorize]
     [Route("reviewer-keys")]
     public class ReviewerKeysController : Controller
     {
