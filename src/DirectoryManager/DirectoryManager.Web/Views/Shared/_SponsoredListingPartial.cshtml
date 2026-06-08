@@ -119,11 +119,15 @@
             <div class="sponsors-grid">
                 @foreach (var vm in vms)
                 {
-                    // combine desc + note into full HTML
-                    var htmlBlob = (vm.Description ?? "").Trim();
+                    // Combine desc + note into full HTML.
+                    // Sanitize each author-written field through the allowlist BEFORE it
+                    // reaches TruncateHtml — TruncateHtml preserves whatever tags/attributes
+                    // it is handed, so this keeps the sponsor description on the same
+                    // XSS-safe path used everywhere else (CSP is the backstop, not the gate).
+                    var htmlBlob = ContentSanitizer.Sanitize((vm.Description ?? string.Empty).Trim());
                     if (!string.IsNullOrWhiteSpace(vm.Note))
                     {
-                        htmlBlob += " <i>(Note: " + vm.Note.Trim() + ")</i>";
+                        htmlBlob += " <i>(Note: " + ContentSanitizer.Sanitize(vm.Note.Trim()) + ")</i>";
                     }
 
                     // rating summary lookup
