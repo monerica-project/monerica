@@ -1,4 +1,4 @@
-﻿@using DirectoryManager.Web.Constants
+﻿﻿@using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Models
 @using System.Globalization
 @using DirectoryManager.Data.Enums
@@ -98,8 +98,12 @@
                     ? (baselinePerDay.Value - offerPerDay.Value)
                     : (decimal?)null;
 
-                decimal? pctDiscountPerDay = (usdDiscountPerDay.HasValue && baselinePerDay > 0)
-                    ? Math.Round((usdDiscountPerDay.Value / baselinePerDay.Value) * 100m, 1)
+                int? pctDiscount = (usdDiscountPerDay.HasValue && baselinePerDay > 0)
+                    ? (int?)Math.Round((usdDiscountPerDay.Value / baselinePerDay.Value) * 100m, 0, MidpointRounding.AwayFromZero)
+                    : (int?)null;
+
+                decimal? totalUsdSaved = (i > 0 && baselinePerDay.HasValue)
+                    ? ((baselinePerDay.Value * offer.Days) - offer.USDPrice)
                     : (decimal?)null;
 
                 <div class="form-check" style="margin-bottom:8px;">
@@ -134,10 +138,10 @@
                             </span>
                         }
 
-                        @if (usdDiscountPerDay.HasValue && usdDiscountPerDay.Value > 0)
+                        @if (totalUsdSaved.HasValue && totalUsdSaved.Value > 0 && pctDiscount.HasValue)
                         {
                             <span class="text-danger" style="margin-left:6px;">
-                                (@usdDiscountPerDay.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture)/day off, @(pctDiscountPerDay)%)
+                                (@(pctDiscount)% off, save @totalUsdSaved.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture))
                             </span>
                         }
 
