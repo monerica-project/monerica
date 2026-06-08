@@ -1,8 +1,9 @@
-﻿using DirectoryManager.Common.Constants;
+using DirectoryManager.Common.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Extensions;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Services.Constants;
 using DirectoryManager.Services.Implementations;
 using DirectoryManager.Services.Interfaces;
 using DirectoryManager.Services.Models;
@@ -67,7 +68,7 @@ var serviceProvider = new ServiceCollection()
             UnsubscribeEmail = contentSnippetRepo.GetValue(SiteConfigSetting.EmailSettingUnsubscribeEmail),
         };
 
-        return new EmailService(emailConfig, emailSettings);
+        return new EmailService(emailConfig, emailSettings, provider.GetRequiredService<IServiceScopeFactory>(), EmailSendSource.SponsoredListingOpening);
     })
     .BuildServiceProvider();
 

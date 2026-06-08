@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.Extensions.DependencyInjection;
@@ -31,6 +31,7 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IEmailCampaignRepository, EmailCampaignRepository>();
             services.AddScoped<IEmailCampaignSubscriptionRepository, EmailCampaignSubscriptionRepository>();
             services.AddScoped<ISentEmailRecordRepository, SentEmailRecordRepository>();
+            services.AddScoped<IEmailSendLogRepository, EmailSendLogRepository>();
 
             // Other repositories
             services.AddScoped<ISubmissionRepository, SubmissionRepository>();

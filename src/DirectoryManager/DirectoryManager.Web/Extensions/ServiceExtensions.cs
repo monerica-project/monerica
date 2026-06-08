@@ -1,4 +1,4 @@
-﻿using Azure.Storage.Blobs;
+using Azure.Storage.Blobs;
 using BtcPayServer.API.Implementations;
 using BtcPayServer.API.Interfaces;
 using BtcPayServer.API.Models;
@@ -12,6 +12,7 @@ using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.FileStorage.Repositories.Implementations;
 using DirectoryManager.FileStorage.Repositories.Interfaces;
+using DirectoryManager.Services.Constants;
 using DirectoryManager.Services.Implementations;
 using DirectoryManager.Services.Interfaces;
 using DirectoryManager.Services.Models;
@@ -133,7 +134,7 @@ namespace DirectoryManager.Web.Extensions
                     UnsubscribeEmail = cacheService.GetSnippetAsync(SiteConfigSetting.EmailSettingUnsubscribeEmail).GetAwaiter().GetResult(),
                 };
 
-                return new EmailService(sendGridConfig, emailSettings);
+                return new EmailService(sendGridConfig, emailSettings, provider.GetRequiredService<IServiceScopeFactory>(), EmailSendSource.Web);
             });
 
             services.AddScoped<ISearchBlacklistCache, Services.SearchBlacklistCache>();

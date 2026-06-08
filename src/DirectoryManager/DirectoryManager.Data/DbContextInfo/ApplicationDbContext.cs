@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.BaseModels;
 using DirectoryManager.Data.Models.Emails;
@@ -34,6 +34,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<LogEntry> LogEntries { get; set; }
         public DbSet<ProcessorConfig> ProcessorConfigs { get; set; }
         public DbSet<SentEmailRecord> SentEmailRecords { get; set; }
+        public DbSet<EmailSendLog> EmailSendLogs { get; set; }
         public DbSet<SponsoredListingOpeningNotification> SponsoredListingOpeningNotifications { get; set; }
         public DbSet<SponsoredListing> SponsoredListings { get; set; }
         public DbSet<SponsoredListingInvoice> SponsoredListingInvoices { get; set; }
@@ -342,6 +343,12 @@ namespace DirectoryManager.Data.DbContextInfo
 
         private static void ConfigureEmailIndexes(ModelBuilder builder)
         {
+            builder.Entity<EmailSendLog>()
+                   .HasIndex(e => e.SentDate);
+
+            builder.Entity<EmailSendLog>()
+                   .HasIndex(e => new { e.SourceApplication, e.SentDate });
+
             builder.Entity<EmailMessage>()
                    .HasIndex(e => e.EmailKey)
                    .IsUnique();

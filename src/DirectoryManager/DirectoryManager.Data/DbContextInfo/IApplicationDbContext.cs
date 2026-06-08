@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.Reviews;
@@ -26,6 +26,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<LogEntry> LogEntries { get; set; }
         public DbSet<ProcessorConfig> ProcessorConfigs { get; set; }
         public DbSet<SentEmailRecord> SentEmailRecords { get; set; }
+        public DbSet<EmailSendLog> EmailSendLogs { get; set; }
         public DbSet<SponsoredListingOpeningNotification> SponsoredListingOpeningNotifications { get; set; }
         public DbSet<SponsoredListing> SponsoredListings { get; set; }
         public DbSet<SponsoredListingInvoice> SponsoredListingInvoices { get; set; }
