@@ -90,7 +90,7 @@ namespace DirectoryManager.Web.Controllers
         // app enforces script-src 'none', so .svg is low-risk here, but drop it from the list
         // if you never serve admin-uploaded SVGs.
         private static readonly HashSet<string> AllowedUploadExtensions =
-            new(StringComparer.OrdinalIgnoreCase)
+            new (StringComparer.OrdinalIgnoreCase)
             {
                 ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".svg",
                 ".pdf", ".txt", ".csv", ".json", ".xml",
