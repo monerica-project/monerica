@@ -1,0 +1,112 @@
+@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Services.Constants;
+@model IEnumerable<DirectoryManager.Data.Models.Emails.EmailSendLog>
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Email Send Log";
+    int currentPage = ViewBag.CurrentPage;
+    int totalPages = ViewBag.TotalPages;
+    int totalRecords = ViewBag.TotalRecords;
+    int pageSize = ViewBag.PageSize;
+    string? source = ViewBag.Source as string;
+
+    // Preserve the active source filter across pagination links.
+    string sourceQuery = string.IsNullOrWhiteSpace(source)
+        ? string.Empty
+        : "&source=" + Uri.EscapeDataString(source);
+}
+
+@{
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<p>
+    Filter by service:
+    <a href="?page=1&pageSize=@pageSize">All</a> |
+    <a href="?page=1&pageSize=@pageSize&source=@EmailSendSource.Web">Web</a> |
+    <a href="?page=1&pageSize=@pageSize&source=@EmailSendSource.NewsletterSender">Newsletter</a> |
+    <a href="?page=1&pageSize=@pageSize&source=@EmailSendSource.SponsoredListingOpening">Listing opening</a> |
+    <a href="?page=1&pageSize=@pageSize&source=@EmailSendSource.SponsoredListingReminder">Listing reminder</a>
+</p>
+
+<p>
+    @totalRecords total
+    @if (!string.IsNullOrWhiteSpace(source))
+    {
+        <text>— filtered to <strong>@source</strong></text>
+    }
+</p>
+
+<table class="table table-bordered">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Service</th>
+            <th>Recipient</th>
+            <th>Subject</th>
+            <th>Result</th>
+            <th>Sent (UTC)</th>
+        </tr>
+    </thead>
+    <tbody>
+        @if (Model != null && Model.Any())
+        {
+            foreach (var record in Model)
+            {
+                <tr>
+                    <td>@record.EmailSendLogId</td>
+                    <td>@record.SourceApplication</td>
+                    <td>
+                        @record.RecipientEmail@(record.RecipientCount > 1 ? $" (+{record.RecipientCount - 1})" : string.Empty)
+                    </td>
+                    <td>@record.Subject</td>
+                    <td>
+                        @if (record.IsSuccess)
+                        {
+                            <text>Sent@(record.StatusCode.HasValue ? $" ({record.StatusCode})" : string.Empty)</text>
+                        }
+                        else
+                        {
+                            <text>Failed@(record.StatusCode.HasValue ? $" ({record.StatusCode})" : string.Empty)</text>
+                            if (!string.IsNullOrEmpty(record.ErrorMessage))
+                            {
+                                <br />
+                                <small>@(record.ErrorMessage.Length > 200 ? record.ErrorMessage.Substring(0, 200) + "…" : record.ErrorMessage)</small>
+                            }
+                        }
+                    </td>
+                    <td>@record.SentDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
+                </tr>
+            }
+        }
+        else
+        {
+            <tr>
+                <td colspan="6" class="text-center">No records found.</td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+<!-- Pagination Controls -->
+<div class="pagination">
+    @if (currentPage > 1)
+    {
+        <a href="?page=1&pageSize=@pageSize@(sourceQuery)">&laquo; First</a>
+        <a href="?page=@(currentPage - 1)&pageSize=@pageSize@(sourceQuery)">Previous</a>
+    }
+
+    <span>Page @currentPage of @totalPages</span>
+
+    @if (currentPage < totalPages)
+    {
+        <a href="?page=@(currentPage + 1)&pageSize=@pageSize@(sourceQuery)">Next</a>
+        <a href="?page=@totalPages&pageSize=@pageSize@(sourceQuery)">Last &raquo;</a>
+    }
+</div>
+}
