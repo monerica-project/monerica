@@ -313,6 +313,11 @@
 <br />
 <br />
 <hr />
-<a href="~/submission/delete/@Model.SubmissionId">Delete</a>
+<form asp-action="Delete" asp-route-id="@Model.SubmissionId" method="post" class="d-inline">
+    <button type="submit" class="btn btn-danger"
+            onclick="return confirm('Permanently delete this submission? This cannot be undone.');">
+        Delete
+    </button>
+</form>
 
         }
