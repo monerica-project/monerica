@@ -556,6 +556,87 @@ namespace DirectoryManager.Web.Charting
             return plt.GetImageBytes(800, 600, ImageFormat.Png);
         }
 
+        public byte[] CreateCountryRevenuePieChart(
+            IEnumerable<SponsoredListingInvoice> invoices,
+            Currency displayCurrency)
+        {
+            var list = (invoices ?? Enumerable.Empty<SponsoredListingInvoice>()).ToList();
+
+            var breakdown = list
+                .GroupBy(i =>
+                {
+                    var cc = i.DirectoryEntry?.CountryCode;
+                    return string.IsNullOrWhiteSpace(cc) ? "Unknown" : cc.Trim().ToUpperInvariant();
+                })
+                .Select(g => (code: g.Key, total: g.Sum(i => i.AmountIn(displayCurrency))))
+                .Where(x => x.total > 0m)
+                .OrderByDescending(x => x.total)
+                .ToArray();
+
+            if (breakdown.Length == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            double grand = (double)breakdown.Sum(x => x.total);
+
+            var hexPalette = new[]
+            {
+                // D3 Category20
+                "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+                "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+                "#393b79", "#637939", "#8c6d31", "#843c39", "#7b4173",
+                "#3182bd", "#31a354", "#756bb1", "#636363", "#e6550d",
+
+                // D3 Category20b
+                "#393b79", "#5254a3", "#6b6ecf", "#9c9ede", "#637939",
+                "#8ca252", "#b5cf6b", "#cedb9c", "#8c6d31", "#bd9e39",
+                "#e7ba52", "#e7cb94", "#843c39", "#ad494a", "#d6616b",
+                "#e7969c", "#7b4173", "#a55194", "#ce6dbd", "#de9ed6"
+            };
+            var palette = hexPalette.Select(Color.FromHex).ToArray();
+
+            var slices = breakdown.Select((row, idx) =>
+            {
+                double val = (double)row.total;
+                double pct = grand > 0 ? Math.Round(val * 100.0 / grand, 1) : 0;
+                var slice = new PieSlice(val, palette[idx % palette.Length], $"{pct}%");
+                slice.LegendText = $"{CountryLabel(row.code)} — {FormatValue((decimal)val, displayCurrency)}";
+                return slice;
+            }).ToArray();
+
+            var plt = new Plot();
+            plt.HideAxesAndGrid();
+
+            var pie = plt.Add.Pie(slices);
+            pie.DonutFraction = 0;
+            pie.SliceLabelDistance = 1.2;
+            pie.Rotation = Angle.FromDegrees(-90);
+
+            plt.Title($"Revenue by Country ({AxisUnitLabel(displayCurrency)})");
+            plt.ShowLegend(Edge.Right);
+
+            return plt.GetImageBytes(800, 600, ImageFormat.Png);
+        }
+
+        private static string CountryLabel(string code)
+        {
+            if (string.IsNullOrWhiteSpace(code) ||
+                code.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Unknown";
+            }
+
+            try
+            {
+                return $"{code} ({new System.Globalization.RegionInfo(code).EnglishName})";
+            }
+            catch (ArgumentException)
+            {
+                return code;
+            }
+        }
+
         private static string FormatValue(decimal v, Currency currency)
         {
             if (currency == Currency.USD)

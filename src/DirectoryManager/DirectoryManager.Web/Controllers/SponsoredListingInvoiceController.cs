@@ -439,6 +439,32 @@ namespace DirectoryManager.Web.Controllers
                     ? InclusiveDays(asOfUtc, paidThrough.Value)
                     : 0;
 
+            // ----- Income by advertiser country code (same window + filters) -----
+            var countryGroups = filtered
+                .GroupBy(inv => NormalizeCountryCode(inv.DirectoryEntry?.CountryCode))
+                .Select(g => new
+                {
+                    CountryCode = g.Key,
+                    Total = g.Sum(inv => inv.AmountIn(model.DisplayCurrency)),
+                    Count = g.Count()
+                })
+                .Where(x => x.Total > 0m)
+                .OrderByDescending(x => x.Total)
+                .ToList();
+
+            var countryGrand = countryGroups.Sum(x => x.Total);
+
+            model.CountryRevenueRows = countryGroups
+                .Select(x => new DirectoryManager.Web.Models.Reports.CountryRevenueRow
+                {
+                    CountryCode = x.CountryCode,
+                    CountryName = CountryDisplayName(x.CountryCode),
+                    Total = x.Total,
+                    InvoiceCount = x.Count,
+                    Percent = countryGrand > 0m ? (double)(x.Total / countryGrand) * 100.0 : 0.0
+                })
+                .ToList();
+
             return this.View(model);
         }
 
@@ -744,6 +770,58 @@ namespace DirectoryManager.Web.Controllers
             var subToCat = subsList.ToDictionary(s => s.SubCategoryId, s => s.CategoryId);
 
             var chartBytes = new InvoicePlotting().CreateSubcategoryRevenuePieChart(matches, cats, subs, subToCat, currency);
+
+            if (chartBytes == null || chartBytes.Length == 0)
+            {
+                const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
+  <rect width='100%' height='100%' fill='white'/>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
+        font-family='sans-serif' font-size='20' fill='black'>No results</text>
+</svg>";
+                return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
+            }
+
+            return this.File(chartBytes, StringConstants.PngImage);
+        }
+
+        // --- Country Revenue Pie ---
+        [AllowAnonymous]
+        [HttpGet("sponsoredlistinginvoice/country-revenue-pie")]
+        public async Task<IActionResult> CountryRevenuePieChart(
+            DateTime? startDate,
+            DateTime? endDate,
+            SponsorshipType? sponsorshipType,
+            Currency? displayCurrency,
+            int? subCategoryId)
+        {
+            var currency = displayCurrency ?? Currency.USD;
+
+            const int defaultYears = 1;
+            var now = DateTime.UtcNow;
+            var from = (startDate ?? now.AddYears(-defaultYears)).Date;
+            var to = (endDate ?? now).Date;
+
+            var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
+            var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
+
+            var paid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
+                .Where(inv => inv.CreateDate >= startUtc
+                           && inv.CreateDate <= endUtc
+                           && inv.PaymentStatus == PaymentStatus.Paid);
+
+            if (sponsorshipType.HasValue)
+            {
+                paid = paid.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
+
+            if (subCategoryId.HasValue)
+            {
+                paid = paid.Where(inv => inv.SubCategoryId == subCategoryId.Value);
+            }
+
+            // Convert every paid invoice into the display currency so the pie matches the table.
+            var chartBytes = new InvoicePlotting()
+                .CreateCountryRevenuePieChart(paid.ToList(), currency);
 
             if (chartBytes == null || chartBytes.Length == 0)
             {
@@ -1191,6 +1269,30 @@ namespace DirectoryManager.Web.Controllers
 
             var days = (int)(b - a).TotalDays; // already end-exclusive
             return Math.Max(0, days);
+        }
+
+        private static string NormalizeCountryCode(string? countryCode) =>
+            string.IsNullOrWhiteSpace(countryCode)
+                ? "Unknown"
+                : countryCode.Trim().ToUpperInvariant();
+
+        private static string CountryDisplayName(string countryCode)
+        {
+            if (string.IsNullOrWhiteSpace(countryCode) ||
+                countryCode.Equals("Unknown", StringComparison.OrdinalIgnoreCase))
+            {
+                return "Unknown";
+            }
+
+            try
+            {
+                return new System.Globalization.RegionInfo(countryCode).EnglishName;
+            }
+            catch (ArgumentException)
+            {
+                // Not a valid ISO region code — show the raw code as-is.
+                return countryCode;
+            }
         }
 
         private static string FriendlySponsorship(SponsorshipType? st) =>

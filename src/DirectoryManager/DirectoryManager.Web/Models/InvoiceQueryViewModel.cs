@@ -78,5 +78,9 @@ namespace DirectoryManager.Web.Models
 
         public decimal? AverageUsdPerXmr { get; set; }
         public decimal? ImpliedTotalInXmrAtAvg { get; set; }
+
+        // Income broken down by advertiser country code (display-currency totals),
+        // ordered highest-paying first. Respects the same window/sponsorship/subcategory filters.
+        public List<DirectoryManager.Web.Models.Reports.CountryRevenueRow> CountryRevenueRows { get; set; } = new ();
     }
 }
