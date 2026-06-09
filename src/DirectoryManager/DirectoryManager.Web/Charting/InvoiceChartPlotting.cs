@@ -637,6 +637,159 @@ namespace DirectoryManager.Web.Charting
             }
         }
 
+        public byte[] CreateIncomeForecastChart(
+            IReadOnlyList<DateTime> historyMonths,
+            IReadOnlyList<decimal> historyValues,
+            IReadOnlyList<DateTime> forecastMonths,
+            IReadOnlyList<decimal> forecastExpected,
+            IReadOnlyList<decimal> forecastLow,
+            IReadOnlyList<decimal> forecastHigh,
+            Currency displayCurrency)
+        {
+            historyMonths ??= Array.Empty<DateTime>();
+            historyValues ??= Array.Empty<decimal>();
+            forecastMonths ??= Array.Empty<DateTime>();
+            forecastExpected ??= Array.Empty<decimal>();
+            forecastLow ??= Array.Empty<decimal>();
+            forecastHigh ??= Array.Empty<decimal>();
+
+            int h = historyMonths.Count;
+            int f = forecastMonths.Count;
+
+            if (h == 0 && f == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            var combinedMonths = new List<DateTime>(h + f);
+            combinedMonths.AddRange(historyMonths);
+            combinedMonths.AddRange(forecastMonths);
+
+            var plt = new Plot();
+
+            // ---- history as grey bars ----
+            if (h > 0)
+            {
+                var bars = new List<Bar>(h);
+                for (int i = 0; i < h; i++)
+                {
+                    bars.Add(new Bar
+                    {
+                        Position = i,
+                        Value = (double)historyValues[i],
+                        FillColor = Color.FromHex("#bdbdbd"),
+                    });
+                }
+
+                plt.Add.Bars(bars);
+            }
+
+            // ---- forecast lines (expected solid, low/high dotted) ----
+            if (f > 0)
+            {
+                var xsExp = new List<double>();
+                var ysExp = new List<double>();
+                var xsLow = new List<double>();
+                var ysLow = new List<double>();
+                var xsHigh = new List<double>();
+                var ysHigh = new List<double>();
+
+                // Anchor the forecast at the last actual so the line visibly connects.
+                if (h > 0)
+                {
+                    double anchorX = h - 1;
+                    double anchorY = (double)historyValues[h - 1];
+                    xsExp.Add(anchorX);
+                    ysExp.Add(anchorY);
+                    xsLow.Add(anchorX);
+                    ysLow.Add(anchorY);
+                    xsHigh.Add(anchorX);
+                    ysHigh.Add(anchorY);
+                }
+
+                for (int j = 0; j < f; j++)
+                {
+                    double x = h + j;
+                    xsExp.Add(x);
+                    ysExp.Add((double)forecastExpected[j]);
+                    xsLow.Add(x);
+                    ysLow.Add((double)forecastLow[j]);
+                    xsHigh.Add(x);
+                    ysHigh.Add((double)forecastHigh[j]);
+                }
+
+                var high = plt.Add.Scatter(xsHigh.ToArray(), ysHigh.ToArray());
+                high.Color = Color.FromHex("#9ecae1");
+                high.LineWidth = 1;
+                high.LinePattern = LinePattern.Dotted;
+                high.MarkerSize = 0;
+                high.LegendText = "High (optimistic)";
+
+                var low = plt.Add.Scatter(xsLow.ToArray(), ysLow.ToArray());
+                low.Color = Color.FromHex("#9ecae1");
+                low.LineWidth = 1;
+                low.LinePattern = LinePattern.Dotted;
+                low.MarkerSize = 0;
+                low.LegendText = "Low (conservative)";
+
+                var exp = plt.Add.Scatter(xsExp.ToArray(), ysExp.ToArray());
+                exp.Color = Color.FromHex("#1f77b4");
+                exp.LineWidth = 2;
+                exp.MarkerSize = 4;
+                exp.LegendText = "Forecast (expected)";
+            }
+
+            // ---- divider between history and forecast ----
+            if (h > 0 && f > 0)
+            {
+                var vline = plt.Add.VerticalLine(h - 0.5);
+                vline.Color = Color.FromHex("#999999");
+                vline.LinePattern = LinePattern.Dashed;
+                vline.LineWidth = 1;
+            }
+
+            ApplyMonthCategoryTicksThinned(plt, combinedMonths);
+            plt.Axes.Margins(left: 0.05, right: 0.05, bottom: 0.30, top: 0.18);
+            plt.Axes.AutoScale();
+
+            var lim = plt.Axes.GetLimits();
+            if (lim.Bottom != 0)
+            {
+                plt.Axes.SetLimitsY(0, lim.Top);
+            }
+
+            string unit = AxisUnitLabel(displayCurrency);
+            plt.Title($"Income Forecast ({unit})");
+            plt.YLabel($"Monthly income ({unit})");
+            plt.XLabel("Month");
+            plt.ShowLegend(Edge.Right);
+
+            return plt.GetImageBytes(1400, 700, ImageFormat.Png);
+        }
+
+        private static void ApplyMonthCategoryTicksThinned(ScottPlot.Plot plt, IReadOnlyList<DateTime> months)
+        {
+            int count = months.Count;
+            int stride = count <= 18 ? 1 : (count <= 30 ? 2 : 3);
+
+            var tickList = new List<double>();
+            var labelList = new List<string>();
+            for (int i = 0; i < count; i++)
+            {
+                if (i % stride != 0 && i != count - 1)
+                {
+                    continue;
+                }
+
+                tickList.Add(i);
+                labelList.Add($"{months[i]:MMM}\n{months[i]:yyyy}");
+            }
+
+            plt.Axes.Bottom.TickGenerator =
+                new ScottPlot.TickGenerators.NumericManual(tickList.ToArray(), labelList.ToArray());
+            plt.Axes.Bottom.TickLabelStyle.Rotation = 0;
+        }
+
         private static string FormatValue(decimal v, Currency currency)
         {
             if (currency == Currency.USD)

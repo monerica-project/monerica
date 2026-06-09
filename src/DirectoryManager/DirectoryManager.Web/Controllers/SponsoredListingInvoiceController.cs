@@ -5,6 +5,7 @@ using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Web.Charting;
 using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Forecasting;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Models.Reports;
@@ -14,6 +15,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.Net.Http.Headers;
 using Microsoft.Extensions.Logging;
+using DirectoryManager.Data.Models.SponsoredListings;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -835,6 +837,222 @@ namespace DirectoryManager.Web.Controllers
 
             return this.File(chartBytes, StringConstants.PngImage);
         }
+
+        // ===================== Income Forecast =====================
+
+        [Route("sponsoredlistinginvoice/forecast")]
+        [HttpGet]
+        public async Task<IActionResult> Forecast(
+            Currency? displayCurrency,
+            int? lookbackMonths,
+            int? horizonMonths,
+            int? confidence)
+        {
+            var currency = displayCurrency ?? Currency.USD;
+            var lookback = Math.Clamp(lookbackMonths ?? 24, 3, 60);
+            var horizon = Math.Clamp(horizonMonths ?? 12, 1, 36);
+            var confidencePercent = NormalizeConfidence(confidence ?? 80);
+            var z = ConfidenceToZ(confidencePercent);
+            var now = DateTime.UtcNow;
+
+            var paid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
+                .Where(i => i.PaymentStatus == PaymentStatus.Paid);
+
+            var (months, values) = BuildMonthlyHistory(paid, currency, now, lookback);
+            var result = IncomeForecaster.Build(months, values, now, horizon, z);
+
+            var model = new IncomeForecastViewModel
+            {
+                DisplayCurrency = currency,
+                LookbackMonths = lookback,
+                HorizonMonths = horizon,
+                ConfidencePercent = confidencePercent,
+                GeneratedAtUtc = now,
+
+                HasEnoughData = result.HasEnoughData,
+                HistoryMonthsUsed = result.HistoryMonthsUsed,
+                RecentMonthlyAverage = result.RecentMonthlyAverage,
+                TrendSlopePerMonth = result.TrendSlopePerMonth,
+                ProjectedHorizonTotalExpected = result.ProjectedHorizonTotalExpected,
+                ProjectedHorizonTotalLow = result.ProjectedHorizonTotalLow,
+                ProjectedHorizonTotalHigh = result.ProjectedHorizonTotalHigh,
+
+                MonthlyRows = result.Months.Select(m => new ForecastMonthRow
+                {
+                    Month = m.Month,
+                    Expected = m.Expected,
+                    Low = m.Low,
+                    High = m.High,
+                    CumulativeExpected = m.CumExpected,
+                    CumulativeLow = m.CumLow,
+                    CumulativeHigh = m.CumHigh
+                }).ToList(),
+
+                Milestones = result.Milestones.Select(ms => new ForecastMilestoneRow
+                {
+                    Target = ms.Target,
+                    ExpectedDate = ms.ExpectedDate,
+                    EarliestDate = ms.EarliestDate,
+                    LatestDate = ms.LatestDate
+                }).ToList()
+            };
+
+            // ---- Next concrete expected payment: soonest-expiring active paid sponsorship ----
+            // Group by advertiser + slot, take each group's latest paid-through date so an
+            // already-renewed listing doesn't surface a superseded expiration.
+            var nowDate = now.Date;
+            var nextExpiring = paid
+                .GroupBy(i => new { i.DirectoryEntryId, i.SponsorshipType, i.CategoryId, i.SubCategoryId })
+                .Select(g => g.OrderByDescending(x => x.CampaignEndDate).First())
+                .Where(latest => latest.CampaignEndDate.Date >= nowDate)
+                .OrderBy(latest => latest.CampaignEndDate)
+                .FirstOrDefault();
+
+            if (nextExpiring != null)
+            {
+                model.HasNextPayment = true;
+                model.NextPaymentDateUtc = nextExpiring.CampaignEndDate.Date;
+                model.NextPaymentAmount = nextExpiring.AmountIn(currency);
+                model.NextPaymentAdvertiser = nextExpiring.DirectoryEntry?.Name ?? "(unknown advertiser)";
+                model.NextPaymentSponsorshipType = nextExpiring.SponsorshipType.ToString();
+            }
+
+            // Currency dropdown
+            model.DisplayCurrencyOptions = Enum.GetValues(typeof(Currency))
+                .Cast<Currency>()
+                .Where(c => c != Currency.Unknown)
+                .Select(c => new SelectListItem
+                {
+                    Value = c.ToString(),
+                    Text = c.ToString(),
+                    Selected = c == currency
+                })
+                .ToList();
+
+            // Confidence dropdown
+            model.ConfidenceOptions = new[] { 50, 68, 80, 90, 95 }
+                .Select(p => new SelectListItem
+                {
+                    Value = p.ToString(CultureInfo.InvariantCulture),
+                    Text = $"{p}%",
+                    Selected = p == confidencePercent
+                })
+                .ToList();
+
+            return this.View(model);
+        }
+
+        [HttpGet("sponsoredlistinginvoice/income-forecast-chart")]
+        public async Task<IActionResult> IncomeForecastChart(
+            Currency? displayCurrency,
+            int? lookbackMonths,
+            int? horizonMonths,
+            int? confidence)
+        {
+            var currency = displayCurrency ?? Currency.USD;
+            var lookback = Math.Clamp(lookbackMonths ?? 24, 3, 60);
+            var horizon = Math.Clamp(horizonMonths ?? 12, 1, 36);
+            var z = ConfidenceToZ(NormalizeConfidence(confidence ?? 80));
+            var now = DateTime.UtcNow;
+
+            var paid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
+                .Where(i => i.PaymentStatus == PaymentStatus.Paid);
+
+            var (months, values) = BuildMonthlyHistory(paid, currency, now, lookback);
+            var result = IncomeForecaster.Build(months, values, now, horizon, z);
+
+            if (!result.HasEnoughData)
+            {
+                const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
+  <rect width='100%' height='100%' fill='white'/>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
+        font-family='sans-serif' font-size='20' fill='black'>Not enough data</text>
+</svg>";
+                return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
+            }
+
+            var forecastMonths = result.Months.Select(m => m.Month).ToList();
+            var forecastExpected = result.Months.Select(m => m.Expected).ToList();
+            var forecastLow = result.Months.Select(m => m.Low).ToList();
+            var forecastHigh = result.Months.Select(m => m.High).ToList();
+
+            var bytes = new InvoicePlotting().CreateIncomeForecastChart(
+                months, values, forecastMonths, forecastExpected, forecastLow, forecastHigh, currency);
+
+            if (bytes == null || bytes.Length == 0)
+            {
+                const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
+  <rect width='100%' height='100%' fill='white'/>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
+        font-family='sans-serif' font-size='20' fill='black'>No results</text>
+</svg>";
+                return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
+            }
+
+            return this.File(bytes, StringConstants.PngImage);
+        }
+
+        // Build a contiguous monthly booked-revenue history (display currency) over the trailing
+        // <paramref name="lookbackMonths"/> COMPLETED months. Leading pre-launch zero months are
+        // trimmed so they don't drag the trend; internal/trailing zero months are kept (real gaps).
+        private static (List<DateTime> Months, List<decimal> Values) BuildMonthlyHistory(
+            IEnumerable<SponsoredListingInvoice> paidInvoices,
+            Currency currency,
+            DateTime nowUtc,
+            int lookbackMonths)
+        {
+            var currentMonthStart = new DateTime(nowUtc.Year, nowUtc.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var firstMonth = currentMonthStart.AddMonths(-lookbackMonths);
+
+            var byMonth = paidInvoices
+                .Where(i => i.CreateDate >= firstMonth && i.CreateDate < currentMonthStart)
+                .GroupBy(i => new DateTime(i.CreateDate.Year, i.CreateDate.Month, 1, 0, 0, 0, DateTimeKind.Utc))
+                .ToDictionary(g => g.Key, g => g.Sum(x => x.AmountIn(currency)));
+
+            var months = new List<DateTime>();
+            var values = new List<decimal>();
+            for (var m = firstMonth; m < currentMonthStart; m = m.AddMonths(1))
+            {
+                months.Add(m);
+                values.Add(byMonth.TryGetValue(m, out var v) ? v : 0m);
+            }
+
+            int firstNonZero = values.FindIndex(v => v > 0m);
+            if (firstNonZero > 0)
+            {
+                months = months.Skip(firstNonZero).ToList();
+                values = values.Skip(firstNonZero).ToList();
+            }
+            else if (firstNonZero < 0)
+            {
+                // No bookings at all in the window.
+                months.Clear();
+                values.Clear();
+            }
+
+            return (months, values);
+        }
+
+        private static int NormalizeConfidence(int percent) =>
+            percent switch
+            {
+                <= 50 => 50,
+                <= 68 => 68,
+                <= 80 => 80,
+                <= 90 => 90,
+                _ => 95
+            };
+
+        private static double ConfidenceToZ(int percent) =>
+            percent switch
+            {
+                50 => 0.674,
+                68 => 1.0,
+                80 => 1.282,
+                90 => 1.645,
+                95 => 1.960,
+                _ => 1.282
+            };
 
         [Route("sponsoredlistinginvoice/subcategorybreakdown")]
         [HttpGet]

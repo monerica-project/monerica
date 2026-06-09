@@ -1,0 +1,224 @@
+@model DirectoryManager.Web.Models.Reports.IncomeForecastViewModel
+@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Data.Enums;
+@using System.Globalization
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Income Forecast";
+    Layout = "_CenteredLayout";
+
+    var chartV = $"{Model.DisplayCurrency}-{Model.LookbackMonths}-{Model.HorizonMonths}-{Model.ConfidencePercent}-{Model.GeneratedAtUtc.Ticks}";
+
+    var usCulture = CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS);
+    string dateFmt = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+
+    Func<decimal, string> money = v => Model.DisplayCurrency == Currency.USD
+        ? v.ToString("C", usCulture)
+        : $"{v.ToString("0.######")} {Model.DisplayCurrency}";
+
+    Func<DateTime?, string> day = d => d.HasValue ? d.Value.ToString(dateFmt) : "—";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+    @await Html.PartialAsync("_ReportMenu")
+
+    <hr />
+
+    <p class="text-muted">
+        A projection of future income based on your past booked revenue. It fits a trend to the
+        last @Model.LookbackMonths months of paid invoices and projects it forward
+        @Model.HorizonMonths months, starting from today. The band reflects normal month-to-month
+        variation at the chosen confidence level — it is an estimate, not a guarantee.
+    </p>
+
+    <form method="get" asp-controller="SponsoredListingInvoice" asp-action="Forecast">
+        <div class="form-row">
+            <div class="form-group col-md-3">
+                <label for="DisplayCurrency">Display Currency</label>
+                <select id="DisplayCurrency" name="displayCurrency" class="form-control"
+                        asp-items="Model.DisplayCurrencyOptions"></select>
+            </div>
+
+            <div class="form-group col-md-3">
+                <label for="LookbackMonths">History to learn from (months)</label>
+                <input id="LookbackMonths" name="lookbackMonths" type="number" min="3" max="60"
+                       class="form-control" value="@Model.LookbackMonths" />
+            </div>
+
+            <div class="form-group col-md-3">
+                <label for="HorizonMonths">Forecast horizon (months)</label>
+                <input id="HorizonMonths" name="horizonMonths" type="number" min="1" max="36"
+                       class="form-control" value="@Model.HorizonMonths" />
+            </div>
+
+            <div class="form-group col-md-3">
+                <label for="Confidence">Confidence</label>
+                <select id="Confidence" name="confidence" class="form-control"
+                        asp-items="Model.ConfidenceOptions"></select>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Run Forecast</button>
+    </form>
+
+    <br />
+
+    @if (Model.HasNextPayment)
+    {
+        <div class="alert alert-info" style="padding:10px 14px; line-height:1.4;">
+            <strong>Next expected payment</strong>
+            <div style="margin-top:6px;">
+                <strong>@(Model.NextPaymentDateUtc?.ToString(dateFmt))</strong>
+                — <strong>@money(Model.NextPaymentAmount)</strong>
+                <span class="text-muted">
+                    (@Model.NextPaymentAdvertiser@(string.IsNullOrEmpty(Model.NextPaymentSponsorshipType)
+                        ? string.Empty
+                        : $", {Model.NextPaymentSponsorshipType}"))
+                </span>
+            </div>
+            <div class="text-muted" style="font-size:0.9em; margin-top:4px;">
+                The soonest-expiring active sponsorship: the date its current campaign ends and a
+                renewal would be due, at that listing's current rate. This is a concrete near-term
+                expectation, separate from the statistical projection below.
+            </div>
+        </div>
+    }
+
+    @if (!Model.HasEnoughData)
+    {
+        <div class="alert alert-warning">
+            Not enough paid-invoice history to build a forecast yet. Once you have at least a few
+            months of bookings, this report will populate.
+        </div>
+    }
+    else
+    {
+        <div class="alert alert-secondary" style="padding:10px 14px; line-height:1.4;">
+            <strong>Summary</strong>
+            <div style="margin-top:6px;">
+                <div>History used: @Model.HistoryMonthsUsed month(s)</div>
+                <div>
+                    Recent monthly average:
+                    <strong>@money(Model.RecentMonthlyAverage)</strong>
+                </div>
+                <div>
+                    Trend:
+                    @if (Model.TrendIsGrowing)
+                    {
+                        <span>growing by about @money(Model.TrendSlopePerMonth) per month</span>
+                    }
+                    else if (Model.TrendSlopePerMonth < 0m)
+                    {
+                        <span>declining by about @money(Math.Abs(Model.TrendSlopePerMonth)) per month</span>
+                    }
+                    else
+                    {
+                        <span>roughly flat</span>
+                    }
+                </div>
+                <div style="margin-top:6px;">
+                    Projected total over the next @Model.HorizonMonths months:
+                    <strong>@money(Model.ProjectedHorizonTotalExpected)</strong>
+                    <span class="text-muted">
+                        (@Model.ConfidencePercent% range: @money(Model.ProjectedHorizonTotalLow)
+                        – @money(Model.ProjectedHorizonTotalHigh))
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <img style="width:100%"
+             src="@Url.Action("IncomeForecastChart", "SponsoredListingInvoice", new {
+                    displayCurrency = Model.DisplayCurrency,
+                    lookbackMonths = Model.LookbackMonths,
+                    horizonMonths = Model.HorizonMonths,
+                    confidence = Model.ConfidencePercent,
+                    v = chartV
+             })"
+             alt="Income Forecast Chart (@Model.DisplayCurrency)" />
+
+        <br />
+        <br />
+
+        <h2>When you'll hit each income milestone</h2>
+        <p class="text-muted">
+            Cumulative income earned from today. "Earliest" assumes the optimistic case,
+            "Latest" the conservative case. "—" under Latest means it isn't reached within the horizon.
+        </p>
+
+        @if (Model.Milestones.Any())
+        {
+            <table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Cumulative Income</th>
+                        <th>Expected Date</th>
+                        <th>Earliest (optimistic)</th>
+                        <th>Latest (conservative)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var ms in Model.Milestones)
+                    {
+                        <tr>
+                            <td>@money(ms.Target)</td>
+                            <td>@day(ms.ExpectedDate)</td>
+                            <td>@day(ms.EarliestDate)</td>
+                            <td>@day(ms.LatestDate)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+        else
+        {
+            <p>No milestones to project for this horizon.</p>
+        }
+
+        <br />
+
+        <h2>Month-by-month projection</h2>
+        <table class="table table-striped">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    <th style="text-align:right;">Expected</th>
+                    <th style="text-align:right;">Low</th>
+                    <th style="text-align:right;">High</th>
+                    <th style="text-align:right;">Cumulative (expected)</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var row in Model.MonthlyRows)
+                {
+                    <tr>
+                        <td>@row.Month.ToString("MMM yyyy", usCulture)</td>
+                        <td style="text-align:right;">@money(row.Expected)</td>
+                        <td style="text-align:right;">@money(row.Low)</td>
+                        <td style="text-align:right;">@money(row.High)</td>
+                        <td style="text-align:right;">@money(row.CumulativeExpected)</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th>Total</th>
+                    <th style="text-align:right;">@money(Model.ProjectedHorizonTotalExpected)</th>
+                    <th style="text-align:right;">@money(Model.ProjectedHorizonTotalLow)</th>
+                    <th style="text-align:right;">@money(Model.ProjectedHorizonTotalHigh)</th>
+                    <th style="text-align:right;">@money(Model.ProjectedHorizonTotalExpected)</th>
+                </tr>
+            </tfoot>
+        </table>
+
+        <p class="text-muted" style="font-size:0.9em;">
+            Method: ordinary-least-squares linear trend on monthly booked revenue (by invoice paid-date),
+            with a ± @Model.ConfidencePercent% band derived from historical month-to-month variability.
+            The current month is prorated by the days remaining. Forecasts assume past patterns continue;
+            large one-off deals, seasonality, and pricing changes are not separately modeled.
+        </p>
+    }
+}
