@@ -607,17 +607,22 @@
                                 </div>
                             }
 
-                            @if (!string.IsNullOrWhiteSpace(e.Description))
+                            @if (!string.IsNullOrWhiteSpace(e.Description) || !string.IsNullOrWhiteSpace(e.Note))
                             {
-                                <p class="dir-desc">@e.Description</p>
-                            }
+                                <div class="dir-body">
+                                    @if (!string.IsNullOrWhiteSpace(e.Description))
+                                    {
+                                        <p class="dir-desc">@e.Description</p>
+                                    }
 
-                            @if (!string.IsNullOrWhiteSpace(e.Note))
-                            {
-                                var noteClass = (isScam || isQuestionable) ? "dir-note is-warning" : "dir-note";
-                                <p class="@noteClass">
-                                    <span class="dir-note-label">Note:</span> @Html.Raw(ContentSanitizer.Sanitize(e.Note))
-                                </p>
+                                    @if (!string.IsNullOrWhiteSpace(e.Note))
+                                    {
+                                        var noteClass = (isScam || isQuestionable) ? "dir-note is-warning" : "dir-note";
+                                        <p class="@noteClass">
+                                            <span class="dir-note-label">Note:</span> @Html.Raw(ContentSanitizer.Sanitize(e.Note))
+                                        </p>
+                                    }
+                                </div>
                             }
 
                             <footer class="dir-card-foot">
