@@ -62,7 +62,7 @@ var serviceProvider = new ServiceCollection()
         options.UseSqlServer(config.GetConnectionString(StringConstants.DefaultConnection)))
     .AddDbRepositories()
     .AddSingleton(diagLogger)
-    .AddSingleton(new WebPageChecker(userAgentHeader, timeout: null, logger: diagLogger))
+    .AddSingleton(new WebPageChecker(userAgentHeader, timeout: null, logger: diagLogger, secondOpinion: new CheckHostClient(diagLogger)))
     .AddSingleton(new TorWebPageChecker(userAgentHeader, torHost, torPort, timeout: null, logger: diagLogger))
     .BuildServiceProvider();
 

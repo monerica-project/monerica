@@ -17,15 +17,18 @@ namespace DirectoryManager.SiteChecker.Helpers
 
         private readonly HttpClient http;
         private readonly DiagnosticLogger log;
+        private readonly CheckHostClient? secondOpinion;
         private readonly HashSet<string> skipHosts;
 
         public WebPageChecker(
             string userAgent,
             TimeSpan? timeout = null,
             DiagnosticLogger? logger = null,
-            IEnumerable<string>? skipHosts = null)
+            IEnumerable<string>? skipHosts = null,
+            CheckHostClient? secondOpinion = null)
         {
             this.log = logger ?? new DiagnosticLogger(null);
+            this.secondOpinion = secondOpinion;
 
             var handler = new SocketsHttpHandler
             {
@@ -126,7 +129,22 @@ namespace DirectoryManager.SiteChecker.Helpers
                 return true;
             }
 
-            this.Verdict(uri, false, "HTTP inconclusive; reachability probe failed");
+            // Direct connect failed entirely — the signature of our own IP being
+            // blocked. Ask external vantage points before flagging, so a host
+            // that blocks our datacenter IP isn't recorded as dead.
+            if (this.secondOpinion != null && await this.secondOpinion.IsUpAsync(uri).ConfigureAwait(false))
+            {
+                this.Verdict(uri, true, "direct unreachable; external nodes (check-host) report UP");
+                return true;
+            }
+
+            if (this.secondOpinion != null && await this.secondOpinion.IsUpAsync(uri).ConfigureAwait(false))
+            {
+                this.Verdict(uri, true, "direct unreachable; external nodes (check-host) report UP");
+                return true;
+            }
+
+            this.Verdict(uri, false, "HTTP inconclusive; reachability probe + external check failed");
             this.log.LogOfflineFailure(uri.ToString(), "clearnet", attemptSummaries);
             return false;
         }
