@@ -16,6 +16,11 @@ const string TorProxyHostKey = "TorProxy:Host";
 const string TorProxyPortKey = "TorProxy:Port";
 const string SiteOfflineMessage = "site offline";
 
+// Keep this in sync with DirectoryManager.Web.Constants.IntegerConstants.MaxAdditionalLinks.
+// The edit form and the admin approval/sync path both cap related links at 3,
+// so the offline submission must carry forward at most the same number.
+const int MaxRelatedLinks = 3;
+
 // Build configuration. appsettings.{Environment}.json (e.g. Production)
 // auto-overlays appsettings.json — that's how deploy-jobs.sh injects the
 // real DB connection and TorProxy settings on the server without touching
@@ -160,6 +165,8 @@ async Task CheckAndSubmitAsync(
 
     var scopedEntriesRepo = scope.ServiceProvider.GetRequiredService<IDirectoryEntryRepository>();
     var scopedSubmissionRepo = scope.ServiceProvider.GetRequiredService<ISubmissionRepository>();
+    var scopedEntryTagRepo = scope.ServiceProvider.GetRequiredService<IDirectoryEntryTagRepository>();
+    var scopedAdditionalLinkRepo = scope.ServiceProvider.GetRequiredService<IAdditionalLinkRepository>();
     var checker = scope.ServiceProvider.GetRequiredService<WebPageChecker>();
     var torChecker = scope.ServiceProvider.GetRequiredService<TorWebPageChecker>();
 
@@ -198,12 +205,22 @@ async Task CheckAndSubmitAsync(
     bool onionOffline = results[1];
 
     if (clearnetOffline || onionOffline)
-        await CreateOfflineSubmissionIfNotExists(dirEntry, scopedSubmissionRepo, clearnetOffline, onionOffline);
+    {
+        await CreateOfflineSubmissionIfNotExists(
+            dirEntry,
+            scopedSubmissionRepo,
+            scopedEntryTagRepo,
+            scopedAdditionalLinkRepo,
+            clearnetOffline,
+            onionOffline);
+    }
 }
 
 async Task CreateOfflineSubmissionIfNotExists(
     DirectoryEntry entry,
     ISubmissionRepository submissionRepository,
+    IDirectoryEntryTagRepository entryTagRepository,
+    IAdditionalLinkRepository additionalLinkRepository,
     bool clearnetOffline,
     bool onionOffline)
 {
@@ -228,51 +245,40 @@ async Task CreateOfflineSubmissionIfNotExists(
         ? offlineReason
         : $"{entry.Note} | {offlineReason}";
 
-    string? selectedTagIdsCsv = null;
-    try
-    {
-        var prop = entry.GetType().GetProperty("SelectedTagIdsCsv");
-        if (prop != null)
-            selectedTagIdsCsv = prop.GetValue(entry) as string;
-    }
-    catch
-    {
-        selectedTagIdsCsv = null;
-    }
+    // ── Tags ──────────────────────────────────────────────────────────────
+    // Tags are NOT stored on the DirectoryEntry row. They live in the
+    // DirectoryEntryTag join table and must be pulled via the tag repo —
+    // exactly like the edit flow (SubmissionController.SubmitEdit). The old
+    // reflection-based reads of "SelectedTagIdsCsv"/"Tags" on DirectoryEntry
+    // always returned null because those members don't exist there, which is
+    // why offline submissions lost their tags.
+    var entryTags = await entryTagRepository.GetTagsForEntryAsync(entry.DirectoryEntryId);
 
-    List<string> relatedLinks = new List<string>();
-    try
-    {
-        var relatedProp = entry.GetType().GetProperty("RelatedLinks");
-        if (relatedProp != null)
-        {
-            if (relatedProp.GetValue(entry) is IEnumerable<string> rel)
-            {
-                relatedLinks = rel
-                    .Select(x => (x ?? string.Empty).Trim())
-                    .Where(x => !string.IsNullOrWhiteSpace(x))
-                    .Distinct(StringComparer.OrdinalIgnoreCase)
-                    .ToList();
-            }
-        }
-        else
-        {
-            var jsonProp = entry.GetType().GetProperty("RelatedLinksJson");
-            if (jsonProp != null)
-            {
-                var json = jsonProp.GetValue(entry) as string;
-                if (!string.IsNullOrWhiteSpace(json))
-                {
-                    relatedLinks = System.Text.Json.JsonSerializer.Deserialize<List<string>>(json)
-                        ?? new List<string>();
-                }
-            }
-        }
-    }
-    catch
-    {
-        relatedLinks = new List<string>();
-    }
+    var tagNames = string.Join(
+        ", ",
+        entryTags
+            .Select(t => t.Name)
+            .Where(n => !string.IsNullOrWhiteSpace(n))
+            .OrderBy(n => n, StringComparer.OrdinalIgnoreCase));
+
+    var selectedTagIdsCsv = string.Join(
+        ",",
+        entryTags.Select(t => t.TagId).Distinct());
+
+    // ── Additional / related links ─────────────────────────────────────────
+    // Additional links also live in their own table (AdditionalLink), read via
+    // IAdditionalLinkRepository — same source the edit flow uses. Carry them
+    // forward in the same order and with the same cap as the edit/approval path.
+    var additional = await additionalLinkRepository.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId);
+
+    var relatedLinks = (additional ?? new List<AdditionalLink>())
+        .OrderBy(x => x.SortOrder)
+        .ThenBy(x => x.AdditionalLinkId)
+        .Select(x => x.Link)
+        .Where(x => !string.IsNullOrWhiteSpace(x))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .Take(MaxRelatedLinks)
+        .ToList();
 
     var submission = new Submission
     {
@@ -295,13 +301,15 @@ async Task CreateOfflineSubmissionIfNotExists(
         FoundedDate = entry.FoundedDate,
         Note = newNote,
         NoteToAdmin = "(automated submission)",
-        Tags = entry.Tags,
-        SelectedTagIdsCsv = selectedTagIdsCsv,
+        Tags = string.IsNullOrWhiteSpace(tagNames) ? null : tagNames,
+        SelectedTagIdsCsv = entryTags.Count == 0 ? null : selectedTagIdsCsv,
         RelatedLinks = relatedLinks,
         SuggestedSubCategory = null,
         IpAddress = null
     };
 
     await submissionRepository.CreateAsync(submission);
-    Console.WriteLine($"Created submission for entry ID {entry.DirectoryEntryId}: '{offlineReason}'.");
+    Console.WriteLine(
+        $"Created submission for entry ID {entry.DirectoryEntryId}: '{offlineReason}' " +
+        $"(tags: {entryTags.Count}, related links: {relatedLinks.Count}).");
 }
