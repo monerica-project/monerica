@@ -2919,7 +2919,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
    Card grid
    ========================================================================= */
 :root {
-  --card-height: 296px;   /* every card is exactly this tall */
+  --card-height: 324px;   /* every card is exactly this tall */
 }
 .card-grid {
   display: grid;
@@ -2938,8 +2938,13 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   --accent: var(--border-strong);
   --accent-rgb: 255, 102, 0;     /* default glow = orange */
   position: relative;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  /* Row 1 = all content (header…description/note); minmax(0,1fr) lets it shrink
+     below its content and clip, sized purely by leftover space. Row 2 = footer,
+     an `auto` track that is ALWAYS allocated at its natural height, so the action
+     buttons can never be pushed past the card's fixed height. This is what makes
+     overflow impossible regardless of how long the description/note are. */
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 6px;
   padding: 12px 13px 11px;
   height: 100%;            /* fill the fixed grid row */
@@ -2948,6 +2953,16 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   border: 1px solid var(--border);
   border-radius: var(--radius, 8px);
   transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.08s ease;
+}
+/* Content column inside the card's first grid row. It owns the vertical stack and
+   clips its own overflow, so an over-long description/note is trimmed here rather
+   than shoving the footer out of the card. */
+.dir-main {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 /* Resting status accent: coloured border + faint ring. */
@@ -3136,6 +3151,21 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   border-radius: var(--radius-sm, 5px);
   background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-divider);
+}
+
+/* Body region (description + note). This is the ONLY part of the card allowed
+   to shrink: flex-grow 0 means it never adds empty space on short cards, while
+   min-height:0 + overflow:hidden let it shrink and clip its own content when a
+   card is content-heavy — instead of the overflow pushing the footer buttons
+   past the card's fixed height and getting clipped. The header, rating,
+   breadcrumb, meta and footer keep their natural size, so cards stay uniform. */
+.dir-body {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 /* description — clamp to keep cards even height */
