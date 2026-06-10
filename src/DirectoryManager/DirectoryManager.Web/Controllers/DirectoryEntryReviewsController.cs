@@ -1,5 +1,4 @@
 using System.Collections.Concurrent;
-using System.Net;
 using System.Security.Cryptography;
 using System.Text;
 using DirectoryManager.Data.Enums;
@@ -19,8 +18,6 @@ namespace DirectoryManager.Web.Controllers
     [Route("directory-entry-reviews")]
     public class DirectoryEntryReviewsController : BaseController
     {
-        private const string VerifiedOrderTagSlug = "verified-order";
-        private const string OrderProofHttpClientName = "OrderProofVerifier";
         private const string SesssionExpiredMessage = "Session expired, your reply message was not saved, please start over!";
         private static readonly char[] CodeAlphabet = StringConstants.CodeAlphabet.ToCharArray();
 
@@ -33,8 +30,6 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryReviewRepository directoryEntryReviewRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly IUserContentModerationService moderation;
-        private readonly IHttpClientFactory httpClientFactory;
-        private readonly IReviewTagRepository reviewTagRepository;
         private readonly IRaffleRepository raffleRepository;
 
         public DirectoryEntryReviewsController(
@@ -46,8 +41,6 @@ namespace DirectoryManager.Web.Controllers
             IPgpService pgp,
             IDirectoryEntryRepository directoryEntryRepository,
             IUserContentModerationService moderation,
-            IHttpClientFactory httpClientFactory,
-            IReviewTagRepository reviewTagRepository,
             IRaffleRepository raffleRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
@@ -57,8 +50,6 @@ namespace DirectoryManager.Web.Controllers
             this.pgp = pgp;
             this.directoryEntryRepository = directoryEntryRepository;
             this.moderation = moderation;
-            this.httpClientFactory = httpClientFactory;
-            this.reviewTagRepository = reviewTagRepository;
             this.raffleRepository = raffleRepository;
         }
 
@@ -350,44 +341,16 @@ namespace DirectoryManager.Web.Controllers
                     ct);
             }
 
+            // Capture any order link/id the reviewer supplied so it can be inspected
+            // during moderation, but never act on it automatically.
             ApplyOrderProof(entity, input.OrderProof);
 
-            var hasOrderProof =
-                !string.IsNullOrWhiteSpace(entity.OrderId) ||
-                !string.IsNullOrWhiteSpace(entity.OrderUrl);
-
-            var proofAutoApproved = false;
-
-            if (!mod.NeedsManualReview && !string.IsNullOrWhiteSpace(entity.OrderUrl))
-            {
-                var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
-                if (entry != null)
-                {
-                    proofAutoApproved = await this.TryVerifyOrderUrlForEntryAsync(entry, entity.OrderUrl!, ct);
-                }
-            }
-
-            entity.ModerationStatus = mod.NeedsManualReview
-                ? ReviewModerationStatus.Pending
-                : (hasOrderProof
-                    ? (proofAutoApproved ? ReviewModerationStatus.Approved : ReviewModerationStatus.Pending)
-                    : ReviewModerationStatus.Approved);
+            // All valid reviews are held for manual moderation. Nothing is auto-published.
+            // The "verified-order" tag is applied by hand from the moderation dashboard
+            // after the order link/value has been checked on the merchant site.
+            entity.ModerationStatus = ReviewModerationStatus.Pending;
 
             await this.directoryEntryReviewRepository.AddAsync(entity, ct);
-
-            if (proofAutoApproved &&
-                entity.ModerationStatus == ReviewModerationStatus.Approved &&
-                !string.IsNullOrWhiteSpace(entity.OrderUrl))
-            {
-                var tag = await this.reviewTagRepository.GetBySlugAsync(VerifiedOrderTagSlug, ct);
-                if (tag is not null && tag.IsEnabled)
-                {
-                    await this.directoryEntryReviewRepository.EnsureTagAsync(
-                        entity.DirectoryEntryReviewId,
-                        tag.ReviewTagId,
-                        ct);
-                }
-            }
 
             this.TempData["ReviewMessage"] = mod.ThankYouMessage;
 
@@ -543,172 +506,6 @@ namespace DirectoryManager.Web.Controllers
 
             var token = this.CreateRaffleToken(reviewId, fingerprint);
             return this.RedirectToAction("Enter", "Raffle", new { token });
-        }
-
-        // =========================
-        // Order proof auto-approval
-        // =========================
-
-        private async Task<bool> TryVerifyOrderUrlForEntryAsync(DirectoryEntry entry, string orderUrl, CancellationToken ct)
-        {
-            if (string.IsNullOrWhiteSpace(orderUrl))
-            {
-                return false;
-            }
-
-            var entryWebsite = TryGetEntryWebsiteUri(entry);
-            if (entryWebsite is null)
-            {
-                return false;
-            }
-
-            if (!Uri.TryCreate(orderUrl.Trim(), UriKind.Absolute, out var orderUri) ||
-                (!orderUri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) &&
-                 !orderUri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)))
-            {
-                return false;
-            }
-
-            if (!HostsShareDomain(entryWebsite.Host, orderUri.Host))
-            {
-                return false;
-            }
-
-            if (!await IsSafePublicHttpTargetAsync(orderUri, ct))
-            {
-                return false;
-            }
-
-            return await this.UrlReturns200Async(orderUri, ct);
-        }
-
-        private static Uri? TryGetEntryWebsiteUri(DirectoryEntry entry)
-        {
-            var raw = (entry.Link ?? string.Empty).Trim();
-            if (string.IsNullOrWhiteSpace(raw)) return null;
-
-            if (Uri.TryCreate(raw, UriKind.Absolute, out var abs) &&
-                (abs.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) ||
-                 abs.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)))
-            {
-                return abs;
-            }
-
-            if (Uri.TryCreate("https://" + raw.TrimStart('/'), UriKind.Absolute, out var https) &&
-                (https.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) ||
-                 https.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)))
-            {
-                return https;
-            }
-
-            return null;
-        }
-
-        private static bool HostsShareDomain(string a, string b)
-        {
-            var ha = NormalizeHost(a);
-            var hb = NormalizeHost(b);
-            if (string.IsNullOrWhiteSpace(ha) || string.IsNullOrWhiteSpace(hb)) return false;
-            if (ha.Equals(hb, StringComparison.OrdinalIgnoreCase)) return true;
-            return ha.EndsWith("." + hb, StringComparison.OrdinalIgnoreCase) ||
-                   hb.EndsWith("." + ha, StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static string NormalizeHost(string host)
-        {
-            var h = (host ?? string.Empty).Trim().TrimEnd('.');
-            if (h.StartsWith("www.", StringComparison.OrdinalIgnoreCase)) h = h.Substring(4);
-            return h;
-        }
-
-        private async Task<bool> UrlReturns200Async(Uri uri, CancellationToken ct)
-        {
-            const string userAgent = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 " +
-                                     "(KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36";
-            try
-            {
-                var client = this.httpClientFactory.CreateClient(OrderProofHttpClientName);
-
-                using var head = new HttpRequestMessage(HttpMethod.Head, uri);
-                head.Headers.UserAgent.ParseAdd(userAgent);
-
-                using var resp = await client.SendAsync(head, HttpCompletionOption.ResponseHeadersRead, ct);
-
-                // 503 from Cloudflare means the page exists but is bot-protected — treat as valid
-                if (resp.StatusCode == HttpStatusCode.OK ||
-                    resp.StatusCode == HttpStatusCode.ServiceUnavailable ||
-                    resp.StatusCode == HttpStatusCode.MethodNotAllowed ||
-                    resp.StatusCode == HttpStatusCode.Forbidden) return true;
-
-                // Redirects are not followed (AllowAutoRedirect=false) to block SSRF via a
-                // redirect hop. A 3xx still proves the URL exists, which is all we need.
-                if ((int)resp.StatusCode >= 300 && (int)resp.StatusCode < 400) return true;
-
-                if (resp.StatusCode == HttpStatusCode.NotFound ||
-                    resp.StatusCode == HttpStatusCode.Gone) return false;
-
-                // Anything else — fall through to GET
-            }
-            catch { return false; }
-
-            using var get = new HttpRequestMessage(HttpMethod.Get, uri);
-            get.Headers.UserAgent.ParseAdd(userAgent);
-            get.Headers.Range = new System.Net.Http.Headers.RangeHeaderValue(0, 0);
-
-            try
-            {
-                var client = this.httpClientFactory.CreateClient(OrderProofHttpClientName);
-                using var resp2 = await client.SendAsync(get, HttpCompletionOption.ResponseHeadersRead, ct);
-
-                return resp2.StatusCode == HttpStatusCode.OK ||
-                       resp2.StatusCode == HttpStatusCode.PartialContent ||
-                       resp2.StatusCode == HttpStatusCode.ServiceUnavailable ||
-                       resp2.StatusCode == HttpStatusCode.Forbidden ||
-                       ((int)resp2.StatusCode >= 300 && (int)resp2.StatusCode < 400);
-            }
-            catch { return false; }
-        }
-
-        private static async Task<bool> IsSafePublicHttpTargetAsync(Uri uri, CancellationToken ct)
-        {
-            if (uri is null) return false;
-            if (uri.UserInfo?.Length > 0) return false;
-            if (uri.IsLoopback) return false;
-
-            var host = uri.DnsSafeHost;
-            if (string.IsNullOrWhiteSpace(host)) return false;
-
-            if (host.Equals("localhost", StringComparison.OrdinalIgnoreCase) ||
-                host.EndsWith(".local", StringComparison.OrdinalIgnoreCase) ||
-                host.EndsWith(".internal", StringComparison.OrdinalIgnoreCase))
-            {
-                return false;
-            }
-
-            if (IPAddress.TryParse(host, out var ipLiteral))
-            {
-                return !IsPrivateOrDisallowedIp(ipLiteral);
-            }
-
-            try
-            {
-                var ips = await Dns.GetHostAddressesAsync(host).WaitAsync(ct);
-                if (ips is null || ips.Length == 0) return false;
-                foreach (var ip in ips)
-                {
-                    if (IsPrivateOrDisallowedIp(ip)) return false;
-                }
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
-        private static bool IsPrivateOrDisallowedIp(IPAddress ip)
-        {
-            return DirectoryManager.Web.Helpers.PrivateNetworkGuard.IsPrivateOrDisallowedIp(ip);
         }
 
         // =========================
