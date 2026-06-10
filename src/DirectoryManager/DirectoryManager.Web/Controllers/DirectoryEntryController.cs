@@ -118,6 +118,24 @@ namespace DirectoryManager.Web.Controllers
             return this.View(entries);
         }
 
+        [HttpGet("directoryentry/countrystatusbreakdownchart")]
+        public async Task<IActionResult> CountryStatusBreakdownChartImageAsync()
+        {
+            var entries = await this.directoryEntryRepository.GetAllActiveEntries();
+            var knownCountries = CountryHelper.GetCountries();
+        
+            var filtered = (entries ?? Enumerable.Empty<DirectoryEntry>())
+                .Where(e => !string.IsNullOrWhiteSpace(e.CountryCode)
+                         && knownCountries.ContainsKey(e.CountryCode!.Trim().ToUpperInvariant()))
+                .ToList();
+        
+            var imageBytes = new DirectoryEntryPlotting().CreateCountryStatusBreakdownChartImage(filtered);
+        
+            return this.File(
+                imageBytes.Length == 0 ? Array.Empty<byte>() : imageBytes,
+                StringConstants.PngImage);
+        }
+
         [HttpGet]
         [Route("directoryentry/create")]
         public async Task<IActionResult> Create()

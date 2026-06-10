@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+﻿﻿using System.Globalization;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Utilities.Helpers;
@@ -151,6 +151,180 @@ namespace DirectoryManager.Web.Charting
             plt.ShowLegend(Edge.Right);
 
             return plt.GetImageBytes(width: 900, height: 700, format: ImageFormat.Png);
+        }
+
+        /// <summary>
+        /// 100% stacked horizontal bar chart of ACTIVE directory entries per country,
+        /// broken down by status (Verified / Admitted / Questionable / Scam).
+        /// Each bar fills to 100%; the red Scam segment sits on the right edge.
+        /// Countries are sorted by Scam % (worst at top) and the exact Scam % is printed
+        /// to the right of each bar, so the country with the highest scam rate is obvious.
+        /// The Y-axis label shows the country name plus its total active listing count
+        /// (sample size), so a 100%-of-1 country reads honestly.
+        /// Returns PNG bytes. Returns empty array if no data.
+        /// </summary>
+        /// <param name="entries">Active entries (already filtered to the active statuses upstream is fine; this guards anyway).</param>
+        /// <param name="minListings">Minimum active listings a country must have to be shown (default 1).</param>
+        /// <returns>An array of bytes that are an image.</returns>
+        public byte[] CreateCountryStatusBreakdownChartImage(
+            IEnumerable<DirectoryEntry> entries,
+            int minListings = 1)
+        {
+            if (entries is null)
+            {
+                return Array.Empty<byte>();
+            }
+
+            // Only the four "active" statuses participate in the trust breakdown.
+            static bool IsActive(DirectoryStatus s) =>
+                s == DirectoryStatus.Verified
+             || s == DirectoryStatus.Admitted
+             || s == DirectoryStatus.Questionable
+             || s == DirectoryStatus.Scam;
+
+            var active = entries
+                .Where(e => e != null && IsActive(e.DirectoryStatus) && !string.IsNullOrWhiteSpace(e.CountryCode))
+                .ToList();
+
+            if (active.Count == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            // Status order across each bar, left -> right: most trusted -> least trusted.
+            var statusOrder = new[]
+            {
+                DirectoryStatus.Verified,
+                DirectoryStatus.Admitted,
+                DirectoryStatus.Questionable,
+                DirectoryStatus.Scam
+            };
+
+            var statusColors = new Dictionary<DirectoryStatus, Color>
+            {
+                [DirectoryStatus.Verified] = Color.FromHex("#2ca02c"),     // green
+                [DirectoryStatus.Admitted] = Color.FromHex("#1f77b4"),     // blue
+                [DirectoryStatus.Questionable] = Color.FromHex("#ff7f0e"), // amber
+                [DirectoryStatus.Scam] = Color.FromHex("#d62728"),         // red
+            };
+
+            // Group by ISO code (normalized), expand to full country name.
+            var byCountry = active
+                .GroupBy(e => e.CountryCode!.Trim().ToUpperInvariant())
+                .Select(g =>
+                {
+                    var counts = statusOrder.ToDictionary(s => s, s => g.Count(e => e.DirectoryStatus == s));
+                    int total = counts.Values.Sum();
+                    double scamPct = total > 0 ? counts[DirectoryStatus.Scam] * 100.0 / total : 0;
+                    double questionablePct = total > 0 ? counts[DirectoryStatus.Questionable] * 100.0 / total : 0;
+
+                    return new
+                    {
+                        Iso = g.Key,
+                        Label = CountryHelper.GetCountryName(g.Key),
+                        Total = total,
+                        Counts = counts,
+                        ScamPct = scamPct,
+                        QuestionablePct = questionablePct
+                    };
+                })
+                .Where(x => x.Total >= Math.Max(1, minListings))
+                .OrderByDescending(x => x.Total)          // most listings first
+                .ThenByDescending(x => x.ScamPct)         // tiebreak: most scams
+                .ThenByDescending(x => x.QuestionablePct) // then least trustworthy
+                .ThenBy(x => x.Label)                     // stable, alphabetical
+                .ToList();
+
+            if (byCountry.Count == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            int rows = byCountry.Count;
+
+            var plt = new Plot();
+
+            const double BAR_SIZE = 0.72;
+            var bars = new List<Bar>(rows * statusOrder.Length);
+            var tickPositions = new double[rows];
+            var tickLabels = new string[rows];
+
+            for (int i = 0; i < rows; i++)
+            {
+                var c = byCountry[i];
+
+                // Worst (i == 0) goes to the TOP: in ScottPlot higher Y is higher on the chart.
+                double position = rows - 1 - i;
+                tickPositions[i] = position;
+                tickLabels[i] = $"{c.Label} ({c.Total})";
+
+                double running = 0;
+                foreach (var status in statusOrder)
+                {
+                    double pct = c.Total > 0 ? c.Counts[status] * 100.0 / c.Total : 0;
+                    if (pct <= 0)
+                    {
+                        continue;
+                    }
+
+                    bars.Add(new Bar
+                    {
+                        Position = position,
+                        ValueBase = running,
+                        Value = running + pct,
+                        Size = BAR_SIZE,
+                        Orientation = Orientation.Horizontal,
+                        FillColor = statusColors[status],
+                        LineStyle = new () { Color = Colors.White, Width = 1 }
+                    });
+
+                    running += pct;
+                }
+
+                // Exact scam % printed just past the 100% line, in red.
+                var scamText = plt.Add.Text($"{c.ScamPct:0.#}% scam", 101.5, position);
+                scamText.Alignment = Alignment.MiddleLeft;
+                scamText.LabelFontSize = 10;
+                scamText.LabelFontColor = statusColors[DirectoryStatus.Scam];
+            }
+
+            plt.Add.Bars(bars);
+
+            // Country names down the left axis.
+            plt.Axes.Left.TickGenerator = new ScottPlot.TickGenerators.NumericManual(tickPositions, tickLabels);
+
+            // X axis fixed 0..100 (+ headroom for the scam % text).
+            plt.Axes.SetLimitsX(0, 122);
+            plt.Axes.SetLimitsY(-0.7, rows - 0.3);
+
+            plt.Title("Active Listings by Country \u2014 Trust Breakdown (sorted by listing count)");
+            plt.Axes.Bottom.Label.Text = "Share of active listings (%)";
+
+            // Big, clearly-visible legend in its own panel across the TOP edge,
+            // so it never overlaps the bars (unlike a corner legend on a tall chart).
+            var legendItems = new List<LegendItem>
+            {
+                new () { LabelText = "Verified",     FillColor = statusColors[DirectoryStatus.Verified] },
+                new () { LabelText = "Admitted",     FillColor = statusColors[DirectoryStatus.Admitted] },
+                new () { LabelText = "Questionable", FillColor = statusColors[DirectoryStatus.Questionable] },
+                new () { LabelText = "Scam",         FillColor = statusColors[DirectoryStatus.Scam] },
+            };
+
+            plt.Legend.DisplayPlottableLegendItems = false; // only show our 4 status items
+            plt.Legend.ManualItems.Clear();
+            plt.Legend.ManualItems.AddRange(legendItems);
+            plt.Legend.Orientation = Orientation.Horizontal;
+            plt.Legend.FontSize = 16;
+            plt.Legend.SymbolWidth = 28;
+            plt.Legend.SymbolHeight = 16;
+            plt.Legend.OutlineWidth = 1;
+            plt.ShowLegend(Edge.Top);
+
+            // Height scales with the number of countries so labels never collide.
+            int width = 1100;
+            int height = Math.Max(420, 110 + (rows * 30));
+
+            return plt.GetImageBytes(width: width, height: height, format: ImageFormat.Png);
         }
 
         public byte[] CreateMonthlyActivePlot(List<DirectoryEntriesAudit> audits)
