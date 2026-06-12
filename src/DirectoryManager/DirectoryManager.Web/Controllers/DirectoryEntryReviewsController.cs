@@ -5,6 +5,7 @@ using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Utilities.Validation;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Models.Reviews;
@@ -299,7 +300,7 @@ namespace DirectoryManager.Web.Controllers
 
             // 🚫 Duplicate body guard — blocks the same review text from being posted twice,
             // even by the same author (same PGP fingerprint).
-            var normalizedBody = (input.Body ?? string.Empty).Trim();
+            var normalizedBody = UnicodeSanitizer.CleanMultiLine(input.Body);
             if (await this.directoryEntryReviewRepository.ExistsByBodyAsync(normalizedBody, null, ct))
             {
                 SubmittedFlows.TryRemove(flowId, out _);

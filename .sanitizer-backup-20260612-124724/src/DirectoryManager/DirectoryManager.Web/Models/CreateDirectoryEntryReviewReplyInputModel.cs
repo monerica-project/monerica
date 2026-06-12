@@ -1,5 +1,4 @@
-using System.ComponentModel.DataAnnotations;
-using DirectoryManager.Web.ModelBinding;
+﻿using System.ComponentModel.DataAnnotations;
 
 public class CreateDirectoryEntryReviewReplyInputModel
 {
@@ -10,6 +9,5 @@ public class CreateDirectoryEntryReviewReplyInputModel
     [Display(Name = "Reply")]
     [MinLength(36, ErrorMessage = "Please add a bit more detail so your reply is helpful to others.")]
     [StringLength(20000, ErrorMessage = "Reply is too long.")]
-    [CleanMultiLine]
     public string Body { get; set; } = string.Empty;
 }

@@ -1,5 +1,4 @@
-using System.ComponentModel.DataAnnotations;
-using DirectoryManager.Web.ModelBinding;
+﻿using System.ComponentModel.DataAnnotations;
 
 namespace DirectoryManager.Web.Models
 {
@@ -12,11 +11,9 @@ namespace DirectoryManager.Web.Models
         public byte? Rating { get; set; }
 
         [Required]
-        [CleanMultiLine]
         public string? Body { get; set; }
 
         // ✅ Single field used by public + admin create views
-        // URL/id — validated separately in the controller; leave raw.
         [MaxLength(2048)]
         public string? OrderProof { get; set; }
     }

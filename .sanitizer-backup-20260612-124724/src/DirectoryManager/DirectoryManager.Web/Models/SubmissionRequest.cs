@@ -1,7 +1,6 @@
-using System.ComponentModel.DataAnnotations;
+﻿using System.ComponentModel.DataAnnotations;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Utilities.Validation;
-using DirectoryManager.Web.ModelBinding;
 
 namespace DirectoryManager.Web.Models
 {
@@ -9,7 +8,6 @@ namespace DirectoryManager.Web.Models
     {
         public int? SubmissionId { get; set; }
 
-        // URL — validated by UrlHelper in the controller; do NOT Unicode-clean.
         [Required]
         [MaxLength(500)]
         [Display(Name = "Link", Prompt = "https://yoursite.net")]
@@ -18,66 +16,53 @@ namespace DirectoryManager.Web.Models
         [Required]
         [MaxLength(65)]
         [Display(Name = "Name", Prompt = "Company or project name")]
-        [CleanSingleLine]
         public string Name { get; set; } = string.Empty;
 
         [MaxLength(175)]
         [Display(Name = "Description", Prompt = "Describe your listing")]
-        [CleanMultiLine]
         public string? Description { get; set; }
 
-        // URL
         [MaxLength(500)]
         [Display(Name = "Link 2", Prompt = "Link 2")]
         public string? Link2 { get; set; }
 
-        // URL
         [MaxLength(500)]
         [Display(Name = "Link 3", Prompt = "Link 3")]
         public string? Link3 { get; set; }
 
-        // URL
         [MaxLength(500)]
         [Display(Name = "Proof Link", Prompt = "Where it shows acceptance on site if NOT on main link")]
         public string? ProofLink { get; set; }
 
-        // URL
         [MaxLength(500)]
         [Display(Name = "Video Link", Prompt = "Video link of using the site")]
         public string? VideoLink { get; set; }
 
         [MaxLength(75)]
         [Display(Name = "Contact", Prompt = "@yourname on Twitter/ GitHub, etc.")]
-        [CleanSingleLine]
         public string? Contact { get; set; }
 
         [MaxLength(75)]
         [Display(Name = "Location", Prompt = "City, Region (example: Miami Beach, Florida)")]
-        [CleanSingleLine]
         public string? Location { get; set; }
 
-        // 2-letter country code — leave raw.
         [Display(Name = "Country")]
         [MaxLength(2)]
         public string? CountryCode { get; set; }
 
-        // ASCII-armored PGP key — validated by PgpKeyValidator; MUST stay raw.
         [Display(Name = "PGP Key", Prompt = "PGP Key")]
         public string? PgpKey { get; set; }
 
         [MaxLength(75)]
         [Display(Name = "Processor", Prompt = "Payment processing company/ plugin")]
-        [CleanSingleLine]
         public string? Processor { get; set; }
 
         [MaxLength(255)]
         [Display(Name = "Note", Prompt = "Notes about listing you want displayed")]
-        [CleanMultiLine]
         public string? Note { get; set; }
 
         [MaxLength(500)]
         [Display(Name = "Note To Admin", Prompt = "Notes to admin reviewing submission")]
-        [CleanMultiLine]
         public string? NoteToAdmin { get; set; }
 
         [Display(Name = "SubCategoryId", Prompt = "Select subcategory")]
@@ -85,7 +70,6 @@ namespace DirectoryManager.Web.Models
 
         [MaxLength(100)]
         [Display(Name = "Suggested Category", Prompt = "New Category > New Subcategory")]
-        [CleanSingleLine]
         public string? SuggestedSubCategory { get; set; }
 
         public int? DirectoryEntryId { get; set; }
@@ -95,7 +79,6 @@ namespace DirectoryManager.Web.Models
 
         [MaxLength(255)]
         [Display(Name = "Tags", Prompt = "comma-separated, e.g. vpn, privacy")]
-        [CleanSingleLine]
         public string? Tags { get; set; }
 
         public List<int> SelectedTagIds { get; set; } = new ();
@@ -103,17 +86,14 @@ namespace DirectoryManager.Web.Models
         [MaxLength(2000)]
         public string? SelectedTagIdsCsv { get; set; }
 
-        // URL
         [MaxLength(500)]
         [Display(Name = "Related Link 1", Prompt = "Optional")]
         public string? RelatedLink1 { get; set; }
 
-        // URL
         [MaxLength(500)]
         [Display(Name = "Related Link 2", Prompt = "Optional")]
         public string? RelatedLink2 { get; set; }
 
-        // URL
         [MaxLength(500)]
         [Display(Name = "Related Link 3", Prompt = "Optional")]
         public string? RelatedLink3 { get; set; }
