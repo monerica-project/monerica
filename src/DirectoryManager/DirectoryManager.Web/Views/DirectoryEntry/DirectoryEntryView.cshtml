@@ -1,4 +1,4 @@
-﻿@using DirectoryManager.Data.Enums
+﻿﻿@using DirectoryManager.Data.Enums
 @using DirectoryManager.Data.Models
 @using DirectoryManager.Data.Repositories.Interfaces
 @using DirectoryManager.Utilities.Helpers
@@ -78,7 +78,6 @@
 
 @section PageContent {
 
- 
     <div class="directory-entry-details container py-4">
         <h1 class="mb-3 multi-line-text">@Model.Name</h1>
         <hr />
@@ -103,203 +102,211 @@
             var sponsoredClass = Model.IsSponsored ? "sponsor-card" : "";
         }
 
-        <div class="card mb-4 ">
-            <div class="card-body">
-                <table class="table table-borderless mb-0">
-                    <tbody>
+        @* ---------------------------------------------------------------
+           Meta card. Fixed-layout table inside a width-capped card so every
+           profile renders at the same size no matter how long the values are.
+           --------------------------------------------------------------- *@
+        <div class="entry-card @(Model.IsSponsored ? "entry-card--sponsor" : "")">
+            <table class="entry-meta-table">
+                <colgroup>
+                    <col class="entry-meta-label-col" />
+                    <col class="entry-meta-value-col" />
+                </colgroup>
+                <tbody>
+                    <tr>
+                        <th scope="row">Name</th>
+                        <td>
+                            <span class="@sponsoredClass">@Model.Name</span>
+                        </td>
+                    </tr>
+
+                    @if (!string.IsNullOrWhiteSpace(Model.Link) && !mainLinkIsDuplicate)
+                    {
                         <tr>
-                            <th scope="row">Name</th>
+                            <th scope="row">Website</th>
                             <td>
-                                <div class="@sponsoredClass">@Model.Name</div>
+                                @if (isScam)
+                                {
+                                    <span class="multi-line-text">@Model.Link</span>
+                                }
+                                else
+                                {
+                                    <a class="multi-line-text" href="@finalLink" target="_blank" @(string.IsNullOrEmpty(finalLinkRel) ? "" : $" rel=\"{finalLinkRel}\"")>@Model.Link</a>
+                                }
                             </td>
                         </tr>
+                    }
 
-                        @if (!string.IsNullOrWhiteSpace(Model.Link) && !mainLinkIsDuplicate)
-                        {
-                            <tr>
-                                <th scope="row">Website</th>
-                                <td>
-                                    @if (isScam)
-                                    {
-                                        <span class="multi-line-text">@Model.Link</span>
-                                    }
-                                    else
-                                    {
-                                        <a class="multi-line-text" href="@finalLink" target="_blank" @(string.IsNullOrEmpty(finalLinkRel) ? "" : $" rel=\"{finalLinkRel}\"")>@Model.Link</a>
-                                    }
-                                </td>
-                            </tr>
-                        }
-
-                        @if (!string.IsNullOrEmpty(finalLink2))
-                        {
-                            <tr>
-                                <th scope="row">@Model.Link2Name</th>
-                              
-                                <td>
-                                    @if (isScam)
-                                    {
-                                        <span class="multi-line-text">@Model.Link2</span>
-                                    }
-                                    else
-                                    {
-                                        <a class="multi-line-text" href="@finalLink2" target="_blank" @(string.IsNullOrEmpty(finalLink2Rel) ? "" : $" rel=\"{finalLink2Rel}\"")>@Model.Link2</a>
-                                    }
-                                </td>
-                            </tr>
-                        }
-
-                        @if (!string.IsNullOrEmpty(finalLink3))
-                        {
-                            <tr>
-                                <th scope="row">@Model.Link3Name</th>
-                              
-                                <td>
-                                    @if (isScam)
-                                    {
-                                        <span class="multi-line-text">@Model.Link3</span>
-                                    }
-                                    else
-                                    {
-                                        <a class="multi-line-text" href="@finalLink3" target="_blank" @(string.IsNullOrEmpty(finalLink3Rel) ? "" : $" rel=\"{finalLink3Rel}\"")>@Model.Link3</a>
-                                    }
-                                </td>
-                            </tr>
-                        }
-
-                        @if (!string.IsNullOrEmpty(Model.ProofLink))
-                        {
-                            <tr>
-                                <th scope="row">Proof</th>
-                                <td>
-                                    @if (isScam)
-                                    {
-                                        <span class="multi-line-text">@Model.ProofLink</span>
-                                    }
-                                    else
-                                    {
-                                        <a class="multi-line-text" href="@Model.ProofLink" target="_blank">@Model.ProofLink</a>
-                                    }
-                                </td>
-                            </tr>
-                        }
-                        @if (!string.IsNullOrEmpty(Model.VideoLink))
-                        {
-                            <tr>
-                                <th scope="row">Video</th>
-                                <td>
-                                    @if (isScam)
-                                    {
-                                        <span class="multi-line-text">@Model.VideoLink</span>
-                                    }
-                                    else
-                                    {
-                                        <a class="multi-line-text" href="@Model.VideoLink" target="_blank">@Model.VideoLink</a>
-                                    }
-                                </td>
-                            </tr>
-                        }
+                    @if (!string.IsNullOrEmpty(finalLink2))
+                    {
                         <tr>
-                            <th scope="row">Status</th>
-                            <td>@Model.DirectoryStatus.ToHtmlIcon() @Model.DirectoryStatus</td>
+                            <th scope="row">@Model.Link2Name</th>
+                            <td>
+                                @if (isScam)
+                                {
+                                    <span class="multi-line-text">@Model.Link2</span>
+                                }
+                                else
+                                {
+                                    <a class="multi-line-text" href="@finalLink2" target="_blank" @(string.IsNullOrEmpty(finalLink2Rel) ? "" : $" rel=\"{finalLink2Rel}\"")>@Model.Link2</a>
+                                }
+                            </td>
                         </tr>
-                        @if (!string.IsNullOrEmpty(Model.Contact))
-                        {
-                            <tr>
-                                <th scope="row">Contact</th>
-                                <td>
-                                    @Html.Raw(StringHelpers.RenderContactFieldHtml(Model.Contact, cssClass: "multi-line-text"))
-                                </td>
-                            </tr>
-                        }
-                        @if (!string.IsNullOrEmpty(Model.Location) || !string.IsNullOrWhiteSpace(Model.CountryCode))
-                        {
-                            <tr>
-                                <th scope="row">Location</th>
-                                <td>
-                                    @Html.Raw(Model.FormattedLocation)
-                                </td>
-                            </tr>
-                        }
+                    }
 
-                        @if (!string.IsNullOrEmpty(Model.Processor))
-                        {
-                            <tr>
-                                <th scope="row">Processor</th>
-                                <td>
-                                    @if (processorParts != null && processorParts.Count > 0)
+                    @if (!string.IsNullOrEmpty(finalLink3))
+                    {
+                        <tr>
+                            <th scope="row">@Model.Link3Name</th>
+                            <td>
+                                @if (isScam)
+                                {
+                                    <span class="multi-line-text">@Model.Link3</span>
+                                }
+                                else
+                                {
+                                    <a class="multi-line-text" href="@finalLink3" target="_blank" @(string.IsNullOrEmpty(finalLink3Rel) ? "" : $" rel=\"{finalLink3Rel}\"")>@Model.Link3</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.ProofLink))
+                    {
+                        <tr>
+                            <th scope="row">Proof</th>
+                            <td>
+                                @if (isScam)
+                                {
+                                    <span class="multi-line-text">@Model.ProofLink</span>
+                                }
+                                else
+                                {
+                                    <a class="multi-line-text" href="@Model.ProofLink" target="_blank">@Model.ProofLink</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.VideoLink))
+                    {
+                        <tr>
+                            <th scope="row">Video</th>
+                            <td>
+                                @if (isScam)
+                                {
+                                    <span class="multi-line-text">@Model.VideoLink</span>
+                                }
+                                else
+                                {
+                                    <a class="multi-line-text" href="@Model.VideoLink" target="_blank">@Model.VideoLink</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+
+                    <tr>
+                        <th scope="row">Status</th>
+                        <td>@Model.DirectoryStatus.ToHtmlIcon() @Model.DirectoryStatus</td>
+                    </tr>
+
+                    @if (!string.IsNullOrEmpty(Model.Contact))
+                    {
+                        <tr>
+                            <th scope="row">Contact</th>
+                            <td>
+                                @Html.Raw(StringHelpers.RenderContactFieldHtml(Model.Contact, cssClass: "multi-line-text"))
+                            </td>
+                        </tr>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.Location) || !string.IsNullOrWhiteSpace(Model.CountryCode))
+                    {
+                        <tr>
+                            <th scope="row">Location</th>
+                            <td>
+                                @Html.Raw(Model.FormattedLocation)
+                            </td>
+                        </tr>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.Processor))
+                    {
+                        <tr>
+                            <th scope="row">Processor</th>
+                            <td>
+                                @if (processorParts != null && processorParts.Count > 0)
+                                {
+                                    for (int i = 0; i < processorParts.Count; i++)
                                     {
-                                        for (int i = 0; i < processorParts.Count; i++)
+                                        var p = processorParts[i];
+
+                                        if (!string.IsNullOrEmpty(p.EntryKey))
                                         {
-                                            var p = processorParts[i];
+                                            <a class="no-app-link" href="@UrlResolver.ResolveToRoot(UrlBuilder.ListingPath(p.EntryKey))">@p.Display</a>
+                                        }
+                                        else
+                                        {
+                                            @p.Display
+                                        }
 
-                                            if (!string.IsNullOrEmpty(p.EntryKey))
-                                            {
-                                                <a class="no-app-link" href="@UrlResolver.ResolveToRoot(UrlBuilder.ListingPath(p.EntryKey))">@p.Display</a>
-                                            }
-                                            else
-                                            {
-                                                @p.Display
-                                            }
-
-                                            if (i < processorParts.Count - 1)
-                                            {
-                                                @:, 
-                                            }
+                                        if (i < processorParts.Count - 1)
+                                        {
+                                            @:, 
                                         }
                                     }
-                                    else
-                                    {
-                                        @Model.Processor
-                                    }
-                                </td>
-                            </tr>
-                        }
-
-                        @if (Model.FoundedDate.HasValue)
-                        {
-                            <tr>
-                                <th scope="row">Founded</th>
-                                <td>@Model.FoundedDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
-                            </tr>
-                        }
-                        <tr>
-                            <th scope="row">Added On</th>
-                            <td>@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                                }
+                                else
+                                {
+                                    @Model.Processor
+                                }
+                            </td>
                         </tr>
-                        @if (Model.UpdateDate.HasValue)
-                        {
-                            <tr>
-                                <th scope="row">Last Updated</th>
-                                <td>@Model.UpdateDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
-            </div>
+                    }
+
+                    @if (Model.FoundedDate.HasValue)
+                    {
+                        <tr>
+                            <th scope="row">Founded</th>
+                            <td>@Model.FoundedDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                        </tr>
+                    }
+
+                    <tr>
+                        <th scope="row">Added On</th>
+                        <td>@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                    </tr>
+
+                    @if (Model.UpdateDate.HasValue)
+                    {
+                        <tr>
+                            <th scope="row">Last Updated</th>
+                            <td>@Model.UpdateDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
         </div>
 
         @* ✅ Button removed for scams *@
         @if (!isScam && !string.IsNullOrWhiteSpace(finalLink))
         {
-            <br />
-            <a href="@finalLink" class="btn btn-primary btn-cta" target="_blank" @(string.IsNullOrEmpty(finalLinkRel) ? "" : $" rel=\"{finalLinkRel}\"")>Visit Website</a>
-            <br />
+            <div class="entry-cta">
+                <a href="@finalLink" class="btn btn-primary btn-cta entry-cta-btn" target="_blank" @(string.IsNullOrEmpty(finalLinkRel) ? "" : $" rel=\"{finalLinkRel}\"")>Visit Website</a>
+            </div>
         }
 
         @if (!string.IsNullOrEmpty(Model.Description))
         {
-            <br />
-            <div class="mb-4">
+            <div class="entry-section">
                 <h3>Description</h3>
-                <p>@Model.Description</p>
+                <p class="mb-0">@Model.Description</p>
             </div>
         }
 
         @if (!string.IsNullOrEmpty(Model.Note))
         {
-            <br />
-            <div class="mb-4 multi-line-text">
+            <div class="entry-section multi-line-text">
                 @if (Model.DirectoryStatus == DirectoryStatus.Scam || Model.DirectoryStatus == DirectoryStatus.Questionable)
                 {
                     <h4 class="warning-color">Note</h4>
@@ -308,23 +315,23 @@
                 {
                     <h4>Note</h4>
                 }
-                <p><em>@Html.Raw(ContentSanitizer.Sanitize(Model.Note))</em></p>
+                <p class="mb-0"><em>@Html.Raw(ContentSanitizer.Sanitize(Model.Note))</em></p>
             </div>
         }
 
         @if (!string.IsNullOrEmpty(Model.PgpKey))
         {
-            <br />
-            <h4>PGP Key</h4>
+            <div class="entry-section">
+                <h4>PGP Key</h4>
 <pre class="pgp-key">
 @Model.PgpKey
 </pre>
+            </div>
         }
 
         @if (Model.TagsAndKeys?.Any() ?? false)
         {
-            <br />
-            <div class="entry-tags">
+            <div class="entry-section entry-tags">
                 <strong>Tags:</strong>
                 @{
                     // materialize to list so we can test "last" easily
@@ -342,8 +349,7 @@
 
         @if (Model.AdditionalLinks?.Any() ?? false)
         {
-            <br />
-            <div class="entry-additional-links">
+            <div class="entry-section entry-additional-links">
                 <strong>Related Links:</strong>
                 <ul class="mb-0">
                     @foreach (var link in Model.AdditionalLinks)
@@ -356,8 +362,9 @@
             </div>
         }
 
-        <br />
-        @await Html.PartialAsync("_EntryReviews", (DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
+        <div class="entry-section">
+            @await Html.PartialAsync("_EntryReviews", (DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
+        </div>
 
     </div>
 

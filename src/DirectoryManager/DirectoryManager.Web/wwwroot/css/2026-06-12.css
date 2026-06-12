@@ -2919,7 +2919,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
    Card grid
    ========================================================================= */
 :root {
-  --card-height: 296px;   /* every card is exactly this tall */
+  --card-height: 324px;   /* every card is exactly this tall */
 }
 .card-grid {
   display: grid;
@@ -2938,8 +2938,13 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   --accent: var(--border-strong);
   --accent-rgb: 255, 102, 0;     /* default glow = orange */
   position: relative;
-  display: flex;
-  flex-direction: column;
+  display: grid;
+  /* Row 1 = all content (header…description/note); minmax(0,1fr) lets it shrink
+     below its content and clip, sized purely by leftover space. Row 2 = footer,
+     an `auto` track that is ALWAYS allocated at its natural height, so the action
+     buttons can never be pushed past the card's fixed height. This is what makes
+     overflow impossible regardless of how long the description/note are. */
+  grid-template-rows: minmax(0, 1fr) auto;
   gap: 6px;
   padding: 12px 13px 11px;
   height: 100%;            /* fill the fixed grid row */
@@ -2948,6 +2953,16 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   border: 1px solid var(--border);
   border-radius: var(--radius, 8px);
   transition: border-color 0.14s ease, box-shadow 0.14s ease, transform 0.08s ease;
+}
+/* Content column inside the card's first grid row. It owns the vertical stack and
+   clips its own overflow, so an over-long description/note is trimmed here rather
+   than shoving the footer out of the card. */
+.dir-main {
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
 
 /* Resting status accent: coloured border + faint ring. */
@@ -3145,7 +3160,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
    past the card's fixed height and getting clipped. The header, rating,
    breadcrumb, meta and footer keep their natural size, so cards stay uniform. */
 .dir-body {
-  flex: 0 1 auto;
+  flex: 1 1 0;
   min-height: 0;
   overflow: hidden;
   display: flex;
@@ -3531,3 +3546,140 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
    ----------------------------------------------------------------------------- */
 .dir-tags .ui-check:nth-child(n+6) { display: none; }
 #show-all-tags:checked ~ .dir-tags .ui-check { display: inline-flex; }
+
+/* =========================================================================
+   Profile / directory-entry detail page  (/site/{key})
+   -------------------------------------------------------------------------
+   Drop-in replacement for the old one-liner:
+       .directory-entry-details { margin-bottom: 150px; }
+   Paste this whole block in its place. Uses your existing :root tokens
+   (--bg-card, --border-strong, --orange-bright, --radius, etc.) so it
+   matches the current theme with no new variables required.
+   ========================================================================= */
+
+.directory-entry-details {
+  /* one knob controls the width of every profile so they all match */
+  --entry-card-w: 720px;
+  margin-bottom: 150px;
+}
+
+/* ---- Meta card: width-capped so every profile is the same size --------- */
+.directory-entry-details .entry-card {
+  width: 100%;
+  max-width: var(--entry-card-w);
+  box-sizing: border-box;
+  margin: 0 0 1.25rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+}
+
+.directory-entry-details .entry-card--sponsor {
+  border-color: var(--orange-mid);
+  box-shadow:
+    inset 0 0 0 1px rgba(0, 0, 0, 0.25),
+    0 0 0 1px rgba(255, 102, 0, 0.30),
+    0 0 18px rgba(255, 102, 0, 0.18);
+}
+
+/* ---- Fixed-layout table: label column is ALWAYS the same width ---------
+   table-layout:fixed means column widths come from the <colgroup>, not from
+   the content. A 600-char URL now wraps inside its own cell instead of
+   stretching the table and squeezing "Last Updated" onto two lines.        */
+.entry-meta-table {
+  table-layout: fixed;
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0;
+}
+
+.entry-meta-table .entry-meta-label-col { width: 150px; }
+.entry-meta-table .entry-meta-value-col { width: auto; }
+
+.entry-meta-table th,
+.entry-meta-table td {
+  padding: 10px 14px;
+  vertical-align: top;
+  text-align: left;
+  border-bottom: 1px solid var(--border-divider);
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.entry-meta-table tr:last-child th,
+.entry-meta-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.entry-meta-table th {
+  color: var(--orange-bright);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  white-space: normal;
+}
+
+.entry-meta-table td {
+  color: var(--fg);
+}
+
+/* links / PGP-ish values can't bust the cell */
+.entry-meta-table td a,
+.entry-meta-table td .multi-line-text {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+/* subtle zebra, scoped to this table so it never depends on the global rule */
+.entry-meta-table tbody tr:nth-child(even) {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+/* keep the country flag tidy inside the value cell */
+.entry-meta-table td .country-flag {
+  width: 18px;
+  height: auto;
+  vertical-align: text-bottom;
+}
+
+/* ---- CTA row: replaces the old <br>…<button>…<br> hack ----------------- */
+.directory-entry-details .entry-cta {
+  max-width: var(--entry-card-w);
+  margin: 0 0 1.75rem;
+}
+
+.directory-entry-details .entry-cta-btn {
+  display: inline-block;
+  min-width: 180px;
+  text-align: center;
+}
+
+/* ---- Uniform vertical rhythm for the lower sections -------------------
+   (Description, Note, PGP Key, Tags, Related Links, Reviews). Replaces the
+   scattered <br /> separators so spacing is identical on every profile.   */
+.directory-entry-details .entry-section {
+  margin: 0 0 1.75rem;
+}
+
+.directory-entry-details .entry-section:last-child {
+  margin-bottom: 0;
+}
+
+.directory-entry-details .entry-section > h3,
+.directory-entry-details .entry-section > h4 {
+  margin: 0 0 0.5rem;
+}
+
+.directory-entry-details .entry-section pre.pgp-key {
+  margin: 0;
+  max-width: var(--entry-card-w);
+}
+
+/* ---- Narrow screens: shrink the label column, keep everything contained */
+@media (max-width: 560px) {
+  .entry-meta-table .entry-meta-label-col { width: 108px; }
+  .entry-meta-table th,
+  .entry-meta-table td { padding: 9px 10px; }
+  .directory-entry-details .entry-cta-btn { display: block; width: 100%; }
+}
