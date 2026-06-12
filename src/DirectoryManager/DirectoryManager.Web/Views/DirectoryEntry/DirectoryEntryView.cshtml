@@ -1,4 +1,4 @@
-﻿﻿@using DirectoryManager.Data.Enums
+﻿﻿﻿﻿@using DirectoryManager.Data.Enums
 @using DirectoryManager.Data.Models
 @using DirectoryManager.Data.Repositories.Interfaces
 @using DirectoryManager.Utilities.Helpers
@@ -70,6 +70,44 @@
     };
 
     var processorParts = ViewBag.ProcessorParts as List<DirectoryManager.Web.Models.ProcessorPart>;
+
+    // Copy-and-paste "Review us on Monerica" badge for listing owners.
+    // Full, self-contained HTML (inline styles + absolute logo URL) so it renders
+    // correctly on any external site. Links to the listing page (not the #reviews hash).
+    var listingUrl = UrlHelper.MakeFullUrl(domain, UrlBuilder.ListingPath(Model.DirectoryEntryKey));
+
+    // Resolve an absolute logo URL. The admin-configured logo may be stored as an
+    // absolute (e.g. CDN) URL or as a local path; fall back to the bundled asset.
+    var badgeLogoRaw = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteLogoUrl);
+    string badgeLogoUrl;
+    if (!string.IsNullOrWhiteSpace(badgeLogoRaw) &&
+        Uri.TryCreate(badgeLogoRaw.Trim(), UriKind.Absolute, out var badgeLogoUri))
+    {
+        badgeLogoUrl = badgeLogoUri.AbsoluteUri;
+    }
+    else
+    {
+        badgeLogoUrl = UrlHelper.MakeFullUrl(
+            domain,
+            string.IsNullOrWhiteSpace(badgeLogoRaw) ? "/images/monerica-logo.png" : badgeLogoRaw.Trim());
+    }
+
+    // Attribute-encode URLs (a CDN logo URL may contain query params) and text.
+    var encodedListingUrl = System.Net.WebUtility.HtmlEncode(listingUrl);
+    var encodedBadgeLogoUrl = System.Net.WebUtility.HtmlEncode(badgeLogoUrl);
+    var encodedListingName = System.Net.WebUtility.HtmlEncode(Model.Name);
+
+    var reviewBadgeSnippet =
+        $"<a href=\"{encodedListingUrl}\" target=\"_blank\" rel=\"noopener\" " +
+        "style=\"display:inline-flex;align-items:center;gap:10px;padding:8px 14px;" +
+        "font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;line-height:1.2;" +
+        "color:#ffffff;background-color:#1d1d1d;border:1px solid #ff6600;border-radius:8px;" +
+        "text-decoration:none;\">" +
+        "<span style=\"display:inline-flex;align-items:center;background:#ffffff;" +
+        "border-radius:4px;padding:3px 5px;line-height:0;\">" +
+        $"<img src=\"{encodedBadgeLogoUrl}\" alt=\"Monerica\" height=\"18\" " +
+        "style=\"height:18px;width:auto;display:block;border:0;\" /></span>" +
+        $"Review {encodedListingName} on Monerica</a>";
 }
 
 @{
@@ -365,6 +403,32 @@
         <div class="entry-section">
             @await Html.PartialAsync("_EntryReviews", (DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
         </div>
+
+        @* ---------------------------------------------------------------
+           "Review us on Monerica" embed badge. Listing owners copy this HTML
+           onto their own site to send visitors here to leave a review.
+           Hidden for scam listings.
+           --------------------------------------------------------------- *@
+        @if (!isScam)
+        {
+            <div class="entry-section entry-embed">
+                <h3>Get more reviews</h3>
+                <p class="mb-2">
+                    Add this badge to your own website to invite visitors to review
+                    <strong>@Model.Name</strong> on Monerica. Click inside the box below,
+                    select all (Ctrl&#8209;A / &#8984;A), copy (Ctrl&#8209;C / &#8984;C), and
+                    paste the HTML anywhere on your site.
+                </p>
+
+                <div class="entry-embed-preview" style="margin-bottom:0.75rem;">
+                    <span style="display:block;font-size:0.85rem;opacity:0.75;margin-bottom:0.35rem;">Preview:</span>
+                    @Html.Raw(reviewBadgeSnippet)
+                </div>
+
+                <textarea rows="4" readonly aria-label="Review badge embed code"
+                          style="width:100%;box-sizing:border-box;font-family:monospace;font-size:13px;color:#ffffff;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.22);border-left:2px solid #ff6600;border-radius:3px;padding:8px 10px;caret-color:#ff6600;resize:vertical;">@reviewBadgeSnippet</textarea>
+            </div>
+        }
 
     </div>
 
