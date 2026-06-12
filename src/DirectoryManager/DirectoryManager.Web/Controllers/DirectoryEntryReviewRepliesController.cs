@@ -346,13 +346,18 @@ namespace DirectoryManager.Web.Controllers
                 ParentCommentId = input.ParentCommentId,
                 Body = bodyTrimmed,
 
+                // Auto-publish clean replies. A reply goes live immediately when it has
+                // neither a blacklist term nor a hyperlink in the body (mod.NeedsManualReview
+                // is exactly hasBlacklistTerm || hasLink). Anything that trips either trigger
+                // is held for manual moderation.
                 ModerationStatus = mod.NeedsManualReview
                     ? ReviewModerationStatus.Pending
                     : ReviewModerationStatus.Approved,
 
                 AuthorFingerprint = state.PgpFingerprint!,
                 CreateDate = DateTime.UtcNow,
-                CreatedByUserId = "automated"
+                CreatedByUserId = "automated",
+                UpdatedByUserId = mod.NeedsManualReview ? null : "automated"
             };
 
             await this.commentRepo.AddAsync(entity, ct);

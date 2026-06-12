@@ -315,6 +315,21 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("Compose", input);
             }
 
+            // Order proof is optional, but if supplied it must be a URL.
+            if (!TryNormalizeOrderProofUrl(input.OrderProof, out _))
+            {
+                SubmittedFlows.TryRemove(flowId, out _);
+                this.ModelState.AddModelError(
+                    nameof(input.OrderProof),
+                    "Order proof must be a URL (for example https://shop.example.com/orders/123). Leave it blank if you don't have one.");
+
+                var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
+                this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
+                return this.View("Compose", input);
+            }
+
             var mod = await this.moderation.EvaluateReviewAsync(input.Body, ct);
 
             var entity = new DirectoryEntryReview
@@ -342,14 +357,23 @@ namespace DirectoryManager.Web.Controllers
                     ct);
             }
 
-            // Capture any order link/id the reviewer supplied so it can be inspected
-            // during moderation, but never act on it automatically.
+            // Capture any order link the reviewer supplied (already validated as a URL above)
+            // so it can be inspected during moderation. It is never shown publicly.
             ApplyOrderProof(entity, input.OrderProof);
 
-            // All valid reviews are held for manual moderation. Nothing is auto-published.
-            // The "verified-order" tag is applied by hand from the moderation dashboard
-            // after the order link/value has been checked on the merchant site.
-            entity.ModerationStatus = ReviewModerationStatus.Pending;
+            // Auto-publish clean reviews. A review goes live immediately when it has
+            // neither a blacklist term nor a hyperlink in the body (mod.NeedsManualReview
+            // is exactly hasBlacklistTerm || hasLink). Anything that trips either trigger
+            // is held for manual moderation.
+            if (mod.NeedsManualReview)
+            {
+                entity.ModerationStatus = ReviewModerationStatus.Pending;
+            }
+            else
+            {
+                entity.ModerationStatus = ReviewModerationStatus.Approved;
+                entity.UpdatedByUserId = "automated";
+            }
 
             await this.directoryEntryReviewRepository.AddAsync(entity, ct);
 
@@ -411,6 +435,15 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(
                     nameof(input.Body),
                     "A review with this exact message already exists.");
+                return this.View(input);
+            }
+
+            // Order proof is optional, but if supplied it must be a URL.
+            if (!TryNormalizeOrderProofUrl(input.OrderProof, out _))
+            {
+                this.ModelState.AddModelError(
+                    nameof(input.OrderProof),
+                    "Order proof must be a URL (for example https://shop.example.com/orders/123). Leave it blank if there isn't one.");
                 return this.View(input);
             }
 
@@ -556,23 +589,30 @@ namespace DirectoryManager.Web.Controllers
 
         private static string CacheKey(Guid flowId) => $"review-flow:{flowId}";
 
-        private static void ApplyOrderProof(DirectoryEntryReview review, string? orderProof)
+        /// <summary>
+        /// Order proof is optional, but when supplied it MUST be a URL. An absolute
+        /// http/https URL is taken as-is; a bare domain/path (e.g. "shop.example.com/orders/123")
+        /// is accepted and promoted to https://. Anything else (free text, an order id, etc.)
+        /// is rejected so the caller can surface a validation error.
+        /// Returns true when the value is absent (valid: nothing to store) or a valid URL,
+        /// and false when a non-empty value is not a URL.
+        /// </summary>
+        private static bool TryNormalizeOrderProofUrl(string? orderProof, out string? normalizedUrl)
         {
+            normalizedUrl = null;
             var s = (orderProof ?? string.Empty).Trim();
+
             if (string.IsNullOrWhiteSpace(s))
             {
-                review.OrderId = null;
-                review.OrderUrl = null;
-                return;
+                return true;
             }
 
             if (Uri.TryCreate(s, UriKind.Absolute, out var uri) &&
                 (uri.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) ||
                  uri.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)))
             {
-                review.OrderUrl = s;
-                review.OrderId = null;
-                return;
+                normalizedUrl = s;
+                return true;
             }
 
             if (!s.Contains(' ') &&
@@ -581,13 +621,20 @@ namespace DirectoryManager.Web.Controllers
                 (uri2.Scheme.Equals("http", StringComparison.OrdinalIgnoreCase) ||
                  uri2.Scheme.Equals("https", StringComparison.OrdinalIgnoreCase)))
             {
-                review.OrderUrl = uri2.ToString();
-                review.OrderId = null;
-                return;
+                normalizedUrl = uri2.ToString();
+                return true;
             }
 
-            review.OrderId = s;
-            review.OrderUrl = null;
+            return false;
+        }
+
+        private static void ApplyOrderProof(DirectoryEntryReview review, string? orderProof)
+        {
+            // Order proof is validated to be a URL before this is called, so we only
+            // ever store a URL now (OrderId is no longer populated from user input).
+            TryNormalizeOrderProofUrl(orderProof, out var url);
+            review.OrderUrl = url;
+            review.OrderId = null;
         }
 
         private Guid CreateFlow(int directoryEntryId)
