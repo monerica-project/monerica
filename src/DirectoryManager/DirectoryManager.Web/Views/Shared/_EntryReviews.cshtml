@@ -112,6 +112,19 @@
         </div>
     }
 
+    @if (!reviewsDisabled)
+    {
+        <div class="leave-review-cta mb-4">
+            <form action="@Urls.ResolveToApp("/directory-entry-reviews/begin")"
+                  method="post"
+                  class="d-inline"
+                  rel="nofollow">
+                <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
+                <button class="btn review-btn" type="submit">Leave a review</button>
+            </form>
+        </div>
+    }
+
     @if (Model.ReviewCount > 0 && Model.Reviews != null && Model.Reviews.Any())
     {
         <ul class="list-unstyled">
@@ -246,16 +259,5 @@
     else
     {
         <p class="text-muted">No reviews yet.</p>
-    }
-
-    @if (!reviewsDisabled)
-    {
-        <form action="@Urls.ResolveToApp("/directory-entry-reviews/begin")"
-              method="post"
-              class="d-inline"
-              rel="nofollow">
-            <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
-            <button class="btn review-btn" type="submit">Leave a review</button>
-        </form>
     }
 </div>
