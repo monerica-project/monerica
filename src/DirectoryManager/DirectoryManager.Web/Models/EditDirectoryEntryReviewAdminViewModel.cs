@@ -23,6 +23,10 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Order Proof (optional)")]
         public string? OrderProof { get; set; }
 
+        [StringLength(2048)]
+        [Display(Name = "Verification Details (optional)")]
+        public string? OrderProofContext { get; set; }
+
         [Display(Name = "Moderation Status")]
         public ReviewModerationStatus ModerationStatus { get; set; }
 

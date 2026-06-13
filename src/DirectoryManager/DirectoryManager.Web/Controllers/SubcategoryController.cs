@@ -144,6 +144,7 @@ namespace DirectoryManager.Web.Controllers
             existingSubCategory.MetaDescription = subCategory.MetaDescription?.Trim();
             existingSubCategory.PageDetails = subCategory.PageDetails?.Trim();
             existingSubCategory.IsEnabled = subCategory.IsEnabled;
+            existingSubCategory.RequireReviewVerification = subCategory.RequireReviewVerification;
 
             await this.subcategoryRepository.UpdateAsync(existingSubCategory);
 

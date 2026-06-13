@@ -19,5 +19,11 @@ namespace DirectoryManager.Web.Models
         // URL/id — validated separately in the controller; leave raw.
         [MaxLength(2048)]
         public string? OrderProof { get; set; }
+
+        // Optional supporting context (e.g. receiving wallet address) a moderator can use
+        // to look up the order. Surfaced when the entry's subcategory requires review
+        // verification; the field itself is always optional.
+        [MaxLength(2048)]
+        public string? OrderProofContext { get; set; }
     }
 }

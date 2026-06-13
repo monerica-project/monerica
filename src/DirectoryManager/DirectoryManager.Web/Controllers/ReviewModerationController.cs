@@ -217,6 +217,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 Review = item,
                 OrderProof = item.OrderUrl ?? item.OrderId,
+                OrderProofContext = item.OrderProofContext,
                 SelectedTagIds = item.ReviewTags.Select(x => x.ReviewTagId).ToList(),
                 AllTags = allTags.Select(t => new ReviewModerationReviewViewModel.TagOption
                 {
@@ -252,6 +253,7 @@ public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
         Rating                 = review.Rating,
         Body                   = review.Body ?? string.Empty,
         OrderProof             = review.OrderUrl ?? review.OrderId,
+        OrderProofContext      = review.OrderProofContext,
         ModerationStatus       = review.ModerationStatus,
         RejectionReason        = review.RejectionReason,
         SelectedTagIds         = review.ReviewTags.Select(x => x.ReviewTagId).ToList(),
@@ -307,6 +309,9 @@ public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
                 : input.RejectionReason.Trim();
         
             ApplyOrderProof(review, input.OrderProof);
+            review.OrderProofContext = string.IsNullOrWhiteSpace(input.OrderProofContext)
+                ? null
+                : input.OrderProofContext.Trim();
         
             await this.repo.UpdateAsync(review, ct);
         

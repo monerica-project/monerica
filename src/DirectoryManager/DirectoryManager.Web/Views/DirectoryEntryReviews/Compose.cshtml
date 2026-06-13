@@ -38,15 +38,45 @@
             <span asp-validation-for="Body" class="text-danger"></span>
         </div>
 
-        <!-- ✅ Single textbox for either order id OR order URL -->
-        <div class="mb-3">
-            <label asp-for="OrderProof" class="form-label">Order Proof URL (optional)</label>
-            <input asp-for="OrderProof" class="form-control" maxlength="2048" />
-            <span asp-validation-for="OrderProof" class="text-danger"></span>
-            <div class="form-text">
-                Optional, but if you include it, it must be a URL (a link we can open) to your order. It's used for internal verification only and is never shown publicly.
+        @{
+            var requireVerification = ViewBag.RequireVerification == true;
+        }
+
+        @if (requireVerification)
+        {
+            <div class="mb-3">
+                <label asp-for="OrderProof" class="form-label">Order Proof URL (required)</label>
+                <input asp-for="OrderProof" class="form-control" maxlength="2048" required />
+                <span asp-validation-for="OrderProof" class="text-danger"></span>
+                <div class="form-text">
+                    A link we can open that proves your order (for example an order page or receipt URL).
+                    Used for internal verification only and never shown publicly. Reviews in this category
+                    are always checked by a moderator before they appear.
+                </div>
             </div>
-        </div>
+
+            <div class="mb-3">
+                <label asp-for="OrderProofContext" class="form-label">Verification details (optional)</label>
+                <textarea asp-for="OrderProofContext" class="form-control" maxlength="2048" rows="3"></textarea>
+                <span asp-validation-for="OrderProofContext" class="text-danger"></span>
+                <div class="form-text">
+                    Optional extra context that helps us look up your order — for example the receiving
+                    wallet address you used. Internal verification only; never shown publicly.
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- ✅ Single textbox for either order id OR order URL -->
+            <div class="mb-3">
+                <label asp-for="OrderProof" class="form-label">Order Proof URL (optional)</label>
+                <input asp-for="OrderProof" class="form-control" maxlength="2048" />
+                <span asp-validation-for="OrderProof" class="text-danger"></span>
+                <div class="form-text">
+                    Optional, but if you include it, it must be a URL (a link we can open) to your order. It's used for internal verification only and is never shown publicly.
+                </div>
+            </div>
+        }
 
         <p class="text-muted"><i>Your review may be checked before it appears publicly.</i></p>
 

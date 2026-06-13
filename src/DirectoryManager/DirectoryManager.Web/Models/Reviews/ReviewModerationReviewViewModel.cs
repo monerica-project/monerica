@@ -11,6 +11,9 @@ namespace DirectoryManager.Web.Models.Reviews
         // On GET: populated from Review.OrderUrl ?? Review.OrderId
         public string? OrderProof { get; set; }
 
+        // Read-only context captured at submission (e.g. receiving wallet address).
+        public string? OrderProofContext { get; set; }
+
         public List<int> SelectedTagIds { get; set; } = new ();
 
         public List<TagOption> AllTags { get; set; } = new ();

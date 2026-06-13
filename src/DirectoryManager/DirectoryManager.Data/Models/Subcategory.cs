@@ -35,6 +35,11 @@ namespace DirectoryManager.Data.Models
 
         public bool IsEnabled { get; set; }
 
+        // When true, reviews left for entries in this subcategory must include an
+        // order-proof URL and are always held for manual moderation (never auto-published).
+        // An optional free-text "verification details" field is also surfaced to reviewers.
+        public bool RequireReviewVerification { get; set; }
+
         // Navigation Property for the parent Category
         [ForeignKey("CategoryId")]
         public virtual Category Category { get; set; } = null!;

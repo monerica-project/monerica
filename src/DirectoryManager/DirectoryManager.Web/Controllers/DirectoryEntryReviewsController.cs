@@ -32,6 +32,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly IUserContentModerationService moderation;
         private readonly IRaffleRepository raffleRepository;
+        private readonly ISubcategoryRepository subcategoryRepository;
 
         public DirectoryEntryReviewsController(
             IDirectoryEntryReviewRepository repo,
@@ -42,7 +43,8 @@ namespace DirectoryManager.Web.Controllers
             IPgpService pgp,
             IDirectoryEntryRepository directoryEntryRepository,
             IUserContentModerationService moderation,
-            IRaffleRepository raffleRepository)
+            IRaffleRepository raffleRepository,
+            ISubcategoryRepository subcategoryRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.directoryEntryReviewRepository = repo;
@@ -52,6 +54,7 @@ namespace DirectoryManager.Web.Controllers
             this.directoryEntryRepository = directoryEntryRepository;
             this.moderation = moderation;
             this.raffleRepository = raffleRepository;
+            this.subcategoryRepository = subcategoryRepository;
         }
 
         [HttpGet("begin")]
@@ -253,6 +256,8 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
             this.ViewBag.FlowId = flowId;
             this.ViewBag.PgpFingerprint = state.PgpFingerprint;
+            this.ViewBag.RequireVerification =
+                entry is not null && await this.SubcategoryRequiresVerificationAsync(entry.SubCategoryId);
 
             return this.View(vm);
         }
@@ -288,6 +293,11 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            // Does this listing's subcategory force order-proof verification + manual moderation?
+            // Re-checked here (not just in the GET) so the requirement can't be bypassed.
+            var requireVerification = await this.SubcategoryRequiresVerificationAsync(gateEntry.SubCategoryId);
+            this.ViewBag.RequireVerification = requireVerification;
+
             if (!this.ModelState.IsValid)
             {
                 SubmittedFlows.TryRemove(flowId, out _);
@@ -307,6 +317,21 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(
                     nameof(input.Body),
                     "A review with this exact message has already been submitted. Please write something original.");
+
+                var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
+                this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
+                return this.View("Compose", input);
+            }
+
+            // When the subcategory requires verification, the order-proof URL is mandatory.
+            if (requireVerification && string.IsNullOrWhiteSpace(input.OrderProof))
+            {
+                SubmittedFlows.TryRemove(flowId, out _);
+                this.ModelState.AddModelError(
+                    nameof(input.OrderProof),
+                    "An order proof URL is required for reviews in this category (for example https://shop.example.com/orders/123).");
 
                 var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
                 this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
@@ -360,12 +385,13 @@ namespace DirectoryManager.Web.Controllers
             // Capture any order link the reviewer supplied (already validated as a URL above)
             // so it can be inspected during moderation. It is never shown publicly.
             ApplyOrderProof(entity, input.OrderProof);
+            entity.OrderProofContext = NormalizeOrderProofContext(input.OrderProofContext);
 
-            // Auto-publish clean reviews. A review goes live immediately when it has
-            // neither a blacklist term nor a hyperlink in the body (mod.NeedsManualReview
-            // is exactly hasBlacklistTerm || hasLink). Anything that trips either trigger
-            // is held for manual moderation.
-            if (mod.NeedsManualReview)
+            // Verification subcategories always go to manual moderation. Otherwise, auto-publish
+            // clean reviews: a review goes live immediately when it has neither a blacklist term
+            // nor a hyperlink in the body (mod.NeedsManualReview is exactly hasBlacklistTerm ||
+            // hasLink). Anything that trips either trigger is held for manual moderation.
+            if (requireVerification || mod.NeedsManualReview)
             {
                 entity.ModerationStatus = ReviewModerationStatus.Pending;
             }
@@ -457,6 +483,7 @@ namespace DirectoryManager.Web.Controllers
             };
 
             ApplyOrderProof(entity, input.OrderProof);
+            entity.OrderProofContext = NormalizeOrderProofContext(input.OrderProofContext);
 
             try
             {
@@ -635,6 +662,21 @@ namespace DirectoryManager.Web.Controllers
             TryNormalizeOrderProofUrl(orderProof, out var url);
             review.OrderUrl = url;
             review.OrderId = null;
+        }
+
+        // Trims the optional verification-context free-text; null when empty so the column
+        // stays NULL rather than holding an empty string.
+        private static string? NormalizeOrderProofContext(string? context)
+        {
+            var s = (context ?? string.Empty).Trim();
+            return string.IsNullOrWhiteSpace(s) ? null : s;
+        }
+
+        // True when the listing's subcategory is flagged to require order-proof verification.
+        private async Task<bool> SubcategoryRequiresVerificationAsync(int subCategoryId)
+        {
+            var sub = await this.subcategoryRepository.GetByIdAsync(subCategoryId);
+            return sub?.RequireReviewVerification ?? false;
         }
 
         private Guid CreateFlow(int directoryEntryId)

@@ -68,6 +68,18 @@
             }
         </dd>
 
+        <dt class="col-sm-3">Verification Details</dt>
+        <dd class="col-sm-9">
+            @if (!string.IsNullOrWhiteSpace(r.OrderProofContext))
+            {
+                <pre class="mb-0" style="white-space:pre-wrap;">@r.OrderProofContext</pre>
+            }
+            else
+            {
+                <span class="text-muted">-</span>
+            }
+        </dd>
+
         <dt class="col-sm-3">Body</dt>
             <dd class="col-sm-9"><pre style="white-space:pre-wrap;">@Html.Raw(StringHelpers.RenderBodyWithLinksHtml(r.Body, cssClass: "multi-line-text", ugcContent: true))</pre></dd>
     </dl>

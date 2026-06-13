@@ -72,6 +72,12 @@ namespace DirectoryManager.Data.Models.Reviews
         [MaxLength(2048)]
         public string? OrderUrl { get; set; }
 
+        // Optional free-text the reviewer supplies alongside the order-proof URL so a
+        // moderator can look the order up (e.g. a receiving wallet address, an order
+        // reference, etc.). Internal/moderation use only; never shown publicly.
+        [MaxLength(2048)]
+        public string? OrderProofContext { get; set; }
+
         // Concurrency
         [Timestamp]
         public byte[]? RowVersion { get; set; }

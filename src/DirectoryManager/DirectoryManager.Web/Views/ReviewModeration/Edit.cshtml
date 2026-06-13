@@ -47,6 +47,13 @@
                             <div class="form-text">Paste either an order ID or an order URL.</div>
                         </div>
 
+                        <div class="col-12">
+                            <label asp-for="OrderProofContext" class="form-label">Verification Details (optional)</label>
+                            <textarea asp-for="OrderProofContext" class="form-control" maxlength="2048" rows="3"></textarea>
+                            <span asp-validation-for="OrderProofContext" class="text-danger"></span>
+                            <div class="form-text">Reviewer-supplied context (e.g. receiving wallet address). Internal only.</div>
+                        </div>
+
                         <div class="col-md-4">
                             <label asp-for="ModerationStatus" class="form-label"></label>
                             <select asp-for="ModerationStatus"
