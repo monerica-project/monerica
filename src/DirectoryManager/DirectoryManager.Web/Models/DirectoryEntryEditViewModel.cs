@@ -1,9 +1,10 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Utilities.Validation;
 
 namespace DirectoryManager.Web.Models
 {
-    public class DirectoryEntryEditViewModel
+    public class DirectoryEntryEditViewModel : IValidatableObject
     {
         public int DirectoryEntryId { get; set; }
 
@@ -54,5 +55,11 @@ namespace DirectoryManager.Web.Models
 
         // Total number of reviews (any moderation status) for this entry.
         public int ReviewCount { get; set; }
+
+        // Rejects HTML/CSS/JS on every string field (incl. Note) unless the
+        // property is decorated with [AllowHtml]. Mirrors SubmissionRequest so
+        // the admin edit form enforces the same plain-text rule as public submissions.
+        public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+            => InputHtmlGuard.Validate(this);
     }
 }
