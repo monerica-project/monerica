@@ -133,7 +133,17 @@ else
                 headers["Cross-Origin-Opener-Policy"] = "same-origin";
 
                 context.Response.StatusCode = 500;
-                await context.Response.WriteAsync(StringConstants.GenericExceptionMessage);
+
+                // Must set an explicit Content-Type. With X-Content-Type-Options: nosniff
+                // set above, a body sent with no Content-Type makes WebKit/iOS Safari refuse
+                // to render it and offer it as a download instead. text/html renders inline.
+                context.Response.ContentType = "text/html; charset=utf-8";
+                await context.Response.WriteAsync(
+                    "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\">" +
+                    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">" +
+                    "<title>Error</title></head><body><p>" +
+                    StringConstants.GenericExceptionMessage +
+                    "</p></body></html>");
             }
         });
     });

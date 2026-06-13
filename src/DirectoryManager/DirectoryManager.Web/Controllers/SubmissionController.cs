@@ -497,12 +497,28 @@ namespace DirectoryManager.Web.Controllers
                 return await this.ReturnInvalidReviewAsync(model, selectedTagIds, normalizedRelated);
             }
 
-            EnsureValidDirectoryStatus(model);
+            // Directory status must be set. Surface as a form error instead of throwing a 500.
+            if (model.DirectoryStatus == DirectoryStatus.Unknown)
+            {
+                this.ModelState.AddModelError(nameof(model.DirectoryStatus), "Select a valid directory status.");
+                return await this.ReturnInvalidReviewAsync(model, selectedTagIds, normalizedRelated);
+            }
 
             var submission = await this.submissionRepository.GetByIdAsync(id);
             if (submission == null)
             {
                 return this.NotFound();
+            }
+
+            // Approving requires a subcategory. Surface as a form error instead of throwing a 500.
+            bool isApproving =
+                submission.SubmissionStatus == SubmissionStatus.Pending &&
+                model.SubmissionStatus == SubmissionStatus.Approved;
+
+            if (isApproving && (model.SubCategoryId == null || model.SubCategoryId == 0))
+            {
+                this.ModelState.AddModelError(nameof(model.SubCategoryId), "Choose a subcategory before approving.");
+                return await this.ReturnInvalidReviewAsync(model, selectedTagIds, normalizedRelated);
             }
 
             var selected = NormalizeSelectedTagIds(selectedTagIds);
@@ -514,12 +530,22 @@ namespace DirectoryManager.Web.Controllers
                 normalizedRelated,
                 foundedDate);
 
-            await this.ApproveIfNeededAsync(submission, model, selected, normalizedRelated, ct);
+            try
+            {
+                await this.ApproveIfNeededAsync(submission, model, selected, normalizedRelated, ct);
 
-            submission.SubmissionStatus = model.SubmissionStatus;
-            submission.CountryCode = model.CountryCode;
+                submission.SubmissionStatus = model.SubmissionStatus;
+                submission.CountryCode = model.CountryCode;
 
-            await this.submissionRepository.UpdateAsync(submission);
+                await this.submissionRepository.UpdateAsync(submission);
+            }
+            catch (Exception)
+            {
+                // Any failure during approval/save re-renders the form with a message
+                // rather than bubbling to the 500 handler (which iOS would download).
+                this.ModelState.AddModelError(string.Empty, "Could not save this submission. Review the values and try again.");
+                return await this.ReturnInvalidReviewAsync(model, selectedTagIds, normalizedRelated);
+            }
 
             return this.RedirectToAction(nameof(this.Index));
         }
@@ -1105,14 +1131,6 @@ namespace DirectoryManager.Web.Controllers
             model.RelatedLinks = normalizedRelated;
 
             return this.View(model);
-        }
-
-        private static void EnsureValidDirectoryStatus(Submission model)
-        {
-            if (model.DirectoryStatus == DirectoryStatus.Unknown)
-            {
-                throw new Exception($"Invalid directory status: {model.DirectoryStatus}");
-            }
         }
 
         private static int[] NormalizeSelectedTagIds(int[] selectedTagIds)
