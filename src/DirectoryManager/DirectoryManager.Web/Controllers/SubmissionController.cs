@@ -539,11 +539,12 @@ namespace DirectoryManager.Web.Controllers
 
                 await this.submissionRepository.UpdateAsync(submission);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                // Any failure during approval/save re-renders the form with a message
-                // rather than bubbling to the 500 handler (which iOS would download).
-                this.ModelState.AddModelError(string.Empty, "Could not save this submission. Review the values and try again.");
+                // Admin-only screen: surface the real failure so it can be acted on,
+                // instead of bubbling to the 500 handler or silently re-rendering.
+                var detail = ex.GetBaseException().Message;
+                this.ModelState.AddModelError(string.Empty, $"Could not save this submission: {detail}");
                 return await this.ReturnInvalidReviewAsync(model, selectedTagIds, normalizedRelated);
             }
 

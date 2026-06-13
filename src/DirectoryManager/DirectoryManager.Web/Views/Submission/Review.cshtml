@@ -22,6 +22,12 @@
 
 <form asp-action="Review" asp-route-id="@Model.SubmissionId" method="post">
 
+    @if (!ViewData.ModelState.IsValid)
+    {
+        <div class="text-danger" role="alert" style="margin:12px 0; padding:10px; border:1px solid #c00;">
+            <div asp-validation-summary="All"></div>
+        </div>
+    }
 
     @if (Model.DirectoryEntryId  != null)
     {
