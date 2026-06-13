@@ -148,6 +148,52 @@ namespace DirectoryManager.Web.Controllers
             return this.View("LowRated", vm);
         }
 
+        // GET /admin/reviews/entry/123?status=Approved|Rejected|Pending (optional)
+        [HttpGet("entry/{entryId:int}")]
+        public async Task<IActionResult> ByEntry(
+            int entryId,
+            ReviewModerationStatus? status = null,
+            int page = 1,
+            int pageSize = 50,
+            CancellationToken ct = default)
+        {
+            if (page < 1) page = 1;
+            if (pageSize < 1) pageSize = 50;
+
+            var query = this.repo.Query()
+                .Include(r => r.DirectoryEntry)
+                .Where(r => r.DirectoryEntryId == entryId);
+
+            if (status.HasValue)
+            {
+                query = query.Where(r => r.ModerationStatus == status.Value);
+            }
+
+            var total = await query.CountAsync(ct);
+
+            var items = await query
+                .OrderByDescending(r => r.CreateDate)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync(ct);
+
+            var entry = items.FirstOrDefault()?.DirectoryEntry;
+
+            var vm = new EntryReviewsModerationViewModel
+            {
+                DirectoryEntryId = entryId,
+                DirectoryEntryName = entry?.Name ?? string.Empty,
+                DirectoryEntryKey = entry?.DirectoryEntryKey ?? string.Empty,
+                Status = status,
+                Reviews = items,
+                Total = total,
+                Page = page,
+                PageSize = pageSize
+            };
+
+            return this.View("ByEntry", vm);
+        }
+
         // -------- Reviews --------
 
         // GET /admin/reviews/123

@@ -20,6 +20,15 @@
 
     <a href="@Url.Action("EntryAudits", "DirectoryEntry", new { entryId = Model.DirectoryEntryId })">View History</a>
      |
+    @if (Model.ReviewCount > 0)
+    {
+        <a href="@Url.Action("ByEntry", "ReviewModeration", new { entryId = Model.DirectoryEntryId })">View Reviews (@Model.ReviewCount)</a>
+    }
+    else
+    {
+        <span class="text-muted">No reviews</span>
+    }
+     |
     <a href="@UrlBuilder.ListingPath(Model.DirectoryEntryKey)" target="_blank">View Listing</a>
 
 <br />

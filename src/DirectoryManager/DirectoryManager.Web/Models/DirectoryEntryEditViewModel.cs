@@ -51,5 +51,8 @@ namespace DirectoryManager.Web.Models
         public string? NewTagsCsv { get; set; }
         public string DirectoryEntryKey { get; set; } = string.Empty;
         public List<string> AdditionalLinks { get; set; } = new ();
+
+        // Total number of reviews (any moderation status) for this entry.
+        public int ReviewCount { get; set; }
     }
 }

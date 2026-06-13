@@ -277,6 +277,9 @@ namespace DirectoryManager.Web.Controllers
                 additionalLinks.Add(string.Empty);
             }
 
+            var reviewCount = await this.reviewRepository.Query()
+                .CountAsync(r => r.DirectoryEntryId == id);
+
             var vm = new DirectoryEntryEditViewModel
             {
                 DirectoryEntryKey = entry.DirectoryEntryKey,
@@ -305,6 +308,7 @@ namespace DirectoryManager.Web.Controllers
                 SelectedTagIds = selectedIds.ToList(),
                 AdditionalLinks = additionalLinks,
                 ReviewsDisabled = entry.ReviewsDisabled,
+                ReviewCount = reviewCount,
             };
 
             return this.View(vm);
