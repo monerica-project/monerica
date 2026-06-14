@@ -14,6 +14,9 @@ namespace DirectoryManager.Web.Models.Reviews
 
         public List<DirectoryEntryReview> Reviews { get; set; } = new ();
 
+        // ✅ Pinned official reviews, rendered above the crowd reviews.
+        public List<DirectoryEntryReview> OfficialReviews { get; set; } = new ();
+
         // key = DirectoryEntryReviewId
         public Dictionary<int, List<DirectoryEntryReviewComment>> RepliesByReviewId { get; set; }
             = new ();

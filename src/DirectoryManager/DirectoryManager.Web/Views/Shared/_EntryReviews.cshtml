@@ -55,6 +55,92 @@
         </div>
     }
 
+    @if (Model.OfficialReviews != null && Model.OfficialReviews.Any())
+    {
+        <div class="official-reviews mb-4">
+            @foreach (var o in Model.OfficialReviews)
+            {
+                <div id="review-@o.DirectoryEntryReviewId"
+                     class="official-review"
+                     itemscope
+                     itemtype="https://schema.org/Review">
+
+                    <div class="official-badge">
+                        <span class="official-badge-dot" aria-hidden="true"></span>
+                        Official review
+                    </div>
+
+                    @if (o.Rating.HasValue)
+                    {
+                        <div class="d-flex align-items-center mt-2">
+                            @EntryReviewHtmlHelper.RenderSingleReviewStars(o.Rating)
+                            <small class="text-muted ms-2">@o.Rating/5</small>
+                            <span itemprop="reviewRating" itemscope itemtype="https://schema.org/Rating">
+                                <meta itemprop="ratingValue" content="@((o.Rating ?? 0))" />
+                                <meta itemprop="bestRating" content="5" />
+                                <meta itemprop="worstRating" content="1" />
+                            </span>
+                        </div>
+                    }
+
+                    @EntryReviewHtmlHelper.RenderReviewTags(o)
+
+                    <div class="mt-2" itemprop="reviewBody">
+                        @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(o.Body, cssClass: "multi-line-text", ugcContent: false))
+                    </div>
+
+                    @if (!string.IsNullOrWhiteSpace(o.OrderUrl)
+                         || !string.IsNullOrWhiteSpace(o.SendingTxUrl)
+                         || !string.IsNullOrWhiteSpace(o.ReceivingTxUrl)
+                         || !string.IsNullOrWhiteSpace(o.ImageUrl))
+                    {
+                        <ul class="official-links mt-3 list-unstyled">
+                            @if (!string.IsNullOrWhiteSpace(o.OrderUrl))
+                            {
+                                <li>
+                                    <a href="@o.OrderUrl" target="_blank" rel="nofollow noopener noreferrer">Order URL ↗</a>
+                                </li>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(o.SendingTxUrl))
+                            {
+                                <li>
+                                    <a href="@o.SendingTxUrl" target="_blank" rel="nofollow noopener noreferrer">Sending transaction ↗</a>
+                                </li>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(o.ReceivingTxUrl))
+                            {
+                                <li>
+                                    <a href="@o.ReceivingTxUrl" target="_blank" rel="nofollow noopener noreferrer">Receiving transaction ↗</a>
+                                </li>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(o.ImageUrl))
+                            {
+                                <li>
+                                    <a href="@o.ImageUrl" target="_blank" rel="nofollow noopener noreferrer">Screenshot ↗</a>
+                                </li>
+                            }
+                        </ul>
+                    }
+
+                    <div class="official-meta mt-2">
+                        <small class="text-muted">
+                            Official review by Monerica.
+                            @if (o.TestedAt.HasValue)
+                            {
+                                <span class="ms-1">
+                                    Tested
+                                    <time datetime="@o.TestedAt.Value.ToString("yyyy-MM-dd")">
+                                        @o.TestedAt.Value.ToString("yyyy-MM-dd")
+                                    </time> 
+                                </span>
+                            }
+                        </small>
+                    </div>
+                </div>
+            }
+        </div>
+    }
+
     @if (Model.ReviewCount > 0)
     {
         <div class="rating-summary" aria-label="Review summary">

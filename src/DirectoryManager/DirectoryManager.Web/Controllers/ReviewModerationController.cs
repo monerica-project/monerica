@@ -254,6 +254,11 @@ public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
         Body                   = review.Body ?? string.Empty,
         OrderProof             = review.OrderUrl ?? review.OrderId,
         OrderProofContext      = review.OrderProofContext,
+        IsOfficial             = review.IsOfficial,
+        TestedAt               = review.TestedAt,
+        ImageUrl               = review.ImageUrl,
+        SendingTxUrl           = review.SendingTxUrl,
+        ReceivingTxUrl         = review.ReceivingTxUrl,
         ModerationStatus       = review.ModerationStatus,
         RejectionReason        = review.RejectionReason,
         SelectedTagIds         = review.ReviewTags.Select(x => x.ReviewTagId).ToList(),
@@ -305,13 +310,22 @@ public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
             review.Rating          = input.Rating;
             review.ModerationStatus = input.ModerationStatus;
             review.RejectionReason = string.IsNullOrWhiteSpace(input.RejectionReason)
-                ? null
+                ? string.Empty
                 : input.RejectionReason.Trim();
         
             ApplyOrderProof(review, input.OrderProof);
             review.OrderProofContext = string.IsNullOrWhiteSpace(input.OrderProofContext)
                 ? null
                 : input.OrderProofContext.Trim();
+
+            // ----- Official review -----
+            review.IsOfficial = input.IsOfficial;
+            review.TestedAt = input.TestedAt.HasValue
+                ? DateTime.SpecifyKind(input.TestedAt.Value.Date, DateTimeKind.Utc)
+                : null;
+            review.ImageUrl = string.IsNullOrWhiteSpace(input.ImageUrl) ? null : input.ImageUrl.Trim();
+            review.SendingTxUrl = string.IsNullOrWhiteSpace(input.SendingTxUrl) ? null : input.SendingTxUrl.Trim();
+            review.ReceivingTxUrl = string.IsNullOrWhiteSpace(input.ReceivingTxUrl) ? null : input.ReceivingTxUrl.Trim();
         
             await this.repo.UpdateAsync(review, ct);
         

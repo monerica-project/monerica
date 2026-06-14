@@ -27,6 +27,26 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Verification Details (optional)")]
         public string? OrderProofContext { get; set; }
 
+        // ----- Official review -----
+        [Display(Name = "Official review")]
+        public bool IsOfficial { get; set; }
+
+        [Display(Name = "Tested date (UTC)")]
+        [DataType(DataType.Date)]
+        public DateTime? TestedAt { get; set; }
+
+        [StringLength(2048)]
+        [Display(Name = "Screenshot URL (optional)")]
+        public string? ImageUrl { get; set; }
+
+        [StringLength(2048)]
+        [Display(Name = "Sending transaction URL (optional)")]
+        public string? SendingTxUrl { get; set; }
+
+        [StringLength(2048)]
+        [Display(Name = "Receiving transaction URL (optional)")]
+        public string? ReceivingTxUrl { get; set; }
+
         [Display(Name = "Moderation Status")]
         public ReviewModerationStatus ModerationStatus { get; set; }
 

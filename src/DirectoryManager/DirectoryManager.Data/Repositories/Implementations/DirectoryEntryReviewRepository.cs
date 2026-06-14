@@ -44,7 +44,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             return this.Set.AsNoTracking()
                 .Where(r => r.DirectoryEntryId == directoryEntryId
-                         && r.ModerationStatus == ReviewModerationStatus.Approved);
+                         && r.ModerationStatus == ReviewModerationStatus.Approved
+                         && !r.IsOfficial);
         }
 
         // ---------------------------
@@ -123,8 +124,26 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             return await this.Set.AsNoTracking()
                 .Where(r => r.DirectoryEntryId == directoryEntryId
-                         && r.ModerationStatus == ReviewModerationStatus.Approved)
+                         && r.ModerationStatus == ReviewModerationStatus.Approved
+                         && !r.IsOfficial)
                 .CountAsync(ct);
+        }
+
+        // ✅ Pinned official reviews — always shown above the crowd, never paged,
+        // excluded from the crowd count/average so they don't skew it.
+        public async Task<List<DirectoryEntryReview>> ListOfficialForEntryAsync(
+            int directoryEntryId,
+            CancellationToken ct)
+        {
+            return await this.Set.AsNoTracking()
+                .Where(r => r.DirectoryEntryId == directoryEntryId
+                         && r.ModerationStatus == ReviewModerationStatus.Approved
+                         && r.IsOfficial)
+                .Include(r => r.ReviewTags)
+                    .ThenInclude(x => x.ReviewTag)
+                .OrderByDescending(r => r.TestedAt ?? r.CreateDate)
+                .ThenByDescending(r => r.DirectoryEntryReviewId)
+                .ToListAsync(ct);
         }
 
         public async Task<double?> AverageRatingForEntryApprovedAsync(int directoryEntryId, CancellationToken ct = default)
@@ -132,6 +151,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var q = this.Set.AsNoTracking()
                 .Where(r => r.DirectoryEntryId == directoryEntryId
                          && r.ModerationStatus == ReviewModerationStatus.Approved
+                         && !r.IsOfficial
                          && r.Rating.HasValue)
                 .Select(r => (double)r.Rating!.Value);
 
@@ -147,6 +167,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var grouped = await this.Set.AsNoTracking()
                 .Where(r => r.DirectoryEntryId == directoryEntryId
                          && r.ModerationStatus == ReviewModerationStatus.Approved
+                         && !r.IsOfficial
                          && r.Rating.HasValue
                          && r.Rating.Value >= 1
                          && r.Rating.Value <= 5)

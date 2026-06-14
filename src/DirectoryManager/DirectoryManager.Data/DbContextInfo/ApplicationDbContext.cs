@@ -417,6 +417,10 @@ namespace DirectoryManager.Data.DbContextInfo
                  .HasDatabaseName("IX_Reviews_Mod_Entry")
                  .IncludeProperties(x => new { x.CreateDate, x.UpdateDate });
 
+                // ✅ Fast "pinned official reviews for entry"
+                r.HasIndex(x => new { x.DirectoryEntryId, x.IsOfficial, x.ModerationStatus })
+                 .HasDatabaseName("IX_Reviews_Entry_Official_Mod");
+
                 // Optional: if you also frequently query by ModStatus alone:
                 // r.HasIndex(x => x.ModerationStatus).HasDatabaseName("IX_Reviews_Mod");
             });

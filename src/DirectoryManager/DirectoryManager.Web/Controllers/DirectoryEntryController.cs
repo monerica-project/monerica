@@ -1152,11 +1152,15 @@ namespace DirectoryManager.Web.Controllers
 
             var authorCounts = await this.GetAuthorPostCountsCachedAsync(ct);
 
+            var officialReviews = await this.reviewRepository.ListOfficialForEntryAsync(entry.DirectoryEntryId, ct);
+            this.ApplyOwnerDisplayNames(entry, officialReviews);
+
             var vm = new EntryReviewsBlockViewModel
             {
                 DirectoryEntryId = entry.DirectoryEntryId,
                 DirectoryEntryKey = entry.DirectoryEntryKey,
                 Reviews = reviews,
+                OfficialReviews = officialReviews,
                 RepliesByReviewId = repliesLookup,
                 ReviewCount = totalReviews,
                 AverageRating = avg,

@@ -78,6 +78,33 @@ namespace DirectoryManager.Data.Models.Reviews
         [MaxLength(2048)]
         public string? OrderProofContext { get; set; }
 
+        // =========================================================
+        // Official review
+        //
+        // When IsOfficial = true, this review is marked as an official
+        // Monerica review: it is pinned above the user reviews and
+        // badged accordingly. All substantive detail lives in the
+        // review Body; the only extra structured fields are an optional
+        // image link and the date it was tested/verified.
+        // =========================================================
+        public bool IsOfficial { get; set; }
+
+        // Date the listing was tested/verified, stored as a UTC date (date-only).
+        [Column(TypeName = "datetime2")]
+        public DateTime? TestedAt { get; set; }
+
+        // Optional link to an image (e.g. a screenshot) shown with the review.
+        [MaxLength(2048)]
+        public string? ImageUrl { get; set; }
+
+        // Optional blockchain explorer links for the swap's send/receive legs.
+        // Shown only on official reviews.
+        [MaxLength(2048)]
+        public string? SendingTxUrl { get; set; }
+
+        [MaxLength(2048)]
+        public string? ReceivingTxUrl { get; set; }
+
         // Concurrency
         [Timestamp]
         public byte[]? RowVersion { get; set; }

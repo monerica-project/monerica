@@ -54,6 +54,54 @@
                             <div class="form-text">Reviewer-supplied context (e.g. receiving wallet address). Internal only.</div>
                         </div>
 
+                        <!-- ✅ Official review -->
+                        <div class="col-12">
+                            <div class="border rounded p-3">
+                                <div class="form-check mb-2">
+                                    <input class="form-check-input" type="checkbox" asp-for="IsOfficial" />
+                                    <label class="form-check-label fw-bold" asp-for="IsOfficial"></label>
+                                </div>
+                                <div class="form-text mb-3">
+                                    Pins this review above all user reviews and badges it as official.
+                                    Put the full detail in the review body above.
+                                </div>
+
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label asp-for="TestedAt" class="form-label"></label>
+                                        <input asp-for="TestedAt" type="date" class="form-control"
+                                               value="@(Model.TestedAt?.ToString("yyyy-MM-dd"))" />
+                                        <div class="form-text">Year-month-day, interpreted as UTC.</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="ImageUrl" class="form-label"></label>
+                                        <input asp-for="ImageUrl" class="form-control" maxlength="2048" />
+                                        <span asp-validation-for="ImageUrl" class="text-danger"></span>
+                                        <div class="form-text">Optional link to a screenshot or other proof image.</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="SendingTxUrl" class="form-label"></label>
+                                        <input asp-for="SendingTxUrl" class="form-control" maxlength="2048" />
+                                        <span asp-validation-for="SendingTxUrl" class="text-danger"></span>
+                                        <div class="form-text">Optional explorer link for the coins you sent.</div>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="ReceivingTxUrl" class="form-label"></label>
+                                        <input asp-for="ReceivingTxUrl" class="form-control" maxlength="2048" />
+                                        <span asp-validation-for="ReceivingTxUrl" class="text-danger"></span>
+                                        <div class="form-text">Optional explorer link for the coins you received.</div>
+                                    </div>
+                                    <div class="col-12">
+                                        <div class="form-text">
+                                            The <strong>Order URL</strong> shown on the review is taken from the
+                                            <strong>Order Proof</strong> field above — paste the exchange's order/tracking
+                                            link there.
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
                         <div class="col-md-4">
                             <label asp-for="ModerationStatus" class="form-label"></label>
                             <select asp-for="ModerationStatus"
