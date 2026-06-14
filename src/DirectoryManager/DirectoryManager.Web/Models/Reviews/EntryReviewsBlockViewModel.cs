@@ -8,6 +8,10 @@ namespace DirectoryManager.Web.Models.Reviews
 
         public bool ReviewsDisabled { get; set; }
 
+        // True only when the listing is in Admitted status (i.e. not yet Verified),
+        // so a public "Request verification" prompt should be shown.
+        public bool ShowRequestVerification { get; set; }
+
         // Used by _EntryReviews.cshtml
         public int ReviewCount { get; set; }
         public double? AverageRating { get; set; }

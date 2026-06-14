@@ -1,0 +1,23 @@
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    ViewData[StringConstants.TitleHeader] = "Request Verification – CAPTCHA";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <form asp-action="CaptchaPost" asp-controller="VerificationRequests" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+
+        @await Html.PartialAsync("_CaptchaBlock", (string)"verification")
+
+        <br />
+        <button type="submit" class="btn btn-primary btn-cta">Continue</button>
+    </form>
+}

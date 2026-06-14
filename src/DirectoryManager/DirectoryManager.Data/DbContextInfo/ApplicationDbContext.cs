@@ -48,6 +48,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<SearchLog> SearchLogs { get; set; }
         public DbSet<ReviewerKey> ReviewerKeys { get; set; }
         public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
+        public DbSet<DirectoryManager.Data.Models.VerificationRequests.VerificationRequest> VerificationRequests { get; set; }
         public DbSet<DirectoryEntryReviewComment> DirectoryEntryReviewComments { get; set; } = null!;
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
@@ -83,11 +84,33 @@ namespace DirectoryManager.Data.DbContextInfo
             ConfigureKeysAndRelationships(builder);   // ✅ keys + relationships only (no HasIndex)
             ConfigurePropertyMappings(builder);       // ✅ column types, max lengths, table names, etc. (no HasIndex)
             ConfigureAffiliateCommissionEarnedIndexes(builder);
+            ConfigureVerificationRequests(builder);
         }
 
         // =========================================================
         // INDEXES (ALL HasIndex() CALLS LIVE HERE)
         // =========================================================
+
+        private static void ConfigureVerificationRequests(ModelBuilder builder)
+        {
+            builder.Entity<DirectoryManager.Data.Models.VerificationRequests.VerificationRequest>(e =>
+            {
+                e.ToTable("VerificationRequests");
+                e.HasKey(x => x.VerificationRequestId);
+                e.Property(x => x.RowVersion).IsRowVersion();
+                e.Property(x => x.Comment).IsRequired();
+                e.Property(x => x.SourceIpHash).HasMaxLength(64);
+
+                e.HasOne(x => x.DirectoryEntry)
+                 .WithMany()
+                 .HasForeignKey(x => x.DirectoryEntryId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasIndex(x => new { x.Status, x.CreateDate, x.VerificationRequestId })
+                 .HasDatabaseName("IX_VerificationRequests_Status_Create_Id");
+            });
+        }
+
         private static void ConfigureIndexes(ModelBuilder builder)
         {
             ConfigureSponsoredListingOpeningNotificationIndexes(builder);

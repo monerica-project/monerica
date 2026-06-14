@@ -56,6 +56,8 @@
             <a href="~/admin/reviews">Reviews (@ViewBag.TotalPendingReviews)</a>
             &middot;
             <a href="~/submission/index">Submissions (@ViewBag.TotalPendingSubmissions)</a>
+            &middot;
+            <a href="~/admin/verification-requests">Verifications (@(ViewBag.TotalPendingVerificationRequests ?? 0))</a>
         </li>
         <li>
             <b>Invoicing:</b>
@@ -86,6 +88,7 @@
                 <li><a href="~/admin/reviews">Pending reviews (@ViewBag.TotalPendingReviews)</a></li>
                 <li><a href="~/directory-entry-reviews">All reviews</a></li>
                 <li><a href="~/review-tags">Review tags</a></li>
+                <li><a href="~/admin/verification-requests">Verification requests (@(ViewBag.TotalPendingVerificationRequests ?? 0))</a></li>
             </ul>
         </li>
         <li>

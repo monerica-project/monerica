@@ -1173,7 +1173,8 @@ namespace DirectoryManager.Web.Controllers
                 TotalPages = totalPages,
                 PageSize = IntegerConstants.ReviewsPageSize,
                 AuthorPostCountsByFingerprint = authorCounts,
-                ReviewsDisabled = entry.ReviewsDisabled
+                ReviewsDisabled = entry.ReviewsDisabled,
+                ShowRequestVerification = entry.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Admitted
             };
 
             return (vm, page);

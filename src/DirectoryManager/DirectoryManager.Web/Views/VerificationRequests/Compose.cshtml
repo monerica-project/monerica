@@ -1,0 +1,34 @@
+@using DirectoryManager.Web.Constants
+@model DirectoryManager.Web.Models.VerificationRequests.CreateVerificationRequestInputModel
+@{
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    ViewData[StringConstants.TitleHeader] = "Request Verification";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    @if (ViewBag.EntryName != null)
+    {
+        <p class="text-muted">Listing: <strong>@ViewBag.EntryName</strong></p>
+    }
+    <hr />
+
+    <p>Tell us why you'd like Monerica to verify this listing. Your reason helps us prioritize which listings to review first.</p>
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <form asp-action="ComposePost" asp-controller="VerificationRequests" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+        <input type="text" name="Website" value="" style="display:none" tabindex="-1" autocomplete="off" />
+
+        <div class="mb-3">
+            <label asp-for="Comment" class="form-label"></label>
+            <textarea asp-for="Comment" rows="5" class="form-control" maxlength="4000"></textarea>
+            <span asp-validation-for="Comment" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-cta">Submit request</button>
+    </form>
+}

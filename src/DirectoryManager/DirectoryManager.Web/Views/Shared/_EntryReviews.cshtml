@@ -55,6 +55,21 @@
         </div>
     }
 
+    @if (Model.ShowRequestVerification)
+    {
+        <div class="verification-request-notice mb-4">
+            <span class="vr-text">This listing hasn't been verified by Monerica yet.</span>
+            <form action="@Urls.ResolveToApp("/verification-requests/begin")"
+                  method="post"
+                  class="d-inline"
+                  rel="nofollow">
+                <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
+                <input type="text" name="website" value="" style="display:none" tabindex="-1" autocomplete="off" />
+                <button class="btn review-btn btn-sm" type="submit">Request verification</button>
+            </form>
+        </div>
+    }
+
     @if (Model.OfficialReviews != null && Model.OfficialReviews.Any())
     {
         <div class="official-reviews mb-4">

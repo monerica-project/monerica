@@ -1,0 +1,97 @@
+@using DirectoryManager.Data.Enums
+@model DirectoryManager.Web.Models.VerificationRequests.VerificationRequestQueueViewModel
+@{
+    ViewData["Title"] = "Verification Requests";
+    Layout = "_CenteredLayout";
+
+    VerificationRequestStatus[] tabs =
+    {
+        VerificationRequestStatus.Pending,
+        VerificationRequestStatus.Reviewed,
+        VerificationRequestStatus.Dismissed
+    };
+}
+
+@section PageContent {
+    <div class="container py-4">
+        <h1 class="mb-3">Verification Requests</h1>
+        <hr />
+        @await Html.PartialAsync("_AdminMenu")
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success">@TempData["SuccessMessage"]</div>
+        }
+
+        <ul class="nav nav-pills mb-3">
+            @foreach (var t in tabs)
+            {
+                <li class="nav-item">
+                    <a class="nav-link @(Model.Status == t ? "active" : "")"
+                       href="/admin/verification-requests?status=@t">@t</a>
+                </li>
+            }
+        </ul>
+
+        <p class="text-muted">@Model.Total @Model.Status request@(Model.Total == 1 ? "" : "s").</p>
+
+        @if (Model.Items.Count == 0)
+        {
+            <p class="text-muted">Nothing here.</p>
+        }
+        else
+        {
+            <table class="table table-sm align-middle">
+                <thead>
+                    <tr>
+                        <th>Requested</th>
+                        <th>Listing</th>
+                        <th>Reason</th>
+                        <th class="text-end">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in Model.Items)
+                    {
+                        <tr>
+                            <td class="text-nowrap">
+                                @r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
+                            </td>
+                            <td>
+                                @if (r.DirectoryEntry != null)
+                                {
+                                    <a href="/site/@r.DirectoryEntry.DirectoryEntryKey" target="_blank" rel="noopener">@r.DirectoryEntry.Name</a>
+                                    <div>
+                                        <a href="/admin/reviews/entry/@r.DirectoryEntryId" class="small">Open in review moderation →</a>
+                                    </div>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">#@r.DirectoryEntryId</span>
+                                }
+                            </td>
+                            <td class="multi-line-text">@r.Comment</td>
+                            <td class="text-end text-nowrap">
+                                @if (r.Status == VerificationRequestStatus.Pending)
+                                {
+                                    <form action="/admin/verification-requests/@r.VerificationRequestId/reviewed" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-primary">Mark reviewed</button>
+                                    </form>
+                                    <form action="/admin/verification-requests/@r.VerificationRequestId/dismiss" method="post" class="d-inline">
+                                        @Html.AntiForgeryToken()
+                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Dismiss</button>
+                                    </form>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">@r.Status</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    </div>
+}

@@ -3729,3 +3729,15 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   font-size: 14px;
   white-space: nowrap;
 }
+.verification-request-notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 10px 14px;
+  background: var(--bg-card-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+.verification-request-notice .vr-text { color: var(--fg-muted); font-size: 14px; }
