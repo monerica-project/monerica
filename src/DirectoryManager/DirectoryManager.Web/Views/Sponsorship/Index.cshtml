@@ -73,57 +73,51 @@
 
         @if (Model.Results != null && Model.Results.Any())
         {
-            <div class="table-wrapper">
-                <table class="table" style="width: 100%;">
-                    <thead>
-                        <tr>
-                            <th>Listing</th>
-                            <th>Status</th>
-                            <th>Category</th>
-                            <th>Subcategory</th>
-                            <th>Age (days)</th>
-                            <th></th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var r in Model.Results)
-                        {
-                            <tr>
-                                <td>
-                                    @if (!string.IsNullOrWhiteSpace(r.Link))
-                                    {
-                                        <a href="@r.Link" target="_blank" rel="noopener">@r.Name</a>
-                                    }
-                                    else
-                                    {
-                                        @r.Name
-                                    }
+            <div class="search-results">
+                @foreach (var r in Model.Results)
+                {
+                    var meta = r.Status;
+                    if (!string.IsNullOrWhiteSpace(r.Category)) { meta += $" · {r.Category}"; }
+                    if (!string.IsNullOrWhiteSpace(r.Subcategory)) { meta += $" » {r.Subcategory}"; }
+                    meta += $" · listed {r.AgeDays} days";
 
-                                    @if (!r.CanAdvertise && r.Reasons != null && r.Reasons.Any())
+                    <div class="result-row"
+                         style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px;
+                                padding:12px 0; border-bottom:1px solid rgba(128,128,128,.25);">
+                        <div style="flex:1 1 240px; min-width:0;">
+                            <div style="font-size:1.05em; font-weight:600;">
+                                @if (!string.IsNullOrWhiteSpace(r.Link))
+                                {
+                                    <a href="@r.Link" target="_blank" rel="noopener">@r.Name</a>
+                                }
+                                else
+                                {
+                                    @r.Name
+                                }
+                            </div>
+                            <div style="opacity:.8; font-size:.9em; margin-top:2px;">@meta</div>
+
+                            @if (!r.CanAdvertise && r.Reasons != null && r.Reasons.Any())
+                            {
+                                <ul style="margin:6px 0 0 18px; opacity:.85; font-size:.9em;">
+                                    @foreach (var reason in r.Reasons)
                                     {
-                                        <ul style="margin: 6px 0 0 18px; opacity: .9;">
-                                            @foreach (var reason in r.Reasons)
-                                            {
-                                                <li>@reason</li>
-                                            }
-                                        </ul>
+                                        <li>@reason</li>
                                     }
-                                </td>
-                                <td>@r.Status</td>
-                                <td>@r.Category</td>
-                                <td>@r.Subcategory</td>
-                                <td>@r.AgeDays</td>
-                                <td style="white-space: nowrap;">
-                                    <form method="post" action="@Url.Action("Select", "Sponsorship")">
-                                        @Html.AntiForgeryToken()
-                                        <input type="hidden" name="directoryEntryId" value="@r.DirectoryEntryId" />
-                                        <button type="submit" class="btn btn-info">See available spots</button>
-                                    </form>
-                                </td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                                </ul>
+                            }
+                        </div>
+
+                        <form method="post" action="@Url.Action("Select", "Sponsorship")"
+                              style="flex:0 0 auto; margin:0;">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="directoryEntryId" value="@r.DirectoryEntryId" />
+                            <button type="submit" class="btn @(r.CanAdvertise ? "btn-info" : "btn-secondary")">
+                                See available spots
+                            </button>
+                        </form>
+                    </div>
+                }
             </div>
 
             @if (Model.TotalPages > 1)
