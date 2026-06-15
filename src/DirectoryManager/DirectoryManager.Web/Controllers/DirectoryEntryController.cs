@@ -1113,7 +1113,12 @@ namespace DirectoryManager.Web.Controllers
         {
             int totalReviews = await this.reviewRepository.CountApprovedForEntryAsync(entry.DirectoryEntryId, ct);
 
-            var (c1, c2, c3, c4, c5) = totalReviews > 0
+            var officialReviews = await this.reviewRepository.ListOfficialForEntryAsync(entry.DirectoryEntryId, ct);
+            this.ApplyOwnerDisplayNames(entry, officialReviews);
+
+            bool hasAnyRating = totalReviews > 0 || officialReviews.Count > 0;
+
+            var (c1, c2, c3, c4, c5) = hasAnyRating
                 ? await this.reviewRepository.GetApprovedRatingCountsForEntryAsync(entry.DirectoryEntryId, ct)
                 : (0, 0, 0, 0, 0);
 
@@ -1146,14 +1151,11 @@ namespace DirectoryManager.Web.Controllers
                 .GroupBy(x => x.DirectoryEntryReviewId)
                 .ToDictionary(g => g.Key, g => g.ToList());
 
-            var avg = totalReviews > 0
+            var avg = hasAnyRating
                 ? await this.reviewRepository.AverageRatingForEntryApprovedAsync(entry.DirectoryEntryId, ct)
                 : null;
 
             var authorCounts = await this.GetAuthorPostCountsCachedAsync(ct);
-
-            var officialReviews = await this.reviewRepository.ListOfficialForEntryAsync(entry.DirectoryEntryId, ct);
-            this.ApplyOwnerDisplayNames(entry, officialReviews);
 
             var vm = new EntryReviewsBlockViewModel
             {
@@ -1162,7 +1164,7 @@ namespace DirectoryManager.Web.Controllers
                 Reviews = reviews,
                 OfficialReviews = officialReviews,
                 RepliesByReviewId = repliesLookup,
-                ReviewCount = totalReviews,
+                ReviewCount = totalReviews + officialReviews.Count,
                 AverageRating = avg,
                 Rating1Count = c1,
                 Rating2Count = c2,

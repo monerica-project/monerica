@@ -43,10 +43,17 @@ namespace DirectoryManager.Utilities.Validation
             {
                 int cp = rune.Value;
 
-                // Line breaks: normalize CR/LF/CRLF and the Unicode line/paragraph
-                // separators (U+2028/U+2029) to a single '\n', or to a space if the
-                // field is single-line.
-                if (cp == '\n' || cp == '\r' || cp == 0x2028 || cp == 0x2029)
+                // Carriage returns are dropped so that a CRLF ("\r\n") collapses to a
+                // single break via the following LF, instead of being counted twice
+                // (which previously doubled every line break).
+                if (cp == '\r')
+                {
+                    continue;
+                }
+
+                // Line breaks: normalize LF and the Unicode line/paragraph separators
+                // (U+2028/U+2029) to a single '\n', or to a space if single-line.
+                if (cp == '\n' || cp == 0x2028 || cp == 0x2029)
                 {
                     sb.Append(allowLineBreaks ? '\n' : ' ');
                     continue;

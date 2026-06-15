@@ -151,7 +151,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var q = this.Set.AsNoTracking()
                 .Where(r => r.DirectoryEntryId == directoryEntryId
                          && r.ModerationStatus == ReviewModerationStatus.Approved
-                         && !r.IsOfficial
                          && r.Rating.HasValue)
                 .Select(r => (double)r.Rating!.Value);
 
@@ -167,7 +166,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var grouped = await this.Set.AsNoTracking()
                 .Where(r => r.DirectoryEntryId == directoryEntryId
                          && r.ModerationStatus == ReviewModerationStatus.Approved
-                         && !r.IsOfficial
                          && r.Rating.HasValue
                          && r.Rating.Value >= 1
                          && r.Rating.Value <= 5)
