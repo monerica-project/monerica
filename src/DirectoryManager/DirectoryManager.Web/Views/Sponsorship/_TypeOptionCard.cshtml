@@ -183,41 +183,34 @@
     {
         <div style="margin-top: 14px;">
             <div style="font-weight:600; margin-bottom: 6px;">Pricing</div>
-            <div class="table-wrapper">
-                <table class="table" style="width:100%; margin:0;">
-                    <thead>
-                        <tr>
-                            <th style="width:90px;">Days</th>
-                            <th style="text-align:right;">USD</th>
+            <div class="pricing-stack" style="border:1px solid var(--border-strong); border-radius:var(--radius); background:rgba(0,0,0,0.25); overflow:hidden;">
+                @{ var orderedOffers = opt.Offers.OrderBy(x => x.Days).ToList(); }
+                @for (var i = 0; i < orderedOffers.Count; i++)
+                {
+                    var o = orderedOffers[i];
+                    var rowBorder = i == orderedOffers.Count - 1 ? "0" : "1px solid var(--border-divider)";
+                    <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:9px 12px; border-bottom:@rowBorder;">
+                        <div style="white-space:nowrap;">
+                            <span style="font-weight:600;">@o.Days</span>
+                            <span style="opacity:.6;"> days</span>
+                        </div>
+                        <div style="text-align:right; line-height:1.4; min-width:0;">
+                            <div style="font-weight:600;">@o.PriceUsd.ToString("C2", usd)</div>
                             @if (showConverted)
                             {
-                                <th style="text-align:right;">XMR</th>
+                                <div style="opacity:.85; font-size:.9em; white-space:nowrap;">
+                                    @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
+                                        o.PriceUsd,
+                                        conversionRate,
+                                        conversionResult.selectedCurrency,
+                                        true
+                                    )
+                                </div>
                             }
-                            <th style="text-align:right;">$/day</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach (var o in opt.Offers.OrderBy(x => x.Days))
-                        {
-                            <tr>
-                                <td>@o.Days</td>
-                                <td style="text-align:right;">@o.PriceUsd.ToString("C2", usd)</td>
-                                @if (showConverted)
-                                {
-                                    <td style="text-align:right;">
-                                        @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
-                                            o.PriceUsd,
-                                            conversionRate,
-                                            conversionResult.selectedCurrency,
-                                            false
-                                        )
-                                    </td>
-                                }
-                                <td style="text-align:right;">@o.PricePerDay.ToString("C2", usd)</td>
-                            </tr>
-                        }
-                    </tbody>
-                </table>
+                            <div style="opacity:.6; font-size:.82em; white-space:nowrap;">@o.PricePerDay.ToString("C2", usd)/day</div>
+                        </div>
+                    </div>
+                }
             </div>
 
             @if (nextExpire != null && nextExpire.CampaignEndUtc > nowUtc)
