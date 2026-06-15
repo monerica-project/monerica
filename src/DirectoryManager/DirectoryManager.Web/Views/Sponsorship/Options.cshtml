@@ -246,19 +246,28 @@
 
     <form method="post"
           action="@Url.Action("Subscribe", "Sponsorship")"
+          id="join-waitlist"
           class="card"
-          style="padding:14px; border-radius:12px; margin-top: 10px;">
+          style="padding:16px 16px 14px; border-radius:12px; margin-top: 10px; border:2px solid var(--orange); background:rgba(255,102,0,0.06); box-shadow:0 0 0 1px rgba(255,102,0,0.20), 0 0 18px rgba(255,102,0,0.12);">
         @Html.AntiForgeryToken()
 
         <input type="hidden" name="DirectoryEntryId" value="@Model.DirectoryEntryId" />
 
+        <label for="waitlist-email" style="display:block; font-weight:600; margin-bottom:6px; font-size:1.05rem;">
+            Enter your email to join the waitlist
+        </label>
         <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
             <input type="email"
+                   id="waitlist-email"
                    name="Email"
                    class="form-control"
-                   placeholder="Email for notifications"
+                   placeholder="you@example.com"
+                   required="required"
                    style="flex: 1 1 260px; max-width: 420px;" />
-            <button type="submit" class="btn btn-primary btn-cta">Subscribe</button>
+            <button type="submit" class="btn btn-primary btn-cta" style="flex:0 0 auto;">Join the waitlist &rarr;</button>
+        </div>
+        <div style="margin-top:6px; opacity:.85; font-size:.9em;">
+            We’ll email you the moment a slot opens — pick which slots below.
         </div>
 
         <div class="ui-checks" style="margin-top:12px;">

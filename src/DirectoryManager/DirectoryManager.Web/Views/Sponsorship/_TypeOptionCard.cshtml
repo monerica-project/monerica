@@ -184,15 +184,31 @@
         <div style="margin-top: 14px;">
             <div style="font-weight:600; margin-bottom: 6px;">Pricing</div>
             <div class="pricing-stack" style="border:1px solid var(--border-strong); border-radius:var(--radius); background:rgba(0,0,0,0.25); overflow:hidden;">
-                @{ var orderedOffers = opt.Offers.OrderBy(x => x.Days).ToList(); }
+                @{
+                    var orderedOffers = opt.Offers.OrderBy(x => x.Days).ToList();
+                    decimal? baselinePerDay = orderedOffers.Count > 0 ? orderedOffers[0].PricePerDay : (decimal?)null;
+                }
                 @for (var i = 0; i < orderedOffers.Count; i++)
                 {
                     var o = orderedOffers[i];
                     var rowBorder = i == orderedOffers.Count - 1 ? "0" : "1px solid var(--border-divider)";
+
+                    int? pctDiscount = null;
+                    decimal? totalUsdSaved = null;
+                    if (i > 0 && baselinePerDay.HasValue && baselinePerDay.Value > 0)
+                    {
+                        var usdDiscountPerDay = baselinePerDay.Value - o.PricePerDay;
+                        pctDiscount = (int)Math.Round((usdDiscountPerDay / baselinePerDay.Value) * 100m, 0, MidpointRounding.AwayFromZero);
+                        totalUsdSaved = (baselinePerDay.Value * o.Days) - o.PriceUsd;
+                    }
                     <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:9px 12px; border-bottom:@rowBorder;">
                         <div style="white-space:nowrap;">
                             <span style="font-weight:600;">@o.Days</span>
                             <span style="opacity:.6;"> days</span>
+                            @if (i == 0)
+                            {
+                                <div style="font-size:.7em; opacity:.5; font-weight:400; letter-spacing:.04em; text-transform:uppercase; margin-top:2px;">Market price</div>
+                            }
                         </div>
                         <div style="text-align:right; line-height:1.4; min-width:0;">
                             <div style="font-weight:600;">@o.PriceUsd.ToString("C2", usd)</div>
@@ -208,6 +224,12 @@
                                 </div>
                             }
                             <div style="opacity:.6; font-size:.82em; white-space:nowrap;">@o.PricePerDay.ToString("C2", usd)/day</div>
+                            @if (totalUsdSaved.HasValue && totalUsdSaved.Value > 0 && pctDiscount.HasValue && pctDiscount.Value > 0)
+                            {
+                                <div class="text-danger" style="font-size:.82em; white-space:nowrap; margin-top:2px;">
+                                    @(pctDiscount)% off &middot; save @totalUsdSaved.Value.ToString("C2", usd)
+                                </div>
+                            }
                         </div>
                     </div>
                 }
