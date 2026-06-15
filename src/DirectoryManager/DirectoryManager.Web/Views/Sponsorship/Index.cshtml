@@ -34,11 +34,14 @@
     <hr />
 
     @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SponsoredListingSteps))
-    <p style="margin: 0 0 10px 0;">
-        <strong>Search your listing to see prices, pick your spot — or join the waitlist.</strong><br />
-        Every listing has up to 3 sponsorship placements, each available in different durations and at different prices.
-        Search below to find yours and see what's available.
-        If the spot you want is already taken, join the waitlist and we'll notify you when it opens.
+    <p style="margin: 0 0 6px 0;"><strong>How to sponsor a spot:</strong></p>
+    <ol style="margin: 0 0 12px 0; padding-left: 22px;">
+        <li>Your site must be listed in the directory first. <a href="~/submit">Not listed yet? Submit it →</a></li>
+        <li>Search your listing below.</li>
+        <li>Select it to see every placement, live prices, and which spots are open — then pay in XMR, or join the waitlist if the spot you want is taken.</li>
+    </ol>
+    <p style="margin: 0 0 10px 0; opacity: .9;">
+        Every listing has up to 3 placements (Main, Category, Subcategory), each in different durations and prices.
     </p>
 
     <!-- SEARCH -->
@@ -49,8 +52,12 @@
                placeholder="Search listings… (name, website)"
                class="form-control"
                style="max-width: 520px; display: inline-block;" />
-        <button type="submit" class="btn btn-primary btn-cta">Search</button>
+        <button type="submit" class="btn btn-primary btn-cta">Find my listing</button>
     </form>
+    <p style="margin: -6px 0 16px 0; opacity: .85;">
+        Don't see your site, or not listed yet? <a href="~/submit">Submit it first →</a>
+        Questions? <a href="~/contact">Contact us</a>.
+    </p>
 
     @if (Model.HasSearched)
     {
@@ -110,7 +117,7 @@
                                     <form method="post" action="@Url.Action("Select", "Sponsorship")">
                                         @Html.AntiForgeryToken()
                                         <input type="hidden" name="directoryEntryId" value="@r.DirectoryEntryId" />
-                                        <button type="submit" class="btn btn-info">Select &amp; Join</button>
+                                        <button type="submit" class="btn btn-info">See available spots</button>
                                     </form>
                                 </td>
                             </tr>
@@ -139,7 +146,11 @@
         }
         else
         {
-            <p>No results.</p>
+            <p style="margin-top: 8px;">
+                No directory listing found for <strong>@q</strong>. A site has to be listed in the
+                directory before it can be sponsored — <a href="~/submit">submit it here</a>, then
+                come back and search again. Questions? <a href="~/contact">Contact us</a>.
+            </p>
         }
     }
 
@@ -165,6 +176,7 @@
             </p>
             <p>Come back in @Model.MainSponsorInventory.TimeUntilNextMessage</p>
             <p>Search for your listing to <b>join the waitlist!</b></p>
+            <p style="opacity: .9;">Category and Subcategory spots are separate from Main — search your listing above to check those.</p>
         </div>
     }
 
