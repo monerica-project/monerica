@@ -1133,7 +1133,12 @@ namespace DirectoryManager.Web.Controllers
 
             this.ApplyOwnerDisplayNames(entry, reviews);
 
-            var reviewIds = reviews.Select(r => r.DirectoryEntryReviewId).ToList();
+            // Load replies for BOTH the paged crowd reviews AND the pinned official
+            // reviews, so official reviews can be replied to and display their replies.
+            var reviewIds = reviews.Select(r => r.DirectoryEntryReviewId)
+                .Concat(officialReviews.Select(o => o.DirectoryEntryReviewId))
+                .Distinct()
+                .ToList();
 
             var allReplies = reviewIds.Count == 0
                 ? new List<DirectoryEntryReviewComment>()
@@ -1282,6 +1287,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 foreach (var r in reviews)
                 {
+                    r.IsOwner = false;
                     r.DisplayName = string.IsNullOrWhiteSpace(r.DisplayName) ? null : r.DisplayName;
                 }
 
@@ -1294,6 +1300,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 var reviewNorm = PgpFingerprintTools.Normalize(r.AuthorFingerprint);
                 bool isOwner = entryFps.Any(fp => PgpFingerprintTools.Matches(reviewNorm, fp));
+                r.IsOwner = isOwner;
                 r.DisplayName = isOwner ? entry.Name : null;
             }
         }
@@ -1309,6 +1316,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 foreach (var c in replies)
                 {
+                    c.IsOwner = false;
                     c.DisplayName = string.IsNullOrWhiteSpace(c.DisplayName) ? null : c.DisplayName;
                 }
 
@@ -1321,6 +1329,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 var replyNorm = PgpFingerprintTools.Normalize(c.AuthorFingerprint);
                 bool isOwner = entryFps.Any(fp => PgpFingerprintTools.Matches(replyNorm, fp));
+                c.IsOwner = isOwner;
                 c.DisplayName = isOwner ? entry.Name : null;
             }
         }

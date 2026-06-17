@@ -112,6 +112,12 @@ namespace DirectoryManager.Data.Models.Reviews
         [Timestamp]
         public byte[]? RowVersion { get; set; }
 
+        // True when this review's AuthorFingerprint matches the listing's verified
+        // PGP key (entry.PgpKey). Set by the presentation layer so the UI can
+        // visibly mark reviews authored by the actual site/listing owner.
+        [NotMapped]
+        public bool IsOwner { get; set; }
+
         public ICollection<DirectoryEntryReviewComment> Comments { get; set; } = new List<DirectoryEntryReviewComment>();
 
         public ICollection<DirectoryEntryReviewTag> ReviewTags { get; set; } = new List<DirectoryEntryReviewTag>();

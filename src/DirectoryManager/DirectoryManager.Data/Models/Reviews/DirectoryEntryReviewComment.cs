@@ -44,5 +44,11 @@ namespace DirectoryManager.Data.Models.Reviews
 
         [NotMapped]
         public string? DisplayName { get; set; }
+
+        // True when this reply's AuthorFingerprint matches the listing's verified
+        // PGP key (entry.PgpKey). Set by the presentation layer so the UI can
+        // visibly mark replies that come from the actual site/listing owner.
+        [NotMapped]
+        public bool IsOwner { get; set; }
     }
 }

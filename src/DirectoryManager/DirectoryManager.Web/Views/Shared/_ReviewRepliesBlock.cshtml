@@ -1,0 +1,80 @@
+﻿@using System.Globalization
+@using DirectoryManager.Web.Services.Interfaces
+@using DirectoryManager.Utilities.Helpers
+@model DirectoryManager.Web.Models.Reviews.ReviewRepliesBlockViewModel
+@inject IUrlResolutionService Urls
+
+@{
+    var replies = Model?.Replies ?? new List<DirectoryManager.Data.Models.Reviews.DirectoryEntryReviewComment>();
+    bool reviewsDisabled = Model?.ReviewsDisabled ?? false;
+    int reviewId = Model?.DirectoryEntryReviewId ?? 0;
+
+    var authorCounts = Model?.AuthorPostCountsByFingerprint
+        ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+
+    int PostsFor(string? fp)
+    {
+        var key = (fp ?? string.Empty).Trim();
+        return authorCounts.TryGetValue(key, out var cnt) ? cnt : 0;
+    }
+
+    string HoverMinute(DateTime dt) => dt.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4, CultureInfo.InvariantCulture);
+    string DateTimeMinuteAttr(DateTime dt) => dt.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3, CultureInfo.InvariantCulture);
+}
+
+@if (!reviewsDisabled && reviewId > 0)
+{
+    <div class="mt-3">
+        <form action="@Urls.ResolveToApp("/directory-entry-review-replies/begin")"
+              method="post" class="d-inline" rel="nofollow">
+            <input type="hidden" name="directoryEntryReviewId" value="@reviewId" />
+            <input type="text" name="website" value="" style="display:none" />
+            <button class="btn review-btn btn-sm btn-outline-secondary" type="submit">Reply</button>
+        </form>
+    </div>
+}
+
+@if (replies.Any())
+{
+    <div class="mt-3 ps-3 border-start">
+        <br />
+        <div class="text-muted mb-2"><strong>Replies</strong></div>
+
+        <ul class="list-unstyled mb-0">
+            @foreach (var c in replies)
+            {
+                <li id="review-comment-@c.DirectoryEntryReviewCommentId"
+                    class="reply-item@(c.IsOwner ? " owner-reply" : string.Empty)">
+
+                    @if (c.IsOwner)
+                    {
+                        <div class="owner-badge">
+                            <span class="owner-badge-mark" aria-hidden="true">✓</span>
+                            Response from @(string.IsNullOrWhiteSpace(c.DisplayName) ? "the listing" : c.DisplayName)
+                        </div>
+                    }
+
+                    <div class="reply-body">
+                        @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(c.Body, cssClass: "multi-line-text", ugcContent: true))
+                    </div>
+
+                    <div class="reply-meta">
+                        <small class="text-muted multi-line-text">
+                            Author: @(string.IsNullOrWhiteSpace(c.DisplayName) ? c.AuthorFingerprint : c.DisplayName)
+                            <span class="ms-1">(posts: @PostsFor(c.AuthorFingerprint))</span>
+                        </small>
+                        <small class="text-muted ms-2">•</small>
+                        @{
+                            var replyDt = (c.UpdateDate ?? c.CreateDate);
+                        }
+                        <time class="text-muted ms-2"
+                              datetime="@DateTimeMinuteAttr(replyDt)"
+                              title="@HoverMinute(replyDt)">
+                            @replyDt.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
+                        </time>
+                    </div>
+                </li>
+            }
+        </ul>
+    </div>
+}
