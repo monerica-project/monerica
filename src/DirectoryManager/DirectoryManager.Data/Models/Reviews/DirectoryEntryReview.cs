@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+﻿﻿using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.BaseModels;
@@ -72,9 +72,12 @@ namespace DirectoryManager.Data.Models.Reviews
         [MaxLength(2048)]
         public string? OrderUrl { get; set; }
 
-        // Optional free-text the reviewer supplies alongside the order-proof URL so a
-        // moderator can look the order up (e.g. a receiving wallet address, an order
-        // reference, etc.). Internal/moderation use only; never shown publicly.
+        // Optional free-text supplied alongside the order-proof URL (e.g. a receiving
+        // wallet address, an order reference, etc.). For crowd (non-official) reviews
+        // this is internal/moderation use only and never shown publicly. For official
+        // reviews it is surfaced publicly under an expandable "Verification details"
+        // disclosure on the listing page, since official reviews are authored by
+        // Monerica itself.
         [MaxLength(2048)]
         public string? OrderProofContext { get; set; }
 

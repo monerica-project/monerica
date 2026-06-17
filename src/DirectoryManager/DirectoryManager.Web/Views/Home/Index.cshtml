@@ -467,6 +467,10 @@
 <li>
     <i>@itemDate</i>
     @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>&nbsp;@Html.Raw(flagTag)
+    @if (parent?.IsOfficial == true)
+    {
+        <span class="badge bg-orange official-flag" title="Official Monerica review">Official</span>
+    }
     @RenderReviewTags(parent)
     @if (parent?.Rating.HasValue == true && parent.Rating.Value > 0)
     {
@@ -506,6 +510,10 @@
 <li>
     <i>@itemDate</i>
     @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>&nbsp;@Html.Raw(flagTag)
+    @if (r.IsOfficial)
+    {
+        <span class="badge bg-orange official-flag" title="Official Monerica review">Official</span>
+    }
     @RenderReviewTags(r)
     @if (r.Rating.HasValue && r.Rating.Value > 0)
     {
