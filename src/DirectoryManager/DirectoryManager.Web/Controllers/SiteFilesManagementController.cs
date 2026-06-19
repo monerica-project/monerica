@@ -5,21 +5,42 @@ using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 
 namespace DirectoryManager.Web.Controllers
 {
     [Authorize]
+    [ResponseCache(NoStore = true, Location = ResponseCacheLocation.None)]
     public class SiteFilesManagementController : Controller
     {
+        // 25 MB ceiling per file.
+        private const long MaxUploadBytes = 25 * 1024 * 1024;
+
+        // Extensions an admin may upload. Intentionally narrow; widen here if a real asset
+        // type is missing. NOTE: blobs are served from a separate storage/CDN origin and the
+        // app enforces script-src 'none', so .svg is low-risk here, but drop it from the list
+        // if you never serve admin-uploaded SVGs.
+        private static readonly HashSet<string> AllowedUploadExtensions =
+            new (StringComparer.OrdinalIgnoreCase)
+            {
+                ".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".bmp", ".ico", ".svg",
+                ".pdf", ".txt", ".csv", ".json", ".xml",
+                ".css", ".webmanifest",
+                ".woff", ".woff2", ".ttf", ".otf", ".eot",
+            };
+
         private readonly ISiteFilesRepository siteFilesRepository;
         private readonly ICacheService cacheService;
+        private readonly ILogger<SiteFilesManagementController> logger;
 
         public SiteFilesManagementController(
             ISiteFilesRepository siteFilesRepository,
-            ICacheService cacheService)
+            ICacheService cacheService,
+            ILogger<SiteFilesManagementController> logger)
         {
             this.siteFilesRepository = siteFilesRepository;
             this.cacheService = cacheService;
+            this.logger = logger;
         }
 
         [Route("sitefilesmanagement/upload")]
@@ -37,22 +58,38 @@ namespace DirectoryManager.Web.Controllers
         {
             try
             {
+                // Folder navigation produces rooted paths like "/exchange-reviews/".
+                // Normalize to blob-relative before validating; the repository expects no leading slash.
+                folderPath = folderPath?.TrimStart('/');
+
                 // Reject a traversal/absolute/control-char folder path outright.
                 if (!IsSafeFolderPath(folderPath))
                 {
-                    return this.RedirectToAction("Index");
+                    this.TempData["Error"] = "Upload rejected: unsafe folder path.";
+                    return this.RedirectToAction("Index", new { folderPath });
                 }
 
-                foreach (var file in files)
+                var fileList = files?.ToList() ?? new List<IFormFile>();
+                if (fileList.Count == 0)
+                {
+                    this.TempData["Error"] = "No file was received. Pick a file before submitting.";
+                    return this.RedirectToAction("Index", new { folderPath });
+                }
+
+                var uploaded = 0;
+                var skipped = new List<string>();
+
+                foreach (var file in fileList)
                 {
                     if (file == null || file.Length <= 0)
                     {
+                        skipped.Add($"{file?.FileName ?? "(unnamed)"} (empty)");
                         continue;
                     }
 
-                    // Size cap.
                     if (file.Length > MaxUploadBytes)
                     {
+                        skipped.Add($"{file.FileName} (over 25 MB)");
                         continue;
                     }
 
@@ -60,6 +97,7 @@ namespace DirectoryManager.Web.Controllers
                     var safeName = Path.GetFileName(file.FileName ?? string.Empty);
                     if (!IsSafeFileName(safeName))
                     {
+                        skipped.Add($"{file.FileName} (invalid file name)");
                         continue;
                     }
 
@@ -67,93 +105,64 @@ namespace DirectoryManager.Web.Controllers
                     var ext = Path.GetExtension(safeName);
                     if (string.IsNullOrEmpty(ext) || !AllowedUploadExtensions.Contains(ext))
                     {
+                        skipped.Add($"{safeName} (extension '{ext}' not allowed)");
                         continue;
                     }
 
                     using var stream = file.OpenReadStream();
                     await this.siteFilesRepository.UploadAsync(stream, safeName, folderPath);
+                    uploaded++;
                 }
 
-                return this.RedirectToAction("Index");
-            }
-            catch (Exception)
-            {
-                return this.RedirectToAction("Index");
-            }
-        }
-
-        // 25 MB ceiling per file.
-        private const long MaxUploadBytes = 25 * 1024 * 1024;
-
-        // Extensions an admin may upload. Intentionally narrow; widen here if a real asset
-        // type is missing. NOTE: blobs are served from a separate storage/CDN origin and the
-        // app enforces script-src 'none', so .svg is low-risk here, but drop it from the list
-        // if you never serve admin-uploaded SVGs.
-        private static readonly HashSet<string> AllowedUploadExtensions =
-            new (StringComparer.OrdinalIgnoreCase)
-            {
-                ".png", ".jpg", ".jpeg", ".gif", ".webp", ".ico", ".svg",
-                ".pdf", ".txt", ".csv", ".json", ".xml",
-                ".css", ".webmanifest",
-                ".woff", ".woff2", ".ttf", ".otf", ".eot",
-            };
-
-        private static bool IsSafeFileName(string? name)
-        {
-            if (string.IsNullOrWhiteSpace(name))
-            {
-                return false;
-            }
-
-            if (name.Contains("..", StringComparison.Ordinal))
-            {
-                return false;
-            }
-
-            if (name.IndexOf('/') >= 0 || name.IndexOf('\\') >= 0)
-            {
-                return false;
-            }
-
-            if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        private static bool IsSafeFolderPath(string? folderPath)
-        {
-            if (string.IsNullOrWhiteSpace(folderPath))
-            {
-                return true; // null/empty == root, allowed
-            }
-
-            if (folderPath.Contains("..", StringComparison.Ordinal))
-            {
-                return false;
-            }
-
-            if (folderPath.Contains('\\'))
-            {
-                return false;
-            }
-
-            if (folderPath.StartsWith('/'))
-            {
-                return false; // no rooted/absolute paths; '/' is only an inner separator
-            }
-
-            foreach (var ch in folderPath)
-            {
-                if (char.IsControl(ch))
+                if (uploaded > 0)
                 {
-                    return false;
+                    this.TempData["Status"] = $"Uploaded {uploaded} file(s).";
                 }
+
+                if (skipped.Count > 0)
+                {
+                    this.TempData["Error"] = "Skipped: " + string.Join("; ", skipped);
+                }
+
+                return this.RedirectToAction("Index", new { folderPath });
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "File upload failed for folder '{FolderPath}'.", folderPath);
+                this.TempData["Error"] = "Upload failed: " + ex.Message;
+                return this.RedirectToAction("Index", new { folderPath });
+            }
+        }
+
+        [Route("sitefilesmanagement/diag")]
+        [HttpGet]
+        public async Task<IActionResult> Diag()
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("BlobPrefix: " + this.siteFilesRepository.BlobPrefix);
+
+            try
+            {
+                var listing = await this.siteFilesRepository.ListFilesAsync(null);
+                sb.AppendLine($"LIST OK — {listing.FileItems.Count} item(s)");
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine("LIST FAILED:\n" + ex);
+                return this.Content(sb.ToString(), "text/plain");
             }
 
-            return true;
+            try
+            {
+                await this.siteFilesRepository.CreateFolderAsync("diag-test-folder", null);
+                sb.AppendLine("CREATE FOLDER OK — check the file list");
+            }
+            catch (Exception ex)
+            {
+                sb.AppendLine("CREATE FAILED:\n" + ex);
+            }
+
+            return this.Content(sb.ToString(), "text/plain");
         }
 
         [Route("sitefilesmanagement/CreateFolderAsync")]
@@ -162,18 +171,24 @@ namespace DirectoryManager.Web.Controllers
         {
             try
             {
-                if (!string.IsNullOrWhiteSpace(folderName))
+                if (string.IsNullOrWhiteSpace(folderName))
                 {
-                    folderName = folderName.Trim();
-
-                    await this.siteFilesRepository.CreateFolderAsync(folderName, currentDirectory);
+                    this.TempData["Error"] = "Folder name was empty.";
+                    return this.RedirectToAction("Index", new { folderPath = currentDirectory });
                 }
 
-                return this.RedirectToAction("Index");
+                folderName = folderName.Trim();
+
+                await this.siteFilesRepository.CreateFolderAsync(folderName, currentDirectory);
+
+                this.TempData["Status"] = $"Created folder '{folderName}'.";
+                return this.RedirectToAction("Index", new { folderPath = currentDirectory });
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return this.RedirectToAction("Index");
+                this.logger.LogError(ex, "Create folder '{FolderName}' failed in '{CurrentDirectory}'.", folderName, currentDirectory);
+                this.TempData["Error"] = "Create folder failed: " + ex.Message;
+                return this.RedirectToAction("Index", new { folderPath = currentDirectory });
             }
         }
 
@@ -253,6 +268,64 @@ namespace DirectoryManager.Web.Controllers
             await this.siteFilesRepository.DeleteFolderAsync(folderUrl);
 
             return this.RedirectToAction("Index");
+        }
+
+        private static bool IsSafeFileName(string? name)
+        {
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                return false;
+            }
+
+            if (name.Contains("..", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (name.IndexOf('/') >= 0 || name.IndexOf('\\') >= 0)
+            {
+                return false;
+            }
+
+            if (name.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0)
+            {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsSafeFolderPath(string? folderPath)
+        {
+            if (string.IsNullOrWhiteSpace(folderPath))
+            {
+                return true; // null/empty == root, allowed
+            }
+
+            if (folderPath.Contains("..", StringComparison.Ordinal))
+            {
+                return false;
+            }
+
+            if (folderPath.Contains('\\'))
+            {
+                return false;
+            }
+
+            if (folderPath.StartsWith('/'))
+            {
+                return false; // no rooted/absolute paths; '/' is only an inner separator
+            }
+
+            foreach (var ch in folderPath)
+            {
+                if (char.IsControl(ch))
+                {
+                    return false;
+                }
+            }
+
+            return true;
         }
 
         private async Task<string> ConvertBlobToCdnUrlAsync(string filePath)
