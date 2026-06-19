@@ -176,15 +176,19 @@ namespace DirectoryManager.Web.Extensions
             services.AddScoped<IChurnService, ChurnService>();
             services.AddScoped<IUserContentModerationService, UserContentModerationService>();
 
-            // BlobService singleton with a short-lived scope to access scoped services
+            // BlobService singleton — connection string comes from configuration
+            // (ConnectionStrings:AzureStorage in appsettings.json, or the
+            // ConnectionStrings__AzureStorage environment variable on the server).
             services.AddSingleton<IBlobService>(provider =>
             {
-                using var scope = provider.CreateScope();
-                var cacheService = scope.ServiceProvider.GetRequiredService<ICacheService>();
+                var azureStorageConnection = config.GetConnectionString("AzureStorage");
 
-                var azureStorageConnection =
-                    cacheService.GetSnippetAsync(SiteConfigSetting.AzureStorageConnectionString)
-                                .GetAwaiter().GetResult();
+                if (string.IsNullOrWhiteSpace(azureStorageConnection))
+                {
+                    throw new InvalidOperationException(
+                        "Missing connection string 'ConnectionStrings:AzureStorage'. " +
+                        "Set it in appsettings.json or the ConnectionStrings__AzureStorage environment variable.");
+                }
 
                 var blobServiceClient = new BlobServiceClient(azureStorageConnection);
 

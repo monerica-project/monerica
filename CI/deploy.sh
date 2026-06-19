@@ -432,14 +432,15 @@ task_set_configs() {
     # - Neutrino API: NO. Removed — service is no longer used.
     local prod_settings="$WEB_PROJECT_DIR/appsettings.Production.json"
     jq -n \
-        --arg conn    "$DB_CONNECTION_STRING" \
-        --arg domain  "${CUSTOM_DOMAIN:-}" \
-        --arg proto   "${REQUEST_PROTOCOL:-https://}" \
-        --arg sgkey   "${SENDGRID_API_KEY:-}" \
-        --arg sgemail "${SENDGRID_SENDER_EMAIL:-}" \
-        --arg sgname  "${SENDGRID_SENDER_NAME:-}" \
+        --arg conn     "$DB_CONNECTION_STRING" \
+        --arg blobconn "${AZURE_STORAGE_CONNECTION_STRING:-}" \
+        --arg domain   "${CUSTOM_DOMAIN:-}" \
+        --arg proto    "${REQUEST_PROTOCOL:-https://}" \
+        --arg sgkey    "${SENDGRID_API_KEY:-}" \
+        --arg sgemail  "${SENDGRID_SENDER_EMAIL:-}" \
+        --arg sgname   "${SENDGRID_SENDER_NAME:-}" \
         '{
-            ConnectionStrings: { DefaultConnection: $conn },
+            ConnectionStrings: { DefaultConnection: $conn, AzureStorage: $blobconn },
             Site:              { CustomDomain: $domain, RequestProtocol: $proto },
             SendGrid:          { ApiKey: $sgkey, SenderEmail: $sgemail, SenderName: $sgname }
         }' > "$prod_settings"
