@@ -1,3 +1,4 @@
+using System.Text;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Web.Models.ListingHistory;
 
@@ -54,8 +55,10 @@ namespace DirectoryManager.Web.Helpers
                     var oldVal = Normalize(selector(prev));
                     var newVal = Normalize(selector(curr));
 
-                    // Casing-only edits are cosmetic and should not appear in the log.
-                    if (!string.Equals(oldVal, newVal, StringComparison.OrdinalIgnoreCase))
+                    // Compare on a canonical form so cosmetic edits (casing,
+                    // punctuation, spacing) do not register as changes. The
+                    // displayed values keep their original text.
+                    if (!string.Equals(Canonicalize(oldVal), Canonicalize(newVal), StringComparison.Ordinal))
                     {
                         changes.Add(new ListingFieldChange
                         {
@@ -130,5 +133,40 @@ namespace DirectoryManager.Web.Helpers
 
         private static string Normalize(string? value)
             => string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+
+        /// <summary>
+        /// Produces a comparison key that ignores cosmetic-only differences:
+        /// case is folded, and every run of non-alphanumeric characters
+        /// (punctuation, symbols, whitespace) collapses to a single space.
+        /// So "Never Kyc... funds! Fast" and "Never KYC, ... funds. Fast"
+        /// compare equal, while real wording changes still differ.
+        /// Digits are preserved as separators, so "1.0" and "10" stay distinct.
+        /// </summary>
+        private static string Canonicalize(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return string.Empty;
+            }
+
+            var sb = new StringBuilder(value.Length);
+            var lastWasSpace = false;
+
+            foreach (var ch in value)
+            {
+                if (char.IsLetterOrDigit(ch))
+                {
+                    sb.Append(char.ToLowerInvariant(ch));
+                    lastWasSpace = false;
+                }
+                else if (sb.Length > 0 && !lastWasSpace)
+                {
+                    sb.Append(' ');
+                    lastWasSpace = true;
+                }
+            }
+
+            return sb.ToString().TrimEnd();
+        }
     }
 }

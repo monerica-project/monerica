@@ -3922,3 +3922,30 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 .history-arrow { color: var(--fg-dim); margin: 0 0.35rem; }
 .history-new { color: var(--green); }
 @media (max-width: 540px) { .history-field { flex-basis: 100%; } }
+
+/* Main Sponsors block on _CenteredLayout pages (e.g. change history).
+   Same fix as .main-content-wide: an explicit 5-col grid pinned to the
+   homepage column width, instead of the growing flexbox that bunches the
+   cards inside the narrower centered column. Keeps every page consistent. */
+.main-content-centered section.sponsors {
+  max-width: 75rem;
+  margin-left: auto;
+  margin-right: auto;
+}
+.main-content-centered .sponsors-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  justify-content: center;
+  align-items: stretch;
+}
+.main-content-centered .sponsors-grid .sponsor-card {
+  flex: none;
+  width: 100%;
+  max-width: none;
+  min-width: 0;
+  margin: 0;
+}
+@media (max-width: 1100px) { .main-content-centered .sponsors-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 760px)  { .main-content-centered .sponsors-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px)  { .main-content-centered .sponsors-grid { grid-template-columns: 1fr; } }
