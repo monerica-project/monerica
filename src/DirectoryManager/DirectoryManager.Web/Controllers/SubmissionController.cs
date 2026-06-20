@@ -38,6 +38,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IAdditionalLinkRepository additionalLinkRepo;
         private readonly IDomainRegistrationDateService domainRegistrationDateService;
         private readonly IProcessorRepository processorRepo;
+        private readonly ICaptchaService captcha;
 
         public SubmissionController(
             UserManager<ApplicationUser> userManager,
@@ -54,7 +55,8 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryTagRepository entryTagRepo,
             IAdditionalLinkRepository additionalLinkRepo,
             IDomainRegistrationDateService domainRegistrationDateService,
-            IProcessorRepository processorRepo)
+            IProcessorRepository processorRepo,
+            ICaptchaService captcha)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -70,6 +72,7 @@ namespace DirectoryManager.Web.Controllers
             this.additionalLinkRepo = additionalLinkRepo;
             this.domainRegistrationDateService = domainRegistrationDateService;
             this.processorRepo = processorRepo;
+            this.captcha = captcha;
         }
 
         [AllowAnonymous]
@@ -103,6 +106,12 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost("submit")]
         public async Task<IActionResult> Create(SubmissionRequest model)
         {
+            // ---- Captcha (anti-spam) ----
+            if (!this.captcha.IsValid(this.Request))
+            {
+                this.ModelState.AddModelError(string.Empty, "Captcha was incorrect, please try again.");
+            }
+
             // ---- Validate URLs ----
 
             if (!UrlHelper.IsValidUrl(model.Link ?? string.Empty))

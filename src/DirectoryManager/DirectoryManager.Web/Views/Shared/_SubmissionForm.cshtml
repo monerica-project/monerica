@@ -230,3 +230,10 @@
     <textarea asp-for="NoteToAdmin" class="form-control input-width"></textarea>
     <span asp-validation-for="NoteToAdmin" class="text-danger"></span>
 </div>
+
+<hr />
+
+<h3>Spam check</h3>
+<div class="form-group">
+    @await Html.PartialAsync("_CaptchaBlock", (string)"submission")
+</div>

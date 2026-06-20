@@ -1,0 +1,65 @@
+@model DirectoryManager.Web.Models.ListingHistory.ListingHistoryViewModel
+@using DirectoryManager.Web.Constants
+@{
+    Layout = "_CenteredLayout";
+    ViewData[StringConstants.TitleHeader] = string.Format("{0} - Change history", Model.Name);
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    ViewData[StringConstants.IsIndexable] = false;
+}
+
+@section PageContent {
+    @await Html.PartialAsync("_SiteLogo")
+
+    <h1 class="listing-history-title">Change history</h1>
+    <p class="listing-history-sub">
+        <strong>@Model.Name</strong>
+        @if (!string.IsNullOrEmpty(Model.ListingUrl))
+        {
+            <span class="listing-history-sep">&middot;</span>
+            <a href="@Model.ListingUrl">back to listing</a>
+        }
+    </p>
+
+    <hr />
+
+    @if (!Model.HasHistory)
+    {
+        <p class="listing-history-empty">No change history is recorded for this listing yet.</p>
+    }
+    else
+    {
+        <ol class="history-timeline">
+            @foreach (var rev in Model.Revisions)
+            {
+                var revClass = rev.IsCreation ? "history-rev history-rev--created" : "history-rev";
+                <li class="@revClass">
+                    <div class="history-rev-date">@rev.TimestampUtc.ToString("yyyy-MM-dd HH:mm") UTC</div>
+
+                    @if (rev.IsCreation)
+                    {
+                        <div class="history-created-label">Listing added</div>
+                    }
+                    else
+                    {
+                        <ul class="history-changes">
+                            @foreach (var change in rev.Changes)
+                            {
+                                <li class="history-change">
+                                    <span class="history-field">@change.Field</span>
+                                    <span class="history-values">
+                                        <span class="history-old">@(string.IsNullOrEmpty(change.OldValue) ? "(empty)" : change.OldValue)</span>
+                                        <span class="history-arrow">&rarr;</span>
+                                        <span class="history-new">@(string.IsNullOrEmpty(change.NewValue) ? "(empty)" : change.NewValue)</span>
+                                    </span>
+                                </li>
+                            }
+                        </ul>
+                    }
+                </li>
+            }
+        </ol>
+    }
+
+    <hr />
+    @await Html.PartialAsync("_SponsoredListingPartial")
+}

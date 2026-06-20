@@ -136,6 +136,14 @@
             </ol>
         </nav>
 
+        @if (Model.IsSponsored && !isScam)
+        {
+            <div class="sponsor-status-banner" role="note">
+                <span class="badge-dot" aria-hidden="true">&#9733;</span>
+                <span>This listing is a <strong>Monerica sponsor</strong>.</span>
+            </div>
+        }
+
         @{
             var sponsoredClass = Model.IsSponsored ? "sponsor-card" : "";
         }
@@ -430,6 +438,54 @@
                           style="width:100%;box-sizing:border-box;font-family:monospace;font-size:13px;color:#ffffff;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.22);border-left:2px solid #ff6600;border-radius:3px;padding:8px 10px;caret-color:#ff6600;resize:vertical;">@reviewBadgeSnippet</textarea>
             </div>
         }
+
+        @* ---------------------------------------------------------------
+           Sponsorship options call-to-action. Shown near the bottom of
+           every (non-scam) profile. Links to /sponsorship/options/{id}.
+           --------------------------------------------------------------- *@
+        @if (!isScam)
+        {
+            <div class="sponsor-cta">
+                @if (Model.IsSponsored)
+                {
+                    <h3>&#9733; @Model.Name is a Monerica sponsor</h3>
+                    <p>Thanks for supporting Monerica. You can review or extend your sponsorship below.</p>
+                    <a class="btn-sponsor"
+                       href="@UrlResolver.ResolveToApp($"/sponsorship/options/{Model.DirectoryEntryId}")">
+                        Manage sponsorship options
+                    </a>
+                }
+                else
+                {
+                    <h3>Sponsor this listing</h3>
+                    <p>Boost @Model.Name to the top of its category and across Monerica.</p>
+                    <a class="btn-sponsor"
+                       href="@UrlResolver.ResolveToApp($"/sponsorship/options/{Model.DirectoryEntryId}")">
+                        View sponsorship options
+                    </a>
+                }
+            </div>
+        }
+
+        @* ---------------------------------------------------------------
+           Change history + suggest-an-edit links. History is public for
+           every listing (transparency); the edit form is captcha-gated.
+           --------------------------------------------------------------- *@
+        <p class="entry-edit-link">
+            <a rel="nofollow"
+               href="@UrlResolver.ResolveToApp($"/history/{Model.DirectoryEntryId}")">
+                View change history
+            </a>
+            @if (!isScam)
+            {
+                <span class="listing-history-sep">&middot;</span>
+                <span>See something out of date?</span>
+                <a rel="nofollow"
+                   href="@UrlResolver.ResolveToApp($"/submission/submitedit/{Model.DirectoryEntryId}")">
+                    Submit a revision
+                </a>
+            }
+        </p>
 
     </div>
 
