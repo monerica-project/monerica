@@ -259,6 +259,7 @@ public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
         ImageUrl               = review.ImageUrl,
         SendingTxUrl           = review.SendingTxUrl,
         ReceivingTxUrl         = review.ReceivingTxUrl,
+        AmlScreenshotUrl       = review.AmlScreenshotUrl,
         ModerationStatus       = review.ModerationStatus,
         RejectionReason        = review.RejectionReason,
         SelectedTagIds         = review.ReviewTags.Select(x => x.ReviewTagId).ToList(),
@@ -326,6 +327,7 @@ public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
             review.ImageUrl = string.IsNullOrWhiteSpace(input.ImageUrl) ? null : input.ImageUrl.Trim();
             review.SendingTxUrl = string.IsNullOrWhiteSpace(input.SendingTxUrl) ? null : input.SendingTxUrl.Trim();
             review.ReceivingTxUrl = string.IsNullOrWhiteSpace(input.ReceivingTxUrl) ? null : input.ReceivingTxUrl.Trim();
+            review.AmlScreenshotUrl = string.IsNullOrWhiteSpace(input.AmlScreenshotUrl) ? null : input.AmlScreenshotUrl.Trim();
         
             await this.repo.UpdateAsync(review, ct);
         

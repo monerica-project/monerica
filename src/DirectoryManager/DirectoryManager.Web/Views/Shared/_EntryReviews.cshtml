@@ -107,7 +107,8 @@
                     @if (!string.IsNullOrWhiteSpace(o.OrderUrl)
                          || !string.IsNullOrWhiteSpace(o.SendingTxUrl)
                          || !string.IsNullOrWhiteSpace(o.ReceivingTxUrl)
-                         || !string.IsNullOrWhiteSpace(o.ImageUrl))
+                         || !string.IsNullOrWhiteSpace(o.ImageUrl)
+                         || !string.IsNullOrWhiteSpace(o.AmlScreenshotUrl))
                     {
                         <ul class="official-links mt-3 list-unstyled">
                             @if (!string.IsNullOrWhiteSpace(o.OrderUrl))
@@ -132,6 +133,12 @@
                             {
                                 <li>
                                     <a href="@o.ImageUrl" target="_blank" rel="nofollow noopener noreferrer">Screenshot ↗</a>
+                                </li>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(o.AmlScreenshotUrl))
+                            {
+                                <li>
+                                    <a href="@o.AmlScreenshotUrl" target="_blank" rel="nofollow noopener noreferrer">AML check ↗</a>
                                 </li>
                             }
                         </ul>

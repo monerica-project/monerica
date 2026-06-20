@@ -108,6 +108,12 @@ namespace DirectoryManager.Data.Models.Reviews
         [MaxLength(2048)]
         public string? ReceivingTxUrl { get; set; }
 
+        // Optional link to a screenshot of an AML / coin-score check result
+        // (e.g. an AMLBot transaction risk report) for the funds involved in
+        // the swap. Shown only on official reviews.
+        [MaxLength(2048)]
+        public string? AmlScreenshotUrl { get; set; }
+
         // Concurrency
         [Timestamp]
         public byte[]? RowVersion { get; set; }

@@ -752,7 +752,7 @@ namespace DirectoryManager.Web.Controllers
                     : $"Flag of {countryNameForAlt} ({ccRaw.ToUpperInvariant()})";
 
                 flagHtml =
-                    $"<img class=\"country-flag me-2 align-text-bottom\" " +
+                    $"<img class=\"country-flag me-2\" " +
                     $"src=\"/images/flags/{ccLower}.png\" " +
                     $"alt=\"{WebUtility.HtmlEncode(altTitle)}\" " +
                     $"title=\"{WebUtility.HtmlEncode(countryNameForAlt)}\" /> ";

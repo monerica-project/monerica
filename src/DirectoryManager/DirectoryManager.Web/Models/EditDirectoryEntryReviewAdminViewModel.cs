@@ -47,6 +47,10 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Receiving transaction URL (optional)")]
         public string? ReceivingTxUrl { get; set; }
 
+        [StringLength(2048)]
+        [Display(Name = "AML check screenshot URL (optional)")]
+        public string? AmlScreenshotUrl { get; set; }
+
         [Display(Name = "Moderation Status")]
         public ReviewModerationStatus ModerationStatus { get; set; }
 

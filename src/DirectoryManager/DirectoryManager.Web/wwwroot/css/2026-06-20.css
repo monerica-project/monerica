@@ -25,6 +25,7 @@
   /* Accents */
   --orange: #ff6600;
   --orange-bright: #ff8533;
+  --orange-muted: #c9772f;
   --orange-soft: rgba(255, 102, 0, 0.16);
   --orange-mid: rgba(255, 102, 0, 0.32);
   --orange-glow: rgba(255, 102, 0, 0.55);
@@ -897,7 +898,7 @@ section.sponsors .sponsor-card .sponsor-desc,
 .country-flag {
   padding-left: 0;
   max-height: 14px;
-  vertical-align: middle;
+    vertical-align: middle !important;
 }
 .blank_list_item .country-flag,
 .sponsor-sections .country-flag { padding-left: 5px; }
@@ -2095,6 +2096,41 @@ section.sponsors .sponsor-card .country-flag {
 }
 .reply-body { margin-top: 2px; }
 .reply-meta { margin-top: 8px; }
+
+/* Replies/reviews authored by the verified listing owner (PGP match).
+   Visibly distinct so "the actual site" responding stands out. */
+.owner-reply {
+  background: var(--orange-soft);
+  border: 1px solid var(--orange-mid);
+  border-left: 3px solid var(--orange-muted);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+}
+.owner-reply:not(:last-child) {
+  border-bottom: 1px solid var(--orange-mid);
+}
+.owner-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--orange-muted);
+}
+.owner-badge-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 15px;
+  height: 15px;
+  border-radius: var(--radius-pill);
+  background: var(--orange-muted);
+  color: var(--bg-card);
+  font-size: 10px;
+  line-height: 1;
+}
 
 /* =========================================================================
    Forms — search, filters
@@ -3690,11 +3726,11 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 .official-review {
   background: var(--bg-card);
   border: 1px solid var(--orange-mid);
-  border-left: 3px solid var(--orange);
+  border-left: 3px solid var(--orange-muted);
   border-radius: var(--radius);
   padding: 16px 18px;
   margin-bottom: 18px;
-  box-shadow: var(--orange-neon);
+  box-shadow: none;
 }
 .official-badge {
   display: inline-flex;
@@ -3704,14 +3740,14 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--orange-bright);
+  color: var(--orange-muted);
 }
 .official-badge-dot {
   width: 8px;
   height: 8px;
   border-radius: var(--radius-pill);
-  background: var(--orange);
-  box-shadow: 0 0 8px var(--orange-glow);
+  background: var(--orange-muted);
+  box-shadow: none;
 }
 .official-image img {
   max-width: 100%;
@@ -3729,3 +3765,59 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   font-size: 14px;
   white-space: nowrap;
 }
+.verification-request-notice {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px 14px;
+  padding: 10px 14px;
+  background: var(--bg-card-2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+}
+.verification-request-notice .vr-text { color: var(--fg-muted); font-size: 14px; }
+
+/* Official marker in the homepage "Latest Activity" stream */
+.official-flag {
+  margin-left: 0.35rem;
+  vertical-align: middle;
+}
+
+/* Expandable "Verification details" disclosure on official reviews */
+.official-verification {
+  margin-top: 12px;
+  border: 1px solid var(--border-strong);
+  border-left: 3px solid var(--orange);
+  border-radius: var(--radius-sm);
+  background: rgba(0, 0, 0, 0.25);
+}
+.official-verification > summary {
+  cursor: pointer;
+  list-style: none;
+  padding: 8px 12px;
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--orange-bright);
+  user-select: none;
+}
+.official-verification > summary::-webkit-details-marker { display: none; }
+.official-verification > summary::marker { content: ""; }
+.official-verification > summary::before {
+  content: "\25B8";
+  margin-right: 8px;
+  color: var(--orange);
+  display: inline-block;
+  transition: transform 0.12s ease;
+}
+.official-verification[open] > summary::before { transform: rotate(90deg); }
+.official-verification > summary:hover { color: var(--orange); }
+.official-verification-body {
+  padding: 0 12px 12px;
+  color: var(--fg-muted);
+  font-size: 14px;
+  line-height: 1.5;
+}
+.official-verification-body a { color: var(--orange-bright); }

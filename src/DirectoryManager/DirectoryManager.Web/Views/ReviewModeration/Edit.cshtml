@@ -91,6 +91,12 @@
                                         <span asp-validation-for="ReceivingTxUrl" class="text-danger"></span>
                                         <div class="form-text">Optional explorer link for the coins you received.</div>
                                     </div>
+                                    <div class="col-md-6">
+                                        <label asp-for="AmlScreenshotUrl" class="form-label"></label>
+                                        <input asp-for="AmlScreenshotUrl" class="form-control" maxlength="2048" />
+                                        <span asp-validation-for="AmlScreenshotUrl" class="text-danger"></span>
+                                        <div class="form-text">Optional link to an AML / coin-score check screenshot (e.g. an AMLBot risk report).</div>
+                                    </div>
                                     <div class="col-12">
                                         <div class="form-text">
                                             The <strong>Order URL</strong> shown on the review is taken from the
