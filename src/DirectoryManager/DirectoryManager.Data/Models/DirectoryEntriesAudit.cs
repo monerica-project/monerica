@@ -26,6 +26,18 @@ namespace DirectoryManager.Data.Models
         [MaxLength(500)]
         public string? Link3 { get; set; }
 
+        [MaxLength(500)]
+        public string? ProofLink { get; set; }
+
+        [MaxLength(500)]
+        public string? VideoLink { get; set; }
+
+        [MaxLength(2)]
+        public string? CountryCode { get; set; }
+
+        [Column(TypeName = "date")]
+        public DateOnly? FoundedDate { get; set; }
+
         public DirectoryStatus DirectoryStatus { get; set; }
 
         [MaxLength(500)]

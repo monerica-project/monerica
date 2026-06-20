@@ -1,5 +1,6 @@
 using System.Text;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Models.ListingHistory;
 
 namespace DirectoryManager.Web.Helpers
@@ -109,13 +110,29 @@ namespace DirectoryManager.Web.Helpers
                 ("Link",        a => a.Link),
                 (l2,            a => a.Link2),
                 (l3,            a => a.Link3),
+                ("Video",       a => a.VideoLink),
+                ("Proof",       a => a.ProofLink),
                 ("Subcategory", a => SubcategoryDisplay(a)),
                 ("Location",    a => a.Location),
+                ("Country",     a => CountryDisplay(a.CountryCode)),
+                ("Founded",     a => a.FoundedDate?.ToString("yyyy-MM-dd")),
                 ("Processor",   a => a.Processor),
                 ("Contact",     a => a.Contact),
                 ("Description", a => a.Description),
                 ("Note",        a => a.Note),
             };
+        }
+
+        private static string? CountryDisplay(string? countryCode)
+        {
+            if (string.IsNullOrWhiteSpace(countryCode))
+            {
+                return null;
+            }
+
+            var code = countryCode.Trim();
+            var name = CountryHelper.GetCountryName(code);
+            return string.IsNullOrWhiteSpace(name) ? code : $"{name} ({code.ToUpperInvariant()})";
         }
 
         private static string? SubcategoryDisplay(DirectoryEntriesAudit a)
