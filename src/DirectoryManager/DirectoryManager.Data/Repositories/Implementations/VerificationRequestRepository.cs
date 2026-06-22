@@ -34,8 +34,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.Set.AsNoTracking()
                 .Where(x => x.Status == status)
                 .Include(x => x.DirectoryEntry)
-                .OrderBy(x => x.CreateDate)
-                .ThenBy(x => x.VerificationRequestId)
+                .OrderByDescending(x => x.CreateDate)
+                .ThenByDescending(x => x.VerificationRequestId)
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToListAsync(ct);

@@ -10,6 +10,23 @@
         VerificationRequestStatus.Reviewed,
         VerificationRequestStatus.Dismissed
     };
+
+    // Items arrive newest-first from the repository. Group them by listing so multiple
+    // requests for the same listing sit together, ordering the groups by their newest
+    // request (newest group at the top) and each group's requests newest-first.
+    var groups = Model.Items
+        .GroupBy(r => r.DirectoryEntryId)
+        .Select(g => new
+        {
+            DirectoryEntryId = g.Key,
+            Entry = g.Select(x => x.DirectoryEntry).FirstOrDefault(x => x != null),
+            Requests = g.OrderByDescending(x => x.CreateDate)
+                        .ThenByDescending(x => x.VerificationRequestId)
+                        .ToList()
+        })
+        .OrderByDescending(g => g.Requests[0].CreateDate)
+        .ThenByDescending(g => g.Requests[0].VerificationRequestId)
+        .ToList();
 }
 
 @section PageContent {
@@ -33,65 +50,102 @@
             }
         </ul>
 
-        <p class="text-muted">@Model.Total @Model.Status request@(Model.Total == 1 ? "" : "s").</p>
+        <p class="text-muted">
+            @Model.Total @Model.Status request@(Model.Total == 1 ? "" : "s")
+            across @groups.Count listing@(groups.Count == 1 ? "" : "s").
+        </p>
 
-        @if (Model.Items.Count == 0)
+        @if (groups.Count == 0)
         {
             <p class="text-muted">Nothing here.</p>
         }
         else
         {
-            <table class="table table-sm align-middle">
-                <thead>
-                    <tr>
-                        <th>Requested</th>
-                        <th>Listing</th>
-                        <th>Reason</th>
-                        <th class="text-end">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @foreach (var r in Model.Items)
-                    {
+            <div class="table-wrapper">
+                <table class="table table-sm align-middle" style="table-layout:fixed;width:100%;">
+                    <colgroup>
+                        <col style="width:26%;" />
+                        <col style="width:110px;" />
+                        <col />
+                        <col style="width:130px;" />
+                    </colgroup>
+                    <thead>
                         <tr>
-                            <td class="text-nowrap">
-                                @r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
-                            </td>
-                            <td>
-                                @if (r.DirectoryEntry != null)
-                                {
-                                    <a href="/site/@r.DirectoryEntry.DirectoryEntryKey" target="_blank" rel="noopener">@r.DirectoryEntry.Name</a>
-                                    <div>
-                                        <a href="/admin/reviews/entry/@r.DirectoryEntryId" class="small">Open in review moderation →</a>
-                                    </div>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">#@r.DirectoryEntryId</span>
-                                }
-                            </td>
-                            <td class="multi-line-text">@r.Comment</td>
-                            <td class="text-end text-nowrap">
-                                @if (r.Status == VerificationRequestStatus.Pending)
-                                {
-                                    <form action="/admin/verification-requests/@r.VerificationRequestId/reviewed" method="post" class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-primary">Mark reviewed</button>
-                                    </form>
-                                    <form action="/admin/verification-requests/@r.VerificationRequestId/dismiss" method="post" class="d-inline">
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit" class="btn btn-sm btn-outline-secondary">Dismiss</button>
-                                    </form>
-                                }
-                                else
-                                {
-                                    <span class="text-muted">@r.Status</span>
-                                }
-                            </td>
+                            <th>Listing</th>
+                            <th>Requested</th>
+                            <th>Reason</th>
+                            <th class="text-end">Actions</th>
                         </tr>
-                    }
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        @{ var groupIndex = 0; }
+                        @foreach (var grp in groups)
+                        {
+                            // Explicit per-group background so each listing reads as one block
+                            // (and to override the default even-row striping under rowspan).
+                            var tint = groupIndex % 2 == 1
+                                ? "rgba(255,255,255,0.03)"
+                                : "transparent";
+                            var rowCount = grp.Requests.Count;
+
+                            for (var i = 0; i < rowCount; i++)
+                            {
+                                var r = grp.Requests[i];
+                                <tr style="background-color:@tint;@(i == 0 ? "border-top:2px solid var(--border-strong);" : "")">
+                                    @if (i == 0)
+                                    {
+                                        <td rowspan="@rowCount" style="vertical-align:top;white-space:normal;word-break:break-word;">
+                                            @if (grp.Entry != null)
+                                            {
+                                                <div>
+                                                    <a href="/site/@grp.Entry.DirectoryEntryKey" target="_blank" rel="noopener">@grp.Entry.Name</a>
+                                                    @if (rowCount > 1)
+                                                    {
+                                                        <span class="badge bg-info" style="margin-left:6px;">@rowCount requests</span>
+                                                    }
+                                                </div>
+                                                <div>
+                                                    <a href="/admin/reviews/entry/@grp.DirectoryEntryId" class="small">Open in review moderation &rarr;</a>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <span class="text-muted">#@grp.DirectoryEntryId</span>
+                                            }
+                                        </td>
+                                    }
+                                    <td class="text-nowrap" style="vertical-align:top;">
+                                        @r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
+                                    </td>
+                                    <td style="vertical-align:top;">
+                                        <div title="@r.Comment" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;word-break:break-word;">@r.Comment</div>
+                                    </td>
+                                    <td style="vertical-align:top;">
+                                        @if (r.Status == VerificationRequestStatus.Pending)
+                                        {
+                                            <div style="display:flex;flex-direction:column;gap:4px;align-items:stretch;">
+                                                <form action="/admin/verification-requests/@r.VerificationRequestId/reviewed" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-primary" style="width:100%;">Mark reviewed</button>
+                                                </form>
+                                                <form action="/admin/verification-requests/@r.VerificationRequestId/dismiss" method="post">
+                                                    @Html.AntiForgeryToken()
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary" style="width:100%;">Dismiss</button>
+                                                </form>
+                                            </div>
+                                        }
+                                        else
+                                        {
+                                            <span class="text-muted">@r.Status</span>
+                                        }
+                                    </td>
+                                </tr>
+                            }
+                            groupIndex++;
+                        }
+                    </tbody>
+                </table>
+            </div>
         }
     </div>
 }
