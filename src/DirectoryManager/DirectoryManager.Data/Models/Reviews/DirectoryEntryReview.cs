@@ -82,6 +82,34 @@ namespace DirectoryManager.Data.Models.Reviews
         public string? OrderProofContext { get; set; }
 
         // =========================================================
+        // Automated moderation audit
+        //
+        // Written by the DirectoryManager.ReviewModerator background job when it
+        // evaluates an order-URL-bearing review. AutoModerationResult stays at None
+        // for anything a human handled, so an automatic action is always
+        // distinguishable from a manual one. AutoModerationReason captures the
+        // machine-readable "why" (approved/rejected/flagged/retry). The attempt
+        // counters drive back-off for orders that are still in progress.
+        // =========================================================
+        public AutoModerationResult AutoModerationResult { get; set; } = AutoModerationResult.None;
+
+        [MaxLength(512)]
+        public string? AutoModerationReason { get; set; }
+
+        [Column(TypeName = "datetime2")]
+        public DateTime? AutoModeratedAtUtc { get; set; }
+
+        public int AutoModerationAttemptCount { get; set; }
+
+        [Column(TypeName = "datetime2")]
+        public DateTime? LastAutoModerationAttemptUtc { get; set; }
+
+        // USD value the worker computed for the swap (deposit leg) at verification time.
+        // Null until a price source is available; used to explain the money-band tag.
+        [Column(TypeName = "decimal(18,2)")]
+        public decimal? VerifiedOrderUsdValue { get; set; }
+
+        // =========================================================
         // Official review
         //
         // When IsOfficial = true, this review is marked as an official
@@ -127,6 +155,5 @@ namespace DirectoryManager.Data.Models.Reviews
         public ICollection<DirectoryEntryReviewComment> Comments { get; set; } = new List<DirectoryEntryReviewComment>();
 
         public ICollection<DirectoryEntryReviewTag> ReviewTags { get; set; } = new List<DirectoryEntryReviewTag>();
-
     }
 }

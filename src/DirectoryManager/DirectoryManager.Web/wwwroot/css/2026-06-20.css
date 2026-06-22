@@ -3924,28 +3924,32 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 @media (max-width: 540px) { .history-field { flex-basis: 100%; } }
 
 /* Main Sponsors block on _CenteredLayout pages (e.g. change history).
-   Same fix as .main-content-wide: an explicit 5-col grid pinned to the
-   homepage column width, instead of the growing flexbox that bunches the
-   cards inside the narrower centered column. Keeps every page consistent. */
+   The reading column is only ~70rem with wide padding, which pinches the
+   sponsor cards. Break the section out to full width (body has overflow-x
+   hidden, so this is safe) and center a 75rem grid inside it, so the cards
+   match the width used on the nav/filter pages. */
 .main-content-centered section.sponsors {
-  max-width: 75rem;
-  margin-left: auto;
-  margin-right: auto;
+  width: 100vw;
+  margin-left: calc(50% - 50vw);
+  margin-right: calc(50% - 50vw);
 }
-.main-content-centered .sponsors-grid {
+.main-content-centered section.sponsors .sponsors-grid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 1rem;
   justify-content: center;
   align-items: stretch;
+  max-width: 75rem;
+  margin: 0 auto;
+  padding: 0 1.5rem;
 }
-.main-content-centered .sponsors-grid .sponsor-card {
+.main-content-centered section.sponsors .sponsors-grid .sponsor-card {
   flex: none;
   width: 100%;
   max-width: none;
   min-width: 0;
   margin: 0;
 }
-@media (max-width: 1100px) { .main-content-centered .sponsors-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 760px)  { .main-content-centered .sponsors-grid { grid-template-columns: repeat(2, 1fr); } }
-@media (max-width: 480px)  { .main-content-centered .sponsors-grid { grid-template-columns: 1fr; } }
+@media (max-width: 1100px) { .main-content-centered section.sponsors .sponsors-grid { grid-template-columns: repeat(3, 1fr); } }
+@media (max-width: 760px)  { .main-content-centered section.sponsors .sponsors-grid { grid-template-columns: repeat(2, 1fr); } }
+@media (max-width: 480px)  { .main-content-centered section.sponsors .sponsors-grid { grid-template-columns: 1fr; } }
