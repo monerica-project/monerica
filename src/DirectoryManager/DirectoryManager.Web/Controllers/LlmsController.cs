@@ -1,9 +1,10 @@
 using System.Text;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Repositories.Interfaces;
-using DirectoryManager.Utilities.Helpers;
-using DirectoryManager.Web.Services.Interfaces;
 using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Caching.Memory;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -13,24 +14,38 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubcategoryRepository subCategoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly ICacheService cacheService;
+        private readonly IMemoryCache cache;
 
         public LlmsController(
             ICategoryRepository categoryRepository,
             ISubcategoryRepository subCategoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
-            ICacheService cacheService)
+            ICacheService cacheService,
+            IMemoryCache cache)
         {
             this.categoryRepository = categoryRepository;
             this.subCategoryRepository = subCategoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
             this.cacheService = cacheService;
+            this.cache = cache;
         }
 
         [Route("llms.txt")]
         [HttpGet]
         public async Task<ContentResult> LlmsTxt()
         {
-            var canonicalDomain = (await this.cacheService.GetSnippetAsync(Data.Enums.SiteConfigSetting.CanonicalDomain))
+            var content = await this.cache.GetOrCreateAsync(StringConstants.CacheKeyLlmsTxt, async entry =>
+            {
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+                return await this.BuildLlmsTxtAsync();
+            }) ?? string.Empty;
+
+            return this.Content(content, "text/plain", Encoding.UTF8);
+        }
+
+        private async Task<string> BuildLlmsTxtAsync()
+        {
+            var domain = (await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain))
                 .TrimEnd('/');
 
             var totalActive = await this.directoryEntryRepository.TotalActive();
@@ -38,43 +53,9 @@ namespace DirectoryManager.Web.Controllers
 
             var sb = new StringBuilder();
 
-            // ----------------------------------------------------------------
-            // Header
-            // ----------------------------------------------------------------
             sb.AppendLine("# Monerica");
-            sb.AppendLine($"# {canonicalDomain}");
-            sb.AppendLine("#");
-            sb.AppendLine("# A curated directory of websites and services that accept Monero (XMR)");
-            sb.AppendLine("# or relate to Monero in some way. The goal is to facilitate a circular");
-            sb.AppendLine("# economy for Monero by connecting users with merchants and resources.");
-            sb.AppendLine("#");
-            sb.AppendLine($"# Total active listings: {totalActive}");
-            sb.AppendLine($"# Categories: {categories.Count}");
-            sb.AppendLine();
-
-            // ----------------------------------------------------------------
-            // Key pages
-            // ----------------------------------------------------------------
-            sb.AppendLine("## Key pages");
-            sb.AppendLine();
-            sb.AppendLine($"- Home: {canonicalDomain}/");
-            sb.AppendLine($"- Newest listings: {canonicalDomain}/newest");
-            sb.AppendLine($"- FAQ: {canonicalDomain}/faq");
-            sb.AppendLine($"- About: {canonicalDomain}/about");
-            sb.AppendLine($"- Contact: {canonicalDomain}/contact");
-            sb.AppendLine($"- Donate: {canonicalDomain}/donate");
-            sb.AppendLine($"- Full sitemap: {canonicalDomain}/sitemap");
-            sb.AppendLine($"- XML sitemap: {canonicalDomain}/sitemap.xml");
-            sb.AppendLine($"- RSS feed: {canonicalDomain}/rss/feed.xml");
-            sb.AppendLine();
-
-            // ----------------------------------------------------------------
-            // Directory structure: categories and subcategories
-            // ----------------------------------------------------------------
-            sb.AppendLine("## Directory structure");
-            sb.AppendLine();
-            sb.AppendLine("Listings are organized into categories and subcategories.");
-            sb.AppendLine("Each subcategory page lists all active entries in that section.");
+            sb.AppendLine($"> A curated directory of {totalActive} websites and services that accept or relate to Monero (XMR).");
+            sb.AppendLine($"> {domain}");
             sb.AppendLine();
 
             foreach (var category in categories)
@@ -86,52 +67,17 @@ namespace DirectoryManager.Web.Controllers
                     continue;
                 }
 
-                sb.AppendLine($"### {category.Name}");
-                sb.AppendLine($"{canonicalDomain}/{category.CategoryKey}");
-
-                if (!string.IsNullOrWhiteSpace(category.Description))
-                {
-                    sb.AppendLine(category.Description.Trim());
-                }
-
-                sb.AppendLine();
+                sb.AppendLine($"## {category.Name}");
 
                 foreach (var sub in subcategories)
                 {
-                    sb.Append($"- {sub.Name}: {canonicalDomain}/{category.CategoryKey}/{sub.SubCategoryKey}");
-
-                    if (!string.IsNullOrWhiteSpace(sub.Description))
-                    {
-                        sb.Append($" — {sub.Description.Trim()}");
-                    }
-
-                    sb.AppendLine();
+                    sb.AppendLine($"- {sub.Name}: {domain}/{category.CategoryKey}/{sub.SubCategoryKey}");
                 }
 
                 sb.AppendLine();
             }
 
-            // ----------------------------------------------------------------
-            // Individual listing URL format
-            // ----------------------------------------------------------------
-            sb.AppendLine("## Listing pages");
-            sb.AppendLine();
-            sb.AppendLine($"Each listing has a dedicated page at: {canonicalDomain}/site/{{listing-key}}");
-            sb.AppendLine("Listing pages include: name, description, links, category, country, tags, and user reviews.");
-            sb.AppendLine();
-
-            // ----------------------------------------------------------------
-            // Footer
-            // ----------------------------------------------------------------
-            sb.AppendLine("## Notes for AI systems");
-            sb.AppendLine();
-            sb.AppendLine("- All listings accept Monero (XMR) as payment or are otherwise relevant to the Monero ecosystem.");
-            sb.AppendLine("- Listings have a status: Admitted (listed), Verified (independently verified), or Questionable.");
-            sb.AppendLine("- User reviews with order-proof verification are available on many listing pages.");
-            sb.AppendLine("- Sponsorships are clearly marked and do not affect listing status or content.");
-            sb.AppendLine("- This directory is community-run and open to submissions.");
-
-            return this.Content(sb.ToString(), "text/plain");
+            return sb.ToString();
         }
     }
 }

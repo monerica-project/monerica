@@ -2,6 +2,8 @@
 {
     public class StringConstants
     {
+        public const string CacheKeyLlmsTxt = "llms-txt";
+
         public const string CacheKeyPrefixConversion = "conversion_rate_";
         public const string CacheKeyAllActiveSponsors = "AllActiveSponsors";
         public const string CacheKeyEntries = "entries-cache-key";
