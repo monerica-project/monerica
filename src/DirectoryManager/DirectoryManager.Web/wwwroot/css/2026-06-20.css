@@ -144,7 +144,7 @@ h2, h3 {
 
 p { margin-top: 0; margin-bottom: 5px; }
 p.intro { font-size: 0.9rem; text-align: justify; line-height: 1.55; color: #c8c8c8; }
-p.centered-text { text-align: center; margin-bottom: 0; font-size: 14px; }
+p.centered-text { text-align: center !important; margin-bottom: 0; font-size: 14px; }
 
 /* "Last update" gets terminal styling */
 p.last_update {
