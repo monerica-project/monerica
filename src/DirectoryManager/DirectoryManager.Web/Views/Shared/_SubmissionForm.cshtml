@@ -87,6 +87,24 @@
 </div>
 
 <div class="form-group">
+    <label asp-for="Email">Email</label>
+    <input autocomplete="off" asp-for="Email" class="form-control input-width" />
+    <span asp-validation-for="Email" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Messenger">Messenger</label>
+    <input autocomplete="off" asp-for="Messenger" class="form-control input-width" />
+    <span asp-validation-for="Messenger" class="text-danger"></span>
+</div>
+
+<div class="form-group">
+    <label asp-for="Social">Social</label>
+    <input autocomplete="off" asp-for="Social" class="form-control input-width" />
+    <span asp-validation-for="Social" class="text-danger"></span>
+</div>
+
+<div class="form-group">
     <label asp-for="Processor">Payment Processor</label>
     <select asp-for="Processor"
             class="form-control select-fit"

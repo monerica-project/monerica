@@ -267,6 +267,30 @@
                         </tr>
                     }
 
+                    @if (!string.IsNullOrEmpty(Model.Email))
+                    {
+                        <tr>
+                            <th scope="row">Email</th>
+                            <td><span class="multi-line-text">@Model.Email</span></td>
+                        </tr>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.Messenger))
+                    {
+                        <tr>
+                            <th scope="row">Messenger</th>
+                            <td><span class="multi-line-text">@Model.Messenger</span></td>
+                        </tr>
+                    }
+
+                    @if (!string.IsNullOrEmpty(Model.Social))
+                    {
+                        <tr>
+                            <th scope="row">Social</th>
+                            <td><span class="multi-line-text">@Model.Social</span></td>
+                        </tr>
+                    }
+
                     @if (!string.IsNullOrEmpty(Model.Location) || !string.IsNullOrWhiteSpace(Model.CountryCode))
                     {
                         <tr>

@@ -51,6 +51,21 @@ namespace DirectoryManager.Web.Models
         [CleanSingleLine]
         public string? Contact { get; set; }
 
+        [MaxLength(255)]
+        [Display(Name = "Email", Prompt = "contact@example.com")]
+        [CleanSingleLine]
+        public string? Email { get; set; }
+
+        [MaxLength(255)]
+        [Display(Name = "Messenger", Prompt = "@handle on Telegram, Signal, etc.")]
+        [CleanSingleLine]
+        public string? Messenger { get; set; }
+
+        [MaxLength(255)]
+        [Display(Name = "Social", Prompt = "@handle on X, Nostr, etc.")]
+        [CleanSingleLine]
+        public string? Social { get; set; }
+
         [MaxLength(75)]
         [Display(Name = "Location", Prompt = "City, Region (example: Miami Beach, Florida)")]
         [CleanSingleLine]

@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.BaseModels;
@@ -83,6 +83,15 @@ namespace DirectoryManager.Data.Models
         [MaxLength(75)]
         public string? Contact { get; set; }
 
+        [MaxLength(255)]
+        public string? Email { get; set; }
+
+        [MaxLength(255)]
+        public string? Messenger { get; set; }
+
+        [MaxLength(255)]
+        public string? Social { get; set; }
+
         [Column(TypeName = "nvarchar(max)")]
         public string? PgpKey { get; set; }
 
@@ -120,6 +129,9 @@ namespace DirectoryManager.Data.Models
                 this.Processor == other.Processor &&
                 this.Note == other.Note &&
                 this.Contact == other.Contact &&
+                this.Email == other.Email &&
+                this.Messenger == other.Messenger &&
+                this.Social == other.Social &&
                 this.CountryCode == other.CountryCode &&
                 this.PgpKey == other.PgpKey &&
                 this.SubCategoryId == other.SubCategoryId &&

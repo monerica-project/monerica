@@ -221,6 +221,9 @@ namespace DirectoryManager.Web.Controllers
                 Description = vm.Description?.Trim(),
                 Note = vm.Note?.Trim(),
                 Contact = vm.Contact?.Trim(),
+                Email = vm.Email?.Trim(),
+                Messenger = vm.Messenger?.Trim(),
+                Social = vm.Social?.Trim(),
                 Location = vm.Location?.Trim(),
                 Processor = vm.Processor?.Trim(),
                 LinkA = vm.LinkA?.Trim(),
@@ -299,6 +302,9 @@ namespace DirectoryManager.Web.Controllers
                 CountryCode = entry.CountryCode,
                 Processor = entry.Processor,
                 Contact = entry.Contact,
+                Email = entry.Email,
+                Messenger = entry.Messenger,
+                Social = entry.Social,
                 Description = entry.Description,
                 Note = entry.Note,
                 PgpKey = entry.PgpKey,
@@ -365,6 +371,9 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Note = vm.Note?.Trim();
             existingEntry.DirectoryStatus = vm.DirectoryStatus;
             existingEntry.Contact = vm.Contact?.Trim();
+            existingEntry.Email = vm.Email?.Trim();
+            existingEntry.Messenger = vm.Messenger?.Trim();
+            existingEntry.Social = vm.Social?.Trim();
             existingEntry.Location = vm.Location?.Trim();
             existingEntry.Processor = vm.Processor?.Trim();
             existingEntry.CountryCode = vm.CountryCode;
@@ -406,6 +415,9 @@ namespace DirectoryManager.Web.Controllers
                 Name = directoryEntry.Name,
                 DirectoryEntryKey = directoryEntry.DirectoryEntryKey,
                 Contact = directoryEntry.Contact,
+                Email = directoryEntry.Email,
+                Messenger = directoryEntry.Messenger,
+                Social = directoryEntry.Social,
                 Description = directoryEntry.Description,
                 DirectoryEntryId = directoryEntry.DirectoryEntryId,
                 DirectoryStatus = directoryEntry.DirectoryStatus,
@@ -1087,6 +1099,9 @@ namespace DirectoryManager.Web.Controllers
                 Processor = entry.Processor,
                 Note = entry.Note,
                 Contact = entry.Contact,
+                Email = entry.Email,
+                Messenger = entry.Messenger,
+                Social = entry.Social,
                 SubCategory = entry.SubCategory,
                 SubCategoryId = entry.SubCategoryId,
                 UpdateDate = entry.UpdateDate,

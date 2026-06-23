@@ -787,6 +787,9 @@ namespace DirectoryManager.Web.Controllers
             return new SubmissionRequest()
             {
                 Contact = directoryEntry.Contact,
+                Email = directoryEntry.Email,
+                Messenger = directoryEntry.Messenger,
+                Social = directoryEntry.Social,
                 Description = directoryEntry.Description ?? string.Empty,
                 Link = directoryEntry.Link,
                 Link2 = directoryEntry.Link2 ?? string.Empty,
@@ -821,6 +824,9 @@ namespace DirectoryManager.Web.Controllers
                 SubCategoryId = submission.SubCategoryId == null ? null : submission.SubCategoryId,
                 NoteToAdmin = submission.NoteToAdmin,
                 Contact = submission.Contact,
+                Email = submission.Email,
+                Messenger = submission.Messenger,
+                Social = submission.Social,
                 Description = submission.Description,
                 DirectoryEntryId = submission.DirectoryEntryId,
                 DirectoryStatus = submission.DirectoryStatus,
@@ -928,6 +934,9 @@ namespace DirectoryManager.Web.Controllers
                     Link = submission.Link,
                     Name = submission.Name,
                     Contact = submission.Contact,
+                    Email = submission.Email,
+                    Messenger = submission.Messenger,
+                    Social = submission.Social,
                     Description = submission.Description,
                     DirectoryEntryId = submission.DirectoryEntryId ?? 0,
                     DirectoryStatus = (submission.DirectoryStatus == null || submission.DirectoryStatus == DirectoryStatus.Unknown)
@@ -1279,6 +1288,9 @@ namespace DirectoryManager.Web.Controllers
                     Processor = model.Processor?.Trim(),
                     Note = model.Note?.Trim(),
                     Contact = model.Contact?.Trim(),
+                    Email = model.Email?.Trim(),
+                    Messenger = model.Messenger?.Trim(),
+                    Social = model.Social?.Trim(),
                     DirectoryStatus = status,
                     SubCategoryId = model.SubCategoryId.Value,
                     CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty,
@@ -1315,6 +1327,9 @@ namespace DirectoryManager.Web.Controllers
             existing.Processor = model.Processor?.Trim();
             existing.Note = model.Note?.Trim();
             existing.Contact = model.Contact?.Trim();
+            existing.Email = model.Email?.Trim();
+            existing.Messenger = model.Messenger?.Trim();
+            existing.Social = model.Social?.Trim();
             existing.CountryCode = model.CountryCode;
             existing.PgpKey = model.PgpKey?.Trim();
             existing.ProofLink = model.ProofLink?.Trim();
@@ -1354,6 +1369,9 @@ namespace DirectoryManager.Web.Controllers
                 Processor = (model.Processor ?? string.Empty).Trim(),
                 Note = (model.Note ?? string.Empty).Trim(),
                 Contact = (model.Contact ?? string.Empty).Trim(),
+                Email = (model.Email ?? string.Empty).Trim(),
+                Messenger = (model.Messenger ?? string.Empty).Trim(),
+                Social = (model.Social ?? string.Empty).Trim(),
                 SuggestedSubCategory = (model.SuggestedSubCategory ?? string.Empty).Trim(),
                 SubCategoryId = (model.SubCategoryId == 0) ? null : model.SubCategoryId,
                 IpAddress = ipAddress,
@@ -1398,6 +1416,9 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.DirectoryStatus = submissionModel.DirectoryStatus;
             existingSubmission.DirectoryEntryId = submissionModel.DirectoryEntryId;
             existingSubmission.Contact = submissionModel.Contact;
+            existingSubmission.Email = submissionModel.Email;
+            existingSubmission.Messenger = submissionModel.Messenger;
+            existingSubmission.Social = submissionModel.Social;
             existingSubmission.Description = submissionModel.Description;
             existingSubmission.IpAddress = submissionModel.IpAddress;
             existingSubmission.Link = submissionModel.Link;
@@ -1508,6 +1529,21 @@ namespace DirectoryManager.Web.Controllers
             }
 
             if (!string.Equals(Norm(existingEntry.Contact), Norm(model.Contact), StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (!string.Equals(Norm(existingEntry.Email), Norm(model.Email), StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (!string.Equals(Norm(existingEntry.Messenger), Norm(model.Messenger), StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (!string.Equals(Norm(existingEntry.Social), Norm(model.Social), StringComparison.Ordinal))
             {
                 return true;
             }

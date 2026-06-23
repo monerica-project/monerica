@@ -166,6 +166,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.Processor = entry.Processor;
             existing.Note = entry.Note;
             existing.Contact = entry.Contact;
+            existing.Email = entry.Email;
+            existing.Messenger = entry.Messenger;
+            existing.Social = entry.Social;
             existing.SubCategoryId = entry.SubCategoryId;
             existing.FoundedDate = entry.FoundedDate;
             existing.UpdateDate = DateTime.UtcNow;
@@ -1883,6 +1886,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 Processor = entry.Processor,
                 Note = entry.Note,
                 Contact = entry.Contact,
+                Email = entry.Email,
+                Messenger = entry.Messenger,
+                Social = entry.Social,
                 DirectoryStatus = entry.DirectoryStatus,
                 SubCategoryId = entry.SubCategoryId,
                 CreateDate = entry.CreateDate,

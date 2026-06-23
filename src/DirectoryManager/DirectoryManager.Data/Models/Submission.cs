@@ -1,4 +1,4 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
 using System.Text.Json;
 using DirectoryManager.Data.Enums;
@@ -55,6 +55,15 @@ namespace DirectoryManager.Data.Models
 
         [MaxLength(75)]
         public string? Contact { get; set; }
+
+        [MaxLength(255)]
+        public string? Email { get; set; }
+
+        [MaxLength(255)]
+        public string? Messenger { get; set; }
+
+        [MaxLength(255)]
+        public string? Social { get; set; }
 
         public int? SubCategoryId { get; set; }
 
