@@ -4,6 +4,7 @@
 @using DirectoryManager.Web.Helpers
 @using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.DisplayFormatting.Helpers
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @model DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel
 @inject IUrlResolutionService Urls
 
@@ -58,7 +59,7 @@
     @if (Model.ShowRequestVerification)
     {
         <div class="verification-request-notice mb-4">
-            <span class="vr-text">This listing hasn't been verified by Monerica yet.</span>
+            <span class="vr-text">This listing hasn't been verified by @cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName) yet.</span>
             <form action="@Urls.ResolveToApp("/verification-requests/begin")"
                   method="post"
                   class="d-inline"
@@ -84,6 +85,10 @@
                         <span class="official-badge-dot" aria-hidden="true"></span>
                         Official review
                     </div>
+
+                    <span itemprop="author" itemscope itemtype="https://schema.org/Organization">
+                        <meta itemprop="name" content="@(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName))" />
+                    </span>
 
                     @if (o.Rating.HasValue)
                     {
@@ -156,7 +161,7 @@
 
                     <div class="official-meta mt-2">
                         <small class="text-muted">
-                            Official review by Monerica.
+                            Official review by @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)).
                             @if (o.TestedAt.HasValue)
                             {
                                 <span class="ms-1">
@@ -291,6 +296,7 @@
 
                     <div class="mt-2">
                         <span itemprop="author" itemscope itemtype="https://schema.org/Person">
+                            <meta itemprop="name" content="@(string.IsNullOrWhiteSpace(r.DisplayName) ? r.AuthorFingerprint : r.DisplayName)" />
                             <small class="text-muted multi-line-text">
                                 Author: @(string.IsNullOrWhiteSpace(r.DisplayName) ? r.AuthorFingerprint : r.DisplayName)
                                 <span class="ms-1">(posts: @PostsFor(r.AuthorFingerprint))</span>
