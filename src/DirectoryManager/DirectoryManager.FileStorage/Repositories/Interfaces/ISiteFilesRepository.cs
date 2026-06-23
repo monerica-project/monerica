@@ -16,6 +16,8 @@ namespace DirectoryManager.FileStorage.Repositories.Interfaces
 
         Task DeleteFolderAsync(string? folderPath);
 
+        Task<IReadOnlyList<string>> ListFolderBlobNamesAsync(string? folderPath);
+
         Task ChangeFileName(string? currentFileName, string? newFileName);
     }
 }

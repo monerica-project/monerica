@@ -94,17 +94,8 @@
                             <td>
                                 @if (file.IsFolder)
                                 {
-                                  using (Html.BeginForm("DeleteFolderAsync", "SiteFilesManagement", FormMethod.Post,
-                            new { role = "form", onsubmit = string.Format(@"return confirm('Do you really want to delete this and all its content?');") }))
-                                    {
-                                        @Html.AntiForgeryToken()
-                                        <button type="submit"
-                                                name="folderUrl"
-                                                value="@file.FolderPathFromRoot" class="btn-danger btn-sm">
-                                            &#x1F5D1;
-                                        </button>
-
-                                    }
+                                    <a href="~/SiteFilesManagement/ConfirmDeleteFolder?folderUrl=@file.FolderPathFromRoot"
+                                       class="btn-danger btn-sm" role="button">&#x1F5D1;</a>
                                 }
                                 else
                                 {

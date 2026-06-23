@@ -113,6 +113,13 @@ namespace DirectoryManager.FileStorage.Repositories.Implementations
             }
         }
 
+        public async Task<IReadOnlyList<string>> ListFolderBlobNamesAsync(string? folderPath)
+        {
+            var allInDir = await this.GetDirContentsAsync(folderPath);
+
+            return allInDir.Select(item => item.Name).ToList();
+        }
+
         public async Task<Uri> UploadAsync(Stream? stream, string? fileName, string? directory = null)
         {
             try

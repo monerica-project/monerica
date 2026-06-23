@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.FileStorage.Constants;
 using DirectoryManager.FileStorage.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Models;
@@ -260,13 +261,74 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction("Index");
         }
 
+        [Route("sitefilesmanagement/ConfirmDeleteFolder")]
+        [HttpGet]
+        public async Task<ActionResult> ConfirmDeleteFolderAsync(string folderUrl)
+        {
+            // FolderPathFromRoot arrives rooted, e.g. "/exchange-reviews/".
+            // Normalize to blob-relative before validating; mirror the upload path handling.
+            var normalized = folderUrl?.TrimStart('/');
+
+            if (string.IsNullOrWhiteSpace(folderUrl) || !IsSafeFolderPath(normalized))
+            {
+                this.TempData["Error"] = "Delete rejected: unsafe or missing folder path.";
+                return this.RedirectToAction("Index");
+            }
+
+            var names = await this.siteFilesRepository.ListFolderBlobNamesAsync(folderUrl);
+
+            var prefix = normalized!.TrimEnd('/') + "/";
+            var realFiles = new List<string>();
+            var markerCount = 0;
+
+            foreach (var name in names)
+            {
+                var fileName = Path.GetFileName(name);
+
+                if (string.Equals(fileName, StringConstants.FolderFileName, StringComparison.OrdinalIgnoreCase))
+                {
+                    markerCount++;
+                    continue;
+                }
+
+                var display = name.StartsWith(prefix, StringComparison.Ordinal)
+                    ? name[prefix.Length..]
+                    : name;
+
+                realFiles.Add(display);
+            }
+
+            realFiles.Sort(StringComparer.OrdinalIgnoreCase);
+
+            var trimmed = normalized.TrimEnd('/');
+
+            var model = new ConfirmDeleteFolderModel
+            {
+                FolderUrl = folderUrl,
+                FolderName = string.IsNullOrEmpty(trimmed) ? folderUrl : trimmed.Split('/')[^1],
+                Files = realFiles,
+                MarkerFileCount = markerCount
+            };
+
+            return this.View("ConfirmDeleteFolder", model);
+        }
+
         [Route("sitefilesmanagement/DeleteFolderAsync")]
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<ActionResult> DeleteFolderAsync(string folderUrl)
         {
+            var normalized = folderUrl?.TrimStart('/');
+
+            if (string.IsNullOrWhiteSpace(folderUrl) || !IsSafeFolderPath(normalized))
+            {
+                this.TempData["Error"] = "Delete rejected: unsafe or missing folder path.";
+                return this.RedirectToAction("Index");
+            }
+
             await this.siteFilesRepository.DeleteFolderAsync(folderUrl);
 
+            this.TempData["Status"] = $"Deleted folder '{folderUrl}' and its contents.";
             return this.RedirectToAction("Index");
         }
 

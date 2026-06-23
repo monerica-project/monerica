@@ -1,0 +1,71 @@
+@model DirectoryManager.Web.Models.ConfirmDeleteFolderModel
+@{
+    ViewBag.Title = "Confirm Delete Folder";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+<h1>@ViewBag.Title</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<section>
+    <div class="container">
+
+        <h3>Delete folder: @Model.FolderName</h3>
+        <p><strong>Path:</strong> @Model.FolderUrl</p>
+
+        @if (Model.Files.Count == 0)
+        {
+            <p>This folder contains no files (only its internal marker). It is safe to delete.</p>
+        }
+        else
+        {
+            <p style="color:#ff6b6b;">
+                <strong>Warning:</strong> this will permanently delete the
+                @Model.Files.Count file(s) listed below. This cannot be undone.
+            </p>
+
+            <div class="table-wrapper">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Files that will be deleted</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var file in Model.Files)
+                        {
+                            <tr>
+                                <td>@file</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+
+        @if (Model.MarkerFileCount > 0)
+        {
+            <p><i>Plus @Model.MarkerFileCount internal folder-marker file(s).</i></p>
+        }
+
+        <br />
+
+        @using (Html.BeginForm("DeleteFolderAsync", "SiteFilesManagement", FormMethod.Post,
+                    new { role = "form" }))
+        {
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="folderUrl" value="@Model.FolderUrl" autocomplete="off" />
+            <button type="submit" class="btn-danger btn-sm">
+                Yes, delete this folder and all its contents
+            </button>
+        }
+
+        <br />
+        <a href="~/SiteFilesManagement">Cancel</a>
+
+    </div>
+</section>
+}
