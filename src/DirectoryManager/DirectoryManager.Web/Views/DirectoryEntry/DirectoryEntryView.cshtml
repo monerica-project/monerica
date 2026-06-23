@@ -1,4 +1,4 @@
-﻿﻿﻿﻿@using DirectoryManager.Data.Enums
+﻿﻿@using DirectoryManager.Data.Enums
 @using DirectoryManager.Data.Models
 @using DirectoryManager.Data.Repositories.Interfaces
 @using DirectoryManager.Utilities.Helpers
@@ -217,7 +217,8 @@
                         </tr>
                     }
 
-                    @if (!string.IsNullOrEmpty(Model.ProofLink))
+                    @if (!string.IsNullOrEmpty(Model.ProofLink) &&
+                         !string.Equals(Model.ProofLink.TrimEnd('/'), Model.Link?.TrimEnd('/'), StringComparison.OrdinalIgnoreCase))
                     {
                         <tr>
                             <th scope="row">Proof</th>
