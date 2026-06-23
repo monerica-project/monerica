@@ -396,9 +396,6 @@ namespace DirectoryManager.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DirectoryEntriesAuditId"));
 
-                    b.Property<string>("Contact")
-                        .HasMaxLength(75)
-                        .HasColumnType("nvarchar(75)");
 
                     b.Property<string>("CountryCode")
                         .HasMaxLength(2)
@@ -500,9 +497,6 @@ namespace DirectoryManager.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("DirectoryEntryId"));
 
-                    b.Property<string>("Contact")
-                        .HasMaxLength(75)
-                        .HasColumnType("nvarchar(75)");
 
                     b.Property<string>("CountryCode")
                         .HasMaxLength(2)
@@ -2030,9 +2024,6 @@ namespace DirectoryManager.Data.Migrations
 
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SubmissionId"));
 
-                    b.Property<string>("Contact")
-                        .HasMaxLength(75)
-                        .HasColumnType("nvarchar(75)");
 
                     b.Property<string>("CountryCode")
                         .HasMaxLength(2)

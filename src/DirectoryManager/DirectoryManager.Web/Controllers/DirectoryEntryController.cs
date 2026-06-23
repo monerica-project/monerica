@@ -220,7 +220,6 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryKey = StringHelpers.UrlKey(entryName),
                 Description = vm.Description?.Trim(),
                 Note = vm.Note?.Trim(),
-                Contact = vm.Contact?.Trim(),
                 Email = vm.Email?.Trim(),
                 Messenger = vm.Messenger?.Trim(),
                 Social = vm.Social?.Trim(),
@@ -301,7 +300,6 @@ namespace DirectoryManager.Web.Controllers
                 Location = entry.Location,
                 CountryCode = entry.CountryCode,
                 Processor = entry.Processor,
-                Contact = entry.Contact,
                 Email = entry.Email,
                 Messenger = entry.Messenger,
                 Social = entry.Social,
@@ -370,7 +368,6 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Description = vm.Description?.Trim();
             existingEntry.Note = vm.Note?.Trim();
             existingEntry.DirectoryStatus = vm.DirectoryStatus;
-            existingEntry.Contact = vm.Contact?.Trim();
             existingEntry.Email = vm.Email?.Trim();
             existingEntry.Messenger = vm.Messenger?.Trim();
             existingEntry.Social = vm.Social?.Trim();
@@ -414,7 +411,6 @@ namespace DirectoryManager.Web.Controllers
                 Link = directoryEntry.Link,
                 Name = directoryEntry.Name,
                 DirectoryEntryKey = directoryEntry.DirectoryEntryKey,
-                Contact = directoryEntry.Contact,
                 Email = directoryEntry.Email,
                 Messenger = directoryEntry.Messenger,
                 Social = directoryEntry.Social,
@@ -1098,7 +1094,6 @@ namespace DirectoryManager.Web.Controllers
                 Location = entry.Location,
                 Processor = entry.Processor,
                 Note = entry.Note,
-                Contact = entry.Contact,
                 Email = entry.Email,
                 Messenger = entry.Messenger,
                 Social = entry.Social,

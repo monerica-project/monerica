@@ -24,7 +24,6 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 Link = entry.Link,
                 Name = entry.Name,
                 DirectoryEntryKey = entry.DirectoryEntryKey,
-                Contact = entry.Contact,
                 Description = entry.Description,
                 DirectoryEntryId = entry.DirectoryEntryId,
                 DirectoryStatus = entry.DirectoryStatus,

@@ -15,7 +15,6 @@ namespace DirectoryManager.Web.Models.API
     ///
     /// Deliberately EXCLUDED (do not add back):
     ///   - LinkA / Link2A / Link3A  (affiliate/monetization links — hidden from users)
-    ///   - Contact                  (the site only ever renders this obfuscated)
     ///   - CreatedByUserId / UpdatedByUserId (internal admin identifiers)
     ///
     /// Judgment calls (safe to remove if you want a leaner feed):

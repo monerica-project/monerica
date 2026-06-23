@@ -291,7 +291,6 @@ async Task CreateOfflineSubmissionIfNotExists(
         Link2 = entry.Link2,
         Link3 = entry.Link3,
         Description = entry.Description,
-        Contact = entry.Contact,
         Location = entry.Location,
         Processor = entry.Processor,
         CountryCode = entry.CountryCode,

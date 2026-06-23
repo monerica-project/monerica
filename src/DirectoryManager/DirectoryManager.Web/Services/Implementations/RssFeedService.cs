@@ -87,10 +87,6 @@ namespace DirectoryManager.Web.Services.Implementations
                 descriptionBuilder.Append(" - Processor: ").Append(entry.Processor);
             }
 
-            if (!string.IsNullOrWhiteSpace(entry.Contact))
-            {
-                descriptionBuilder.Append(" - Contact: ").Append(entry.Contact);
-            }
 
             return descriptionBuilder.ToString();
         }

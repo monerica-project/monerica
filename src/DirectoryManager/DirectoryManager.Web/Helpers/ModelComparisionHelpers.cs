@@ -124,10 +124,6 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("Note", entry.Note, submission.Note);
             }
 
-            if (NotEqualTrimmed(entry.Contact, submission.Contact))
-            {
-                AddDifference("Contact", entry.Contact, submission.Contact);
-            }
 
             if (NotEqualTrimmed(entry.PgpKey, submission.PgpKey))
             {

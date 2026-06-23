@@ -419,7 +419,6 @@ public class DirectoryFilterController : Controller
             Link3Name = link3Name,
 
             Name = e.Name,
-            Contact = e.Contact,
             Description = e.Description,
 
             DirectoryEntryId = e.DirectoryEntryId,

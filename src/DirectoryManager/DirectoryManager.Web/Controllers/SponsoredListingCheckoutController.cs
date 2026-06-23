@@ -1391,7 +1391,6 @@ namespace DirectoryManager.Web.Controllers
                     Link = de.Link,
                     Name = de.Name,
                     DirectoryEntryKey = de.DirectoryEntryKey,
-                    Contact = de.Contact,
                     Description = de.Description,
                     DirectoryEntryId = de.DirectoryEntryId,
                     DirectoryStatus = de.DirectoryStatus,

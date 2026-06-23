@@ -109,7 +109,6 @@ public class RssController : Controller
                     Location = entry.Location,
                     Processor = entry.Processor,
                     Note = entry.Note,
-                    Contact = entry.Contact,
                     CreateDate = latestDate, // <- use latestDate, not invoice.CreateDate
                 },
                 IsSponsored = true

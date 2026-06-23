@@ -165,7 +165,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.Location = entry.Location;
             existing.Processor = entry.Processor;
             existing.Note = entry.Note;
-            existing.Contact = entry.Contact;
             existing.Email = entry.Email;
             existing.Messenger = entry.Messenger;
             existing.Social = entry.Social;
@@ -1151,8 +1150,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         || (n.rootPattern != null && EF.Functions.Like((e.Processor ?? "").ToLower(), n.rootPattern))
                         || EF.Functions.Like((e.Location ?? "").ToLower(), n.primaryPattern)
                         || (n.rootPattern != null && EF.Functions.Like((e.Location ?? "").ToLower(), n.rootPattern))
-                        || EF.Functions.Like((e.Contact ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.Like((e.Contact ?? "").ToLower(), n.rootPattern))
 
                         || EF.Functions.Like((e.Link ?? "").ToLower(), n.primaryPattern)
                         || (n.rootPattern != null && EF.Functions.Like((e.Link ?? "").ToLower(), n.rootPattern))
@@ -1433,7 +1430,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         CountOcc(e.Note, term) + (rootTerm != null ? CountOcc(e.Note, rootTerm) : 0) +
                         CountOcc(e.Processor, term) + (rootTerm != null ? CountOcc(e.Processor, rootTerm) : 0) +
                         CountOcc(e.Location, term) + (rootTerm != null ? CountOcc(e.Location, rootTerm) : 0) +
-                        CountOcc(e.Contact, term) + (rootTerm != null ? CountOcc(e.Contact, rootTerm) : 0) +
                         CountOcc(e.Link, term) + (rootTerm != null ? CountOcc(e.Link, rootTerm) : 0) +
                         CountOcc(e.Link2, term) + (rootTerm != null ? CountOcc(e.Link2, rootTerm) : 0) +
                         CountOcc(e.Link3, term) + (rootTerm != null ? CountOcc(e.Link3, rootTerm) : 0) +
@@ -1885,7 +1881,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 Location = entry.Location,
                 Processor = entry.Processor,
                 Note = entry.Note,
-                Contact = entry.Contact,
                 Email = entry.Email,
                 Messenger = entry.Messenger,
                 Social = entry.Social,

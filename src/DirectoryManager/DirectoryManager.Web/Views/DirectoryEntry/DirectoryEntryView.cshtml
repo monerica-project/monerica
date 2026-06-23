@@ -257,15 +257,6 @@
                         <td>@Model.DirectoryStatus.ToHtmlIcon() @Model.DirectoryStatus</td>
                     </tr>
 
-                    @if (!string.IsNullOrEmpty(Model.Contact))
-                    {
-                        <tr>
-                            <th scope="row">Contact</th>
-                            <td>
-                                @Html.Raw(StringHelpers.RenderContactFieldHtml(Model.Contact, cssClass: "multi-line-text"))
-                            </td>
-                        </tr>
-                    }
 
                     @if (!string.IsNullOrEmpty(Model.Email))
                     {

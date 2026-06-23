@@ -117,7 +117,6 @@ namespace DirectoryManager.Web.Helpers
                 ("Country",     a => CountryDisplay(a.CountryCode)),
                 ("Founded",     a => a.FoundedDate?.ToString("yyyy-MM-dd")),
                 ("Processor",   a => a.Processor),
-                ("Contact",     a => a.Contact),
                 ("Description", a => a.Description),
                 ("Note",        a => a.Note),
             };

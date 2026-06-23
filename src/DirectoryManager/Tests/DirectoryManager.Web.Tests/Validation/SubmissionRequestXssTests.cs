@@ -24,7 +24,6 @@ namespace DirectoryManager.Web.Tests.Validation
             Name = "Example Service",
             Description = "Accepts Monero for hosting.",
             Note = "No KYC.",
-            Contact = "admin@example.com",
             Location = "Online",
             Processor = "BTCPay",
             Tags = "privacy, hosting",
@@ -43,7 +42,7 @@ namespace DirectoryManager.Web.Tests.Validation
             string[] fields =
             {
                 "Name", "Description", "Note", "NoteToAdmin",
-                "Contact", "Location", "SuggestedSubCategory", "Tags",
+                "Location", "SuggestedSubCategory", "Tags",
             };
             string[] payloads = { ScriptPayload, HandlerPayload, JsUriPayload };
 
@@ -76,7 +75,6 @@ namespace DirectoryManager.Web.Tests.Validation
                 case "Description": model.Description = payload; break;
                 case "Note": model.Note = payload; break;
                 case "NoteToAdmin": model.NoteToAdmin = payload; break;
-                case "Contact": model.Contact = payload; break;
                 case "Location": model.Location = payload; break;
                 case "SuggestedSubCategory": model.SuggestedSubCategory = payload; break;
                 case "Tags": model.Tags = payload; break;

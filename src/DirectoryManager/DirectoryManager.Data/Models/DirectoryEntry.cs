@@ -80,8 +80,6 @@ namespace DirectoryManager.Data.Models
         [MaxLength(1000)]
         public string? Note { get; set; }
 
-        [MaxLength(75)]
-        public string? Contact { get; set; }
 
         [MaxLength(255)]
         public string? Email { get; set; }
@@ -128,7 +126,6 @@ namespace DirectoryManager.Data.Models
                 this.Location == other.Location &&
                 this.Processor == other.Processor &&
                 this.Note == other.Note &&
-                this.Contact == other.Contact &&
                 this.Email == other.Email &&
                 this.Messenger == other.Messenger &&
                 this.Social == other.Social &&

@@ -32,7 +32,6 @@ namespace DirectoryManager.Web.Models
         public string? Location { get; set; }
         public string? CountryCode { get; set; }
         public string? Processor { get; set; }
-        public string? Contact { get; set; }
         public string? Email { get; set; }
         public string? Messenger { get; set; }
         public string? Social { get; set; }
