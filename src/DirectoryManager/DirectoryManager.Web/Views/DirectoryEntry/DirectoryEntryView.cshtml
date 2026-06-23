@@ -262,7 +262,9 @@
                     {
                         <tr>
                             <th scope="row">Email</th>
-                            <td><span class="multi-line-text">@Model.Email</span></td>
+                            <td>
+                                @Html.Raw(StringHelpers.RenderContactFieldHtml(Model.Email, cssClass: "multi-line-text"))
+                            </td>
                         </tr>
                     }
 
@@ -270,7 +272,9 @@
                     {
                         <tr>
                             <th scope="row">Messenger</th>
-                            <td><span class="multi-line-text">@Model.Messenger</span></td>
+                            <td>
+                                @Html.Raw(StringHelpers.RenderContactFieldHtml(Model.Messenger, cssClass: "multi-line-text"))
+                            </td>
                         </tr>
                     }
 
@@ -278,7 +282,9 @@
                     {
                         <tr>
                             <th scope="row">Social</th>
-                            <td><span class="multi-line-text">@Model.Social</span></td>
+                            <td>
+                                @Html.Raw(StringHelpers.RenderContactFieldHtml(Model.Social, cssClass: "multi-line-text"))
+                            </td>
                         </tr>
                     }
 

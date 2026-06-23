@@ -124,6 +124,20 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("Note", entry.Note, submission.Note);
             }
 
+            if (NotEqualTrimmed(entry.Email, submission.Email))
+            {
+                AddDifference("Email", entry.Email, submission.Email);
+            }
+
+            if (NotEqualTrimmed(entry.Messenger, submission.Messenger))
+            {
+                AddDifference("Messenger", entry.Messenger, submission.Messenger);
+            }
+
+            if (NotEqualTrimmed(entry.Social, submission.Social))
+            {
+                AddDifference("Social", entry.Social, submission.Social);
+            }
 
             if (NotEqualTrimmed(entry.PgpKey, submission.PgpKey))
             {
