@@ -21,8 +21,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CI", "CI", "{36A19922-99BD-
 		..\..\CI-Tools\Scripts\GeneralHelperFunctions.ps1 = ..\..\CI-Tools\Scripts\GeneralHelperFunctions.ps1
 	EndProjectSection
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DirectoryManager.Console", "DirectoryManager.Console\DirectoryManager.Console.csproj", "{DD80F8F8-8F95-48AC-B259-17849E264F38}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "CodeAnalysis", "CodeAnalysis", "{1B3BD9EF-7341-4319-A784-872DC36B5C24}"
 	ProjectSection(SolutionItems) = preProject
 		StyleCop.Analyzers.ruleset = StyleCop.Analyzers.ruleset
@@ -101,18 +99,6 @@ Global
 		{A001792D-4E0A-4CE0-AF5F-9EA4F5429F35}.Release|x64.Build.0 = Release|Any CPU
 		{A001792D-4E0A-4CE0-AF5F-9EA4F5429F35}.Release|x86.ActiveCfg = Release|Any CPU
 		{A001792D-4E0A-4CE0-AF5F-9EA4F5429F35}.Release|x86.Build.0 = Release|Any CPU
-		{DD80F8F8-8F95-48AC-B259-17849E264F38}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{DD80F8F8-8F95-48AC-B259-17849E264F38}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{DD80F8F8-8F95-48AC-B259-17849E264F38}.Debug|x64.ActiveCfg = Debug|Any CPU
-		{DD80F8F8-8F95-48AC-B259-17849E264F38}.Debug|x64.Build.0 = Debug|Any CPU
-		{DD80F8F8-8F95-48AC-B259-17849E264F38}.Debug|x86.ActiveCfg = Debug|Any CPU
-		{DD80F8F8-8F95-48AC-B259-17849E264F38}.Debug|x86.Build.0 = Debug|Any CPU
-		{DD80F8F8-8F95-48AC-B259-17849E264F38}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{DD80F8F8-8F95-48AC-B259-17849E264F38}.Release|Any CPU.Build.0 = Release|Any CPU
-		{DD80F8F8-8F95-48AC-B259-17849E264F38}.Release|x64.ActiveCfg = Release|Any CPU
-		{DD80F8F8-8F95-48AC-B259-17849E264F38}.Release|x64.Build.0 = Release|Any CPU
-		{DD80F8F8-8F95-48AC-B259-17849E264F38}.Release|x86.ActiveCfg = Release|Any CPU
-		{DD80F8F8-8F95-48AC-B259-17849E264F38}.Release|x86.Build.0 = Release|Any CPU
 		{8D747490-55E6-447F-A7AA-CF7CD6609A0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{8D747490-55E6-447F-A7AA-CF7CD6609A0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8D747490-55E6-447F-A7AA-CF7CD6609A0B}.Debug|x64.ActiveCfg = Debug|Any CPU
@@ -310,7 +296,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
-		{DD80F8F8-8F95-48AC-B259-17849E264F38} = {BF26B5A5-4125-4A79-A925-80C28C713E1A}
 		{8D747490-55E6-447F-A7AA-CF7CD6609A0B} = {3C24C078-0201-45A3-8F82-D476BC9ECE50}
 		{360B66CD-4C70-40E6-94FA-7466B92C7769} = {3C24C078-0201-45A3-8F82-D476BC9ECE50}
 		{EF5ED6F2-5A87-4E60-A84D-BB58AD21A7AF} = {CBA2DF35-DED4-4968-B442-C6EA4BB95287}
