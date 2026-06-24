@@ -59,7 +59,7 @@
     @if (Model.ShowRequestVerification)
     {
         <div class="verification-request-notice mb-4">
-            <span class="vr-text">This listing hasn't been verified by @cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName) yet.</span>
+            <span class="vr-text">This listing hasn't been verified by @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)) yet.</span>
             <form action="@Urls.ResolveToApp("/verification-requests/begin")"
                   method="post"
                   class="d-inline"

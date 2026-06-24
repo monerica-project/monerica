@@ -105,9 +105,9 @@
         "text-decoration:none;\">" +
         "<span style=\"display:inline-flex;align-items:center;background:#ffffff;" +
         "border-radius:4px;padding:3px 5px;line-height:0;\">" +
-        $"<img src=\"{encodedBadgeLogoUrl}\" alt=\"Monerica\" height=\"18\" " +
+        $"<img src=\"{encodedBadgeLogoUrl}\" alt=\"{(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName))}\" height=\"18\" " +
         "style=\"height:18px;width:auto;display:block;border:0;\" /></span>" +
-        $"Review {encodedListingName} on Monerica</a>";
+        $"Review {encodedListingName} on {(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName))}</a>";
 }
 
 @{
@@ -140,7 +140,7 @@
         {
             <div class="sponsor-status-banner" role="note">
                 <span class="badge-dot" aria-hidden="true">&#9733;</span>
-                <span>This listing is a <strong>Monerica sponsor</strong>.</span>
+                <span>This listing is a <strong>@(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)) sponsor</strong>.</span>
             </div>
         }
 
@@ -446,7 +446,7 @@
                 <h3>Get more reviews</h3>
                 <p class="mb-2">
                     Add this badge to your own website to invite visitors to review
-                    <strong>@Model.Name</strong> on Monerica. Click inside the box below,
+                    <strong>@Model.Name</strong> on @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)). Click inside the box below,
                     select all (Ctrl&#8209;A / &#8984;A), copy (Ctrl&#8209;C / &#8984;C), and
                     paste the HTML anywhere on your site.
                 </p>
@@ -470,8 +470,8 @@
             <div class="sponsor-cta">
                 @if (Model.IsSponsored)
                 {
-                    <h3>&#9733; @Model.Name is a Monerica sponsor</h3>
-                    <p>Thanks for supporting Monerica. You can review or extend your sponsorship below.</p>
+                    <h3>&#9733; @Model.Name is a @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)) sponsor</h3>
+                    <p>Thanks for supporting @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)). You can review or extend your sponsorship below.</p>
                     <a class="btn-sponsor"
                        href="@UrlResolver.ResolveToApp($"/sponsorship/options/{Model.DirectoryEntryId}")">
                         Manage sponsorship options
@@ -480,7 +480,7 @@
                 else
                 {
                     <h3>Sponsor this listing</h3>
-                    <p>Boost @Model.Name to the top of its category and across Monerica.</p>
+                    <p>Boost @Model.Name to the top of its category and across @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)).</p>
                     <a class="btn-sponsor"
                        href="@UrlResolver.ResolveToApp($"/sponsorship/options/{Model.DirectoryEntryId}")">
                         View sponsorship options
