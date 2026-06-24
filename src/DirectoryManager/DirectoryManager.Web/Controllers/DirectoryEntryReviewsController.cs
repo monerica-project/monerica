@@ -403,7 +403,11 @@ namespace DirectoryManager.Web.Controllers
 
             await this.directoryEntryReviewRepository.AddAsync(entity, ct);
 
-            this.TempData["ReviewMessage"] = mod.ThankYouMessage;
+            this.TempData["ReviewMessage"] = requireVerification
+                ? "Thanks! Because this listing requires proof of a real order, your review is not published yet. " +
+                  "A moderator will manually open the order URL you provided and independently verify that the order " +
+                  "is valid and actually took place. Only after we've confirmed it will your review be approved and published."
+                : mod.ThankYouMessage;
 
             this.ClearCachedItems();
             this.cache.Remove(CacheKey(flowId));

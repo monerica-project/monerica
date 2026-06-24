@@ -44,14 +44,22 @@
 
         @if (requireVerification)
         {
+            <div class="alert alert-warning">
+                <strong>This listing requires proof of a real order.</strong>
+                The order URL you provide must be something we can <strong>independently verify</strong> —
+                a link that lets a moderator confirm the order is genuine and actually took place.
+                Your review is held until we've manually checked it; orders we can't independently verify are not approved.
+            </div>
+
             <div class="mb-3">
                 <label asp-for="OrderProof" class="form-label">Order Proof URL (required)</label>
                 <input asp-for="OrderProof" class="form-control" maxlength="2048" required />
                 <span asp-validation-for="OrderProof" class="text-danger"></span>
                 <div class="form-text">
-                    A link we can open that proves your order (for example an order page or receipt URL).
-                    Used for internal verification only and never shown publicly. Reviews in this category
-                    are always checked by a moderator before they appear.
+                    Must be a link we can open and <strong>independently verify</strong> — for example a provider
+                    order or receipt page that shows the order details. A moderator manually opens and checks every
+                    one to confirm the order is valid and actually took place; reviews we can't verify are not approved.
+                    Used for internal verification only and never shown publicly.
                 </div>
             </div>
 
