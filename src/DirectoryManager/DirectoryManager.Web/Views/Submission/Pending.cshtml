@@ -33,7 +33,7 @@
                 @foreach (var submission in Model.Items)
                 {
                     <tr>
-                        <td>@submission.Name</td>
+                        <td><a asp-action="Review" asp-controller="Submission" asp-route-id="@submission?.SubmissionId" title="@submission?.Name"><b>@(submission?.Name != null && submission.Name.Length > 35 ? submission.Name.Substring(0, 35) + "…" : submission?.Name)</b></a></td>
                         <td><b>@submission.SubmissionStatus</b></td>
                         <td>@submission.CreateDate</td>
                         <td>
