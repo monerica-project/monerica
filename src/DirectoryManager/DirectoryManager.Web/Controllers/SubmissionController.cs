@@ -118,6 +118,13 @@ namespace DirectoryManager.Web.Controllers
             {
                 this.ModelState.AddModelError(nameof(model.Link), "The link is not a valid URL.");
             }
+            else if (UrlHelper.IsOnionOrI2p(model.Link))
+            {
+                // The main Link must be clearnet; Tor/I2P addresses go in Link 2 / Link 3.
+                this.ModelState.AddModelError(
+                    nameof(model.Link),
+                    "The main Link must be a clearnet (http/https) address. Put Tor (.onion) and I2P (.i2p) addresses in the Link 2 / Link 3 fields.");
+            }
 
             // Link2/Link3 are Tor/I2P/alt links (still validate as URLs if supplied)
             if (!string.IsNullOrWhiteSpace(model.Link2) && !UrlHelper.IsValidUrl(model.Link2))
