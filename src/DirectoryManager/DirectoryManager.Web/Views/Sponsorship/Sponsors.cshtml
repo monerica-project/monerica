@@ -186,7 +186,8 @@
                     <tbody>
                         @foreach (var item in Model.RecentPaid.Items)
                         {
-                            <tr>
+                            var isMain = item.SponsorshipTypeEnum == SponsorshipType.MainSponsor;
+                            <tr style="@(isMain ? "background: rgba(255,102,0,.14); font-weight:600;" : "")">
                                 <td>@item.PaidUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                                 <td>
                                     @if (!string.IsNullOrWhiteSpace(item.ListingUrl))
@@ -198,7 +199,7 @@
                                         @item.ListingName
                                     }
                                 </td>
-                                <td>@item.SponsorshipType</td>
+                                <td>@if (isMain) { <strong style="color:#c25700;">&#9733; @item.SponsorshipType</strong> } else { @item.SponsorshipType }</td>
                                 <td style="text-align:right;">@item.Days</td>
                                 <td style="text-align:right;">
                                     @item.PaidAmount.ToString(DirectoryManager.Common.Constants.StringConstants.RoundingFormatCrypto)

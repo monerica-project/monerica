@@ -15,6 +15,7 @@
     Layout = "_CenteredLayout";
 
     var q = (Model.Query ?? string.Empty).Trim();
+    var usd = CultureInfo.GetCultureInfo(DirectoryManager.Web.Constants.StringConstants.EnglishUS);
 }
 
 @section PageContent {
@@ -254,5 +255,60 @@
     <p style="margin: 18px 0;">
         <a class="btn btn-info btn-lg" href="~/sponsors">See current sponsors, recent payments &amp; pricing &rarr;</a>
     </p>
+
+    <!-- RECENT PAID (social proof — businesses are paying right now) -->
+    @if (Model.RecentPaid != null && Model.RecentPaid.Items != null && Model.RecentPaid.Items.Any())
+    {
+        <hr />
+        <h2 style="margin-top: 22px;">Businesses are paying to advertise here</h2>
+        <p style="margin: 6px 0 12px 0;">
+            Recent paid sponsorships. Spots are limited and demand is real &mdash; <strong>join the waitlist</strong> to claim
+            yours at these rates (or higher as demand grows). <a href="~/sponsors">See all sponsors &amp; payments &rarr;</a>
+        </p>
+
+        <div class="table-wrapper">
+            <table class="table" style="width: 100%;">
+                <thead>
+                    <tr>
+                        <th>Paid</th>
+                        <th>Sponsor</th>
+                        <th>Type</th>
+                        <th style="text-align:right;">Days</th>
+                        <th style="text-align:right;">Paid (@Currency.XMR.ToString())</th>
+                        <th style="text-align:right;">USD</th>
+                        <th style="text-align:right;">Expires</th>
+                        <th style="text-align:right;">$/day</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.RecentPaid.Items)
+                    {
+                        var isMain = item.SponsorshipTypeEnum == SponsorshipType.MainSponsor;
+                        <tr style="@(isMain ? "background: rgba(255,102,0,.14); font-weight:600;" : "")">
+                            <td>@item.PaidUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(item.ListingUrl))
+                                {
+                                    <a href="@item.ListingUrl" target="_blank" rel="noopener">@item.ListingName</a>
+                                }
+                                else
+                                {
+                                    @item.ListingName
+                                }
+                            </td>
+                            <td>@if (isMain) { <strong style="color:#c25700;">&#9733; @item.SponsorshipType</strong> } else { @item.SponsorshipType }</td>
+                            <td style="text-align:right;">@item.Days</td>
+                            <td style="text-align:right;">
+                                @item.PaidAmount.ToString(DirectoryManager.Common.Constants.StringConstants.RoundingFormatCrypto)
+                            </td>
+                            <td style="text-align:right;">@item.AmountUsd.ToString("C2", usd)</td>
+                            <td style="text-align:right;">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
+                            <td style="text-align:right;">@item.PricePerDayUsd.ToString("C2", usd)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 
 }
