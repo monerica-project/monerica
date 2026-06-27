@@ -10,6 +10,7 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository reviewRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingOpeningNotificationRepository waitlistRepository
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 
 @functions {
@@ -188,8 +189,9 @@
         var activeCount = sponsoredListings.Count();
         var openings = Math.Max(0, maxMain - activeCount);
         var displayCount = Math.Min(activeCount, maxMain);
+        var waitlistCount = await waitlistRepository.GetWaitlistCountAsync(SponsorshipType.MainSponsor, null);
 
-        
+
         <p class="create-sponsored-listing">
             @if (openings > 0)
             {
@@ -200,15 +202,20 @@
                     Buy sponsored listing
                 </a>
                 <span> (@openings available)</span>
+                @if (waitlistCount > 0)
+                {
+                    <span aria-hidden="true"> — </span>
+                    <a class="app-link" href="~/waitlist">Join Waitlist (@waitlistCount waiting)</a>
+                }
             }
             else
             {
                 <span class="status-text">@($"{displayCount}/{maxMain} Full")</span>
                 <span aria-hidden="true"> — </span>
                 <a class="app-link"
-                   href="~/sponsorship"
-                   aria-label="Join waitlist for Main Sponsor (currently @displayCount of @maxMain filled)">
-                    Join Waitlist
+                   href="~/waitlist"
+                   aria-label="Join waitlist for Main Sponsor (currently @displayCount of @maxMain filled, @waitlistCount waiting)">
+                    Join Waitlist (@waitlistCount waiting)
                 </a>
             }
         </p>

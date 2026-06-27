@@ -58,6 +58,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("")]
+        [HttpGet("/waitlist")]
         public async Task<IActionResult> Index(
             string? q, int page = 1)
         {
@@ -96,6 +97,71 @@ namespace DirectoryManager.Web.Controllers
         }
 
    
+        [HttpGet("/sponsor-options")]
+        [HttpGet("sponsorship/lookup")]
+        public async Task<IActionResult> Lookup(string? q, int page = 1)
+        {
+            page = Math.Max(1, page);
+            q = (q ?? string.Empty).Trim();
+
+            var vm = new SponsorshipIndexVm
+            {
+                Query = q,
+                Page = page,
+                PageSize = SearchPageSize,
+                HasSearched = !string.IsNullOrWhiteSpace(q),
+            };
+
+            if (vm.HasSearched)
+            {
+                var result = await this.entryRepo
+                    .SearchAsync(q, page, SearchPageSize);
+
+                vm.TotalCount = result.TotalCount;
+                vm.TotalPages = ComputePageCount(
+                    result.TotalCount, SearchPageSize);
+                vm.Results = result.Items
+                    .Select(this.ToSearchItem).ToList();
+            }
+
+            return this.View("Lookup", vm);
+        }
+
+        [HttpGet("/sponsors")]
+        public async Task<IActionResult> Sponsors()
+        {
+            var max = CommonConstants.MaxMainSponsoredListings;
+            var active = await this.sponsoredListingRepo
+                .GetActiveSponsorsCountAsync(
+                    SponsorshipType.MainSponsor, typeId: null);
+
+            var vm = new SponsorsPageVm
+            {
+                CurrentUtc = DateTime.UtcNow,
+                CurrentSponsors = await this.BuildCurrentSponsorsAsync(),
+
+                // Latest payments only (last 10).
+                RecentPaid = await this.BuildRecentPaidAsync(RecentPaidTake),
+                PricingSummaries = await this.BuildPricingSummariesAsync(),
+                MainWaitlistCount = await this.waitlistRepo
+                    .GetWaitlistCountAsync(
+                        SponsorshipType.MainSponsor, null),
+                MaxSlots = max,
+                ActiveCount = active,
+            };
+
+            if (active >= max)
+            {
+                var next = await this.GetNextMainExpirationAsync();
+                vm.MainSponsorInventory = new ListingInventoryModel
+                {
+                    NextListingExpiration = next ?? DateTime.UtcNow
+                };
+            }
+
+            return this.View("Sponsors", vm);
+        }
+
         [HttpPost("select")]
         [ValidateAntiForgeryToken]
         public IActionResult Select([FromForm] int directoryEntryId)
@@ -1004,11 +1070,11 @@ namespace DirectoryManager.Web.Controllers
                 .ToList();
         }
 
-        private async Task<RecentPaidVm> BuildRecentPaidAsync()
+        private async Task<RecentPaidVm> BuildRecentPaidAsync(
+            int take = RecentPaidTake)
         {
             var rows = await this.invoiceRepo
-                .GetRecentPaidActivePurchasesAsync(
-                    RecentPaidTake);
+                .GetRecentPaidActivePurchasesAsync(take);
 
             var entryLookup = await this.entryRepo.GetByIdsAsync(
                 rows.Select(x => x.DirectoryEntryId)
