@@ -46,7 +46,7 @@
         <dd class="col-sm-9">@((Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)) ?? "-")</dd>
 
         <dt class="col-sm-3">Body</dt>
-        <dd class="col-sm-9"><pre style="white-space:pre-wrap;">@Html.Raw(StringHelpers.RenderBodyWithLinksHtml(Model.Body, cssClass: "multi-line-text", ugcContent: true))</pre></dd>
+        <dd class="col-sm-9"><pre class="u-ws-pre-wrap">@Html.Raw(StringHelpers.RenderBodyWithLinksHtml(Model.Body, cssClass: "multi-line-text", ugcContent: true))</pre></dd>
     </dl>
 
     <div class="mt-3">

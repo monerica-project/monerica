@@ -75,10 +75,10 @@
     @await Html.PartialAsync("_BackToHome")
     <hr />
 
-    <div class="card" style="padding:14px; border-radius:12px; margin-top: 10px;">
-        <h2 style="margin:0 0 6px 0;">@Model.ListingName</h2>
+    <div class="card u-p-14px-rounded-12px-mt-10px">
+        <h2 class="u-m-0-0-6px-0">@Model.ListingName</h2>
 
-        <div style="opacity:.9; display:flex; flex-wrap:wrap; gap:12px;">
+        <div class="u-opacity-9-flex-flexwrap-wrap-gap-12px">
             <span><strong>Status:</strong> @Model.DirectoryStatus</span>
 
             @if (!string.IsNullOrWhiteSpace(Model.CategoryName))
@@ -92,7 +92,7 @@
             }
         </div>
 
-        <div style="margin-top: 10px; display:flex; flex-wrap:wrap; gap:10px;">
+        <div class="u-mt-10px-flex-flexwrap-wrap-gap-10px">
             @if (!string.IsNullOrWhiteSpace(siteUrl))
             {
                 <a class="btn btn-info" href="@urlResolver.ResolveToRoot(siteUrl)" target="_blank" rel="noopener">View listing page</a>
@@ -112,27 +112,27 @@
        ----------------------------------------- *@
     @if (extendMode)
     {
-        <div class="alert alert-info" style="margin-top:14px; border-radius:10px;">
+        <div class="alert alert-info u-mt-14px-rounded-10px">
             <strong>Extend your active sponsorship</strong>
-            <div style="opacity:.9; margin-top:6px;">
+            <div class="u-opacity-9-mt-6px">
                 Select which active placement you want to extend (this jumps directly into the old extension flow).
             </div>
         </div>
 
         @if (extendChoices.Count == 0)
         {
-            <div class="alert alert-warning" style="margin-top:14px; border-radius:10px;">
+            <div class="alert alert-warning u-mt-14px-rounded-10px">
                 No active sponsored listing was found for this listing.
             </div>
         }
         else
         {
-            <table class="table" style="margin-top:14px;">
+            <table class="table u-mt-14px">
                 <thead>
                     <tr>
                         <th>Placement</th>
-                        <th style="width:220px;">Expires</th>
-                        <th style="width:120px;"></th>
+                        <th class="u-w-220px">Expires</th>
+                        <th class="u-w-120px"></th>
                     </tr>
                 </thead>
                 <tbody>
@@ -149,7 +149,7 @@
                                 }
                                 else
                                 {
-                                    <span style="opacity:.8;">(unknown)</span>
+                                    <span class="u-opacity-8">(unknown)</span>
                                 }
                             </td>
                             <td>
@@ -171,42 +171,42 @@
 
     @if (Model.ShowSubscribedBanner)
     {
-        <div class="alert alert-success" style="margin-top: 14px; border-radius:10px;">
+        <div class="alert alert-success u-mt-14px-rounded-10px">
             <strong class="orange-text">Subscribed!</strong> You’ll be notified when a slot opens.
         </div>
     }
 
     @if (!Model.CanAdvertise)
     {
-        <div class="alert alert-warning" style="margin-top: 14px; border-radius:10px;">
-            <div style="margin-bottom:6px;">
+        <div class="alert alert-warning u-mt-14px-rounded-10px">
+            <div class="u-mb-6px">
                 <strong>This listing is not eligible to advertise yet.</strong>
             </div>
             @if (Model.IneligibilityReasons != null && Model.IneligibilityReasons.Any())
             {
-                <ul style="margin:0; padding-left:18px;">
+                <ul class="u-m-0-pl-18px">
                     @foreach (var reason in Model.IneligibilityReasons)
                     {
                         <li>@reason</li>
                     }
                 </ul>
             }
-            <div style="margin-top: 8px; opacity:.9;">
+            <div class="u-mt-8px-opacity-9">
                 You can still join waitlists below. Once your status/age is fixed, come back here and you will be elgible to advertise.
             </div>
         </div>
     }
     else
     {
-        <div class="alert alert-success" style="margin-top: 14px; border-radius:10px;">
+        <div class="alert alert-success u-mt-14px-rounded-10px">
             <strong>Eligible to advertise.</strong> If a slot is available, you can proceed to checkout.
         </div>
     }
 
-    <hr style="margin: 18px 0;" />
+    <hr class="u-m-18px-0" />
 
     <h2>Join the waitlist (get notified)</h2>
-    <p style="opacity:.9;">
+    <p class="u-opacity-9">
         If a slot isn’t available right now, join the waitlist. 
         All participants on the waitlist are emailed when there's an opening.
         First come, first serve.
@@ -245,32 +245,30 @@
     }
 
     <form method="post"
-          action="@Url.Action("Subscribe", "Sponsorship")"
-          id="join-waitlist"
-          class="card"
-          style="padding:16px 16px 14px; border-radius:12px; margin-top: 10px; border:2px solid var(--orange); background:rgba(255,102,0,0.06); box-shadow:0 0 0 1px rgba(255,102,0,0.20), 0 0 18px rgba(255,102,0,0.12);">
+ action="@Url.Action("Subscribe", "Sponsorship")"
+ id="join-waitlist"
+ class="card u-p-16px-16px-14px-rounded-12px-mt-10px">
         @Html.AntiForgeryToken()
 
         <input type="hidden" name="DirectoryEntryId" value="@Model.DirectoryEntryId" />
 
-        <label for="waitlist-email" style="display:block; font-weight:600; margin-bottom:6px; font-size:1.05rem;">
+        <label class="u-block-fw-600-mb-6px-fs-105rem" for="waitlist-email">
             Enter your email to join the waitlist
         </label>
-        <div style="display:flex; gap:12px; flex-wrap:wrap; align-items:center;">
+        <div class="u-flex-gap-12px-flexwrap-wrap-items-center">
             <input type="email"
-                   id="waitlist-email"
-                   name="Email"
-                   class="form-control"
-                   placeholder="you@example.com"
-                   required="required"
-                   style="flex: 1 1 260px; max-width: 420px;" />
-            <button type="submit" class="btn btn-primary btn-cta" style="flex:0 0 auto;">Join the waitlist &rarr;</button>
+ id="waitlist-email"
+ name="Email"
+ class="form-control u-flex-1-1-260px-maxw-420px"
+ placeholder="you@example.com"
+ required="required" />
+            <button type="submit" class="btn btn-primary btn-cta u-flex-0-0-auto">Join the waitlist &rarr;</button>
         </div>
-        <div style="margin-top:6px; opacity:.85; font-size:.9em;">
+        <div class="u-mt-6px-opacity-85-fs-9em">
             We’ll email you the moment a slot opens — pick which slots below.
         </div>
 
-        <div class="ui-checks" style="margin-top:12px;">
+        <div class="ui-checks u-mt-12px">
             <label class="ui-check @(disableMain ? "ui-disabled" : "")">
                 <input type="checkbox"
                        name="NotifyMain"
@@ -281,11 +279,11 @@
                     Main Sponsor
                     @if (mainOpenNow)
                     {
-                        <span style="opacity:.8;">— open now</span>
+                        <span class="u-opacity-8">— open now</span>
                     }
                     else if (mainActive)
                     {
-                        <span style="opacity:.8;">— active</span>
+                        <span class="u-opacity-8">— active</span>
                     }
                 </span>
             </label>
@@ -302,11 +300,11 @@
                         Category Sponsor
                         @if (catOpenNow)
                         {
-                            <span style="opacity:.8;">— open now</span>
+                            <span class="u-opacity-8">— open now</span>
                         }
                         else if (catActive)
                         {
-                            <span style="opacity:.8;">— active</span>
+                            <span class="u-opacity-8">— active</span>
                         }
                     </span>
                 </label>
@@ -324,27 +322,27 @@
                         Subcategory Sponsor
                         @if (subOpenNow)
                         {
-                            <span style="opacity:.8;">— open now</span>
+                            <span class="u-opacity-8">— open now</span>
                         }
                         else if (subActive)
                         {
-                            <span style="opacity:.8;">— active</span>
+                            <span class="u-opacity-8">— active</span>
                         }
                     </span>
                 </label>
             }
         </div>
 
-        <div style="margin-top:8px; opacity:.85;">
+        <div class="u-mt-8px-opacity-85">
             Tip: subscribing again updates your subscription (no duplicates) and refreshes your waitlist join date.
         </div>
     </form>
 
-    <hr style="margin: 18px 0;" />
+    <hr class="u-m-18px-0" />
 
     <h2>Pick a sponsorship slot</h2>
 
-    <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 14px; margin-top: 12px;">
+    <div class="u-grid-gridcols-repeat-auto-fit-minmax-320px-1fr-gap-14px">
 
         @if (Model.Main != null)
         {
@@ -387,18 +385,18 @@
 
     </div>
 
-    <hr style="margin: 18px 0;" />
+    <hr class="u-m-18px-0" />
 
     @if (Model.WaitlistBoard != null)
     {
-        <div style="margin: 18px 0;">
+        <div class="u-m-18px-0">
             @await Html.PartialAsync("_WaitlistBoard", Model.WaitlistBoard)
         </div>
     }
 
     @if (Model.RecentPaid != null)
     {
-        <div style="margin: 18px 0;">
+        <div class="u-m-18px-0">
             @await Html.PartialAsync("_RecentPaid", Model.RecentPaid)
         </div>
     }

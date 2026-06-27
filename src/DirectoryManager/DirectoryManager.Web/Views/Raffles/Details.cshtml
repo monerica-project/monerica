@@ -109,10 +109,10 @@ else
                             #@e.DirectoryEntryReviewId
                         </a>
                     </td>
-                    <td><code style="font-size:.8em;">@(e.DirectoryEntryReview?.AuthorFingerprint ?? "—")</code></td>
+                    <td><code class="u-fs-8em">@(e.DirectoryEntryReview?.AuthorFingerprint ?? "—")</code></td>
                     <td>@e.CryptoType</td>
-                    <td style="max-width:260px;overflow-wrap:anywhere;">
-                        <code style="font-size:.8em;">@e.CryptoAddress</code>
+                    <td class="u-maxw-260px-overflowwrap-anywhere">
+                        <code class="u-fs-8em">@e.CryptoAddress</code>
                     </td>
                     <td>
                         @switch (e.Status)
@@ -140,7 +140,7 @@ else
                     <td>
                         @if (!string.IsNullOrWhiteSpace(e.PaymentReference))
                         {
-                            <code style="font-size:.8em;">@e.PaymentReference</code>
+                            <code class="u-fs-8em">@e.PaymentReference</code>
                         }
                         else
                         {

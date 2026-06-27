@@ -35,11 +35,11 @@
 <hr />
  
 
-<p style="opacity:.9;">
+<p class="u-opacity-9">
     <strong>@Model.ScopeLabel</strong> — <strong>@Model.TotalCount</strong> total signup(s)
 </p>
 
-<div style="margin: 10px 0;">
+<div class="u-m-10px-0">
     <a class="btn btn-info" href="@Url.Action("Index", "Sponsorship")">Back to sponsorship search</a>
 </div>
 
@@ -50,12 +50,12 @@
 else
 {
        <div class="table-wrapper">
-    <div class="card" style="padding:14px; border-radius:12px; margin-top: 12px;">
-        <table class="table" style="width:100%;">
+    <div class="card u-p-14px-rounded-12px-mt-12px">
+        <table class="table u-w-100pct">
             <thead>
                 <tr>
-                    <th style="text-align:left;">Listing</th>
-                    <th style="text-align:left;">Joined (UTC)</th>
+                    <th class="u-text-left">Listing</th>
+                    <th class="u-text-left">Joined (UTC)</th>
                 </tr>
             </thead>
             <tbody>
@@ -82,11 +82,11 @@ else
 
     @if (totalPages > 1)
     {
-        <div style="display:flex; gap:10px; align-items:center; margin-top: 18px; flex-wrap:wrap;">
+        <div class="u-flex-gap-10px-items-center-mt-18px-flexwrap-wrap">
             <a class="btn btn-info" href="@Url.Action("Waitlist", "Sponsorship", new { type = Model.SponsorshipType, typeId = Model.TypeId, page = 1 })">First</a>
             <a class="btn btn-info" href="@Url.Action("Waitlist", "Sponsorship", new { type = Model.SponsorshipType, typeId = Model.TypeId, page = prev })">Prev</a>
 
-            <span style="opacity:.9;">
+            <span class="u-opacity-9">
                 Page <strong>@pageNumber</strong> / <strong>@totalPages</strong>
             </span>
 

@@ -18,11 +18,11 @@
     @await Html.PartialAsync("_BackToHome")
     <hr />
 
-    <p style="opacity:.9;">
+    <p class="u-opacity-9">
         <strong>@Model.TotalCount</strong> total signup(s) across all waitlists
     </p>
 
-    <div style="margin: 10px 0;">
+    <div class="u-m-10px-0">
         <a class="btn btn-info" href="@Url.Action("Index", "Sponsorship")">Back to sponsorship search</a>
     </div>
 
@@ -32,7 +32,7 @@
     }
     else
     {
-        <div style="display:flex; gap:10px; flex-wrap:wrap; margin: 10px 0;">
+        <div class="u-flex-gap-10px-flexwrap-wrap-m-10px-0">
             <a class="btn btn-info" href="#main">Main Sponsor</a>
             <a class="btn btn-info" href="#category">Category Sponsor</a>
             <a class="btn btn-info" href="#subcategory">Subcategory Sponsor</a>
@@ -41,9 +41,9 @@
         <!-- =========================
              MAIN
         ========================== -->
-        <div id="main" class="card" style="padding:14px; border-radius:12px; margin-top: 12px;">
-            <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
-                <h2 style="margin:0;">Main Sponsor</h2>
+        <div id="main" class="card u-p-14px-rounded-12px-mt-12px">
+            <div class="u-flex-justify-space-between-gap-12px-flexwrap-wrap">
+                <h2 class="u-m-0">Main Sponsor</h2>
                 @if (Model.Main != null && !string.IsNullOrWhiteSpace(Model.Main.BrowseUrl))
                 {
                     <a class="btn btn-info" href="@Model.Main.BrowseUrl">View main waitlist (paged)</a>
@@ -52,20 +52,20 @@
 
             @if (Model.Main == null || Model.Main.TotalCount <= 0)
             {
-                <p style="opacity:.85; margin-top:10px;">No signups.</p>
+                <p class="u-opacity-85-mt-10px">No signups.</p>
             }
             else
             {
-                <p style="opacity:.9; margin-top:10px;">
+                <p class="u-opacity-9-mt-10px">
                     <strong>@Model.Main.TotalCount</strong> signup(s) — A–Z by listing
                 </p>
 
                 <div class="table-wrapper">
-                    <table class="table" style="width:100%;">
+                    <table class="table u-w-100pct">
                         <thead>
                             <tr>
-                                <th style="text-align:left;">Listing</th>
-                                <th style="text-align:left;">Joined (UTC)</th>
+                                <th class="u-text-left">Listing</th>
+                                <th class="u-text-left">Joined (UTC)</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -94,39 +94,39 @@
         <!-- =========================
              CATEGORY
         ========================== -->
-        <div id="category" class="card" style="padding:14px; border-radius:12px; margin-top: 16px;">
-            <h2 style="margin:0;">Category Sponsor</h2>
+        <div id="category" class="card u-p-14px-rounded-12px-mt-16px">
+            <h2 class="u-m-0">Category Sponsor</h2>
 
             @if (Model.Categories == null || Model.Categories.Count == 0)
             {
-                <p style="opacity:.85; margin-top:10px;">No category waitlists yet.</p>
+                <p class="u-opacity-85-mt-10px">No category waitlists yet.</p>
             }
             else
             {
-                <p style="opacity:.9; margin-top:10px;">
+                <p class="u-opacity-9-mt-10px">
                     <strong>@Model.Categories.Sum(x => x.TotalCount)</strong> signup(s) across <strong>@Model.Categories.Count</strong> category scope(s)
                     — scopes A–Z, listings A–Z
                 </p>
 
                 @foreach (var scope in Model.Categories)
                 {
-                    <details open style="margin-top: 12px;">
-                        <summary style="cursor:pointer;">
+                    <details class="u-mt-12px" open>
+                        <summary class="u-cursor-pointer">
                             <strong>@scope.ScopeLabel</strong> — <strong>@scope.TotalCount</strong> signup(s)
                             @if (!string.IsNullOrWhiteSpace(scope.BrowseUrl))
                             {
-                                <span style="margin-left:10px;">
+                                <span class="u-ml-10px">
                                     <a href="@scope.BrowseUrl">paged</a>
                                 </span>
                             }
                         </summary>
 
-                        <div class="table-wrapper" style="margin-top:10px;">
-                            <table class="table" style="width:100%;">
+                        <div class="table-wrapper u-mt-10px">
+                            <table class="table u-w-100pct">
                                 <thead>
                                     <tr>
-                                        <th style="text-align:left;">Listing</th>
-                                        <th style="text-align:left;">Joined (UTC)</th>
+                                        <th class="u-text-left">Listing</th>
+                                        <th class="u-text-left">Joined (UTC)</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -157,39 +157,39 @@
         <!-- =========================
              SUBCATEGORY
         ========================== -->
-        <div id="subcategory" class="card" style="padding:14px; border-radius:12px; margin-top: 16px;">
-            <h2 style="margin:0;">Subcategory Sponsor</h2>
+        <div id="subcategory" class="card u-p-14px-rounded-12px-mt-16px">
+            <h2 class="u-m-0">Subcategory Sponsor</h2>
 
             @if (Model.Subcategories == null || Model.Subcategories.Count == 0)
             {
-                <p style="opacity:.85; margin-top:10px;">No subcategory waitlists yet.</p>
+                <p class="u-opacity-85-mt-10px">No subcategory waitlists yet.</p>
             }
             else
             {
-                <p style="opacity:.9; margin-top:10px;">
+                <p class="u-opacity-9-mt-10px">
                     <strong>@Model.Subcategories.Sum(x => x.TotalCount)</strong> signup(s) across <strong>@Model.Subcategories.Count</strong> subcategory scope(s)
                     — scopes A–Z, listings A–Z
                 </p>
 
                 @foreach (var scope in Model.Subcategories)
                 {
-                    <details open style="margin-top: 12px;">
-                        <summary style="cursor:pointer;">
+                    <details class="u-mt-12px" open>
+                        <summary class="u-cursor-pointer">
                             <strong>@scope.ScopeLabel</strong> — <strong>@scope.TotalCount</strong> signup(s)
                             @if (!string.IsNullOrWhiteSpace(scope.BrowseUrl))
                             {
-                                <span style="margin-left:10px;">
+                                <span class="u-ml-10px">
                                     <a href="@scope.BrowseUrl">paged</a>
                                 </span>
                             }
                         </summary>
 
-                        <div class="table-wrapper" style="margin-top:10px;">
-                            <table class="table" style="width:100%;">
+                        <div class="table-wrapper u-mt-10px">
+                            <table class="table u-w-100pct">
                                 <thead>
                                     <tr>
-                                        <th style="text-align:left;">Listing</th>
-                                        <th style="text-align:left;">Joined (UTC)</th>
+                                        <th class="u-text-left">Listing</th>
+                                        <th class="u-text-left">Joined (UTC)</th>
                                     </tr>
                                 </thead>
                                 <tbody>

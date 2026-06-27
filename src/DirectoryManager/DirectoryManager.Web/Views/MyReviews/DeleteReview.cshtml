@@ -17,7 +17,7 @@
         Rating: @(Model.Review.Rating?.ToString() ?? "N/A")
         • @( (Model.Review.UpdateDate ?? Model.Review.CreateDate).ToString("yyyy-MM-dd") )
     </div>
-    <div style="white-space:pre-wrap">@Model.Review.Body</div>
+    <div class="u-ws-pre-wrap">@Model.Review.Body</div>
 </div>
 
 <br />

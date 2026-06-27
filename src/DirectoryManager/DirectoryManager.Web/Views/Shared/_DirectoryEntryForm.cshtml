@@ -105,33 +105,30 @@
 <div class="form-group">
     <label>Founded Date (YYYY-MM-DD)</label>
 
-    <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+    <div class="u-flex-gap-8px-items-center-flexwrap-wrap">
         <input asp-for="FoundedYear"
-               class="form-control"
-               style="width:110px;"
-               autocomplete="off"
-               inputmode="numeric"
-               pattern="[0-9]*"
-               maxlength="4"
-               placeholder="YYYY" />
+ class="form-control u-w-110px"
+ autocomplete="off"
+ inputmode="numeric"
+ pattern="[0-9]*"
+ maxlength="4"
+ placeholder="YYYY" />
 
         <input asp-for="FoundedMonth"
-               class="form-control"
-               style="width:90px;"
-               autocomplete="off"
-               inputmode="numeric"
-               pattern="[0-9]*"
-               maxlength="2"
-               placeholder="MM" />
+ class="form-control u-w-90px"
+ autocomplete="off"
+ inputmode="numeric"
+ pattern="[0-9]*"
+ maxlength="2"
+ placeholder="MM" />
 
         <input asp-for="FoundedDay"
-               class="form-control"
-               style="width:90px;"
-               autocomplete="off"
-               inputmode="numeric"
-               pattern="[0-9]*"
-               maxlength="2"
-               placeholder="DD" />
+ class="form-control u-w-90px"
+ autocomplete="off"
+ inputmode="numeric"
+ pattern="[0-9]*"
+ maxlength="2"
+ placeholder="DD" />
     </div>
 
     <span asp-validation-for="FoundedYear" class="text-danger"></span>

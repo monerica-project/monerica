@@ -25,12 +25,12 @@
 
 <p>
     <label for="emailsBox">Copy all (one per line):</label><br />
-    <textarea id="emailsBox" rows="6" style="width:100%;" readonly>@Model.EmailsNewlineSeparated</textarea>
+    <textarea class="u-w-100pct" id="emailsBox" rows="6" readonly>@Model.EmailsNewlineSeparated</textarea>
 </p>
 
 <p>
     <label for="emailsCsvBox">Copy all (comma separated, e.g. BCC):</label><br />
-    <textarea id="emailsCsvBox" rows="3" style="width:100%;" readonly>@Model.EmailsCommaSeparated</textarea>
+    <textarea class="u-w-100pct" id="emailsCsvBox" rows="3" readonly>@Model.EmailsCommaSeparated</textarea>
 </p>
 
 <button type="button" id="copyEmailsBtn" data-target="emailsBox">Copy newline list</button>

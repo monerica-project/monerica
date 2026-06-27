@@ -13,13 +13,13 @@
     @Html.AntiForgeryToken()
     <input type="hidden" name="TagId" value="@Model.TagId" />
 
-    <label style="display:block; margin-bottom:10px;">
+    <label class="u-block-mb-10px">
         Name:
             <input type="text" name="Name" value="@Model.Name" class="form-control input-width" />
         @Html.ValidationMessage("Name")
     </label>
 
     <button type="submit" class="btn btn-primary">Save</button>
-    <a class="no-app-link" href="@Url.Action("Index")" style="margin-left:10px;">Cancel</a>
+    <a class="no-app-link u-ml-10px" href="@Url.Action("Index")">Cancel</a>
 </form>
 }

@@ -170,7 +170,7 @@
         <div class="payment-details">
             <div class="field">
                 <span class="label">Order ID:</span>
-                <span class="value" style="font-size:0.8rem;color:#aaa;">@Model.OrderId</span>
+                <span class="value u-fs-08rem-color-aaa">@Model.OrderId</span>
             </div>
 
             @if (!string.IsNullOrWhiteSpace(Model.ListingName))
@@ -183,7 +183,7 @@
 
             @if (!string.IsNullOrWhiteSpace(Model.InvoiceDescription))
             {
-                <div class="field" style="margin-bottom:0;">
+                <div class="field u-mb-0">
                     <span class="label">Description:</span>
                     <span class="value description">@Model.InvoiceDescription</span>
                 </div>
@@ -197,8 +197,8 @@
                 <p class="txid-label">Transaction ID:</p>
                 <p class="txid">@Model.TxId</p>
             }
-            <p style="margin-top:0.75rem;">
-                <a href="@Url.Action("BtcPaySuccess", "SponsoredListingCheckout", new { orderId = Model.OrderId })" style="color:#81c784;">
+            <p class="u-mt-075rem">
+                <a class="u-color-81c784" href="@Url.Action("BtcPaySuccess", "SponsoredListingCheckout", new { orderId = Model.OrderId })">
                     Continue &rarr;
                 </a>
             </p>
@@ -210,7 +210,7 @@
     {
         <div class="invoice-status expired">
             <p>&#10007; This invoice has expired.</p>
-            <a href="@Url.Action("SelectListing", "SponsoredListingCheckout")" style="color:#ef9a9a;">Start over &rarr;</a>
+            <a class="u-color-ef9a9a" href="@Url.Action("SelectListing", "SponsoredListingCheckout")">Start over &rarr;</a>
         </div>
     }
 
@@ -222,7 +222,7 @@
         <div class="payment-details">
             <div class="field">
                 <span class="label">Order ID:</span>
-                <span class="value" style="font-size:0.8rem;color:#aaa;">@Model.OrderId</span>
+                <span class="value u-fs-08rem-color-aaa">@Model.OrderId</span>
             </div>
 
             
@@ -235,7 +235,7 @@
 }
             @if (!string.IsNullOrWhiteSpace(Model.InvoiceDescription))
             {
-                <div class="field" style="margin-bottom:0;">
+                <div class="field u-mb-0">
                     <span class="label">Description:</span>
                     <span class="value description">@Model.InvoiceDescription</span>
                 </div>
@@ -260,7 +260,7 @@
                 }
                 else
                 {
-                    <div class="qr-fallback" style="color:#ffd54f;">Payment received &mdash; awaiting confirmation</div>
+                    <div class="qr-fallback u-color-ffd54f">Payment received &mdash; awaiting confirmation</div>
                 }
             </div>
 
@@ -277,7 +277,7 @@
                     </div>
                     @if (!string.IsNullOrWhiteSpace(Model.PaymentUri))
                     {
-                        <div class="field" style="margin-bottom:0;">
+                        <div class="field u-mb-0">
                             <span class="label">Open in wallet app:</span>
                             <a href="@Model.PaymentUri" class="wallet-link">Open Monero wallet</a>
                         </div>
@@ -297,9 +297,9 @@
         }
         else
         {
-            <p style="font-family:sans-serif;color:#ccc;">
+            <p class="u-ff-sans-serif-color-ccc">
                 Loading payment details&hellip;
-                <a href="@refreshUrl" style="color:#5b9bd5;">Refresh page</a>
+                <a class="u-color-5b9bd5" href="@refreshUrl">Refresh page</a>
             </p>
         }
 

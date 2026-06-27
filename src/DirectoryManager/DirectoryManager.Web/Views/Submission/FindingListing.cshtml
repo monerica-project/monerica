@@ -20,19 +20,18 @@
     @await Html.PartialAsync("_BackToHome")<text> | </text><a href="~/submit">create new listing</a>
     <hr />
 
-    <p style="margin: 0 0 10px 0;">
+    <p class="u-m-0-0-10px-0">
         <strong>Search and select the listing you want to edit.</strong><br />
         This search includes <strong>Removed</strong> listings too. Results include <strong>Edit</strong> and <strong>Audit</strong>.
     </p>
 
     <!-- SEARCH (Sponsorship-style) -->
-    <form method="get" action="@Url.Action("FindingListing","Submission")" class="search-form" style="margin: 16px 0;">
+    <form method="get" action="@Url.Action("FindingListing","Submission")" class="search-form u-m-16px-0">
         <input type="search"
-               name="q"
-               value="@q"
-               placeholder="Search listings… (name, website, category, tags) — includes Removed"
-               class="form-control"
-               style="max-width: 520px; display: inline-block;" />
+ name="q"
+ value="@q"
+ placeholder="Search listings… (name, website, category, tags) — includes Removed"
+ class="form-control u-maxw-520px-inline-block" />
 
         <input type="hidden" name="pageSize" value="@Model.PageSize" />
 
@@ -41,9 +40,9 @@
 
     @if (Model.HasSearched)
     {
-        <h2 style="margin-top: 18px;">Search results</h2>
+        <h2 class="u-mt-18px">Search results</h2>
 
-        <p style="margin: 6px 0 12px 0;">
+        <p class="u-m-6px-0-12px-0">
             @Model.TotalCount result@(Model.TotalCount == 1 ? "" : "s")
             @if (Model.TotalPages > 1)
             {
@@ -54,7 +53,7 @@
         @if (Model.Results != null && Model.Results.Any())
         {
             <div class="table-wrapper">
-                <table class="table" style="width: 100%;">
+                <table class="table u-w-100pct">
                     <thead>
                         <tr>
                             <th>Listing</th>
@@ -83,17 +82,16 @@
                                 <td>@r.Category</td>
                                 <td>@r.Subcategory</td>
                                 <td>@r.AgeDays</td>
-                                <td style="white-space: nowrap;">
+                                <td class="u-ws-nowrap">
                                     <a class="btn btn-info"
                                            rel="nofollow"
                                            href="~/submission/submitedit/@r.DirectoryEntryId">
                                         Edit
                                     </a>
 
-                                    <a class="btn btn-secondary"
-                                           style="margin-left:8px;"
-                                           rel="nofollow"
-                                           href="~/submission/audit/@r.DirectoryEntryId">
+                                    <a class="btn btn-secondary u-ml-8px"
+ rel="nofollow"
+ href="~/submission/audit/@r.DirectoryEntryId">
                                         Audit
                                     </a>
                                 </td>
@@ -105,7 +103,7 @@
 
             @if (Model.TotalPages > 1)
             {
-                <div style="margin: 12px 0 22px 0;">
+                <div class="u-m-12px-0-22px-0">
                     @{
                         var prev = Model.Page > 1 ? Model.Page - 1 : (int?)null;
                         var next = Model.Page < Model.TotalPages ? Model.Page + 1 : (int?)null;
@@ -121,9 +119,8 @@
 
                     @if (next.HasValue)
                     {
-                        <a class="btn btn-secondary"
-                               style="margin-left: 8px;"
-                               href="@Url.Action("FindingListing", "Submission", new { q = q, page = next.Value, pageSize = Model.PageSize })">
+                        <a class="btn btn-secondary u-ml-8px"
+ href="@Url.Action("FindingListing", "Submission", new { q = q, page = next.Value, pageSize = Model.PageSize })">
                             Next →
                         </a>
                     }

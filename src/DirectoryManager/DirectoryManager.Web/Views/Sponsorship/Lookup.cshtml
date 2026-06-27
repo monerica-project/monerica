@@ -16,33 +16,32 @@
     @await Html.PartialAsync("_BackToHome")
     <hr />
 
-    <p style="margin: 6px 0 10px 0; font-size: 1.05rem;">
+    <p class="u-m-6px-0-10px-0-fs-105rem">
         Search your listing to see <strong>every placement</strong> — Main (site-wide), Category, and Subcategory —
         with <strong>live prices</strong> and which spots are <strong>open right now</strong>.
         Main can be full while your Category/Subcategory spots are still open.
     </p>
-    <p style="margin: 0 0 14px 0; opacity:.9;">
+    <p class="u-m-0-0-14px-0-opacity-9">
         Not listed yet? <a href="~/submit">Submit it first →</a>
         · <a href="~/sponsoredlisting/offers">View full price list</a>
         · <a href="~/sponsors">See current sponsors</a>
     </p>
 
     <!-- SEARCH -->
-    <form method="get" action="@Url.Action("Lookup", "Sponsorship")" class="search-form" style="margin: 16px 0;">
+    <form method="get" action="@Url.Action("Lookup", "Sponsorship")" class="search-form u-m-16px-0">
         <input type="search"
-               name="q"
-               value="@q"
-               placeholder="Search listings… (name, website)"
-               class="form-control"
-               style="max-width: 520px; display: inline-block;" />
+ name="q"
+ value="@q"
+ placeholder="Search listings… (name, website)"
+ class="form-control u-maxw-520px-inline-block" />
         <button type="submit" class="btn btn-primary btn-cta">Find my listing</button>
     </form>
 
     @if (Model.HasSearched)
     {
-        <h2 style="margin-top: 18px;">Search results</h2>
+        <h2 class="u-mt-18px">Search results</h2>
 
-        <p style="margin: 6px 0 12px 0;">
+        <p class="u-m-6px-0-12px-0">
             @Model.TotalCount result@(Model.TotalCount == 1 ? "" : "s")
             @if (Model.TotalPages > 1)
             {
@@ -60,11 +59,9 @@
                     if (!string.IsNullOrWhiteSpace(r.Subcategory)) { meta += $" » {r.Subcategory}"; }
                     meta += $" · listed {r.AgeDays} days";
 
-                    <div class="result-row"
-                         style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px;
-                                padding:12px 0; border-bottom:1px solid rgba(128,128,128,.25);">
-                        <div style="flex:1 1 240px; min-width:0;">
-                            <div style="font-size:1.05em; font-weight:600;">
+                    <div class="result-row u-flex-flexwrap-wrap-items-center-gap-8px-16px-p-12px-0">
+                        <div class="u-flex-1-1-240px-minw-0">
+                            <div class="u-fs-105em-fw-600">
                                 @if (!string.IsNullOrWhiteSpace(r.Link))
                                 {
                                     <a href="@r.Link" target="_blank" rel="noopener">@r.Name</a>
@@ -74,11 +71,11 @@
                                     @r.Name
                                 }
                             </div>
-                            <div style="opacity:.8; font-size:.9em; margin-top:2px;">@meta</div>
+                            <div class="u-opacity-8-fs-9em-mt-2px">@meta</div>
 
                             @if (!r.CanAdvertise && r.Reasons != null && r.Reasons.Any())
                             {
-                                <ul style="margin:6px 0 0 18px; opacity:.85; font-size:.9em;">
+                                <ul class="u-m-6px-0-0-18px-opacity-85-fs-9em">
                                     @foreach (var reason in r.Reasons)
                                     {
                                         <li>@reason</li>
@@ -87,8 +84,7 @@
                             }
                         </div>
 
-                        <form method="post" action="@Url.Action("Select", "Sponsorship")"
-                              style="flex:0 0 auto; margin:0;">
+                        <form class="u-flex-0-0-auto-m-0" method="post" action="@Url.Action("Select", "Sponsorship")">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="directoryEntryId" value="@r.DirectoryEntryId" />
                             <button type="submit" class="btn @(r.CanAdvertise ? "btn-info" : "btn-secondary")">
@@ -101,7 +97,7 @@
 
             @if (Model.TotalPages > 1)
             {
-                <div style="margin: 12px 0 22px 0;">
+                <div class="u-m-12px-0-22px-0">
                     @{
                         var prev = Model.Page > 1 ? Model.Page - 1 : (int?)null;
                         var next = Model.Page < Model.TotalPages ? Model.Page + 1 : (int?)null;
@@ -112,14 +108,14 @@
                     }
                     @if (next.HasValue)
                     {
-                        <a class="btn btn-secondary" style="margin-left: 8px;" href="@Url.Action("Lookup", "Sponsorship", new { q = q, page = next.Value })">Next →</a>
+                        <a class="btn btn-secondary u-ml-8px" href="@Url.Action("Lookup", "Sponsorship", new { q = q, page = next.Value })">Next →</a>
                     }
                 </div>
             }
         }
         else
         {
-            <p style="margin-top: 8px;">
+            <p class="u-mt-8px">
                 No directory listing found for <strong>@q</strong>. A site has to be listed in the
                 directory before it can be sponsored — <a href="~/submit">submit it here</a>, then
                 come back and search again. Questions? <a href="~/contact">Contact us</a>.

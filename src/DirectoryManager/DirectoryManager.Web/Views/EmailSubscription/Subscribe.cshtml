@@ -35,7 +35,7 @@
                placeholder="yourname@email.com"
                class="form-control input-width"
                value="@(Model?.Email ?? string.Empty)" />
-        <div class="text-danger" style="margin-top:4px;">
+        <div class="text-danger u-mt-4px">
             @Html.ValidationMessage("Email")
         </div>
 
@@ -44,7 +44,7 @@
         <div>
             <!-- Shared, no-JS CAPTCHA block (context = "newsletter") -->
             @await Html.PartialAsync("_CaptchaBlock", "newsletter")
-            <div class="text-danger" style="margin-top:4px;">
+            <div class="text-danger u-mt-4px">
                 @Html.ValidationMessage("Captcha")
             </div>
         </div>

@@ -29,43 +29,42 @@
     @await Html.PartialAsync("_BackToHome")
     <hr />
 
-    <p style="margin: 6px 0 12px 0; font-size: 1.05rem;">
+    <p class="u-m-6px-0-12px-0-fs-105rem">
         Sponsor spots are limited. Find your listing below to <strong>claim an open spot</strong> or
         <strong>join the waitlist</strong> — we'll email you the moment one opens.
         <a class="app-link" href="~/sponsors">See who's sponsoring now &amp; recent payments →</a>
     </p>
 
     @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SponsoredListingSteps))
-    <p style="margin: 0 0 6px 0;"><strong>How to sponsor a spot:</strong></p>
-    <ol style="margin: 0 0 12px 0; padding-left: 22px;">
+    <p class="u-m-0-0-6px-0"><strong>How to sponsor a spot:</strong></p>
+    <ol class="u-m-0-0-12px-0-pl-22px">
         <li>Your site must be listed in the directory first. <a href="~/submit">Not listed yet? Submit it →</a></li>
         <li>Search your listing below.</li>
         <li>Select it to see every placement, live prices, and which spots are open — then pay in XMR, or join the waitlist if the spot you want is taken.</li>
     </ol>
-    <p style="margin: 0 0 10px 0; opacity: .9;">
+    <p class="u-m-0-0-10px-0-opacity-9">
         Every listing has up to 3 placements (Main, Category, Subcategory), each in different durations and prices.
     </p>
 
     <!-- SEARCH -->
-    <form method="get" action="@Url.Action("Index", "Sponsorship")" class="search-form" style="margin: 16px 0;">
+    <form method="get" action="@Url.Action("Index", "Sponsorship")" class="search-form u-m-16px-0">
         <input type="search"
-               name="q"
-               value="@q"
-               placeholder="Search listings… (name, website)"
-               class="form-control"
-               style="max-width: 520px; display: inline-block;" />
+ name="q"
+ value="@q"
+ placeholder="Search listings… (name, website)"
+ class="form-control u-maxw-520px-inline-block" />
         <button type="submit" class="btn btn-primary btn-cta">Find my listing</button>
     </form>
-    <p style="margin: -6px 0 16px 0; opacity: .85;">
+    <p class="u-m-6px-0-16px-0-opacity-85">
         Don't see your site, or not listed yet? <a href="~/submit">Submit it first →</a>
         Questions? <a href="~/contact">Contact us</a>.
     </p>
 
     @if (Model.HasSearched)
     {
-        <h2 style="margin-top: 18px;">Search results</h2>
+        <h2 class="u-mt-18px">Search results</h2>
 
-        <p style="margin: 6px 0 12px 0;">
+        <p class="u-m-6px-0-12px-0">
             @Model.TotalCount result@(Model.TotalCount == 1 ? "" : "s")
             @if (Model.TotalPages > 1)
             {
@@ -83,11 +82,9 @@
                     if (!string.IsNullOrWhiteSpace(r.Subcategory)) { meta += $" » {r.Subcategory}"; }
                     meta += $" · listed {r.AgeDays} days";
 
-                    <div class="result-row"
-                         style="display:flex; flex-wrap:wrap; align-items:center; gap:8px 16px;
-                                padding:12px 0; border-bottom:1px solid rgba(128,128,128,.25);">
-                        <div style="flex:1 1 240px; min-width:0;">
-                            <div style="font-size:1.05em; font-weight:600;">
+                    <div class="result-row u-flex-flexwrap-wrap-items-center-gap-8px-16px-p-12px-0">
+                        <div class="u-flex-1-1-240px-minw-0">
+                            <div class="u-fs-105em-fw-600">
                                 @if (!string.IsNullOrWhiteSpace(r.Link))
                                 {
                                     <a href="@r.Link" target="_blank" rel="noopener">@r.Name</a>
@@ -97,11 +94,11 @@
                                     @r.Name
                                 }
                             </div>
-                            <div style="opacity:.8; font-size:.9em; margin-top:2px;">@meta</div>
+                            <div class="u-opacity-8-fs-9em-mt-2px">@meta</div>
 
                             @if (!r.CanAdvertise && r.Reasons != null && r.Reasons.Any())
                             {
-                                <ul style="margin:6px 0 0 18px; opacity:.85; font-size:.9em;">
+                                <ul class="u-m-6px-0-0-18px-opacity-85-fs-9em">
                                     @foreach (var reason in r.Reasons)
                                     {
                                         <li>@reason</li>
@@ -110,8 +107,7 @@
                             }
                         </div>
 
-                        <form method="post" action="@Url.Action("Select", "Sponsorship")"
-                              style="flex:0 0 auto; margin:0;">
+                        <form class="u-flex-0-0-auto-m-0" method="post" action="@Url.Action("Select", "Sponsorship")">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="directoryEntryId" value="@r.DirectoryEntryId" />
                             <button type="submit" class="btn @(r.CanAdvertise ? "btn-info" : "btn-secondary")">
@@ -124,7 +120,7 @@
 
             @if (Model.TotalPages > 1)
             {
-                <div style="margin: 12px 0 22px 0;">
+                <div class="u-m-12px-0-22px-0">
                     @{
                         var prev = Model.Page > 1 ? Model.Page - 1 : (int?)null;
                         var next = Model.Page < Model.TotalPages ? Model.Page + 1 : (int?)null;
@@ -135,14 +131,14 @@
                     }
                     @if (next.HasValue)
                     {
-                        <a class="btn btn-secondary" style="margin-left: 8px;" href="@Url.Action("Index", "Sponsorship", new { q = q, page = next.Value })">Next →</a>
+                        <a class="btn btn-secondary u-ml-8px" href="@Url.Action("Index", "Sponsorship", new { q = q, page = next.Value })">Next →</a>
                     }
                 </div>
             }
         }
         else
         {
-            <p style="margin-top: 8px;">
+            <p class="u-mt-8px">
                 No directory listing found for <strong>@q</strong>. A site has to be listed in the
                 directory before it can be sponsored — <a href="~/submit">submit it here</a>, then
                 come back and search again. Questions? <a href="~/contact">Contact us</a>.
@@ -156,13 +152,13 @@
     @* MAIN SPONSOR OPEN / NEXT OPENING *@
     @if (Model.MainSponsorIsOpen)
     {
-        <p class="orange-text" style="margin: 0 0 10px 0; font-weight: 800;">
+        <p class="orange-text u-m-0-0-10px-0-fw-800">
             Main Sponsor is OPEN — find your listing above and claim your spot.
         </p>
     }
     else if (Model.MainSponsorInventory != null)
     {
-        <div class="adspace-full" style="margin: 0 0 12px 0;">
+        <div class="adspace-full u-m-0-0-12px-0">
             <p>
                 Sorry, the maximum number of <b>@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</b> listings has been reached!
             </p>
@@ -172,20 +168,20 @@
             </p>
             <p>Come back in @Model.MainSponsorInventory.TimeUntilNextMessage</p>
             <p>Search for your listing to <b>join the waitlist!</b></p>
-            <p style="opacity: .9;">Category and Subcategory spots are separate from Main — search your listing above to check those.</p>
+            <p class="u-opacity-9">Category and Subcategory spots are separate from Main — search your listing above to check those.</p>
         </div>
     }
 
-    <details style="margin: 10px 0 18px 0;">
-        <summary style="cursor:pointer;"><strong>What's included in each sponsorship package?</strong></summary>
-        <div style="margin-top: 12px;">
-            <h3 style="margin: 14px 0 6px 0;">@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</h3>
+    <details class="u-m-10px-0-18px-0">
+        <summary class="u-cursor-pointer"><strong>What's included in each sponsorship package?</strong></summary>
+        <div class="u-mt-12px">
+            <h3 class="u-m-14px-0-6px-0">@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</h3>
             @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.MainSponsoredListingDetails))
 
-            <h3 style="margin: 18px 0 6px 0;">@EnumHelper.GetDescription(SponsorshipType.CategorySponsor)</h3>
+            <h3 class="u-m-18px-0-6px-0">@EnumHelper.GetDescription(SponsorshipType.CategorySponsor)</h3>
             @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.CategorySponsoredListingDetails))
 
-            <h3 style="margin: 18px 0 6px 0;">@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</h3>
+            <h3 class="u-m-18px-0-6px-0">@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</h3>
             @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SubcategorySponsoredListingDetails))
         </div>
     </details>
@@ -203,17 +199,17 @@
         var total = Model.WaitlistBoard?.MainWaitlistCount ?? 0;
         var remaining = Math.Max(0, total - shown);
 
-        <p style="margin: 6px 0 10px 0;">
+        <p class="u-m-6px-0-10px-0">
             Main Sponsor waitlist: <strong>@total</strong> waiting
-            <span style="opacity:.85;">— newest signups shown first.</span>
+            <span class="u-opacity-85">— newest signups shown first.</span>
         </p>
 
         @if (shown > 0)
         {
-            <p style="margin-bottom: 6px;">
-                Preview: <span style="opacity:.85;">showing @shown of @total</span>
+            <p class="u-mb-6px">
+                Preview: <span class="u-opacity-85">showing @shown of @total</span>
             </p>
-            <ul style="margin-top: 0;">
+            <ul class="u-mt-0">
                 @foreach (var row in preview)
                 {
                     <li>
@@ -232,7 +228,7 @@
 
             @if (!string.IsNullOrWhiteSpace(Model.WaitlistBoard.BrowseWaitlistUrl))
             {
-                <div style="margin-top: 10px;">
+                <div class="u-mt-10px">
                     <a class="btn btn-info" href="@Model.WaitlistBoard.BrowseWaitlistUrl">
                         Browse waitlists@(remaining > 0 ? $" (+{remaining} more)" : "")
                     </a>
@@ -241,10 +237,10 @@
         }
         else
         {
-            <p style="opacity:.85; margin-top: 8px;">No one is waiting yet.</p>
+            <p class="u-opacity-85-mt-8px">No one is waiting yet.</p>
             @if (!string.IsNullOrWhiteSpace(Model.WaitlistBoard.BrowseWaitlistUrl))
             {
-                <div style="margin-top: 10px;">
+                <div class="u-mt-10px">
                     <a class="btn btn-info" href="@Model.WaitlistBoard.BrowseWaitlistUrl">Browse waitlists</a>
                 </div>
             }
@@ -252,7 +248,7 @@
     }
 
     <hr />
-    <p style="margin: 18px 0;">
+    <p class="u-m-18px-0">
         <a class="btn btn-info btn-lg" href="~/sponsors">See current sponsors, recent payments &amp; pricing &rarr;</a>
     </p>
 
@@ -260,24 +256,24 @@
     @if (Model.RecentPaid != null && Model.RecentPaid.Items != null && Model.RecentPaid.Items.Any())
     {
         <hr />
-        <h2 style="margin-top: 22px;">Businesses are paying to advertise here</h2>
-        <p style="margin: 6px 0 12px 0;">
+        <h2 class="u-mt-22px">Businesses are paying to advertise here</h2>
+        <p class="u-m-6px-0-12px-0">
             Recent paid sponsorships. Spots are limited and demand is real &mdash; <strong>join the waitlist</strong> to claim
             yours at these rates (or higher as demand grows). <a href="~/sponsors">See all sponsors &amp; payments &rarr;</a>
         </p>
 
         <div class="table-wrapper">
-            <table class="table" style="width: 100%;">
+            <table class="table u-w-100pct">
                 <thead>
                     <tr>
                         <th>Paid</th>
                         <th>Sponsor</th>
                         <th>Type</th>
-                        <th style="text-align:right;">Days</th>
-                        <th style="text-align:right;">Paid (@Currency.XMR.ToString())</th>
-                        <th style="text-align:right;">USD</th>
-                        <th style="text-align:right;">Expires</th>
-                        <th style="text-align:right;">$/day</th>
+                        <th class="u-text-right">Days</th>
+                        <th class="u-text-right">Paid (@Currency.XMR.ToString())</th>
+                        <th class="u-text-right">USD</th>
+                        <th class="u-text-right">Expires</th>
+                        <th class="u-text-right">$/day</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -296,14 +292,14 @@
                                     @item.ListingName
                                 }
                             </td>
-                            <td>@if (isMain) { <strong style="color:#c25700;">&#9733; @item.SponsorshipType</strong> } else { @item.SponsorshipType }</td>
-                            <td style="text-align:right;">@item.Days</td>
-                            <td style="text-align:right;">
+                            <td>@if (isMain) { <strong class="u-color-c25700">&#9733; @item.SponsorshipType</strong> } else { @item.SponsorshipType }</td>
+                            <td class="u-text-right">@item.Days</td>
+                            <td class="u-text-right">
                                 @item.PaidAmount.ToString(DirectoryManager.Common.Constants.StringConstants.RoundingFormatCrypto)
                             </td>
-                            <td style="text-align:right;">@item.AmountUsd.ToString("C2", usd)</td>
-                            <td style="text-align:right;">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
-                            <td style="text-align:right;">@item.PricePerDayUsd.ToString("C2", usd)</td>
+                            <td class="u-text-right">@item.AmountUsd.ToString("C2", usd)</td>
+                            <td class="u-text-right">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
+                            <td class="u-text-right">@item.PricePerDayUsd.ToString("C2", usd)</td>
                         </tr>
                     }
                 </tbody>

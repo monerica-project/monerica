@@ -37,7 +37,7 @@
     // Not strictly required in this mode, but safe if other paths would have rendered links elsewhere.
     ViewData["SkipLinksBlock"] = true;
 
-    <div class="sponsored-section" style="margin-bottom:5px;">
+    <div class="sponsored-section u-mb-5px">
         <p><b>Sponsored</b></p>
         <ul class="blank_list_item">
             @await Html.PartialAsync("_DirectoryEntryPartial", vm, ViewData)

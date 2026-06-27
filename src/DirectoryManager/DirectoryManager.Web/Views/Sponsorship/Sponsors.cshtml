@@ -20,23 +20,23 @@
 
     @await Html.PartialAsync("_BackToHome")
 
-    <p style="margin: 6px 0 4px 0;">
+    <p class="u-m-6px-0-4px-0">
         The businesses currently sponsoring Monerica, and when each spot expires.
     </p>
-    <p style="margin: 0 0 16px 0; opacity:.85;">
+    <p class="u-m-0-0-16px-0-opacity-85">
         Current time:
         <strong>@Model.CurrentUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4) (UTC)</strong>
     </p>
 
     <!-- JOIN THE WAITLIST (top: drive leads) -->
-    <div class="adspace-full" style="margin: 0 0 22px 0;">
+    <div class="adspace-full u-m-0-0-22px-0">
         @if (Model.IsFull && Model.MainSponsorInventory != null)
         {
-            <p style="margin:0 0 6px 0;">
+            <p class="u-m-0-0-6px-0">
                 All <b>@Model.MaxSlots</b> @EnumHelper.GetDescription(SponsorshipType.MainSponsor) spots are <b>full</b>
                 — <b>@Model.MainWaitlistCount</b> already waiting.
             </p>
-            <p style="margin:0 0 10px 0;">
+            <p class="u-m-0-0-10px-0">
                 Next opening:
                 <b>@Model.MainSponsorInventory.NextListingExpiration.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</b>
                 — @Model.MainSponsorInventory.TimeUntilNextMessage
@@ -45,38 +45,38 @@
         }
         else
         {
-            <p style="margin:0 0 10px 0;">
+            <p class="u-m-0-0-10px-0">
                 <b>@Model.Openings</b> of <b>@Model.MaxSlots</b> @EnumHelper.GetDescription(SponsorshipType.MainSponsor) spots are open right now.
             </p>
             <a class="btn btn-primary btn-lg" href="~/sponsorship">Buy a sponsored listing →</a>
-            <a class="btn btn-info btn-lg" href="~/waitlist" style="margin-left:8px;">Join the waitlist (@Model.MainWaitlistCount waiting)</a>
+            <a class="btn btn-info btn-lg u-ml-8px" href="~/waitlist">Join the waitlist (@Model.MainWaitlistCount waiting)</a>
         }
     </div>
 
     <!-- PRICING & HOW TO SPONSOR -->
-    <h2 style="margin-top: 8px;">Pricing &amp; how to sponsor</h2>
-    <p style="margin: 6px 0 8px 0;">
+    <h2 class="u-mt-8px">Pricing &amp; how to sponsor</h2>
+    <p class="u-m-6px-0-8px-0">
         There are <strong>three placement types</strong>, priced separately:
         <strong>Main</strong> (site-wide), <strong>Category</strong>, and <strong>Subcategory</strong>.
         Even when <em>Main</em> is full, the <em>Category</em> or <em>Subcategory</em> spots for your listing are often still open.
     </p>
-    <p style="margin: 0 0 12px 0;">
+    <p class="u-m-0-0-12px-0">
         <strong>To see exact prices and what's available for your listing:</strong>
         <a class="btn btn-primary" href="~/sponsorship">Find your listing → options &amp; prices</a>
-        <a class="btn btn-info" href="~/sponsoredlisting/offers" style="margin-left:8px;">View full price list</a>
+        <a class="btn btn-info u-ml-8px" href="~/sponsoredlisting/offers">View full price list</a>
     </p>
 
     @if (Model.PricingSummaries != null && Model.PricingSummaries.Any())
     {
-        <p style="margin: 4px 0 8px 0; opacity:.9;">Price ranges by placement type (USD; paid in XMR at checkout):</p>
+        <p class="u-m-4px-0-8px-0-opacity-9">Price ranges by placement type (USD; paid in XMR at checkout):</p>
         <div class="table-wrapper">
-            <table class="table" style="width: 100%;">
+            <table class="table u-w-100pct">
                 <thead>
                     <tr>
                         <th>Placement</th>
-                        <th style="text-align:right;">Days</th>
-                        <th style="text-align:right;">USD</th>
-                        <th style="text-align:right;">$/day</th>
+                        <th class="u-text-right">Days</th>
+                        <th class="u-text-right">USD</th>
+                        <th class="u-text-right">$/day</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -91,35 +91,35 @@
                             : $"{s.MinUsdPerDay.ToString("C2", usd)} – {s.MaxUsdPerDay.ToString("C2", usd)}";
                         <tr>
                             <td><strong>@s.Label</strong></td>
-                            <td style="text-align:right;">@daysLabel</td>
-                            <td style="text-align:right;">@usdLabel</td>
-                            <td style="text-align:right;">@perDayLabel</td>
+                            <td class="u-text-right">@daysLabel</td>
+                            <td class="u-text-right">@usdLabel</td>
+                            <td class="u-text-right">@perDayLabel</td>
                         </tr>
                     }
                 </tbody>
             </table>
         </div>
-        <p style="margin: 6px 0 0 0; opacity:.85;">
+        <p class="u-m-6px-0-0-0-opacity-85">
             Exact price depends on the placement and duration you pick — search your listing above to see its live prices and which spots are open.
         </p>
     }
 
     <!-- CURRENT SPONSORS: who's sponsoring, when they expire, and renew -->
-    <h2 style="margin-top: 8px;">Current Sponsors</h2>
-    <p style="margin: 6px 0 12px 0;">
+    <h2 class="u-mt-8px">Current Sponsors</h2>
+    <p class="u-m-6px-0-12px-0">
         Active sponsorships and when each one expires. Sponsoring now? <strong>Renew</strong> below to keep your spot.
     </p>
 
     @if (Model.CurrentSponsors != null && Model.CurrentSponsors.Any())
     {
         <div class="table-wrapper">
-            <table class="table" style="width: 100%;">
+            <table class="table u-w-100pct">
                 <thead>
                     <tr>
                         <th>Sponsor</th>
                         <th>Type</th>
-                        <th style="text-align:right;">Expires (UTC)</th>
-                        <th style="text-align:right;">Renew</th>
+                        <th class="u-text-right">Expires (UTC)</th>
+                        <th class="u-text-right">Renew</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -137,15 +137,15 @@
                                 }
                             </td>
                             <td>@item.SponsorshipType</td>
-                            <td style="text-align:right;">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
-                            <td style="text-align:right;">
+                            <td class="u-text-right">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
+                            <td class="u-text-right">
                                 @if (!string.IsNullOrWhiteSpace(item.RenewUrl))
                                 {
                                     <a class="btn btn-primary btn-sm" href="@item.RenewUrl">Renew</a>
                                 }
                                 else
                                 {
-                                    <span style="opacity:.6;">—</span>
+                                    <span class="u-opacity-6">—</span>
                                 }
                             </td>
                         </tr>
@@ -156,31 +156,31 @@
     }
     else
     {
-        <p style="opacity:.85;">No active sponsors right now — <a href="~/sponsorship">be the first to advertise →</a></p>
+        <p class="u-opacity-85">No active sponsors right now — <a href="~/sponsorship">be the first to advertise →</a></p>
     }
 
     <!-- ALL PAID SPONSORSHIPS (below current sponsors) -->
     @if (Model.RecentPaid != null)
     {
-        <h2 style="margin-top: 28px;">Recent Paid Sponsorships</h2>
-        <p style="margin: 6px 0 12px 0;">
+        <h2 class="u-mt-28px">Recent Paid Sponsorships</h2>
+        <p class="u-m-6px-0-12px-0">
             The latest sponsorships from businesses investing in visibility — newest first, with when each one expires.
         </p>
 
         @if (Model.RecentPaid.Items != null && Model.RecentPaid.Items.Any())
         {
             <div class="table-wrapper">
-                <table class="table" style="width: 100%;">
+                <table class="table u-w-100pct">
                     <thead>
                         <tr>
                             <th>Paid</th>
                             <th>Sponsor</th>
                             <th>Type</th>
-                            <th style="text-align:right;">Days</th>
-                            <th style="text-align:right;">Paid (@Currency.XMR.ToString())</th>
-                            <th style="text-align:right;">USD</th>
-                            <th style="text-align:right;">Expires</th>
-                            <th style="text-align:right;">$/day</th>
+                            <th class="u-text-right">Days</th>
+                            <th class="u-text-right">Paid (@Currency.XMR.ToString())</th>
+                            <th class="u-text-right">USD</th>
+                            <th class="u-text-right">Expires</th>
+                            <th class="u-text-right">$/day</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -199,14 +199,14 @@
                                         @item.ListingName
                                     }
                                 </td>
-                                <td>@if (isMain) { <strong style="color:#c25700;">&#9733; @item.SponsorshipType</strong> } else { @item.SponsorshipType }</td>
-                                <td style="text-align:right;">@item.Days</td>
-                                <td style="text-align:right;">
+                                <td>@if (isMain) { <strong class="u-color-c25700">&#9733; @item.SponsorshipType</strong> } else { @item.SponsorshipType }</td>
+                                <td class="u-text-right">@item.Days</td>
+                                <td class="u-text-right">
                                     @item.PaidAmount.ToString(DirectoryManager.Common.Constants.StringConstants.RoundingFormatCrypto)
                                 </td>
-                                <td style="text-align:right;">@item.AmountUsd.ToString("C2", usd)</td>
-                                <td style="text-align:right;">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
-                                <td style="text-align:right;">@item.PricePerDayUsd.ToString("C2", usd)</td>
+                                <td class="u-text-right">@item.AmountUsd.ToString("C2", usd)</td>
+                                <td class="u-text-right">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
+                                <td class="u-text-right">@item.PricePerDayUsd.ToString("C2", usd)</td>
                             </tr>
                         }
                     </tbody>
@@ -215,12 +215,12 @@
         }
         else
         {
-            <p style="opacity:.85;">No paid sponsorships yet.</p>
+            <p class="u-opacity-85">No paid sponsorships yet.</p>
         }
     }
 
     <!-- Closing waitlist nudge -->
-    <div style="margin: 26px 0 8px 0;">
+    <div class="u-m-26px-0-8px-0">
         <a class="btn btn-info" href="~/waitlist">Join the sponsor waitlist (@Model.MainWaitlistCount waiting) →</a>
     </div>
 }

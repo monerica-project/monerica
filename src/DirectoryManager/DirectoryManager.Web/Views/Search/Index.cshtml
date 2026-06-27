@@ -27,7 +27,7 @@
         <hr />
         @await Html.PartialAsync("_BackToHome") | <a href="~/filter">filter</a>
         <hr />
-        <div style="text-align:center">
+        <div class="u-text-center">
             <form method="get" class="search-form mb-3" action="">
                 <input type="search"
                        maxlength="50"
@@ -54,7 +54,7 @@
                 @if (Model.ShowDonatePin)
                 {
                     <li class="search-result-pinned">
-                        <span style="color: red;">&#10084;&#65039;</span>  <a href="@urlService.BaseUrl/donate"><strong>Donate To Monerica</strong></a>
+                        <span class="u-color-red">&#10084;&#65039;</span>  <a href="@urlService.BaseUrl/donate"><strong>Donate To Monerica</strong></a>
                     </li>
                 }
                 @foreach (var e in Model.Entries)

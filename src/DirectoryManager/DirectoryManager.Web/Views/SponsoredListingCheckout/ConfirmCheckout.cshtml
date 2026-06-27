@@ -106,15 +106,15 @@
                 <h3>Payment Processor</h3>
                 <p>Monero (XMR) only.</p>
 
-                <div class="form-check" style="margin-bottom:4px;">
+                <div class="form-check u-mb-4px">
                     <label class="form-check-label">
                         <input class="form-check-input" type="radio" name="selectedProcessor" value="BTCPayServerNoJs" checked />
                         <strong>BTCPay Server</strong> &mdash; self-hosted
-                        <span class="text-muted" style="font-size:0.85em;">(no JavaScript required)</span>
+                        <span class="text-muted u-fs-085em">(no JavaScript required)</span>
                     </label>
                 </div>
 
-                <div class="form-check" style="margin-bottom:16px;">
+                <div class="form-check u-mb-16px">
                     <label class="form-check-label">
                         <input class="form-check-input" type="radio" name="selectedProcessor" value="NOWPayments" />
                         <strong>NOWPayments</strong> &mdash; hosted checkout
@@ -133,36 +133,36 @@
                 <div class="form-group">
                     <p>Receive a reminder before your listing expires so you can renew in time.</p>
                     <label>Email (optional)</label>
-                    <input style="width:18%;"
-                           name="email"
-                           type="email"
-                           value="@prefillEmail"
-                           placeholder="yourname@email.com"
-                           autocomplete="off"
-                           class="form-control input-width" />
+                    <input
+ name="email"
+ type="email"
+ value="@prefillEmail"
+ placeholder="yourname@email.com"
+ autocomplete="off"
+ class="form-control input-width u-w-18pct" />
                     <div class="text-danger">@Html.ValidationMessage("Email")</div>
                 </div>
 
                 <div class="form-group">
                     <label>Referral code (optional)</label>
-                    <input style="width:18%;"
-                           name="referralCode"
-                           type="text"
-                           value="@prefillReferral"
-                           placeholder="e.g. alice"
-                           maxlength="12"
-                           inputmode="latin"
-                           pattern="^[A-Za-z0-9]{3,12}$"
-                           title="Letters and numbers only, 3-12 characters."
-                           autocomplete="off"
-                           class="form-control input-width" />
+                    <input
+ name="referralCode"
+ type="text"
+ value="@prefillReferral"
+ placeholder="e.g. alice"
+ maxlength="12"
+ inputmode="latin"
+ pattern="^[A-Za-z0-9]{3,12}$"
+ title="Letters and numbers only, 3-12 characters."
+ autocomplete="off"
+ class="form-control input-width u-w-18pct" />
                 </div>
 
                 <hr />
 
                 <div>
                     @await Html.PartialAsync("_CaptchaBlock", "sponsoredlisting-confirmcheckout")
-                    <div class="text-danger" style="margin-top:4px;">
+                    <div class="text-danger u-mt-4px">
                         @Html.ValidationMessage("Captcha")
                     </div>
                 </div>

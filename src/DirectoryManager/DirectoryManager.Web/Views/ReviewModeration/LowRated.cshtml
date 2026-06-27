@@ -65,8 +65,8 @@
     }
     else
     {
-        <div class="table-wrapper" style="overflow-x:auto;">
-            <table class="table table-striped table-sm align-middle" style="white-space: nowrap;">
+        <div class="table-wrapper u-overflowx-auto">
+            <table class="table table-striped table-sm align-middle u-ws-nowrap">
                 <thead>
                     <tr>
                         <th>Id</th>
@@ -75,8 +75,8 @@
                         <th>Listing</th>
                         <th>Age</th>
                         <th>Created</th>
-                        <th style="white-space:normal;">Title</th>
-                        <th style="white-space:normal; min-width:300px;">Message</th>
+                        <th class="u-ws-normal">Title</th>
+                        <th class="u-ws-normal-minw-300px">Message</th>
                         <th>Proof</th>
                         <th>Actions</th>
                     </tr>
@@ -104,8 +104,8 @@
                             </td>
                             <td><strong>@TimeAgo(r.CreateDate)</strong></td>
                             <td>@r.CreateDate.ToString("yyyy-MM-dd")</td>
-                            <td style="white-space:normal;">@(string.IsNullOrWhiteSpace(r.Title) ? "-" : r.Title)</td>
-                            <td style="white-space:normal; max-width: 480px;" title="@r.Body">
+                            <td class="u-ws-normal">@(string.IsNullOrWhiteSpace(r.Title) ? "-" : r.Title)</td>
+                            <td class="u-ws-normal-maxw-480px" title="@r.Body">
                                 @Excerpt(r.Body)
                             </td>
                             <td>

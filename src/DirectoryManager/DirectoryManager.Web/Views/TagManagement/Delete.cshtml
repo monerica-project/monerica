@@ -18,6 +18,6 @@
 <form method="post" asp-action="DeleteConfirmed" asp-route-id="@Model.TagId">
     @Html.AntiForgeryToken()
     <button type="submit" class="btn btn-danger">Delete</button>
-    <a class="no-app-link" href="@Url.Action("Index")" style="margin-left:10px;">Cancel</a>
+    <a class="no-app-link u-ml-10px" href="@Url.Action("Index")">Cancel</a>
 </form>
 }

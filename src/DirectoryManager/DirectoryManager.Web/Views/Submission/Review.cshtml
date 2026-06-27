@@ -24,7 +24,7 @@
 
     @if (!ViewData.ModelState.IsValid)
     {
-        <div class="text-danger" role="alert" style="margin:12px 0; padding:10px; border:1px solid #c00;">
+        <div class="text-danger u-m-12px-0-p-10px-border-1px-solid-c00" role="alert">
             <div asp-validation-summary="All"></div>
         </div>
     }
@@ -177,24 +177,24 @@
         <div class="form-group">
             <label>Founded Date (YYYY MM DD)</label>
 
-            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                <input class="form-control" style="width:110px;"
-                       name="FoundedYear"
-                       value="@(Model.FoundedDate?.Year.ToString("0000") ?? "")"
-                       autocomplete="off" inputmode="numeric" pattern="[0-9]*" maxlength="4"
-                       placeholder="YYYY" />
+            <div class="u-flex-gap-8px-items-center-flexwrap-wrap">
+                <input class="form-control u-w-110px"
+ name="FoundedYear"
+ value="@(Model.FoundedDate?.Year.ToString("0000") ?? "")"
+ autocomplete="off" inputmode="numeric" pattern="[0-9]*" maxlength="4"
+ placeholder="YYYY" />
 
-                <input class="form-control" style="width:90px;"
-                       name="FoundedMonth"
-                       value="@(Model.FoundedDate?.Month.ToString("00") ?? "")"
-                       autocomplete="off" inputmode="numeric" pattern="[0-9]*" maxlength="2"
-                       placeholder="MM" />
+                <input class="form-control u-w-90px"
+ name="FoundedMonth"
+ value="@(Model.FoundedDate?.Month.ToString("00") ?? "")"
+ autocomplete="off" inputmode="numeric" pattern="[0-9]*" maxlength="2"
+ placeholder="MM" />
 
-                <input class="form-control" style="width:90px;"
-                       name="FoundedDay"
-                       value="@(Model.FoundedDate?.Day.ToString("00") ?? "")"
-                       autocomplete="off" inputmode="numeric" pattern="[0-9]*" maxlength="2"
-                       placeholder="DD" />
+                <input class="form-control u-w-90px"
+ name="FoundedDay"
+ value="@(Model.FoundedDate?.Day.ToString("00") ?? "")"
+ autocomplete="off" inputmode="numeric" pattern="[0-9]*" maxlength="2"
+ placeholder="DD" />
             </div>
 
             <span class="text-danger">@Html.ValidationMessage("FoundedYear")</span>

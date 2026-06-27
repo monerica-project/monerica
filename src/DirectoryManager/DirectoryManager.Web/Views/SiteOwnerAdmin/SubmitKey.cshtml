@@ -9,7 +9,7 @@
 @section PageContent {
 
 <h1>Owner Admin</h1>
-<h4 style="margin-top:6px;">@Model.DirectoryEntryName</h4>
+<h4 class="u-mt-6px">@Model.DirectoryEntryName</h4>
 
 @if (TempData["AdminMessage"] != null)
 {
@@ -43,7 +43,7 @@ else
         @Html.AntiForgeryToken()
 
         <!-- honeypot -->
-        <input type="text" name="website" value="" style="display:none" tabindex="-1" autocomplete="off" />
+        <input class="u-hidden" type="text" name="website" value="" tabindex="-1" autocomplete="off" />
 
         <textarea name="pgpArmored"
                   class="form-control"

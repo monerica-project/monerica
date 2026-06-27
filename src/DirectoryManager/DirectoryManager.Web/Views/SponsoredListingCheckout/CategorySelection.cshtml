@@ -37,14 +37,14 @@
 
     @foreach (var entry in Model)
     {
-        <div style="display:flex; gap:.5rem; align-items:center;">
-            <form method="post" action="~/sponsoredlisting/selectlisting" style="display:inline;">
+        <div class="u-flex-gap-5rem-items-center">
+            <form class="u-inline" method="post" action="~/sponsoredlisting/selectlisting">
                 @Html.AntiForgeryToken()
                 <input type="hidden" name="directoryEntryId" value="@entry.DirectoryEntryId" />
                 <input type="hidden" name="sponsorshipType"  value="@SponsorshipType.CategorySponsor" />
                 <input type="hidden" name="categoryId"       value="@categoryId" />
                 <input type="hidden" name="rsvId"            value="@reservationGuid" />
-                <button class="btn" type="submit" style="margin:2px;">Select</button>
+                <button class="btn u-m-2px" type="submit">Select</button>
             </form>
             <a target="_blank" href="@entry.Link">@entry.Name</a>
         </div>

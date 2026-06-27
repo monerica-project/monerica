@@ -142,8 +142,8 @@
             var expanderIdMobile = $"{cat.CategoryKey}_expander_mobile";
 
             <li class="category-item">
-                <div class="cat-row" style="display:flex;align-items:center;gap:.5rem;">
-                    <label for="@expanderIdMobile" class="expander" aria-label="Expand @cat.Name" style="cursor:pointer;">+</label>
+                <div class="cat-row u-flex-items-center-gap-5rem">
+                    <label for="@expanderIdMobile" class="expander u-cursor-pointer" aria-label="Expand @cat.Name">+</label>
                     <a class="no-app-link @(isCurrentCat ? "active" : "")"
                            href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
                         @cat.Name
@@ -177,11 +177,11 @@
         <a class="no-app-link" href="@urlResolver.ResolveToRoot("/")">
             @if (urlResolver.IsTor)
             {
-                <img src="@urlResolver.ExtractPathFromFullUrl(logoUrl)" alt="Logo" style="height:auto;" />
+                <img class="u-h-auto" src="@urlResolver.ExtractPathFromFullUrl(logoUrl)" alt="Logo" />
             }
             else
             {
-                <img src="@logoUrl" alt="Logo" style="height:auto;" />
+                <img class="u-h-auto" src="@logoUrl" alt="Logo" />
             }
         </a>
     </div>

@@ -64,11 +64,11 @@
             <a href="~/sponsoredlistinginvoice">Sponsors</a>
             @if (ViewBag.LastInvoicePaidUtc is DateTime lastPaid)
             {
-                <small style="color:#888;">&nbsp;(last paid @FormatAgoCompact(lastPaid))</small>
+                <small class="u-color-888">&nbsp;(last paid @FormatAgoCompact(lastPaid))</small>
             }
             @if (ViewBag.LastInvoicePendingUtc is DateTime lastPending)
             {
-                <small style="color:#c0392b;">&nbsp;⚠ pending @FormatAgoCompact(lastPending)</small>
+                <small class="u-color-c0392b">&nbsp;⚠ pending @FormatAgoCompact(lastPending)</small>
             }
         </li>
         <li>
@@ -113,11 +113,11 @@
             <a href="~/sponsoredlistinginvoice">Invoices</a>
             @if (ViewBag.LastInvoicePaidUtc is DateTime lastPaid2)
             {
-                <small style="color:#888;">&nbsp;(last paid @FormatAgoCompact(lastPaid2))</small>
+                <small class="u-color-888">&nbsp;(last paid @FormatAgoCompact(lastPaid2))</small>
             }
             @if (ViewBag.LastInvoicePendingUtc is DateTime lastPending2)
             {
-                <small style="color:#c0392b;">&nbsp;⚠ pending @FormatAgoCompact(lastPending2)</small>
+                <small class="u-color-c0392b">&nbsp;⚠ pending @FormatAgoCompact(lastPending2)</small>
             }
         </li>
         <li><a href="~/sponsoredlisting/list">Active listings</a></li>
@@ -230,7 +230,7 @@
 
     <hr />
 
-<form asp-controller="Account" asp-action="Logout" method="post" style="display:inline">
+<form class="u-inline" asp-controller="Account" asp-action="Logout" method="post">
     <button type="submit" class="link-button">logout</button>
 </form>
 | @await Html.PartialAsync("_BackToHome")

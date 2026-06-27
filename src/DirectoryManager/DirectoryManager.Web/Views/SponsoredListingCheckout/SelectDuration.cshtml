@@ -106,8 +106,8 @@
                     ? ((baselinePerDay.Value * offer.Days) - offer.USDPrice)
                     : (decimal?)null;
 
-                <div class="form-check" style="margin-bottom:8px;">
-                    <label class="form-check-label" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+                <div class="form-check u-mb-8px">
+                    <label class="form-check-label u-flex-items-center-gap-8px-flexwrap-wrap">
                         <input class="form-check-input"
                                type="radio"
                                name="selectedOfferId"
@@ -133,21 +133,21 @@
 
                         @if (offerPerDay.HasValue)
                         {
-                            <span style="opacity:.8;">
+                            <span class="u-opacity-8">
                                 &mdash; @offerPerDay.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture)/day
                             </span>
                         }
 
                         @if (totalUsdSaved.HasValue && totalUsdSaved.Value > 0 && pctDiscount.HasValue)
                         {
-                            <span class="text-danger" style="margin-left:6px;">
+                            <span class="text-danger u-ml-6px">
                                 (@(pctDiscount)% off, save @totalUsdSaved.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture))
                             </span>
                         }
 
                         @if (i == 0)
                         {
-                            <span class="badge bg-secondary" style="margin-left:6px;">Market price</span>
+                            <span class="badge bg-secondary u-ml-6px">Market price</span>
                         }
                     </label>
                 </div>

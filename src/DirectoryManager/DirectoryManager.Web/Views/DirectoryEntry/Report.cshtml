@@ -11,28 +11,28 @@
 
 @await Html.PartialAsync("_AdminMenu")
  
-<img style="width:100%" src="@Url.Action("MonthlyPlotImage", "DirectoryEntry")" alt="Cumulative Totals Plot" />
+<img class="u-w-100pct" src="@Url.Action("MonthlyPlotImage", "DirectoryEntry")" alt="Cumulative Totals Plot" />
 
-<img style="width:100%" src="@Url.Action("CategoryPieChartImage", "DirectoryEntry")" alt="Cumulative Totals Pie Chart" />
+<img class="u-w-100pct" src="@Url.Action("CategoryPieChartImage", "DirectoryEntry")" alt="Cumulative Totals Pie Chart" />
 
-<img style="width:100%" src="@Url.Action("SubmissionMonthlyPlotImage", "DirectoryEntry")" alt="Cumulative Totals Pie Chart" />
+<img class="u-w-100pct" src="@Url.Action("SubmissionMonthlyPlotImage", "DirectoryEntry")" alt="Cumulative Totals Pie Chart" />
 
-<img style="width:100%" src="@Url.Action("CountryPlotImage", "DirectoryEntry")" alt="Cumulative Totals Pie Chart" />
+<img class="u-w-100pct" src="@Url.Action("CountryPlotImage", "DirectoryEntry")" alt="Cumulative Totals Pie Chart" />
 
 <h2>Trustworthiness by Country</h2>
-<p style="margin:0 0 .5em 0;">
+<p class="u-m-0-0-5em-0">
     Each bar is 100% of a country's active listings, sorted with the most listings at the top.
     The red (Scam) segment shows how untrustworthy a country's listings are; the exact scam rate
     is printed to the right of each bar. The number in parentheses is that country's total active
     listings (sample size).
 </p>
-<p style="margin:0 0 .75em 0; font-weight:bold;">
-    <span style="display:inline-block; width:14px; height:14px; background:#2ca02c; vertical-align:middle; margin-right:4px;"></span>Verified&nbsp;&nbsp;
-    <span style="display:inline-block; width:14px; height:14px; background:#1f77b4; vertical-align:middle; margin-right:4px;"></span>Admitted&nbsp;&nbsp;
-    <span style="display:inline-block; width:14px; height:14px; background:#ff7f0e; vertical-align:middle; margin-right:4px;"></span>Questionable&nbsp;&nbsp;
-    <span style="display:inline-block; width:14px; height:14px; background:#d62728; vertical-align:middle; margin-right:4px;"></span>Scam
+<p class="u-m-0-0-75em-0-fw-bold">
+    <span class="u-inline-block-w-14px-h-14px-bg-2ca02c-valign-middle-mr-4px"></span>Verified&nbsp;&nbsp;
+    <span class="u-inline-block-w-14px-h-14px-bg-1f77b4-valign-middle-mr-4px"></span>Admitted&nbsp;&nbsp;
+    <span class="u-inline-block-w-14px-h-14px-bg-ff7f0e-valign-middle-mr-4px"></span>Questionable&nbsp;&nbsp;
+    <span class="u-inline-block-w-14px-h-14px-bg-d62728-valign-middle-mr-4px"></span>Scam
 </p>
-<img style="width:100%"
-     src="@Url.Action("CountryStatusBreakdownChartImage", "DirectoryEntry")"
-     alt="Active listings by country, broken down by status (Verified, Admitted, Questionable, Scam)" />
+<img class="u-w-100pct"
+ src="@Url.Action("CountryStatusBreakdownChartImage", "DirectoryEntry")"
+ alt="Active listings by country, broken down by status (Verified, Admitted, Questionable, Scam)" />
 }

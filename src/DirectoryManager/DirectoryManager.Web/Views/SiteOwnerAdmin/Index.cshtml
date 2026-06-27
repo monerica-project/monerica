@@ -46,7 +46,7 @@
 @section PageContent {
 
 <h1>Owner Admin</h1>
-<h4 style="margin-top:6px;">@Model.DirectoryEntryName</h4>
+<h4 class="u-mt-6px">@Model.DirectoryEntryName</h4>
 
 @if (TempData["AdminMessage"] != null)
 {
@@ -94,7 +94,7 @@ else
         var rating = GetPropInt(r, "Rating");
 
         <div id="review-@r.DirectoryEntryReviewId" class="card p-3 mb-3">
-            <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+            <div class="u-flex-justify-space-between-gap-12px-flexwrap-wrap">
                 <div>
                     <strong>Review #@r.DirectoryEntryReviewId</strong>
                     <span class="ms-2">@effectiveDate.ToString("yyyy-MM-dd HH:mm")</span>
@@ -120,13 +120,13 @@ else
 
             @if (!string.IsNullOrWhiteSpace(body))
             {
-                <div class="mt-2" style="white-space:pre-wrap;">@body</div>
+                <div class="mt-2 u-ws-pre-wrap">@body</div>
             }
 
             @* ✅ Admin-only order details *@
             @if (!string.IsNullOrWhiteSpace(orderId) || !string.IsNullOrWhiteSpace(orderUrl) || !string.IsNullOrWhiteSpace(orderAny))
             {
-                <div class="mt-3" style="border-top:1px solid #333; padding-top:10px;">
+                <div class="mt-3 u-btop-1px-solid-333-pt-10px">
                     <strong>Order Details (admin only)</strong>
                     @if (!string.IsNullOrWhiteSpace(orderId))
                     {
@@ -161,14 +161,14 @@ else
                 foreach (var c in replies)
                 {
                     <div class="card p-2 mb-2">
-                        <div style="display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;">
+                        <div class="u-flex-justify-space-between-gap-12px-flexwrap-wrap">
                             <div>
                                 <strong>@(string.IsNullOrWhiteSpace(c.DisplayName) ? c.AuthorFingerprint : c.DisplayName)</strong>
                                 <span class="ms-2">@c.CreateDate.ToString("yyyy-MM-dd HH:mm")</span>
                             </div>
                             <div><strong>Status:</strong> @c.ModerationStatus</div>
                         </div>
-                        <div class="mt-2" style="white-space:pre-wrap;">@c.Body</div>
+                        <div class="mt-2 u-ws-pre-wrap">@c.Body</div>
                     </div>
                 }
             }
@@ -196,13 +196,13 @@ else
 
     @* Pagination *@
     <div class="card p-3 mt-3">
-        <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; flex-wrap:wrap;">
+        <div class="u-flex-justify-space-between-items-center-gap-12px">
             <div>
                 Page <strong>@Model.CurrentPage</strong> of <strong>@Model.TotalPages</strong>
                 <span class="ms-2 text-muted">(@Model.PageSize/page)</span>
             </div>
 
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+            <div class="u-flex-gap-8px-flexwrap-wrap">
                 @if (Model.CurrentPage > 1)
                 {
                     <a class="btn btn-secondary" href="@PageUrl(Model.CurrentPage - 1)">Prev</a>

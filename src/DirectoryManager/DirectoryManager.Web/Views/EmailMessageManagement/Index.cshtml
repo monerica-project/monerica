@@ -34,7 +34,7 @@
                 <td>@message.EmailSubject</td>           
                 <td>
                     <a asp-action="Edit" asp-route-id="@message.EmailMessageId">Edit</a>
-                    <form asp-action="Delete" asp-route-id="@message.EmailMessageId" method="post" style="display:inline;">
+                    <form class="u-inline" asp-action="Delete" asp-route-id="@message.EmailMessageId" method="post">
                         <button type="submit">Delete</button>
                     </form>
                 </td>

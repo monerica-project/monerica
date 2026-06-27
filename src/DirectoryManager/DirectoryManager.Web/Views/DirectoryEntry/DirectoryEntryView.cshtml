@@ -451,13 +451,12 @@
                     paste the HTML anywhere on your site.
                 </p>
 
-                <div class="entry-embed-preview" style="margin-bottom:0.75rem;">
-                    <span style="display:block;font-size:0.85rem;opacity:0.75;margin-bottom:0.35rem;">Preview:</span>
+                <div class="entry-embed-preview u-mb-075rem">
+                    <span class="u-block-fs-085rem-opacity-075-mb-035rem">Preview:</span>
                     @Html.Raw(reviewBadgeSnippet)
                 </div>
 
-                <textarea rows="4" readonly aria-label="Review badge embed code"
-                          style="width:100%;box-sizing:border-box;font-family:monospace;font-size:13px;color:#ffffff;background:rgba(0,0,0,0.5);border:1px solid rgba(255,255,255,0.22);border-left:2px solid #ff6600;border-radius:3px;padding:8px 10px;caret-color:#ff6600;resize:vertical;">@reviewBadgeSnippet</textarea>
+                <textarea class="u-w-100pct-box-border-box-ff-monospace-fs-13px-color-ffffff" rows="4" readonly aria-label="Review badge embed code">@reviewBadgeSnippet</textarea>
             </div>
         }
 

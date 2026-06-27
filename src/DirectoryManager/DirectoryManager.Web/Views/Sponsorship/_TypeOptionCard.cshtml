@@ -74,12 +74,12 @@
         : null;
 }
 
-<div class="card" style="padding:14px; border-radius:12px;">
-    <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:12px;">
+<div class="card u-p-14px-rounded-12px">
+    <div class="u-flex-justify-space-between-items-flex-start-gap-12px">
         <div>
-            <h3 style="margin:0 0 6px 0;">@title</h3>
+            <h3 class="u-m-0-0-6px-0">@title</h3>
 
-            <div style="opacity:.9;">
+            <div class="u-opacity-9">
                 @if (!eligible)
                 {
                     <span><strong>Not eligible yet</strong> — you can still subscribe above.</span>
@@ -89,7 +89,7 @@
                     <span><strong>Active</strong> — you can extend anytime.</span>
                     @if (opt.YourActiveUntilUtc.HasValue)
                     {
-                        <text>(</text><span style="opacity:.85;">until <strong>@FormatUtcFull(opt.YourActiveUntilUtc.Value)</strong></span><text>)</text>
+                        <text>(</text><span class="u-opacity-85">until <strong>@FormatUtcFull(opt.YourActiveUntilUtc.Value)</strong></span><text>)</text>
                     }
                 }
                 else if (availableNow)
@@ -112,10 +112,10 @@
 
                 @if (opt.BlockedByMainSubcategoryCap && opt.NextOpeningForMainSubcategoryCapUtc.HasValue)
                 {
-                    <div style="margin-top:6px; opacity:.85;">
+                    <div class="u-mt-6px-opacity-85">
                         Main-per-subcategory cap reached. Next likely opening:
                         <strong>@FormatUtcFull(opt.NextOpeningForMainSubcategoryCapUtc.Value)</strong>
-                        <span style="display:block; opacity:.85;">
+                        <span class="u-block-opacity-85">
                             in @FormatCountdown(opt.NextOpeningForMainSubcategoryCapUtc.Value, nowUtc)
                         </span>
                     </div>
@@ -123,21 +123,21 @@
             </div>
         </div>
 
-        <div style="text-align:right; min-width: 120px;">
-            <div style="opacity:.85;">
+        <div class="u-text-right-minw-120px">
+            <div class="u-opacity-85">
                 Slots: <strong>@opt.PoolActiveCount</strong> / @opt.PoolMaxSlots
             </div>
         </div>
     </div>
 
-    <div style="margin-top: 12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+    <div class="u-mt-12px-flex-gap-10px-flexwrap-wrap-items-center">
         @if (opt.IsExtension)
         {
             <a class="btn btn-info btn-cta" href="@extendHref">Extend</a>
         }
         else if (availableNow)
         {
-            <form method="post" action="@postStartCheckoutUrl" style="margin:0;">
+            <form class="u-m-0" method="post" action="@postStartCheckoutUrl">
                 @Html.AntiForgeryToken()
 
                 <input type="hidden" name="sponsorshipType" value="@opt.SponsorshipType" />
@@ -171,9 +171,9 @@
 
     @if (!string.IsNullOrWhiteSpace(Model.DetailsHtml))
     {
-        <details style="margin-top: 12px;">
-            <summary style="cursor:pointer;"><strong>What’s included</strong></summary>
-            <div style="margin-top: 10px;">
+        <details class="u-mt-12px">
+            <summary class="u-cursor-pointer"><strong>What’s included</strong></summary>
+            <div class="u-mt-10px">
                 @Html.Raw(Model.DetailsHtml)
             </div>
         </details>
@@ -181,9 +181,9 @@
 
     @if (opt.Offers != null && opt.Offers.Any())
     {
-        <div style="margin-top: 14px;">
-            <div style="font-weight:600; margin-bottom: 6px;">Pricing</div>
-            <div class="pricing-stack" style="border:1px solid var(--border-strong); border-radius:var(--radius); background:rgba(0,0,0,0.25); overflow:hidden;">
+        <div class="u-mt-14px">
+            <div class="u-fw-600-mb-6px">Pricing</div>
+            <div class="pricing-stack u-border-1px-solid-var-border-strong-rounded-var-radius">
                 @{
                     var orderedOffers = opt.Offers.OrderBy(x => x.Days).ToList();
                     decimal? baselinePerDay = orderedOffers.Count > 0 ? orderedOffers[0].PricePerDay : (decimal?)null;
@@ -202,19 +202,19 @@
                         totalUsdSaved = (baselinePerDay.Value * o.Days) - o.PriceUsd;
                     }
                     <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:9px 12px; border-bottom:@rowBorder;">
-                        <div style="white-space:nowrap;">
-                            <span style="font-weight:600;">@o.Days</span>
-                            <span style="opacity:.6;"> days</span>
+                        <div class="u-ws-nowrap">
+                            <span class="u-fw-600">@o.Days</span>
+                            <span class="u-opacity-6"> days</span>
                             @if (i == 0)
                             {
-                                <div style="font-size:.7em; opacity:.5; font-weight:400; letter-spacing:.04em; text-transform:uppercase; margin-top:2px;">Market price</div>
+                                <div class="u-fs-7em-opacity-5-fw-400-ls-04em-tt-uppercase-mt-2px">Market price</div>
                             }
                         </div>
-                        <div style="text-align:right; line-height:1.4; min-width:0;">
-                            <div style="font-weight:600;">@o.PriceUsd.ToString("C2", usd)</div>
+                        <div class="u-text-right-lh-14-minw-0">
+                            <div class="u-fw-600">@o.PriceUsd.ToString("C2", usd)</div>
                             @if (showConverted)
                             {
-                                <div style="opacity:.85; font-size:.9em; white-space:nowrap;">
+                                <div class="u-opacity-85-fs-9em-ws-nowrap">
                                     @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
                                         o.PriceUsd,
                                         conversionRate,
@@ -223,10 +223,10 @@
                                     )
                                 </div>
                             }
-                            <div style="opacity:.6; font-size:.82em; white-space:nowrap;">@o.PricePerDay.ToString("C2", usd)/day</div>
+                            <div class="u-opacity-6-fs-82em-ws-nowrap">@o.PricePerDay.ToString("C2", usd)/day</div>
                             @if (totalUsdSaved.HasValue && totalUsdSaved.Value > 0 && pctDiscount.HasValue && pctDiscount.Value > 0)
                             {
-                                <div class="text-danger" style="font-size:.82em; white-space:nowrap; margin-top:2px;">
+                                <div class="text-danger u-fs-82em-ws-nowrap-mt-2px">
                                     @(pctDiscount)% off &middot; save @totalUsdSaved.Value.ToString("C2", usd)
                                 </div>
                             }
@@ -237,13 +237,13 @@
 
             @if (nextExpire != null && nextExpire.CampaignEndUtc > nowUtc)
             {
-                <div style="margin-top:10px; padding:10px; border-radius:10px; background: rgba(255,255,255,0.03);">
-                    <div style="font-weight:600;">Next expiration</div>
-                    <div style="opacity:.9; margin-top:4px;">
+                <div class="u-mt-10px-p-10px-rounded-10px-bg-rgba-255-255-255-003">
+                    <div class="u-fw-600">Next expiration</div>
+                    <div class="u-opacity-9-mt-4px">
                         <strong>@nextExpire.ListingName</strong>
-                        <span style="opacity:.85;">—</span>
+                        <span class="u-opacity-85">—</span>
                         <strong>@FormatUtcFull(nextExpire.CampaignEndUtc)</strong>
-                        <span style="display:block; opacity:.85;">
+                        <span class="u-block-opacity-85">
                             in @FormatCountdown(nextExpire.CampaignEndUtc, nowUtc)
                         </span>
                     </div>
@@ -254,9 +254,9 @@
 
     @if (opt.ActiveSlots != null && opt.ActiveSlots.Any())
     {
-        <div style="margin-top: 14px;">
-            <div style="font-weight:600; margin-bottom: 6px;">Active sponsors (next to expire)</div>
-            <ul style="margin:0; padding-left:18px;">
+        <div class="u-mt-14px">
+            <div class="u-fw-600-mb-6px">Active sponsors (next to expire)</div>
+            <ul class="u-m-0-pl-18px">
                 @foreach (var s in opt.ActiveSlots.OrderBy(x => x.CampaignEndUtc))
                 {
                     <li>
@@ -271,20 +271,20 @@
 
                         @if (s.IsYou)
                         {
-                            <span style="margin-left:6px; opacity:.9;"><strong>(you)</strong></span>
+                            <span class="u-ml-6px-opacity-9"><strong>(you)</strong></span>
                         }
 
-                        <span style="opacity:.85;">
+                        <span class="u-opacity-85">
                             — expires <strong>@FormatUtcFull(s.CampaignEndUtc)</strong>
                             @if (s.CampaignEndUtc > nowUtc)
                             {
-                                <span style="display:block; opacity:.85;">
+                                <span class="u-block-opacity-85">
                                     in @FormatCountdown(s.CampaignEndUtc, nowUtc)
                                 </span>
                             }
                             else
                             {
-                                <span style="display:block; opacity:.85;">expired</span>
+                                <span class="u-block-opacity-85">expired</span>
                             }
                         </span>
                     </li>
@@ -297,15 +297,15 @@
     {
         var joinRank = Math.Max(1, opt.Waitlist!.JoinWouldBeRank);
 
-        <div style="margin-top: 14px;">
-            <div style="font-weight:600;">
+        <div class="u-mt-14px">
+            <div class="u-fw-600">
                 Waitlist: <strong>@opt.Waitlist!.Count</strong> waiting
-                <span style="opacity:.85;">— you’d join at position <strong>#@joinRank</strong></span>
+                <span class="u-opacity-85">— you’d join at position <strong>#@joinRank</strong></span>
             </div>
 
             @if (opt.Waitlist!.Preview != null && opt.Waitlist.Preview.Any())
             {
-                <ul style="margin:8px 0 0 0; padding-left:18px;">
+                <ul class="u-m-8px-0-0-0-pl-18px">
                     @foreach (var w in opt.Waitlist.Preview.OrderByDescending(x => x.JoinedUtc))
                     {
                         <li>
@@ -317,7 +317,7 @@
                             {
                                 @w.ListingName
                             }
-                            <span style="opacity:.85;">
+                            <span class="u-opacity-85">
                                 — joined @FormatUtcFull(w.JoinedUtc)
                             </span>
                         </li>
@@ -327,7 +327,7 @@
 
             @if (!string.IsNullOrWhiteSpace(waitlistUrl))
             {
-                <div style="margin-top: 10px;">
+                <div class="u-mt-10px">
                     <a class="btn btn-info" href="@waitlistUrl">View waitlist</a>
                 </div>
             }

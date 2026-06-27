@@ -72,7 +72,7 @@
         <dd class="col-sm-9">
             @if (!string.IsNullOrWhiteSpace(r.OrderProofContext))
             {
-                <pre class="mb-0" style="white-space:pre-wrap;">@r.OrderProofContext</pre>
+                <pre class="mb-0 u-ws-pre-wrap">@r.OrderProofContext</pre>
             }
             else
             {
@@ -81,7 +81,7 @@
         </dd>
 
         <dt class="col-sm-3">Body</dt>
-            <dd class="col-sm-9"><pre style="white-space:pre-wrap;">@Html.Raw(StringHelpers.RenderBodyWithLinksHtml(r.Body, cssClass: "multi-line-text", ugcContent: true))</pre></dd>
+            <dd class="col-sm-9"><pre class="u-ws-pre-wrap">@Html.Raw(StringHelpers.RenderBodyWithLinksHtml(r.Body, cssClass: "multi-line-text", ugcContent: true))</pre></dd>
     </dl>
 
     <div class="mt-3">
@@ -226,7 +226,7 @@
                         <th>Created (UTC)</th>
                         <th>Fingerprint</th>
                         <th>Excerpt</th>
-                        <th style="width:260px;">Actions</th>
+                        <th class="u-w-260px">Actions</th>
                     </tr>
                 </thead>
                 <tbody>

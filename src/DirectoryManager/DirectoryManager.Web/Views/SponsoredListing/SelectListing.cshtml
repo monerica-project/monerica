@@ -68,8 +68,8 @@
         @* Use POST to begin a reservation for this scope when a listing is selected *@
         @foreach (var entry in Model)
         {
-            <div style="display:flex; gap:.5rem; align-items:center;">
-                <form method="post" action="~/sponsoredlisting/selectlisting" style="display:inline;">
+            <div class="u-flex-gap-5rem-items-center">
+                <form class="u-inline" method="post" action="~/sponsoredlisting/selectlisting">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="directoryEntryId" value="@entry.DirectoryEntryId" />
                     <input type="hidden" name="sponsorshipType" value="@ViewBag.SponsorshipType" />
@@ -85,7 +85,7 @@
                         <input type="hidden" name="categoryId" value="@ViewBag.CategoryId" />
                     }
 
-                    <button class="btn" type="submit" style="margin:2px;">Select</button>
+                    <button class="btn u-m-2px" type="submit">Select</button>
                 </form>
 
                 <a target="_blank" href="@entry.Link">@entry.Name</a>

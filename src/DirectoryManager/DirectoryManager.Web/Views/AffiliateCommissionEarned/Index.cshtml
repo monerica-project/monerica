@@ -36,7 +36,7 @@
                value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
 
         <label>Page size:</label>
-        <input type="number" name="pageSize" value="@Model.PageSize" min="1" max="200" style="width:6em;" />
+        <input class="u-w-6em" type="number" name="pageSize" value="@Model.PageSize" min="1" max="200" />
 
         <button type="submit" class="btn btn-primary">Apply</button>
         <a asp-action="Index" class="btn btn-secondary">Reset</a>
@@ -55,9 +55,9 @@
         <tr>
             <th>Date (UTC)</th>
             <th>Directory Entry</th>
-            <th style="text-align:right;">USD</th>
+            <th class="u-text-right">USD</th>
             <th>Currency</th>
-            <th style="text-align:right;">Amount</th>
+            <th class="u-text-right">Amount</th>
             <th>Transaction ID</th>
             <th>Note</th>
             <th></th>
@@ -75,9 +75,9 @@
             <tr>
                 <td>@c.CommissionDate.ToString("yyyy-MM-dd HH:mm")</td>
                 <td>@(c.DirectoryEntry?.Name ?? $"#{c.DirectoryEntryId}")</td>
-                <td style="text-align:right;">@c.UsdValue.ToString("C")</td>
+                <td class="u-text-right">@c.UsdValue.ToString("C")</td>
                 <td>@c.PaymentCurrency</td>
-                <td style="text-align:right;">@c.PaymentCurrencyAmount.ToString("0.########")</td>
+                <td class="u-text-right">@c.PaymentCurrencyAmount.ToString("0.########")</td>
                 <td>
                     @if (!string.IsNullOrWhiteSpace(c.TransactionId))
                     {

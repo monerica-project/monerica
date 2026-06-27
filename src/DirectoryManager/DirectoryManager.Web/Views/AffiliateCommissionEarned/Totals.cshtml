@@ -35,8 +35,8 @@
     <thead>
         <tr>
             <th>Directory Entry</th>
-            <th style="text-align:right;">Total USD</th>
-            <th style="text-align:right;"># Commissions</th>
+            <th class="u-text-right">Total USD</th>
+            <th class="u-text-right"># Commissions</th>
             <th>First</th>
             <th>Last</th>
             <th></th>
@@ -53,8 +53,8 @@
         {
             <tr>
                 <td>@t.DirectoryEntryName</td>
-                <td style="text-align:right;">@t.TotalUsdValue.ToString("C")</td>
-                <td style="text-align:right;">@t.CommissionCount</td>
+                <td class="u-text-right">@t.TotalUsdValue.ToString("C")</td>
+                <td class="u-text-right">@t.CommissionCount</td>
                 <td>@(t.FirstCommissionDate?.ToString("yyyy-MM-dd"))</td>
                 <td>@(t.LastCommissionDate?.ToString("yyyy-MM-dd"))</td>
                 <td>

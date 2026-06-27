@@ -359,7 +359,7 @@
 
                     @if (hasCategoryForTags)
                     {
-                        <div class="ui-select-wrap" style="margin-top:8px;">
+                        <div class="ui-select-wrap u-mt-8px">
                             <select name="SubCategoryId" class="form-control select-fit ui-select">
                                 <option value="" selected="@(!(Model.Query.SubCategoryId > 0) ? "selected" : null)">All subcategories</option>
                                 @foreach (var sc in Model.SubCategoryOptions)

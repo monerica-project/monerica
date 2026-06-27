@@ -14,13 +14,13 @@
 
     <h2>Manage Notifications</h2>
 
-    <div style="margin: 10px 0;">
+    <div class="u-m-10px-0">
         <span>
             Showing <strong>@Model.FirstItemNumber</strong>-<strong>@Model.LastItemNumber</strong>
             of <strong>@Model.TotalCount</strong>
         </span>
 
-        <span style="margin-left: 16px;">
+        <span class="u-ml-16px">
             Page <strong>@Model.Page</strong> of <strong>@Model.TotalPages</strong>
         </span>
     </div>
@@ -66,7 +66,7 @@
 
     @if (Model.TotalPages > 1)
     {
-        <nav style="margin-top: 12px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+        <nav class="u-mt-12px-flex-gap-8px-items-center-flexwrap-wrap">
             @* Previous *@
             @if (Model.HasPrevious)
             {
@@ -74,7 +74,7 @@
             }
             else
             {
-                <span style="opacity:.5;">← Prev</span>
+                <span class="u-opacity-5">← Prev</span>
             }
 
             @* Page numbers (windowed) *@
@@ -107,7 +107,7 @@
             {
                 if (i == Model.Page)
                 {
-                    <strong style="padding: 2px 6px; border: 1px solid #ccc; border-radius: 4px;">@i</strong>
+                    <strong class="u-p-2px-6px-border-1px-solid-ccc-rounded-4px">@i</strong>
                 }
                 else
                 {
@@ -131,11 +131,11 @@
             }
             else
             {
-                <span style="opacity:.5;">Next →</span>
+                <span class="u-opacity-5">Next →</span>
             }
 
             @* Page size *@
-            <span style="margin-left: 10px; opacity: .8;">Page size:</span>
+            <span class="u-ml-10px-opacity-8">Page size:</span>
             @{
                 int[] sizes = new[] { 25, 50, 100, 200 };
             }

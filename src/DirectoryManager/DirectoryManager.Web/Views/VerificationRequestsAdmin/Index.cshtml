@@ -62,12 +62,12 @@
         else
         {
             <div class="table-wrapper">
-                <table class="table table-sm align-middle" style="table-layout:fixed;width:100%;">
+                <table class="table table-sm align-middle u-tablelayout-fixed-w-100pct">
                     <colgroup>
-                        <col style="width:26%;" />
-                        <col style="width:110px;" />
+                        <col class="u-w-26pct" />
+                        <col class="u-w-110px" />
                         <col />
-                        <col style="width:130px;" />
+                        <col class="u-w-130px" />
                     </colgroup>
                     <thead>
                         <tr>
@@ -94,14 +94,14 @@
                                 <tr style="background-color:@tint;@(i == 0 ? "border-top:2px solid var(--border-strong);" : "")">
                                     @if (i == 0)
                                     {
-                                        <td rowspan="@rowCount" style="vertical-align:top;white-space:normal;word-break:break-word;">
+                                        <td class="u-valign-top-ws-normal-wordbreak-break-word" rowspan="@rowCount">
                                             @if (grp.Entry != null)
                                             {
                                                 <div>
                                                     <a href="/site/@grp.Entry.DirectoryEntryKey" target="_blank" rel="noopener">@grp.Entry.Name</a>
                                                     @if (rowCount > 1)
                                                     {
-                                                        <span class="badge bg-info" style="margin-left:6px;">@rowCount requests</span>
+                                                        <span class="badge bg-info u-ml-6px">@rowCount requests</span>
                                                     }
                                                 </div>
                                                 <div>
@@ -114,23 +114,23 @@
                                             }
                                         </td>
                                     }
-                                    <td class="text-nowrap" style="vertical-align:top;">
+                                    <td class="text-nowrap u-valign-top">
                                         @r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
                                     </td>
-                                    <td style="vertical-align:top;">
-                                        <div title="@r.Comment" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;white-space:normal;word-break:break-word;">@r.Comment</div>
+                                    <td class="u-valign-top">
+                                        <div class="u-webkitbox-lineclamp-2-boxorient-vertical-overflow-hidden" title="@r.Comment">@r.Comment</div>
                                     </td>
-                                    <td style="vertical-align:top;">
+                                    <td class="u-valign-top">
                                         @if (r.Status == VerificationRequestStatus.Pending)
                                         {
-                                            <div style="display:flex;flex-direction:column;gap:4px;align-items:stretch;">
+                                            <div class="u-flex-flexdir-column-gap-4px-items-stretch">
                                                 <form action="/admin/verification-requests/@r.VerificationRequestId/reviewed" method="post">
                                                     @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-sm btn-primary" style="width:100%;">Mark reviewed</button>
+                                                    <button type="submit" class="btn btn-sm btn-primary u-w-100pct">Mark reviewed</button>
                                                 </form>
                                                 <form action="/admin/verification-requests/@r.VerificationRequestId/dismiss" method="post">
                                                     @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-sm btn-outline-secondary" style="width:100%;">Dismiss</button>
+                                                    <button type="submit" class="btn btn-sm btn-outline-secondary u-w-100pct">Dismiss</button>
                                                 </form>
                                             </div>
                                         }

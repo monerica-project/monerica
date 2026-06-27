@@ -68,9 +68,9 @@
 
     @if (Model.HasNextPayment)
     {
-        <div class="alert alert-info" style="padding:10px 14px; line-height:1.4;">
+        <div class="alert alert-info u-p-10px-14px-lh-14">
             <strong>Next expected payment</strong>
-            <div style="margin-top:6px;">
+            <div class="u-mt-6px">
                 <strong>@(Model.NextPaymentDateUtc?.ToString(dateFmt))</strong>
                 — <strong>@money(Model.NextPaymentAmount)</strong>
                 <span class="text-muted">
@@ -79,7 +79,7 @@
                         : $", {Model.NextPaymentSponsorshipType}"))
                 </span>
             </div>
-            <div class="text-muted" style="font-size:0.9em; margin-top:4px;">
+            <div class="text-muted u-fs-09em-mt-4px">
                 The soonest-expiring active sponsorship: the date its current campaign ends and a
                 renewal would be due, at that listing's current rate. This is a concrete near-term
                 expectation, separate from the statistical projection below.
@@ -96,9 +96,9 @@
     }
     else
     {
-        <div class="alert alert-secondary" style="padding:10px 14px; line-height:1.4;">
+        <div class="alert alert-secondary u-p-10px-14px-lh-14">
             <strong>Summary</strong>
-            <div style="margin-top:6px;">
+            <div class="u-mt-6px">
                 <div>History used: @Model.HistoryMonthsUsed month(s)</div>
                 <div>
                     Recent monthly average:
@@ -119,7 +119,7 @@
                         <span>roughly flat</span>
                     }
                 </div>
-                <div style="margin-top:6px;">
+                <div class="u-mt-6px">
                     Projected total over the next @Model.HorizonMonths months:
                     <strong>@money(Model.ProjectedHorizonTotalExpected)</strong>
                     <span class="text-muted">
@@ -130,15 +130,15 @@
             </div>
         </div>
 
-        <img style="width:100%"
-             src="@Url.Action("IncomeForecastChart", "SponsoredListingInvoice", new {
-                    displayCurrency = Model.DisplayCurrency,
-                    lookbackMonths = Model.LookbackMonths,
-                    horizonMonths = Model.HorizonMonths,
-                    confidence = Model.ConfidencePercent,
-                    v = chartV
-             })"
-             alt="Income Forecast Chart (@Model.DisplayCurrency)" />
+        <img class="u-w-100pct"
+ src="@Url.Action("IncomeForecastChart", "SponsoredListingInvoice", new {
+ displayCurrency = Model.DisplayCurrency,
+ lookbackMonths = Model.LookbackMonths,
+ horizonMonths = Model.HorizonMonths,
+ confidence = Model.ConfidencePercent,
+ v = chartV
+ })"
+ alt="Income Forecast Chart (@Model.DisplayCurrency)" />
 
         <br />
         <br />
@@ -185,10 +185,10 @@
             <thead>
                 <tr>
                     <th>Month</th>
-                    <th style="text-align:right;">Expected</th>
-                    <th style="text-align:right;">Low</th>
-                    <th style="text-align:right;">High</th>
-                    <th style="text-align:right;">Cumulative (expected)</th>
+                    <th class="u-text-right">Expected</th>
+                    <th class="u-text-right">Low</th>
+                    <th class="u-text-right">High</th>
+                    <th class="u-text-right">Cumulative (expected)</th>
                 </tr>
             </thead>
             <tbody>
@@ -196,25 +196,25 @@
                 {
                     <tr>
                         <td>@row.Month.ToString("MMM yyyy", usCulture)</td>
-                        <td style="text-align:right;">@money(row.Expected)</td>
-                        <td style="text-align:right;">@money(row.Low)</td>
-                        <td style="text-align:right;">@money(row.High)</td>
-                        <td style="text-align:right;">@money(row.CumulativeExpected)</td>
+                        <td class="u-text-right">@money(row.Expected)</td>
+                        <td class="u-text-right">@money(row.Low)</td>
+                        <td class="u-text-right">@money(row.High)</td>
+                        <td class="u-text-right">@money(row.CumulativeExpected)</td>
                     </tr>
                 }
             </tbody>
             <tfoot>
                 <tr>
                     <th>Total</th>
-                    <th style="text-align:right;">@money(Model.ProjectedHorizonTotalExpected)</th>
-                    <th style="text-align:right;">@money(Model.ProjectedHorizonTotalLow)</th>
-                    <th style="text-align:right;">@money(Model.ProjectedHorizonTotalHigh)</th>
-                    <th style="text-align:right;">@money(Model.ProjectedHorizonTotalExpected)</th>
+                    <th class="u-text-right">@money(Model.ProjectedHorizonTotalExpected)</th>
+                    <th class="u-text-right">@money(Model.ProjectedHorizonTotalLow)</th>
+                    <th class="u-text-right">@money(Model.ProjectedHorizonTotalHigh)</th>
+                    <th class="u-text-right">@money(Model.ProjectedHorizonTotalExpected)</th>
                 </tr>
             </tfoot>
         </table>
 
-        <p class="text-muted" style="font-size:0.9em;">
+        <p class="text-muted u-fs-09em">
             Method: ordinary-least-squares linear trend on monthly booked revenue (by invoice paid-date),
             with a ± @Model.ConfidencePercent% band derived from historical month-to-month variability.
             The current month is prorated by the days remaining. Forecasts assume past patterns continue;

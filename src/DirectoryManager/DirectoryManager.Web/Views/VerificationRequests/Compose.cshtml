@@ -21,7 +21,7 @@
     <form asp-action="ComposePost" asp-controller="VerificationRequests" method="post">
         @Html.AntiForgeryToken()
         <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
-        <input type="text" name="Website" value="" style="display:none" tabindex="-1" autocomplete="off" />
+        <input class="u-hidden" type="text" name="Website" value="" tabindex="-1" autocomplete="off" />
 
         <div class="mb-3">
             <label asp-for="Comment" class="form-label"></label>

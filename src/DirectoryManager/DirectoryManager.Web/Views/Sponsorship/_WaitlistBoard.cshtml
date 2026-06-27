@@ -12,18 +12,18 @@
         var total = Model.MainWaitlistCount;
         var remaining = Math.Max(0, total - shown);
 
-    <p style="margin: 6px 0 10px 0;">
+    <p class="u-m-6px-0-10px-0">
         Main Sponsor waitlist: <strong>@total</strong> waiting
-        <span style="opacity:.85;">— newest signups shown first.</span>
+        <span class="u-opacity-85">— newest signups shown first.</span>
     </p>
 
     @if (shown > 0)
     {
-        <p style="margin-bottom: 6px;">
-            Preview (newest first): <span style="opacity:.85;">showing @shown of @total</span>
+        <p class="u-mb-6px">
+            Preview (newest first): <span class="u-opacity-85">showing @shown of @total</span>
         </p>
 
-        <ul style="margin-top: 0;">
+        <ul class="u-mt-0">
             @foreach (var row in preview)
             {
                 <li>
@@ -42,7 +42,7 @@
 
         @if (!string.IsNullOrWhiteSpace(Model.BrowseWaitlistUrl))
         {
-            <div style="margin-top: 10px;">
+            <div class="u-mt-10px">
                 @if (remaining > 0)
                 {
                     <a class="btn btn-info" href="@Model.BrowseWaitlistUrl">
@@ -58,6 +58,6 @@
     }
     else
     {
-        <p style="opacity:.85; margin-top: 8px;">No one is waiting yet.</p>
+        <p class="u-opacity-85-mt-8px">No one is waiting yet.</p>
     }
 }

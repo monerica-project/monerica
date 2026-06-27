@@ -88,9 +88,9 @@
     </p>
 
     <!-- ========= NEW: Always-visible Averages panel ========= -->
-    <div class="alert alert-secondary" style="padding:10px 14px; line-height:1.3;">
+    <div class="alert alert-secondary u-p-10px-14px-lh-13">
         <strong>Averages</strong>
-        <div style="margin-top:6px;">
+        <div class="u-mt-6px">
             @* If viewing USD, show average XMR price and implied XMR total *@
             @if (Model.DisplayCurrency == DirectoryManager.Data.Enums.Currency.USD)
             {
@@ -170,56 +170,56 @@
        })" target="_blank">Download Accounting CSV</a>
 
     <!-- Monthly Income (total) -->
-    <img style="width:100%"
-         src="@Url.Action("MonthlyIncomeBarChart", "SponsoredListingInvoice", new {
-                startDate = Model.StartDate,
-                endDate = Model.EndDate,
-                sponsorshipType = Model.SponsorshipType,
-                displayCurrency = Model.DisplayCurrency,
-                subCategoryId = Model.SubCategoryId,
-                v = chartV
-         })"
-         alt="Monthly Income Chart (@Model.DisplayCurrency)" />
+    <img class="u-w-100pct"
+ src="@Url.Action("MonthlyIncomeBarChart", "SponsoredListingInvoice", new {
+ startDate = Model.StartDate,
+ endDate = Model.EndDate,
+ sponsorshipType = Model.SponsorshipType,
+ displayCurrency = Model.DisplayCurrency,
+ subCategoryId = Model.SubCategoryId,
+ v = chartV
+ })"
+ alt="Monthly Income Chart (@Model.DisplayCurrency)" />
 
     <br />
 
     <!-- Average Daily Revenue across the slot -->
-    <img style="width:100%"
-         src="@Url.Action("MonthlyAvgDailyRevenueChart", "SponsoredListingInvoice", new {
-                startDate = Model.StartDate,
-                endDate = Model.EndDate,
-                sponsorshipType = Model.SponsorshipType,
-                displayCurrency = Model.DisplayCurrency,
-                subCategoryId = Model.SubCategoryId,
-                v = chartV
-         })"
-         alt="Average Daily Revenue per Month (@Model.DisplayCurrency)" />
+    <img class="u-w-100pct"
+ src="@Url.Action("MonthlyAvgDailyRevenueChart", "SponsoredListingInvoice", new {
+ startDate = Model.StartDate,
+ endDate = Model.EndDate,
+ sponsorshipType = Model.SponsorshipType,
+ displayCurrency = Model.DisplayCurrency,
+ subCategoryId = Model.SubCategoryId,
+ v = chartV
+ })"
+ alt="Average Daily Revenue per Month (@Model.DisplayCurrency)" />
  
     <br />
-    <img style="width:100%"
-         src="@Url.Action("MonthlyAvgPerListingDailyPriceChart", "SponsoredListingInvoice", new {
-                startDate = Model.StartDate,
-                endDate = Model.EndDate,
-                sponsorshipType = Model.SponsorshipType,
-                displayCurrency = Model.DisplayCurrency,
-                subCategoryId = Model.SubCategoryId,
-                v = chartV
-         })"
-         alt="Average Daily Price per Listing (@Model.DisplayCurrency)" />
+    <img class="u-w-100pct"
+ src="@Url.Action("MonthlyAvgPerListingDailyPriceChart", "SponsoredListingInvoice", new {
+ startDate = Model.StartDate,
+ endDate = Model.EndDate,
+ sponsorshipType = Model.SponsorshipType,
+ displayCurrency = Model.DisplayCurrency,
+ subCategoryId = Model.SubCategoryId,
+ v = chartV
+ })"
+ alt="Average Daily Price per Listing (@Model.DisplayCurrency)" />
    
 
     <br />
 
-    <img style="width:100%"
-         src="@Url.Action("SubcategoryRevenuePieChart", "SponsoredListingInvoice", new {
-                startDate = Model.StartDate,
-                endDate = Model.EndDate,
-                sponsorshipType = Model.SponsorshipType,
-                displayCurrency = Model.DisplayCurrency,
-                subCategoryId = Model.SubCategoryId,
-                v = chartV
-         })"
-         alt="Subcategory Revenue Pie Chart (@Model.DisplayCurrency)" />
+    <img class="u-w-100pct"
+ src="@Url.Action("SubcategoryRevenuePieChart", "SponsoredListingInvoice", new {
+ startDate = Model.StartDate,
+ endDate = Model.EndDate,
+ sponsorshipType = Model.SponsorshipType,
+ displayCurrency = Model.DisplayCurrency,
+ subCategoryId = Model.SubCategoryId,
+ v = chartV
+ })"
+ alt="Subcategory Revenue Pie Chart (@Model.DisplayCurrency)" />
 
     <br />
 
@@ -238,9 +238,9 @@
                     <th>#</th>
                     <th>Country Code</th>
                     <th>Country</th>
-                    <th style="text-align:right;">Total (@Model.DisplayCurrency)</th>
-                    <th style="text-align:right;">% of Total</th>
-                    <th style="text-align:right;"># Invoices</th>
+                    <th class="u-text-right">Total (@Model.DisplayCurrency)</th>
+                    <th class="u-text-right">% of Total</th>
+                    <th class="u-text-right"># Invoices</th>
                 </tr>
             </thead>
             <tbody>
@@ -254,7 +254,7 @@
                         <td>@rank</td>
                         <td>@row.CountryCode</td>
                         <td>@row.CountryName</td>
-                        <td style="text-align:right;">
+                        <td class="u-text-right">
                             @if (Model.DisplayCurrency == DirectoryManager.Data.Enums.Currency.USD)
                             {
                                 @row.Total.ToString("C", CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS))
@@ -264,15 +264,15 @@
                                 @row.Total.ToString("0.######") @Model.DisplayCurrency
                             }
                         </td>
-                        <td style="text-align:right;">@row.Percent.ToString("0.0")%</td>
-                        <td style="text-align:right;">@row.InvoiceCount</td>
+                        <td class="u-text-right">@row.Percent.ToString("0.0")%</td>
+                        <td class="u-text-right">@row.InvoiceCount</td>
                     </tr>
                 }
             </tbody>
             <tfoot>
                 <tr>
                     <th colspan="3">Total</th>
-                    <th style="text-align:right;">
+                    <th class="u-text-right">
                         @{
                             var countryTotal = Model.CountryRevenueRows.Sum(r => r.Total);
                         }
@@ -285,22 +285,22 @@
                             @countryTotal.ToString("0.######") @Model.DisplayCurrency
                         }
                     </th>
-                    <th style="text-align:right;">100.0%</th>
-                    <th style="text-align:right;">@Model.CountryRevenueRows.Sum(r => r.InvoiceCount)</th>
+                    <th class="u-text-right">100.0%</th>
+                    <th class="u-text-right">@Model.CountryRevenueRows.Sum(r => r.InvoiceCount)</th>
                 </tr>
             </tfoot>
         </table>
 
-        <img style="width:100%"
-             src="@Url.Action("CountryRevenuePieChart", "SponsoredListingInvoice", new {
-                    startDate = Model.StartDate,
-                    endDate = Model.EndDate,
-                    sponsorshipType = Model.SponsorshipType,
-                    displayCurrency = Model.DisplayCurrency,
-                    subCategoryId = Model.SubCategoryId,
-                    v = chartV
-             })"
-             alt="Revenue by Country Pie Chart (@Model.DisplayCurrency)" />
+        <img class="u-w-100pct"
+ src="@Url.Action("CountryRevenuePieChart", "SponsoredListingInvoice", new {
+ startDate = Model.StartDate,
+ endDate = Model.EndDate,
+ sponsorshipType = Model.SponsorshipType,
+ displayCurrency = Model.DisplayCurrency,
+ subCategoryId = Model.SubCategoryId,
+ v = chartV
+ })"
+ alt="Revenue by Country Pie Chart (@Model.DisplayCurrency)" />
     }
     else
     {

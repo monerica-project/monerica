@@ -29,19 +29,19 @@
     @await Html.PartialAsync("_BackToHome")
     <hr />
 
-    <p style="margin:0 0 10px 0;">
+    <p class="u-m-0-0-10px-0">
         Get more visibility on your listing with a sponsorship.
         <br />
-        <span style="opacity:.9;">
+        <span class="u-opacity-9">
             New flow: <strong>find your listing, claim your spot, and join waitlists</strong> from one place.
         </span>
     </p>
 
-    <p style="margin: 0 0 14px 0;">
+    <p class="u-m-0-0-14px-0">
         <a class="btn btn-primary" href="~/sponsorship">Go to Sponsorship Search</a>
     </p>
 
-    <p style="margin:0 0 14px 0; opacity:.9;">
+    <p class="u-m-0-0-14px-0-opacity-9">
         If you subscribe for notifications again for the same listing/type, we’ll update your existing subscription
         (no duplicates) and keep your original “joined” date.
     </p>
@@ -103,7 +103,7 @@
             <p><i>@Model.Message</i></p>
         }
 
-        <p style="margin-top: 10px;">
+        <p class="u-mt-10px">
             <a asp-controller="SponsoredListingNotification"
                asp-action="Subscribe"
                asp-route-sponsorshipType="MainSponsor">
@@ -112,7 +112,7 @@
         </p>
     }
 
-    <p style="margin-top: 10px;">
+    <p class="u-mt-10px">
         <a href="~/sponsoredlisting/activelistings">Extend an active sponsorship</a>
     </p>
 
@@ -178,7 +178,7 @@
             }
         </ul>
 
-        <p style="opacity:.85; margin-top: 8px;">
+        <p class="u-opacity-85-mt-8px">
             Tip: You can also use the <a href="~/sponsorship">Sponsorship Search</a> flow to find your listing first.
         </p>
     }
@@ -249,7 +249,7 @@
             }
         </ul>
 
-        <p style="opacity:.85; margin-top: 8px;">
+        <p class="u-opacity-85-mt-8px">
             Tip: You can also use the <a href="~/sponsorship">Sponsorship Search</a> flow to find your listing first.
         </p>
     }
