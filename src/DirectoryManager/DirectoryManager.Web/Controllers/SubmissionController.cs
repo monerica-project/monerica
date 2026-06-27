@@ -106,11 +106,8 @@ namespace DirectoryManager.Web.Controllers
         [HttpPost("submit")]
         public async Task<IActionResult> Create(SubmissionRequest model)
         {
-            // ---- Captcha (anti-spam) ----
-            if (!this.captcha.IsValid(this.Request))
-            {
-                this.ModelState.AddModelError(string.Empty, "Captcha was incorrect, please try again.");
-            }
+            // Captcha is verified later, at the preview/confirm step (ConfirmAsync), so
+            // a wrong answer never discards the changes the user entered on this page.
 
             // ---- Validate URLs ----
 
@@ -652,6 +649,17 @@ namespace DirectoryManager.Web.Controllers
             if (submission.SubmissionStatus == SubmissionStatus.Pending)
             {
                 return this.BadRequest(Constants.StringConstants.SubmissionAlreadySubmitted);
+            }
+
+            // ---- Captcha (anti-spam) ----
+            // Verified at this final confirm step rather than on the edit page, so a
+            // wrong captcha never discards the user's changes: the draft submission is
+            // kept and the preview is simply re-shown for another attempt.
+            if (!this.captcha.IsValid(this.Request))
+            {
+                this.ModelState.AddModelError(string.Empty, "Captcha was incorrect, please try again.");
+                var previewModel = await this.GetSubmissionPreviewAsync(submission);
+                return this.View("Preview", previewModel);
             }
 
             // ✅ If user didn't provide FoundedDate during preview creation,

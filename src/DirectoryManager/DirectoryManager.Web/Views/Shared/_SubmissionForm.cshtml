@@ -244,9 +244,5 @@
     <span asp-validation-for="NoteToAdmin" class="text-danger"></span>
 </div>
 
-<hr />
-
-<h3>Spam check</h3>
-<div class="form-group">
-    @await Html.PartialAsync("_CaptchaBlock", (string)"submission")
-</div>
+@* Captcha moved to the preview/confirm step so a wrong answer never discards
+   the changes entered here — see Views/Submission/Preview.cshtml. *@

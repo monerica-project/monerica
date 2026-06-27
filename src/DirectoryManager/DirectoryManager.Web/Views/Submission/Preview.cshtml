@@ -78,13 +78,18 @@
 
 <br />
 
-<div style="display: flex; align-items: center; gap: 25px;">
-   
-    <form asp-action="Confirm" method="post" style="margin: 0;">
-        @Html.HiddenFor(x => x.SubmissionId)
-            <button type="submit" class="btn btn-primary btn-cta">Submit</button>
-    </form>
-</div>
+<form asp-action="Confirm" method="post" style="margin: 0;">
+    @Html.HiddenFor(x => x.SubmissionId)
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <h3>Spam check</h3>
+    <div class="form-group">
+        @await Html.PartialAsync("_CaptchaBlock", (string)"submission")
+    </div>
+
+    <button type="submit" class="btn btn-primary btn-cta">Submit</button>
+</form>
 <br />
 <a href="~/submit?submissionid=@Model.SubmissionId">Edit submission</a>
 
