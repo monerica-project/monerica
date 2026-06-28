@@ -4141,3 +4141,16 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 .u-w-6em { width: 6em; }
 .u-w-90px { width: 90px; }
 .u-flex-flexwrap-wrap-items-center-gap-8px-16px-p-12px-0 { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; padding: 12px 0; border-bottom: 1px solid rgba(128,128,128,.25); }
+
+
+/* Allow fixed-width inputs (e.g. the Y/M/D date boxes) to override form-control min-width. */
+.u-minw-0 {
+  min-width: 0;
+}
+
+
+/* Fixed-width Y/M/D date boxes must keep their width inside centered forms,
+   where ".main-content-centered form:not(.ui-form) .form-control" (specificity
+   0,3,1) would otherwise force width:100% over the .u-w-* utilities. */
+.main-content-centered form:not(.ui-form) .form-control.u-w-110px { width: 110px; }
+.main-content-centered form:not(.ui-form) .form-control.u-w-90px { width: 90px; }
