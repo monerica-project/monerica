@@ -106,7 +106,10 @@
             : await reviewRepository.GetRatingSummariesAsync(entryIds);
 
         // 4) Truncation limit
-        const int descLimit = 165;
+        // Kept comfortably within the .sponsor-desc line-clamp so the server's
+        // word-boundary truncation (…) is what shows — the CSS clamp never re-cuts
+        // a word mid-way (e.g. "SOL" -> "SO…"). Short on purpose to keep cards compact.
+        const int descLimit = 125;
 
         // 5) Helper to get status icon
         Func<DirectoryStatus, IHtmlContent> statusIcon = status => status.ToHtmlIcon();

@@ -838,9 +838,11 @@ section.sponsors .sponsor-card .country-flag-right {
 section.sponsors .sponsor-card .sponsor-desc,
 .sponsors-grid .sponsor-card .sponsor-desc {
   display: -webkit-box;
-  -webkit-line-clamp: 5;
+  /* Headroom over the server-side word-boundary truncation so the clamp doesn't
+     re-cut a word mid-way (e.g. "SOL" -> "SO…"). */
+  -webkit-line-clamp: 6;
   -webkit-box-orient: vertical;
-  line-clamp: 5;
+  line-clamp: 6;
   overflow: hidden;
   text-overflow: ellipsis;
   margin: 8px 2px 0 !important;
