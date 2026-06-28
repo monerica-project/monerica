@@ -3381,7 +3381,10 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
    columns matches the 5-slot Main Sponsors layout; it collapses responsively. */
 .main-content-wide .sponsors-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  /* Uniform cards that wrap and stay 180–240px wide, exactly like the homepage —
+     never stretched to full width, never crammed. auto-fit adapts to every screen
+     size on its own, so no per-breakpoint column counts are needed. */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 240px));
   gap: 1rem;
   justify-content: center;
   align-items: stretch;
@@ -3389,18 +3392,8 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 .main-content-wide .sponsors-grid .sponsor-card {
   flex: none;          /* override the theme's flex: 1 1 0 growing behavior */
   width: 100%;
-  max-width: none;
   min-width: 0;
   margin: 0;
-}
-@media (max-width: 1100px) {
-  .main-content-wide .sponsors-grid { grid-template-columns: repeat(3, 1fr); }
-}
-@media (max-width: 760px) {
-  .main-content-wide .sponsors-grid { grid-template-columns: repeat(2, 1fr); }
-}
-@media (max-width: 480px) {
-  .main-content-wide .sponsors-grid { grid-template-columns: 1fr; }
 }
 
 /* Sponsor-card flags: same reflow fix. The theme renders these with no
@@ -3935,7 +3928,10 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 }
 .main-content-centered section.sponsors .sponsors-grid {
   display: grid;
-  grid-template-columns: repeat(5, 1fr);
+  /* Uniform cards that wrap and stay 180–240px wide, exactly like the homepage —
+     never stretched to full width, never crammed. auto-fit adapts to every screen
+     size on its own, so no per-breakpoint column counts are needed. */
+  grid-template-columns: repeat(auto-fit, minmax(180px, 240px));
   gap: 1rem;
   justify-content: center;
   align-items: stretch;
@@ -3946,14 +3942,9 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 .main-content-centered section.sponsors .sponsors-grid .sponsor-card {
   flex: none;
   width: 100%;
-  max-width: none;
   min-width: 0;
   margin: 0;
 }
-@media (max-width: 1100px) { .main-content-centered section.sponsors .sponsors-grid { grid-template-columns: repeat(3, 1fr); } }
-@media (max-width: 760px)  { .main-content-centered section.sponsors .sponsors-grid { grid-template-columns: repeat(2, 1fr); } }
-/* Keep two equal-size cards per row on phones instead of one full-width card. */
-@media (max-width: 480px)  { .main-content-centered section.sponsors .sponsors-grid { grid-template-columns: repeat(2, 1fr); } }
 /* ============================================================================
    Extracted inline styles (refactored from view markup) — 2026-06-27
    ============================================================================ */
