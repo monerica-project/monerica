@@ -880,25 +880,17 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             var code = countryCode.Trim();
             var countryName = CountryHelper.GetCountryName(code);
-            var file = code.ToLowerInvariant();
-
-            // rootUrl is either null (preferred) or "https://domain.com"
-            var baseUrl = (rootUrl ?? string.Empty).TrimEnd('/');
-
-            // If baseUrl is empty => "/images/flags/us.png"
-            // Else => "https://domain.com/images/flags/us.png"
-            var src = string.IsNullOrEmpty(baseUrl)
-                ? $"/images/flags/{file}.png"
-                : $"{baseUrl}/images/flags/{file}.png";
-
-            var safeSrc = WebUtility.HtmlEncode(src);
+            var cls = WebUtility.HtmlEncode(code.ToLowerInvariant());
             var safeName = WebUtility.HtmlEncode(countryName);
 
-            return "<img class=\"country-flag\""
-                 + $" src=\"{safeSrc}\""
-                 + $" alt=\"Flag of {safeName}\""
-                 + $" title=\"{safeName}\""
-                 + " />";
+            // CSS sprite: one shared image holds every flag, positioned by the .flag-xx
+            // class. rootUrl is no longer needed — the sprite's path lives in the
+            // stylesheet (url(/images/flags-sprite.png)), so it resolves same-origin on
+            // both the clearnet site and the Tor mirror.
+            return $"<span class=\"country-flag flag flag-{cls}\""
+                 + " role=\"img\""
+                 + $" aria-label=\"Flag of {safeName}\""
+                 + $" title=\"{safeName}\"></span>";
         }
     }
 }

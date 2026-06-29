@@ -31,20 +31,20 @@
             {
                 var code = c.Code?.Trim();
                 var hasCode = !string.IsNullOrWhiteSpace(code);
-                var flagSrc = hasCode ? $"/images/flags/{code!.ToLowerInvariant()}.png" : null;
+                var codeLower = hasCode ? code!.ToLowerInvariant() : null;
 
                 <li>
                     <a class="no-app-link"
                        href="@(UrlResolver.BaseUrl.TrimEnd('/') + $"/countries/{c.Key}")"
                        title="@c.Name">@c.Name</a>
 
-                    @* flag between name and count *@
+                    @* flag between name and count — CSS sprite (one image for all flags) *@
                     @if (hasCode)
                     {
-                        <img class="country-flag"
-                             src="@flagSrc"
-                             alt="Flag of @c.Name (@code)"
-                             title="@c.Name" />
+                        <span class="country-flag flag flag-@codeLower"
+                              role="img"
+                              aria-label="Flag of @c.Name (@code)"
+                              title="@c.Name"></span>
                     }
 
                     <span>(@c.Count)</span>

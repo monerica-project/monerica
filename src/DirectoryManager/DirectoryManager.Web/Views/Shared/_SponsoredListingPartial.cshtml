@@ -49,7 +49,7 @@
     }
 
 
-    private static IHtmlContent RenderCountryFlagRight(string? countryCode, string? rootUrl = null)
+    private static IHtmlContent RenderCountryFlagRight(string? countryCode)
     {
         if (string.IsNullOrWhiteSpace(countryCode))
         {
@@ -58,16 +58,14 @@
 
         var code = countryCode.Trim();
         var countryName = CountryHelper.GetCountryName(code);
-        var file = code.ToLowerInvariant();
+        var cls = System.Net.WebUtility.HtmlEncode(code.ToLowerInvariant());
 
-        var src = string.Concat(rootUrl ?? string.Empty, $"/images/flags/{file}.png");
-
+        // CSS sprite: one image for all flags, positioned by the .flag-xx class.
         var html =
-            "<img class=\"country-flag country-flag-right\"" +
-            $" src=\"{System.Net.WebUtility.HtmlEncode(src)}\"" +
-            $" alt=\"Flag of {System.Net.WebUtility.HtmlEncode(countryName)}\"" +
-            $" title=\"{System.Net.WebUtility.HtmlEncode(countryName)}\"" +
-            " />";
+            $"<span class=\"country-flag country-flag-right flag flag-{cls}\"" +
+            " role=\"img\"" +
+            $" aria-label=\"Flag of {System.Net.WebUtility.HtmlEncode(countryName)}\"" +
+            $" title=\"{System.Net.WebUtility.HtmlEncode(countryName)}\"></span>";
 
         return new HtmlString(html);
     }

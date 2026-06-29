@@ -759,11 +759,12 @@ namespace DirectoryManager.Web.Controllers
                     ? $"Flag ({ccRaw})"
                     : $"Flag of {countryNameForAlt} ({ccRaw.ToUpperInvariant()})";
 
+                // CSS sprite: one image for all flags, positioned by the .flag-xx class.
                 flagHtml =
-                    $"<img class=\"country-flag me-2\" " +
-                    $"src=\"/images/flags/{ccLower}.png\" " +
-                    $"alt=\"{WebUtility.HtmlEncode(altTitle)}\" " +
-                    $"title=\"{WebUtility.HtmlEncode(countryNameForAlt)}\" /> ";
+                    $"<span class=\"country-flag me-2 flag flag-{WebUtility.HtmlEncode(ccLower)}\" " +
+                    $"role=\"img\" " +
+                    $"aria-label=\"{WebUtility.HtmlEncode(altTitle)}\" " +
+                    $"title=\"{WebUtility.HtmlEncode(countryNameForAlt)}\"></span> ";
             }
 
             string? countryName = null;
