@@ -46,6 +46,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<Tag> Tags { get; set; }
         public DbSet<DirectoryEntryTag> DirectoryEntryTags { get; set; }
         public DbSet<SearchLog> SearchLogs { get; set; }
+        public DbSet<DirectoryFilterLog> DirectoryFilterLogs { get; set; }
         public DbSet<ReviewerKey> ReviewerKeys { get; set; }
         public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
         public DbSet<DirectoryManager.Data.Models.VerificationRequests.VerificationRequest> VerificationRequests { get; set; }

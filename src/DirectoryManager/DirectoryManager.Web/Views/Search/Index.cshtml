@@ -64,19 +64,49 @@
             </ul>
             @if (Model.Entries.Any())
             {
-                <nav aria-label="Search pagination">
-                    <ul class="pagination">
-                        @{
-                            int totalPages = (int)Math.Ceiling(Model.TotalCount / (double)Model.PageSize);
-                            for (int p = 1; p <= totalPages; p++)
+                int totalPages = (int)Math.Ceiling(Model.TotalCount / (double)Model.PageSize);
+                int cur = Model.Page;
+                // Windowed pager: at most ~10 numbered buttons + First/Prev/Next/Last.
+                const int window = 9;
+                int half = window / 2;
+                int winStart = Math.Max(1, cur - half);
+                int winEnd = Math.Min(totalPages, winStart + window - 1);
+                winStart = Math.Max(1, winEnd - window + 1);
+                Func<int, string> pageUrl = p => $"?q={encodedQ}&page={p}";
+
+                if (totalPages > 1)
+                {
+                    <nav aria-label="Search pagination">
+                        <ul class="pagination">
+                            <li class="page-item @(cur <= 1 ? "disabled" : "")">
+                                <a class="page-link" href="@pageUrl(1)" aria-label="First">&laquo;</a>
+                            </li>
+                            <li class="page-item @(cur <= 1 ? "disabled" : "")">
+                                <a class="page-link" href="@pageUrl(Math.Max(1, cur - 1))" aria-label="Previous">&lsaquo;</a>
+                            </li>
+                            @if (winStart > 1)
                             {
-                                <li class="page-item @(p == Model.Page ? "active" : "")">
-                                    <a class="page-link" href="?q=@encodedQ&page=@p">@p</a>
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                            }
+                            @for (int p = winStart; p <= winEnd; p++)
+                            {
+                                <li class="page-item @(p == cur ? "active" : "")">
+                                    <a class="page-link" href="@pageUrl(p)">@p</a>
                                 </li>
                             }
-                        }
-                    </ul>
-                </nav>
+                            @if (winEnd < totalPages)
+                            {
+                                <li class="page-item disabled"><span class="page-link">…</span></li>
+                            }
+                            <li class="page-item @(cur >= totalPages ? "disabled" : "")">
+                                <a class="page-link" href="@pageUrl(Math.Min(totalPages, cur + 1))" aria-label="Next">&rsaquo;</a>
+                            </li>
+                            <li class="page-item @(cur >= totalPages ? "disabled" : "")">
+                                <a class="page-link" href="@pageUrl(totalPages)" aria-label="Last">&raquo;</a>
+                            </li>
+                        </ul>
+                    </nav>
+                }
             }
         }
         <hr />

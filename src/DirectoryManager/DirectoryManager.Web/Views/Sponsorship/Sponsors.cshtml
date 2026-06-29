@@ -125,7 +125,8 @@
                 <tbody>
                     @foreach (var item in Model.CurrentSponsors)
                     {
-                        <tr>
+                        var isMain = item.SponsorshipTypeEnum == SponsorshipType.MainSponsor;
+                        <tr class="@(isMain ? "sponsor-row-main" : "")">
                             <td>
                                 @if (!string.IsNullOrWhiteSpace(item.ListingUrl))
                                 {
@@ -136,7 +137,7 @@
                                     @item.ListingName
                                 }
                             </td>
-                            <td>@item.SponsorshipType</td>
+                            <td>@if (isMain) { <strong class="sponsor-type-main">&#9733; @item.SponsorshipType</strong> } else { @item.SponsorshipType }</td>
                             <td class="u-text-right">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
                             <td class="u-text-right">
                                 @if (!string.IsNullOrWhiteSpace(item.RenewUrl))
@@ -187,7 +188,7 @@
                         @foreach (var item in Model.RecentPaid.Items)
                         {
                             var isMain = item.SponsorshipTypeEnum == SponsorshipType.MainSponsor;
-                            <tr style="@(isMain ? "background: rgba(255,102,0,.14); font-weight:600;" : "")">
+                            <tr class="@(isMain ? "sponsor-row-main" : "")">
                                 <td>@item.PaidUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                                 <td>
                                     @if (!string.IsNullOrWhiteSpace(item.ListingUrl))
@@ -199,7 +200,7 @@
                                         @item.ListingName
                                     }
                                 </td>
-                                <td>@if (isMain) { <strong class="u-color-c25700">&#9733; @item.SponsorshipType</strong> } else { @item.SponsorshipType }</td>
+                                <td>@if (isMain) { <strong class="sponsor-type-main">&#9733; @item.SponsorshipType</strong> } else { @item.SponsorshipType }</td>
                                 <td class="u-text-right">@item.Days</td>
                                 <td class="u-text-right">
                                     @item.PaidAmount.ToString(DirectoryManager.Common.Constants.StringConstants.RoundingFormatCrypto)

@@ -4156,3 +4156,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   width: 200px !important;
   max-width: 200px !important;
 }
+
+/* Main-sponsor highlight (Current Sponsors + Recent Paid) — semantic classes. */
+.sponsor-row-main { background: rgba(255, 102, 0, .14); font-weight: 600; }
+.sponsor-type-main { color: #c25700; font-weight: 700; }

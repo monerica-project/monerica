@@ -33,6 +33,7 @@ public class DirectoryFilterController : Controller
     private readonly ISponsoredListingRepository sponsoredListingRepository;
     private readonly IMemoryCache memoryCache;
     private readonly ITagRepository tagRepo;
+    private readonly IDirectoryFilterLogRepository filterLogRepo;
 
     public DirectoryFilterController(
         IDirectoryEntryRepository entryRepo,
@@ -42,7 +43,8 @@ public class DirectoryFilterController : Controller
         ITagRepository tagRepo,
         ICacheService cacheService,
         ISponsoredListingRepository sponsoredListingRepository,
-        IMemoryCache memoryCache)
+        IMemoryCache memoryCache,
+        IDirectoryFilterLogRepository filterLogRepo)
     {
         this.entryRepo = entryRepo;
         this.entryReviewsRepo = entryReviewsRepo;
@@ -52,6 +54,7 @@ public class DirectoryFilterController : Controller
         this.cacheService = cacheService;
         this.sponsoredListingRepository = sponsoredListingRepository;
         this.memoryCache = memoryCache;
+        this.filterLogRepo = filterLogRepo;
     }
 
     [HttpGet("filter")]
@@ -63,6 +66,9 @@ public class DirectoryFilterController : Controller
 
         // wipe / sanitize tag filters if they don't match the selected category
         await this.SanitizeTagIdsForCategoryAsync(q);
+
+        // Log what the visitor filtered by (no IP, no personal data) for the report.
+        await this.LogFilterAsync(q);
 
         // active sponsors → let the repository pin them first under TopRated
         var activeSponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
@@ -492,6 +498,45 @@ public class DirectoryFilterController : Controller
     // -------------------------
     // Tag sanitizer
     // -------------------------
+    // Records what the visitor filtered by (decoded to names in the admin report).
+    // No IP address or any personal data is stored. Only logs non-default filters.
+    private async Task LogFilterAsync(DirectoryFilterQuery q)
+    {
+        try
+        {
+            bool any = q.CategoryId.HasValue
+                || q.SubCategoryId.HasValue
+                || (q.TagIds is { Count: > 0 })
+                || !string.IsNullOrWhiteSpace(q.SearchTerm)
+                || !string.IsNullOrWhiteSpace(q.Country)
+                || q.HasVideo || q.HasTor || q.HasI2p
+                || (q.Statuses is { Count: > 0 });
+
+            if (!any)
+            {
+                return; // skip bare/default directory loads
+            }
+
+            await this.filterLogRepo.CreateAsync(new DirectoryFilterLog
+            {
+                CategoryId = q.CategoryId,
+                SubCategoryId = q.SubCategoryId,
+                TagIds = q.TagIds is { Count: > 0 } ? string.Join(",", q.TagIds) : null,
+                SearchTerm = string.IsNullOrWhiteSpace(q.SearchTerm) ? null : q.SearchTerm.Trim(),
+                CountryCode = string.IsNullOrWhiteSpace(q.Country) ? null : q.Country.Trim(),
+                Statuses = q.Statuses is { Count: > 0 } ? string.Join(",", q.Statuses) : null,
+                HasVideo = q.HasVideo,
+                HasTor = q.HasTor,
+                HasI2p = q.HasI2p,
+                Page = q.Page,
+            });
+        }
+        catch
+        {
+            // logging must never break the directory page
+        }
+    }
+
     private async Task SanitizeTagIdsForCategoryAsync(DirectoryFilterQuery q)
     {
         if (q.TagIds is null || q.TagIds.Count == 0)
