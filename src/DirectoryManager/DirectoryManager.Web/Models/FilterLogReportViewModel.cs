@@ -12,6 +12,8 @@ namespace DirectoryManager.Web.Models
 
         public IReadOnlyList<FilterReportItem> Subcategories { get; set; } = new List<FilterReportItem>();
 
+        public IReadOnlyList<FilterReportItem> Statuses { get; set; } = new List<FilterReportItem>();
+
         public IReadOnlyList<FilterReportItem> Tags { get; set; } = new List<FilterReportItem>();
 
         public IReadOnlyList<FilterReportItem> Terms { get; set; } = new List<FilterReportItem>();
@@ -23,5 +25,10 @@ namespace DirectoryManager.Web.Models
         public int TorCount { get; set; }
 
         public int I2pCount { get; set; }
+
+        // The single most-filtered category / subcategory in the range (null if none).
+        public string? LeadingCategory { get; set; }
+
+        public string? LeadingSubcategory { get; set; }
     }
 }

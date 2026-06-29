@@ -30,35 +30,40 @@
     <hr />
 
     <p class="u-m-6px-0-12px-0-fs-105rem">
-        Sponsor spots are limited. Find your listing below to <strong>claim an open spot</strong> or
-        <strong>join the waitlist</strong> — we'll email you the moment one opens.
-        <a class="app-link" href="~/sponsors">See who's sponsoring now &amp; recent payments →</a>
+        <strong>Sponsor spots are limited.</strong> Search your listing to <strong>claim an open spot</strong>
+        or <strong>join the waitlist</strong> — we'll email you the moment one opens.
     </p>
 
-    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SponsoredListingSteps))
-    <p class="u-m-0-0-6px-0"><strong>How to sponsor a spot:</strong></p>
-    <ol class="u-m-0-0-12px-0-pl-22px">
-        <li>Your site must be listed in the directory first. <a href="~/submit">Not listed yet? Submit it →</a></li>
-        <li>Search your listing below.</li>
-        <li>Select it to see every placement, live prices, and which spots are open — then pay in XMR, or join the waitlist if the spot you want is taken.</li>
-    </ol>
-    <p class="u-m-0-0-10px-0-opacity-9">
-        Every listing has up to 3 placements (Main, Category, Subcategory), each in different durations and prices.
-    </p>
+    <!-- PROMINENT SEARCH -->
+    <div class="adspace-full" style="text-align:center;padding:1.1rem 1rem;margin:0 0 14px;">
+        <p style="font-weight:800;font-size:1.2rem;margin:0 0 .6rem;">Find your listing</p>
+        <form method="get" action="@Url.Action("Index", "Sponsorship")" class="search-form" style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:0;">
+            <input type="search" name="q" value="@q"
+                   placeholder="Your listing name or website…"
+                   class="form-control" style="max-width:340px;flex:1 1 240px;" />
+            <button type="submit" class="btn btn-primary btn-cta">Find my listing →</button>
+        </form>
+        <p style="margin:.6rem 0 0;opacity:.85;font-size:.9rem;">
+            Claim a spot or join the waitlist in one step.
+            <a href="~/sponsors">See who's sponsoring now →</a>
+        </p>
+    </div>
 
-    <!-- SEARCH -->
-    <form method="get" action="@Url.Action("Index", "Sponsorship")" class="search-form u-m-16px-0">
-        <input type="search"
- name="q"
- value="@q"
- placeholder="Search listings… (name, website)"
- class="form-control u-maxw-520px-inline-block" />
-        <button type="submit" class="btn btn-primary btn-cta">Find my listing</button>
-    </form>
-    <p class="u-m-6px-0-16px-0-opacity-85">
-        Don't see your site, or not listed yet? <a href="~/submit">Submit it first →</a>
-        Questions? <a href="~/contact">Contact us</a>.
-    </p>
+    <details class="u-m-0-0-14px-0">
+        <summary class="u-cursor-pointer"><strong>How sponsoring works</strong></summary>
+        <div class="u-mt-10px">
+            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SponsoredListingSteps))
+            <ol class="u-m-0-0-12px-0-pl-22px">
+                <li>Your site must be listed in the directory first. <a href="~/submit">Not listed yet? Submit it →</a></li>
+                <li>Search your listing above.</li>
+                <li>Select it to see every placement, live prices, and which spots are open — then pay in XMR, or join the waitlist if the spot you want is taken.</li>
+            </ol>
+            <p class="u-m-0-0-0-0-opacity-9">
+                Every listing has up to 3 placements (Main, Category, Subcategory), each in different durations and prices.
+                Questions? <a href="~/contact">Contact us</a>.
+            </p>
+        </div>
+    </details>
 
     @if (Model.HasSearched)
     {

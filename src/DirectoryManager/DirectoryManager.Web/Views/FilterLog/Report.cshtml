@@ -48,6 +48,22 @@
         &nbsp;·&nbsp; Video: <strong>@Model.VideoCount</strong>, Tor: <strong>@Model.TorCount</strong>, I2P: <strong>@Model.I2pCount</strong>
     </p>
 
+    @if (Model.LeadingCategory != null || Model.LeadingSubcategory != null)
+    {
+        <div style="border:1px solid var(--orange,#ff6600);border-radius:8px;padding:.6rem .9rem;margin:0 0 1rem;">
+            @if (Model.LeadingCategory != null)
+            {
+                <div><strong>Leading category:</strong> @Model.LeadingCategory</div>
+            }
+            @if (Model.LeadingSubcategory != null)
+            {
+                <div><strong>Leading subcategory:</strong> @Model.LeadingSubcategory
+                    <span style="opacity:.8;">&nbsp;(shown as <em>Category › Subcategory</em>)</span>
+                </div>
+            }
+        </div>
+    }
+
     @{
         void RenderTable(string title, string colName, IReadOnlyList<DirectoryManager.Web.Models.FilterReportItem> items)
         {
@@ -80,7 +96,8 @@
     }
 
     @{ RenderTable("Categories", "Category", Model.Categories); }
-    @{ RenderTable("Subcategories", "Subcategory", Model.Subcategories); }
+    @{ RenderTable("Subcategories", "Subcategory (Category › Subcategory)", Model.Subcategories); }
+    @{ RenderTable("Statuses", "Status", Model.Statuses); }
     @{ RenderTable("Tags", "Tag", Model.Tags); }
     @{ RenderTable("Search terms", "Term", Model.Terms); }
     @{ RenderTable("Countries", "Country", Model.Countries); }

@@ -36,7 +36,15 @@ namespace DirectoryManager.Web.Controllers
 
             // Decode maps (IDs → human names)
             var catNames = (await this.categoryRepo.GetAllAsync()).ToDictionary(c => c.CategoryId, c => c.Name);
-            var subNames = (await this.subcategoryRepo.GetAllAsync()).ToDictionary(s => s.SubCategoryId, s => s.Name);
+
+            // Subcategory labels are prefixed with their PARENT CATEGORY ("Category › Subcategory").
+            // This both disambiguates subcategories that share the same name across different
+            // categories AND keeps them counted separately in the ranking.
+            var subs = await this.subcategoryRepo.GetAllAsync();
+            var subLabels = subs.ToDictionary(
+                s => s.SubCategoryId,
+                s => $"{(catNames.TryGetValue(s.CategoryId, out var cn) ? cn : "#" + s.CategoryId)} › {s.Name}");
+
             var tagNames = (await this.tagRepo.ListAllAsync()).ToDictionary(t => t.TagId, t => t.Name);
 
             List<FilterReportItem> Rank(IEnumerable<string?> labels) =>
@@ -56,7 +64,11 @@ namespace DirectoryManager.Web.Controllers
                 .Select(l => catNames.TryGetValue(l.CategoryId!.Value, out var n) ? n : $"#{l.CategoryId}"));
 
             var subcategories = Rank(logs.Where(l => l.SubCategoryId.HasValue)
-                .Select(l => subNames.TryGetValue(l.SubCategoryId!.Value, out var n) ? n : $"#{l.SubCategoryId}"));
+                .Select(l => subLabels.TryGetValue(l.SubCategoryId!.Value, out var n) ? n : $"#{l.SubCategoryId}"));
+
+            // Statuses are stored as a comma-joined set per log row; rank each status individually.
+            var statuses = Rank(logs.Where(l => !string.IsNullOrWhiteSpace(l.Statuses))
+                .SelectMany(l => l.Statuses!.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)));
 
             var terms = Rank(logs.Select(l => l.SearchTerm));
 
@@ -76,12 +88,15 @@ namespace DirectoryManager.Web.Controllers
                 TotalEvents = total,
                 Categories = categories,
                 Subcategories = subcategories,
+                Statuses = statuses,
                 Tags = tags,
                 Terms = terms,
                 Countries = countries,
                 VideoCount = logs.Count(l => l.HasVideo),
                 TorCount = logs.Count(l => l.HasTor),
                 I2pCount = logs.Count(l => l.HasI2p),
+                LeadingCategory = categories.FirstOrDefault()?.Label,
+                LeadingSubcategory = subcategories.FirstOrDefault()?.Label,
             };
 
             return this.View(vm);

@@ -580,6 +580,12 @@ namespace DirectoryManager.Web.Controllers
                 0.3);
 
             siteMapHelper.AddUrl(
+                string.Format("{0}/network", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                date,
+                ChangeFrequency.Monthly,
+                0.4);
+
+            siteMapHelper.AddUrl(
                 string.Format("{0}/rss/feed.xml", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
                 date,
                 ChangeFrequency.Daily,

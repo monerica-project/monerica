@@ -1,0 +1,54 @@
+@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Data.Enums;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@{
+    var siteName = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
+    if (string.IsNullOrWhiteSpace(siteName)) { siteName = "Monerica"; }
+    ViewData[StringConstants.TitleHeader] = $"The {siteName} Network";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">The @siteName Network</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    <p>
+        @siteName is the hub of a small family of independent, privacy-respecting projects for the Monero
+        community. Each site references the others, so you can always find your way around the network.
+    </p>
+
+    <h2 style="color:var(--orange);">Sites in the network</h2>
+    <ul style="line-height:1.9;">
+        <li>
+            <strong>@(siteName).com</strong> &mdash; you are here: the Monero circular-economy directory of
+            merchants and services that accept XMR.
+        </li>
+        <li>
+            <a href="https://moneroacademy.com" target="_blank" rel="noopener">MoneroAcademy.com</a>
+            &mdash; free Monero education: courses, lessons and quizzes from beginner to advanced.
+        </li>
+        <li>
+            <a href="https://moneropricenow.com" target="_blank" rel="noopener">MoneroPriceNow.com</a>
+            &mdash; the live Monero (XMR) price, clean and tracker-free.
+        </li>
+        <li>
+            <a href="https://moneromarketcap.com" target="_blank" rel="noopener">MoneroMarketCap.com</a>
+            &mdash; Monero market data, supply and statistics.
+        </li>
+        <li>
+            <a href="https://moneroshamelist.com" target="_blank" rel="noopener">MoneroShameList.com</a>
+            &mdash; a watchlist of privacy-focused companies that don't yet accept Monero.
+        </li>
+    </ul>
+
+    <h2 style="color:var(--orange);">Follow the project</h2>
+    <ul style="line-height:1.9;">
+        <li><a href="https://www.youtube.com/@@monericaproject" target="_blank" rel="noopener">Monerica Project on YouTube</a></li>
+        <li><a href="https://x.com/MonericaProject" target="_blank" rel="noopener">Monerica Project on X (Twitter)</a></li>
+    </ul>
+}

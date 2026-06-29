@@ -66,6 +66,9 @@
         <nav class="footer-nav">
             @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.FooterHtml))
         </nav>
+        <div class="footer-network" style="margin-top:.5rem;">
+            <a href="/network">Monerica Network</a>
+        </div>
     </footer>
 </body>
 </html>

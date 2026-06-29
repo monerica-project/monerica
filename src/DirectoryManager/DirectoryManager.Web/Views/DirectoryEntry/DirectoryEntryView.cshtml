@@ -425,9 +425,14 @@
         @* ---------------------------------------------------------------
            "Review us on Monerica" embed badge. Listing owners copy this HTML
            onto their own site to send visitors here to leave a review.
-           Hidden for scam listings.
+           Hidden for scam listings, AND hidden when reviews are turned off
+           (no point inviting reviews when the review system is closed).
            --------------------------------------------------------------- *@
-        @if (!isScam)
+        @{
+            var reviewsVmForEmbed = ViewBag.ReviewsVm as DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel;
+            var reviewsDisabled = reviewsVmForEmbed?.ReviewsDisabled ?? false;
+        }
+        @if (!isScam && !reviewsDisabled)
         {
             <div class="entry-section entry-embed">
                 <h3>Get more reviews</h3>

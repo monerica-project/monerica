@@ -91,6 +91,14 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
+        [HttpGet("network")]
+        public async Task<IActionResult> NetworkAsync()
+        {
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
+            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "network");
+            return this.View();
+        }
+
         [HttpGet("pgp")]
         public async Task<IActionResult> PgpAsync()
         {
