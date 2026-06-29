@@ -4157,6 +4157,13 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   max-width: 200px !important;
 }
 
-/* Main-sponsor highlight (Current Sponsors + Recent Paid) — semantic classes. */
-.sponsor-row-main { background: rgba(255, 102, 0, .14); font-weight: 600; }
+/* Main-sponsor highlight (Current Sponsors + Recent Paid) — semantic classes.
+   The orange is painted ONCE, on the cells, and the row itself is forced transparent
+   (overriding the zebra stripe). So every highlighted row looks identical regardless
+   of position, the stripe never bleeds through, and the orange never doubles up into
+   a darker shade. */
+.sponsor-row-main { font-weight: 600; }
 .sponsor-type-main { color: #c25700; font-weight: 700; }
+.table tbody tr.sponsor-row-main,
+.table tbody tr.sponsor-row-main:nth-child(even) { background: transparent; }
+.table tbody tr.sponsor-row-main > td { background-color: rgba(255, 102, 0, .14); }

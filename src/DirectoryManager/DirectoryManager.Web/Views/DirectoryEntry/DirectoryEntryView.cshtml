@@ -76,21 +76,8 @@
     // correctly on any external site. Links to the listing page (not the #reviews hash).
     var listingUrl = UrlHelper.MakeFullUrl(domain, UrlBuilder.ListingPath(Model.DirectoryEntryKey));
 
-    // Resolve an absolute logo URL. The admin-configured logo may be stored as an
-    // absolute (e.g. CDN) URL or as a local path; fall back to the bundled asset.
-    var badgeLogoRaw = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteLogoUrl);
-    string badgeLogoUrl;
-    if (!string.IsNullOrWhiteSpace(badgeLogoRaw) &&
-        Uri.TryCreate(badgeLogoRaw.Trim(), UriKind.Absolute, out var badgeLogoUri))
-    {
-        badgeLogoUrl = badgeLogoUri.AbsoluteUri;
-    }
-    else
-    {
-        badgeLogoUrl = UrlHelper.MakeFullUrl(
-            domain,
-            string.IsNullOrWhiteSpace(badgeLogoRaw) ? "/images/monerica-logo.png" : badgeLogoRaw.Trim());
-    }
+    // The embed badge always uses the hosted CDN logo so it renders on any external site.
+    var badgeLogoUrl = "https://cdn.monerica.com/directorycontent/images/monerica-logo.png";
 
     // Attribute-encode URLs (a CDN logo URL may contain query params) and text.
     var encodedListingUrl = System.Net.WebUtility.HtmlEncode(listingUrl);
