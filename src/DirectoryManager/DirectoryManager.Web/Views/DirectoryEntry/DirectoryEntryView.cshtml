@@ -449,9 +449,11 @@
 
         @* ---------------------------------------------------------------
            Sponsorship options call-to-action. Shown near the bottom of
-           every (non-scam) profile. Links to /sponsorship/options/{id}.
+           every eligible profile. Scam AND questionable listings are NOT
+           eligible to sponsor, so the section is hidden for them.
+           Links to /sponsorship/options/{id}.
            --------------------------------------------------------------- *@
-        @if (!isScam)
+        @if (!isScam && !isQuestionable)
         {
             <div class="sponsor-cta">
                 @if (Model.IsSponsored)
