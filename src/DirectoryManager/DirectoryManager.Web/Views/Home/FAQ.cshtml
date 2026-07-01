@@ -14,5 +14,5 @@
     <hr />
     @await Html.PartialAsync("_BackToHome")
     <hr />
-    @Html.Raw(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.FAQHtml))
+    @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.FAQHtml)))
 }

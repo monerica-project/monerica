@@ -18,6 +18,6 @@
 
 <hr />
   
-    @Html.Raw(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SuccessPageHtml))
+    @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SuccessPageHtml)))
 
 }

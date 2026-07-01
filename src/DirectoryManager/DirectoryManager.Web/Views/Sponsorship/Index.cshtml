@@ -52,7 +52,7 @@
     <details class="u-m-0-0-14px-0">
         <summary class="u-cursor-pointer"><strong>How sponsoring works</strong></summary>
         <div class="u-mt-10px">
-            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SponsoredListingSteps))
+            @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SponsoredListingSteps)))
             <ol class="u-m-0-0-12px-0-pl-22px">
                 <li>Your site must be listed in the directory first. <a href="~/submit">Not listed yet? Submit it →</a></li>
                 <li>Search your listing above.</li>
@@ -181,13 +181,13 @@
         <summary class="u-cursor-pointer"><strong>What's included in each sponsorship package?</strong></summary>
         <div class="u-mt-12px">
             <h3 class="u-m-14px-0-6px-0">@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</h3>
-            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.MainSponsoredListingDetails))
+            @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.MainSponsoredListingDetails)))
 
             <h3 class="u-m-18px-0-6px-0">@EnumHelper.GetDescription(SponsorshipType.CategorySponsor)</h3>
-            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.CategorySponsoredListingDetails))
+            @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.CategorySponsoredListingDetails)))
 
             <h3 class="u-m-18px-0-6px-0">@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</h3>
-            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SubcategorySponsoredListingDetails))
+            @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SubcategorySponsoredListingDetails)))
         </div>
     </details>
 

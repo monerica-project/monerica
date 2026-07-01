@@ -56,7 +56,7 @@
     <p><b>Current sponsored listing <a href="~/sponsoredlisting/offers">offers and prices</a>.</b></p>
 
     <br />
-    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SponsoredListingSteps))
+    @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SponsoredListingSteps)))
 
     <hr />
 
@@ -68,7 +68,7 @@
 
     <p><br /><b>Details:</b></p>
     <p>
-        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.MainSponsoredListingDetails))
+        @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.MainSponsoredListingDetails)))
     </p>
 
     @{
@@ -126,7 +126,7 @@
 
     <p><br /><b>Details:</b></p>
     <p>
-        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.CategorySponsoredListingDetails))
+        @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.CategorySponsoredListingDetails)))
     </p>
 
     @if (Model.UnavailableCategories?.Any() == true)
@@ -197,7 +197,7 @@
 
     <p><br /><b>Details:</b></p>
     <p>
-        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SubcategorySponsoredListingDetails))
+        @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SubcategorySponsoredListingDetails)))
     </p>
 
     @if (Model.UnavailableSubCatetgories?.Any() == true)

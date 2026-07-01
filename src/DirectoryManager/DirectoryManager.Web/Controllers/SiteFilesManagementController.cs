@@ -24,8 +24,10 @@ namespace DirectoryManager.Web.Controllers
         private static readonly HashSet<string> AllowedUploadExtensions =
             new (StringComparer.OrdinalIgnoreCase)
             {
-                ".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".bmp", ".ico", ".svg",
-                ".pdf", ".txt", ".csv", ".json", ".xml",
+                // NOTE: .svg and .xml are intentionally NOT allowed — served from this
+                // origin they can carry <script>/markup and execute (stored XSS).
+                ".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif", ".bmp", ".ico",
+                ".pdf", ".txt", ".csv", ".json",
                 ".css", ".webmanifest",
                 ".woff", ".woff2", ".ttf", ".otf", ".eot",
             };

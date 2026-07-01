@@ -177,16 +177,16 @@
 
 
     <div>
-        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageDisplayHtml))
+        @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageDisplayHtml)))
         @await Html.PartialAsync("_SponsoredListingPartial")
         <hr />
 
         <p class="intro">
-            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TextIntro))
+            @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TextIntro)))
         </p>
         <hr />
 
-                @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HtmlNotificationSnippet))
+                @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HtmlNotificationSnippet)))
 
 
         <div class="top-container">
@@ -198,12 +198,12 @@
             </div>
 
             <div class="top-section links-section">
-                @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopMenuActionsHtml))
+                @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopMenuActionsHtml)))
             </div>
         </div>
         <hr />
 
-        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.DirectoryLegendHtml))
+        @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.DirectoryLegendHtml)))
 
         @{
             var featuredEntries = await directoryEntrySelectionRepository.GetEntriesForSelection(EntrySelectionType.Featured);
@@ -345,7 +345,7 @@
                     {
                         if (sponsorsBySubcategory.TryGetValue(sub.SubcategoryId, out var entries))
                         {
-                            <h4>@Html.Raw(FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name))</h4>
+                            <h4>@FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name)</h4>
                             <ul class="blank_list_item">
                                 @foreach (var e in entries)
                                 {

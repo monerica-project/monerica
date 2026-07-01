@@ -16,7 +16,7 @@
     <p><b>Thank you for requesting a verification — your message was received.</b></p>
     <p>We review requests manually and prioritize by demand. If you'd like to support the work, a donation is appreciated:</p>
 
-    @Html.Raw(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.DonationHtml))
+    @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.DonationHtml)))
 
     @await Html.PartialAsync("_BackToHome")
 }

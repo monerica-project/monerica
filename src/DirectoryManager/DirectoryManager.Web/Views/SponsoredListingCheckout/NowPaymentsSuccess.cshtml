@@ -28,5 +28,5 @@
         need to stay on this page.
     </div>
 
-    @Html.Raw(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.InvoiceSuccessMessageHtml))
+    @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.InvoiceSuccessMessageHtml)))
 }

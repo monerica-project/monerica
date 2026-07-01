@@ -170,7 +170,7 @@
         <details class="u-mt-12px">
             <summary class="u-cursor-pointer"><strong>What’s included</strong></summary>
             <div class="u-mt-10px">
-                @Html.Raw(Model.DetailsHtml)
+                @Html.Raw(ContentSanitizer.SanitizeAllowHtml(Model.DetailsHtml))
             </div>
         </details>
     }

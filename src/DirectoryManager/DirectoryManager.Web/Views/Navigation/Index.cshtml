@@ -101,13 +101,13 @@
 <main class="main">
     <div class="content-wrapper">
     <!-- Hero and sponsored listing partial (stays full‐width under the fixed sidebar) -->
-        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageDisplayHtml))
+        @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageDisplayHtml)))
     @await Html.PartialAsync("_SponsoredListingPartial")
     <hr />
 
         <!-- everything from here down is centered under the hero -->
         <p class="intro">
-            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TextIntro))
+            @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TextIntro)))
         </p>
         <hr />
 
@@ -122,12 +122,12 @@
 
             <!-- Links Section -->
             <div class="top-section links-section">
-                @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopMenuActionsHtml))
+                @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopMenuActionsHtml)))
             </div>
         </div>
         <hr />
 
-        @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.DirectoryLegendHtml))
+        @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.DirectoryLegendHtml)))
 
         @* Featured *@
         @{

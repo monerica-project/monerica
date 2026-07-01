@@ -22,8 +22,33 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             "a", "b", "strong", "i", "em", "u", "br", "p", "span", "ul", "ol", "li", "code", "blockquote",
         };
 
+        // Tags that can execute or load/redirect/embed — never allowed, even in the
+        // permissive (admin) mode.
+        private static readonly string[] DangerousTags =
+        {
+            "script", "iframe", "frame", "frameset", "object", "embed", "applet",
+            "form", "input", "button", "textarea", "select", "option",
+            "style", "link", "meta", "base", "svg", "math", "template",
+        };
+
         private static readonly HtmlSanitizer DisplaySanitizer = BuildDisplaySanitizer();
         private static readonly HtmlSanitizer TextOnlySanitizer = BuildTextOnlySanitizer();
+        private static readonly HtmlSanitizer PermissiveSanitizer = BuildPermissiveSanitizer();
+
+        /// <summary>
+        /// PERMISSIVE sanitizer for admin-authored content: keeps rich HTML (headings,
+        /// tables, images, lists, links, formatting, inline styles) so admins can paste
+        /// markup as-is, but strips everything executable — &lt;script&gt;, event handlers
+        /// (onclick/onerror/...), javascript:/data:/vbscript: URIs, and embed/iframe/form/
+        /// style/meta tags. Use on OUTPUT of admin-editable HTML snippets.
+        /// </summary>
+        /// <returns>Sanitized HTML that still renders rich formatting.</returns>
+        public static string SanitizeAllowHtml(string? html)
+        {
+            return string.IsNullOrWhiteSpace(html)
+                ? string.Empty
+                : PermissiveSanitizer.Sanitize(html);
+        }
 
         /// <summary>Renders trusted formatting, drops everything executable. Use on output.</summary>
         /// <returns></returns>
@@ -95,6 +120,45 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             sanitizer.AllowedCssProperties.Clear();
             sanitizer.AllowDataAttributes = false;
             sanitizer.KeepChildNodes = true;
+
+            return sanitizer;
+        }
+
+        private static HtmlSanitizer BuildPermissiveSanitizer()
+        {
+            // Start from the library's BROAD defaults (most formatting/structural tags
+            // and attributes are already allowed — headings, tables, images, lists,
+            // spans, divs, inline style, class/id, etc.). The Ganss defaults already
+            // strip <script>, on* event handlers, and disallow dangerous URI schemes.
+            var sanitizer = new HtmlSanitizer();
+
+            // Belt-and-suspenders: explicitly remove anything executable/embedding,
+            // regardless of what the library defaults allow now or in the future.
+            foreach (var tag in DangerousTags)
+            {
+                sanitizer.AllowedTags.Remove(tag);
+            }
+
+            // Only real, non-executable URL schemes may survive on href/src.
+            // (No javascript:, data:, vbscript:, file:, etc.)
+            sanitizer.AllowedSchemes.Clear();
+            sanitizer.AllowedSchemes.Add("http");
+            sanitizer.AllowedSchemes.Add("https");
+            sanitizer.AllowedSchemes.Add("mailto");
+
+            // No data-* attributes; CSS is still sanitized by the library for the
+            // inline style attribute (expression()/url(javascript:) are stripped).
+            sanitizer.AllowDataAttributes = false;
+
+            // Harden any anchor against reverse-tabnabbing.
+            sanitizer.PostProcessNode += (sender, e) =>
+            {
+                if (e.Node is IElement element &&
+                    string.Equals(element.TagName, "A", StringComparison.OrdinalIgnoreCase))
+                {
+                    element.SetAttribute("rel", "noopener noreferrer nofollow");
+                }
+            };
 
             return sanitizer;
         }

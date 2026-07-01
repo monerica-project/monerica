@@ -48,13 +48,13 @@
         <meta name="robots" content="noindex" />
     }
 
-    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HeaderHtml))
-    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.CssHeader))
+    @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HeaderHtml)))
+    @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.CssHeader)))
      
 </head>
 
 <body>
-    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopBannerHtml))
+    @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopBannerHtml)))
 
     @RenderSection("ChromeBeforeMain", required: false)
 
@@ -64,7 +64,7 @@
 
     <footer class="site-footer">
         <nav class="footer-nav">
-            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.FooterHtml))
+            @Html.Raw(ContentSanitizer.SanitizeAllowHtml(await cacheHelper.GetSnippetAsync(SiteConfigSetting.FooterHtml)))
         </nav>
         <div class="footer-network" style="margin-top:.5rem;">
             <a href="/network">Monerica Network</a>
