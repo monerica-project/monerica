@@ -90,7 +90,6 @@ namespace DirectoryManager.Data.Models
         [MaxLength(255)]
         public string? Social { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
         public string? PgpKey { get; set; }
 
         public virtual Subcategory? SubCategory { get; set; }

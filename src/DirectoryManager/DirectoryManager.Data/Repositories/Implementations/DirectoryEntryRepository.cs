@@ -1041,17 +1041,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
             q.Where(r =>
                 r.AuthorFingerprint != null && r.AuthorFingerprint != "" &&
                 (
-                    EF.Functions.Like(r.AuthorFingerprint, n.pattern) ||
-                    (n.rootPattern != null && EF.Functions.Like(r.AuthorFingerprint, n.rootPattern)) ||
-                    (n.compactPattern != null && EF.Functions.Like(r.AuthorFingerprint.Replace(" ", ""), n.compactPattern))));
+                    EF.Functions.ILike(r.AuthorFingerprint, n.pattern) ||
+                    (n.rootPattern != null && EF.Functions.ILike(r.AuthorFingerprint, n.rootPattern)) ||
+                    (n.compactPattern != null && EF.Functions.ILike(r.AuthorFingerprint.Replace(" ", ""), n.compactPattern))));
 
             IQueryable<DirectoryEntryReviewComment> ReplyAuthorFilter(IQueryable<DirectoryEntryReviewComment> q) =>
                 q.Where(c =>
                     c.AuthorFingerprint != null && c.AuthorFingerprint != "" &&
                     (
-                        EF.Functions.Like(c.AuthorFingerprint, n.pattern) ||
-                        (n.rootPattern != null && EF.Functions.Like(c.AuthorFingerprint, n.rootPattern)) ||
-                        (n.compactPattern != null && EF.Functions.Like(c.AuthorFingerprint.Replace(" ", ""), n.compactPattern))));
+                        EF.Functions.ILike(c.AuthorFingerprint, n.pattern) ||
+                        (n.rootPattern != null && EF.Functions.ILike(c.AuthorFingerprint, n.rootPattern)) ||
+                        (n.compactPattern != null && EF.Functions.ILike(c.AuthorFingerprint.Replace(" ", ""), n.compactPattern))));
 
             var entryFilter = this.context.DirectoryEntries.AsNoTracking().AsQueryable();
             if (!includeRemoved)
@@ -1121,10 +1121,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     (
                         (n.countryCode != null && e.CountryCode == n.countryCode)
 
-                        || EF.Functions.Like(e.Name.ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.Like(e.Name.ToLower(), n.rootPattern))
+                        || EF.Functions.ILike(e.Name.ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.ILike(e.Name.ToLower(), n.rootPattern))
                         || (n.compactPattern != null &&
-                            EF.Functions.Like(
+                            EF.Functions.ILike(
                                 e.Name.ToLower()
                                       .Replace("-", "")
                                       .Replace(".", "")
@@ -1132,29 +1132,29 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                       .Replace("_", ""),
                                 n.compactPattern))
 
-                        || EF.Functions.Like((e.Description ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.Like((e.Description ?? "").ToLower(), n.rootPattern))
+                        || EF.Functions.ILike((e.Description ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.ILike((e.Description ?? "").ToLower(), n.rootPattern))
 
-                        || EF.Functions.Like(e.SubCategory!.Name.ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.Like(e.SubCategory.Name.ToLower(), n.rootPattern))
-                        || EF.Functions.Like(e.SubCategory.Category!.Name.ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.Like(e.SubCategory.Category.Name.ToLower(), n.rootPattern))
+                        || EF.Functions.ILike(e.SubCategory!.Name.ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.ILike(e.SubCategory.Name.ToLower(), n.rootPattern))
+                        || EF.Functions.ILike(e.SubCategory.Category!.Name.ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.ILike(e.SubCategory.Category.Name.ToLower(), n.rootPattern))
 
                         || e.EntryTags.Any(et =>
-                            EF.Functions.Like(et.Tag.Name.ToLower(), n.primaryPattern) ||
-                            (n.rootPattern != null && EF.Functions.Like(et.Tag.Name.ToLower(), n.rootPattern)))
+                            EF.Functions.ILike(et.Tag.Name.ToLower(), n.primaryPattern) ||
+                            (n.rootPattern != null && EF.Functions.ILike(et.Tag.Name.ToLower(), n.rootPattern)))
 
-                        || EF.Functions.Like((e.Note ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.Like((e.Note ?? "").ToLower(), n.rootPattern))
-                        || EF.Functions.Like((e.Processor ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.Like((e.Processor ?? "").ToLower(), n.rootPattern))
-                        || EF.Functions.Like((e.Location ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.Like((e.Location ?? "").ToLower(), n.rootPattern))
+                        || EF.Functions.ILike((e.Note ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.ILike((e.Note ?? "").ToLower(), n.rootPattern))
+                        || EF.Functions.ILike((e.Processor ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.ILike((e.Processor ?? "").ToLower(), n.rootPattern))
+                        || EF.Functions.ILike((e.Location ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.ILike((e.Location ?? "").ToLower(), n.rootPattern))
 
-                        || EF.Functions.Like((e.Link ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.Like((e.Link ?? "").ToLower(), n.rootPattern))
+                        || EF.Functions.ILike((e.Link ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.ILike((e.Link ?? "").ToLower(), n.rootPattern))
                         || (n.compactPattern != null &&
-                            EF.Functions.Like(
+                            EF.Functions.ILike(
                                 (e.Link ?? "").ToLower()
                                               .Replace("-", "")
                                               .Replace(".", "")
@@ -1162,10 +1162,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                               .Replace("_", ""),
                                 n.compactPattern))
 
-                        || EF.Functions.Like((e.Link2 ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.Like((e.Link2 ?? "").ToLower(), n.rootPattern))
+                        || EF.Functions.ILike((e.Link2 ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.ILike((e.Link2 ?? "").ToLower(), n.rootPattern))
                         || (n.compactPattern != null &&
-                            EF.Functions.Like(
+                            EF.Functions.ILike(
                                 (e.Link2 ?? "").ToLower()
                                                .Replace("-", "")
                                                .Replace(".", "")
@@ -1173,10 +1173,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                                .Replace("_", ""),
                                 n.compactPattern))
 
-                        || EF.Functions.Like((e.Link3 ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.Like((e.Link3 ?? "").ToLower(), n.rootPattern))
+                        || EF.Functions.ILike((e.Link3 ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.ILike((e.Link3 ?? "").ToLower(), n.rootPattern))
                         || (n.compactPattern != null &&
-                            EF.Functions.Like(
+                            EF.Functions.ILike(
                                 (e.Link3 ?? "").ToLower()
                                                .Replace("-", "")
                                                .Replace(".", "")
@@ -1184,10 +1184,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                                .Replace("_", ""),
                                 n.compactPattern))
 
-                        || EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.rootPattern))
+                        || EF.Functions.ILike((e.ProofLink ?? "").ToLower(), n.primaryPattern)
+                        || (n.rootPattern != null && EF.Functions.ILike((e.ProofLink ?? "").ToLower(), n.rootPattern))
                         || (n.compactPattern != null &&
-                            EF.Functions.Like(
+                            EF.Functions.ILike(
                                 (e.ProofLink ?? "").ToLower()
                                                   .Replace("-", "")
                                                   .Replace(".", "")
@@ -1196,25 +1196,25 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                 n.compactPattern))
 
                         || (n.isUrlTerm && (
-                               EF.Functions.Like((e.Link ?? "").ToLower(), n.pNoSlash) ||
-                               EF.Functions.Like((e.Link ?? "").ToLower(), n.pWithSlash) ||
-                               (n.pHostOnly != "" && EF.Functions.Like((e.Link ?? "").ToLower(), n.pHostOnly)) ||
-                               (n.pNoWww != "" && EF.Functions.Like((e.Link ?? "").ToLower(), n.pNoWww)) ||
+                               EF.Functions.ILike((e.Link ?? "").ToLower(), n.pNoSlash) ||
+                               EF.Functions.ILike((e.Link ?? "").ToLower(), n.pWithSlash) ||
+                               (n.pHostOnly != "" && EF.Functions.ILike((e.Link ?? "").ToLower(), n.pHostOnly)) ||
+                               (n.pNoWww != "" && EF.Functions.ILike((e.Link ?? "").ToLower(), n.pNoWww)) ||
 
-                               EF.Functions.Like((e.Link2 ?? "").ToLower(), n.pNoSlash) ||
-                               EF.Functions.Like((e.Link2 ?? "").ToLower(), n.pWithSlash) ||
-                               (n.pHostOnly != "" && EF.Functions.Like((e.Link2 ?? "").ToLower(), n.pHostOnly)) ||
-                               (n.pNoWww != "" && EF.Functions.Like((e.Link2 ?? "").ToLower(), n.pNoWww)) ||
+                               EF.Functions.ILike((e.Link2 ?? "").ToLower(), n.pNoSlash) ||
+                               EF.Functions.ILike((e.Link2 ?? "").ToLower(), n.pWithSlash) ||
+                               (n.pHostOnly != "" && EF.Functions.ILike((e.Link2 ?? "").ToLower(), n.pHostOnly)) ||
+                               (n.pNoWww != "" && EF.Functions.ILike((e.Link2 ?? "").ToLower(), n.pNoWww)) ||
 
-                               EF.Functions.Like((e.Link3 ?? "").ToLower(), n.pNoSlash) ||
-                               EF.Functions.Like((e.Link3 ?? "").ToLower(), n.pWithSlash) ||
-                               (n.pHostOnly != "" && EF.Functions.Like((e.Link3 ?? "").ToLower(), n.pHostOnly)) ||
-                               (n.pNoWww != "" && EF.Functions.Like((e.Link3 ?? "").ToLower(), n.pNoWww)) ||
+                               EF.Functions.ILike((e.Link3 ?? "").ToLower(), n.pNoSlash) ||
+                               EF.Functions.ILike((e.Link3 ?? "").ToLower(), n.pWithSlash) ||
+                               (n.pHostOnly != "" && EF.Functions.ILike((e.Link3 ?? "").ToLower(), n.pHostOnly)) ||
+                               (n.pNoWww != "" && EF.Functions.ILike((e.Link3 ?? "").ToLower(), n.pNoWww)) ||
 
-                               EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.pNoSlash) ||
-                               EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.pWithSlash) ||
-                               (n.pHostOnly != "" && EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.pHostOnly)) ||
-                               (n.pNoWww != "" && EF.Functions.Like((e.ProofLink ?? "").ToLower(), n.pNoWww))))));
+                               EF.Functions.ILike((e.ProofLink ?? "").ToLower(), n.pNoSlash) ||
+                               EF.Functions.ILike((e.ProofLink ?? "").ToLower(), n.pWithSlash) ||
+                               (n.pHostOnly != "" && EF.Functions.ILike((e.ProofLink ?? "").ToLower(), n.pHostOnly)) ||
+                               (n.pNoWww != "" && EF.Functions.ILike((e.ProofLink ?? "").ToLower(), n.pNoWww))))));
         }
 
         private sealed record AuthorSearchTerm(
@@ -1556,11 +1556,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var like = $"%{term}%";
 
             baseQ = baseQ.Where(e =>
-                EF.Functions.Like(e.Name, like) ||
-                (e.Description != null && EF.Functions.Like(e.Description, like)) ||
-                (e.SubCategory != null && EF.Functions.Like(e.SubCategory.Name, like)) ||
-                (e.SubCategory != null && e.SubCategory.Category != null && EF.Functions.Like(e.SubCategory.Category.Name, like)) ||
-                e.EntryTags.Any(et => et.Tag != null && EF.Functions.Like(et.Tag.Name, like)));
+                EF.Functions.ILike(e.Name, like) ||
+                (e.Description != null && EF.Functions.ILike(e.Description, like)) ||
+                (e.SubCategory != null && EF.Functions.ILike(e.SubCategory.Name, like)) ||
+                (e.SubCategory != null && e.SubCategory.Category != null && EF.Functions.ILike(e.SubCategory.Category.Name, like)) ||
+                e.EntryTags.Any(et => et.Tag != null && EF.Functions.ILike(et.Tag.Name, like)));
         }
 
 
@@ -1717,19 +1717,19 @@ namespace DirectoryManager.Data.Repositories.Implementations
             {
                 IQueryable<RatedAggRow> ratedForTrust = this.BuildRatedAggregate(baseQ);
                 var nowUtc = DateTime.UtcNow;
-                var nowDate = DateOnly.FromDateTime(nowUtc);
 
                 var joined =
                     from e in baseQ
                     join ra in ratedForTrust
                         on e.DirectoryEntryId equals ra.DirectoryEntryId into gj
                     from ra in gj.DefaultIfEmpty()
-                    // DateDiffDay translates to T-SQL DATEDIFF(day, ...).
-                    let dirDays = (double)EF.Functions.DateDiffDay(e.CreateDate, nowUtc)
-                    // FoundedDate is DateOnly?; fall back to CreateDate (cast to date) when null.
-                    let foundedDays = (double)(e.FoundedDate.HasValue
-                        ? EF.Functions.DateDiffDay(e.FoundedDate.Value, nowDate)
-                        : EF.Functions.DateDiffDay(DateOnly.FromDateTime(e.CreateDate), nowDate))
+                    // Age in days via timestamp difference (Postgres-friendly; fractional days
+                    // suit the smooth saturating age curve). Falls back to CreateDate when
+                    // FoundedDate is null.
+                    let dirDays = (nowUtc - e.CreateDate).TotalDays
+                    let foundedDays = e.FoundedDate.HasValue
+                        ? (nowUtc - e.FoundedDate.Value.ToDateTime(TimeOnly.MinValue)).TotalDays
+                        : (nowUtc - e.CreateDate).TotalDays
                     let bayes = ra != null ? ra.BayesianScore : RatingPriorMean
                     let directoryAgeScore = dirDays / (dirDays + DirectoryAgeHalfLifeDays)
                     let foundedAgeScore   = foundedDays / (foundedDays + FoundedAgeHalfLifeDays)

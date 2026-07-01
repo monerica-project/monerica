@@ -79,15 +79,7 @@ namespace DirectoryManager.Web.Extensions
             });
 
             services.AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(
-                    config.GetConnectionString(StringConstants.DefaultConnection),
-                    sqlOptions =>
-                    {
-                        sqlOptions.EnableRetryOnFailure(
-                            maxRetryCount: 5,
-                            maxRetryDelay: TimeSpan.FromSeconds(30),
-                            errorNumbersToAdd: null);
-                    }));
+                DirectoryManager.Data.DbContextInfo.DbProvider.Configure(options, config));
 
             // Repos
             services.AddDbRepositories();

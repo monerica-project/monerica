@@ -16,7 +16,6 @@
 <form asp-action="Edit" asp-route-id="@Model.RaffleId" method="post">
     @Html.AntiForgeryToken()
     <input type="hidden" asp-for="RaffleId" />
-    <input type="hidden" asp-for="RowVersion" />
     <input type="hidden" asp-for="CreateDate" />
 
     <div class="mb-3">

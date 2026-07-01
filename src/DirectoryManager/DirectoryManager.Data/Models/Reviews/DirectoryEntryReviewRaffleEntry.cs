@@ -45,7 +45,5 @@ namespace DirectoryManager.Data.Models.Reviews
         public string? PaymentReference { get; set; }
 
         // Concurrency
-        [Timestamp]
-        public byte[]? RowVersion { get; set; }
     }
 }

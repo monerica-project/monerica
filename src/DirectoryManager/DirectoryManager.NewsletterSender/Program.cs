@@ -41,7 +41,7 @@ public class Program
         // Register services in the service container
         var serviceProvider = new ServiceCollection()
             .AddDbContext<ApplicationDbContext>(options =>
-                options.UseSqlServer(config.GetConnectionString(DirectoryManager.Data.Constants.StringConstants.DefaultConnection)))
+                DirectoryManager.Data.DbContextInfo.DbProvider.Configure(options, config))
             .AddDbRepositories() // Add repositories using the extension method
             .AddScoped<IEmailCampaignProcessingService, EmailCampaignProcessingService>()
             .AddSingleton<IEmailService, EmailService>(provider =>

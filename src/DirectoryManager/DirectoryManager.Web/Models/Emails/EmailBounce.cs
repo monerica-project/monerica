@@ -1,4 +1,3 @@
-﻿using DirectoryManager.Data.Migrations;
 
 namespace DirectoryManager.Web.Models.Emails
 {

@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# CI/db-verify-deployed-configs.sh — Audit which DB login every deployed
-# Monerica service is configured to use, and confirm SQL Server sees only
-# the expected logins connecting.
+# CI/db-verify-deployed-configs.sh — Audit which PostgreSQL role every deployed
+# Monerica service is configured to use, confirm Postgres sees only the expected
+# role connecting, and check each background job runs cleanly.
 #
 # USAGE
 #   ./db-verify-deployed-configs.sh
 #
-# Reads MSSQL_SA_PASSWORD, DB_NAME, DB_USER (the expected new login), and
-# SSH_HOST/SSH_USER from deploy-config.sh.
+# Reads SSH_HOST/SSH_USER and the PG_* parts (parsed from DB_CONNECTION_STRING)
+# from deploy-config.sh.
 
 set -euo pipefail
 
@@ -17,22 +17,21 @@ CONFIG_PATH="$SCRIPT_DIR/deploy-config.sh"
 # shellcheck disable=SC1090
 source "$CONFIG_PATH"
 
-: "${MSSQL_SA_PASSWORD:?missing in deploy-config.sh}"
-: "${DB_NAME:?missing in deploy-config.sh}"
-: "${DB_USER:?missing in deploy-config.sh}"
+: "${PG_DB:?missing (parsed from DB_CONNECTION_STRING)}"
+: "${PG_USER:?missing (parsed from DB_CONNECTION_STRING)}"
 : "${SSH_HOST:?missing in deploy-config.sh}"
 SSH_TARGET="${SSH_USER:+$SSH_USER@}$SSH_HOST"
 
-EXPECTED_USER="$DB_USER"
+EXPECTED_USER="$PG_USER"
 
 echo "=============================================================="
-echo "Expected DB login: $EXPECTED_USER"
-echo "Database:          $DB_NAME"
-echo "VPS:               $SSH_TARGET"
+echo "Expected DB role: $EXPECTED_USER"
+echo "Database:         $PG_DB"
+echo "VPS:              $SSH_TARGET"
 echo "=============================================================="
 
 # ----------------------------------------------------------------------------
-# 1. Find every appsettings*.json under /var/www and report its User Id.
+# 1. Find every appsettings*.json under /var/www and report its Username.
 # ----------------------------------------------------------------------------
 echo
 echo "=== File audit: every deployed appsettings*.json under /var/www ==="
@@ -45,45 +44,32 @@ if [[ ${#files[@]} -eq 0 ]]; then
     echo "  (no appsettings*.json files found under /var/www)"
     exit 0
 fi
-printf "%-70s  %s\n" "FILE" "User Id"
-printf "%-70s  %s\n" "----" "-------"
+printf "%-70s  %s\n" "FILE" "Username"
+printf "%-70s  %s\n" "----" "--------"
 for f in "${files[@]}"; do
-    # Pull "User Id=<value>" from the connection string. Empty if not set
+    # Pull "Username=<value>" from the Npgsql connection string. Empty if not set
     # (e.g. the empty-placeholder appsettings.json that ships with templates).
-    uid=$(sudo grep -oE 'User Id=[^;"]+' "$f" 2>/dev/null | head -1 | cut -d= -f2- || true)
+    uid=$(sudo grep -oiE 'Username=[^;"]+' "$f" 2>/dev/null | head -1 | cut -d= -f2- || true)
     [[ -z "$uid" ]] && uid="(none)"
     printf "%-70s  %s\n" "$f" "$uid"
 done
 REMOTE
 
 # ----------------------------------------------------------------------------
-# 2. Ask SQL Server which logins have actually connected recently.
-#    sys.dm_exec_sessions shows current connections; sys.dm_exec_connections
-#    is similar. We use sessions because it includes login_name + program_name.
+# 2. Ask PostgreSQL which roles are actually connected (pg_stat_activity).
+#    Run as the postgres superuser so it can see every session, not just its own.
 # ----------------------------------------------------------------------------
 echo
-echo "=== Live audit: SQL Server sessions on $DB_NAME ==="
+echo "=== Live audit: PostgreSQL sessions on $PG_DB ==="
 echo
-ssh "$SSH_TARGET" \
-    "sudo docker exec -i mssql /opt/mssql-tools18/bin/sqlcmd \
-        -S localhost -U sa -P '$MSSQL_SA_PASSWORD' -C -b -h -1 -W" <<SQL
-SET NOCOUNT ON;
-SELECT
-    login_name,
-    COUNT(*) AS sessions,
-    MAX(login_time) AS most_recent_login
-FROM sys.dm_exec_sessions
-WHERE database_id = DB_ID('$DB_NAME')
-  AND is_user_process = 1
-GROUP BY login_name
-ORDER BY login_name;
-GO
-SQL
+ssh "$SSH_TARGET" "sudo -u postgres psql -d '$PG_DB' -P pager=off -c \"
+SELECT usename AS login_role, count(*) AS sessions, max(backend_start) AS most_recent_connect
+FROM pg_stat_activity
+WHERE datname = '$PG_DB' AND usename IS NOT NULL
+GROUP BY usename ORDER BY usename;\"" 2>&1 | grep -v 'could not change directory'
 
 # ----------------------------------------------------------------------------
-# 3. Trigger every background job, then read its journal and check for the
-#    canonical "Processing complete." marker. Failures surface as either an
-#    auth error in the journal or a non-zero systemd exit code.
+# 3. Trigger every background job, then read its journal and exit code.
 # ----------------------------------------------------------------------------
 JOBS=(
     newsletter-sender
@@ -97,10 +83,6 @@ echo
 echo "=== Functional audit: trigger each background job, check exit + log ==="
 echo
 
-for j in "\${JOBS[@]}"; do
-    : # placeholder so the heredoc below works in some editors; real loop next
-done
-
 for j in "${JOBS[@]}"; do
     unit="dm-job-$j.service"
     echo "--- $unit ---"
@@ -113,16 +95,13 @@ done
 echo "=============================================================="
 echo "DONE. Quick read of results:"
 echo
-echo "  File audit:  every row should show User Id = $EXPECTED_USER"
-echo "               (placeholder appsettings.json files with '(none)'"
-echo "                are normal — only Production.json carries the real value)"
+echo "  File audit:  every real Production.json should show Username = $EXPECTED_USER"
+echo "               (placeholder appsettings.json with '(none)' are normal)"
 echo
-echo "  Live audit:  login_name should be only $EXPECTED_USER"
-echo "               (if 'sa' appears, something is still using sa — track"
-echo "                down which service from program_name in dm_exec_sessions"
-echo "                or the file audit above)"
+echo "  Live audit:  login_role should be only $EXPECTED_USER (plus 'postgres'"
+echo "               for this audit query itself). Anything else means some"
+echo "               service is connecting with an unexpected role."
 echo
 echo "  Functional:  each job's Result should be 'success' and ExecMainStatus 0,"
-echo "               and the journal tail should NOT contain 'Login failed' or"
-echo "               'Cannot open database'"
+echo "               and the journal tail should NOT contain a connection/auth error."
 echo "=============================================================="

@@ -19,7 +19,6 @@ namespace DirectoryManager.Data.Models
         /// The date the commission was received / recorded.
         /// </summary>
         [Required]
-        [Column(TypeName = "datetime2")]
         public DateTime CommissionDate { get; set; }
 
         /// <summary>

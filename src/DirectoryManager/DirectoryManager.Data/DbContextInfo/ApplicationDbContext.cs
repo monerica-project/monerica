@@ -17,6 +17,19 @@ namespace DirectoryManager.Data.DbContextInfo
         {
         }
 
+        protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        {
+            base.ConfigureConventions(configurationBuilder);
+
+            // All DateTimes are UTC. Store them in 'timestamp with time zone' (the app and
+            // SQL Server both hold UTC wall-clock), with a converter that stamps Kind=Utc so
+            // there is no shift and no Npgsql Kind errors. Applies to DateTime and DateTime?;
+            // DateTimeOffset keeps its own tz mapping.
+            configurationBuilder.Properties<DateTime>()
+                .HaveConversion<UtcDateTimeConverter>()
+                .HaveColumnType("timestamp with time zone");
+        }
+
         public DbSet<ApplicationUser> ApplicationUser { get; set; }
         public DbSet<ApplicationUserRole> ApplicationUserRole { get; set; }
         public DbSet<BlockedIP> BlockedIPs { get; set; }
@@ -98,7 +111,6 @@ namespace DirectoryManager.Data.DbContextInfo
             {
                 e.ToTable("VerificationRequests");
                 e.HasKey(x => x.VerificationRequestId);
-                e.Property(x => x.RowVersion).IsRowVersion();
                 e.Property(x => x.Comment).IsRequired();
                 e.Property(x => x.SourceIpHash).HasMaxLength(64);
 
@@ -206,7 +218,7 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<SponsoredListingOpeningNotification>()
                    .HasIndex(x => new { x.SubscribedDate, x.SponsoredListingOpeningNotificationId })
                    .HasDatabaseName("IX_SponsoredListingOpeningNotification_Queue")
-                   .HasFilter("[IsActive] = 1 AND [IsReminderSent] = 0")
+                   .HasFilter("\"IsActive\" = TRUE AND \"IsReminderSent\" = FALSE")
                    // EF Core 10 + SqlServer supports INCLUDE columns
                    .IncludeProperties(x => new
                    {
@@ -333,19 +345,19 @@ namespace DirectoryManager.Data.DbContextInfo
             {
                 eb.HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId })
                   .IsUnique()
-                  .HasFilter("[SubcategoryId] IS NULL")
+                  .HasFilter("\"SubcategoryId\" IS NULL")
                   .HasDatabaseName("UX_Offer_Type_Days_Cat_NoSubcat");
 
                 eb.HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId, e.SubcategoryId })
                   .IsUnique()
-                  .HasFilter("[SubcategoryId] IS NOT NULL")
+                  .HasFilter("\"SubcategoryId\" IS NOT NULL")
                   .HasDatabaseName("UX_Offer_Type_Days_Cat_Subcat");
             });
 
             builder.Entity<SponsoredListingOffer>()
                    .HasIndex(e => new { e.SponsorshipType, e.Days })
                    .IsUnique()
-                   .HasFilter("[SubcategoryId] IS NULL");
+                   .HasFilter("\"SubcategoryId\" IS NULL");
         }
 
         private static void ConfigureSponsoredListingReservationIndexes(ModelBuilder builder)
@@ -605,7 +617,7 @@ namespace DirectoryManager.Data.DbContextInfo
                 // Optional: speed up transaction id lookups (dedup checks, etc.)
                 e.HasIndex(x => x.TransactionId)
                  .HasDatabaseName("IX_AffiliateCommissionEarned_TransactionId")
-                 .HasFilter("[TransactionId] IS NOT NULL");
+                 .HasFilter("\"TransactionId\" IS NOT NULL");
             });
         }
 
@@ -657,7 +669,7 @@ namespace DirectoryManager.Data.DbContextInfo
                   .IsRequired();
 
                 rk.Property(x => x.PublicKeyBlock)
-                  .HasColumnType("nvarchar(max)")
+                  
                   .IsRequired();
 
                 rk.Property(x => x.Alias)
@@ -672,13 +684,11 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<DirectoryEntryReview>(r =>
             {
                 r.ToTable("DirectoryEntryReviews");
-                r.Property(x => x.RowVersion).IsRowVersion();
             });
 
             builder.Entity<DirectoryEntryReviewRaffleEntry>(e =>
             {
                 e.ToTable("DirectoryEntryReviewRaffleEntries");
-                e.Property(x => x.RowVersion).IsRowVersion();
                 e.Property(x => x.CryptoType).HasMaxLength(20).IsRequired();
                 e.Property(x => x.CryptoAddress).HasMaxLength(512).IsRequired();
                 e.Property(x => x.PaymentReference).HasMaxLength(256);
@@ -687,7 +697,6 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<Raffle>(e =>
             {
                 e.ToTable("Raffles");
-                e.Property(x => x.RowVersion).IsRowVersion();
                 e.Property(x => x.Name).HasMaxLength(200).IsRequired();
                 e.Property(x => x.Description).HasMaxLength(1000);
             });

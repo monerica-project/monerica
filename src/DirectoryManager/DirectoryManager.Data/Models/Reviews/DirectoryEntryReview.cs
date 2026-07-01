@@ -23,7 +23,6 @@ namespace DirectoryManager.Data.Models.Reviews
         public string AuthorFingerprint { get; set; } = string.Empty;
 
         // Optional: armored public key you verified against (helps future re-verification)
-        [Column(TypeName = "nvarchar(max)")]
         public string? AuthorPublicKeyArmor { get; set; }
 
         // Optional, user-friendly alias/handle derived from fingerprint (or signed claim)
@@ -34,7 +33,6 @@ namespace DirectoryManager.Data.Models.Reviews
         [MaxLength(64)]
         public string? DisplayName { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
         public string? DisplayNameSignatureArmor { get; set; } // clearsigned assertion blob
 
         // Review content
@@ -45,10 +43,8 @@ namespace DirectoryManager.Data.Models.Reviews
         public string? Title { get; set; }
 
         [Required]
-        [Column(TypeName = "nvarchar(max)")]
         public string Body { get; set; } = string.Empty;
 
-        [Column(TypeName = "nvarchar(max)")]
         public string RejectionReason { get; set; } = string.Empty;
 
         // Moderation & lifecycle
@@ -96,12 +92,10 @@ namespace DirectoryManager.Data.Models.Reviews
         [MaxLength(512)]
         public string? AutoModerationReason { get; set; }
 
-        [Column(TypeName = "datetime2")]
         public DateTime? AutoModeratedAtUtc { get; set; }
 
         public int AutoModerationAttemptCount { get; set; }
 
-        [Column(TypeName = "datetime2")]
         public DateTime? LastAutoModerationAttemptUtc { get; set; }
 
         // USD value the worker computed for the swap (deposit leg) at verification time.
@@ -121,7 +115,6 @@ namespace DirectoryManager.Data.Models.Reviews
         public bool IsOfficial { get; set; }
 
         // Date the listing was tested/verified, stored as a UTC date (date-only).
-        [Column(TypeName = "datetime2")]
         public DateTime? TestedAt { get; set; }
 
         // Optional link to an image (e.g. a screenshot) shown with the review.
@@ -143,8 +136,6 @@ namespace DirectoryManager.Data.Models.Reviews
         public string? AmlScreenshotUrl { get; set; }
 
         // Concurrency
-        [Timestamp]
-        public byte[]? RowVersion { get; set; }
 
         // True when this review's AuthorFingerprint matches the listing's verified
         // PGP key (entry.PgpKey). Set by the presentation layer so the UI can

@@ -41,7 +41,7 @@ Console.WriteLine($"Tor proxy {(torAvailable ? "available" : "unavailable")} at 
 
 var serviceProvider = new ServiceCollection()
     .AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlServer(config.GetConnectionString(StringConstants.DefaultConnection)))
+        DirectoryManager.Data.DbContextInfo.DbProvider.Configure(options, config))
     .AddDbRepositories()
     .AddSingleton<IOrderProofParser, ChangeeOrderProofParser>()
     .AddSingleton<IOrderProofParser, GhostSwapOrderProofParser>()

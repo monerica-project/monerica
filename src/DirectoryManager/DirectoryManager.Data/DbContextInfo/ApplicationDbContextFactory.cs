@@ -1,4 +1,3 @@
-﻿using DirectoryManager.Data.Constants;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.Extensions.Configuration;
@@ -13,15 +12,16 @@ namespace DirectoryManager.Data.DbContextInfo
         {
             var builder = new DbContextOptionsBuilder<ApplicationDbContext>();
 
-            var builderConfigs = new ConfigurationBuilder()
+            // Provider + connection come from config/environment (never hard-coded). For
+            // design-time Postgres commands set DatabaseProvider=Postgres and supply the
+            // connection via config or an env var such as ConnectionStrings__PostgresConnection.
+            this.Configuration = new ConfigurationBuilder()
                         .SetBasePath(Directory.GetCurrentDirectory())
-                        .AddJsonFile(Common.Constants.StringConstants.AppSettingsFileName);
+                        .AddJsonFile(Common.Constants.StringConstants.AppSettingsFileName, optional: true)
+                        .AddEnvironmentVariables()
+                        .Build();
 
-            this.Configuration = builderConfigs.Build();
-
-            var connectionString = this.Configuration[StringConstants.ConnectionStringLocation];
-
-            builder.UseSqlServer(connectionString);
+            DbProvider.Configure(builder, this.Configuration);
 
             return new ApplicationDbContext(builder.Options);
         }

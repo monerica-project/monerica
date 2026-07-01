@@ -47,7 +47,6 @@ namespace DirectoryManager.Data.Models
         [MaxLength(1000)]
         public string? Note { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
         public string? PgpKey { get; set; }
 
         [MaxLength(1000)]
@@ -88,7 +87,6 @@ namespace DirectoryManager.Data.Models
         [MaxLength(2000)]
         public string? SelectedTagIdsCsv { get; set; }
 
-        [Column(TypeName = "nvarchar(max)")]
         public string? RelatedLinksJson { get; set; }
 
         public DateOnly? FoundedDate { get; set; }

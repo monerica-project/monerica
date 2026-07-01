@@ -46,7 +46,7 @@ var renewalLinkTemplate = config.GetValue<string>("RenewalLinkTemplate")
 // Register services in the service container
 var serviceProvider = new ServiceCollection()
     .AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlServer(config.GetConnectionString(DirectoryManager.Data.Constants.StringConstants.DefaultConnection)))
+        DirectoryManager.Data.DbContextInfo.DbProvider.Configure(options, config))
     .AddDbRepositories() // Add repositories using the extension method
     .AddSingleton<IEmailService, EmailService>(provider =>
     {

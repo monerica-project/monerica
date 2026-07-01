@@ -35,7 +35,5 @@ namespace DirectoryManager.Data.Models.Reviews
         public ICollection<DirectoryEntryReviewRaffleEntry> Entries { get; set; }
             = new List<DirectoryEntryReviewRaffleEntry>();
 
-        [Timestamp]
-        public byte[]? RowVersion { get; set; }
     }
 }

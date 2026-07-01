@@ -1,4 +1,13 @@
 #!/usr/bin/env bash
+
+# ============================================================================
+# SUPERSEDED (2026-07-01): monerica is now on PostgreSQL. Daily backups run on
+# the VPS via `pg-backup.timer` -> /usr/local/bin/pg-backup.sh (all Postgres
+# dbs -> Azure Blob, GFS rotation) — already installed and verified. For an
+# on-demand local Postgres backup use CI/db-backup.sh (pg_dump).
+# This SQL Server -> Azure script targets the RETIRED monerica_db and is kept
+# only for reference / rollback. Do NOT run it as the live backup path.
+# ============================================================================
 #
 # mssql-backup.sh
 # ----------------------------------------------------------------------------

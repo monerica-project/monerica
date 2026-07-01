@@ -52,7 +52,7 @@ var notificationLinkTemplateWithListing = config.GetValue<string>("NotificationL
 // Register services
 var serviceProvider = new ServiceCollection()
     .AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlServer(config.GetConnectionString(DirectoryManager.Data.Constants.StringConstants.DefaultConnection)))
+        DirectoryManager.Data.DbContextInfo.DbProvider.Configure(options, config))
     .AddDbRepositories()
     .AddSingleton<IEmailService, EmailService>(provider =>
     {

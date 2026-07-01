@@ -17,7 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 if (args.Contains("--migrate-only"))
 {
     builder.Services.AddDbContext<ApplicationDbContext>(opts =>
-        opts.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+        DirectoryManager.Data.DbContextInfo.DbProvider.Configure(opts, builder.Configuration));
 
     using var migrateApp = builder.Build();
     using var scope = migrateApp.Services.CreateScope();

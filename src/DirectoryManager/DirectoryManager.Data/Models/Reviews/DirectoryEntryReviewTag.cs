@@ -11,7 +11,6 @@ namespace DirectoryManager.Data.Models.Reviews
         public ReviewTag ReviewTag { get; set; } = null!;
 
         // Optional: who/when tagged (nice for audit)
-        [Column(TypeName = "datetime2")]
         public DateTime CreateDate { get; set; } = DateTime.UtcNow;
 
         public string? CreatedByUserId { get; set; }

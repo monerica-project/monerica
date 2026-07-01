@@ -59,7 +59,7 @@ Console.WriteLine($"Diagnostic log: {logPath}");
 // Register services
 var serviceProvider = new ServiceCollection()
     .AddDbContext<ApplicationDbContext>(options =>
-        options.UseSqlServer(config.GetConnectionString(StringConstants.DefaultConnection)))
+        DirectoryManager.Data.DbContextInfo.DbProvider.Configure(options, config))
     .AddDbRepositories()
     .AddSingleton(diagLogger)
     .AddSingleton(new WebPageChecker(userAgentHeader, timeout: null, logger: diagLogger, secondOpinion: new CheckHostClient(diagLogger)))

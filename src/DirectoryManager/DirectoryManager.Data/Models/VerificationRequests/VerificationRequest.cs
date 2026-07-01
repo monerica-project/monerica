@@ -18,7 +18,6 @@ namespace DirectoryManager.Data.Models.VerificationRequests
 
         // Required reason the requester gives for wanting this listing verified.
         [Required]
-        [Column(TypeName = "nvarchar(max)")]
         public string Comment { get; set; } = string.Empty;
 
         public VerificationRequestStatus Status { get; set; } = VerificationRequestStatus.Pending;
@@ -27,7 +26,5 @@ namespace DirectoryManager.Data.Models.VerificationRequests
         [MaxLength(64)]
         public string? SourceIpHash { get; set; }
 
-        [Timestamp]
-        public byte[]? RowVersion { get; set; }
     }
 }
