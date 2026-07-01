@@ -67,7 +67,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // CREATE (admin, no invoice)
         // =====================================================================
-
         [Route("sponsoredlisting/create")]
         [HttpGet]
         [Authorize]
@@ -165,7 +164,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // DELETE
         // =====================================================================
-
         [Route("sponsoredlisting/delete/{sponsoredListingId:int}")]
         [HttpGet]
         [Authorize]
@@ -232,7 +230,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // INDEX
         // =====================================================================
-
         [Route("advertise")]
         [Route("advertising")]
         [Route("sponsoredlisting")]
@@ -279,7 +276,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // OFFERS
         // =====================================================================
-
         [AllowAnonymous]
         [Route("sponsoredlisting/offers")]
         [HttpGet]
@@ -315,7 +311,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // CURRENT / ACTIVE LISTINGS / JSON / LIST
         // =====================================================================
-
         [AllowAnonymous]
         [Route("sponsoredlisting/current")]
         [HttpGet]
@@ -372,7 +367,10 @@ namespace DirectoryManager.Web.Controllers
                 sponsorJsonCachedAt = DateTimeOffset.UtcNow;
                 return this.Json(sponsorJsonCache);
             }
-            finally { SponsorJsonLock.Release(); }
+            finally
+            {
+                SponsorJsonLock.Release();
+            }
         }
 
         [Route("sponsoredlisting/list/{page?}")]
@@ -404,14 +402,16 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // EDIT
         // =====================================================================
-
         [Route("sponsoredlisting/edit/{sponsoredListingId}")]
         [HttpGet]
         [Authorize]
         public async Task<IActionResult> EditAsync(int sponsoredListingId)
         {
             var listing = await this.sponsoredListingRepository.GetByIdAsync(sponsoredListingId);
-            if (listing == null) return this.NotFound();
+            if (listing == null)
+            {
+                return this.NotFound();
+            }
 
             var entry = await this.directoryEntryRepository.GetByIdAsync(listing.DirectoryEntryId);
 
@@ -453,7 +453,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // PRIVATE HELPERS
         // =====================================================================
-
         private async Task<string> BuildMainSponsorUnavailableMessageAsync(int totalActive, string mainGroup)
         {
             var max = SponsoredListingCheckoutHelper.GetMaxSlotsForType(SponsorshipType.MainSponsor);
@@ -497,7 +496,11 @@ namespace DirectoryManager.Web.Controllers
                 var label = FormattingHelper.SubcategoryFormatting(sc.Category.Name, sc.Name);
                 var sponsor = currentSubSponsors.FirstOrDefault(x => x.SubCategoryId == sc.SubCategoryId);
 
-                if (sponsor != null) { model.UnavailableSubCatetgories.Add(sc.SubCategoryId, label); model.UnavailableSubcategoryExpirations[sc.SubCategoryId] = sponsor.CampaignEndDate; }
+                if (sponsor != null)
+                {
+                    model.UnavailableSubCatetgories.Add(sc.SubCategoryId, label);
+                    model.UnavailableSubcategoryExpirations[sc.SubCategoryId] = sponsor.CampaignEndDate;
+                }
                 else
                 {
                     model.AvailableSubCatetgories.Add(sc.SubCategoryId, label);
@@ -523,7 +526,11 @@ namespace DirectoryManager.Web.Controllers
                     x.DirectoryEntry?.SubCategory != null &&
                     x.DirectoryEntry.SubCategory.CategoryId == cat.CategoryId);
 
-                if (sponsor != null) { model.UnavailableCategories.Add(cat.CategoryId, cat.Name); model.UnavailableCategoryExpirations[cat.CategoryId] = sponsor.CampaignEndDate; }
+                if (sponsor != null)
+                {
+                    model.UnavailableCategories.Add(cat.CategoryId, cat.Name);
+                    model.UnavailableCategoryExpirations[cat.CategoryId] = sponsor.CampaignEndDate;
+                }
                 else
                 {
                     model.AvailableCategories.Add(cat.CategoryId, cat.Name);
@@ -653,16 +660,28 @@ namespace DirectoryManager.Web.Controllers
 
         private string ResolveSubcategoryName(int? subCategoryId)
         {
-            if (subCategoryId == null) return string.Empty;
+            if (subCategoryId == null)
+            {
+                return string.Empty;
+            }
+
             var sub = this.subCategoryRepository.GetByIdAsync(subCategoryId.Value).Result;
-            if (sub == null) return string.Empty;
+            if (sub == null)
+            {
+                return string.Empty;
+            }
+
             var cat = this.categoryRepository.GetByIdAsync(sub.CategoryId).Result;
             return cat == null ? string.Empty : FormattingHelper.SubcategoryFormatting(cat.Name, sub.Name);
         }
 
         private string ResolveCategoryName(int? categoryId)
         {
-            if (categoryId == null) return string.Empty;
+            if (categoryId == null)
+            {
+                return string.Empty;
+            }
+
             return this.categoryRepository.GetByIdAsync(categoryId.Value).Result?.Name ?? string.Empty;
         }
     }

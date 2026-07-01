@@ -43,7 +43,11 @@ namespace DirectoryManager.Web.Helpers
             static string FormatLink(string? value)
             {
                 var url = value?.Trim();
-                if (string.IsNullOrWhiteSpace(url)) return "null";
+                if (string.IsNullOrWhiteSpace(url))
+                {
+                    return "null";
+                }
+
                 var safe = Enc(url);
                 return $"<a href=\"{safe}\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">{safe}</a>";
             }

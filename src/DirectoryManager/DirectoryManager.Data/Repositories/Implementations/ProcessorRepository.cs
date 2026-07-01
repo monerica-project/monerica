@@ -57,13 +57,19 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task UpdateAsync(Processor entity, CancellationToken ct = default)
         {
-            if (entity is null) throw new ArgumentNullException(nameof(entity));
+            if (entity is null)
+            {
+                throw new ArgumentNullException(nameof(entity));
+            }
 
             var existing = await this.Set
                 .FirstOrDefaultAsync(x => x.ProcessorId == entity.ProcessorId, ct)
                 .ConfigureAwait(false);
 
-            if (existing is null) return;
+            if (existing is null)
+            {
+                return;
+            }
 
             existing.Name = (entity.Name ?? string.Empty).Trim();
             existing.UpdatedByUserId = entity.UpdatedByUserId;
@@ -84,7 +90,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var existing = await this.Set.FirstOrDefaultAsync(x => x.ProcessorId == id, ct)
                 .ConfigureAwait(false);
 
-            if (existing is null) return;
+            if (existing is null)
+            {
+                return;
+            }
 
             try
             {

@@ -18,5 +18,4 @@ namespace DirectoryManager.Web.Models.Sponsorship
 
         public int DistinctEmailCount => this.Rows.Count;
     }
-
 }

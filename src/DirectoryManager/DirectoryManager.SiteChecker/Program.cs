@@ -110,7 +110,9 @@ async Task<bool> CheckClearnetUrlsAsync(List<string> urls, WebPageChecker checke
                 isOnline = await checker.IsOnlineAsync(uri);
             }
         }
-        catch { }
+        catch
+        {
+        }
 
         Console.WriteLine($"[clearnet] {url} → {(isOnline ? "online" : "offline")}");
 
@@ -134,7 +136,9 @@ async Task<bool> CheckOnionUrlAsync(string url, TorWebPageChecker torChecker)
             isOnline = await torChecker.IsOnlineAsync(uri);
         }
     }
-    catch { }
+    catch
+    {
+    }
 
     Console.WriteLine($"[onion] {url} → {(isOnline ? "online" : "offline")}");
 

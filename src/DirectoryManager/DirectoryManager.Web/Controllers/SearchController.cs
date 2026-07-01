@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using System.Text.RegularExpressions;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -8,7 +9,6 @@ using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using System.Text.RegularExpressions;
 
 public class SearchController : Controller
 {

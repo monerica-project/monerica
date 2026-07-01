@@ -8,6 +8,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<DirectoryEntryReviewRaffleEntry?> GetByIdAsync(int id, CancellationToken ct = default);
 
         /// <summary>Returns null if no entry exists for this review.</summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task<DirectoryEntryReviewRaffleEntry?> GetByReviewIdAsync(int directoryEntryReviewId, CancellationToken ct = default);
 
         /// <summary>
@@ -15,6 +16,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// (Pending or Eligible). Returns null if the author has no live entry
         /// and may enter again (e.g. all prior entries are Ended/Disqualified/Paid).
         /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task<DirectoryEntryReviewRaffleEntry?> GetActiveEntryByFingerprintAsync(string fingerprint, CancellationToken ct = default);
 
         Task<List<DirectoryEntryReviewRaffleEntry>> ListAsync(int page = 1, int pageSize = 50, CancellationToken ct = default);
@@ -29,6 +31,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// Adds a new raffle entry. Throws if a row already exists for the same review
         /// (unique constraint on DirectoryEntryReviewId).
         /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task AddAsync(DirectoryEntryReviewRaffleEntry entity, CancellationToken ct = default);
 
         Task UpdateAsync(DirectoryEntryReviewRaffleEntry entity, CancellationToken ct = default);

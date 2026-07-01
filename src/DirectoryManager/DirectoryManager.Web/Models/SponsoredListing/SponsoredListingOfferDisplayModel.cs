@@ -19,12 +19,12 @@ namespace DirectoryManager.Web.Models.SponsoredListing
         /// <summary>
         /// for CategorySponsor this is the CategoryId,
         /// for SubcategorySponsor this is the SubCategoryId,
-        /// for MainSponsor just leave zero
+        /// for MainSponsor just leave zero.
         /// </summary>
         public int SlotId { get; set; }
 
         /// <summary>
-        /// true if that slot still has space
+        /// true if that slot still has space.
         /// </summary>
         public bool IsAvailable { get; set; }
         public string ActionLink { get; set; }

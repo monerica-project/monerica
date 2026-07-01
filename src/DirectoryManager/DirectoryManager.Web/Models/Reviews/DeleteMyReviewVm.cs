@@ -2,8 +2,6 @@
 
 namespace DirectoryManager.Web.Models.Reviews
 {
-
-
     public class DeleteMyReviewVm
     {
         public Guid FlowId { get; set; }

@@ -33,13 +33,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
         /// </summary>
         private const double RatingPriorMean = 3.0;
 
-        private const double RatingWeight          = 0.80;
-        private const double FoundedAgeWeight       = 0.10;
-        private const double DirectoryAgeWeight     = 0.10;
+        private const double RatingWeight = 0.80;
+        private const double FoundedAgeWeight = 0.10;
+        private const double DirectoryAgeWeight = 0.10;
 
         // Saturating half-life: score = days / (days + K). Founding spans decades,
         // so it gets a longer half-life to differentiate; listing age is shorter-lived.
-        private const double FoundedAgeHalfLifeDays   = 1825.0; // ~5 years
+        private const double FoundedAgeHalfLifeDays = 1825.0; // ~5 years
         private const double DirectoryAgeHalfLifeDays = 730.0;  // ~2 years
 
         /// <summary>
@@ -912,11 +912,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
         // then Questionable, then Scam, then anything else.
         private static int StatusTierRank(DirectoryStatus status) => status switch
         {
-            DirectoryStatus.Verified     => 0,
-            DirectoryStatus.Admitted     => 1,
+            DirectoryStatus.Verified => 0,
+            DirectoryStatus.Admitted => 1,
             DirectoryStatus.Questionable => 2,
-            DirectoryStatus.Scam         => 3,
-            _                            => 4,
+            DirectoryStatus.Scam => 3,
+            _ => 4,
         };
 
         /// <summary>
@@ -982,7 +982,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     }
 
                     double directoryAgeScore = dirDays / (dirDays + DirectoryAgeHalfLifeDays);
-                    double foundedAgeScore   = foundedDays / (foundedDays + FoundedAgeHalfLifeDays);
+                    double foundedAgeScore = foundedDays / (foundedDays + FoundedAgeHalfLifeDays);
 
                     double trust =
                         ((bayes / 5.0) * RatingWeight)
@@ -1004,9 +1004,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         ReviewCount = reviewCount,
                     };
                 })
-                .OrderBy(x => x.Tier)                       // Verified → Admitted → Questionable → Scam
-                .ThenBy(x => x.RatingClass)                 // rated >3.0 ahead of unrated within the tier
-                .ThenByDescending(x => x.Trust)             // blended 70/20/10 trust
+                .OrderBy(x => x.Tier) // Verified → Admitted → Questionable → Scam
+                .ThenBy(x => x.RatingClass) // rated >3.0 ahead of unrated within the tier
+                .ThenByDescending(x => x.Trust) // blended 70/20/10 trust
                 .ThenByDescending(x => x.ReviewCount)
                 .ThenByDescending(x => x.CreateDate)
                 .ThenByDescending(x => x.DirectoryEntryId)
@@ -1253,7 +1253,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 q.StartsWith("fp:", StringComparison.OrdinalIgnoreCase))
             {
                 var idx = q.IndexOf(':');
-                authorTerm = idx >= 0 ? q[(idx + 1)..].Trim() : string.Empty;
+                authorTerm = idx >= 0 ? q[(idx + 1) ..].Trim() : string.Empty;
                 return !string.IsNullOrWhiteSpace(authorTerm);
             }
 
@@ -1543,7 +1543,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return baseQ;
         }
 
-          private static void ApplySearchFilter(ref IQueryable<DirectoryEntry> baseQ, DirectoryFilterQuery q)
+        private static void ApplySearchFilter(ref IQueryable<DirectoryEntry> baseQ, DirectoryFilterQuery q)
         {
             var term = (q.SearchTerm ?? string.Empty).Trim();
             if (term.Length == 0)
@@ -1562,7 +1562,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 (e.SubCategory != null && e.SubCategory.Category != null && EF.Functions.ILike(e.SubCategory.Category.Name, like)) ||
                 e.EntryTags.Any(et => et.Tag != null && EF.Functions.ILike(et.Tag.Name, like)));
         }
-
 
         private static void ApplyTagFilter(ref IQueryable<DirectoryEntry> baseQ, DirectoryFilterQuery q)
         {
@@ -1621,85 +1620,85 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 };
         }
 
-      private IQueryable<int> BuildFilterPageIdsQuery(IQueryable<DirectoryEntry> baseQ, DirectoryFilterSort sort)
-      {
-          if (sort == DirectoryFilterSort.Newest)
-          {
-              return baseQ
-                  .OrderByDescending(e => e.CreateDate)
-                  .ThenByDescending(e => e.DirectoryEntryId)
-                  .Select(e => e.DirectoryEntryId);
-          }
-      
-          if (sort == DirectoryFilterSort.Oldest)
-          {
-              return baseQ
-                  .OrderBy(e => e.CreateDate)
-                  .ThenBy(e => e.DirectoryEntryId)
-                  .Select(e => e.DirectoryEntryId);
-          }
-      
-          if (sort == DirectoryFilterSort.FoundedDateNewest)
-          {
-              return baseQ
-                  .OrderByDescending(e => e.FoundedDate.HasValue)
-                  .ThenByDescending(e => e.FoundedDate)
-                  .ThenByDescending(e => e.CreateDate)
-                  .ThenByDescending(e => e.DirectoryEntryId)
-                  .Select(e => e.DirectoryEntryId);
-          }
-      
-          if (sort == DirectoryFilterSort.FoundedDateOldest)
-          {
-              return baseQ
-                  .OrderByDescending(e => e.FoundedDate.HasValue)
-                  .ThenBy(e => e.FoundedDate)
-                  .ThenBy(e => e.CreateDate)
-                  .ThenBy(e => e.DirectoryEntryId)
-                  .Select(e => e.DirectoryEntryId);
-          }
-      
-          if (sort == DirectoryFilterSort.NameAsc)
-          {
-              return baseQ
-                  .OrderBy(e => e.Name.ToLower())
-                  .ThenBy(e => e.DirectoryEntryId)
-                  .Select(e => e.DirectoryEntryId);
-          }
-      
-          if (sort == DirectoryFilterSort.NameDesc)
-          {
-              return baseQ
-                  .OrderByDescending(e => e.Name.ToLower())
-                  .ThenByDescending(e => e.DirectoryEntryId)
-                  .Select(e => e.DirectoryEntryId);
-          }
-      
-          if (sort == DirectoryFilterSort.RecentlyUpdated)
-          {
-              return baseQ
-                  .OrderByDescending(e => e.UpdateDate.HasValue)
-                  .ThenByDescending(e => e.UpdateDate)
-                  .ThenByDescending(e => e.CreateDate)
-                  .ThenByDescending(e => e.DirectoryEntryId)
-                  .Select(e => e.DirectoryEntryId);
-          }
-      
-          if (sort == DirectoryFilterSort.LeastRecentlyUpdated)
-          {
-              return baseQ
-                  .OrderByDescending(e => e.UpdateDate.HasValue)
-                  .ThenBy(e => e.UpdateDate)
-                  .ThenBy(e => e.CreateDate)
-                  .ThenBy(e => e.DirectoryEntryId)
-                  .Select(e => e.DirectoryEntryId);
-          }
-      
-          // Rating-aware aggregate (Bayesian weighted score). Reused by TopRated,
-          // HighestRating and LowestRating. Only contains entries that have at least
-          // one approved rating.
-          IQueryable<RatedAggRow> ratedAgg = this.BuildRatedAggregate(baseQ);
-      
+        private IQueryable<int> BuildFilterPageIdsQuery(IQueryable<DirectoryEntry> baseQ, DirectoryFilterSort sort)
+        {
+            if (sort == DirectoryFilterSort.Newest)
+            {
+                return baseQ
+                    .OrderByDescending(e => e.CreateDate)
+                    .ThenByDescending(e => e.DirectoryEntryId)
+                    .Select(e => e.DirectoryEntryId);
+            }
+
+            if (sort == DirectoryFilterSort.Oldest)
+            {
+                return baseQ
+                    .OrderBy(e => e.CreateDate)
+                    .ThenBy(e => e.DirectoryEntryId)
+                    .Select(e => e.DirectoryEntryId);
+            }
+
+            if (sort == DirectoryFilterSort.FoundedDateNewest)
+            {
+                return baseQ
+                    .OrderByDescending(e => e.FoundedDate.HasValue)
+                    .ThenByDescending(e => e.FoundedDate)
+                    .ThenByDescending(e => e.CreateDate)
+                    .ThenByDescending(e => e.DirectoryEntryId)
+                    .Select(e => e.DirectoryEntryId);
+            }
+
+            if (sort == DirectoryFilterSort.FoundedDateOldest)
+            {
+                return baseQ
+                    .OrderByDescending(e => e.FoundedDate.HasValue)
+                    .ThenBy(e => e.FoundedDate)
+                    .ThenBy(e => e.CreateDate)
+                    .ThenBy(e => e.DirectoryEntryId)
+                    .Select(e => e.DirectoryEntryId);
+            }
+
+            if (sort == DirectoryFilterSort.NameAsc)
+            {
+                return baseQ
+                    .OrderBy(e => e.Name.ToLower())
+                    .ThenBy(e => e.DirectoryEntryId)
+                    .Select(e => e.DirectoryEntryId);
+            }
+
+            if (sort == DirectoryFilterSort.NameDesc)
+            {
+                return baseQ
+                    .OrderByDescending(e => e.Name.ToLower())
+                    .ThenByDescending(e => e.DirectoryEntryId)
+                    .Select(e => e.DirectoryEntryId);
+            }
+
+            if (sort == DirectoryFilterSort.RecentlyUpdated)
+            {
+                return baseQ
+                    .OrderByDescending(e => e.UpdateDate.HasValue)
+                    .ThenByDescending(e => e.UpdateDate)
+                    .ThenByDescending(e => e.CreateDate)
+                    .ThenByDescending(e => e.DirectoryEntryId)
+                    .Select(e => e.DirectoryEntryId);
+            }
+
+            if (sort == DirectoryFilterSort.LeastRecentlyUpdated)
+            {
+                return baseQ
+                    .OrderByDescending(e => e.UpdateDate.HasValue)
+                    .ThenBy(e => e.UpdateDate)
+                    .ThenBy(e => e.CreateDate)
+                    .ThenBy(e => e.DirectoryEntryId)
+                    .Select(e => e.DirectoryEntryId);
+            }
+
+            // Rating-aware aggregate (Bayesian weighted score). Reused by TopRated,
+            // HighestRating and LowestRating. Only contains entries that have at least
+            // one approved rating.
+            IQueryable<RatedAggRow> ratedAgg = this.BuildRatedAggregate(baseQ);
+
             // -------------------------------------------------------------
             // TopRated (default): a blended "trust" score.
             //   trust = BayesianRating(0..5 normalised to 0..1) * 0.5
@@ -1723,16 +1722,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     join ra in ratedForTrust
                         on e.DirectoryEntryId equals ra.DirectoryEntryId into gj
                     from ra in gj.DefaultIfEmpty()
-                    // Age in days via timestamp difference (Postgres-friendly; fractional days
-                    // suit the smooth saturating age curve). Falls back to CreateDate when
-                    // FoundedDate is null.
                     let dirDays = (nowUtc - e.CreateDate).TotalDays
                     let foundedDays = e.FoundedDate.HasValue
                         ? (nowUtc - e.FoundedDate.Value.ToDateTime(TimeOnly.MinValue)).TotalDays
                         : (nowUtc - e.CreateDate).TotalDays
                     let bayes = ra != null ? ra.BayesianScore : RatingPriorMean
                     let directoryAgeScore = dirDays / (dirDays + DirectoryAgeHalfLifeDays)
-                    let foundedAgeScore   = foundedDays / (foundedDays + FoundedAgeHalfLifeDays)
+                    let foundedAgeScore = foundedDays / (foundedDays + FoundedAgeHalfLifeDays)
                     let trust = ((bayes / 5.0) * RatingWeight)
                               + (foundedAgeScore * FoundedAgeWeight)
                               + (directoryAgeScore * DirectoryAgeWeight)
@@ -1751,27 +1747,27 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     .ThenByDescending(x => x.DirectoryEntryId)
                     .Select(x => x.DirectoryEntryId);
             }
-      
-          if (sort == DirectoryFilterSort.HighestRating)
-          {
-              return ratedAgg
-                  .OrderByDescending(x => x.BayesianScore)  // weighted: volume of evidence matters
-                  .ThenByDescending(x => x.ReviewCount)     // more reviews wins ties
-                  .ThenByDescending(x => x.AvgRating)       // raw average as final tie-break
-                  .ThenByDescending(x => x.CreateDate)
-                  .ThenByDescending(x => x.DirectoryEntryId)
-                  .Select(x => x.DirectoryEntryId);
-          }
-      
-          // LowestRating
-          return ratedAgg
-              .OrderBy(x => x.BayesianScore)                // weighted
-              .ThenByDescending(x => x.ReviewCount)         // more reviews wins ties
-              .ThenBy(x => x.AvgRating)                     // raw average as final tie-break
-              .ThenBy(x => x.CreateDate)
-              .ThenBy(x => x.DirectoryEntryId)
-              .Select(x => x.DirectoryEntryId);
-      }
+
+            if (sort == DirectoryFilterSort.HighestRating)
+            {
+                return ratedAgg
+                    .OrderByDescending(x => x.BayesianScore) // weighted: volume of evidence matters
+                    .ThenByDescending(x => x.ReviewCount) // more reviews wins ties
+                    .ThenByDescending(x => x.AvgRating) // raw average as final tie-break
+                    .ThenByDescending(x => x.CreateDate)
+                    .ThenByDescending(x => x.DirectoryEntryId)
+                    .Select(x => x.DirectoryEntryId);
+            }
+
+            // LowestRating
+            return ratedAgg
+                .OrderBy(x => x.BayesianScore) // weighted
+                .ThenByDescending(x => x.ReviewCount) // more reviews wins ties
+                .ThenBy(x => x.AvgRating) // raw average as final tie-break
+                .ThenBy(x => x.CreateDate)
+                .ThenBy(x => x.DirectoryEntryId)
+                .Select(x => x.DirectoryEntryId);
+        }
 
         private sealed class RatedAggRow
         {

@@ -26,49 +26,49 @@ namespace DirectoryManager.FileStorage.Repositories.Implementations
             }
         }
 
-       public async Task<SiteFileDirectory> ListFilesAsync(string? prefix = null)
-       {
-           var directory = new SiteFileDirectory();
-           var container = this.blobService.GetContainerReference(StringConstants.ContainerName);
-       
-           if (prefix != null && prefix.StartsWith("/"))
-           {
-               prefix = prefix.Remove(0, 1);
-           }
-       
-           if (container == null)
-           {
-               return directory;
-           }
-       
-           await foreach (var page in container
-               .GetBlobsByHierarchyAsync(
-                   traits: BlobTraits.None,
-                   states: BlobStates.None,
-                   delimiter: "/",
-                   prefix: prefix,
-                   cancellationToken: CancellationToken.None)
-               .AsPages())
-           {
-               foreach (var item in page.Values)
-               {
-                   if (item.IsBlob)
-                   {
-                       directory.FileItems.Add(new SiteFileItem
-                       {
-                           FilePath = $"{container.Uri}/{item.Blob.Name}",
-                           IsFolder = false
-                       });
-                   }
-                   else if (item.IsPrefix)
-                   {
-                       this.AddDirectory(directory, item);
-                   }
-               }
-           }
-       
-           return directory;
-       }
+        public async Task<SiteFileDirectory> ListFilesAsync(string? prefix = null)
+        {
+            var directory = new SiteFileDirectory();
+            var container = this.blobService.GetContainerReference(StringConstants.ContainerName);
+
+            if (prefix != null && prefix.StartsWith("/"))
+            {
+                prefix = prefix.Remove(0, 1);
+            }
+
+            if (container == null)
+            {
+                return directory;
+            }
+
+            await foreach (var page in container
+                .GetBlobsByHierarchyAsync(
+                    traits: BlobTraits.None,
+                    states: BlobStates.None,
+                    delimiter: "/",
+                    prefix: prefix,
+                    cancellationToken: CancellationToken.None)
+                .AsPages())
+            {
+                foreach (var item in page.Values)
+                {
+                    if (item.IsBlob)
+                    {
+                        directory.FileItems.Add(new SiteFileItem
+                        {
+                            FilePath = $"{container.Uri}/{item.Blob.Name}",
+                            IsFolder = false
+                        });
+                    }
+                    else if (item.IsPrefix)
+                    {
+                        this.AddDirectory(directory, item);
+                    }
+                }
+            }
+
+            return directory;
+        }
 
         public async Task DeleteFileAsync(string blobPath)
         {

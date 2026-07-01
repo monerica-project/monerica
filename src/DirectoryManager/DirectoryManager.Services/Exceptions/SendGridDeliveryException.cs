@@ -5,7 +5,6 @@ using SendGrid.Helpers.Mail;
 
 namespace DirectoryManager.Services.Exceptions
 {
-
     public class SendGridDeliveryException : Exception
     {
         public int StatusCode { get; }

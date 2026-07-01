@@ -15,6 +15,6 @@ namespace DirectoryManager.Data.Models
         [MaxLength(100)]
         public string Key { get; set; } = null!;
 
-        public ICollection<DirectoryEntryTag> EntryTags { get; set; } = [];
+        public ICollection<DirectoryEntryTag> EntryTags { get; set; } = new List<DirectoryEntryTag>();
     }
 }

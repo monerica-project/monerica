@@ -1,3 +1,4 @@
+using System.Text;
 using BtcPayServer.API.Interfaces;
 using BtcPayServer.API.Models;
 using DirectoryManager.Data.Enums;
@@ -21,7 +22,6 @@ using Microsoft.Extensions.Caching.Memory;
 using Newtonsoft.Json;
 using NowPayments.API.Interfaces;
 using NowPayments.API.Models;
-using System.Text;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -84,7 +84,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // SELECT LISTING
         // =====================================================================
-
         [HttpPost]
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
@@ -182,7 +181,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // SUBCATEGORY / CATEGORY SELECTION
         // =====================================================================
-
         [HttpGet]
         [AllowAnonymous]
         [Route("sponsoredlisting/subcategoryselection")]
@@ -214,7 +212,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // SELECT DURATION
         // =====================================================================
-
         [HttpGet]
         [AllowAnonymous]
         [Route("sponsoredlisting/selectduration")]
@@ -321,7 +318,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // CONFIRM CHECKOUT
         // =====================================================================
-
         [HttpGet]
         [AllowAnonymous]
         [Route("sponsoredlisting/confirmcheckout")]
@@ -410,7 +406,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // NOWPAYMENTS IPN + SUCCESS
         // =====================================================================
-
         [HttpPost]
         [AllowAnonymous]
         [IgnoreAntiforgeryToken]
@@ -457,9 +452,9 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         [AllowAnonymous]
         [Route("sponsoredlisting/nowpaymentssuccess")]
-        public async Task<IActionResult> NowPaymentsSuccess([FromQuery] string NP_id)
+        public async Task<IActionResult> NowPaymentsSuccess([FromQuery] string nP_id)
         {
-            var processorInvoice = await this.paymentService.GetPaymentStatusAsync(NP_id);
+            var processorInvoice = await this.paymentService.GetPaymentStatusAsync(nP_id);
             if (processorInvoice?.OrderId == null
                 || !Guid.TryParse(processorInvoice.OrderId, out var orderGuid))
             {
@@ -476,14 +471,14 @@ namespace DirectoryManager.Web.Controllers
 
             if (string.IsNullOrWhiteSpace(invoice.ProcessorInvoiceId))
             {
-                invoice.ProcessorInvoiceId = NP_id;
+                invoice.ProcessorInvoiceId = nP_id;
                 await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice).ConfigureAwait(false);
             }
-            else if (!string.Equals(invoice.ProcessorInvoiceId, NP_id, StringComparison.Ordinal))
+            else if (!string.Equals(invoice.ProcessorInvoiceId, nP_id, StringComparison.Ordinal))
             {
                 this.logger.LogWarning(
                     "NowPaymentsSuccess: NP_id {Np} does not match stored ProcessorInvoiceId {DbId} for order {OrderId}.",
-                    NP_id, invoice.ProcessorInvoiceId, invoice.InvoiceId);
+                    nP_id, invoice.ProcessorInvoiceId, invoice.InvoiceId);
                 return this.NotFound();
             }
 
@@ -498,7 +493,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // BTCPAY WEBHOOK + SUCCESS
         // =====================================================================
-
         [HttpPost]
         [AllowAnonymous]
         [IgnoreAntiforgeryToken]
@@ -533,8 +527,11 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var invoice = await this.sponsoredListingInvoiceRepository.GetByProcessorInvoiceIdAsync(payload.InvoiceId).ConfigureAwait(false);
-            if (invoice == null) { this.logger.LogWarning("BTCPay webhook: invoice not found for {Id}", payload.InvoiceId);
-                return this.Ok(); }
+            if (invoice == null)
+            {
+                this.logger.LogWarning("BTCPay webhook: invoice not found for {Id}", payload.InvoiceId);
+                return this.Ok();
+            }
 
             if (!SponsoredListingCheckoutHelper.IsTerminal(invoice.PaymentStatus))
             {
@@ -662,7 +659,8 @@ namespace DirectoryManager.Web.Controllers
             }
             catch (Exception ex)
             {
-                this.logger.LogWarning(ex,
+                this.logger.LogWarning(
+                    ex,
                     "BtcPayNoJsInvoice: could not fetch BTCPay invoice {Id}", processorInvoiceId);
             }
 
@@ -680,7 +678,7 @@ namespace DirectoryManager.Web.Controllers
 
                     // Use Due when non-zero, fall back to Amount (covers post-payment state
                     // where Due drops to "0" but Amount still holds the original figure).
-                    vm.AmountDue = xmrMethod.Due is not (null or "0" or "0.0" or "")
+                    vm.AmountDue = xmrMethod.Due is not(null or "0" or "0.0" or "")
                         ? xmrMethod.Due
                         : xmrMethod.Amount ?? string.Empty;
 
@@ -700,7 +698,8 @@ namespace DirectoryManager.Web.Controllers
             }
             catch (Exception ex)
             {
-                this.logger.LogWarning(ex,
+                this.logger.LogWarning(
+                    ex,
                     "BtcPayNoJsInvoice: could not fetch XMR payment method for {Id}", processorInvoiceId);
             }
 
@@ -711,6 +710,7 @@ namespace DirectoryManager.Web.Controllers
         /// Returns a QR code PNG for the given BTCPay invoice's monero: payment URI.
         /// Looked up server-side from the processor invoice ID — no URI data in the URL.
         /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         [HttpGet]
         [AllowAnonymous]
         [Route("sponsoredlisting/btcpay-qr")]
@@ -753,7 +753,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // PRIVATE: No-JS checkout orchestration
         // =====================================================================
-
         private async Task<IActionResult> ExecuteBtcPayNoJsCheckoutAsync(
             SponsoredListingInvoice invoice, SponsoredListingOffer offer, Guid? rsvId, string? normalizedEmail)
         {
@@ -804,7 +803,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // CHECKOUT ORCHESTRATION HELPERS
         // =====================================================================
-
         private async Task<ConfirmValidationResult> ValidateConfirmRequestAsync(int directoryEntryId, int selectedOfferId, Guid? rsvId)
         {
             var offer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId).ConfigureAwait(false);
@@ -1054,7 +1052,10 @@ namespace DirectoryManager.Web.Controllers
             };
 
             BtcPayInvoiceResponse btcPayInvoice;
-            try { btcPayInvoice = await this.btcPayServerService.CreateInvoiceAsync(req).ConfigureAwait(false); }
+            try
+            {
+                btcPayInvoice = await this.btcPayServerService.CreateInvoiceAsync(req).ConfigureAwait(false);
+            }
             catch (Exception ex)
             {
                 this.logger.LogError(ex, "BTCPay invoice creation failed for order {OrderId}", invoice.InvoiceId);
@@ -1074,12 +1075,17 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // NOWPAYMENTS IPN HELPERS
         // =====================================================================
-
         private IpnPaymentMessage? DeserializeIpnMessage(string payload)
         {
-            try { return JsonConvert.DeserializeObject<IpnPaymentMessage>(payload); }
-            catch (JsonException ex) { this.logger.LogWarning(ex, "NOWPayments IPN deserialize failed.");
-                return null; }
+            try
+            {
+                return JsonConvert.DeserializeObject<IpnPaymentMessage>(payload);
+            }
+            catch (JsonException ex)
+            {
+                this.logger.LogWarning(ex, "NOWPayments IPN deserialize failed.");
+                return null;
+            }
         }
 
         private async Task<SponsoredListingInvoice?> FindInvoiceForIpnAsync(IpnPaymentMessage msg)
@@ -1102,9 +1108,17 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            if (invoice == null) { this.logger.LogWarning("NOWPayments IPN: invoice not found. OrderId:{A} ProcessorId:{B}", msg.OrderId, ipnProcessorId);
-                return null; }
-            if (hasOrderGuid && invoice.InvoiceId != orderGuid) { this.logger.LogWarning("NOWPayments IPN: OrderId mismatch. IPN:{A} DB:{B}", msg.OrderId, invoice.InvoiceId); return null; }
+            if (invoice == null)
+            {
+                this.logger.LogWarning("NOWPayments IPN: invoice not found. OrderId:{A} ProcessorId:{B}", msg.OrderId, ipnProcessorId);
+                return null;
+            }
+
+            if (hasOrderGuid && invoice.InvoiceId != orderGuid)
+            {
+                this.logger.LogWarning("NOWPayments IPN: OrderId mismatch. IPN:{A} DB:{B}", msg.OrderId, invoice.InvoiceId);
+                return null;
+            }
 
             if (!string.IsNullOrWhiteSpace(invoice.ProcessorInvoiceId) &&
                 !string.IsNullOrWhiteSpace(ipnProcessorId) &&
@@ -1165,11 +1179,10 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // BTCPAY HELPERS
         // =====================================================================
-
         private async Task ApplyBtcPayWebhookUpdateAsync(SponsoredListingInvoice invoice, BtcPayWebhookPayload payload)
         {
             invoice.PaymentResponse = JsonConvert.SerializeObject(payload);
-        
+
             // Surface overpayments to the log even though we now treat them as Paid.
             // The full payload is in invoice.PaymentResponse and BTCPay shows the real amounts.
             if (payload.OverPaid)
@@ -1180,11 +1193,11 @@ namespace DirectoryManager.Web.Controllers
                     payload.InvoiceId,
                     invoice.InvoiceId);
             }
-        
+
             var proposed = SponsoredListingCheckoutHelper.MapBtcPayEventToInternalStatus(
                 payload.Type,
                 partiallyPaid: payload.PartiallyPaid);
-        
+
             if (proposed != PaymentStatus.Unknown
                 && !SponsoredListingCheckoutHelper.IsTerminal(invoice.PaymentStatus)
                 && SponsoredListingCheckoutHelper.StatusRank[proposed] >
@@ -1192,7 +1205,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 invoice.PaymentStatus = proposed;
             }
-        
+
             // Capture XMR amount whenever we're at or past Pending — covers Pending, UnderPayment,
             // Paid, and any OverPayment that might be set by another code path. InvoiceReceivedPayment
             // and InvoicePaymentSettled carry payment.value directly; InvoiceSettled is aggregate
@@ -1204,7 +1217,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 var ns = System.Globalization.NumberStyles.Any;
                 var ci = System.Globalization.CultureInfo.InvariantCulture;
-        
+
                 if (payload.Payment != null
                     && !string.IsNullOrWhiteSpace(payload.Payment.Value)
                     && decimal.TryParse(payload.Payment.Value, ns, ci, out var webhookXmr)
@@ -1219,18 +1232,18 @@ namespace DirectoryManager.Web.Controllers
                     await this.PopulateBtcPayPaymentAmountsAsync(invoice, payload.InvoiceId);
                 }
             }
-        
+
             if (SponsoredListingCheckoutHelper.HoldExtendingStatuses.Contains(invoice.PaymentStatus))
             {
                 await this.EnsureHoldFromInvoiceAsync(invoice, TimeSpan.FromHours(2), TimeSpan.FromHours(3));
             }
-        
+
             await this.CreateNewSponsoredListingAsync(invoice);
             if (SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus))
             {
                 await this.TryCreateAffiliateCommissionAsync(invoice);
             }
-        }      
+        }
 
         private async Task TryConfirmBtcPayInvoiceAsync(SponsoredListingInvoice invoice, string processorInvoiceId)
         {
@@ -1252,7 +1265,10 @@ namespace DirectoryManager.Web.Controllers
                     await this.TryCreateAffiliateCommissionAsync(invoice);
                 }
             }
-            catch (Exception ex) { this.logger.LogWarning(ex, "BTCPay status check failed for {InvoiceId}", processorInvoiceId); }
+            catch (Exception ex)
+            {
+                this.logger.LogWarning(ex, "BTCPay status check failed for {InvoiceId}", processorInvoiceId);
+            }
         }
 
         /// <summary>
@@ -1315,7 +1331,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // RESERVATION HELPERS
         // =====================================================================
-
         private async Task<Guid?> ValidateExistingReservationAsync(Guid? rsvId, string reservationGroup)
         {
             if (!rsvId.HasValue)
@@ -1374,7 +1389,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // STATIC VIEW MODEL BUILDER
         // =====================================================================
-
         private static ConfirmSelectionViewModel BuildConfirmationViewModel(
             SponsoredListingOffer offer, DirectoryEntry de, string l2, string l3, IEnumerable<SponsoredListing> current) =>
             new ConfirmSelectionViewModel
@@ -1417,7 +1431,6 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // INSTANCE HELPERS
         // =====================================================================
-
         private (string group, int? typeIdForCapacity) BuildGroupAndCapacity(SponsorshipType type, DirectoryEntry entry)
         {
             var typeId = SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(type, entry, null, null);
@@ -1464,7 +1477,14 @@ namespace DirectoryManager.Web.Controllers
             }
 
             DateTime? expiresUtc = null;
-            try { expiresUtc = (DateTime?)existing.GetType().GetProperty("ExpirationDate")?.GetValue(existing); } catch { }
+            try
+            {
+                expiresUtc = (DateTime?)existing.GetType().GetProperty("ExpirationDate")?.GetValue(existing);
+            }
+            catch
+            {
+            }
+
             if (!expiresUtc.HasValue)
             {
                 expiresUtc = await this.sponsoredListingReservationRepository.GetActiveReservationExpirationAsync(reservationGroup).ConfigureAwait(false);
@@ -1502,7 +1522,11 @@ namespace DirectoryManager.Web.Controllers
             {
                 entries = entries.Where(e => e.SubCategoryId == subCategoryId.Value).ToList();
             }
-            else if (categoryId.HasValue) entries = entries.Where(e => e.SubCategory.CategoryId == categoryId.Value).ToList();
+            else if (categoryId.HasValue)
+            {
+                entries = entries.Where(e => e.SubCategory.CategoryId == categoryId.Value).ToList();
+            }
+
             entries = entries.OrderBy(e => e.Name).ToList();
 
             this.ViewBag.SubCategories = (await this.subCategoryRepository.GetAllActiveSubCategoriesAsync())
@@ -1514,8 +1538,15 @@ namespace DirectoryManager.Web.Controllers
         private async Task<IEnumerable<DirectoryEntry>> FilterEntriesByScopeAsync(SponsorshipType type, int typeId)
         {
             var entries = await this.directoryEntryRepository.GetAllowableAdvertisers().ConfigureAwait(false);
-            if (type == SponsorshipType.SubcategorySponsor) entries = entries.Where(e => e.SubCategoryId == typeId).ToList();
-            else if (type == SponsorshipType.CategorySponsor) entries = entries.Where(e => e.SubCategory != null && e.SubCategory.CategoryId == typeId).ToList();
+            if (type == SponsorshipType.SubcategorySponsor)
+            {
+                entries = entries.Where(e => e.SubCategoryId == typeId).ToList();
+            }
+            else if (type == SponsorshipType.CategorySponsor)
+            {
+                entries = entries.Where(e => e.SubCategory != null && e.SubCategory.CategoryId == typeId).ToList();
+            }
+
             return entries.OrderBy(e => e.Name).ToList();
         }
 
@@ -1558,10 +1589,20 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task CreateNewSponsoredListingAsync(SponsoredListingInvoice invoice)
         {
-            if (!await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice).ConfigureAwait(false)) return;
-            if (!SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus)) return;
+            if (!await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice).ConfigureAwait(false))
+            {
+                return;
+            }
 
-            if (await this.sponsoredListingRepository.GetByInvoiceIdAsync(invoice.SponsoredListingInvoiceId).ConfigureAwait(false) != null) return;
+            if (!SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus))
+            {
+                return;
+            }
+
+            if (await this.sponsoredListingRepository.GetByInvoiceIdAsync(invoice.SponsoredListingInvoiceId).ConfigureAwait(false) != null)
+            {
+                return;
+            }
 
             var active = await this.sponsoredListingRepository.GetActiveSponsorAsync(invoice.DirectoryEntryId, invoice.SponsorshipType).ConfigureAwait(false);
 
@@ -1584,9 +1625,23 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var changed = false;
-            if (invoice.CampaignEndDate > active.CampaignEndDate) { active.CampaignEndDate = invoice.CampaignEndDate; changed = true; }
-            if (active.SponsoredListingInvoiceId != invoice.SponsoredListingInvoiceId) { active.SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId; changed = true; }
-            if (changed) await this.sponsoredListingRepository.UpdateAsync(active).ConfigureAwait(false);
+            if (invoice.CampaignEndDate > active.CampaignEndDate)
+            {
+                active.CampaignEndDate = invoice.CampaignEndDate;
+                changed = true;
+            }
+
+            if (active.SponsoredListingInvoiceId != invoice.SponsoredListingInvoiceId)
+            {
+                active.SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId;
+                changed = true;
+            }
+
+            if (changed)
+            {
+                await this.sponsoredListingRepository.UpdateAsync(active).ConfigureAwait(false);
+            }
+
             invoice.SponsoredListingId = active.SponsoredListingId;
             await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice).ConfigureAwait(false);
             this.ClearCachedItems();
@@ -1594,7 +1649,11 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task EnsureHoldFromInvoiceAsync(SponsoredListingInvoice invoice, TimeSpan min, TimeSpan max)
         {
-            if (invoice.ReservationGuid == Guid.Empty || !SponsoredListingCheckoutHelper.HoldExtendingStatuses.Contains(invoice.PaymentStatus)) return;
+            if (invoice.ReservationGuid == Guid.Empty || !SponsoredListingCheckoutHelper.HoldExtendingStatuses.Contains(invoice.PaymentStatus))
+            {
+                return;
+            }
+
             var target = DateTime.UtcNow.Add(min);
             var cap = DateTime.UtcNow.Add(max);
             await this.sponsoredListingReservationRepository.ExtendExpirationAsync(invoice.ReservationGuid, target > cap ? cap : target).ConfigureAwait(false);
@@ -1629,12 +1688,15 @@ namespace DirectoryManager.Web.Controllers
             {
                 int catId = categoryId ?? entry.SubCategory?.CategoryId ?? 0;
                 string catName = "Unknown Category";
-                if (catId > 0) { var cat = await this.categoryRepository.GetByIdAsync(catId).ConfigureAwait(false);
+                if (catId > 0)
+                {
+                    var cat = await this.categoryRepository.GetByIdAsync(catId).ConfigureAwait(false);
                     if (cat != null)
                     {
                         catName = cat.Name;
                     }
                 }
+
                 sb.Append($"; CategoryId={catId}; Category=\"{catName}\"");
             }
 
@@ -1647,7 +1709,9 @@ namespace DirectoryManager.Web.Controllers
             {
                 case SponsorshipType.MainSponsor: return "Main Sponsor";
                 case SponsorshipType.CategorySponsor:
-                    if (typeId.HasValue) { var cat = await this.categoryRepository.GetByIdAsync(typeId.Value).ConfigureAwait(false);
+                    if (typeId.HasValue)
+                    {
+                        var cat = await this.categoryRepository.GetByIdAsync(typeId.Value).ConfigureAwait(false);
                         if (cat != null)
                         {
                             return $"category \"{cat.Name}\"";
@@ -1656,9 +1720,16 @@ namespace DirectoryManager.Web.Controllers
 
                     return "the selected category";
                 case SponsorshipType.SubcategorySponsor:
-                    if (typeId.HasValue) { var sub = await this.subCategoryRepository.GetByIdAsync(typeId.Value).ConfigureAwait(false);
-                        if (sub != null) { var cat = sub.Category ?? await this.categoryRepository.GetByIdAsync(sub.CategoryId).ConfigureAwait(false);
-                            return $"subcategory \"{cat?.Name ?? "Unknown"} > {sub.Name}\""; } }
+                    if (typeId.HasValue)
+                    {
+                        var sub = await this.subCategoryRepository.GetByIdAsync(typeId.Value).ConfigureAwait(false);
+                        if (sub != null)
+                        {
+                            var cat = sub.Category ?? await this.categoryRepository.GetByIdAsync(sub.CategoryId).ConfigureAwait(false);
+                            return $"subcategory \"{cat?.Name ?? "Unknown"} > {sub.Name}\"";
+                        }
+                    }
+
                     return "the selected subcategory";
                 default: return "this selection";
             }
@@ -1782,19 +1853,18 @@ namespace DirectoryManager.Web.Controllers
 
             await this.commissionRepo.AddAsync(
                 new AffiliateCommission
-            {
-                SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId,
-                AffiliateAccountId = affiliate.AffiliateAccountId,
-                AmountDue = Math.Round(invoice.OutcomeAmount * 0.50m, 8),
-                PayoutCurrency = invoice.PaidInCurrency,
-                PayoutStatus = CommissionPayoutStatus.Pending,
-            }, ct);
+                {
+                    SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId,
+                    AffiliateAccountId = affiliate.AffiliateAccountId,
+                    AmountDue = Math.Round(invoice.OutcomeAmount * 0.50m, 8),
+                    PayoutCurrency = invoice.PaidInCurrency,
+                    PayoutStatus = CommissionPayoutStatus.Pending,
+                }, ct);
         }
 
         // =====================================================================
         // CONFIRM VALIDATION RESULT
         // =====================================================================
-
         private sealed class ConfirmValidationResult
         {
             public IActionResult? ErrorResult { get; private init; }

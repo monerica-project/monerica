@@ -4,7 +4,6 @@ using DirectoryManager.Data.Enums;
 
 namespace DirectoryManager.Web.Models.API
 {
-
     public sealed class PublicSubcategoryDto
     {
         public string Name { get; set; } = string.Empty;

@@ -146,7 +146,6 @@ namespace DirectoryManager.Web.Controllers
         // -------------------------
         // Helpers
         // -------------------------
-
         private async Task SetCanonicalAsync(string tagSlug, int page)
         {
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);

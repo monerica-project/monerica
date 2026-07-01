@@ -2,7 +2,6 @@
 
 namespace DirectoryManager.Web.Models.Reviews
 {
-
     public class MyReviewRowVm
     {
         public DirectoryEntryReview Review { get; set; } = default!;

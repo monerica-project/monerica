@@ -61,6 +61,7 @@ namespace DirectoryManager.Web.Forecasting
         /// <param name="nowUtc">Current moment (UTC). The forecast starts at this month, prorated.</param>
         /// <param name="horizonMonths">How many months to project (current month counts as the first).</param>
         /// <param name="confidenceZ">Z multiplier for the band (e.g. 1.282 for ~80%).</param>
+        /// <returns></returns>
         public static Result Build(
             IReadOnlyList<DateTime> historyMonths,
             IReadOnlyList<decimal> historyValues,

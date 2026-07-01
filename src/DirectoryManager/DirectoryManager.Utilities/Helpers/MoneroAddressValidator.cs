@@ -7,7 +7,7 @@ namespace DirectoryManager.Utilities.Validation
     /// Lightweight, format-level Monero address validator.
     /// - Mainnet prefixes: '4' (standard/integrated), '8' (subaddress)
     /// - Length: 95 (standard/subaddress) or 106 (integrated)
-    /// - Alphabet: Base58 without 0,O,I,l
+    /// - Alphabet: Base58 without 0,O,I,l.
     /// </summary>
     public static class MoneroAddressValidator
     {
@@ -21,6 +21,7 @@ namespace DirectoryManager.Utilities.Validation
         /// <param name="address">Address string (no spaces).</param>
         /// <param name="allowIntegrated">Allow 106-char integrated addresses (default: true).</param>
         /// <param name="allowSubaddress">Allow '8' subaddresses (default: true).</param>
+        /// <returns></returns>
         public static bool IsValid(string? address, bool allowIntegrated = true, bool allowSubaddress = true)
         {
             if (string.IsNullOrWhiteSpace(address))
@@ -64,6 +65,7 @@ namespace DirectoryManager.Utilities.Validation
         /// Placeholder for strict checksum validation (CryptoNote base58 + Keccak).
         /// Keeps the same signature so you can swap it in later.
         /// </summary>
+        /// <returns></returns>
         public static bool IsValidStrict(string? address, bool allowIntegrated = true, bool allowSubaddress = true)
         {
             // For now, just proxy to format-level validation.

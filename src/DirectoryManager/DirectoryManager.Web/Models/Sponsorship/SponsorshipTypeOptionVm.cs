@@ -3,7 +3,6 @@ using DirectoryManager.Web.Controllers;
 
 namespace DirectoryManager.Web.Models.Sponsorship
 {
-
     public class SponsorshipTypeOptionVm
     {
         public SponsorshipType SponsorshipType { get; set; }
@@ -24,6 +23,5 @@ namespace DirectoryManager.Web.Models.Sponsorship
 
         public List<ActiveSponsorSlotVm> ActiveSlots { get; set; } = new ();
         public DateTime? YourActiveUntilUtc { get; set; }
-
     }
 }

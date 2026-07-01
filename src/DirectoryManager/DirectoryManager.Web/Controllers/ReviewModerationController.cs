@@ -115,8 +115,15 @@ namespace DirectoryManager.Web.Controllers
             int pageSize = 50,
             CancellationToken ct = default)
         {
-            if (maxRating < 1) maxRating = 1;
-            if (maxRating > 5) maxRating = 5;
+            if (maxRating < 1)
+            {
+                maxRating = 1;
+            }
+
+            if (maxRating > 5)
+            {
+                maxRating = 5;
+            }
 
             var query = this.repo.Query()
                 .Include(r => r.DirectoryEntry)
@@ -157,8 +164,15 @@ namespace DirectoryManager.Web.Controllers
             int pageSize = 50,
             CancellationToken ct = default)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 50;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 50;
+            }
 
             var query = this.repo.Query()
                 .Include(r => r.DirectoryEntry)
@@ -231,48 +245,48 @@ namespace DirectoryManager.Web.Controllers
         }
 
         // GET /admin/reviews/123/edit
-[HttpGet("{id:int}/edit")]
-public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
-{
-    var review = await this.repo.Query()
-        .Include(r => r.ReviewTags)
-            .ThenInclude(rt => rt.ReviewTag)
-        .FirstOrDefaultAsync(r => r.DirectoryEntryReviewId == id, ct);
-
-    if (review is null)
-    {
-        return this.NotFound();
-    }
-
-    var allTags = await this.reviewTagRepository.ListAllAsync(ct);
-
-    var vm = new EditDirectoryEntryReviewAdminViewModel
-    {
-        DirectoryEntryReviewId = review.DirectoryEntryReviewId,
-        DirectoryEntryId       = review.DirectoryEntryId,
-        Rating                 = review.Rating,
-        Body                   = review.Body ?? string.Empty,
-        OrderProof             = review.OrderUrl ?? review.OrderId,
-        OrderProofContext      = review.OrderProofContext,
-        IsOfficial             = review.IsOfficial,
-        TestedAt               = review.TestedAt,
-        ImageUrl               = review.ImageUrl,
-        SendingTxUrl           = review.SendingTxUrl,
-        ReceivingTxUrl         = review.ReceivingTxUrl,
-        AmlScreenshotUrl       = review.AmlScreenshotUrl,
-        ModerationStatus       = review.ModerationStatus,
-        RejectionReason        = review.RejectionReason,
-        SelectedTagIds         = review.ReviewTags.Select(x => x.ReviewTagId).ToList(),
-        AllTags = allTags.Select(t => new EditDirectoryEntryReviewAdminViewModel.TagOption
+        [HttpGet("{id:int}/edit")]
+        public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
         {
-            Id        = t.ReviewTagId,
-            Name      = t.Name,
-            IsEnabled = t.IsEnabled
-        }).ToList()
-    };
+            var review = await this.repo.Query()
+                .Include(r => r.ReviewTags)
+                    .ThenInclude(rt => rt.ReviewTag)
+                .FirstOrDefaultAsync(r => r.DirectoryEntryReviewId == id, ct);
 
-    return this.View("Edit", vm);
-}
+            if (review is null)
+            {
+                return this.NotFound();
+            }
+
+            var allTags = await this.reviewTagRepository.ListAllAsync(ct);
+
+            var vm = new EditDirectoryEntryReviewAdminViewModel
+            {
+                DirectoryEntryReviewId = review.DirectoryEntryReviewId,
+                DirectoryEntryId = review.DirectoryEntryId,
+                Rating = review.Rating,
+                Body = review.Body ?? string.Empty,
+                OrderProof = review.OrderUrl ?? review.OrderId,
+                OrderProofContext = review.OrderProofContext,
+                IsOfficial = review.IsOfficial,
+                TestedAt = review.TestedAt,
+                ImageUrl = review.ImageUrl,
+                SendingTxUrl = review.SendingTxUrl,
+                ReceivingTxUrl = review.ReceivingTxUrl,
+                AmlScreenshotUrl = review.AmlScreenshotUrl,
+                ModerationStatus = review.ModerationStatus,
+                RejectionReason = review.RejectionReason,
+                SelectedTagIds = review.ReviewTags.Select(x => x.ReviewTagId).ToList(),
+                AllTags = allTags.Select(t => new EditDirectoryEntryReviewAdminViewModel.TagOption
+                {
+                    Id = t.ReviewTagId,
+                    Name = t.Name,
+                    IsEnabled = t.IsEnabled
+                }).ToList()
+            };
+
+            return this.View("Edit", vm);
+        }
 
         // POST /admin/reviews/123/edit
         [HttpPost("{id:int}/edit")]
@@ -286,34 +300,34 @@ public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
             {
                 return this.BadRequest();
             }
-        
+
             if (!this.ModelState.IsValid)
             {
                 // Reload tag options so the view renders correctly on validation error
                 var allTags = await this.reviewTagRepository.ListAllAsync(ct);
                 input.AllTags = allTags.Select(t => new EditDirectoryEntryReviewAdminViewModel.TagOption
                 {
-                    Id        = t.ReviewTagId,
-                    Name      = t.Name,
+                    Id = t.ReviewTagId,
+                    Name = t.Name,
                     IsEnabled = t.IsEnabled
                 }).ToList();
                 return this.View("Edit", input);
             }
-        
+
             var review = await this.repo.GetByIdAsync(id, ct);
             if (review is null)
             {
                 return this.NotFound();
             }
-        
+
             // 🧹 The actual reason we're here: scrub the body
-            review.Body            = (input.Body ?? string.Empty).Trim();
-            review.Rating          = input.Rating;
+            review.Body = (input.Body ?? string.Empty).Trim();
+            review.Rating = input.Rating;
             review.ModerationStatus = input.ModerationStatus;
             review.RejectionReason = string.IsNullOrWhiteSpace(input.RejectionReason)
                 ? string.Empty
                 : input.RejectionReason.Trim();
-        
+
             ApplyOrderProof(review, input.OrderProof);
             review.OrderProofContext = string.IsNullOrWhiteSpace(input.OrderProofContext)
                 ? null
@@ -328,16 +342,16 @@ public async Task<IActionResult> Edit(int id, CancellationToken ct = default)
             review.SendingTxUrl = string.IsNullOrWhiteSpace(input.SendingTxUrl) ? null : input.SendingTxUrl.Trim();
             review.ReceivingTxUrl = string.IsNullOrWhiteSpace(input.ReceivingTxUrl) ? null : input.ReceivingTxUrl.Trim();
             review.AmlScreenshotUrl = string.IsNullOrWhiteSpace(input.AmlScreenshotUrl) ? null : input.AmlScreenshotUrl.Trim();
-        
+
             await this.repo.UpdateAsync(review, ct);
-        
+
             var tagIds = (input.SelectedTagIds ?? new List<int>()).Distinct().ToArray();
             await this.reviewTagLinkRepository.SetTagsForReviewAsync(
                 review.DirectoryEntryReviewId,
                 tagIds,
                 userId: this.User?.Identity?.Name ?? "admin",
                 ct);
-        
+
             this.ClearCachedItems();
             this.TempData["SuccessMessage"] = "Review updated.";
             return this.RedirectToAction(nameof(this.Show), new { id });

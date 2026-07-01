@@ -424,7 +424,6 @@ namespace DirectoryManager.Web.Controllers
         // ---------------------------
         // Admin CRUD
         // ---------------------------
-
         [HttpGet("")]
         public async Task<IActionResult> Index(int page = 1, int pageSize = 50, CancellationToken ct = default)
         {
@@ -536,7 +535,6 @@ namespace DirectoryManager.Web.Controllers
         // =========================
         // Raffle token helpers
         // =========================
-
         internal static string RaffleTokenCacheKey(Guid token) => $"raffle-token:{token}";
 
         private Guid CreateRaffleToken(int reviewId, string fingerprint)
@@ -576,39 +574,63 @@ namespace DirectoryManager.Web.Controllers
         // =========================
         // Challenge code helpers
         // =========================
-
         private static string GenerateChallengeCodeNormalized(int length)
         {
-            if (length < 6) length = 6;
+            if (length < 6)
+            {
+                length = 6;
+            }
+
             Span<char> chars = stackalloc char[length];
             for (var i = 0; i < length; i++)
             {
                 chars[i] = CodeAlphabet[RandomNumberGenerator.GetInt32(CodeAlphabet.Length)];
             }
+
             return new string(chars);
         }
 
         private static string FormatChallengeCodeForHumans(string normalized)
         {
-            if (string.IsNullOrWhiteSpace(normalized) || normalized.Length <= 5) return normalized;
+            if (string.IsNullOrWhiteSpace(normalized) || normalized.Length <= 5)
+            {
+                return normalized;
+            }
+
             return normalized.Substring(0, 5) + "-" + normalized.Substring(5);
         }
 
         private static string NormalizeSubmittedCode(string? input)
         {
-            if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return string.Empty;
+            }
+
             var sb = new StringBuilder(input.Length);
             foreach (var ch in input.Trim().ToUpperInvariant())
             {
-                if (char.IsLetterOrDigit(ch)) sb.Append(ch);
+                if (char.IsLetterOrDigit(ch))
+                {
+                    sb.Append(ch);
+                }
             }
+
             return sb.ToString();
         }
 
         private static bool CodesMatchConstantTime(string submitted, string expected)
         {
-            if (string.IsNullOrEmpty(submitted) || string.IsNullOrEmpty(expected)) return false;
-            if (submitted.Length != expected.Length) return false;
+            if (string.IsNullOrEmpty(submitted) || string.IsNullOrEmpty(expected))
+            {
+                return false;
+            }
+
+            if (submitted.Length != expected.Length)
+            {
+                return false;
+            }
+
             var a = Encoding.UTF8.GetBytes(submitted);
             var b = Encoding.UTF8.GetBytes(expected);
             return CryptographicOperations.FixedTimeEquals(a, b);
@@ -617,7 +639,6 @@ namespace DirectoryManager.Web.Controllers
         // =========================
         // Flow helpers
         // =========================
-
         private static string CacheKey(Guid flowId) => $"review-flow:{flowId}";
 
         /// <summary>

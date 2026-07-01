@@ -85,9 +85,11 @@ namespace DirectoryManager.Web.Controllers
                 await writer.FlushAsync().ConfigureAwait(false);
             }
             catch (OperationCanceledException)
-            { /* client canceled */ }
+            { /* client canceled */
+            }
             catch (IOException)
-            { /* broken pipe */ }
+            { /* broken pipe */
+            }
 
             return new EmptyResult();
         }

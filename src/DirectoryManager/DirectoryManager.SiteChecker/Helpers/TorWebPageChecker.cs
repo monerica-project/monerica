@@ -178,6 +178,7 @@ namespace DirectoryManager.SiteChecker.Helpers
             catch (HttpRequestException hre) when (hre.StatusCode == HttpStatusCode.MethodNotAllowed)
             {
                 headSw.Stop();
+
                 // fall through to GET
             }
             catch (TaskCanceledException)

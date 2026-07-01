@@ -135,7 +135,6 @@ public class CountriesController : Controller
     // -------------------------
     // Helpers (same pattern as Category/Tag)
     // -------------------------
-
     private async Task<HashSet<int>> GetAllSponsoredEntryIdsAsync()
     {
         const string cacheKey = StringConstants.CacheKeyAllActiveSponsors;

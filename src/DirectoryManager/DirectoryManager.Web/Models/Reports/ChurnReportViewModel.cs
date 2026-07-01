@@ -3,7 +3,6 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 
 namespace DirectoryManager.Web.Models.Reports
 {
-
     /// <summary>
     /// View model for the churn report page.
     /// </summary>

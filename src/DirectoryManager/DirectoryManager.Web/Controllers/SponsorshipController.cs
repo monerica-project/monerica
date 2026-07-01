@@ -96,7 +96,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View("Index", vm);
         }
 
-   
         [HttpGet("/sponsor-options")]
         [HttpGet("sponsorship/lookup")]
         public async Task<IActionResult> Lookup(string? q, int page = 1)
@@ -953,7 +952,8 @@ namespace DirectoryManager.Web.Controllers
                         };
                     })
                     .OrderByDescending(x => x.JoinedUtc)
-                    .ThenBy(x => x.ListingName,
+                    .ThenBy(
+                        x => x.ListingName,
                         StringComparer.OrdinalIgnoreCase)
                     .ToList();
             }
@@ -1028,7 +1028,8 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return sections
-                .OrderBy(x => x.ScopeLabel,
+                .OrderBy(
+                    x => x.ScopeLabel,
                     StringComparer.OrdinalIgnoreCase)
                 .ToList();
         }
@@ -1044,7 +1045,8 @@ namespace DirectoryManager.Web.Controllers
             return active
                 .Where(x => x.CampaignEndDate > now)
                 .OrderBy(x => x.CampaignEndDate)
-                .ThenBy(x => x.DirectoryEntry?.Name,
+                .ThenBy(
+                    x => x.DirectoryEntry?.Name,
                     StringComparer.OrdinalIgnoreCase)
                 .Select(x => new CurrentSponsorItemVm
                 {
@@ -1175,7 +1177,7 @@ namespace DirectoryManager.Web.Controllers
         SponsorshipType.MainSponsor,
         SponsorshipType.CategorySponsor,
         SponsorshipType.SubcategorySponsor,
-    };
+            };
 
             var summaries = new List<SponsorshipPricingSummaryVm>();
 
@@ -1184,11 +1186,15 @@ namespace DirectoryManager.Web.Controllers
                 var offers = await this.offerRepo.GetAllByTypeAsync(type);
 
                 if (offers == null || !offers.Any())
+                {
                     continue;
+                }
 
                 var validOffers = offers.Where(o => o.Days > 0).ToList();
                 if (!validOffers.Any())
+                {
                     continue;
+                }
 
                 var perDay = validOffers
                     .Select(o => Math.Round(o.Price / o.Days, 2))
@@ -1209,7 +1215,6 @@ namespace DirectoryManager.Web.Controllers
 
             return summaries;
         }
-
 
         private async Task<List<T>> MapWaitlistDtosAsync<T>(
             IEnumerable<WaitlistItemDto> dtos,

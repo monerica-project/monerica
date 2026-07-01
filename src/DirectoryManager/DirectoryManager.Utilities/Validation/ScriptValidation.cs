@@ -37,6 +37,7 @@ namespace DirectoryManager.Utilities.Validation
         /// Original narrow check: presence of a literal &lt;script&gt; tag
         /// (including HTML-encoded variants). Retained for back-compat.
         /// </summary>
+        /// <returns></returns>
         public static bool ContainsScriptTag(string? input)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -60,6 +61,7 @@ namespace DirectoryManager.Utilities.Validation
         /// dangerous tags (e.g. &lt;img&gt;, &lt;/textarea&gt;, &lt;svg&gt;),
         /// inline event handlers (onerror=, onload=...), and javascript:/data: URIs.
         /// </summary>
+        /// <returns></returns>
         public static bool ContainsSuspiciousMarkup(string? input)
         {
             if (string.IsNullOrWhiteSpace(input))

@@ -1,7 +1,5 @@
-﻿
-namespace DirectoryManager.Web.Models
+﻿namespace DirectoryManager.Web.Models
 {
-
     public class TagEditViewModel
     {
         public int TagId { get; set; }

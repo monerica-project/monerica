@@ -419,8 +419,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return;
             }
             else
+            {
+                existing.DirectoryEntryId = directoryEntryId;
+            }
 
-            existing.DirectoryEntryId = directoryEntryId;
             existing.TypeId = scopeTypeId;
             existing.SubscribedDate = nowUtc;
             existing.UpdateDate = nowUtc;

@@ -1,9 +1,9 @@
-﻿using DirectoryManager.Data.Models.Reviews;
+﻿using System.Text.RegularExpressions;
+using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Text.RegularExpressions;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -60,7 +60,11 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Edit(int id, CancellationToken ct)
         {
             var tag = await this.repo.GetByIdAsync(id, ct);
-            if (tag is null) return this.NotFound();
+            if (tag is null)
+            {
+                return this.NotFound();
+            }
+
             return this.View(tag);
         }
 
@@ -68,7 +72,10 @@ namespace DirectoryManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, ReviewTag model, CancellationToken ct)
         {
-            if (id != model.ReviewTagId) return this.BadRequest();
+            if (id != model.ReviewTagId)
+            {
+                return this.BadRequest();
+            }
 
             NormalizeTag(model);
 
@@ -113,7 +120,9 @@ namespace DirectoryManager.Web.Controllers
 
             // Normalize description too (optional)
             if (!string.IsNullOrWhiteSpace(model.Description))
+            {
                 model.Description = model.Description.Trim();
+            }
         }
 
         private static string Slugify(string s)

@@ -137,7 +137,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync(ct);
         }
 
-
         public async Task<List<DirectoryEntryReviewRaffleEntry>> ListByRaffleAsync(
             int raffleId,
             int page = 1,
@@ -166,6 +165,5 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public Task<int> CountByRaffleAsync(int raffleId, CancellationToken ct = default) =>
             this.Set.Where(x => x.RaffleId == raffleId).CountAsync(ct);
-
     }
 }

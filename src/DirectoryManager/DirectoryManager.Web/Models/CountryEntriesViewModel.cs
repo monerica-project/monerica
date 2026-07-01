@@ -3,7 +3,6 @@ using DirectoryManager.DisplayFormatting.Models;
 
 namespace DirectoryManager.Web.Models
 {
-
     public class CountryEntriesViewModel
     {
         public string CountryCode { get; set; } = "";

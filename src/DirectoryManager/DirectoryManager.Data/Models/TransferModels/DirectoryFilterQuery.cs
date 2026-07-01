@@ -1,4 +1,4 @@
-﻿﻿using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 
 namespace DirectoryManager.Data.Models.TransferModels
 {

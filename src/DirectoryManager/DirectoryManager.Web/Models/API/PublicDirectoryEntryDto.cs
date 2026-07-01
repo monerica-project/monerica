@@ -19,7 +19,7 @@ namespace DirectoryManager.Web.Models.API
     ///
     /// Judgment calls (safe to remove if you want a leaner feed):
     ///   - PgpKey                   (a PUBLIC key, already published on each listing)
-    ///   - CreateDate / UpdateDate  (already shown on the site)
+    ///   - CreateDate / UpdateDate  (already shown on the site).
     /// </summary>
     public sealed class PublicDirectoryEntryDto
     {

@@ -6,6 +6,7 @@
         /// Returns the domain registration (creation) date for the URL's registrable domain.
         /// Returns null for onion/i2p links, IP hosts, invalid URLs, or if the date cannot be determined.
         /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task<DateOnly?> GetDomainRegistrationDateAsync(string url, CancellationToken ct = default);
     }
 }

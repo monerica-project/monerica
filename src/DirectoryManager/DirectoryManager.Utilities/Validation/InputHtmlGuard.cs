@@ -26,6 +26,7 @@ namespace DirectoryManager.Utilities.Validation
         /// scripting (script tags, on* handlers, javascript:/data: URIs).
         /// Null/whitespace is considered clean.
         /// </summary>
+        /// <returns></returns>
         public static bool ContainsMarkup(string? input)
         {
             return HtmlValidation.ContainsHtmlTag(input)
@@ -39,6 +40,7 @@ namespace DirectoryManager.Utilities.Validation
         /// are skipped. The result's member name is the property name so the message renders
         /// next to the field (asp-validation-for) and in the validation summary.
         /// </summary>
+        /// <returns></returns>
         public static IEnumerable<ValidationResult> Validate(object? model)
         {
             if (model is null)

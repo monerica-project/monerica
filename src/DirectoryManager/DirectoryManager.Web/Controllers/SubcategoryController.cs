@@ -49,7 +49,6 @@ namespace DirectoryManager.Web.Controllers
             this.reviewRepository = reviewRepository;
         }
 
-
         [Route("subcategory/index")]
         [HttpGet]
         public async Task<IActionResult> Index(int? categoryId = null)
@@ -167,7 +166,10 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var subCategory = await this.subcategoryRepository.GetByCategoryIdAndKeyAsync(category.CategoryId, subCategoryKey);
-            if (subCategory == null) return this.NotFound();
+            if (subCategory == null)
+            {
+                return this.NotFound();
+            }
 
             var paged = await this.directoryEntryRepository.GetActiveEntriesBySubcategoryPagedAsync(
                 subCategory.SubCategoryId, page, PageSize);

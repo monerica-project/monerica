@@ -70,98 +70,98 @@ namespace DirectoryManager.Web.Services.Implementations
         public string BaseUrl => (this.IsTor || this.IsLocal) ? string.Empty : this.CanonicalDomain;
 
         public string ResolveToApp(string path)
-{
-    if (string.IsNullOrWhiteSpace(path))
-    {
-        return string.Empty;
-    }
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return string.Empty;
+            }
 
-    // FIX: only treat as absolute if scheme is http/https.
-    // On Linux, "/foo/bar" parses as a valid absolute file:// URI.
-    if (Uri.TryCreate(path, UriKind.Absolute, out var abs) &&
-        (abs.Scheme == Uri.UriSchemeHttp || abs.Scheme == Uri.UriSchemeHttps))
-    {
-        return path;
-    }
+            // FIX: only treat as absolute if scheme is http/https.
+            // On Linux, "/foo/bar" parses as a valid absolute file:// URI.
+            if (Uri.TryCreate(path, UriKind.Absolute, out var abs) &&
+                (abs.Scheme == Uri.UriSchemeHttp || abs.Scheme == Uri.UriSchemeHttps))
+            {
+                return path;
+            }
 
-    if (!path.StartsWith("/"))
-    {
-        path = "/" + path;
-    }
+            if (!path.StartsWith("/"))
+            {
+                path = "/" + path;
+            }
 
-    if (this.IsTor || this.IsLocal)
-    {
-        return path;
-    }
+            if (this.IsTor || this.IsLocal)
+            {
+                return path;
+            }
 
-    if (string.IsNullOrEmpty(this.AppDomain))
-    {
-        return path;
-    }
+            if (string.IsNullOrEmpty(this.AppDomain))
+            {
+                return path;
+            }
 
-    return $"{this.AppDomain}{path}";
-}
+            return $"{this.AppDomain}{path}";
+        }
 
-public string ResolveToRoot(string path)
-{
-    if (string.IsNullOrWhiteSpace(path))
-    {
-        return string.Empty;
-    }
+        public string ResolveToRoot(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path))
+            {
+                return string.Empty;
+            }
 
-    if (path == "~/")
-    {
-        path = "/";
-    }
+            if (path == "~/")
+            {
+                path = "/";
+            }
 
-    // FIX: same scheme guard.
-    if (Uri.TryCreate(path, UriKind.Absolute, out var abs) &&
-        (abs.Scheme == Uri.UriSchemeHttp || abs.Scheme == Uri.UriSchemeHttps))
-    {
-        return path;
-    }
+            // FIX: same scheme guard.
+            if (Uri.TryCreate(path, UriKind.Absolute, out var abs) &&
+                (abs.Scheme == Uri.UriSchemeHttp || abs.Scheme == Uri.UriSchemeHttps))
+            {
+                return path;
+            }
 
-    path = "/" + path.Trim('/');
+            path = "/" + path.Trim('/');
 
-    if (this.IsTor || this.IsLocal)
-    {
-        return path;
-    }
+            if (this.IsTor || this.IsLocal)
+            {
+                return path;
+            }
 
-    return string.IsNullOrEmpty(this.CanonicalDomain) ? path : $"{this.CanonicalDomain}{path}";
-}
+            return string.IsNullOrEmpty(this.CanonicalDomain) ? path : $"{this.CanonicalDomain}{path}";
+        }
 
-public string ExtractPathFromFullUrl(string url)
-{
-    if (string.IsNullOrWhiteSpace(url))
-    {
-        return string.Empty;
-    }
+        public string ExtractPathFromFullUrl(string url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                return string.Empty;
+            }
 
-    // FIX: same scheme guard.
-    if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
-        (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
-    {
-        return "/" + url.TrimStart('/');
-    }
+            // FIX: same scheme guard.
+            if (!Uri.TryCreate(url, UriKind.Absolute, out var uri) ||
+                (uri.Scheme != Uri.UriSchemeHttp && uri.Scheme != Uri.UriSchemeHttps))
+            {
+                return "/" + url.TrimStart('/');
+            }
 
-    var domains = new[]
-    {
+            var domains = new[]
+            {
         this.AppDomain,
         this.CanonicalDomain
-    }
-    .Where(d => !string.IsNullOrEmpty(d))
-    .Select(d => d.Replace("https://", string.Empty)
-                  .Replace("http://", string.Empty)
-                  .TrimEnd('/'))
-    .ToList();
+            }
+            .Where(d => !string.IsNullOrEmpty(d))
+            .Select(d => d.Replace("https://", string.Empty)
+                          .Replace("http://", string.Empty)
+                          .TrimEnd('/'))
+            .ToList();
 
-    if (domains.Any(d => uri.Host.Equals(d, StringComparison.OrdinalIgnoreCase)))
-    {
-        return uri.AbsolutePath;
-    }
+            if (domains.Any(d => uri.Host.Equals(d, StringComparison.OrdinalIgnoreCase)))
+            {
+                return uri.AbsolutePath;
+            }
 
-    return url;
-}
+            return url;
+        }
     }
 }

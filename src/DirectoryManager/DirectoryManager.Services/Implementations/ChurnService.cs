@@ -29,6 +29,7 @@ namespace DirectoryManager.Web.Services.Implementations
         /// Start cohort = advertisers active on StartUtc (had any paid day covering StartUtc).
         /// ChurnedFromStartCohort = start-cohort advertisers that are NOT active on EndUtc.
         /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task<ChurnWindowResult> GetChurnAsync(
             ChurnWindowRequest request,
             CancellationToken ct = default)

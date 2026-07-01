@@ -87,7 +87,6 @@ namespace DirectoryManager.Web.Services.Implementations
                 descriptionBuilder.Append(" - Processor: ").Append(entry.Processor);
             }
 
-
             return descriptionBuilder.ToString();
         }
     }

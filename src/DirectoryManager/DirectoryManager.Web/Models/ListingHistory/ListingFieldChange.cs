@@ -1,6 +1,5 @@
 namespace DirectoryManager.Web.Models.ListingHistory
 {
-
     public sealed class ListingFieldChange
     {
         public string Field { get; set; } = string.Empty;

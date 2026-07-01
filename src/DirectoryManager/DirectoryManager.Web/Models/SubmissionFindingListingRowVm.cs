@@ -2,7 +2,6 @@
 
 namespace DirectoryManager.Web.Models.Submissions
 {
-
     public class SubmissionFindingListingRowVm
     {
         public int DirectoryEntryId { get; set; }

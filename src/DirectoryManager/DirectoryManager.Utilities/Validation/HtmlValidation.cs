@@ -16,6 +16,7 @@ namespace DirectoryManager.Utilities.Validation
         /// <summary>
         /// Checks a raw string for the presence of an HTML tag (including HTML-encoded variants).
         /// </summary>
+        /// <returns></returns>
         public static bool ContainsHtmlTag(string? input)
         {
             if (string.IsNullOrWhiteSpace(input))
@@ -33,6 +34,7 @@ namespace DirectoryManager.Utilities.Validation
         /// Checks an object. If it's a string, checks the string. Otherwise scans all public string properties.
         /// Also walks simple IEnumerable collections.
         /// </summary>
+        /// <returns></returns>
         public static bool ContainsHtmlTag(object? obj)
         {
             if (obj is null)

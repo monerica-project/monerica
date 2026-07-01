@@ -85,8 +85,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 {
                     EntryId = g.Key,
                     Last = g.Max()
-                }
-            ).ToDictionaryAsync(x => x.EntryId, x => x.Last, ct);
+                })
+            .ToDictionaryAsync(x => x.EntryId, x => x.Last, ct);
         }
 
         // ---------------------------
@@ -125,8 +125,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<List<DirectoryEntryReviewComment>> ListAsync(
             int page = 1, int pageSize = 50, CancellationToken ct = default)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 50;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 50;
+            }
 
             return await this.Set.AsNoTracking()
                 .OrderByDescending(x => x.UpdateDate ?? x.CreateDate)
@@ -156,8 +163,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<List<DirectoryEntryReviewComment>> ListApprovedForReviewAsync(
             int directoryEntryReviewId, int page, int pageSize, CancellationToken ct = default)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 25;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 25;
+            }
 
             var q = ApplyThreadOrder(this.ApprovedForReviewQuery(directoryEntryReviewId));
 
@@ -189,8 +203,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<List<DirectoryEntryReviewComment>> ListByStatusAsync(
             ReviewModerationStatus status, int page = 1, int pageSize = 50, CancellationToken ct = default)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 50;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 50;
+            }
 
             return await this.Set.AsNoTracking()
                 .Where(c => c.ModerationStatus == status)
@@ -251,8 +272,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                  && (
                                      x.CreateDate < c.CreateDate
                                      || (x.CreateDate == c.CreateDate
-                                         && x.DirectoryEntryReviewCommentId <= c.DirectoryEntryReviewCommentId)
-                                 ))
+                                         && x.DirectoryEntryReviewCommentId <= c.DirectoryEntryReviewCommentId)))
                         .Count()
                 })
                 .ToListAsync(ct);
@@ -262,7 +282,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
             foreach (var row in rows)
             {
                 int page = (int)Math.Ceiling(row.Position / (double)pageSize);
-                if (page < 1) page = 1;
+                if (page < 1)
+                {
+                    page = 1;
+                }
 
                 result[row.DirectoryEntryReviewCommentId] = page;
             }
@@ -336,8 +359,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                       && e.DirectoryStatus != DirectoryStatus.Removed
                       && !string.IsNullOrWhiteSpace(c.AuthorFingerprint)
                 group c by c.AuthorFingerprint.Trim() into g
-                select new { Fingerprint = g.Key, Count = g.Count() }
-            ).ToListAsync(ct);
+                select new { Fingerprint = g.Key, Count = g.Count() })
+            .ToListAsync(ct);
 
             return rows.ToDictionary(
                 x => x.Fingerprint,

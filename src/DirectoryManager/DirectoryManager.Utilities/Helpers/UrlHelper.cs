@@ -33,6 +33,7 @@ namespace DirectoryManager.Web.Helpers
         /// hidden service. The main directory Link must be clearnet; hidden-service
         /// addresses belong in the alternate link fields.
         /// </summary>
+        /// <returns></returns>
         public static bool IsOnionOrI2p(string? url)
         {
             if (string.IsNullOrWhiteSpace(url))

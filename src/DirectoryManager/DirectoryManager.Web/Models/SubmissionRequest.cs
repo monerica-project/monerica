@@ -46,7 +46,6 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Video Link", Prompt = "Video link of using the site")]
         public string? VideoLink { get; set; }
 
-
         [MaxLength(255)]
         [Display(Name = "Email", Prompt = "contact@example.com")]
         [CleanSingleLine]

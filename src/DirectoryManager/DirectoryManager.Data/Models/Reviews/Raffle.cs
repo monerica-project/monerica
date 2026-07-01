@@ -34,6 +34,5 @@ namespace DirectoryManager.Data.Models.Reviews
 
         public ICollection<DirectoryEntryReviewRaffleEntry> Entries { get; set; }
             = new List<DirectoryEntryReviewRaffleEntry>();
-
     }
 }

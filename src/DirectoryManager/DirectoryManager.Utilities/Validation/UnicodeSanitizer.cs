@@ -20,6 +20,7 @@ namespace DirectoryManager.Utilities.Validation
         /// Clean a single-line value (names, titles, link display text). Line breaks and
         /// tabs are converted to spaces and runs of whitespace are collapsed.
         /// </summary>
+        /// <returns></returns>
         public static string CleanSingleLine(string? input)
             => Clean(input, allowLineBreaks: false);
 
@@ -27,6 +28,7 @@ namespace DirectoryManager.Utilities.Validation
         /// Clean a multi-line value (review/reply bodies, notes). Line breaks are preserved
         /// but normalized to "\n"; trailing whitespace on each line is trimmed.
         /// </summary>
+        /// <returns></returns>
         public static string CleanMultiLine(string? input)
             => Clean(input, allowLineBreaks: true);
 
@@ -76,7 +78,7 @@ namespace DirectoryManager.Utilities.Validation
                     // (U+00AD), the Arabic letter mark (U+061C), etc.
                     case UnicodeCategory.Control:
                     case UnicodeCategory.Format:
-                    case UnicodeCategory.Surrogate:        // unpaired surrogates
+                    case UnicodeCategory.Surrogate: // unpaired surrogates
                     case UnicodeCategory.PrivateUse:
                     case UnicodeCategory.OtherNotAssigned: // unassigned / noncharacters
                         continue;
@@ -115,6 +117,7 @@ namespace DirectoryManager.Utilities.Validation
         /// True if the string still contains any of the characters this sanitizer removes.
         /// Useful for asserting in tests or for "was this tampered with?" checks.
         /// </summary>
+        /// <returns></returns>
         public static bool ContainsSuspectCharacters(string? input)
         {
             if (string.IsNullOrEmpty(input))

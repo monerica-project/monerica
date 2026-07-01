@@ -1,6 +1,7 @@
 ﻿using System.Globalization;
 using System.Text;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Models;
 using DirectoryManager.Web.Charting;
@@ -13,9 +14,8 @@ using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.Net.Http.Headers;
 using Microsoft.Extensions.Logging;
-using DirectoryManager.Data.Models.SponsoredListings;
+using Microsoft.Net.Http.Headers;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -731,7 +731,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View("Churn", vm);
         }
 
-
         // --- Subcategory Revenue Pie ---
         [AllowAnonymous]
         [HttpGet("sponsoredlistinginvoice/subcategory-revenue-pie")]
@@ -838,7 +837,6 @@ namespace DirectoryManager.Web.Controllers
         }
 
         // ===================== Income Forecast =====================
-
         [Route("sponsoredlistinginvoice/forecast")]
         [HttpGet]
         public async Task<IActionResult> Forecast(
@@ -1235,9 +1233,11 @@ namespace DirectoryManager.Web.Controllers
                 await writer.FlushAsync();
             }
             catch (OperationCanceledException)
-            { /* client canceled */ }
+            { /* client canceled */
+            }
             catch (IOException)
-            { /* broken pipe */ }
+            { /* broken pipe */
+            }
 
             return new EmptyResult();
         }
@@ -1442,6 +1442,7 @@ namespace DirectoryManager.Web.Controllers
             for (int i = 1; i < ivals.Count; i++)
             {
                 var (s, e) = ivals[i];
+
                 // Merge if touching or overlapping (inclusive days)
                 if (s <= curE.AddDays(1))
                 {

@@ -56,8 +56,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<List<DirectoryEntryReview>> ListAsync(int page = 1, int pageSize = 50, CancellationToken ct = default)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 50;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 50;
+            }
 
             return await this.Set.AsNoTracking()
                 .OrderByDescending(x => x.CreateDate)
@@ -88,7 +95,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var existing = await this.Set.FindAsync(new object[] { id }, ct);
-            if (existing is null) return;
+            if (existing is null)
+            {
+                return;
+            }
 
             this.Set.Remove(existing);
             await this.context.SaveChangesAsync(ct);
@@ -105,8 +115,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
             int pageSize,
             CancellationToken ct)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 10;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 10;
+            }
 
             IQueryable<DirectoryEntryReview> q = this.ApprovedForEntryQuery(directoryEntryId)
                 .Include(r => r.ReviewTags)
@@ -154,7 +171,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                          && r.Rating.HasValue)
                 .Select(r => (double)r.Rating!.Value);
 
-            if (!await q.AnyAsync(ct)) return null;
+            if (!await q.AnyAsync(ct))
+            {
+                return null;
+            }
 
             return await q.AverageAsync(ct);
         }
@@ -192,8 +212,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<List<DirectoryEntryReview>> ListByAuthorFingerprintAsync(
             string fingerprint, int page, int pageSize, CancellationToken ct = default)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 25;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 25;
+            }
 
             fingerprint = (fingerprint ?? string.Empty).Trim();
 
@@ -294,7 +321,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             if (ids.Count == 0)
             {
-                return [];
+                return new Dictionary<int, int>();
             }
 
             if (pageSize < 1)
@@ -318,12 +345,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         .Where(x => x.DirectoryEntryId == r.DirectoryEntryId
                                  && x.ModerationStatus == ReviewModerationStatus.Approved
                                  && (
+
                                      // x comes before r if it has a later CreateDate
                                      x.CreateDate > r.CreateDate
+
                                      // or same CreateDate but higher/equal ReviewId (DESC id)
                                      || (x.CreateDate == r.CreateDate
-                                         && x.DirectoryEntryReviewId >= r.DirectoryEntryReviewId)
-                                 ))
+                                         && x.DirectoryEntryReviewId >= r.DirectoryEntryReviewId)))
                         .Count()
                 })
                 .ToListAsync(ct);

@@ -1,8 +1,8 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using System.ComponentModel.DataAnnotations;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using System.ComponentModel.DataAnnotations;
 
 namespace DirectoryManager.Web.Models.AffiliateCommissionPaid
 {

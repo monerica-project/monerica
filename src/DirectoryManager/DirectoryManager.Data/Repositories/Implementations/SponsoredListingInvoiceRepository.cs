@@ -177,7 +177,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Where(e => e.PaymentStatus == Enums.PaymentStatus.Paid)
                 .Max(e => (DateTime?)e.CreateDate);
         }
-        
+
         public DateTime? GetLastPendingInvoiceCreateDate()
         {
             return this.context.SponsoredListingInvoices

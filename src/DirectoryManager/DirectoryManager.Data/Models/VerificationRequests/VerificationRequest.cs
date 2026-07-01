@@ -25,6 +25,5 @@ namespace DirectoryManager.Data.Models.VerificationRequests
         // Abuse signal without storing raw IP: HMAC(IP) hex.
         [MaxLength(64)]
         public string? SourceIpHash { get; set; }
-
     }
 }

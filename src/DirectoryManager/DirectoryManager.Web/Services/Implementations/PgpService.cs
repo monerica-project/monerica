@@ -1,4 +1,4 @@
-﻿﻿using System.Text;
+﻿using System.Text;
 using Org.BouncyCastle.Bcpg;
 using Org.BouncyCastle.Bcpg.OpenPgp;
 using Org.BouncyCastle.Bcpg.Sig;

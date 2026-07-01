@@ -1,6 +1,5 @@
 namespace DirectoryManager.Web.Models.ListingHistory
 {
-
     public sealed class ListingHistoryRevision
     {
         public DateTime TimestampUtc { get; set; }

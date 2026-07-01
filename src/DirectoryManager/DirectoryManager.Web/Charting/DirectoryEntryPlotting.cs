@@ -1,4 +1,4 @@
-﻿﻿using System.Globalization;
+﻿using System.Globalization;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Utilities.Helpers;
@@ -229,10 +229,10 @@ namespace DirectoryManager.Web.Charting
                     };
                 })
                 .Where(x => x.Total >= Math.Max(1, minListings))
-                .OrderByDescending(x => x.Total)          // most listings first
-                .ThenByDescending(x => x.ScamPct)         // tiebreak: most scams
+                .OrderByDescending(x => x.Total) // most listings first
+                .ThenByDescending(x => x.ScamPct) // tiebreak: most scams
                 .ThenByDescending(x => x.QuestionablePct) // then least trustworthy
-                .ThenBy(x => x.Label)                     // stable, alphabetical
+                .ThenBy(x => x.Label) // stable, alphabetical
                 .ToList();
 
             if (byCountry.Count == 0)
@@ -406,7 +406,7 @@ namespace DirectoryManager.Web.Charting
         {
             if (entries is null || !entries.Any())
             {
-                return [];
+                return Array.Empty<byte>();
             }
 
             // CategoryId -> Display label (prefer Name, fall back to CategoryKey)

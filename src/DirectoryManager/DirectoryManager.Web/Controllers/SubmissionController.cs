@@ -109,7 +109,6 @@ namespace DirectoryManager.Web.Controllers
             // a wrong answer never discards the changes the user entered on this page.
 
             // ---- Validate URLs ----
-
             if (!UrlHelper.IsValidUrl(model.Link ?? string.Empty))
             {
                 this.ModelState.AddModelError(nameof(model.Link), "The link is not a valid URL.");
@@ -166,7 +165,6 @@ namespace DirectoryManager.Web.Controllers
             }
 
             // ---- Spam / block checks ----
-
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
 
             if (this.blockedIPRepository.IsBlockedIp(ipAddress))
@@ -175,7 +173,6 @@ namespace DirectoryManager.Web.Controllers
             }
 
             // ---- Persist checkbox selections into CSV (no JS required) ----
-
             model.SelectedTagIds = model.SelectedTagIds
                 .Where(id => id > 0)
                 .Distinct()
@@ -191,7 +188,6 @@ namespace DirectoryManager.Web.Controllers
             }
 
             // ---- If invalid, reload dropdowns + tag list and return to SubmitEdit ----
-
             if (!this.ModelState.IsValid)
             {
                 await this.LoadDropDowns(model.Processor, CancellationToken.None);
@@ -262,7 +258,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View("SubmitEdit", model);
         }
 
-
         [AllowAnonymous]
         [HttpGet("submission/findexisting")]
         public async Task<IActionResult> FindExisting(int? subCategoryId = null)
@@ -325,7 +320,10 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Index(int? page, int pageSize = Constants.IntegerConstants.DefaultPageSize)
         {
             int pageNumber = page ?? 1;
-            if (pageNumber < 1) pageNumber = 1;
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
 
             var submissions = await this.submissionRepository.GetAllAsync();
 
@@ -357,7 +355,10 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Pending(int? page, int pageSize = Constants.IntegerConstants.DefaultPageSize)
         {
             int pageNumber = page ?? 1;
-            if (pageNumber < 1) pageNumber = 1;
+            if (pageNumber < 1)
+            {
+                pageNumber = 1;
+            }
 
             var submissions = await this.submissionRepository.GetAllAsync();
 
@@ -579,7 +580,6 @@ namespace DirectoryManager.Web.Controllers
             return this.View("Success");
         }
 
-
         [AllowAnonymous]
         [HttpGet("submission/findinglisting")]
         public async Task<IActionResult> FindingListing(string? q, int? page, int pageSize = 25)
@@ -587,7 +587,10 @@ namespace DirectoryManager.Web.Controllers
             var term = (q ?? string.Empty).Trim();
 
             int p = page.GetValueOrDefault(1);
-            if (p < 1) p = 1;
+            if (p < 1)
+            {
+                p = 1;
+            }
 
             pageSize = Math.Clamp(pageSize, 10, 50);
 
@@ -771,6 +774,7 @@ namespace DirectoryManager.Web.Controllers
                 .Distinct()
                 .ToList();
         }
+
         private static List<string> NormalizeLinks(IEnumerable<string?>? links, int max)
         {
             return (links ?? Array.Empty<string?>())
@@ -824,7 +828,6 @@ namespace DirectoryManager.Web.Controllers
                 FoundedYear = directoryEntry.FoundedDate?.Year.ToString("0000"),
                 FoundedMonth = directoryEntry.FoundedDate?.Month.ToString("00"),
                 FoundedDay = directoryEntry.FoundedDate?.Day.ToString("00"),
-
             };
         }
 
@@ -861,7 +864,6 @@ namespace DirectoryManager.Web.Controllers
                 FoundedYear = submission.FoundedDate?.Year.ToString("0000"),
                 FoundedMonth = submission.FoundedDate?.Month.ToString("00"),
                 FoundedDay = submission.FoundedDate?.Day.ToString("00"),
-
             };
         }
 
@@ -945,7 +947,7 @@ namespace DirectoryManager.Web.Controllers
                     Link3Name = link3Name,
                     Link = submission.Link,
                     Name = submission.Name,
-                        Email = submission.Email,
+                    Email = submission.Email,
                     Messenger = submission.Messenger,
                     Social = submission.Social,
                     Description = submission.Description,
@@ -1033,6 +1035,7 @@ namespace DirectoryManager.Web.Controllers
                     id = submissionId
                 });
         }
+
         private async Task SyncAdditionalLinksAsync(int directoryEntryId, List<string> relatedLinks, CancellationToken ct)
         {
             // normalize again (defensive)
@@ -1076,7 +1079,6 @@ namespace DirectoryManager.Web.Controllers
             // }
         }
 
-
         private async Task PopulateCountryDropDownList(object? selectedId = null)
         {
             // Get the dictionary of countries from the helper.
@@ -1099,6 +1101,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.CountryCode = new SelectList(list, "Value", "Text", selectedId);
             await Task.CompletedTask; // For async signature compliance.
         }
+
         /* =========================================================
    Helpers (keep in SubmissionController)
    ========================================================= */
@@ -1212,6 +1215,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 // keep same behavior you had
                 throw new Exception("Submission does not have a subcategory");
+
                 // or: return this.BadRequest(new { Error = "Submission does not have a subcategory" });
             }
 
@@ -1259,6 +1263,7 @@ namespace DirectoryManager.Web.Controllers
                 await this.entryTagRepo.AssignTagAsync(entryId, newId);
             }
         }
+
         private async Task AssignExistingProperties(Submission submissionModel, int existingDirectoryEntryId)
         {
             var existingDirectoryEntry = await this.directoryEntryRepository.GetByIdAsync(existingDirectoryEntryId);
@@ -1309,7 +1314,6 @@ namespace DirectoryManager.Web.Controllers
                     ProofLink = model.ProofLink?.Trim(),
                     VideoLink = model.VideoLink?.Trim(),
                     FoundedDate = model.FoundedDate,
-
                 });
         }
 
@@ -1416,7 +1420,6 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.SubCategories = subCategories;
         }
 
-
         private async Task UpdateSubmission(Submission submissionModel, Submission existingSubmission)
         {
             existingSubmission.SubmissionStatus = submissionModel.SubmissionStatus;
@@ -1497,8 +1500,6 @@ namespace DirectoryManager.Web.Controllers
                 .ToList();
         }
 
-      
-
         private async Task<bool> HasChangesAsync(SubmissionRequest model)
         {
             if (model.DirectoryEntryId == null)
@@ -1534,7 +1535,6 @@ namespace DirectoryManager.Web.Controllers
             {
                 return (s ?? string.Empty).Trim();
             }
-
 
             if (!string.Equals(Norm(existingEntry.Email), Norm(model.Email), StringComparison.Ordinal))
             {
@@ -1643,7 +1643,6 @@ namespace DirectoryManager.Web.Controllers
             }
 
             // ----- Submission-only fields (not on DirectoryEntry) -----
-
             var incomingRelated = NormalizeLinks(
                 new[] { model.RelatedLink1, model.RelatedLink2, model.RelatedLink3 },
                 MaxLinks);

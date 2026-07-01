@@ -1,4 +1,6 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using System.Security.Cryptography;
+using System.Text;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -10,8 +12,6 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -362,11 +362,21 @@ namespace DirectoryManager.Web.Controllers
             int total = await q.CountAsync(ct);
 
             int totalPages = (int)Math.Ceiling(total / (double)pageSize);
-            if (totalPages < 1) totalPages = 1;
+            if (totalPages < 1)
+            {
+                totalPages = 1;
+            }
 
             int page = requestedPage;
-            if (page < 1) page = 1;
-            if (page > totalPages) page = totalPages;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (page > totalPages)
+            {
+                page = totalPages;
+            }
 
             var reviews = await q.Skip((page - 1) * pageSize)
                                  .Take(pageSize)
@@ -528,7 +538,10 @@ namespace DirectoryManager.Web.Controllers
         // =========================
         private static string GenerateChallengeCodeNormalized(int length)
         {
-            if (length < 6) length = 6;
+            if (length < 6)
+            {
+                length = 6;
+            }
 
             Span<char> chars = stackalloc char[length];
             for (var i = 0; i < length; i++)
@@ -570,8 +583,15 @@ namespace DirectoryManager.Web.Controllers
 
         private static bool CodesMatchConstantTime(string submitted, string expected)
         {
-            if (string.IsNullOrEmpty(submitted) || string.IsNullOrEmpty(expected)) return false;
-            if (submitted.Length != expected.Length) return false;
+            if (string.IsNullOrEmpty(submitted) || string.IsNullOrEmpty(expected))
+            {
+                return false;
+            }
+
+            if (submitted.Length != expected.Length)
+            {
+                return false;
+            }
 
             var a = Encoding.UTF8.GetBytes(submitted);
             var b = Encoding.UTF8.GetBytes(expected);

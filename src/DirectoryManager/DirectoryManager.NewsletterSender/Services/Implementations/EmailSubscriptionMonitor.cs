@@ -31,7 +31,7 @@ namespace DirectoryManager.NewsletterSender.Implementations
 
                 foreach (var subscription in newSubscriptions)
                 {
-                   // await _emailService.SendWelcomeEmailAsync(subscription.Email);
+                    // await _emailService.SendWelcomeEmailAsync(subscription.Email);
                     lastProcessedId = subscription.EmailSubscriptionId;
                 }
 

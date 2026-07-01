@@ -1,3 +1,5 @@
+using System.Reflection;
+using System.Reflection.Emit;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.BaseModels;
@@ -5,8 +7,6 @@ using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Models.SponsoredListings;
 using Microsoft.EntityFrameworkCore;
-using System.Reflection;
-using System.Reflection.Emit;
 
 namespace DirectoryManager.Data.DbContextInfo
 {
@@ -15,19 +15,6 @@ namespace DirectoryManager.Data.DbContextInfo
         public ApplicationDbContext(DbContextOptions<ApplicationDbContext> options)
             : base(options)
         {
-        }
-
-        protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
-        {
-            base.ConfigureConventions(configurationBuilder);
-
-            // All DateTimes are UTC. Store them in 'timestamp with time zone' (the app and
-            // SQL Server both hold UTC wall-clock), with a converter that stamps Kind=Utc so
-            // there is no shift and no Npgsql Kind errors. Applies to DateTime and DateTime?;
-            // DateTimeOffset keeps its own tz mapping.
-            configurationBuilder.Properties<DateTime>()
-                .HaveConversion<UtcDateTimeConverter>()
-                .HaveColumnType("timestamp with time zone");
         }
 
         public DbSet<ApplicationUser> ApplicationUser { get; set; }
@@ -75,6 +62,19 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<AffiliateCommissionEarned> AffiliateCommissionsEarned { get; set; }
         public DbSet<Raffle> Raffles { get; set; }
 
+        protected override void ConfigureConventions(ModelConfigurationBuilder configurationBuilder)
+        {
+            base.ConfigureConventions(configurationBuilder);
+
+            // All DateTimes are UTC. Store them in 'timestamp with time zone' (the app and
+            // SQL Server both hold UTC wall-clock), with a converter that stamps Kind=Utc so
+            // there is no shift and no Npgsql Kind errors. Applies to DateTime and DateTime?;
+            // DateTimeOffset keeps its own tz mapping.
+            configurationBuilder.Properties<DateTime>()
+                .HaveConversion<UtcDateTimeConverter>()
+                .HaveColumnType("timestamp with time zone");
+        }
+
         public override int SaveChanges()
         {
             this.SetDates();
@@ -104,7 +104,6 @@ namespace DirectoryManager.Data.DbContextInfo
         // =========================================================
         // INDEXES (ALL HasIndex() CALLS LIVE HERE)
         // =========================================================
-
         private static void ConfigureVerificationRequests(ModelBuilder builder)
         {
             builder.Entity<DirectoryManager.Data.Models.VerificationRequests.VerificationRequest>(e =>
@@ -176,7 +175,6 @@ namespace DirectoryManager.Data.DbContextInfo
                 .HasDatabaseName("IX_RaffleEntry_RaffleId");
         }
 
-
         private static void ConfigureRaffleEntryIndexes(ModelBuilder builder)
         {
             builder.Entity<DirectoryEntryReviewRaffleEntry>(e =>
@@ -219,6 +217,7 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasIndex(x => new { x.SubscribedDate, x.SponsoredListingOpeningNotificationId })
                    .HasDatabaseName("IX_SponsoredListingOpeningNotification_Queue")
                    .HasFilter("\"IsActive\" = TRUE AND \"IsReminderSent\" = FALSE")
+
                    // EF Core 10 + SqlServer supports INCLUDE columns
                    .IncludeProperties(x => new
                    {
@@ -245,6 +244,7 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<SponsoredListing>()
                    .HasIndex(x => new { x.SponsorshipType, x.CampaignEndDate, x.CampaignStartDate })
                    .HasDatabaseName("IX_SponsoredListings_Type_End_Start")
+
                    // EF Core 10 supports descending per-column
                    .IsDescending(false, true, true)
                    .IncludeProperties(x => new { x.DirectoryEntryId });
@@ -669,7 +669,7 @@ namespace DirectoryManager.Data.DbContextInfo
                   .IsRequired();
 
                 rk.Property(x => x.PublicKeyBlock)
-                  
+
                   .IsRequired();
 
                 rk.Property(x => x.Alias)

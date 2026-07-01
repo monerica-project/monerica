@@ -18,7 +18,7 @@ namespace DirectoryManager.Web.Tests.Validation
         private const string HandlerPayload = "<img src=x onerror=alert(1)>";
         private const string JsUriPayload = "<a href=\"javascript:alert(1)\">x</a>";
 
-        private static SubmissionRequest CleanSubmission() => new ()
+        private static SubmissionRequest CleanSubmission() => new()
         {
             Link = "https://example.com",
             Name = "Example Service",

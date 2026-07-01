@@ -16,6 +16,7 @@ namespace DirectoryManager.Web.Helpers
         /// Use this in views INSTEAD of @Html.Raw(...) for any field that may contain
         /// HTML you wrote. Safe to call on plain text too.
         /// </summary>
+        /// <returns></returns>
         public static IHtmlContent SafeHtml(this IHtmlHelper htmlHelper, string? value)
         {
             return new HtmlString(ContentSanitizer.Sanitize(value));
@@ -75,6 +76,7 @@ namespace DirectoryManager.Web.Helpers
                         return i; // cut BEFORE this whitespace
                     }
                 }
+
                 return end; // no whitespace; hard cut
             }
 

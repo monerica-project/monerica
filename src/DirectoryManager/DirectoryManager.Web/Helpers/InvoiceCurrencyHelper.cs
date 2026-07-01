@@ -8,7 +8,7 @@ namespace DirectoryManager.Web.Helpers
         /// <summary>
         /// True if the invoice has any amount expressed in the requested currency.
         /// </summary>
-        /// <returns>if it's the currency</returns>
+        /// <returns>if it's the currency.</returns>
         public static bool MatchesCurrency(this SponsoredListingInvoice inv, Currency currency) =>
             inv.Currency == currency || inv.PaidInCurrency == currency;
 

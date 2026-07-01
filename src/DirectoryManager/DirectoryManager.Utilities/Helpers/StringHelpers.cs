@@ -10,7 +10,6 @@ namespace DirectoryManager.Utilities.Helpers
         // =========================
         // Existing helpers (kept)
         // =========================
-
         public static string UrlKey(string p)
         {
             if (string.IsNullOrWhiteSpace(p))
@@ -92,7 +91,6 @@ namespace DirectoryManager.Utilities.Helpers
         // =========================
         // Regexes
         // =========================
-
         private static readonly Regex UrlRegex = new (
             @"(?:(?:https?://)|(?:www\.))[\w\-\.]+(?:\.[a-z]{2,})(?:[^\s<>]*)?",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled,
@@ -175,6 +173,7 @@ namespace DirectoryManager.Utilities.Helpers
                 sb.Append((int)ch);
                 sb.Append(';');
             }
+
             return sb.ToString();
         }
 
@@ -188,7 +187,7 @@ namespace DirectoryManager.Utilities.Helpers
 
         /// <summary>
         /// Masks the local part of an email address, leaving only the first and last character.
-        /// e.g. "rachidbettioui@gmail.com" → "r*************i@gmail.com"
+        /// e.g. "rachidbettioui@gmail.com" → "r*************i@gmail.com".
         /// </summary>
         private static string AnonymizeEmail(string email)
         {
@@ -216,7 +215,9 @@ namespace DirectoryManager.Utilities.Helpers
                 t = t.Substring("mailto:".Length);
             }
 
-            return Regex.IsMatch(t, @"^[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}$",
+            return Regex.IsMatch(
+                t,
+                @"^[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}$",
                 RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
         }
 
@@ -227,6 +228,7 @@ namespace DirectoryManager.Utilities.Helpers
             {
                 t = t.Substring("mailto:".Length);
             }
+
             return t.Trim();
         }
 
@@ -239,6 +241,7 @@ namespace DirectoryManager.Utilities.Helpers
         /// and preserves line breaks.
         /// Pass ugcContent: true for user-generated content to add rel="nofollow ugc" on links.
         /// </summary>
+        /// <returns></returns>
         public static string RenderBodyWithLinksHtml(
             string? text,
             string cssClass = "multi-line-text",
@@ -309,6 +312,7 @@ namespace DirectoryManager.Utilities.Helpers
         /// <summary>
         /// Convenience overload — defaults ugcContent to false.
         /// </summary>
+        /// <returns></returns>
         public static string RenderBodyWithLinksHtml(string? text, string cssClass = "multi-line-text")
             => RenderBodyWithLinksHtml(text, cssClass, ugcContent: false);
 
@@ -317,6 +321,7 @@ namespace DirectoryManager.Utilities.Helpers
         /// an obfuscated mailto link to reduce basic scraping.
         /// Preserves line breaks.
         /// </summary>
+        /// <returns></returns>
         public static string RenderContactFieldHtml(string? text, string cssClass = "multi-line-text")
         {
             if (string.IsNullOrWhiteSpace(text))
@@ -391,10 +396,13 @@ namespace DirectoryManager.Utilities.Helpers
         /// Anonymizes all emails (standard and [at]/(at)/AT variants) in plain text.
         /// Use before truncating for snippet display.
         /// </summary>
+        /// <returns></returns>
         public static string AnonymizeEmailsInText(string? text)
         {
             if (string.IsNullOrEmpty(text))
+            {
                 return string.Empty;
+            }
 
             // Handle [at] / (at) / AT obfuscations first
             text = ObfuscatedEmailRegex.Replace(text, m =>

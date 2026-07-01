@@ -20,6 +20,7 @@ namespace DirectoryManager.Web.Helpers
         /// link-local, IPv6 ULA, etc.). IPv4-mapped IPv6 addresses are unwrapped and re-checked.
         /// Unknown address families are treated as disallowed (fail closed).
         /// </summary>
+        /// <returns></returns>
         public static bool IsPrivateOrDisallowedIp(IPAddress ip)
         {
             if (ip is null)
@@ -35,13 +36,41 @@ namespace DirectoryManager.Web.Helpers
             if (ip.AddressFamily == AddressFamily.InterNetwork)
             {
                 var b = ip.GetAddressBytes();
-                if (b[0] == 10) return true;                                 // 10.0.0.0/8
-                if (b[0] == 127) return true;                                // 127.0.0.0/8
-                if (b[0] == 169 && b[1] == 254) return true;                 // 169.254.0.0/16 link-local
-                if (b[0] == 172 && b[1] >= 16 && b[1] <= 31) return true;    // 172.16.0.0/12
-                if (b[0] == 192 && b[1] == 168) return true;                 // 192.168.0.0/16
-                if (b[0] == 0) return true;                                  // 0.0.0.0/8
-                if (b[0] == 100 && b[1] >= 64 && b[1] <= 127) return true;   // 100.64.0.0/10 CGNAT
+                if (b[0] == 10)
+                {
+                    return true;                                 // 10.0.0.0/8
+                }
+
+                if (b[0] == 127)
+                {
+                    return true;                                // 127.0.0.0/8
+                }
+
+                if (b[0] == 169 && b[1] == 254)
+                {
+                    return true;                 // 169.254.0.0/16 link-local
+                }
+
+                if (b[0] == 172 && b[1] >= 16 && b[1] <= 31)
+                {
+                    return true;    // 172.16.0.0/12
+                }
+
+                if (b[0] == 192 && b[1] == 168)
+                {
+                    return true;                 // 192.168.0.0/16
+                }
+
+                if (b[0] == 0)
+                {
+                    return true;                                  // 0.0.0.0/8
+                }
+
+                if (b[0] == 100 && b[1] >= 64 && b[1] <= 127)
+                {
+                    return true;   // 100.64.0.0/10 CGNAT
+                }
+
                 return false;
             }
 
@@ -59,8 +88,16 @@ namespace DirectoryManager.Web.Helpers
                 }
 
                 var b = ip.GetAddressBytes();
-                if ((b[0] & 0xFE) == 0xFC) return true; // fc00::/7 unique-local
-                if (ip.Equals(IPAddress.IPv6Loopback)) return true;
+                if ((b[0] & 0xFE) == 0xFC)
+                {
+                    return true; // fc00::/7 unique-local
+                }
+
+                if (ip.Equals(IPAddress.IPv6Loopback))
+                {
+                    return true;
+                }
+
                 return false;
             }
 
@@ -73,6 +110,7 @@ namespace DirectoryManager.Web.Helpers
         /// rejects the connection if ANY resolved address is private/disallowed, then connects
         /// only to that validated address set — so the IP that is validated is the exact IP used.
         /// </summary>
+        /// <returns></returns>
         public static async ValueTask<Stream> SafeConnectAsync(
             SocketsHttpConnectionContext context,
             CancellationToken cancellationToken)

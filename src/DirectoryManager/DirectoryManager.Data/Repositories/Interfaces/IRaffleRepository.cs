@@ -11,6 +11,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// Returns the current "active" raffle (enabled and within [StartDate, EndDate]).
         /// If multiple qualify, returns the one with the most recent StartDate.
         /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task<Raffle?> GetActiveAsync(DateTime utcNow, CancellationToken ct = default);
 
         Task<List<Raffle>> ListAsync(int page = 1, int pageSize = 50, CancellationToken ct = default);
@@ -20,6 +21,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// <summary>
         /// Returns a list of raffles with aggregated entry counts, for the admin index page.
         /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task<List<RaffleSummaryDto>> ListWithCountsAsync(
             int page = 1,
             int pageSize = 50,

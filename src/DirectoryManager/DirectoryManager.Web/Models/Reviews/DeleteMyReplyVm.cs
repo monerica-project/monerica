@@ -2,7 +2,6 @@
 
 namespace DirectoryManager.Web.Models.Reviews
 {
-
     public class DeleteMyReplyVm
     {
         public Guid FlowId { get; set; }

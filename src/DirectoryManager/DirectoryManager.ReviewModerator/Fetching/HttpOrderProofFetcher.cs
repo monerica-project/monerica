@@ -2,7 +2,6 @@ using System.Net;
 
 namespace DirectoryManager.ReviewModerator.Fetching
 {
-
     /// <summary>
     /// Returns the actual response body (unlike SiteChecker's online-only probe). Keeps two
     /// clients: a clearnet one and a Tor SOCKS5 one (reusing the same proxy the SiteChecker

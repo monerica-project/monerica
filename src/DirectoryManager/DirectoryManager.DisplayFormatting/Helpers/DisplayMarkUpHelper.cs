@@ -1,4 +1,4 @@
-﻿﻿using System.Globalization;
+﻿using System.Globalization;
 using System.Net;
 using System.Text;
 using DirectoryManager.Data.Enums;
@@ -81,6 +81,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         /// Returns an empty string when the country code is missing.
         /// rootUrl may be null/empty for relative paths (e.g. on Tor).
         /// </summary>
+        /// <returns></returns>
         public static string BuildCountryFlagImgTag(string? countryCode, string? rootUrl = null)
             => BuildFlagImgTag(countryCode, rootUrl);
 
@@ -275,26 +276,26 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         private static void AppendGroupedEntry(StringBuilder sb, DirectoryEntry entry)
         {
             sb.Append("<li class=\"small-font\">");
-        
+
             AppendGroupedStatusLabel(sb, entry.DirectoryStatus);
-        
+
             sb.Append("<span class=\"text-inline\">");
             sb.Append(WebUtility.HtmlEncode(entry.Name));
             sb.Append("</span>");
-        
+
             sb.Append(" &ndash; ");
-        
+
             // Use LinkA as href if available, otherwise fall back to Link, but display Link text
             var href = !string.IsNullOrWhiteSpace(entry.LinkA) ? entry.LinkA : entry.Link;
             bool entryUsingAffiliate = !string.IsNullOrWhiteSpace(entry.LinkA);
             string entryRelAttr = entryUsingAffiliate ? " rel=\"sponsored\"" : string.Empty;
-        
+
             sb.AppendFormat(
                 "<a target=\"_blank\"{2} class=\"multi-line-text small-font\" href=\"{0}\">{1}</a>",
                 WebUtility.HtmlEncode(href),
                 WebUtility.HtmlEncode(entry.Link),
                 entryRelAttr);
-        
+
             if (!string.IsNullOrWhiteSpace(entry.Description))
             {
                 sb.Append(" &ndash; ");
@@ -302,7 +303,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 sb.Append(ContentSanitizer.Sanitize(entry.Description));
                 sb.Append("</span>");
             }
-        
+
             sb.Append("</li>");
         }
 

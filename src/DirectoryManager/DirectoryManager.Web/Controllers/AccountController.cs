@@ -22,7 +22,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IAffiliateCommissionRepository affiliateCommissionRepository;
         private readonly ICaptchaService captchaService;
-        public readonly ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository;
+        public readonly ISponsoredListingInvoiceRepository SponsoredListingInvoiceRepository;
 
         public AccountController(
             SignInManager<ApplicationUser> signInManager,
@@ -48,7 +48,7 @@ namespace DirectoryManager.Web.Controllers
             this.verificationRequestRepository = verificationRequestRepository;
             this.directoryEntryReviewCommentRepository = directoryEntryReviewCommentRepository;
             this.affiliateCommissionRepository = affiliateCommissionRepository;
-            this.sponsoredListingInvoiceRepository = sponsoredListingInvoiceRepository;
+            this.SponsoredListingInvoiceRepository = sponsoredListingInvoiceRepository;
             this.captchaService = captchaService;
         }
 
@@ -132,8 +132,8 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.TotalPendingSubmissions = totalPendingSubmissions;
             this.ViewBag.TotalPendingReviews = totalPendingReviewItems;
-            this.ViewBag.LastInvoicePaidUtc = this.sponsoredListingInvoiceRepository.GetLastPaidInvoiceCreateDate();
-            this.ViewBag.LastInvoicePendingUtc = this.sponsoredListingInvoiceRepository.GetLastPendingInvoiceCreateDate();
+            this.ViewBag.LastInvoicePaidUtc = this.SponsoredListingInvoiceRepository.GetLastPaidInvoiceCreateDate();
+            this.ViewBag.LastInvoicePendingUtc = this.SponsoredListingInvoiceRepository.GetLastPendingInvoiceCreateDate();
             this.ViewBag.TotalPendingReviewReviews = pendingReviews;
             this.ViewBag.TotalPendingReviewComments = pendingReviewComments;
             this.ViewBag.PendingAffiliateCommissions = pendingAffiliateCommissions;

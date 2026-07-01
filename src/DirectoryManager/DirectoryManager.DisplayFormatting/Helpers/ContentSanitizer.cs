@@ -26,6 +26,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         private static readonly HtmlSanitizer TextOnlySanitizer = BuildTextOnlySanitizer();
 
         /// <summary>Renders trusted formatting, drops everything executable. Use on output.</summary>
+        /// <returns></returns>
         public static string Sanitize(string? html)
         {
             return string.IsNullOrWhiteSpace(html)
@@ -34,6 +35,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         }
 
         /// <summary>Strips every tag, keeps the text. Use on public input before storing.</summary>
+        /// <returns></returns>
         public static string StripHtml(string? html)
         {
             return string.IsNullOrWhiteSpace(html)

@@ -47,7 +47,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task DeleteAsync(int id, CancellationToken ct = default)
         {
             var existing = await this.context.ReviewTags.FindAsync(new object[] { id }, ct);
-            if (existing is null) return;
+            if (existing is null)
+            {
+                return;
+            }
+
             this.context.ReviewTags.Remove(existing);
             await this.context.SaveChangesAsync(ct);
         }

@@ -6,7 +6,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
     {
         EmailMessage? Get(int emailMessageId);
         EmailMessage? GetByKey(string emailKey);
-        IList <EmailMessage> GetAll(int pageIndex, int pageSize);
+        IList<EmailMessage> GetAll(int pageIndex, int pageSize);
         int TotalCount();
         EmailMessage Create(EmailMessage emailMessage);
         void Update(EmailMessage emailMessage);

@@ -18,6 +18,7 @@ namespace DirectoryManager.ReviewModerator.Abstractions
         /// Price-as-of time. Pass the order's completion time for historical accuracy;
         /// pass null to use the latest spot price.
         /// </param>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         Task<PriceLookupResult> GetUsdValueAsync(
             string assetSymbol,
             decimal amount,

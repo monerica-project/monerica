@@ -9,7 +9,6 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Models.Sponsorship
 {
-
     public class WaitlistPublicItemVm
     {
         public string ListingName { get; set; } = "";

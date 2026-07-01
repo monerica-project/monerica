@@ -52,6 +52,7 @@ namespace DirectoryManager.Data.Models.Reviews
         public bool IsMoneyBand => this.MinUsd.HasValue || this.MaxUsd.HasValue;
 
         /// <summary>Returns true if <paramref name="usdValue"/> falls inside this band.</summary>
+        /// <returns></returns>
         public bool Matches(decimal usdValue)
         {
             if (!this.IsMoneyBand)

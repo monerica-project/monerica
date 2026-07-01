@@ -29,6 +29,7 @@ namespace DirectoryManager.ReviewModerator.Abstractions
         /// </summary>
         /// <param name="submittedOrderUrl">The OrderUrl exactly as the reviewer submitted it.</param>
         /// <param name="orderProofContext">Optional supporting content (e.g. wallet address).</param>
+        /// <returns></returns>
         Uri? BuildLookupUri(string submittedOrderUrl, string? orderProofContext);
 
         /// <summary>
@@ -37,6 +38,7 @@ namespace DirectoryManager.ReviewModerator.Abstractions
         /// unambiguous, return <see cref="OrderProofStatus.Unknown"/> so the worker flags
         /// rather than approves.
         /// </summary>
+        /// <returns></returns>
         OrderProofResult Parse(string responseBody, string contentType);
     }
 

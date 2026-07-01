@@ -72,6 +72,7 @@ namespace DirectoryManager.Utilities.Validation
         /// removed. Two names with the same skeleton render alike and should be treated as
         /// potential impersonation of each other.
         /// </summary>
+        /// <returns></returns>
         public static string BuildSkeleton(string? input)
         {
             if (string.IsNullOrEmpty(input))

@@ -1,6 +1,5 @@
 ﻿namespace DirectoryManager.Web.Models.Sponsorship
 {
-
     public class WaitlistPublicRowVm
     {
         public string ListingName { get; set; } = "";

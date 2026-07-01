@@ -9,8 +9,9 @@ namespace DirectoryManager.Web.Helpers
     /// </summary>
     public static class BreadcrumbJsonHelper
     {
-        /// <summary>
-        /// Builds and returns a <script type="application/ld+json"> tag containing the BreadcrumbList JSON-LD.
+        ///
+        /// <returns></returns><summary>
+        /// Builds and returns a. <script type="application/ld+json"> tag containing the BreadcrumbList JSON-LD.
         /// </summary>
         /// <param name="items">Sequence of BreadcrumbItem instances.</param>
         /// <returns>IHtmlContent for injection in a Razor view.</returns>

@@ -28,8 +28,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<List<VerificationRequest>> ListByStatusAsync(
             VerificationRequestStatus status, int page, int pageSize, CancellationToken ct = default)
         {
-            if (page < 1) page = 1;
-            if (pageSize < 1) pageSize = 50;
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 50;
+            }
 
             return await this.Set.AsNoTracking()
                 .Where(x => x.Status == status)
@@ -47,7 +54,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task SetStatusAsync(int id, VerificationRequestStatus status, CancellationToken ct = default)
         {
             var existing = await this.Set.FindAsync(new object[] { id }, ct);
-            if (existing is null) return;
+            if (existing is null)
+            {
+                return;
+            }
 
             existing.Status = status;
             existing.UpdateDate = DateTime.UtcNow;

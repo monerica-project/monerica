@@ -304,7 +304,7 @@ namespace DirectoryManager.ReviewModerator.Parsers
 
                 if (string.Equals(pair[..eq], key, StringComparison.OrdinalIgnoreCase))
                 {
-                    return Uri.UnescapeDataString(pair[(eq + 1)..]);
+                    return Uri.UnescapeDataString(pair[(eq + 1) ..]);
                 }
             }
 

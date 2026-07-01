@@ -104,8 +104,14 @@ namespace DirectoryManager.Web.Controllers
 
         private static string CountryName(string code)
         {
-            try { return new RegionInfo(code).EnglishName; }
-            catch { return code; }
+            try
+            {
+                return new RegionInfo(code).EnglishName;
+            }
+            catch
+            {
+                return code;
+            }
         }
 
         private static (DateTime fromUtc, DateTime toExclusiveUtc, DateTime fromDisplay, DateTime toDisplay)

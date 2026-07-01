@@ -1,11 +1,11 @@
-﻿using DirectoryManager.Data.Repositories.Interfaces;
+﻿using System.Security.Cryptography;
+using System.Text;
+using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models.Reviews;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Caching.Memory;
-using System.Security.Cryptography;
-using System.Text;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -298,7 +298,6 @@ namespace DirectoryManager.Web.Controllers
 
             // Ensure DirectoryEntry is loaded for display
             // (If your GetByIdAsync doesn't include it, you can do a separate lookup, or add a "GetWithEntryByIdAsync".)
-
             var vm = new DeleteMyReviewVm
             {
                 FlowId = flowId,
@@ -426,7 +425,10 @@ namespace DirectoryManager.Web.Controllers
 
         private static string GenerateChallengeCodeNormalized(int length)
         {
-            if (length < 6) length = 6;
+            if (length < 6)
+            {
+                length = 6;
+            }
 
             Span<char> chars = stackalloc char[length];
             for (var i = 0; i < length; i++)
@@ -439,13 +441,20 @@ namespace DirectoryManager.Web.Controllers
 
         private static string FormatChallengeCodeForHumans(string normalized)
         {
-            if (string.IsNullOrWhiteSpace(normalized) || normalized.Length <= 5) return normalized;
+            if (string.IsNullOrWhiteSpace(normalized) || normalized.Length <= 5)
+            {
+                return normalized;
+            }
+
             return normalized.Substring(0, 5) + "-" + normalized.Substring(5);
         }
 
         private static string NormalizeSubmittedCode(string? input)
         {
-            if (string.IsNullOrWhiteSpace(input)) return string.Empty;
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return string.Empty;
+            }
 
             var sb = new StringBuilder(input.Length);
             foreach (var ch in input.Trim().ToUpperInvariant())
@@ -461,8 +470,15 @@ namespace DirectoryManager.Web.Controllers
 
         private static bool CodesMatchConstantTime(string submitted, string expected)
         {
-            if (string.IsNullOrEmpty(submitted) || string.IsNullOrEmpty(expected)) return false;
-            if (submitted.Length != expected.Length) return false;
+            if (string.IsNullOrEmpty(submitted) || string.IsNullOrEmpty(expected))
+            {
+                return false;
+            }
+
+            if (submitted.Length != expected.Length)
+            {
+                return false;
+            }
 
             var a = Encoding.UTF8.GetBytes(submitted);
             var b = Encoding.UTF8.GetBytes(expected);

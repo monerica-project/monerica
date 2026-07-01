@@ -53,12 +53,13 @@ namespace DirectoryManager.Web.Controllers
 
             var userId = this.userManager.GetUserId(this.User) ?? string.Empty;
 
-            await this.processorRepo.CreateAsync(new Processor
-            {
-                Name = vm.Name,
-                CreatedByUserId = userId,
-                UpdatedByUserId = null
-            }, ct);
+            await this.processorRepo.CreateAsync(
+                new Processor
+                {
+                    Name = vm.Name,
+                    CreatedByUserId = userId,
+                    UpdatedByUserId = null
+                }, ct);
 
             return this.RedirectToAction(nameof(this.Index));
         }
@@ -67,7 +68,10 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Edit(int id, CancellationToken ct)
         {
             var existing = await this.processorRepo.GetByIdAsync(id, ct);
-            if (existing is null) return this.NotFound();
+            if (existing is null)
+            {
+                return this.NotFound();
+            }
 
             return this.View(new ProcessorEditVm
             {
@@ -88,7 +92,10 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var existing = await this.processorRepo.GetByIdAsync(id, ct);
-            if (existing is null) return this.NotFound();
+            if (existing is null)
+            {
+                return this.NotFound();
+            }
 
             // prevent rename collision
             var dup = await this.processorRepo.GetByNameAsync(vm.Name, ct);
@@ -100,12 +107,13 @@ namespace DirectoryManager.Web.Controllers
 
             var userId = this.userManager.GetUserId(this.User) ?? string.Empty;
 
-            await this.processorRepo.UpdateAsync(new Processor
-            {
-                ProcessorId = id,
-                Name = vm.Name,
-                UpdatedByUserId = userId
-            }, ct);
+            await this.processorRepo.UpdateAsync(
+                new Processor
+                {
+                    ProcessorId = id,
+                    Name = vm.Name,
+                    UpdatedByUserId = userId
+                }, ct);
 
             return this.RedirectToAction(nameof(this.Index));
         }
@@ -114,7 +122,10 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> Delete(int id, CancellationToken ct)
         {
             var existing = await this.processorRepo.GetByIdAsync(id, ct);
-            if (existing is null) return this.NotFound();
+            if (existing is null)
+            {
+                return this.NotFound();
+            }
 
             return this.View(existing);
         }

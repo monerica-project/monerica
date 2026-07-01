@@ -1,6 +1,6 @@
-﻿using Microsoft.AspNetCore.Html;
-using System.Net;
+﻿using System.Net;
 using DirectoryManager.Data.Models.Reviews;
+using Microsoft.AspNetCore.Html;
 
 namespace DirectoryManager.Web.Helpers
 {
@@ -9,7 +9,9 @@ namespace DirectoryManager.Web.Helpers
         public static IHtmlContent RenderAggregateStars(double? avg, int? count, bool starsOnly = false)
         {
             if (!avg.HasValue || !count.HasValue || count.Value <= 0)
+            {
                 return HtmlString.Empty;
+            }
 
             const int totalStars = 5;
             double percent = Math.Clamp(avg.Value / totalStars * 100.0, 0, 100);
@@ -32,7 +34,9 @@ namespace DirectoryManager.Web.Helpers
         public static IHtmlContent RenderSingleReviewStars(byte? rating)
         {
             if (!rating.HasValue || rating.Value < 1)
+            {
                 return HtmlString.Empty;
+            }
 
             double percent = Math.Clamp(rating.Value / 5.0 * 100.0, 0, 100);
 
@@ -45,7 +49,11 @@ namespace DirectoryManager.Web.Helpers
         public static List<DirectoryEntryReviewComment> GetReplies(
             Dictionary<int, List<DirectoryEntryReviewComment>>? dict, int reviewId)
         {
-            if (dict == null) return new ();
+            if (dict == null)
+            {
+                return new ();
+            }
+
             return dict.TryGetValue(reviewId, out var list) ? list : new ();
         }
 
@@ -54,7 +62,9 @@ namespace DirectoryManager.Web.Helpers
             var links = r.ReviewTags;
 
             if (links == null || links.Count == 0)
+            {
                 return HtmlString.Empty;
+            }
 
             var tags = links
                 .Select(x => x.ReviewTag)
@@ -63,7 +73,9 @@ namespace DirectoryManager.Web.Helpers
                 .ToList();
 
             if (tags.Count == 0)
+            {
                 return HtmlString.Empty;
+            }
 
             var sb = new System.Text.StringBuilder();
             sb.Append("<div class=\"review-tags mt-2\">");

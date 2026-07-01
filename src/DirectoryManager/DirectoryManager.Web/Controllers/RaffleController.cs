@@ -146,7 +146,6 @@ namespace DirectoryManager.Web.Controllers
         // ------------------------------------------------------------------
         // Helpers
         // ------------------------------------------------------------------
-
         private bool TryGetRaffleToken(Guid token, out RaffleFlowState state)
         {
             return this.cache.TryGetValue(

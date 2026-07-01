@@ -55,7 +55,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<bool> ExistsAsync(string term)
         {
             term = term?.Trim() ?? "";
-            if (term.Length == 0) return false;
+            if (term.Length == 0)
+            {
+                return false;
+            }
+
             return await this.context.SearchBlacklistTerms
                 .AnyAsync(x => x.Term.ToLower() == term.ToLower());
         }

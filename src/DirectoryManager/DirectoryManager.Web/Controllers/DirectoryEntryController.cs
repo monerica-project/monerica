@@ -31,7 +31,6 @@ namespace DirectoryManager.Web.Controllers
         // -------------------------------------------------------------------------
         // Fields
         // -------------------------------------------------------------------------
-
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly ISubcategoryRepository subCategoryRepository;
@@ -52,7 +51,6 @@ namespace DirectoryManager.Web.Controllers
         // -------------------------------------------------------------------------
         // Constructor
         // -------------------------------------------------------------------------
-
         public DirectoryEntryController(
             UserManager<ApplicationUser> userManager,
             IDirectoryEntryRepository entryRepository,
@@ -95,7 +93,6 @@ namespace DirectoryManager.Web.Controllers
         // -------------------------------------------------------------------------
         // Public Actions
         // -------------------------------------------------------------------------
-
         [Route("directoryentry/index")]
         public async Task<IActionResult> Index(int? subCategoryId = null)
         {
@@ -123,14 +120,14 @@ namespace DirectoryManager.Web.Controllers
         {
             var entries = await this.directoryEntryRepository.GetAllActiveEntries();
             var knownCountries = CountryHelper.GetCountries();
-        
+
             var filtered = (entries ?? Enumerable.Empty<DirectoryEntry>())
                 .Where(e => !string.IsNullOrWhiteSpace(e.CountryCode)
                          && knownCountries.ContainsKey(e.CountryCode!.Trim().ToUpperInvariant()))
                 .ToList();
-        
+
             var imageBytes = new DirectoryEntryPlotting().CreateCountryStatusBreakdownChartImage(filtered);
-        
+
             return this.File(
                 imageBytes.Length == 0 ? Array.Empty<byte>() : imageBytes,
                 StringConstants.PngImage);
@@ -668,7 +665,6 @@ namespace DirectoryManager.Web.Controllers
         // -------------------------------------------------------------------------
         // Private Static Methods
         // -------------------------------------------------------------------------
-
         private static HashSet<int> NormalizeSelectedIds(IEnumerable<int>? ids)
         {
             return (ids ?? Enumerable.Empty<int>())
@@ -815,7 +811,6 @@ namespace DirectoryManager.Web.Controllers
         // -------------------------------------------------------------------------
         // Private Instance Methods
         // -------------------------------------------------------------------------
-
         private async Task LoadLists()
         {
             await this.LoadSubCategories();
@@ -1205,16 +1200,16 @@ namespace DirectoryManager.Web.Controllers
             {
                 return;
             }
-        
+
             var parts = processorRaw
                 .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
                 .ToList();
-        
+
             if (parts.Count == 0)
             {
                 return;
             }
-        
+
             // Cached lookup: processor-part -> DirectoryEntryKey.
             // Built from all active entries, indexed under BOTH the trimmed Name AND
             // the URL slug, so a processor-field value resolves regardless of small
@@ -1227,40 +1222,40 @@ namespace DirectoryManager.Web.Controllers
                 async cacheEntry =>
                 {
                     cacheEntry.AbsoluteExpirationRelativeToNow = TimeSpan.FromMinutes(10);
-        
+
                     var entries = await this.directoryEntryRepository.GetAllActiveEntries();
-        
+
                     var map = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        
+
                     foreach (var e in entries ?? Enumerable.Empty<DirectoryEntry>())
                     {
                         if (string.IsNullOrWhiteSpace(e.Name) || string.IsNullOrWhiteSpace(e.DirectoryEntryKey))
                         {
                             continue;
                         }
-        
+
                         var nameKey = e.Name.Trim();
                         if (!map.ContainsKey(nameKey))
                         {
                             map[nameKey] = e.DirectoryEntryKey;
                         }
-        
+
                         var slugKey = StringHelpers.UrlKey(e.Name);
                         if (!string.IsNullOrWhiteSpace(slugKey) && !map.ContainsKey(slugKey))
                         {
                             map[slugKey] = e.DirectoryEntryKey;
                         }
                     }
-        
+
                     return map;
                 }) ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
-        
+
             var resolved = new List<ProcessorPart>(parts.Count);
-        
+
             foreach (var part in parts)
             {
                 string entryKey = string.Empty;
-        
+
                 // Don't link an entry's own processor row back to itself.
                 if (!string.Equals(part, entry.Name, StringComparison.OrdinalIgnoreCase))
                 {
@@ -1280,10 +1275,10 @@ namespace DirectoryManager.Web.Controllers
                         }
                     }
                 }
-        
+
                 resolved.Add(new ProcessorPart { Display = part, EntryKey = entryKey });
             }
-        
+
             this.ViewBag.ProcessorParts = resolved;
         }
 
@@ -1348,7 +1343,6 @@ namespace DirectoryManager.Web.Controllers
         // -------------------------------------------------------------------------
         // Nested Types
         // -------------------------------------------------------------------------
-
         private sealed class TimelineItem
         {
             public int DirectoryEntryId { get; set; }

@@ -8,6 +8,7 @@ namespace DirectoryManager.Utilities.Helpers
         /// Try to normalize a referral code. Returns true if valid (or empty/null), and outputs normalized lowercase code.
         /// If <paramref name="raw"/> is null/empty/whitespace, this returns true with <paramref name="normalized"/> = null.
         /// </summary>
+        /// <returns></returns>
         public static bool TryNormalize(string? raw, out string? normalized, out string? error)
         {
             normalized = null;
@@ -43,6 +44,7 @@ namespace DirectoryManager.Utilities.Helpers
         /// <summary>
         /// Shortcut: returns normalized lowercase code, or null if invalid/empty.
         /// </summary>
+        /// <returns></returns>
         public static string? NormalizeOrNull(string? raw)
         {
             return TryNormalize(raw, out var norm, out _) ? norm : null;

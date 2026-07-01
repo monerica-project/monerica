@@ -1,4 +1,3 @@
-
 namespace DirectoryManager.Web.Models.Emails
 {
     public class EmailBounce

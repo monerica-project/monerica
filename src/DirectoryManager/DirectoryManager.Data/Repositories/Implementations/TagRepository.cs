@@ -20,12 +20,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
         /// <summary>
         /// Find a tag by its primary key.
         /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task<Tag?> GetByIdAsync(int tagId) =>
             await this.context.Tags.FindAsync(tagId);
 
         /// <summary>
         /// Find a tag by its key.
         /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task<Tag?> GetByKeyAsync(string key) =>
             await this.context.Tags
                           .AsNoTracking()
@@ -34,6 +36,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         /// <summary>
         /// List all tags, alphabetically.
         /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task<IReadOnlyList<Tag>> ListAllAsync() =>
             await this.context.Tags
                           .AsNoTracking()
@@ -43,6 +46,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         /// <summary>
         /// Create a new tag with the given name.
         /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task<Tag> CreateAsync(string name)
         {
             var tag = new Tag { Name = name, Key = name.UrlKey() };
@@ -54,6 +58,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         /// <summary>
         /// Delete the tag with the given ID, if it exists.
         /// </summary>
+        /// <returns>A <see cref="Task"/> representing the asynchronous operation.</returns>
         public async Task DeleteAsync(int tagId)
         {
             var tag = await this.context.Tags.FindAsync(tagId);

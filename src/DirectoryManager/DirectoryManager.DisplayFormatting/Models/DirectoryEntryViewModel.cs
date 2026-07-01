@@ -50,7 +50,6 @@ namespace DirectoryManager.DisplayFormatting.Models
         [MaxLength(1000)]
         public string? Note { get; set; }
 
-
         [MaxLength(255)]
         public string? Email { get; set; }
 

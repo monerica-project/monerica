@@ -10,6 +10,6 @@ namespace DirectoryManager.Web.Models.Affiliates
         public Currency PayoutCurrency { get; set; }
         public string? Email { get; set; }
 
-        public List<AffiliateCommissionRow> Commissions { get; set; } = [];
+        public List<AffiliateCommissionRow> Commissions { get; set; } = new List<AffiliateCommissionRow>();
     }
 }

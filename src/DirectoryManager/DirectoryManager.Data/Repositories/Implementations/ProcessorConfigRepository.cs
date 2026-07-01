@@ -75,9 +75,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<ProcessorConfig> GetByProcessorAsync(PaymentProcessor paymentProcessor)
         {
-             var result = await this.context.ProcessorConfigs.FirstOrDefaultAsync(x => x.PaymentProcessor == paymentProcessor);
+            var result = await this.context.ProcessorConfigs.FirstOrDefaultAsync(x => x.PaymentProcessor == paymentProcessor);
 
-             return result ?? throw new KeyNotFoundException($"ProcessorConfig with id {paymentProcessor} not found");
+            return result ?? throw new KeyNotFoundException($"ProcessorConfig with id {paymentProcessor} not found");
         }
     }
 }

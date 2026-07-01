@@ -22,6 +22,7 @@ namespace DirectoryManager.ReviewModerator.Abstractions
         }
 
         /// <summary>Returns the parser for the given order URL, or null if no domain matches.</summary>
+        /// <returns></returns>
         public IOrderProofParser? Resolve(string? orderUrl)
         {
             if (string.IsNullOrWhiteSpace(orderUrl) ||

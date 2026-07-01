@@ -61,7 +61,10 @@ public class CacheService : ICacheService
             gate.Release();
 
             // Optional cleanup: remove the semaphore when idle
-            if (gate.CurrentCount == 1) KeyLocks.TryRemove(cacheKey, out _);
+            if (gate.CurrentCount == 1)
+            {
+                KeyLocks.TryRemove(cacheKey, out _);
+            }
         }
     }
 
