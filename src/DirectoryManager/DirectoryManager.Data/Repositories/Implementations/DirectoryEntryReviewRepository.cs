@@ -159,6 +159,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await q.AverageAsync(ct);
         }
 
+        // Count of approved RATED reviews INCLUDING the official one — the same set
+        // AverageRatingForEntryApprovedAsync averages over, so rating and count agree.
+        public async Task<int> CountApprovedRatedIncludingOfficialForEntryAsync(int directoryEntryId, CancellationToken ct = default)
+        {
+            return await this.Set.AsNoTracking()
+                .Where(r => r.DirectoryEntryId == directoryEntryId
+                         && r.ModerationStatus == ReviewModerationStatus.Approved
+                         && r.Rating.HasValue)
+                .CountAsync(ct);
+        }
+
         public async Task<(int c1, int c2, int c3, int c4, int c5)> GetApprovedRatingCountsForEntryAsync(
             int directoryEntryId,
             CancellationToken ct)

@@ -33,6 +33,11 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         public Task<DirectoryEntryReview?> GetWithTagsByIdAsync(int id, CancellationToken ct = default);
         Task<int> CountApprovedForEntryAsync(int directoryEntryId, CancellationToken ct);
 
+        // Count of approved, RATED reviews INCLUDING the official review — matches the
+        // denominator of AverageRatingForEntryApprovedAsync so aggregate rating + count stay
+        // consistent (e.g. for the sponsored-listing ad feed, where the official review counts).
+        Task<int> CountApprovedRatedIncludingOfficialForEntryAsync(int directoryEntryId, CancellationToken ct = default);
+
         Task<List<DirectoryEntryReview>> ListOfficialForEntryAsync(int directoryEntryId, CancellationToken ct);
         Task<Dictionary<int, int>> GetApprovedReviewCountsByEntryAsync(CancellationToken ct = default);
         Task<Dictionary<int, DateTime>> GetApprovedReviewLastModifiedByEntryAsync(CancellationToken ct = default);

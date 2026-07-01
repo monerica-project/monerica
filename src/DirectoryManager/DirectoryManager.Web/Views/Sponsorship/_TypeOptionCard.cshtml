@@ -154,11 +154,7 @@
 
                 <button type="submit" class="btn btn-primary btn-cta">Checkout</button>
             </form>
-
-            @if (hasWaitlist && !string.IsNullOrWhiteSpace(waitlistUrl))
-            {
-                <a class="btn btn-info" href="@waitlistUrl">View waitlist</a>
-            }
+            @* Slot is open — don't offer/point to the waitlist; the user checks out directly. *@
         }
         else
         {
@@ -293,7 +289,8 @@
         </div>
     }
 
-    @if (hasWaitlist)
+    @* Only surface the waitlist when the slot is actually full — an open slot should just check out. *@
+    @if (hasWaitlist && !availableNow)
     {
         var joinRank = Math.Max(1, opt.Waitlist!.JoinWouldBeRank);
 

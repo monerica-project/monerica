@@ -56,7 +56,9 @@
                 <input asp-for="OrderProof" class="form-control" maxlength="2048" required />
                 <span asp-validation-for="OrderProof" class="text-danger"></span>
                 <div class="form-text">
-                    Must be a link we can open and <strong>independently verify</strong> — for example a provider
+                    <strong>This is the order page on the exchange's own website</strong> (the order link from where you placed the swap) —
+                    <strong>not</strong> a blockchain transaction, transaction ID, or block-explorer link.
+                    It must be a link we can open and <strong>independently verify</strong> — for example a provider
                     order or receipt page that shows the order details. A moderator manually opens and checks every
                     one to confirm the order is valid and actually took place; reviews we can't verify are not approved.
                     Used for internal verification only and never shown publicly.
@@ -81,7 +83,9 @@
                 <input asp-for="OrderProof" class="form-control" maxlength="2048" />
                 <span asp-validation-for="OrderProof" class="text-danger"></span>
                 <div class="form-text">
-                    Optional, but if you include it, it must be a URL (a link we can open) to your order. It's used for internal verification only and is never shown publicly.
+                    Optional, but if you include it, it must be a link to your <strong>order page on the exchange's website</strong>
+                    (where you placed the swap) — <strong>not</strong> a blockchain transaction or block-explorer link.
+                    It's used for internal verification only and is never shown publicly.
                 </div>
             </div>
         }

@@ -548,7 +548,10 @@ namespace DirectoryManager.Web.Controllers
                     continue;
                 }
 
-                var reviewCount = await this.reviewRepository.CountApprovedForEntryAsync(e.DirectoryEntryId, ct);
+                // Include the official review in the count so it agrees with the average
+                // (which already includes it) — otherwise a sponsor whose only review is the
+                // official one reports 0 reviews and its rating is dropped by ad consumers.
+                var reviewCount = await this.reviewRepository.CountApprovedRatedIncludingOfficialForEntryAsync(e.DirectoryEntryId, ct);
                 var reviewRating = await this.reviewRepository.AverageRatingForEntryApprovedAsync(e.DirectoryEntryId, ct);
 
                 result.Add(new
