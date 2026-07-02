@@ -906,7 +906,7 @@ section.sponsors .sponsor-card .sponsor-desc,
 /* Use margin (not padding) to space the sprite flags off the text — padding would
    inflate the background box and distort the sprite cell. */
 .blank_list_item .country-flag,
-.sponsor-sections .country-flag { margin-left: 8px; }
+.sponsor-sections .country-flag { margin-left: 4px; }
 .country-flag-right { margin-right: 5px; }
 
 /* =========================================================================
