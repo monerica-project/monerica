@@ -10,18 +10,11 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntrySelectionRepository directoryEntrySelectionRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
-
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
-
 @{
     ViewData[StringConstants.TitleHeader] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageTitle));
     ViewData[StringConstants.MetaContent] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageMetaTags));
 }
-
-<style>
-    
-</style>
-
 @{
     // 1) grab your data once
     var activeCategories = await categoryRepository.GetActiveCategoriesAsync();

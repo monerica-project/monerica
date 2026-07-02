@@ -12,9 +12,7 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository categoryRepo
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository subCatRepo
 @inject IUrlResolutionService Urls
-
 @model SearchFormViewModel
-
 @{
     var currentCat = (string?)ViewData["CurrentCategoryKey"] ?? "";
     var currentSub = (string?)ViewData["CurrentSubCategoryKey"] ?? "";
@@ -46,9 +44,6 @@
 
     var logoUrl = await cacheService.GetSnippetAsync(SiteConfigSetting.SiteLogoUrl);
     ViewData["NavModel"] = navModel;
-
-
-    // ... your existing cached/navModel setup above ...
 
     // ✅ Infer CategoryId/SubCategoryId from current page keys (ViewData)
     int? inferredCategoryId = null;
@@ -100,10 +95,6 @@
 
     var filterUrl = BuildFilterUrl();
 }
-
-   
-
-
 @functions {
     // ✅ Single source of truth for Search/Filter markup (reused twice)
     private Microsoft.AspNetCore.Html.IHtmlContent RenderNavSearch(string filterUrl, IUrlResolutionService Urls)
@@ -119,7 +110,6 @@
 </div>");
     }
 }
-
 <details class="mobile-nav">
     <summary class="mobile-nav-summary">
         <span class="mobile-nav-title">Menu</span>
@@ -128,10 +118,8 @@
             <img src="@urlResolver.ExtractPathFromFullUrl(logoUrl)" alt="logo" class="mobile-nav-home-logo">
         </a>
     </summary>
-
     @* ✅ TOP OF MOBILE MENU *@
     @RenderNavSearch(filterUrl, Urls)
-
     <ul>
         @foreach (var cat in navModel.Categories)
         {
