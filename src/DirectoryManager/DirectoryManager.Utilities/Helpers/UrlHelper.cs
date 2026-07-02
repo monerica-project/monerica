@@ -10,6 +10,16 @@ namespace DirectoryManager.Web.Helpers
                 RegexOptions.Compiled |
                 RegexOptions.IgnoreCase);
 
+        // Detects a URL embedded anywhere in free text: an explicit scheme (http/https/ftp),
+        // a "www." prefix, or a bare domain with a common TLD (e.g. "example.com"). Kept
+        // fairly strict on bare domains (known TLD list) to avoid flagging ordinary prose.
+        private static readonly Regex UrlInTextRegex =
+            new Regex(
+                @"(?:https?://|ftp://|www\.)\S+" +
+                @"|\b[a-z0-9][a-z0-9\-]*\.(?:com|net|org|io|co|xyz|info|me|biz|app|dev|site|online|tech|live|link|money|cash|exchange|finance|market|store|shop|page|gg|to|cc|ru|de|uk|nl|eu|onion|i2p)\b",
+                RegexOptions.Compiled |
+                RegexOptions.IgnoreCase);
+
         public static bool IsValidUrl(string url)
         {
             if (string.IsNullOrWhiteSpace(url))
@@ -50,6 +60,22 @@ namespace DirectoryManager.Web.Helpers
             host = host.ToLowerInvariant();
             return host.EndsWith(".onion", StringComparison.Ordinal)
                    || host.EndsWith(".i2p", StringComparison.Ordinal);
+        }
+
+        /// <summary>
+        /// True when free text contains something that looks like a URL — an
+        /// http(s)/ftp scheme, a "www." prefix, or a bare domain with a common TLD.
+        /// Used to reject links pasted into free-text fields (Description, Note) where
+        /// they don't belong; real links go in the dedicated Link fields.
+        /// </summary>
+        public static bool ContainsUrl(string? text)
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return false;
+            }
+
+            return UrlInTextRegex.IsMatch(text);
         }
 
         public static string NormalizeUrl(string url)

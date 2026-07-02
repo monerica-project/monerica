@@ -638,6 +638,9 @@ namespace DirectoryManager.Web.Controllers
             var (tagNames, tagDict) = await this.GetTagsAsync(entry.DirectoryEntryId);
             var additionalLinkUrls = await this.GetAdditionalLinkUrlsAsync(entry.DirectoryEntryId, ct);
             bool isSponsor = await this.IsEntrySponsoredAsync(entry.DirectoryEntryId);
+            DateTime? sponsorSince = isSponsor
+                ? await this.sponsoredListingRepository.GetSponsorSinceDateAsync(entry.DirectoryEntryId)
+                : null;
 
             var (reviewsVm, effectivePage) = await this.BuildReviewsVmAsync(entry, requestedPage, ct);
 
@@ -653,7 +656,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.ReviewsVm = reviewsVm;
 
             var model = this.BuildDirectoryEntryViewModel(
-                entry, link2Name, link3Name, tagNames, tagDict, isSponsor, additionalLinkUrls);
+                entry, link2Name, link3Name, tagNames, tagDict, isSponsor, sponsorSince, additionalLinkUrls);
 
             await this.SetCategoryContextViewBagAsync(entry.SubCategoryId);
 
@@ -1071,6 +1074,7 @@ namespace DirectoryManager.Web.Controllers
             List<string> tagNames,
             Dictionary<string, string> tagDictionary,
             bool isSponsor,
+            DateTime? sponsorSinceUtc,
             List<string> additionalLinks)
         {
             return new DirectoryEntryViewModel
@@ -1104,6 +1108,7 @@ namespace DirectoryManager.Web.Controllers
                 AdditionalLinks = additionalLinks ?? new List<string>(),
                 CountryCode = entry.CountryCode,
                 IsSponsored = isSponsor,
+                SponsorSinceUtc = sponsorSinceUtc,
                 PgpKey = entry.PgpKey,
                 ProofLink = entry.ProofLink,
                 VideoLink = entry.VideoLink,

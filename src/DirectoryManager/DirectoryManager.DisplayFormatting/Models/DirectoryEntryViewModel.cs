@@ -67,6 +67,12 @@ namespace DirectoryManager.DisplayFormatting.Models
 
         public bool IsSponsored { get; set; } = false;
 
+        /// <summary>
+        /// When the entry first became a sponsor (oldest paid sponsorship's campaign
+        /// start, UTC). Null when not a sponsor. Rendered as "Sponsor since {date}".
+        /// </summary>
+        public DateTime? SponsorSinceUtc { get; set; }
+
         public bool IsSubCategorySponsor { get; set; } = false;
 
         public bool DisplayAsSponsoredItem { get; set; } = false;

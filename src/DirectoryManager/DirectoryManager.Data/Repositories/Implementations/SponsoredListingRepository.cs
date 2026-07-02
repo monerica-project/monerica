@@ -184,6 +184,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                           x.CampaignEndDate >= now);
         }
 
+        public Task<DateTime?> GetSponsorSinceDateAsync(int directoryEntryId)
+        {
+            // Oldest campaign start across every paid sponsorship for this entry — how
+            // long they have been a sponsor. Returns null when there are none.
+            return this.context.SponsoredListings
+                .Where(x => x.DirectoryEntryId == directoryEntryId)
+                .Select(x => (DateTime?)x.CampaignStartDate)
+                .MinAsync();
+        }
+
         public async Task<DateTime?> GetNextExpirationDateAsync()
         {
             var now = DateTime.UtcNow;

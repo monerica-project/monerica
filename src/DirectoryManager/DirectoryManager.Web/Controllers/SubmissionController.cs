@@ -142,6 +142,22 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(nameof(model.VideoLink), "The video link is not a valid URL.");
             }
 
+            // Links belong in the dedicated Link fields, not in free-text. Reject URLs
+            // pasted into the Description or Note so submitters stop putting them there.
+            if (UrlHelper.ContainsUrl(model.Description))
+            {
+                this.ModelState.AddModelError(
+                    nameof(model.Description),
+                    "URLs are not allowed in the Description. Please remove the link — put it in the Link fields instead.");
+            }
+
+            if (UrlHelper.ContainsUrl(model.Note))
+            {
+                this.ModelState.AddModelError(
+                    nameof(model.Note),
+                    "URLs are not allowed in the Note. Please remove the link — put it in the Link fields instead.");
+            }
+
             // Related/Additional links (forum post / docs / proof page, etc.)
             var relatedLinks = NormalizeLinks(
                 new[] { model.RelatedLink1, model.RelatedLink2, model.RelatedLink3 },
@@ -1502,12 +1518,19 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task<bool> HasChangesAsync(SubmissionRequest model)
         {
-            if (model.DirectoryEntryId == null)
+            // Resolve the entry this submission targets. A "new" submission (no
+            // DirectoryEntryId) whose link or name already matches a live entry is a
+            // no-op duplicate — match it the same way the reviewer does and run the
+            // change check against that entry, so an identical resubmission is dropped
+            // rather than queued.
+            var entryId = model.DirectoryEntryId ?? await this.GetExistingEntryAsync(model);
+
+            if (entryId == null)
             {
                 return true;
             }
 
-            var existingEntry = await this.directoryEntryRepository.GetByIdAsync(model.DirectoryEntryId.Value);
+            var existingEntry = await this.directoryEntryRepository.GetByIdAsync(entryId.Value);
 
             if (existingEntry == null)
             {

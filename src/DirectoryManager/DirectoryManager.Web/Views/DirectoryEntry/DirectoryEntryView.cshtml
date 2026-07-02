@@ -465,6 +465,10 @@
                 {
                     <h3>&#9733; @Model.Name is a @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)) sponsor</h3>
                     <p>Thanks for supporting @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)). You can review or extend your sponsorship below.</p>
+                    @if (Model.SponsorSinceUtc.HasValue)
+                    {
+                        <p class="sponsor-since"><strong>Sponsor since</strong> @Model.SponsorSinceUtc.Value.ToString("yyyy-MM-dd") (UTC)</p>
+                    }
                     <a class="btn-sponsor"
                        href="@UrlResolver.ResolveToApp($"/sponsorship/options/{Model.DirectoryEntryId}")">
                         Manage sponsorship options

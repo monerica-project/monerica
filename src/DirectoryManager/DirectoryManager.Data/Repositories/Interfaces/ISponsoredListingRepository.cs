@@ -16,6 +16,14 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<int> GetTotalCountAsync();
         Task<List<SponsoredListing>> GetPaginatedListingsAsync(int page, int pageSize);
         Task<SponsoredListing?> GetActiveSponsorAsync(int directoryEntryId, SponsorshipType sponsorshipType);
+
+        /// <summary>
+        /// The earliest campaign start date across ALL of an entry's sponsorships (paid
+        /// listings), i.e. when they first became a sponsor. Null if they never sponsored.
+        /// Used to show "Sponsor since {date}" on the entry's profile.
+        /// </summary>
+        Task<DateTime?> GetSponsorSinceDateAsync(int directoryEntryId);
+
         Task<List<SponsoredListing>> GetSponsoredListingsForSubCategory(int subCategoryId);
         Task<SponsoredListing> CreateAsync(SponsoredListing sponsoredListing);
         Task<bool> UpdateAsync(SponsoredListing sponsoredListing);
