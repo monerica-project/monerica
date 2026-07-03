@@ -1,0 +1,65 @@
+@using DirectoryManager.Data.Enums
+@model DirectoryManager.Web.Models.VerificationRequests.VerificationRequestDetailViewModel
+@{
+    ViewData["Title"] = "Verification Request";
+    Layout = "_CenteredLayout";
+    var r = Model.Request;
+    var dateFormat = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+}
+
+@section PageContent {
+    <div class="container py-4">
+        <h1 class="mb-3">Verification Request #@r.VerificationRequestId</h1>
+        <hr />
+        @await Html.PartialAsync("_AdminMenu")
+
+        <p><a href="/admin/verification-requests">&larr; Back to verification requests</a></p>
+
+        <table class="table table-sm">
+            <tbody>
+                <tr>
+                    <th class="u-w-130px">Listing</th>
+                    <td>
+                        @if (Model.Entry != null)
+                        {
+                            <a href="/site/@Model.Entry.DirectoryEntryKey" target="_blank" rel="noopener">@Model.Entry.Name</a>
+                            <span> &middot; </span>
+                            <a href="/admin/reviews/entry/@r.DirectoryEntryId">Open in review moderation &rarr;</a>
+                        }
+                        else
+                        {
+                            <span class="text-muted">#@r.DirectoryEntryId</span>
+                        }
+                    </td>
+                </tr>
+                <tr>
+                    <th>Requested</th>
+                    <td class="text-nowrap">@r.CreateDate.ToString(dateFormat)</td>
+                </tr>
+                <tr>
+                    <th>Status</th>
+                    <td>@r.Status</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <h2 class="h5 mt-4">Full comment</h2>
+        <div class="card">
+            <div class="card-body" style="white-space:pre-wrap; word-break:break-word;">@r.Comment</div>
+        </div>
+
+        @if (r.Status == VerificationRequestStatus.Pending)
+        {
+            <div class="d-flex gap-2 mt-3">
+                <form action="/admin/verification-requests/@r.VerificationRequestId/reviewed" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-primary">Mark reviewed</button>
+                </form>
+                <form action="/admin/verification-requests/@r.VerificationRequestId/dismiss" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-secondary">Dismiss</button>
+                </form>
+            </div>
+        }
+    </div>
+}

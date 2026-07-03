@@ -61,8 +61,30 @@
         }
         else
         {
+            <style>
+                /* On phones the 4-column fixed table crushes; stack each cell into a
+                   labeled block instead so requests stay readable. */
+                @@media (max-width: 700px) {
+                    .vr-table thead { display: none; }
+                    .vr-table, .vr-table tbody, .vr-table tr, .vr-table td { display: block; width: 100% !important; }
+                    .vr-table colgroup, .vr-table col { display: none; }
+                    .vr-table tr { border-top: 2px solid var(--border-strong, #444); padding: .5rem 0; }
+                    .vr-table td { border: 0; padding: .3rem .1rem; }
+                    .vr-table td.text-nowrap { white-space: normal !important; }
+                    .vr-table td[data-label]::before {
+                        content: attr(data-label);
+                        display: block;
+                        font-size: .7rem;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: .03em;
+                        opacity: .55;
+                        margin-bottom: .15rem;
+                    }
+                }
+            </style>
             <div class="table-wrapper">
-                <table class="table table-sm align-middle u-tablelayout-fixed-w-100pct">
+                <table class="table table-sm align-middle u-tablelayout-fixed-w-100pct vr-table">
                     <colgroup>
                         <col class="u-w-26pct" />
                         <col class="u-w-110px" />
@@ -94,7 +116,7 @@
                                 <tr style="background-color:@tint;@(i == 0 ? "border-top:2px solid var(--border-strong);" : "")">
                                     @if (i == 0)
                                     {
-                                        <td class="u-valign-top-ws-normal-wordbreak-break-word" rowspan="@rowCount">
+                                        <td class="u-valign-top-ws-normal-wordbreak-break-word" rowspan="@rowCount" data-label="Listing">
                                             @if (grp.Entry != null)
                                             {
                                                 <div>
@@ -114,13 +136,14 @@
                                             }
                                         </td>
                                     }
-                                    <td class="text-nowrap u-valign-top">
+                                    <td class="text-nowrap u-valign-top" data-label="Requested">
                                         @r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
                                     </td>
-                                    <td class="u-valign-top">
+                                    <td class="u-valign-top" data-label="Reason">
                                         <div class="u-webkitbox-lineclamp-2-boxorient-vertical-overflow-hidden" title="@r.Comment">@r.Comment</div>
+                                        <a href="/admin/verification-requests/@r.VerificationRequestId" class="small">View full text &rarr;</a>
                                     </td>
-                                    <td class="u-valign-top">
+                                    <td class="u-valign-top" data-label="Actions">
                                         @if (r.Status == VerificationRequestStatus.Pending)
                                         {
                                             <div class="u-flex-flexdir-column-gap-4px-items-stretch">

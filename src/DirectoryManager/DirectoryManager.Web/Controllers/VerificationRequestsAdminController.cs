@@ -13,15 +13,18 @@ namespace DirectoryManager.Web.Controllers
     public class VerificationRequestsAdminController : BaseController
     {
         private readonly IVerificationRequestRepository requests;
+        private readonly IDirectoryEntryRepository entryRepo;
 
         public VerificationRequestsAdminController(
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache,
-            IVerificationRequestRepository requests)
+            IVerificationRequestRepository requests,
+            IDirectoryEntryRepository entryRepo)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.requests = requests;
+            this.entryRepo = entryRepo;
         }
 
         [HttpGet("")]
@@ -41,6 +44,26 @@ namespace DirectoryManager.Web.Controllers
                 Total = total,
                 Page = page,
                 PageSize = pageSize
+            });
+        }
+
+        // Full detail for a single request — the queue clamps the comment to two lines,
+        // so this is where the whole thing (and its listing context) can be read.
+        [HttpGet("{id:int}")]
+        public async Task<IActionResult> Detail(int id, CancellationToken ct = default)
+        {
+            var request = await this.requests.GetByIdAsync(id, ct);
+            if (request is null)
+            {
+                return this.NotFound();
+            }
+
+            var entry = await this.entryRepo.GetByIdAsync(request.DirectoryEntryId);
+
+            return this.View(new VerificationRequestDetailViewModel
+            {
+                Request = request,
+                Entry = entry,
             });
         }
 
