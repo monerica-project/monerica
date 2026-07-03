@@ -2,6 +2,6 @@
 {
     public class IntegerConstants
     {
-        public const int DefaultHours = 48;
+        public const int DefaultHours = 72;
     }
 }
