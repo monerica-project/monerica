@@ -151,7 +151,8 @@
 
         @if (Model.Milestones.Any())
         {
-            <table class="table table-striped">
+            <div class="table-wrapper">
+<table class="table table-striped">
                 <thead>
                     <tr>
                         <th>Cumulative Income</th>
@@ -172,6 +173,7 @@
                     }
                 </tbody>
             </table>
+</div>
         }
         else
         {
@@ -181,7 +183,8 @@
         <br />
 
         <h2>Month-by-month projection</h2>
-        <table class="table table-striped">
+        <div class="table-wrapper">
+<table class="table table-striped">
             <thead>
                 <tr>
                     <th>Month</th>
@@ -213,6 +216,7 @@
                 </tr>
             </tfoot>
         </table>
+</div>
 
         <p class="text-muted u-fs-09em">
             Method: ordinary-least-squares linear trend on monthly booked revenue (by invoice paid-date),

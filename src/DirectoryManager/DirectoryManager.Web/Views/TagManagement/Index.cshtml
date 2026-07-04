@@ -37,7 +37,8 @@
     {
         <p><i>Showing @tags.Count of @totalCount tags.</i></p>
 
-        <table class="table">
+        <div class="table-wrapper">
+<table class="table">
             <thead>
                 <tr>
                     <th>Name</th>
@@ -60,6 +61,7 @@
                 }
             </tbody>
         </table>
+</div>
 
         if (totalPages > 1)
         {

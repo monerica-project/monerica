@@ -232,7 +232,8 @@
 
     @if (Model.CountryRevenueRows != null && Model.CountryRevenueRows.Any())
     {
-        <table class="table table-striped">
+        <div class="table-wrapper">
+<table class="table table-striped">
             <thead>
                 <tr>
                     <th>#</th>
@@ -290,6 +291,7 @@
                 </tr>
             </tfoot>
         </table>
+</div>
 
         <img class="u-w-100pct"
  src="@Url.Action("CountryRevenuePieChart", "SponsoredListingInvoice", new {

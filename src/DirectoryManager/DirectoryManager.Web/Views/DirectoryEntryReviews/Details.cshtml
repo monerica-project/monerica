@@ -14,7 +14,8 @@
         @await Html.PartialAsync("_AdminMenu")
         <div class="card mb-4">
             <div class="card-body">
-                <table class="table table-borderless mb-0">
+                <div class="table-wrapper">
+<table class="table table-borderless mb-0">
                     <tbody>
                         <tr><th>Id</th><td>@Model.DirectoryEntryReviewId</td></tr>
                         <tr><th>Directory Entry Id</th><td>@Model.DirectoryEntryId</td></tr>
@@ -70,6 +71,7 @@
                         }
                     </tbody>
                 </table>
+</div>
             </div>
         </div>
 

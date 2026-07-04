@@ -40,7 +40,8 @@
             <h3>Top @Model.TopGrowth?.Count() Growth</h3>
         @if (Model.TopGrowth?.Any() == true)
         {
-            <table class="table table-sm table-striped align-middle">
+            <div class="table-wrapper">
+<table class="table table-sm table-striped align-middle">
                 <thead>
                     <tr>
                         <th>Subcategory</th>
@@ -63,6 +64,7 @@
                     }
                 </tbody>
             </table>
+</div>
         }
         else
         {
@@ -74,7 +76,8 @@
             <h3>Top @Model.TopDecline?.Count() Decline</h3>
         @if (Model.TopDecline?.Any() == true)
         {
-            <table class="table table-sm table-striped align-middle">
+            <div class="table-wrapper">
+<table class="table table-sm table-striped align-middle">
                 <thead>
                     <tr>
                         <th>Subcategory</th>
@@ -97,6 +100,7 @@
                     }
                 </tbody>
             </table>
+</div>
         }
         else
         {
