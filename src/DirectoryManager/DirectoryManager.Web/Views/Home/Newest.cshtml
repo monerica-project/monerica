@@ -8,7 +8,9 @@
 
 @{
     ViewData[StringConstants.TitleHeader] = "Newest Additions";
-    Layout = "_CenteredLayout";
+    // Use the same wide layout (sidebar + full-width main) as the homepage so the
+    // sponsor strip renders identically — the narrow centered column wrapped it 4+1.
+    Layout = "_LayoutWithNav";
 }
 
 @section PageContent {
