@@ -1,28 +1,16 @@
 ﻿using System.Text.RegularExpressions;
+using DirectoryManager.Common.Helpers;
 using Humanizer;
 
 namespace DirectoryManager.DisplayFormatting.Helpers
 {
     public class FormattingHelper
     {
+        // Delegates to the shared CategoryFormatter (in DirectoryManager.Common) so the
+        // "Category » Subcategory" separator has exactly one definition across the app.
         public static string SubcategoryFormatting(string? categoryName, string? subcategoryName)
         {
-            if (string.IsNullOrWhiteSpace(categoryName) && string.IsNullOrWhiteSpace(subcategoryName))
-            {
-                return string.Empty;
-            }
-
-            if (string.IsNullOrWhiteSpace(categoryName) && !string.IsNullOrWhiteSpace(subcategoryName))
-            {
-                return subcategoryName;
-            }
-
-            if (!string.IsNullOrWhiteSpace(categoryName) && string.IsNullOrWhiteSpace(subcategoryName))
-            {
-                return categoryName;
-            }
-
-            return $"{categoryName} » {subcategoryName}";
+            return CategoryFormatter.Format(categoryName, subcategoryName);
         }
 
         public static string NormalizeTagName(string raw)

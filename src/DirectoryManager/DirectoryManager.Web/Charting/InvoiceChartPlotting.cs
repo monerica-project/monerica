@@ -1,4 +1,5 @@
 ﻿using System.Globalization;
+using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Web.Constants;
@@ -501,7 +502,7 @@ namespace DirectoryManager.Web.Charting
                     categoryNames.TryGetValue(catId, out var catLabel);
                     subcategoryNames.TryGetValue(subId, out var subLabel);
 
-                    string label = $"{catLabel ?? $"(Unknown Cat {catId})"} > {subLabel ?? $"(Unknown Sub {subId})"}";
+                    string label = CategoryFormatter.Format(catLabel ?? $"(Unknown Cat {catId})", subLabel ?? $"(Unknown Sub {subId})");
                     decimal total = g.Sum(i => i.AmountIn(displayCurrency));
                     return (subId, label, total);
                 })

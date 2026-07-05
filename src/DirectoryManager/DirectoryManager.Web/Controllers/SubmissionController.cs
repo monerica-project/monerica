@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Common.Helpers;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -320,7 +321,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 if (audit.SubCategory != null)
                 {
-                    audit.SubCategoryName = $"{audit.SubCategory.Category?.Name} > {audit.SubCategory.Name}";
+                    audit.SubCategoryName = CategoryFormatter.Format(audit.SubCategory.Category?.Name, audit.SubCategory.Name);
                 }
                 else
                 {
@@ -925,7 +926,7 @@ namespace DirectoryManager.Web.Controllers
                 .Select(sc => new
                 {
                     sc.SubcategoryId,
-                    DisplayName = $"{sc.CategoryName} > {sc.Name}"
+                    DisplayName = CategoryFormatter.Format(sc.CategoryName, sc.Name)
                 })
                 .ToList();
 
@@ -950,7 +951,7 @@ namespace DirectoryManager.Web.Controllers
                            .ToList();
 
             var subcatName = submission.SubCategory != null
-                ? $"{submission.SubCategory.Category?.Name} > {submission.SubCategory.Name}"
+                ? CategoryFormatter.Format(submission.SubCategory.Category?.Name, submission.SubCategory.Name)
                 : "No Subcategory Assigned";
 
             return new SubmissionPreviewModel
@@ -1427,7 +1428,7 @@ namespace DirectoryManager.Web.Controllers
                 .Select(sc => new
                 {
                     sc.SubcategoryId,
-                    DisplayName = $"{sc.CategoryName} > {sc.Name}"
+                    DisplayName = CategoryFormatter.Format(sc.CategoryName, sc.Name)
                 })
                 .ToList();
 

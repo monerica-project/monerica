@@ -1,5 +1,6 @@
 ﻿using System.Text;
 using System.Xml.Linq;
+using DirectoryManager.Common.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 
@@ -67,7 +68,7 @@ namespace DirectoryManager.Web.Services.Implementations
             var descriptionBuilder = new StringBuilder();
 
             var categoryInfo = entry.SubCategory?.Category != null
-                ? $"{entry.SubCategory.Category.Name} > {entry.SubCategory.Name}"
+                ? CategoryFormatter.Format(entry.SubCategory.Category.Name, entry.SubCategory.Name)
                 : entry.SubCategory?.Name ?? "Uncategorized";
 
             descriptionBuilder.Append(categoryInfo).Append(" : ").Append(entry.Description);

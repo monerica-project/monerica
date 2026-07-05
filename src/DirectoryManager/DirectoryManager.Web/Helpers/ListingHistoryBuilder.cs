@@ -1,4 +1,5 @@
 using System.Text;
+using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Models.ListingHistory;
@@ -144,7 +145,7 @@ namespace DirectoryManager.Web.Helpers
             var category = a.SubCategory.Category?.Name;
             return string.IsNullOrWhiteSpace(category)
                 ? a.SubCategory.Name
-                : $"{category} > {a.SubCategory.Name}";
+                : CategoryFormatter.Format(category, a.SubCategory.Name);
         }
 
         private static string Normalize(string? value)

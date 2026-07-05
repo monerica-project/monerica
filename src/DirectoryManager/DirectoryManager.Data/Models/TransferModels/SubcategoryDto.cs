@@ -1,4 +1,6 @@
-﻿namespace DirectoryManager.Data.Models.TransferModels
+﻿using DirectoryManager.Common.Helpers;
+
+namespace DirectoryManager.Data.Models.TransferModels
 {
     public class SubcategoryDto
     {
@@ -13,7 +15,7 @@
         {
             get
             {
-                return string.Format("{0} > {1}", this.CategoryName, this.Name);
+                return CategoryFormatter.Format(this.CategoryName, this.Name);
             }
         }
     }

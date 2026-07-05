@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Text;
+using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.DisplayFormatting.Enums;
@@ -317,7 +318,7 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
             {
                 if (sponsor.DirectoryEntry != null)
                 {
-                    result.AppendLine($"{sponsor.DirectoryEntry?.SubCategory?.Category.Name} > {sponsor.DirectoryEntry?.SubCategory?.Name}");
+                    result.AppendLine(CategoryFormatter.Format(sponsor.DirectoryEntry?.SubCategory?.Category.Name, sponsor.DirectoryEntry?.SubCategory?.Name));
                     result.AppendLine($"+ {sponsor.DirectoryEntry?.Name} - {sponsor.DirectoryEntry?.Link} - {sponsor.DirectoryEntry?.Description}");
                 }
             }

@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using System.Net;
+using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Models;
 
 namespace DirectoryManager.Web.Helpers
@@ -161,10 +162,13 @@ namespace DirectoryManager.Web.Helpers
             // SubCategory display
             if (entry.SubCategoryId != submission.SubCategoryId)
             {
+                // Pass the RAW "Category » Subcategory" path; AddDifference HTML-encodes
+                // it exactly once. (Previously this pre-encoded the names AND hard-coded
+                // "&gt;", so AddDifference double-encoded it into a literal "&gt;"/"&amp;".)
                 string entrySubCategory =
-                    $"{FormatValue(entry.SubCategory?.Category?.Name)} &gt; {FormatValue(entry.SubCategory?.Name)}";
+                    CategoryFormatter.Format(entry.SubCategory?.Category?.Name, entry.SubCategory?.Name);
                 string submissionSubCategory =
-                    $"{FormatValue(submission.SubCategory?.Category?.Name)} &gt; {FormatValue(submission.SubCategory?.Name)}";
+                    CategoryFormatter.Format(submission.SubCategory?.Category?.Name, submission.SubCategory?.Name);
 
                 AddDifference("Subcategory", entrySubCategory, submissionSubCategory);
             }

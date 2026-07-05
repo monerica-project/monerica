@@ -1,5 +1,6 @@
 ﻿using System.Globalization;
 using System.Text;
+using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -286,7 +287,7 @@ namespace DirectoryManager.Web.Controllers
                 .Select(s => new SelectListItem
                 {
                     Value = s.SubCategoryId.ToString(),
-                    Text = $"{s.Category.Name} > {s.Name}",
+                    Text = CategoryFormatter.Format(s.Category.Name, s.Name),
                     Selected = subCategoryId.HasValue && s.SubCategoryId == subCategoryId.Value
                 })
                 .Prepend(new SelectListItem { Value = "", Text = "All Subcategories", Selected = !subCategoryId.HasValue })
@@ -666,7 +667,7 @@ namespace DirectoryManager.Web.Controllers
                 .Select(s => new SelectListItem
                 {
                     Value = s.SubCategoryId.ToString(),
-                    Text = $"{s.Category.Name} > {s.Name}",
+                    Text = CategoryFormatter.Format(s.Category.Name, s.Name),
                     Selected = subCategoryId.HasValue && subCategoryId.Value == s.SubCategoryId,
                 })
                 .Prepend(new SelectListItem { Value = string.Empty, Text = "All Subcategories", Selected = !subCategoryId.HasValue })
@@ -1077,7 +1078,7 @@ namespace DirectoryManager.Web.Controllers
             var subsList = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync().ConfigureAwait(false);
             var subsFull = subsList.ToDictionary(
                 s => s.SubCategoryId,
-                s => $"{cats[s.CategoryId]} > {s.Name}");
+                s => CategoryFormatter.Format(cats[s.CategoryId], s.Name));
 
             // 3) MAIN-SPONSOR breakdown by SubCategoryId, revenue + count
             var mainSet = allPaid.Where(i => i.SponsorshipType == SponsorshipType.MainSponsor && i.SubCategoryId.HasValue);
@@ -1540,7 +1541,7 @@ namespace DirectoryManager.Web.Controllers
                 return $"{left} : (Unknown {subCategoryId.Value})";
             }
 
-            string right = $"{sub.Category?.Name ?? "Unknown"} > {sub.Name}";
+            string right = CategoryFormatter.Format(sub.Category?.Name ?? "Unknown", sub.Name);
             return $"{left} : {right}";
         }
     }

@@ -1,6 +1,7 @@
 using System.Text;
 using BtcPayServer.API.Interfaces;
 using BtcPayServer.API.Models;
+using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Affiliates;
@@ -1682,7 +1683,7 @@ namespace DirectoryManager.Web.Controllers
                     }
                 }
 
-                sb.Append($"; SubcategoryId={subId}; Scope=\"{catName} > {subName}\"");
+                sb.Append($"; SubcategoryId={subId}; Scope=\"{CategoryFormatter.Format(catName, subName)}\"");
             }
             else if (type == SponsorshipType.CategorySponsor)
             {
@@ -1726,7 +1727,7 @@ namespace DirectoryManager.Web.Controllers
                         if (sub != null)
                         {
                             var cat = sub.Category ?? await this.categoryRepository.GetByIdAsync(sub.CategoryId).ConfigureAwait(false);
-                            return $"subcategory \"{cat?.Name ?? "Unknown"} > {sub.Name}\"";
+                            return $"subcategory \"{CategoryFormatter.Format(cat?.Name ?? "Unknown", sub.Name)}\"";
                         }
                     }
 

@@ -1,5 +1,6 @@
 ﻿using System.Net;
 using System.Text.RegularExpressions;
+using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Reviews;
@@ -429,7 +430,7 @@ namespace DirectoryManager.Web.Controllers
             foreach (var audit in audits)
             {
                 audit.SubCategoryName = audit.SubCategory != null
-                    ? $"{audit.SubCategory.Category?.Name} > {audit.SubCategory.Name}"
+                    ? CategoryFormatter.Format(audit.SubCategory.Category?.Name, audit.SubCategory.Name)
                     : "No SubCategory Assigned";
             }
 
@@ -543,7 +544,7 @@ namespace DirectoryManager.Web.Controllers
 
                 string scName = rec.SubCategory is null
                     ? unknown
-                    : $"{rec.SubCategory.Category?.Name ?? unknown} > {rec.SubCategory.Name ?? unknown}";
+                    : CategoryFormatter.Format(rec.SubCategory.Category?.Name ?? unknown, rec.SubCategory.Name ?? unknown);
 
                 return (rec.SubCategoryId, scName, IsActive(rec.DirectoryStatus));
             }
@@ -828,7 +829,7 @@ namespace DirectoryManager.Web.Controllers
                 .Select(sc => new
                 {
                     sc.SubcategoryId,
-                    DisplayName = $"{sc.CategoryName} > {sc.Name}"
+                    DisplayName = CategoryFormatter.Format(sc.CategoryName, sc.Name)
                 })
                 .ToList();
 
