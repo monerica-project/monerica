@@ -3092,14 +3092,16 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   min-width: 0;
   padding-right: 4px;
 }
+/* Inline flow (not flex) so the status icon, name and flag act as one run of
+   text: only the name wraps at its word boundaries, and — because the markup
+   emits them with no whitespace between the pieces — the icon stays glued to the
+   name's first line and the flag to its last line instead of orphaning onto
+   their own rows (which flex-wrap between the three items used to cause). */
 .dir-name-row {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 6px;
+  display: block;
   min-width: 0;
 }
-.dir-status-icon { font-size: 1rem; line-height: 1; }
+.dir-status-icon { font-size: 1rem; line-height: 1; margin-right: 5px; }
 .dir-name {
   font-weight: 700;
   font-size: 1.04rem;       /* slightly bigger than before */
@@ -3120,6 +3122,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
   height: 13px;
   object-fit: contain;
   vertical-align: middle;
+  margin-left: 5px;
 }
 
 /* score chip (top-right) */
