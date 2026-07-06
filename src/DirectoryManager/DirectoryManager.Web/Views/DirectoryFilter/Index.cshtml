@@ -541,27 +541,26 @@
                             metaBits.Add(e.Processor);
                         }
 
+                        // Build the status-icon / name / flag as ONE whitespace-free HTML run so
+                        // there is no line-break opportunity between the pieces. The name still
+                        // wraps at its internal word boundaries, but the icon stays on the name's
+                        // first line and the flag on its last line — never orphaned onto their own
+                        // rows the way three separate flex items were.
+                        var nameEnc = System.Net.WebUtility.HtmlEncode(e.Name);
+                        var nameInner = isScam ? $"<del>{nameEnc}</del>" : nameEnc;
+                        var nameCls = isScam ? "dir-name no-app-link is-scam-name" : "dir-name no-app-link";
+                        var nameLink = $"<a class=\"{nameCls}\" href=\"{System.Net.WebUtility.HtmlEncode(profUrl)}\">{nameInner}</a>";
+                        var statusSpan = string.IsNullOrEmpty(statusIcon) ? string.Empty : $"<span class=\"dir-status-icon\">{statusIcon}</span>";
+                        var flagSpan = string.IsNullOrWhiteSpace(e.CountryCode) ? string.Empty : DisplayMarkUpHelper.BuildCountryFlagImgTag(e.CountryCode);
+                        var nameRowHtml = statusSpan + nameLink + flagSpan;
+
                         <article class="@cardClasses">
 
                             <div class="dir-main">
 
                             <header class="dir-card-head">
                                 <div class="dir-title-wrap">
-                                    <span class="dir-name-row">
-                                        <span class="dir-status-icon">@Html.Raw(statusIcon)</span>
-                                        @if (isScam)
-                                        {
-                                            <a class="dir-name no-app-link is-scam-name" href="@profUrl"><del>@e.Name</del></a>
-                                        }
-                                        else
-                                        {
-                                            <a class="dir-name no-app-link" href="@profUrl">@e.Name</a>
-                                        }
-                                        @if (!string.IsNullOrWhiteSpace(e.CountryCode))
-                                        {
-                                            @Html.Raw(DisplayMarkUpHelper.BuildCountryFlagImgTag(e.CountryCode))
-                                        }
-                                    </span>
+                                    <span class="dir-name-row">@Html.Raw(nameRowHtml)</span>
                                     @if (e.IsSponsored)
                                     {
                                         <span class="dir-badge-featured">Sponsored</span>
