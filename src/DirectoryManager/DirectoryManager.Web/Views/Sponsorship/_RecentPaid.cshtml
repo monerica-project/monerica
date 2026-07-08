@@ -1,5 +1,6 @@
 ﻿@model DirectoryManager.Web.Models.Sponsorship.RecentPaidVm
 @using System.Globalization
+@using DirectoryManager.Data.Enums
 
 @{
     var usd = CultureInfo.GetCultureInfo(DirectoryManager.Web.Constants.StringConstants.EnglishUS);
@@ -31,9 +32,10 @@
             <tbody>
                 @foreach (var item in Model.Items)
                 {
-                    <tr>
+                    var isMain = item.SponsorshipTypeEnum == SponsorshipType.MainSponsor;
+                    <tr class="@(isMain ? "sponsor-row-main" : "")">
                             <td>@item.PaidUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
-                        <td>@item.SponsorshipType</td>
+                        <td>@if (isMain) { <strong class="sponsor-type-main">&#9733; @item.SponsorshipType</strong> } else { @item.SponsorshipType }</td>
                         <td>
                             @if (!string.IsNullOrWhiteSpace(item.ListingUrl))
                             {

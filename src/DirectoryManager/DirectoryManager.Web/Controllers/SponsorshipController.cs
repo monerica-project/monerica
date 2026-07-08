@@ -81,8 +81,9 @@ namespace DirectoryManager.Web.Controllers
                 vm.TotalCount = result.TotalCount;
                 vm.TotalPages = ComputePageCount(
                     result.TotalCount, SearchPageSize);
+                var activelySponsored = await this.sponsoredListingRepo.GetActivelySponsoredDirectoryEntryIdsAsync();
                 vm.Results = result.Items
-                    .Select(this.ToSearchItem).ToList();
+                    .Select(e => this.ToSearchItem(e, activelySponsored)).ToList();
             }
 
             vm.WaitlistBoard = await this.BuildWaitlistBoardAsync();
@@ -119,8 +120,9 @@ namespace DirectoryManager.Web.Controllers
                 vm.TotalCount = result.TotalCount;
                 vm.TotalPages = ComputePageCount(
                     result.TotalCount, SearchPageSize);
+                var activelySponsored = await this.sponsoredListingRepo.GetActivelySponsoredDirectoryEntryIdsAsync();
                 vm.Results = result.Items
-                    .Select(this.ToSearchItem).ToList();
+                    .Select(e => this.ToSearchItem(e, activelySponsored)).ToList();
             }
 
             return this.View("Lookup", vm);
@@ -311,31 +313,27 @@ namespace DirectoryManager.Web.Controllers
         }
 
         private static (bool CanAdvertise, List<string> Reasons)
-            CheckEligibility(DirectoryEntry e)
+            CheckEligibility(DirectoryEntry e, bool grandfathered)
         {
+            // Grandfather clause: a current or past sponsor can always sponsor again or
+            // extend, even if the listing no longer meets the standard requirements.
+            if (grandfathered)
+            {
+                return (true, new List<string>());
+            }
+
             var reasons = new List<string>();
 
-            if (e.DirectoryStatus != DirectoryStatus.Admitted
-                && e.DirectoryStatus != DirectoryStatus.Verified)
+            // Requirement 1: must be Verified (green checkmark).
+            if (e.DirectoryStatus != DirectoryStatus.Verified)
             {
                 reasons.Add(
                     $"Status is {e.DirectoryStatus}. " +
-                    "Must be Admitted or Verified to advertise.");
+                    "Listing must be Verified (green checkmark) to sponsor.");
             }
 
-            if (e.DirectoryStatus
-                    is DirectoryStatus.Questionable
-                    or DirectoryStatus.Scam)
-            {
-                reasons.Add(
-                    "Listing is marked Questionable/Scam " +
-                    "and cannot advertise.");
-            }
-
-            if (e.DirectoryStatus != DirectoryStatus.Verified)
-            {
-                CheckListingAge(e, reasons);
-            }
+            // Requirement 2: must have been listed long enough.
+            CheckListingAge(e, reasons);
 
             return (reasons.Count == 0, reasons);
         }
@@ -351,15 +349,16 @@ namespace DirectoryManager.Web.Controllers
                 return;
             }
 
+            var required = CommonConstants.MinimumDaysListedBeforeSponsoring;
             var days = ComputeAgeDays(e.CreateDate);
-            var required = IntegerConstants
-                .UnverifiedMinimumDaysListedBeforeAdvertising;
 
             if (days < required)
             {
+                var daysLeft = required - days;
                 reasons.Add(
                     $"Listing is too new: {days} days listed. " +
-                    $"Needs {required} days (unless Verified).");
+                    $"Needs {daysLeft} more day{(daysLeft == 1 ? string.Empty : "s")} " +
+                    $"(must be listed at least {required} days to sponsor).");
             }
         }
 
@@ -515,9 +514,10 @@ namespace DirectoryManager.Web.Controllers
         }
 
         private SponsorshipSearchItemVm ToSearchItem(
-            DirectoryEntry e)
+            DirectoryEntry e, HashSet<int> activelySponsored)
         {
-            var (ok, reasons) = CheckEligibility(e);
+            var (ok, reasons) = CheckEligibility(
+                e, activelySponsored.Contains(e.DirectoryEntryId));
             var cat = e.SubCategory?.Category?.Name ?? "";
             var sub = e.SubCategory?.Name ?? "";
 
@@ -583,7 +583,9 @@ namespace DirectoryManager.Web.Controllers
             var subId = entry.SubCategoryId;
             var catName = entry.SubCategory?.Category?.Name;
             var subName = entry.SubCategory?.Name;
-            var (canAdvertise, reasons) = CheckEligibility(entry);
+            var grandfathered = await this.sponsoredListingRepo
+                .HasActiveSponsorshipAsync(entry.DirectoryEntryId);
+            var (canAdvertise, reasons) = CheckEligibility(entry, grandfathered);
 
             var main = await this.BuildTypeOptionAsync(
                 entry,

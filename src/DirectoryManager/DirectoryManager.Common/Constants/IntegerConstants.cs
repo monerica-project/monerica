@@ -11,5 +11,9 @@
         public const int MaxCategorySponsoredListings = 1;
 
         public const int MaxMainSponsorsPerSubcategory = 5;
+
+        /// <summary>A listing must be Verified AND listed in the directory at least this many
+        /// days before it is eligible to become a sponsor.</summary>
+        public const int MinimumDaysListedBeforeSponsoring = 180;
     }
 }

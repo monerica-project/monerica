@@ -52,5 +52,14 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<Dictionary<int, int>> GetActiveSponsorCountBySubcategoryAsync(SponsorshipType type);
 
         Task<List<SponsorTickerItemVm>> GetSponsorTickerItemsAsync();
+
+        /// <summary>Distinct directory-entry IDs that CURRENTLY hold an active sponsored
+        /// listing (of any type) — used to let active sponsors extend or re-sponsor without
+        /// meeting the standard eligibility requirements. Expired or refunded listings do not
+        /// count, so a lapsed/refunded buyer is NOT grandfathered.</summary>
+        Task<HashSet<int>> GetActivelySponsoredDirectoryEntryIdsAsync();
+
+        /// <summary>True if the entry currently holds an active sponsored listing of any type.</summary>
+        Task<bool> HasActiveSponsorshipAsync(int directoryEntryId);
     }
 }

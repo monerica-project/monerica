@@ -370,6 +370,13 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 AppendLink(sb, model, model.Link, isScam: true, rootUrl: rootUrl, effectiveLinkType: effectiveLinkType);
                 sb.Append("</del>");
             }
+            else
+            {
+                // Any other status (Removed, Unknown, …) — still render the name + main link so
+                // the listing is identifiable (e.g. a removal-request submission preview), instead
+                // of emitting nothing.
+                AppendPrimaryLinkForDirectoryEntry(sb, model, primary, rootUrl, isScam: false, effectiveLinkType);
+            }
         }
 
         private static void AppendPrimaryLinkForDirectoryEntry(

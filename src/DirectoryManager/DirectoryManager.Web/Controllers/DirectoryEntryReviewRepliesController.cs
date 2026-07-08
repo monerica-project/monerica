@@ -5,6 +5,7 @@ using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models.Reviews;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -340,24 +341,46 @@ namespace DirectoryManager.Web.Controllers
 
             var bodyTrimmed = (input.Body ?? string.Empty).Trim();
 
+            // Trusted authors can skip moderation for a LINK-FREE reply:
+            //   (1) the author of the thread they are replying in (this review), or
+            //   (2) the listing's verified owner (fingerprint matches the entry's PGP key).
+            // A reply that contains any hyperlink always goes to manual moderation.
+            var replierFp = PgpFingerprintTools.Normalize(state.PgpFingerprint ?? string.Empty);
+
+            var thread = await this.reviewRepo.GetByIdAsync(state.DirectoryEntryReviewId, ct);
+            bool ownThread = thread != null
+                && !string.IsNullOrWhiteSpace(replierFp)
+                && PgpFingerprintTools.Matches(replierFp, PgpFingerprintTools.Normalize(thread.AuthorFingerprint));
+
+            bool isListingOwner = false;
+            var ownerEntry = await this.entryRepo.GetByIdAsync(state.DirectoryEntryId);
+            if (ownerEntry != null && !string.IsNullOrWhiteSpace(ownerEntry.PgpKey) && !string.IsNullOrWhiteSpace(replierFp))
+            {
+                isListingOwner = PgpFingerprintTools.GetAllFingerprints(ownerEntry.PgpKey)
+                    .Any(fp => PgpFingerprintTools.Matches(replierFp, fp));
+            }
+
+            bool hasLink = DirectoryManager.Utilities.Helpers.StringHelpers.ContainsHyperlink(bodyTrimmed);
+
+            // Hold for manual review only if the shared rules flag it AND it is NOT a link-free
+            // reply from a trusted author (thread owner or listing owner).
+            bool needsManualReview = mod.NeedsManualReview && !((ownThread || isListingOwner) && !hasLink);
+
             var entity = new DirectoryEntryReviewComment
             {
                 DirectoryEntryReviewId = state.DirectoryEntryReviewId,
                 ParentCommentId = input.ParentCommentId,
                 Body = bodyTrimmed,
 
-                // Auto-publish clean replies. A reply goes live immediately when it has
-                // neither a blacklist term nor a hyperlink in the body (mod.NeedsManualReview
-                // is exactly hasBlacklistTerm || hasLink). Anything that trips either trigger
-                // is held for manual moderation.
-                ModerationStatus = mod.NeedsManualReview
+                ModerationStatus = needsManualReview
                     ? ReviewModerationStatus.Pending
                     : ReviewModerationStatus.Approved,
 
+                IsOwner = isListingOwner,
                 AuthorFingerprint = state.PgpFingerprint!,
                 CreateDate = DateTime.UtcNow,
                 CreatedByUserId = "automated",
-                UpdatedByUserId = mod.NeedsManualReview ? null : "automated"
+                UpdatedByUserId = needsManualReview ? null : "automated"
             };
 
             await this.commentRepo.AddAsync(entity, ct);
@@ -367,8 +390,12 @@ namespace DirectoryManager.Web.Controllers
 
             // ✅ flowId tombstone stays in SubmittedFlows — intentional, prevents replay.
 
-            // ✅ Your Replies Thanks view reads TempData["ReplyMessage"]
-            this.TempData["ReplyMessage"] = mod.ThankYouMessage;
+            // ✅ Your Replies Thanks view reads TempData["ReplyMessage"]. When a trusted author's
+            // link-free reply bypassed a moderation flag, show a "posted" message instead of the
+            // service's "awaiting moderation" one.
+            this.TempData["ReplyMessage"] = (!needsManualReview && mod.NeedsManualReview)
+                ? "Thanks — your reply is posted."
+                : mod.ThankYouMessage;
 
             return this.RedirectToAction(nameof(this.Thanks));
         }

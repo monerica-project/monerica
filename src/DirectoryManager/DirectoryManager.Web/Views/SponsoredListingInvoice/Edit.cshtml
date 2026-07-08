@@ -53,7 +53,7 @@
 
             <dt><label for="paymentStatus">Payment Status</label></dt>
             <dd>
-                <select id="paymentStatus" name="paymentStatus">
+                <select id="paymentStatus" name="paymentStatus" class="form-control select-fit">
                     @foreach (var o in statusOptions)
                     {
                         if (o.Selected)
@@ -70,7 +70,7 @@
 
             <dt><label for="email">Email</label></dt>
             <dd>
-                <input type="email" id="email" name="email" value="@Model.Email" maxlength="320" />
+                <input type="email" id="email" name="email" value="@Model.Email" maxlength="320" class="form-control input-width" />
             </dd>
         </dl>
 

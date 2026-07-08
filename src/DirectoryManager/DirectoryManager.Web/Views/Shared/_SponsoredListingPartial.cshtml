@@ -114,12 +114,21 @@
     }
 
 
-    @if (vms.Any())
-    {
+    @{
+        // Always render exactly MaxMainSponsoredListings slots. Filled slots show the sponsor;
+        // any unfilled slot renders as a distinct "Available" placeholder that links to buy the
+        // listing — so the banner is always a full row (e.g. 5 boxes), never a short one.
+        var maxMain = DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings;
+        var shownVms = vms.Take(maxMain).ToList();
+        var openings = Math.Max(0, maxMain - shownVms.Count);
+        var displayCount = shownVms.Count;
+        var waitlistCount = await waitlistRepository.GetWaitlistCountAsync(SponsorshipType.MainSponsor, null);
+    }
+
         <section class="sponsors">
             <h2 class="section-title">Main Sponsors</h2>
             <div class="sponsors-grid">
-                @foreach (var vm in vms)
+                @foreach (var vm in shownVms)
                 {
                     // Combine desc + note into full HTML.
                     // Sanitize each author-written field through the allowlist BEFORE it
@@ -180,18 +189,23 @@
                         </p>
                     </div>
                 }
+                @* Fill every remaining slot with a distinct "Available" placeholder so the
+                   row is always full. Uses .sponsor-card for the box, then overrides to a
+                   dashed, centered look that reads clearly as an open slot to buy. *@
+                @for (var i = 0; i < openings; i++)
+                {
+                    <a class="sponsor-card sponsor-card--empty app-link"
+                       href="~/sponsorship"
+                       aria-label="Available main sponsor slot — select this listing">
+                        <span class="empty-slot-plus" aria-hidden="true">+</span>
+                        <span class="empty-slot-label">Available</span>
+                        <span class="empty-slot-cta">Select this listing &rarr;</span>
+                    </a>
+                }
             </div>
         </section>
 
         <div class="clear-both"></div>
-
-        
-        var maxMain = DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings;
-        var activeCount = sponsoredListings.Count();
-        var openings = Math.Max(0, maxMain - activeCount);
-        var displayCount = Math.Min(activeCount, maxMain);
-        var waitlistCount = await waitlistRepository.GetWaitlistCountAsync(SponsorshipType.MainSponsor, null);
-
 
         <p class="create-sponsored-listing">
             @if (openings > 0)
@@ -203,11 +217,6 @@
                     Buy sponsored listing
                 </a>
                 <span> (@openings available)</span>
-                @if (waitlistCount > 0)
-                {
-                    <span aria-hidden="true"> — </span>
-                    <a class="app-link" href="~/waitlist">Join Waitlist (@waitlistCount waiting)</a>
-                }
             }
             else
             {
@@ -215,16 +224,11 @@
                 <span aria-hidden="true"> — </span>
                 <a class="app-link"
                    href="~/waitlist"
-                   aria-label="Join waitlist for Main Sponsor (currently @displayCount of @maxMain filled, @waitlistCount waiting)">
-                    Join Waitlist (@waitlistCount waiting)
+                   aria-label="Join waitlist for Main Sponsor (currently @displayCount of @maxMain filled@(waitlistCount > 0 ? $", {waitlistCount} waiting" : ""))">
+                    Join Waitlist@(waitlistCount > 0 ? $" ({waitlistCount} waiting)" : "")
                 </a>
             }
         </p>
-    }
-    else
-    {
-        <p><a class="app-link" href="~/sponsoredlisting">Advertise here</a></p>
-    }
 
 
 </cache-content>

@@ -17,7 +17,7 @@ namespace DirectoryManager.Web.Controllers
     public class SponsoredListingController : BaseController
     {
         private static readonly SemaphoreSlim SponsorJsonLock = new (1, 1);
-        private static readonly TimeSpan SponsorJsonTtl = TimeSpan.FromSeconds(60);
+        private static readonly TimeSpan SponsorJsonTtl = TimeSpan.FromMinutes(20);
 
         private static object? sponsorJsonCache;
         private static DateTimeOffset sponsorJsonCachedAt;

@@ -184,6 +184,26 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                           x.CampaignEndDate >= now);
         }
 
+        public async Task<HashSet<int>> GetActivelySponsoredDirectoryEntryIdsAsync()
+        {
+            var now = DateTime.UtcNow;
+            var ids = await this.context.SponsoredListings
+                .Where(x => x.CampaignStartDate <= now && x.CampaignEndDate >= now)
+                .Select(x => x.DirectoryEntryId)
+                .Distinct()
+                .ToListAsync();
+            return ids.ToHashSet();
+        }
+
+        public Task<bool> HasActiveSponsorshipAsync(int directoryEntryId)
+        {
+            var now = DateTime.UtcNow;
+            return this.context.SponsoredListings
+                .AnyAsync(x => x.DirectoryEntryId == directoryEntryId
+                            && x.CampaignStartDate <= now
+                            && x.CampaignEndDate >= now);
+        }
+
         public Task<DateTime?> GetSponsorSinceDateAsync(int directoryEntryId)
         {
             // Oldest campaign start across every paid sponsorship for this entry — how

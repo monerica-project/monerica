@@ -102,9 +102,13 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
 
-            if (!this.IsOldEnough(entry))
+            // Grandfather clause: a CURRENTLY ACTIVE sponsor can extend / re-sponsor even if the
+            // listing no longer meets the standard requirements. A lapsed or refunded past buyer
+            // is NOT grandfathered.
+            if (!this.IsEligibleToSponsor(entry)
+                && !await this.sponsoredListingRepository.HasActiveSponsorshipAsync(entry.DirectoryEntryId))
             {
-                return this.BadRequest(new { Error = $"Unverified listing must be listed for at least {IntegerConstants.UnverifiedMinimumDaysListedBeforeAdvertising} days before advertising." });
+                return this.BadRequest(new { Error = $"To sponsor, a listing must be Verified and listed in the directory for at least {DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring} days." });
             }
 
             var typeIdForGroup = SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(sponsorshipType, entry, subCategoryId, categoryId);
@@ -229,9 +233,13 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
 
-            if (!this.IsOldEnough(entry))
+            // Grandfather clause: a CURRENTLY ACTIVE sponsor can extend / re-sponsor even if the
+            // listing no longer meets the standard requirements. A lapsed or refunded past buyer
+            // is NOT grandfathered.
+            if (!this.IsEligibleToSponsor(entry)
+                && !await this.sponsoredListingRepository.HasActiveSponsorshipAsync(entry.DirectoryEntryId))
             {
-                return this.BadRequest(new { Error = $"Unverified listing must be listed for at least {IntegerConstants.UnverifiedMinimumDaysListedBeforeAdvertising} days before advertising." });
+                return this.BadRequest(new { Error = $"To sponsor, a listing must be Verified and listed in the directory for at least {DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring} days." });
             }
 
             var typeIdForGroup = SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(sponsorshipType, entry, null, null);
@@ -1501,24 +1509,32 @@ namespace DirectoryManager.Web.Controllers
             return true;
         }
 
-        private bool IsOldEnough(DirectoryEntry entry)
+        // Sponsorship eligibility: a listing must be Verified AND have been in the directory for
+        // at least the required number of months. Both conditions are required.
+        private bool IsEligibleToSponsor(DirectoryEntry entry)
         {
             if (entry.CreateDate == DateTime.MinValue)
             {
                 return false;
             }
 
-            if (entry.DirectoryStatus == DirectoryStatus.Verified)
+            if (entry.DirectoryStatus != DirectoryStatus.Verified)
             {
-                return true;
+                return false;
             }
 
-            return (DateTime.UtcNow - entry.CreateDate).TotalDays >= IntegerConstants.UnverifiedMinimumDaysListedBeforeAdvertising;
+            return (DateTime.UtcNow - entry.CreateDate).TotalDays
+                >= DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring;
         }
 
         private async Task<IEnumerable<DirectoryEntry>> FilterEntriesForSelectionAsync(int? subCategoryId, int? categoryId)
         {
-            var entries = await this.directoryEntryRepository.GetAllowableAdvertisers();
+            // Only surface listings that meet the sponsorship requirements (Verified + listed
+            // long enough) OR are currently active sponsors (who may extend/re-sponsor), so the
+            // public selection list never offers a truly ineligible entry.
+            var activelySponsored = await this.sponsoredListingRepository.GetActivelySponsoredDirectoryEntryIdsAsync();
+            var entries = (await this.directoryEntryRepository.GetAllowableAdvertisers())
+                .Where(e => this.IsEligibleToSponsor(e) || activelySponsored.Contains(e.DirectoryEntryId));
             if (subCategoryId.HasValue)
             {
                 entries = entries.Where(e => e.SubCategoryId == subCategoryId.Value).ToList();
@@ -1538,7 +1554,9 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task<IEnumerable<DirectoryEntry>> FilterEntriesByScopeAsync(SponsorshipType type, int typeId)
         {
-            var entries = await this.directoryEntryRepository.GetAllowableAdvertisers().ConfigureAwait(false);
+            var activelySponsored = await this.sponsoredListingRepository.GetActivelySponsoredDirectoryEntryIdsAsync().ConfigureAwait(false);
+            var entries = (await this.directoryEntryRepository.GetAllowableAdvertisers().ConfigureAwait(false))
+                .Where(e => this.IsEligibleToSponsor(e) || activelySponsored.Contains(e.DirectoryEntryId));
             if (type == SponsorshipType.SubcategorySponsor)
             {
                 entries = entries.Where(e => e.SubCategoryId == typeId).ToList();
