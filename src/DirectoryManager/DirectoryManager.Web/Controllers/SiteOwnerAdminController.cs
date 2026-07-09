@@ -296,6 +296,9 @@ namespace DirectoryManager.Web.Controllers
 
             body ??= string.Empty;
 
+            // Emojis are not allowed in replies/comments — strip any out before moderation and saving.
+            body = DirectoryManager.Utilities.Validation.UnicodeSanitizer.StripEmoji(body);
+
             var mod = await this.moderation.EvaluateReplyAsync(body, ct);
             if (!mod.IsValid)
             {

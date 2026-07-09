@@ -101,6 +101,39 @@ builder.WebHost.ConfigureKestrel(options =>
 
 var app = builder.Build();
 
+// One-time cleanup: strip emojis out of any existing review replies/comments (now disallowed).
+// Runs on startup and is idempotent — after the first pass nothing needs changing. Best-effort:
+// a failure here must never stop the app from starting.
+using (var emojiScope = app.Services.CreateScope())
+{
+    try
+    {
+        var emojiDb = emojiScope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+        var comments = emojiDb.DirectoryEntryReviewComments
+            .Select(c => new { c.DirectoryEntryReviewCommentId, c.Body })
+            .ToList();
+        foreach (var c in comments)
+        {
+            if (string.IsNullOrEmpty(c.Body))
+            {
+                continue;
+            }
+
+            var cleaned = DirectoryManager.Utilities.Validation.UnicodeSanitizer.StripEmoji(c.Body);
+            if (!string.Equals(cleaned, c.Body, StringComparison.Ordinal))
+            {
+                emojiDb.Database.ExecuteSqlRaw(
+                    "UPDATE \"DirectoryEntryReviewComments\" SET \"Body\" = {0} WHERE \"DirectoryEntryReviewCommentId\" = {1}",
+                    cleaned, c.DirectoryEntryReviewCommentId);
+            }
+        }
+    }
+    catch
+    {
+        // Best-effort cleanup — never block startup on it.
+    }
+}
+
 // MUST be first: applies X-Forwarded-Proto/For/Host before anything else inspects the request.
 app.UseForwardedHeaders();
 

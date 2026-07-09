@@ -4,3 +4,8 @@
 .empty-slot-plus {font-size: 34px;line-height: 1;color: var(--orange-bright);}
 .empty-slot-label {font-weight: 600;}
 .empty-slot-cta {font-size: 0.85rem;opacity: 0.85;}
+
+/* Main sponsors: contained, centered 5-across row on the wide (filter) layout — matches the homepage. */
+@media (min-width: 768px){.main-content-wide section.sponsors{max-width:75rem!important;margin-left:auto!important;margin-right:auto!important}.main-content-wide .sponsors-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;max-width:75rem!important;margin:0 auto!important;padding:0 1.5rem!important}}
+/* Main sponsors: force a single 5-across row on centered layouts too (search page, home). */
+@media (min-width: 768px){.main-content-centered section.sponsors .sponsors-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important}}

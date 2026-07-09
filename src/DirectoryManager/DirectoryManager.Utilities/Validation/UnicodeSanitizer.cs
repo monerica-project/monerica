@@ -32,6 +32,40 @@ namespace DirectoryManager.Utilities.Validation
         public static string CleanMultiLine(string? input)
             => Clean(input, allowLineBreaks: true);
 
+        /// <summary>
+        /// Removes emoji / pictographic characters (and their joiners and variation selectors).
+        /// Emojis are not allowed in review replies and comments; any already present are stripped
+        /// on save. Ordinary text — letters, digits, punctuation, line breaks — is preserved.
+        /// </summary>
+        public static string StripEmoji(string? input)
+        {
+            if (string.IsNullOrEmpty(input))
+            {
+                return string.Empty;
+            }
+
+            var sb = new StringBuilder(input.Length);
+            foreach (var rune in input.EnumerateRunes())
+            {
+                if (!IsEmoji(rune.Value))
+                {
+                    sb.Append(rune.ToString());
+                }
+            }
+
+            // An emoji between words can leave a double space behind — collapse those (not newlines).
+            return System.Text.RegularExpressions.Regex.Replace(sb.ToString(), "[ \\t]{2,}", " ");
+        }
+
+        private static bool IsEmoji(int cp) =>
+            (cp >= 0x1F000 && cp <= 0x1FAFF)   // emoji, pictographs, faces, flags, symbols
+            || (cp >= 0x2600 && cp <= 0x27BF)  // misc symbols + dingbats (sun, coffee, check, heart, arrows)
+            || (cp >= 0x2300 && cp <= 0x23FF)  // misc technical (watch, alarm, hourglass)
+            || (cp >= 0x2B00 && cp <= 0x2BFF)  // misc symbols & arrows (star, squares)
+            || (cp >= 0xFE00 && cp <= 0xFE0F)  // variation selectors (emoji presentation)
+            || cp == 0x200D                    // zero-width joiner (emoji sequences)
+            || cp == 0x20E3;                   // combining enclosing keycap
+
         public static string Clean(string? input, bool allowLineBreaks)
         {
             if (string.IsNullOrEmpty(input))

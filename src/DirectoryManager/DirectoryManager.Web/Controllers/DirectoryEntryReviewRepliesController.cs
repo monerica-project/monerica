@@ -322,6 +322,9 @@ namespace DirectoryManager.Web.Controllers
             // Always trust the flow for the review id
             input.DirectoryEntryReviewId = state.DirectoryEntryReviewId;
 
+            // Emojis are not allowed in replies/comments — strip any out before moderation and saving.
+            input.Body = DirectoryManager.Utilities.Validation.UnicodeSanitizer.StripEmoji(input.Body);
+
             // Run moderation rules via shared service
             var mod = await this.moderation.EvaluateReplyAsync(input.Body, ct);
 

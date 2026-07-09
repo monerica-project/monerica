@@ -212,6 +212,21 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("SubmitEdit", model);
             }
 
+            // ---- Emojis aren't allowed in directory submissions — strip them from the free-text
+            // fields before the submission is created (nulls/empties are left untouched). ----
+            static string? StripE(string? s)
+                => string.IsNullOrEmpty(s) ? s : DirectoryManager.Utilities.Validation.UnicodeSanitizer.StripEmoji(s);
+            model.Name = StripE(model.Name) ?? string.Empty;
+            model.Description = StripE(model.Description);
+            model.Location = StripE(model.Location);
+            model.Processor = StripE(model.Processor);
+            model.Note = StripE(model.Note);
+            model.NoteToAdmin = StripE(model.NoteToAdmin);
+            model.Messenger = StripE(model.Messenger);
+            model.Social = StripE(model.Social);
+            model.SuggestedSubCategory = StripE(model.SuggestedSubCategory);
+            model.Tags = StripE(model.Tags);
+
             // ---- Create/update preview submission ----
             return await this.CreateSubmission(model);
         }

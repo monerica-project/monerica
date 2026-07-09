@@ -71,7 +71,7 @@ namespace DirectoryManager.Web.Controllers
 
                 foreach (var sub in subcategories)
                 {
-                    sb.AppendLine($"- {sub.Name}: {domain}/{category.CategoryKey}/{sub.SubCategoryKey}");
+                    sb.AppendLine($"- [{sub.Name}]({domain}/{category.CategoryKey}/{sub.SubCategoryKey}): {category.Name} — {sub.Name} that accept Monero.");
                 }
 
                 sb.AppendLine();

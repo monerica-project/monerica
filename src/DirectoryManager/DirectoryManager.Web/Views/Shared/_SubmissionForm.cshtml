@@ -3,6 +3,8 @@
 @model DirectoryManager.Web.Models.SubmissionRequest
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 
+<p class="text-muted"><i>Emojis aren't allowed in listings and will be removed automatically.</i></p>
+
 <!-- Hidden fields for Submission and DirectoryEntry Ids -->
 @Html.HiddenFor(x => x.SubmissionId)
 @Html.HiddenFor(x => x.DirectoryEntryId)
