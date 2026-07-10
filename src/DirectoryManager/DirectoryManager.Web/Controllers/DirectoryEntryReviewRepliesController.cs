@@ -288,6 +288,22 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
             this.ViewBag.PgpFingerprint = state.PgpFingerprint;
 
+            // Show the review being replied to, so the author can see what they're answering.
+            var review = await this.reviewRepo.GetByIdAsync(state.DirectoryEntryReviewId, ct);
+            this.ViewBag.ReviewBody = review?.Body;
+            this.ViewBag.ReviewTitle = review?.Title;
+            this.ViewBag.ReviewRating = review?.Rating;
+            this.ViewBag.ReviewAuthor = !string.IsNullOrWhiteSpace(review?.DisplayName)
+                ? review!.DisplayName
+                : review?.AuthorHandle;
+
+            // The rest of the thread so far — every approved reply already posted, in order —
+            // so the author sees the full conversation, not just the original review.
+            var thread = await this.commentRepo.ListApprovedForReviewAsync(state.DirectoryEntryReviewId, ct);
+            this.ViewBag.Thread = thread
+                .OrderBy(c => c.DirectoryEntryReviewCommentId)
+                .ToList();
+
             var vm = new CreateDirectoryEntryReviewReplyInputModel
             {
                 DirectoryEntryReviewId = state.DirectoryEntryReviewId

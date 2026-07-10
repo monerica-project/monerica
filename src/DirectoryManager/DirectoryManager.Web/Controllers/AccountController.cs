@@ -138,8 +138,43 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.TotalPendingReviewComments = pendingReviewComments;
             this.ViewBag.PendingAffiliateCommissions = pendingAffiliateCommissions;
             this.ViewBag.TotalPendingVerificationRequests = pendingVerificationRequests;
+            // The Bunny syncer stamps two files: last-success.txt on every OK run
+            // ("last checked"), and last-sync.txt only when it actually uploaded changed
+            // files ("last files synced"). Both are written by the syncer's systemd unit.
+            this.ViewBag.LastBunnyCheckedUtc = ReadStampUtc("/var/lib/gitsitesyncer-monerica-bunny/last-success.txt");
+            this.ViewBag.LastBunnyFilesSyncedUtc = ReadStampUtc("/var/lib/gitsitesyncer-monerica-bunny/last-sync.txt");
 
             return this.View();
+        }
+
+        // Reads an ISO-8601 UTC timestamp the syncer stamps into a file. Best-effort:
+        // returns null if the file is missing/unreadable so the dashboard just omits
+        // that status rather than erroring (the syncer is a separate service).
+        private static DateTime? ReadStampUtc(string path)
+        {
+            try
+            {
+                if (!System.IO.File.Exists(path))
+                {
+                    return null;
+                }
+
+                var text = System.IO.File.ReadAllText(path).Trim();
+                if (System.DateTimeOffset.TryParse(
+                        text,
+                        System.Globalization.CultureInfo.InvariantCulture,
+                        System.Globalization.DateTimeStyles.AssumeUniversal | System.Globalization.DateTimeStyles.AdjustToUniversal,
+                        out var dto))
+                {
+                    return dto.UtcDateTime;
+                }
+            }
+            catch
+            {
+                // Ignore — dashboard shows "status unavailable" if it can't be read.
+            }
+
+            return null;
         }
 
         [Route("account/edit")]

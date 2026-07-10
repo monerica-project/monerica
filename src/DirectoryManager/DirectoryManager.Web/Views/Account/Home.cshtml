@@ -44,6 +44,35 @@
 
     <i>Signed in as: </i> @User?.Identity?.Name
 
+    <p class="mt-2">
+        <b>Public site (monerica.com &rarr; Bunny):</b>
+        <br />
+        &nbsp;&nbsp;<b>Files last synced</b> (content actually uploaded):
+        @if (ViewBag.LastBunnyFilesSyncedUtc is DateTime filesSynced)
+        {
+            <span class="u-color-888">@filesSynced.ToString("yyyy-MM-dd HH:mm") UTC (@FormatAgoCompact(filesSynced))</span>
+        }
+        else
+        {
+            <span class="u-color-888">unknown</span>
+        }
+        <br />
+        &nbsp;&nbsp;Last checked (ran, changes or not):
+        @if (ViewBag.LastBunnyCheckedUtc is DateTime lastChecked)
+        {
+            var stale = (DateTime.UtcNow - lastChecked) > TimeSpan.FromMinutes(15);
+            <span class="@(stale ? "u-color-c0392b" : "u-color-888")">
+                @lastChecked.ToString("yyyy-MM-dd HH:mm") UTC (@FormatAgoCompact(lastChecked))@(stale ? " — ⚠ stale, the syncer may have stopped" : string.Empty)
+            </span>
+        }
+        else
+        {
+            <span class="u-color-c0392b">status unavailable — the syncer hasn't reported a successful run</span>
+        }
+        <br />
+        <small class="u-color-888"><i>The public site is a cached static mirror. The syncer checks every 5 minutes but only uploads files when the content has actually changed.</i></small>
+    </p>
+
     <hr />
 
     @* =============================================================

@@ -174,8 +174,6 @@
 }
 
 @section PageContent {
-
-
     <div>
         @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageDisplayHtml))
         @await Html.PartialAsync("_SponsoredListingPartial")
@@ -185,9 +183,7 @@
             @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TextIntro))
         </p>
         <hr />
-
                 @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HtmlNotificationSnippet))
-
 
         <div class="top-container">
             <div class="top-section update-section">
@@ -202,9 +198,7 @@
             </div>
         </div>
         <hr />
-
         @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.DirectoryLegendHtml))
-
         @{
             var featuredEntries = await directoryEntrySelectionRepository.GetEntriesForSelection(EntrySelectionType.Featured);
 
@@ -447,6 +441,13 @@
                                                 reviewPage,
                                                 $"review-{c.DirectoryEntryReviewId}");
 
+                        // Link straight to this reply's anchor on the listing page.
+                        var commentPage = commentPageMap.TryGetValue(c.DirectoryEntryReviewCommentId, out var cp) ? cp : reviewPage;
+                        var replyAnchorUrl = BuildListingUrlWithAnchorAndPage(
+                                                e.DirectoryEntryKey,
+                                                commentPage,
+                                                $"review-comment-{c.DirectoryEntryReviewCommentId}");
+
                         var reviewSnippet = StringHelpers.TruncateAtWord(
                                                 StringHelpers.AnonymizeEmailsInText(
                                                     (parent?.Body ?? string.Empty).ReplaceLineEndings(" ")),
@@ -477,7 +478,7 @@
     }
     — @reviewSnippet
     <br />
-    &nbsp;&nbsp;↩ <em>Reply:</em> @replySnippet
+    &nbsp;&nbsp;<a href="@replyAnchorUrl">↩ <em>Reply:</em></a> @replySnippet
 </li>
                     }
                     else

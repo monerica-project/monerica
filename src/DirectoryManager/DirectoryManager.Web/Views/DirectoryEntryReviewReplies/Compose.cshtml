@@ -1,5 +1,6 @@
 ﻿@model CreateDirectoryEntryReviewReplyInputModel
 @using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Models.Reviews
 @{
     ViewData[StringConstants.TitleHeader] = "Reply – Compose";
     Layout = "_CenteredLayout";
@@ -11,6 +12,48 @@
 
     <p><b>Listing:</b> @ViewBag.DirectoryEntryName</p>
     <p><b>Verified PGP fingerprint:</b> @ViewBag.PgpFingerprint</p>
+
+    @if (ViewBag.ReviewBody != null)
+    {
+        <div class="card mb-3">
+            <div class="card-header"><b>You're replying to this review:</b></div>
+            <div class="card-body">
+                @if (ViewBag.ReviewRating != null)
+                {
+                    <p class="mb-1"><b>Rating:</b> @ViewBag.ReviewRating / 5</p>
+                }
+                @if (!string.IsNullOrWhiteSpace((string?)ViewBag.ReviewTitle))
+                {
+                    <p class="mb-1"><b>@ViewBag.ReviewTitle</b></p>
+                }
+                @if (!string.IsNullOrWhiteSpace((string?)ViewBag.ReviewAuthor))
+                {
+                    <p class="mb-1 text-muted"><small>by @ViewBag.ReviewAuthor</small></p>
+                }
+                <blockquote class="mb-0" style="white-space: pre-wrap;">@ViewBag.ReviewBody</blockquote>
+            </div>
+        </div>
+    }
+
+    @{
+        var thread = ViewBag.Thread as List<DirectoryEntryReviewComment>;
+    }
+    @if (thread != null && thread.Count > 0)
+    {
+        <div class="card mb-3">
+            <div class="card-header"><b>Replies so far in this thread (@thread.Count):</b></div>
+            <div class="card-body">
+                @for (var i = 0; i < thread.Count; i++)
+                {
+                    var c = thread[i];
+                    <div class="@(i < thread.Count - 1 ? "mb-2 pb-2" : "")" style="@(i < thread.Count - 1 ? "border-bottom:1px solid #eee;" : "")">
+                        <div class="text-muted mb-1"><small>@(string.IsNullOrWhiteSpace(c.DisplayName) ? "Anonymous" : c.DisplayName)</small></div>
+                        <div style="white-space: pre-wrap;">@c.Body</div>
+                    </div>
+                }
+            </div>
+        </div>
+    }
 
     <div asp-validation-summary="All" class="text-danger"></div>
 
@@ -30,6 +73,6 @@
 
         <p class="text-muted"><i>Your reply may be checked before it appears publicly. Most replies go live quickly.</i></p>
 
-        <button type="submit" class="btn btn-success">Submit Reply</button>
+        <button type="submit" class="btn btn-success btn-cta">Submit Reply</button>
     </form>
 }

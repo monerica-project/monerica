@@ -72,6 +72,10 @@ namespace DirectoryManager.Web.Models
         public string? CountryCode { get; set; }
 
         // ASCII-armored PGP key — validated by PgpKeyValidator; MUST stay raw.
+        // [AllowHtml] exempts it from the HTML guard (armored keys can carry angle
+        // brackets, e.g. a Comment/UID email); Validate() below still requires it to
+        // be a genuine PGP public key so the exemption can't smuggle markup.
+        [AllowHtml]
         [Display(Name = "PGP Key", Prompt = "PGP Key")]
         public string? PgpKey { get; set; }
 
@@ -138,7 +142,21 @@ namespace DirectoryManager.Web.Models
         public string? FoundedDay { get; set; }
 
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-            => InputHtmlGuard.Validate(this);
+        {
+            var results = new List<ValidationResult>(InputHtmlGuard.Validate(this));
+
+            // PgpKey is [AllowHtml]-exempt from the guard, so require it to be a genuine
+            // ASCII-armored PGP public key — the exemption must not smuggle real markup.
+            if (!string.IsNullOrWhiteSpace(this.PgpKey) && !PgpKeyValidator.IsValid(this.PgpKey))
+            {
+                results.Add(new ValidationResult(
+                    "The PGP public key block you entered is not valid. " +
+                    "Please supply a valid ASCII-armored PGP public key.",
+                    new[] { nameof(this.PgpKey) }));
+            }
+
+            return results;
+        }
 
         public List<string> GetRelatedLinksNormalized(int max = 3)
         {

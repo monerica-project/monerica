@@ -1880,6 +1880,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 Email = entry.Email,
                 Messenger = entry.Messenger,
                 Social = entry.Social,
+                PgpKey = entry.PgpKey,
                 DirectoryStatus = entry.DirectoryStatus,
                 SubCategoryId = entry.SubCategoryId,
                 CreateDate = entry.CreateDate,

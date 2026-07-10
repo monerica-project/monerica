@@ -152,9 +152,13 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
     location / {
+        return 503;
+    }
+    error_page 503 /maintenance-$APP_NAME.html;
+    location = /maintenance-$APP_NAME.html {
         root /var/www;
-        try_files /maintenance-$APP_NAME.html =503;
-        add_header Retry-After 30;
+        add_header Retry-After 30 always;
+        internal;
     }
 }
 EOF
@@ -167,9 +171,13 @@ server {
     server_name $(nginx_server_names);
     location /.well-known/acme-challenge/ { root /var/www; }
     location / {
+        return 503;
+    }
+    error_page 503 /maintenance-$APP_NAME.html;
+    location = /maintenance-$APP_NAME.html {
         root /var/www;
-        try_files /maintenance-$APP_NAME.html =503;
-        add_header Retry-After 30;
+        add_header Retry-After 30 always;
+        internal;
     }
 }
 EOF
@@ -298,9 +306,13 @@ server {
     ssl_protocols TLSv1.2 TLSv1.3;
     ssl_ciphers HIGH:!aNULL:!MD5;
     location / {
+        return 503;
+    }
+    error_page 503 /$APP_NAME.html;
+    location = /$APP_NAME.html {
         root /var/www/maintenance;
-        try_files /$APP_NAME.html =503;
         add_header Retry-After 30 always;
+        internal;
     }
 }
 EOF
@@ -312,9 +324,13 @@ server {
     server_name $DOMAIN www.$DOMAIN;
     location /.well-known/acme-challenge/ { root /var/www/certbot; }
     location / {
+        return 503;
+    }
+    error_page 503 /$APP_NAME.html;
+    location = /$APP_NAME.html {
         root /var/www/maintenance;
-        try_files /$APP_NAME.html =503;
         add_header Retry-After 30 always;
+        internal;
     }
 }
 EOF

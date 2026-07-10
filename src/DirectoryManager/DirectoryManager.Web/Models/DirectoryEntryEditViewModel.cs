@@ -37,6 +37,10 @@ namespace DirectoryManager.Web.Models
         public string? Social { get; set; }
         public string? Description { get; set; }
         public string? Note { get; set; }
+
+        // ASCII-armored PGP key — exempt from the HTML guard (armored keys can carry
+        // angle brackets, e.g. a Comment/UID email); validated below by PgpKeyValidator.
+        [AllowHtml]
         public string? PgpKey { get; set; }
 
         public string? FoundedYear { get; set; }
@@ -62,6 +66,20 @@ namespace DirectoryManager.Web.Models
         // property is decorated with [AllowHtml]. Mirrors SubmissionRequest so
         // the admin edit form enforces the same plain-text rule as public submissions.
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
-            => InputHtmlGuard.Validate(this);
+        {
+            var results = new List<ValidationResult>(InputHtmlGuard.Validate(this));
+
+            // PgpKey is [AllowHtml]-exempt from the guard, so require it to be a genuine
+            // ASCII-armored PGP public key — the exemption must not smuggle real markup.
+            if (!string.IsNullOrWhiteSpace(this.PgpKey) && !PgpKeyValidator.IsValid(this.PgpKey))
+            {
+                results.Add(new ValidationResult(
+                    "The PGP public key block you entered is not valid. " +
+                    "Please supply a valid ASCII-armored PGP public key.",
+                    new[] { nameof(this.PgpKey) }));
+            }
+
+            return results;
+        }
     }
 }

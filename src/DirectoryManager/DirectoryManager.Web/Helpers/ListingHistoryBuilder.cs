@@ -120,7 +120,22 @@ namespace DirectoryManager.Web.Helpers
                 ("Processor",   a => a.Processor),
                 ("Description", a => a.Description),
                 ("Note",        a => a.Note),
+                ("PGP Key",     a => PgpFingerprintDisplay(a.PgpKey)),
             };
+        }
+
+        // Show only the fingerprint (thumbprint) of the PGP key, not the whole armored
+        // block — so a change reads as a short before/after fingerprint instead of pages
+        // of text. Returns null when there's no key (so "added"/"removed" render cleanly).
+        private static string? PgpFingerprintDisplay(string? armored)
+        {
+            if (string.IsNullOrWhiteSpace(armored))
+            {
+                return null;
+            }
+
+            var fp = PgpFingerprintTools.GetFingerprintFromArmored(armored);
+            return string.IsNullOrWhiteSpace(fp) ? "(unrecognized key)" : fp;
         }
 
         private static string? CountryDisplay(string? countryCode)

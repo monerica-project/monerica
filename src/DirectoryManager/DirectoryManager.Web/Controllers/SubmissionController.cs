@@ -172,14 +172,8 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            // PGP Key validation
-            if (!string.IsNullOrWhiteSpace(model.PgpKey) && !PgpKeyValidator.IsValid(model.PgpKey))
-            {
-                this.ModelState.AddModelError(
-                    nameof(model.PgpKey),
-                    "The PGP public key block you entered is not valid. " +
-                    "Please supply a valid ASCII-armored PGP public key.");
-            }
+            // PGP Key validity is enforced by SubmissionRequest.Validate (IValidatableObject),
+            // alongside the [AllowHtml] exemption, so it runs for both submit and edit.
 
             // ---- Spam / block checks ----
             var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;

@@ -61,6 +61,10 @@ namespace DirectoryManager.Data.Models
         [MaxLength(255)]
         public string? Social { get; set; }
 
+        // ASCII-armored PGP public key at the time of this snapshot. The history view
+        // shows only its fingerprint (thumbprint), not the full block.
+        public string? PgpKey { get; set; }
+
         public int? SubCategoryId { get; set; }
 
         public virtual Subcategory? SubCategory { get; set; }
