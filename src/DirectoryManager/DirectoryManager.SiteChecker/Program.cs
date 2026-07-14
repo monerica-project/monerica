@@ -302,6 +302,11 @@ async Task CreateOfflineSubmissionIfNotExists(
         ProofLink = entry.ProofLink,
         VideoLink = entry.VideoLink,
         FoundedDate = entry.FoundedDate,
+        // Newer entry fields — carry them forward too, or approving this auto-submission
+        // would blank them out on the live entry.
+        Email = entry.Email,
+        Messenger = entry.Messenger,
+        Social = entry.Social,
         Note = newNote,
         NoteToAdmin = "(automated submission)",
         Tags = string.IsNullOrWhiteSpace(tagNames) ? null : tagNames,

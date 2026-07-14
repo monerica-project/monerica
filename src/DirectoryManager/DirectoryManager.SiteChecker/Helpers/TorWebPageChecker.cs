@@ -146,8 +146,13 @@ namespace DirectoryManager.SiteChecker.Helpers
                 }
             }
 
-            this.log.LogOfflineFailure(uri.ToString(), "tor", attemptSummaries);
-            return false;
+            // Every attempt was inconclusive (timeout / circuit / connection error). Tor
+            // reachability is unreliable — a live but slow onion routinely can't be reached
+            // in time, and treating that as "offline" wrongly flags working sites. Only a
+            // DEFINITIVE negative HTTP response (404/410/521, handled above) marks an onion
+            // offline; an inconclusive result is treated as online (benefit of the doubt).
+            this.log.Log($"[TOR] {uri} — inconclusive after {MaxRetries} attempts ({string.Join(" | ", attemptSummaries)}); NOT flagging offline.");
+            return true;
         }
 
         private async Task<(bool? result, string summary)> TryOnceAsync(Uri uri, int attempt)
