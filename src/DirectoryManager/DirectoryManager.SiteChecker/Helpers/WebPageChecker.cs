@@ -149,6 +149,22 @@ namespace DirectoryManager.SiteChecker.Helpers
             return false;
         }
 
+        // Telegram link-preview hosts. A link on one of these can't be verdicted by
+        // HTTP status the way an ordinary site can — see the note in TryOnceAsync.
+        private static readonly string[] TelegramHosts =
+            { "t.me", "telegram.me", "telegram.dog", "telega.one" };
+
+        private static bool IsTelegramHost(Uri uri)
+        {
+            var host = uri.Host.ToLowerInvariant();
+            if (host.StartsWith("www.", StringComparison.Ordinal))
+            {
+                host = host.Substring(4);
+            }
+
+            return Array.IndexOf(TelegramHosts, host) >= 0;
+        }
+
         private static string NormalizeHost(string value)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -302,7 +318,14 @@ namespace DirectoryManager.SiteChecker.Helpers
 
                 // Only a genuine "resource is gone" counts as offline. A 403/429/
                 // 503/52x means the server is up but guarding itself.
-                if (statusCode == 404 || statusCode == 410)
+                //
+                // Telegram (t.me and friends) is the exception: it does NOT give a
+                // reliable "gone" signal. It 302-redirects nonexistent usernames and
+                // will 404/redirect perfectly valid channels/bots depending on the
+                // caller's IP and rate limits — which produced false "offline" flags
+                // on working Telegram links. For Telegram hosts, any HTTP response
+                // (i.e. the service is reachable) is treated as online.
+                if ((statusCode == 404 || statusCode == 410) && !IsTelegramHost(uri))
                 {
                     return (false, $"attempt {attempt}: GET {statusCode} in {getSw.ElapsedMilliseconds}ms Server={server}");
                 }
