@@ -197,6 +197,27 @@ namespace DirectoryManager.Web.Controllers
             {
                 this.ModelState.AddModelError(nameof(model.FoundedYear), foundedErr!);
             }
+            else
+            {
+                // A NEW listing can't claim a founded date earlier than when its domain was
+                // registered (people inflating how old a service is). Edits of an existing
+                // entry are exempt — a listing's URL can change while keeping its older date.
+                await this.ValidateFoundedDateAgainstDomainAsync(model, foundedDate, this.HttpContext.RequestAborted);
+            }
+
+            // ---- Note-to-admin length: enforce explicitly. This field uses the custom
+            // multi-line model binder, so guarantee an over-length message surfaces as a
+            // clear error instead of being silently truncated downstream (the submitter
+            // must never think a huge note was sent when it wasn't). Skip if the attribute
+            // validation already flagged it, so we don't double up the message. ----
+            if (!string.IsNullOrEmpty(model.NoteToAdmin)
+                && model.NoteToAdmin.Length > SubmissionRequest.NoteToAdminMaxLength
+                && (this.ModelState[nameof(model.NoteToAdmin)]?.Errors.Count ?? 0) == 0)
+            {
+                this.ModelState.AddModelError(
+                    nameof(model.NoteToAdmin),
+                    $"Your note to the admin is {model.NoteToAdmin.Length} characters, which is over the {SubmissionRequest.NoteToAdminMaxLength}-character limit. Please shorten it and submit again.");
+            }
 
             // ---- If invalid, reload dropdowns + tag list and return to SubmitEdit ----
             if (!this.ModelState.IsValid)
@@ -782,6 +803,65 @@ namespace DirectoryManager.Web.Controllers
             {
                 error = "Founded date is not a real calendar date.";
                 return false;
+            }
+        }
+
+        /// <summary>
+        /// For NEW listings only, rejects a supplied founded date that predates the domain's
+        /// registration (creation) date — this stops a submitter claiming a service is older
+        /// than its domain has existed. Skipped when:
+        /// <list type="bullet">
+        /// <item>no founded date was supplied (nothing to check),</item>
+        /// <item>the submission edits an existing entry (<see cref="SubmissionRequest.DirectoryEntryId"/>
+        /// is set) — a listing's URL can legitimately change while keeping its original, earlier date,</item>
+        /// <item>the registration date can't be determined (onion/i2p/IP/invalid link, or lookup
+        /// failure) — a lookup problem must never block a legitimate submission.</item>
+        /// </list>
+        /// </summary>
+        private async Task ValidateFoundedDateAgainstDomainAsync(
+            SubmissionRequest model,
+            DateOnly? foundedDate,
+            CancellationToken ct)
+        {
+            if (foundedDate is null)
+            {
+                return;
+            }
+
+            // Existing listing (edit) — exempt so a changed URL can keep the older date.
+            if (model.DirectoryEntryId is not null && model.DirectoryEntryId.Value > 0)
+            {
+                return;
+            }
+
+            // Only clearnet links have a lookupable registration date.
+            if (string.IsNullOrWhiteSpace(model.Link) ||
+                !UrlHelper.IsValidUrl(model.Link) ||
+                UrlHelper.IsOnionOrI2p(model.Link))
+            {
+                return;
+            }
+
+            DateOnly? registrationDate;
+            try
+            {
+                registrationDate = await this.domainRegistrationDateService
+                    .GetDomainRegistrationDateAsync(model.Link, ct)
+                    .ConfigureAwait(false);
+            }
+            catch
+            {
+                // Registration lookups are best-effort; never block a submission on failure.
+                return;
+            }
+
+            if (registrationDate is not null && foundedDate.Value < registrationDate.Value)
+            {
+                this.ModelState.AddModelError(
+                    nameof(model.FoundedYear),
+                    $"The founded date ({foundedDate.Value:yyyy-MM-dd}) is before the domain was registered " +
+                    $"({registrationDate.Value:yyyy-MM-dd}). A listing can't be older than its domain — " +
+                    $"please correct the founded date, or leave the Year/Month/Day blank to omit it.");
             }
         }
 

@@ -89,7 +89,10 @@ namespace DirectoryManager.Web.Models
         [CleanMultiLine]
         public string? Note { get; set; }
 
-        [MaxLength(500)]
+        /// <summary>Max length of the private note the submitter sends to the reviewer/admin.</summary>
+        public const int NoteToAdminMaxLength = 500;
+
+        [StringLength(NoteToAdminMaxLength, ErrorMessage = "The note to the admin can be at most {1} characters. Please shorten your message.")]
         [Display(Name = "Note To Admin", Prompt = "Notes to admin reviewing submission")]
         [CleanMultiLine]
         public string? NoteToAdmin { get; set; }
