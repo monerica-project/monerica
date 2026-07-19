@@ -23,7 +23,11 @@
                 <div class="sponsor-ticker__track">
                     @for (var set = 0; set < 4; set++)
                     {
-                        <div class="sponsor-ticker__set" aria-hidden="@(set > 0 ? "true" : null)" inert="@(set > 0 ? "true" : null)">
+                        @* Duplicate sets (set>0) are hidden from screen readers and the tab order
+                           (aria-hidden + tabindex=-1 below), but must stay mouse-interactive: `inert`
+                           was blocking clicks/hover on whichever duplicate happened to be scrolled
+                           into view, so it is intentionally NOT set here. *@
+                        <div class="sponsor-ticker__set" aria-hidden="@(set > 0 ? "true" : null)">
                             @for (var i = 0; i < Model.Count; i++)
                             {
                                 var s = Model[i];

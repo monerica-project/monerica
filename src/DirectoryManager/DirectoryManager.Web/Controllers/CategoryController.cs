@@ -85,6 +85,14 @@ namespace DirectoryManager.Web.Controllers
             var paged = await this.directoryEntryRepository
                 .ListEntriesByCategoryAsync(category.CategoryId, page, PageSize);
 
+            // Out-of-range pagination pages 301 to page 1 (the site turns 404s into a soft-404
+            // via UseStatusCodePagesWithRedirects, so a permanent redirect is the clean signal).
+            var totalPages = (int)Math.Ceiling(paged.TotalCount / (double)PageSize);
+            if (page < 1 || page > Math.Max(1, totalPages))
+            {
+                return this.RedirectPermanent($"/{category.CategoryKey}");
+            }
+
             // 4) convert to view-models
             var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
             var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);

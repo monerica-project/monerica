@@ -4,7 +4,7 @@
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 
 @{
-    Layout = "_CenteredLayout";
+    Layout = "_LayoutWithNav";
 
     int totalPages = (int)Math.Ceiling(Model.PagedEntries.TotalCount / (double)Model.PageSize);
     string pageSuffix = Model.CurrentPage > 1 ? $" – Page {Model.CurrentPage}" : "";

@@ -91,6 +91,15 @@ public class CountriesController : Controller
 
         var pagedRaw = await this.entryRepo.ListActiveEntriesByCountryPagedAsync(info.Code, page, PageSize);
 
+        // Don't serve empty out-of-range pagination pages (e.g. /countries/russia/page/2 with
+        // one page). 301 to page 1 instead of 404: the site's global status-code handler turns
+        // 404s into a 302→/errors/404→200 soft-404, so a permanent redirect is the clean signal.
+        var totalPages = (int)Math.Ceiling(pagedRaw.TotalCount / (double)PageSize);
+        if (page < 1 || page > Math.Max(1, totalPages))
+        {
+            return this.RedirectPermanent($"/countries/{key}");
+        }
+
         // link2/3 labels once
         var link2 = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
         var link3 = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);

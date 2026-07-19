@@ -128,6 +128,14 @@ namespace DirectoryManager.Web.Controllers
             // ✅ apply ratings (avg + count)
             await this.ApplyRatingsAsync(items);
 
+            // Out-of-range pagination pages 301 to page 1 (the site turns 404s into a soft-404
+            // via UseStatusCodePagesWithRedirects, so a permanent redirect is the clean signal).
+            var totalPages = (int)Math.Ceiling(paged.TotalCount / (double)PageSize);
+            if (page < 1 || page > Math.Max(1, totalPages))
+            {
+                return this.RedirectPermanent($"/tagged/{tagSlug}");
+            }
+
             var vmOut = new TaggedEntriesViewModel
             {
                 Tag = tag,
