@@ -26,10 +26,25 @@
         · <a href="~/sponsoredlisting/offers">View full price list</a>
         · <a href="~/sponsors">See current sponsors</a>
     </p>
-    <p class="u-m-0-0-14px-0-opacity-9">
-        <strong>To sponsor, a listing must be Verified and listed in the directory for at least @DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring days.</strong>
-        <a href="~/faq#sponsorship-requirements">See the full sponsorship requirements →</a>
-    </p>
+    <!-- ELIGIBILITY — stated up front, before the search, so nobody has to ask -->
+    <div class="adspace-full"
+         style="border:1px solid var(--border-strong);border-radius:var(--radius);padding:.9rem 1rem;margin:0 0 14px;">
+        <p><strong>Who can sponsor: both of these are required</strong></p>
+        <ol class="u-m-0-0-12px-0-pl-22px">
+            <li>
+                Your listing is <strong>Verified</strong> — the green checkmark
+                (&#9989;) shown on the listing.
+            </li>
+            <li>
+                Your listing has been in the directory for at least
+                <strong>@DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring days</strong>.
+            </li>
+        </ol>
+        <p>
+            Search your listing below and it will tell you exactly which requirement is missing,
+            and how many days are left. <a href="~/faq#sponsorship-requirements">Full requirements &rarr;</a>
+        </p>
+    </div>
 
     <!-- SEARCH -->
     <form method="get" action="@Url.Action("Lookup", "Sponsorship")" class="search-form u-m-16px-0">
@@ -126,5 +141,15 @@
                 come back and search again. Questions? <a href="~/contact">Contact us</a>.
             </p>
         }
+    }
+
+    <hr />
+    @await Html.PartialAsync("_SponsorshipPackages", Model.PricingSummaries)
+
+    @if (Model.RecentPaid != null)
+    {
+        <div class="u-m-18px-0">
+            @await Html.PartialAsync("_RecentPaid", Model.RecentPaid)
+        </div>
     }
 }

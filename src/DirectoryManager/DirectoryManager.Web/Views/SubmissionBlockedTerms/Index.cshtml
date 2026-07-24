@@ -1,0 +1,64 @@
+@model IEnumerable<DirectoryManager.Data.Models.SubmissionBlockedTerm>
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Submission Blacklist";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<p class="u-m-6px-0-12px-0">
+    Wording that is rejected on the public submit page. Matching ignores case, spacing and
+    punctuation, so <b>no aml</b> also catches "No AML", "no-aml" and "NO  AML".
+    Use <b>*</b> for "anything in between": <b>no*aml</b> catches "no AML",
+    "no KYC/AML" and "no kyc or aml".
+</p>
+
+<a href="~/submissionblockedterms/create">Add term</a>
+<hr />
+
+@if (!Model.Any())
+{
+    <p class="u-opacity-85">No blocked terms yet.</p>
+}
+else
+{
+<div class="table-wrapper">
+    <table class="table u-w-100pct">
+    <tr>
+        <th>Term</th>
+        <th>Custom message</th>
+        <th>Status</th>
+        <th>Actions</th>
+    </tr>
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td><b>@item.Term</b></td>
+            <td>@(string.IsNullOrWhiteSpace(item.Message) ? "—" : item.Message)</td>
+            <td>@(item.IsEnabled ? "Enabled" : "Disabled")</td>
+            <td>
+                <form method="post" action="~/submissionblockedterms/toggle" style="display:inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@item.SubmissionBlockedTermId" />
+                    <button type="submit" class="btn btn-secondary btn-sm">
+                        @(item.IsEnabled ? "Disable" : "Enable")
+                    </button>
+                </form>
+                <form method="post" action="~/submissionblockedterms/delete" style="display:inline"
+                      onsubmit="return confirm('Delete this term?');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@item.SubmissionBlockedTermId" />
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </table>
+</div>
+}
+}

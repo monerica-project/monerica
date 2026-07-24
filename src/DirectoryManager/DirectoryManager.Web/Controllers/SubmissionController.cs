@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Common.Helpers;
+using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -39,6 +39,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDomainRegistrationDateService domainRegistrationDateService;
         private readonly IProcessorRepository processorRepo;
         private readonly ICaptchaService captcha;
+        private readonly ISubmissionBlockedTermRepository blockedTermRepository;
 
         public SubmissionController(
             UserManager<ApplicationUser> userManager,
@@ -56,10 +57,12 @@ namespace DirectoryManager.Web.Controllers
             IAdditionalLinkRepository additionalLinkRepo,
             IDomainRegistrationDateService domainRegistrationDateService,
             IProcessorRepository processorRepo,
-            ICaptchaService captcha)
+            ICaptchaService captcha,
+            ISubmissionBlockedTermRepository blockedTermRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
+            this.blockedTermRepository = blockedTermRepository;
             this.submissionRepository = submissionRepository;
             this.subCategoryRepository = subCategoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
@@ -158,6 +161,21 @@ namespace DirectoryManager.Web.Controllers
                     nameof(model.Note),
                     "URLs are not allowed in the Note. Please remove the link — put it in the Link fields instead.");
             }
+
+            // ---- Description must not open by repeating the listing name ----
+            // "Acme Wallet" / "Acme Wallet is a wallet that..." reads as padding and gets
+            // rewritten by hand every time, so reject it at submit instead.
+            if (SubmissionTextRules.DescriptionStartsWithName(model.Description, model.Name))
+            {
+                this.ModelState.AddModelError(
+                    nameof(model.Description),
+                    $"Do not start the description by repeating the listing name. " +
+                    $"The name (\"{model.Name}\") is already shown above the description — " +
+                    $"begin with what it does instead, for example \"Accepts Monero for ...\".");
+            }
+
+            // ---- Blocked terms (admin-managed blacklist) ----
+            await this.ValidateAgainstBlockedTermsAsync(model);
 
             // Related/Additional links (forum post / docs / proof page, etc.)
             var relatedLinks = NormalizeLinks(
@@ -879,6 +897,61 @@ namespace DirectoryManager.Web.Controllers
                 .Select(x => x!.Value)
                 .Distinct()
                 .ToList();
+        }
+
+        /// <summary>
+        /// Checks the submitter's free-text fields against the admin-managed blocked-term
+        /// list and adds a model error per offending field. Fail-open: if the list can't be
+        /// read, a submission is never blocked by an infrastructure problem.
+        /// </summary>
+        private async Task ValidateAgainstBlockedTermsAsync(SubmissionRequest model)
+        {
+            IReadOnlyList<DirectoryManager.Data.Models.SubmissionBlockedTerm> terms;
+
+            try
+            {
+                terms = await this.blockedTermRepository.GetEnabledAsync();
+            }
+            catch
+            {
+                return;
+            }
+
+            if (terms.Count == 0)
+            {
+                return;
+            }
+
+            var fields = new (string Key, string Label, string? Value)[]
+            {
+                (nameof(model.Name), "Name", model.Name),
+                (nameof(model.Description), "Description", model.Description),
+                (nameof(model.Note), "Note", model.Note),
+                (nameof(model.NoteToAdmin), "Note to admin", model.NoteToAdmin),
+            };
+
+            foreach (var (key, label, value) in fields)
+            {
+                if (string.IsNullOrWhiteSpace(value))
+                {
+                    continue;
+                }
+
+                var hit = terms.FirstOrDefault(t => SubmissionTextRules.ContainsTerm(value, t.Term));
+
+                if (hit == null)
+                {
+                    continue;
+                }
+
+                var message = string.IsNullOrWhiteSpace(hit.Message)
+                    ? $"The {label} contains wording that is not allowed in this directory " +
+                      $"(\"{hit.Term.Replace("*", " … ", StringComparison.Ordinal).Trim()}\"). " +
+                      "Please remove it and submit again."
+                    : hit.Message!;
+
+                this.ModelState.AddModelError(key, message);
+            }
         }
 
         private static List<string> NormalizeLinks(IEnumerable<string?>? links, int max)

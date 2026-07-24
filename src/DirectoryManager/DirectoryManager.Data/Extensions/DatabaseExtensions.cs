@@ -45,6 +45,7 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
             services.AddScoped<IProcessorConfigRepository, ProcessorConfigRepository>();
             services.AddScoped<IBlockedIPRepository, BlockedIPRepository>();
+            services.AddScoped<ISubmissionBlockedTermRepository, SubmissionBlockedTermRepository>();
             services.AddScoped<ITagRepository, TagRepository>();
             services.AddScoped<IDirectoryEntryTagRepository, DirectoryEntryTagRepository>();
             services.AddScoped<ISearchLogRepository, SearchLogRepository>();
@@ -57,6 +58,7 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IAffiliateCommissionRepository, AffiliateCommissionRepository>();
             services.AddScoped<IDirectoryEntryReviewCommentRepository, DirectoryEntryReviewCommentRepository>();
             services.AddScoped<IAdditionalLinkRepository, AdditionalLinkRepository>();
+            services.AddScoped<ISiteCheckStatusRepository, SiteCheckStatusRepository>();
 
             services.AddScoped<IReviewTagRepository, ReviewTagRepository>();
             services.AddScoped<IDirectoryEntryReviewTagRepository, DirectoryEntryReviewTagRepository>();

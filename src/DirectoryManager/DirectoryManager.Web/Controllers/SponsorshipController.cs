@@ -125,6 +125,12 @@ namespace DirectoryManager.Web.Controllers
                     .Select(e => this.ToSearchItem(e, activelySponsored)).ToList();
             }
 
+            // Latest payments only (last 10).
+            vm.RecentPaid = await this.BuildRecentPaidAsync(RecentPaidTake);
+
+            // Drives the shared "what each package includes" table.
+            vm.PricingSummaries = await this.BuildPricingSummariesAsync();
+
             return this.View("Lookup", vm);
         }
 
@@ -1044,13 +1050,19 @@ namespace DirectoryManager.Web.Controllers
             var active = await this.sponsoredListingRepo
                 .GetAllActiveSponsorsAsync();
 
-            return active
+            var ordered = active
                 .Where(x => x.CampaignEndDate > now)
                 .OrderBy(x => x.CampaignEndDate)
                 .ThenBy(
                     x => x.DirectoryEntry?.Name,
                     StringComparer.OrdinalIgnoreCase)
-                .Select(x => new CurrentSponsorItemVm
+                .ToList();
+
+            var items = new List<CurrentSponsorItemVm>();
+
+            foreach (var x in ordered)
+            {
+                items.Add(new CurrentSponsorItemVm
                 {
                     DirectoryEntryId = x.DirectoryEntryId,
                     ListingName =
@@ -1062,6 +1074,7 @@ namespace DirectoryManager.Web.Controllers
                     SponsorshipTypeEnum = x.SponsorshipType,
                     SponsorshipType =
                         EnumHelper.GetDescription(x.SponsorshipType),
+                    ScopeLabel = await this.BuildSponsorScopeNameAsync(x),
                     ExpiresUtc = x.CampaignEndDate,
                     RenewUrl =
                         x.DirectoryEntryId > 0
@@ -1070,8 +1083,63 @@ namespace DirectoryManager.Web.Controllers
                                 + $"?directoryEntryId={x.DirectoryEntryId}"
                                 + $"&sponsorshipType={x.SponsorshipType}"
                             : string.Empty,
-                })
-                .ToList();
+                });
+            }
+
+            return items;
+        }
+
+        /// <summary>
+        /// The scope a sponsorship covers, with no type prefix: empty for a main
+        /// (site-wide) sponsor, the category name for a category sponsor, and
+        /// "Category &gt; Subcategory" for a subcategory sponsor.
+        /// </summary>
+        private async Task<string> BuildSponsorScopeNameAsync(
+            SponsoredListing listing)
+        {
+            switch (listing.SponsorshipType)
+            {
+                case SponsorshipType.CategorySponsor:
+                    var categoryId = listing.CategoryId
+                        ?? listing.DirectoryEntry?.SubCategory?.CategoryId;
+
+                    if (categoryId is not > 0)
+                    {
+                        return string.Empty;
+                    }
+
+                    var category = await this.categoryRepo
+                        .GetByIdAsync(categoryId.Value);
+
+                    return category?.Name ?? string.Empty;
+
+                case SponsorshipType.SubcategorySponsor:
+                    var subcategoryId = listing.SubCategoryId
+                        ?? listing.DirectoryEntry?.SubCategoryId;
+
+                    if (subcategoryId is not > 0)
+                    {
+                        return string.Empty;
+                    }
+
+                    var subcategory = await this.subcategoryRepo
+                        .GetByIdAsync(subcategoryId.Value);
+
+                    if (subcategory == null)
+                    {
+                        return string.Empty;
+                    }
+
+                    var parent = subcategory.Category
+                        ?? await this.categoryRepo
+                            .GetByIdAsync(subcategory.CategoryId);
+
+                    return FormattingHelper.SubcategoryFormatting(
+                        parent?.Name, subcategory.Name);
+
+                default:
+                    return string.Empty;
+            }
         }
 
         private async Task<RecentPaidVm> BuildRecentPaidAsync(

@@ -41,6 +41,14 @@ var userAgentHeader = config[UserAgentHeader]
 var torHost = config[TorProxyHostKey] ?? "127.0.0.1";
 var torPort = int.TryParse(config[TorProxyPortKey], out var p) ? p : 9050;
 
+// An onion must come back unreachable this many CONSECUTIVE runs before it is flagged
+// offline (a single flaky/slow Tor run is never enough). Tunable via appsettings
+// ("SiteCheck:OnionFlagThreshold"); defaults to 3. Definitive "gone" responses
+// (404/410/521) still flag immediately, regardless of this.
+var onionFlagThreshold = int.TryParse(config["SiteCheck:OnionFlagThreshold"], out var oft) && oft > 0
+    ? oft
+    : 3;
+
 // TryStartTorAsync's first check is IsTorAvailable(host, port) — a TCP probe.
 // On Linux production, system tor@default is already listening on 9050, so
 // this short-circuits and returns true without ever launching tor.exe (which
@@ -63,16 +71,19 @@ var serviceProvider = new ServiceCollection()
     .AddDbRepositories()
     .AddSingleton(diagLogger)
     .AddSingleton(new WebPageChecker(userAgentHeader, timeout: null, logger: diagLogger, secondOpinion: new CheckHostClient(diagLogger)))
-    .AddSingleton(new TorWebPageChecker(userAgentHeader, torHost, torPort, timeout: null, logger: diagLogger))
+    .AddSingleton(new TorWebPageChecker(userAgentHeader, torHost, torPort, timeout: TimeSpan.FromSeconds(30), logger: diagLogger))
     .BuildServiceProvider();
 
 var entriesRepo = serviceProvider.GetRequiredService<IDirectoryEntryRepository>();
 var allEntries = await entriesRepo.GetAllIdsAndUrlsAsync();
 
-// Clearnet: 10 concurrent checks
-// Tor: max 2 concurrent — circuit exhaustion causes false negatives
+// Clearnet: 10 concurrent checks.
+// Tor: 6 concurrent. Higher concurrency can cause the occasional circuit-exhaustion
+// false negative, but that is now harmless — a false "inconclusive" only nudges a
+// streak by one and needs OnionFlagThreshold consecutive runs to matter, so it can
+// never flag a live onion on its own. The payoff is a much faster sweep.
 var semaphore = new SemaphoreSlim(10);
-var torSemaphore = new SemaphoreSlim(2);
+var torSemaphore = new SemaphoreSlim(6);
 
 var tasks = allEntries
     .Select(async entry =>
@@ -125,28 +136,29 @@ async Task<bool> CheckClearnetUrlsAsync(List<string> urls, WebPageChecker checke
     return false; // all online
 }
 
-// Checks a single .onion URL — returns true if offline
-async Task<bool> CheckOnionUrlAsync(string url, TorWebPageChecker torChecker)
+// Checks a single .onion URL — returns its tri-state outcome (Online / Inconclusive / Offline).
+async Task<CheckOutcome> CheckOnionUrlAsync(string url, TorWebPageChecker torChecker)
 {
-    bool isOnline = false;
+    var outcome = CheckOutcome.Inconclusive;
     try
     {
         if (Uri.TryCreate(url, UriKind.Absolute, out var uri))
         {
-            isOnline = await torChecker.IsOnlineAsync(uri);
+            outcome = await torChecker.CheckAsync(uri);
         }
     }
     catch
     {
+        outcome = CheckOutcome.Inconclusive;
     }
 
-    Console.WriteLine($"[onion] {url} → {(isOnline ? "online" : "offline")}");
+    Console.WriteLine($"[onion] {url} → {outcome}");
 
-    return !isOnline;
+    return outcome;
 }
 
 // Wraps CheckOnionUrlAsync with the Tor-specific semaphore
-async Task<bool> CheckOnionWithThrottleAsync(string url, TorWebPageChecker torChecker, SemaphoreSlim torSem)
+async Task<CheckOutcome> CheckOnionWithThrottleAsync(string url, TorWebPageChecker torChecker, SemaphoreSlim torSem)
 {
     await torSem.WaitAsync();
     try
@@ -171,6 +183,7 @@ async Task CheckAndSubmitAsync(
     var scopedSubmissionRepo = scope.ServiceProvider.GetRequiredService<ISubmissionRepository>();
     var scopedEntryTagRepo = scope.ServiceProvider.GetRequiredService<IDirectoryEntryTagRepository>();
     var scopedAdditionalLinkRepo = scope.ServiceProvider.GetRequiredService<IAdditionalLinkRepository>();
+    var scopedStatusRepo = scope.ServiceProvider.GetRequiredService<ISiteCheckStatusRepository>();
     var checker = scope.ServiceProvider.GetRequiredService<WebPageChecker>();
     var torChecker = scope.ServiceProvider.GetRequiredService<TorWebPageChecker>();
 
@@ -194,29 +207,81 @@ async Task CheckAndSubmitAsync(
         : Task.FromResult(false);
 
     // ── 2. Build onion task (Link2) ───────────────────────────────────────
-    // If Tor is unavailable, return false (skip — do NOT treat as offline)
-    Task<bool> onionTask =
+    // If Tor is unavailable / there is no onion, treat as Online (nothing to fail).
+    bool hasOnion =
         torAvailable &&
         !string.IsNullOrWhiteSpace(dirEntry.Link2) &&
-        dirEntry.Link2.Contains(".onion", StringComparison.OrdinalIgnoreCase)
-            ? CheckOnionWithThrottleAsync(dirEntry.Link2, torChecker, torSem)
-            : Task.FromResult(false); // skipped = not offline
+        dirEntry.Link2.Contains(".onion", StringComparison.OrdinalIgnoreCase);
+
+    Task<CheckOutcome> onionTask = hasOnion
+        ? CheckOnionWithThrottleAsync(dirEntry.Link2!, torChecker, torSem)
+        : Task.FromResult(CheckOutcome.Online);
 
     // ── 3. Run both concurrently ──────────────────────────────────────────
-    var results = await Task.WhenAll(clearnetTask, onionTask);
+    await Task.WhenAll(clearnetTask, onionTask);
 
-    bool clearnetOffline = results[0];
-    bool onionOffline = results[1];
+    bool clearnetOffline = clearnetTask.Result;      // true = definitive clearnet offline (robust verdict)
+    CheckOutcome onionOutcome = onionTask.Result;
 
-    if (clearnetOffline || onionOffline)
+    // ── 4. Fold into cross-run streaks, then decide what to flag ───────────
+    // A single bad run is NOT enough for an onion (Tor times out on live sites all the
+    // time). It must fail OnionFlagThreshold consecutive runs before it flags. Clearnet
+    // verdicts are already vetted by an external second opinion, so they still flag on
+    // the first confirmed offline. A definitive Offline (404/410/521) flags immediately
+    // in both cases. Flagging only ever queues a PENDING review submission — never an
+    // auto-removal — so the moderator has the final say.
+    var status = await scopedStatusRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId)
+                 ?? new SiteCheckStatus { DirectoryEntryId = entry.DirectoryEntryId };
+
+    bool clearnetShouldFlag = false;
+    bool onionShouldFlag = false;
+
+    if (clearnetUrls.Count > 0)
+    {
+        if (clearnetOffline)
+        {
+            status.ClearnetFailStreak++;
+            clearnetShouldFlag = true;
+        }
+        else
+        {
+            status.ClearnetFailStreak = 0;
+        }
+    }
+
+    if (hasOnion)
+    {
+        if (onionOutcome == CheckOutcome.Online)
+        {
+            status.OnionFailStreak = 0;
+        }
+        else
+        {
+            status.OnionFailStreak++;
+            onionShouldFlag = onionOutcome == CheckOutcome.Offline
+                              || status.OnionFailStreak >= onionFlagThreshold;
+
+            if (onionOutcome == CheckOutcome.Inconclusive)
+            {
+                Console.WriteLine(
+                    $"[onion] {dirEntry.Link2} inconclusive streak {status.OnionFailStreak}/{onionFlagThreshold}" +
+                    (onionShouldFlag ? " → threshold reached, flagging OFFLINE" : " → not flagging yet"));
+            }
+        }
+    }
+
+    status.LastCheckedUtc = DateTime.UtcNow;
+    await scopedStatusRepo.UpsertAsync(status);
+
+    if (clearnetShouldFlag || onionShouldFlag)
     {
         await CreateOfflineSubmissionIfNotExists(
             dirEntry,
             scopedSubmissionRepo,
             scopedEntryTagRepo,
             scopedAdditionalLinkRepo,
-            clearnetOffline,
-            onionOffline);
+            clearnetShouldFlag,
+            onionShouldFlag);
     }
 }
 

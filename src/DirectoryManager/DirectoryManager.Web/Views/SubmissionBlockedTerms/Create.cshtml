@@ -1,0 +1,45 @@
+@model DirectoryManager.Data.Models.SubmissionBlockedTerm
+@using DirectoryManager.Web.Constants;
+@{
+    ViewData[StringConstants.TitleHeader] = "Add Blocked Term";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+<h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+<hr />
+
+<form asp-action="Create" method="post">
+    @Html.AntiForgeryToken()
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+    <div class="form-group">
+        <label asp-for="Term"></label>
+        <input asp-for="Term" class="form-control" placeholder="no*aml" />
+        <span asp-validation-for="Term" class="text-danger"></span>
+        <small class="u-opacity-85">
+            Case, spacing and punctuation are ignored. Use <b>*</b> for "anything in between".
+        </small>
+    </div>
+
+    <div class="form-group u-mt-10px">
+        <label asp-for="Message"></label>
+        <input asp-for="Message" class="form-control"
+               placeholder="Leave blank to use the default message" />
+        <span asp-validation-for="Message" class="text-danger"></span>
+    </div>
+
+    <div class="form-check u-mt-10px">
+        <input asp-for="IsEnabled" class="form-check-input" />
+        <label asp-for="IsEnabled" class="form-check-label"></label>
+    </div>
+
+    <div class="u-mt-10px">
+        <button type="submit" class="btn btn-primary">Add</button>
+        <a class="btn btn-secondary" href="~/submissionblockedterms">Cancel</a>
+    </div>
+</form>
+}

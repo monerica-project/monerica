@@ -34,8 +34,34 @@
         or <strong>join the waitlist</strong> — we'll email you the moment one opens.
     </p>
 
+    @* Neutral (non-orange) callout — orange on this page is reserved for the next opening time. *@
+    <!-- ELIGIBILITY — stated up front, before the search, so nobody has to ask -->
+    <div style="border:1px solid var(--border-strong);border-radius:var(--radius);padding:.9rem 1rem;margin:0 0 14px;">
+        <p><strong>Who can sponsor: both of these are required</strong></p>
+        <ol class="u-m-0-0-12px-0-pl-22px">
+            <li>
+                Your listing is <strong>Verified</strong> — the green checkmark
+                (&#9989;) shown on the listing.
+            </li>
+            <li>
+                Your listing has been in the directory for at least
+                <strong>@DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring days</strong>.
+            </li>
+        </ol>
+        <p>
+            If your listing does not meet both, it cannot sponsor yet — searching it below will tell you
+            exactly which requirement is missing and how many days are left.
+            <a href="~/faq#sponsorship-requirements">Full requirements &rarr;</a>
+        </p>
+        <p>
+            Already a sponsor, now or in the past? You can always renew or buy another placement,
+            even if your listing no longer meets the requirements above.
+        </p>
+    </div>
+
     <!-- PROMINENT SEARCH -->
-    <div class="adspace-full" style="text-align:center;padding:1.1rem 1rem;margin:0 0 14px;">
+    <div id="find-listing"
+         style="text-align:center;border:1px solid var(--border-strong);border-radius:var(--radius);padding:1.1rem 1rem;margin:0 0 14px;">
         <p style="font-weight:800;font-size:1.2rem;margin:0 0 .6rem;">Find your listing</p>
         <form method="get" action="@Url.Action("Index", "Sponsorship")" class="search-form" style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:0;">
             <input type="search" name="q" value="@q"
@@ -163,33 +189,44 @@
     }
     else if (Model.MainSponsorInventory != null)
     {
-        <div class="adspace-full u-m-0-0-12px-0">
-            <p>
-                Sorry, the maximum number of <b>@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</b> listings has been reached!
+        var waitingCount = Model.WaitlistBoard?.MainWaitlistCount ?? 0;
+
+        @* Only the next opening time is orange — everything else stays neutral so it stands out. *@
+        <div style="border:1px solid var(--border-strong);border-radius:var(--radius);padding:.9rem 1rem;margin:0 0 12px;">
+            <p class="u-m-0-0-6px-0">
+                All <b>@DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings</b>
+                @EnumHelper.GetDescription(SponsorshipType.MainSponsor) spots are currently taken.
             </p>
-            <p>
+
+            <p class="orange-text u-m-0-0-6px-0" style="font-weight:800;">
                 Next opening:
-                <b>@Model.MainSponsorInventory.NextListingExpiration.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</b>
+                @Model.MainSponsorInventory.NextListingExpiration.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+                (in @Model.MainSponsorInventory.TimeUntilNextMessage)
             </p>
-            <p>Come back in @Model.MainSponsorInventory.TimeUntilNextMessage</p>
-            <p>Search for your listing to <b>join the waitlist!</b></p>
-            <p class="u-opacity-9">Category and Subcategory spots are separate from Main — search your listing above to check those.</p>
+
+            <p class="u-mt-10px"><strong>How to join the waitlist — 3 steps:</strong></p>
+            <ol class="u-m-0-0-12px-0-pl-22px">
+                <li>Search your listing in the <a href="#find-listing">Find your listing</a> box above.</li>
+                <li>Click <strong>See available spots</strong> next to it.</li>
+                <li>Enter your email, tick <strong>@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</strong>, and submit.</li>
+            </ol>
+            <p class="u-m-0-0-10px-0">
+                We email you the moment a spot opens. There is no charge to join, and
+                <b>@waitingCount</b> @(waitingCount == 1 ? "listing is" : "listings are") already waiting.
+            </p>
+            @* No button here on purpose — the search box above is the only primary button on this page. *@
+            <p class="u-m-0-0-10px-0">
+                <strong>To join the waitlist, find your listing in the
+                <a href="#find-listing">Find your listing</a> box above.</strong>
+            </p>
+            <p class="u-opacity-9">
+                Category and Subcategory spots are sold separately from Main and are often still open —
+                the same search shows those too.
+            </p>
         </div>
     }
 
-    <details class="u-m-10px-0-18px-0">
-        <summary class="u-cursor-pointer"><strong>What's included in each sponsorship package?</strong></summary>
-        <div class="u-mt-12px">
-            <h3 class="u-m-14px-0-6px-0">@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</h3>
-            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.MainSponsoredListingDetails))
-
-            <h3 class="u-m-18px-0-6px-0">@EnumHelper.GetDescription(SponsorshipType.CategorySponsor)</h3>
-            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.CategorySponsoredListingDetails))
-
-            <h3 class="u-m-18px-0-6px-0">@EnumHelper.GetDescription(SponsorshipType.SubcategorySponsor)</h3>
-            @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SubcategorySponsoredListingDetails))
-        </div>
-    </details>
+    @await Html.PartialAsync("_SponsorshipPackages", Model.PricingSummaries)
 
     <!-- WAITLIST -->
     @if (Model.WaitlistBoard != null)

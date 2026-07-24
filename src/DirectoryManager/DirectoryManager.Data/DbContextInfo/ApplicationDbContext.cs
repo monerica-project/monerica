@@ -20,6 +20,8 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<ApplicationUser> ApplicationUser { get; set; }
         public DbSet<ApplicationUserRole> ApplicationUserRole { get; set; }
         public DbSet<BlockedIP> BlockedIPs { get; set; }
+
+        public DbSet<SubmissionBlockedTerm> SubmissionBlockedTerms { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<ContentSnippet> ContentSnippets { get; set; }
         public DbSet<DirectoryEntriesAudit> DirectoryEntriesAudit { get; set; }
@@ -57,6 +59,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<AdditionalLink> AdditionalLinks { get; set; }
         public DbSet<ReviewTag> ReviewTags { get; set; }
         public DbSet<DirectoryEntryReviewTag> DirectoryEntryReviewTags { get; set; }
+        public DbSet<SiteCheckStatus> SiteCheckStatuses { get; set; }
         public DbSet<DirectoryEntryReviewRaffleEntry> DirectoryEntryReviewRaffleEntries { get; set; }
         public DbSet<Processor> Processors { get; set; }
         public DbSet<AffiliateCommissionEarned> AffiliateCommissionsEarned { get; set; }
@@ -99,6 +102,21 @@ namespace DirectoryManager.Data.DbContextInfo
             ConfigurePropertyMappings(builder);       // ✅ column types, max lengths, table names, etc. (no HasIndex)
             ConfigureAffiliateCommissionEarnedIndexes(builder);
             ConfigureVerificationRequests(builder);
+            ConfigureSiteCheckStatus(builder);
+        }
+
+        private static void ConfigureSiteCheckStatus(ModelBuilder builder)
+        {
+            builder.Entity<SiteCheckStatus>(e =>
+            {
+                e.ToTable("SiteCheckStatuses");
+                e.HasKey(x => x.SiteCheckStatusId);
+
+                // One row per entry — the checker upserts on DirectoryEntryId.
+                e.HasIndex(x => x.DirectoryEntryId)
+                 .IsUnique()
+                 .HasDatabaseName("IX_SiteCheckStatuses_DirectoryEntryId");
+            });
         }
 
         // =========================================================

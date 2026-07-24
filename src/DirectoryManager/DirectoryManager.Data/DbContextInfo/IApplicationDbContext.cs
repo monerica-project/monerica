@@ -12,6 +12,8 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<ApplicationUser> ApplicationUser { get; set; }
         public DbSet<ApplicationUserRole> ApplicationUserRole { get; set; }
         public DbSet<BlockedIP> BlockedIPs { get; set; }
+
+        public DbSet<SubmissionBlockedTerm> SubmissionBlockedTerms { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<ContentSnippet> ContentSnippets { get; set; }
         public DbSet<DirectoryEntriesAudit> DirectoryEntriesAudit { get; set; }
@@ -54,6 +56,8 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<Processor> Processors { get; set; }
         public DbSet<DirectoryEntryReviewRaffleEntry> DirectoryEntryReviewRaffleEntries { get; set; }
         DbSet<Raffle> Raffles { get; set; }
+
+        DbSet<SiteCheckStatus> SiteCheckStatuses { get; set; }
 
         int SaveChanges();
         Task<int> SaveChangesAsync(CancellationToken cancellationToken = default);

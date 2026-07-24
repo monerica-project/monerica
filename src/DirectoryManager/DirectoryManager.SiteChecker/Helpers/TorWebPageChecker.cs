@@ -120,7 +120,7 @@ namespace DirectoryManager.SiteChecker.Helpers
             }
         }
 
-        public async Task<bool> IsOnlineAsync(Uri uri)
+        public async Task<CheckOutcome> CheckAsync(Uri uri)
         {
             var attemptSummaries = new List<string>();
 
@@ -131,7 +131,7 @@ namespace DirectoryManager.SiteChecker.Helpers
 
                 if (result.HasValue)
                 {
-                    if (!result.Value)
+                    if (result.Value == CheckOutcome.Offline)
                     {
                         this.log.LogOfflineFailure(uri.ToString(), "tor", attemptSummaries);
                     }
@@ -146,16 +146,16 @@ namespace DirectoryManager.SiteChecker.Helpers
                 }
             }
 
-            // Every attempt was inconclusive (timeout / circuit / connection error). Tor
-            // reachability is unreliable — a live but slow onion routinely can't be reached
-            // in time, and treating that as "offline" wrongly flags working sites. Only a
-            // DEFINITIVE negative HTTP response (404/410/521, handled above) marks an onion
-            // offline; an inconclusive result is treated as online (benefit of the doubt).
-            this.log.Log($"[TOR] {uri} — inconclusive after {MaxRetries} attempts ({string.Join(" | ", attemptSummaries)}); NOT flagging offline.");
-            return true;
+            // Every attempt failed to get a usable answer (timeout / SOCKS circuit / connection
+            // error — including a SOCKS 0x04 "host unreachable"). Over Tor this is routine even
+            // for a LIVE onion, so a single run means nothing: return Inconclusive and let the
+            // caller's cross-run failure streak decide whether it is genuinely down. Only a
+            // definitive "gone" response (404/410/521, handled above) is offline on its own.
+            this.log.Log($"[TOR] {uri} — inconclusive after {MaxRetries} attempts ({string.Join(" | ", attemptSummaries)}).");
+            return CheckOutcome.Inconclusive;
         }
 
-        private async Task<(bool? result, string summary)> TryOnceAsync(Uri uri, int attempt)
+        private async Task<(CheckOutcome? result, string summary)> TryOnceAsync(Uri uri, int attempt)
         {
             // 1) HEAD
             var headSw = Stopwatch.StartNew();
@@ -172,12 +172,12 @@ namespace DirectoryManager.SiteChecker.Helpers
 
                 if (statusCode is >= 200 and < 400)
                 {
-                    return (true, $"attempt {attempt}: HEAD {statusCode} in {headSw.ElapsedMilliseconds}ms");
+                    return (CheckOutcome.Online, $"attempt {attempt}: HEAD {statusCode} in {headSw.ElapsedMilliseconds}ms");
                 }
 
                 if (statusCode == 521)
                 {
-                    return (false, $"attempt {attempt}: HEAD 521 in {headSw.ElapsedMilliseconds}ms");
+                    return (CheckOutcome.Offline, $"attempt {attempt}: HEAD 521 in {headSw.ElapsedMilliseconds}ms");
                 }
             }
             catch (HttpRequestException hre) when (hre.StatusCode == HttpStatusCode.MethodNotAllowed)
@@ -216,10 +216,10 @@ namespace DirectoryManager.SiteChecker.Helpers
 
                 if (statusCode == 404 || statusCode == 410)
                 {
-                    return (false, $"attempt {attempt}: GET {statusCode} in {getSw.ElapsedMilliseconds}ms");
+                    return (CheckOutcome.Offline, $"attempt {attempt}: GET {statusCode} in {getSw.ElapsedMilliseconds}ms");
                 }
 
-                return (true, $"attempt {attempt}: GET {statusCode} in {getSw.ElapsedMilliseconds}ms");
+                return (CheckOutcome.Online, $"attempt {attempt}: GET {statusCode} in {getSw.ElapsedMilliseconds}ms");
             }
             catch (TaskCanceledException)
             {

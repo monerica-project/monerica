@@ -1,0 +1,150 @@
+@model List<DirectoryManager.Web.Models.Sponsorship.SponsorshipPricingSummaryVm>
+@using System.Globalization
+@using DirectoryManager.Data.Enums
+@*
+    Shared explanation of the three sponsorship packages — rendered on /sponsorship and
+    /sponsor-options so both say exactly the same thing.
+
+    The table is ONLY what differs between the packages; what they share is the list
+    underneath. The editable snippets (SiteConfigSetting.*SponsoredListingDetails) still
+    drive Views/Sponsorship/Options.cshtml and Views/SponsoredListing/Index.cshtml; if what
+    a package includes changes there, update this partial to match.
+
+    Model may be null or empty — the price row and duration line are then skipped.
+*@
+@{
+    var usd = CultureInfo.GetCultureInfo(DirectoryManager.Web.Constants.StringConstants.EnglishUS);
+
+    var mainPricing = Model?
+        .FirstOrDefault(x => x.SponsorshipType == SponsorshipType.MainSponsor);
+    var categoryPricing = Model?
+        .FirstOrDefault(x => x.SponsorshipType == SponsorshipType.CategorySponsor);
+    var subcategoryPricing = Model?
+        .FirstOrDefault(x => x.SponsorshipType == SponsorshipType.SubcategorySponsor);
+
+    var anyPricing = mainPricing ?? categoryPricing ?? subcategoryPricing;
+
+    string PriceCell(
+        DirectoryManager.Web.Models.Sponsorship.SponsorshipPricingSummaryVm? p)
+    {
+        return p == null ? "—" : $"from {p.MinPriceUsd.ToString("C0", usd)}";
+    }
+
+    string DurationLabel(
+        DirectoryManager.Web.Models.Sponsorship.SponsorshipPricingSummaryVm p)
+    {
+        return p.MinDays == p.MaxDays
+            ? $"{p.MinDays} days"
+            : $"{p.MinDays}–{p.MaxDays} days";
+    }
+}
+
+@* .table-wrapper forces white-space:nowrap on every cell, which made this table
+   wider than the page. Scoped to this table only so other tables keep nowrap. *@
+<style>
+    #packages-table th,
+    #packages-table td { white-space: normal; }
+    #packages-table th:first-child,
+    #packages-table td:first-child { width: 34%; }
+    #packages-table th:not(:first-child),
+    #packages-table td:not(:first-child) { width: 22%; text-align: center; }
+</style>
+
+<h2 id="packages" class="u-mt-8px">What each sponsorship includes</h2>
+<p class="u-m-6px-0-12px-0">
+    Three separate placements — <strong>Main</strong>, <strong>Category</strong> and
+    <strong>Subcategory</strong>. They are sold independently, so you can buy one or all three.
+    The table is only what makes them <strong>different</strong>;
+    the list underneath is what they <strong>all</strong> get.
+</p>
+
+<div class="table-wrapper">
+    <table id="packages-table" class="table u-w-100pct">
+        <thead>
+            <tr>
+                <th>What you get</th>
+                <th>Main</th>
+                <th>Category</th>
+                <th>Subcategory</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><strong>Spots</strong></td>
+                <td>@DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings site-wide</td>
+                <td>@DirectoryManager.Common.Constants.IntegerConstants.MaxCategorySponsoredListings per category</td>
+                <td>@DirectoryManager.Common.Constants.IntegerConstants.MaxSubcategorySponsoredListings per subcategory</td>
+            </tr>
+            <tr>
+                <td><strong>Where it shows</strong></td>
+                <td>Every page</td>
+                <td>One category</td>
+                <td>One subcategory</td>
+            </tr>
+            <tr>
+                <td><strong>On the home page</strong></td>
+                <td>Top, large boxes</td>
+                <td>Category Sponsors</td>
+                <td>Subcategory Sponsors</td>
+            </tr>
+            <tr>
+                <td><strong>Shared with</strong></td>
+                <td>Up to @(DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings - 1) others</td>
+                <td>No one</td>
+                <td>No one</td>
+            </tr>
+            <tr>
+                <td><strong>Network placement</strong></td>
+                <td>Most prominent</td>
+                <td>Standard</td>
+                <td>Standard</td>
+            </tr>
+            <tr>
+                <td><strong>Monerica&#39;s Blog</strong></td>
+                <td>&#10003;</td>
+                <td><span class="u-opacity-6">&mdash;</span></td>
+                <td><span class="u-opacity-6">&mdash;</span></td>
+            </tr>
+            <tr>
+                <td><strong>Pinned post on X</strong></td>
+                <td>&#10003;</td>
+                <td><span class="u-opacity-6">&mdash;</span></td>
+                <td><span class="u-opacity-6">&mdash;</span></td>
+            </tr>
+            <tr>
+                <td><strong>Blog interview</strong></td>
+                <td>&#10003;</td>
+                <td><span class="u-opacity-6">&mdash;</span></td>
+                <td><span class="u-opacity-6">&mdash;</span></td>
+            </tr>
+            @if (anyPricing != null)
+            {
+                <tr>
+                    <td><strong>Price (USD)</strong></td>
+                    <td>@PriceCell(mainPricing)</td>
+                    <td>@PriceCell(categoryPricing)</td>
+                    <td>@PriceCell(subcategoryPricing)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+
+<h3 class="u-m-18px-0-6px-0">Every sponsorship also gets, whichever you pick</h3>
+<ul class="u-m-0-0-12px-0-pl-22px">
+    <li>Sponsor banner on every page.</li>
+    <li>Highlighted in search, filters, lists and on your listing profile.</li>
+    <li>Shown on MoneroPriceNow, MoneroAcademy, MoneroMaps and MoneroMarketCap.</li>
+    <li>Included in the RSS feed and the weekly newsletter.</li>
+    <li>Your direct link is used &mdash; no affiliate or referral tracking.</li>
+    @if (anyPricing != null)
+    {
+        <li>Bought for @DurationLabel(anyPricing), paid in XMR.</li>
+    }
+</ul>
+
+<p class="u-m-0-0-14px-0-opacity-9">
+    Exact price depends on the placement and the length you pick.
+    <a href="~/sponsoredlisting/offers">View the full price list &rarr;</a>
+    · <a href="~/faq#sponsorship-requirements">Sponsorship requirements</a>
+</p>
