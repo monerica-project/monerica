@@ -27,8 +27,8 @@
         · <a href="~/sponsors">See current sponsors</a>
     </p>
     <!-- ELIGIBILITY — stated up front, before the search, so nobody has to ask -->
-    <div class="adspace-full"
-         style="border:1px solid var(--border-strong);border-radius:var(--radius);padding:.9rem 1rem;margin:0 0 14px;">
+    @* Neutral (non-orange) callout — adspace-full would force orange 18px on every <p>. *@
+    <div style="border:1px solid var(--border-strong);border-radius:var(--radius);padding:.9rem 1rem;margin:0 0 14px;">
         <p><strong>Who can sponsor: both of these are required</strong></p>
         <ol class="u-m-0-0-12px-0-pl-22px">
             <li>
@@ -40,9 +40,11 @@
                 <strong>@DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring days</strong>.
             </li>
         </ol>
+        @* u-ws-nowrap keeps "Full requirements →" together so the arrow can't wrap
+           onto a line by itself. *@
         <p>
-            Search your listing below and it will tell you exactly which requirement is missing,
-            and how many days are left. <a href="~/faq#sponsorship-requirements">Full requirements &rarr;</a>
+            Search below to see which requirement is missing and how long is left.
+            <a class="u-ws-nowrap" href="~/faq#sponsorship-requirements">Full requirements &rarr;</a>
         </p>
     </div>
 

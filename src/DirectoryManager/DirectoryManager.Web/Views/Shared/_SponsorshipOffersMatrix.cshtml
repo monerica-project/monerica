@@ -1,0 +1,111 @@
+@model SponsorshipOffersTableViewModel
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Common.Constants
+@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.Utilities.Helpers
+@using DirectoryManager.Web.Models.Sponsorship
+@*
+    Price matrix for one sponsorship type: one ROW per scope (the default price, then any
+    subcategory that overrides it) and one COLUMN per duration.
+
+    Replaces a flat one-row-per-offer table that repeated the scope name and the duration
+    on every line — 55 rows per type became 11. Same information, a fifth of the page,
+    and you can read across a single row to compare durations for your own subcategory.
+*@
+@{
+    var defaultLabel = DirectoryManager.Web.Constants.StringConstants.Default;
+
+    var days = Model.Offers
+        .Select(o => o.Days)
+        .Distinct()
+        .OrderBy(d => d)
+        .ToList();
+
+    // Default scope first, then subcategory overrides alphabetically.
+    var scopes = Model.Offers
+        .GroupBy(o => o.CategorySubcategory)
+        .OrderBy(g => string.Equals(g.Key, defaultLabel, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
+        .ThenBy(g => g.Key, StringComparer.OrdinalIgnoreCase)
+        .ToList();
+
+    var tableId = $"offers-matrix-{(int)Model.SponsorshipType}";
+}
+
+@if (scopes.Count > 0 && days.Count > 0)
+{
+    <h3 class="u-mt-18px">@EnumHelper.GetDescription(Model.SponsorshipType)</h3>
+
+    @* Scope names are long ("Web Hosting » VPS & Dedicated Server Providers") so that
+       column must wrap; the price columns must not. .table-wrapper sets nowrap on every
+       cell by default, hence the per-table override. *@
+    <style>
+        #@(tableId) td:first-child,
+        #@(tableId) th:first-child { white-space: normal; width: 34%; }
+        #@(tableId) td:not(:first-child),
+        #@(tableId) th:not(:first-child) { text-align: right; }
+        #@(tableId) .offer-perday { font-size: .78em; opacity: .7; display: block; }
+    </style>
+
+    <div class="table-wrapper">
+        <table id="@tableId" class="table u-w-100pct">
+            <thead>
+                <tr>
+                    <th>@FormattingHelper.SubcategoryFormatting("Category", "Subcategory")</th>
+                    @foreach (var d in days)
+                    {
+                        <th>@d days</th>
+                    }
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var scope in scopes)
+                {
+                    var isDefault = string.Equals(scope.Key, defaultLabel, StringComparison.OrdinalIgnoreCase);
+                    var byDays = scope.ToDictionary(o => o.Days, o => o);
+
+                    <tr>
+                        <td>
+                            @if (isDefault)
+                            {
+                                <strong>Default</strong>
+                                <span class="offer-perday">applies unless the subcategory is listed below</span>
+                            }
+                            else
+                            {
+                                @scope.Key
+                            }
+                        </td>
+
+                        @foreach (var d in days)
+                        {
+                            <td>
+                                @if (byDays.TryGetValue(d, out var offer))
+                                {
+                                    <text>@offer.Price.ToString(StringConstants.CurrentFormat)</text>
+
+                                    @if (Model.ShowConverted)
+                                    {
+                                        <span class="offer-perday">
+                                            @CurrencyFormatter.Format(offer.Price, Model.ConversionRate, Model.SelectedCurrency, false)
+                                        </span>
+                                    }
+
+                                    @if (offer.Days > 0)
+                                    {
+                                        <span class="offer-perday">
+                                            @((offer.Price / offer.Days).ToString(StringConstants.CurrentFormat))/day
+                                        </span>
+                                    }
+                                }
+                                else
+                                {
+                                    <span class="u-opacity-6">&mdash;</span>
+                                }
+                            </td>
+                        }
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}

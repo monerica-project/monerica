@@ -1,4 +1,4 @@
-﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Enums
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Web.Helpers
 @using DirectoryManager.Web.Models
@@ -30,18 +30,15 @@
     <hr />
 
     <h2>Offers</h2>
-    <p>These are the current market rates for advertising. Rates change according to demand. The default prices are used unless there is a subcategory override.</p>
+    <p>
+        Current rates, by placement and length. Read across a row to compare durations.
+        The <b>Default</b> row applies unless your subcategory has its own price below.
+        Rates change with demand.
+    </p>
     <p>
         <a class="btn btn-primary" href="~/sponsoredlisting">Buy Advertising</a>
-        <a class="btn btn-info u-ml-8px" href="~/sponsor-options">Look up your listing's options &amp; prices →</a>
+        <a class="btn btn-info u-ml-8px" href="~/sponsor-options">Look up your listing&#39;s options &amp; prices &rarr;</a>
     </p>
-
-    <hr />
-    <p>
-        <b>Want the exact price for your site? <a href="~/sponsor-options">Look up your listing's sponsorship options</a></b>
-        — see every placement (Main, Category, Subcategory), live prices, and which spots are open, or join the waitlist if a spot is taken.
-    </p>
-    <hr />
 
     @if (Model.LastUpdatedDate.HasValue)
     {
@@ -56,7 +53,7 @@
     }
 
     @await Html.PartialAsync(
-        "_SponsorshipOffersTable",
+        "_SponsorshipOffersMatrix",
         new SponsorshipOffersTableViewModel
         {
             SponsorshipType = SponsorshipType.MainSponsor,
@@ -67,7 +64,7 @@
         })
 
     @await Html.PartialAsync(
-        "_SponsorshipOffersTable",
+        "_SponsorshipOffersMatrix",
         new SponsorshipOffersTableViewModel
         {
             SponsorshipType = SponsorshipType.CategorySponsor,
@@ -78,7 +75,7 @@
         })
 
     @await Html.PartialAsync(
-        "_SponsorshipOffersTable",
+        "_SponsorshipOffersMatrix",
         new SponsorshipOffersTableViewModel
         {
             SponsorshipType = SponsorshipType.SubcategorySponsor,
