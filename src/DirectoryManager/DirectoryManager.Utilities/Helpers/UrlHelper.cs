@@ -108,5 +108,58 @@ namespace DirectoryManager.Web.Helpers
             // AbsoluteUri gives you the normalized URL, then TrimEnd removes any trailing slash
             return fullUri.AbsoluteUri.TrimEnd('/');
         }
+
+        /// <summary>
+        /// The lower-cased host of a URL (www. stripped), or null if it can't be parsed.
+        /// </summary>
+        public static string? TryGetHost(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                return null;
+            }
+
+            var candidate = url.Trim();
+
+            // Uri needs a scheme; add one so bare "example.com/x" parses.
+            if (!candidate.Contains("://", StringComparison.Ordinal))
+            {
+                candidate = "https://" + candidate;
+            }
+
+            if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri) || string.IsNullOrEmpty(uri.Host))
+            {
+                return null;
+            }
+
+            var host = uri.Host.ToLowerInvariant();
+            if (host.StartsWith("www.", StringComparison.Ordinal))
+            {
+                host = host.Substring(4);
+            }
+
+            return host;
+        }
+
+        /// <summary>
+        /// True when two URLs are on the same site — same host, or one host is a subdomain of
+        /// the other (e.g. "pay.example.com" vs "example.com", or a page on the same .onion).
+        /// The leading-dot comparison means "evilexample.com" does NOT match "example.com".
+        /// Used to require that a proof/acceptance link lives on the reviewed site itself.
+        /// </summary>
+        public static bool HostsRelated(string? urlA, string? urlB)
+        {
+            var a = TryGetHost(urlA);
+            var b = TryGetHost(urlB);
+
+            if (a is null || b is null)
+            {
+                return false;
+            }
+
+            return a == b
+                || a.EndsWith("." + b, StringComparison.Ordinal)
+                || b.EndsWith("." + a, StringComparison.Ordinal);
+        }
     }
 }

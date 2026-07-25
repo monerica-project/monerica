@@ -7,6 +7,7 @@ using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Validation;
 using DirectoryManager.Web.Constants;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Models.Reviews;
 using DirectoryManager.Web.Services.Interfaces;
@@ -341,7 +342,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             // Order proof is optional, but if supplied it must be a URL.
-            if (!TryNormalizeOrderProofUrl(input.OrderProof, out _))
+            if (!TryNormalizeOrderProofUrl(input.OrderProof, out var normalizedProof))
             {
                 SubmittedFlows.TryRemove(flowId, out _);
                 this.ModelState.AddModelError(
@@ -353,6 +354,33 @@ namespace DirectoryManager.Web.Controllers
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
                 return this.View("Compose", input);
+            }
+
+            // When a proof URL is supplied, it must live on the REVIEWED listing itself — its own
+            // clearnet domain, or its Tor/I2P address (Link / Link2 / Link3). An order page on a
+            // different site (e.g. an aggregator, or another exchange) can't prove an order on this
+            // one, so it is rejected. This is the same domain rule the listing submission uses.
+            if (!string.IsNullOrWhiteSpace(normalizedProof))
+            {
+                var listingLinks = new[] { gateEntry.Link, gateEntry.Link2, gateEntry.Link3 }
+                    .Where(l => !string.IsNullOrWhiteSpace(l));
+
+                if (!listingLinks.Any(l => UrlHelper.HostsRelated(normalizedProof, l)))
+                {
+                    SubmittedFlows.TryRemove(flowId, out _);
+                    var listingHost = UrlHelper.TryGetHost(gateEntry.Link);
+                    this.ModelState.AddModelError(
+                        nameof(input.OrderProof),
+                        "The order proof URL must be on the reviewed listing's own site" +
+                        (listingHost is { } lh ? $" ({lh})" : string.Empty) +
+                        " — its own domain, .onion, or I2P address. A link on a different site can't verify " +
+                        "an order here, so it isn't accepted.");
+
+                    this.ViewBag.DirectoryEntryName = gateEntry.Name ?? "Listing";
+                    this.ViewBag.FlowId = flowId;
+                    this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
+                    return this.View("Compose", input);
+                }
             }
 
             var mod = await this.moderation.EvaluateReviewAsync(input.Body, ct);
@@ -468,12 +496,33 @@ namespace DirectoryManager.Web.Controllers
             }
 
             // Order proof is optional, but if supplied it must be a URL.
-            if (!TryNormalizeOrderProofUrl(input.OrderProof, out _))
+            if (!TryNormalizeOrderProofUrl(input.OrderProof, out var normalizedProof))
             {
                 this.ModelState.AddModelError(
                     nameof(input.OrderProof),
                     "Order proof must be a URL (for example https://shop.example.com/orders/123). Leave it blank if there isn't one.");
                 return this.View(input);
+            }
+
+            // A supplied proof URL must be on the reviewed listing's own site (domain / .onion / I2P) —
+            // same rule as the public review flow, so this direct-create path can't bypass it.
+            if (!string.IsNullOrWhiteSpace(normalizedProof))
+            {
+                var createEntry = await this.directoryEntryRepository.GetByIdAsync(input.DirectoryEntryId);
+                var createLinks = createEntry is null
+                    ? Enumerable.Empty<string?>()
+                    : new[] { createEntry.Link, createEntry.Link2, createEntry.Link3 }.Where(l => !string.IsNullOrWhiteSpace(l));
+
+                if (!createLinks.Any(l => UrlHelper.HostsRelated(normalizedProof, l)))
+                {
+                    var host = UrlHelper.TryGetHost(createEntry?.Link);
+                    this.ModelState.AddModelError(
+                        nameof(input.OrderProof),
+                        "The order proof URL must be on the reviewed listing's own site" +
+                        (host is { } h ? $" ({h})" : string.Empty) +
+                        " — its own domain, .onion, or I2P address.");
+                    return this.View(input);
+                }
             }
 
             var entity = new DirectoryEntryReview

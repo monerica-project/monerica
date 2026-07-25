@@ -19,8 +19,8 @@
         <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
         <input type="hidden" asp-for="DirectoryEntryId" />
 
-        <div class="mb-3">
-            <label asp-for="Rating" class="form-label"></label>
+        <div class="mb-4">
+            <label asp-for="Rating" class="form-label"><strong>Rating</strong></label>
             <select asp-for="Rating" class="form-control select-fit">
                 <option value="">— Select a rating —</option>
                 <option value="5">5 – Excellent</option>
@@ -32,60 +32,50 @@
             <span asp-validation-for="Rating" class="text-danger"></span>
         </div>
 
-        <div class="mb-3">
-            <label asp-for="Body" class="form-label">Your Review</label><br />
+        <div class="mb-4">
+            <label asp-for="Body" class="form-label"><strong>Your Review</strong></label>
             <textarea asp-for="Body" class="form-control" cols="40" rows="20"></textarea>
             <span asp-validation-for="Body" class="text-danger"></span>
         </div>
 
         @{
             var requireVerification = ViewBag.RequireVerification == true;
+            var listingName = ViewBag.DirectoryEntryName as string ?? "the listing";
         }
 
         @if (requireVerification)
         {
-            <div class="alert alert-warning">
-                <strong>This listing requires proof of a real order.</strong>
-                The order URL you provide must be something we can <strong>independently verify</strong> —
-                a link that lets a moderator confirm the order is genuine and actually took place.
-                Your review is held until we've manually checked it; orders we can't independently verify are not approved.
-            </div>
-
-            <div class="mb-3">
-                <label asp-for="OrderProof" class="form-label">Order Proof URL (required)</label>
+            <div>
+                <label asp-for="OrderProof" class="form-label"><strong>Order Proof URL (required)</strong></label>
                 <input asp-for="OrderProof" class="form-control" maxlength="2048" required />
                 <span asp-validation-for="OrderProof" class="text-danger"></span>
-                <div class="form-text">
-                    <strong>This is the order page on the exchange's own website</strong> (the order link from where you placed the swap) —
-                    <strong>not</strong> a blockchain transaction, transaction ID, or block-explorer link.
-                    It must be a link we can open and <strong>independently verify</strong> — for example a provider
-                    order or receipt page that shows the order details. A moderator manually opens and checks every
-                    one to confirm the order is valid and actually took place; reviews we can't verify are not approved.
-                    Used for internal verification only and never shown publicly.
+                <div class="form-text fst-italic">
+                    Must be a real order URL from @listingName's own domain (or its .onion / I2P address) — not a
+                    blockchain or block-explorer link. Internal verification only, never shown publicly.
                 </div>
             </div>
 
-            <div class="mb-3">
-                <label asp-for="OrderProofContext" class="form-label">Verification details (optional)</label>
+            <div style="height:3.5rem;" aria-hidden="true"></div>
+
+            <div class="mb-4">
+                <label asp-for="OrderProofContext" class="form-label"><strong>Verification Details (optional)</strong></label>
                 <textarea asp-for="OrderProofContext" class="form-control" maxlength="2048" rows="3"></textarea>
                 <span asp-validation-for="OrderProofContext" class="text-danger"></span>
-                <div class="form-text">
-                    Optional extra context that helps us look up your order — for example the receiving
-                    wallet address you used. Internal verification only; never shown publicly.
+                <div class="form-text fst-italic">
+                    If a wallet address or order ID is needed to view the order, include it here so a moderator can
+                    see it. Internal verification only, never shown publicly.
                 </div>
             </div>
         }
         else
         {
-            <!-- ✅ Single textbox for either order id OR order URL -->
-            <div class="mb-3">
-                <label asp-for="OrderProof" class="form-label">Order Proof URL (optional)</label>
+            <div class="mb-4">
+                <label asp-for="OrderProof" class="form-label"><strong>Order Proof URL (optional)</strong></label>
                 <input asp-for="OrderProof" class="form-control" maxlength="2048" />
                 <span asp-validation-for="OrderProof" class="text-danger"></span>
-                <div class="form-text">
-                    Optional, but if you include it, it must be a link to your <strong>order page on the exchange's website</strong>
-                    (where you placed the swap) — <strong>not</strong> a blockchain transaction or block-explorer link.
-                    It's used for internal verification only and is never shown publicly.
+                <div class="form-text fst-italic">
+                    Optional. If included, must be a real order URL from @listingName's own domain — not a
+                    blockchain or block-explorer link. Internal verification only, never shown publicly.
                 </div>
             </div>
         }

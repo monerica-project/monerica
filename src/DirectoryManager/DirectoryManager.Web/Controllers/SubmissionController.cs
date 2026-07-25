@@ -140,6 +140,25 @@ namespace DirectoryManager.Web.Controllers
             {
                 this.ModelState.AddModelError(nameof(model.ProofLink), "The proof link is not a valid URL.");
             }
+            else if (!string.IsNullOrWhiteSpace(model.ProofLink))
+            {
+                // The proof of Monero acceptance must be a page ON the reviewed site itself —
+                // its own domain, or its Tor/I2P address. Block-explorer links, screenshots on
+                // third-party hosts, etc. are not proof and are rejected. Matched against the
+                // main Link and the Tor/I2P Link 2 / Link 3 fields.
+                var siteLinks = new[] { model.Link, model.Link2, model.Link3 }
+                    .Where(l => !string.IsNullOrWhiteSpace(l));
+
+                if (!siteLinks.Any(l => UrlHelper.HostsRelated(model.ProofLink, l)))
+                {
+                    this.ModelState.AddModelError(
+                        nameof(model.ProofLink),
+                        "The proof link must be a page on the site itself (its own domain or .onion) showing it " +
+                        "accepts Monero. Blockchain-explorer links and third-party pages are not accepted — " +
+                        "remove it, or replace it with a page on " +
+                        (UrlHelper.TryGetHost(model.Link) is { } h ? h : "the listed site") + ".");
+                }
+            }
 
             if (!string.IsNullOrWhiteSpace(model.VideoLink) && !UrlHelper.IsValidUrl(model.VideoLink))
             {
