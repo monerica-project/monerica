@@ -19,6 +19,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryReviewCommentRepository commentRepo;
         private readonly IReviewTagRepository reviewTagRepository;
         private readonly IDirectoryEntryReviewTagRepository reviewTagLinkRepository;
+        private readonly IDirectoryEntryRepository directoryEntryRepository;
 
         public ReviewModerationController(
              IDirectoryEntryReviewRepository repo,
@@ -27,6 +28,7 @@ namespace DirectoryManager.Web.Controllers
              IUserAgentCacheService userAgentCacheService,
              IReviewTagRepository reviewTagRepository,
              IDirectoryEntryReviewTagRepository reviewTagLinkRepository,
+             IDirectoryEntryRepository directoryEntryRepository,
              IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
@@ -34,6 +36,7 @@ namespace DirectoryManager.Web.Controllers
             this.commentRepo = commentRepo;
             this.reviewTagRepository = reviewTagRepository;
             this.reviewTagLinkRepository = reviewTagLinkRepository;
+            this.directoryEntryRepository = directoryEntryRepository;
         }
 
         // Default route = Pending queue
@@ -318,6 +321,29 @@ namespace DirectoryManager.Web.Controllers
             if (review is null)
             {
                 return this.NotFound();
+            }
+
+            // Allow moving the review to a different directory entry (e.g. it was left
+            // on the wrong listing). Validate the target exists before repointing it.
+            if (input.DirectoryEntryId != review.DirectoryEntryId)
+            {
+                var targetEntry = await this.directoryEntryRepository.GetByIdAsync(input.DirectoryEntryId);
+                if (targetEntry is null)
+                {
+                    this.ModelState.AddModelError(
+                        nameof(input.DirectoryEntryId),
+                        "No directory entry exists with that ID.");
+                    var reloadTags = await this.reviewTagRepository.ListAllAsync(ct);
+                    input.AllTags = reloadTags.Select(t => new EditDirectoryEntryReviewAdminViewModel.TagOption
+                    {
+                        Id = t.ReviewTagId,
+                        Name = t.Name,
+                        IsEnabled = t.IsEnabled
+                    }).ToList();
+                    return this.View("Edit", input);
+                }
+
+                review.DirectoryEntryId = input.DirectoryEntryId;
             }
 
             // 🧹 The actual reason we're here: scrub the body

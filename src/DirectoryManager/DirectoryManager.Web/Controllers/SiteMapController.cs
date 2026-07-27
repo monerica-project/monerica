@@ -452,7 +452,8 @@ namespace DirectoryManager.Web.Controllers
                 return;
             }
 
-            int pageSize = IntegerConstants.DefaultPageSize;
+            // MUST match SubcategoryController's page size (MediumPageSize) — see the category note above.
+            int pageSize = IntegerConstants.MediumPageSize;
             int totalPages = (int)Math.Ceiling(entryCount / (double)pageSize);
 
             for (int i = 2; i <= totalPages; i++)
@@ -472,7 +473,10 @@ namespace DirectoryManager.Web.Controllers
             Dictionary<int, int> subcategoryEntryCounts,
             string domain)
         {
-            int pageSize = IntegerConstants.DefaultPageSize;
+            // MUST match CategoryController's page size (MediumPageSize) or the sitemap emits
+            // phantom /{category}/page/N URLs beyond the real page count (e.g. wallets with
+            // 26-50 entries is 1 real page at 50/page but was listed as 2 pages at 25/page).
+            int pageSize = IntegerConstants.MediumPageSize;
 
             var categoryCounts = await this.directoryEntryRepository.GetCategoryEntryCountsAsync();
 
@@ -642,8 +646,9 @@ namespace DirectoryManager.Web.Controllers
                     page == 1 ? 0.3 : 0.2);
             }
 
-            // /countries/{slug} + pagination
-            int countryEntriesPageSize = IntegerConstants.DefaultPageSize;
+            // /countries/{slug} + pagination — MUST match CountriesController's page size (MaxPageSize)
+            // or the sitemap lists phantom /countries/{slug}/page/N beyond the real page count.
+            int countryEntriesPageSize = IntegerConstants.MaxPageSize;
 
             foreach (var c in byCountry)
             {
