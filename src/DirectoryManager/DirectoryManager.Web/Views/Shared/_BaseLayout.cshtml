@@ -42,7 +42,6 @@
         <meta name="robots" content="noindex" />
     }
     @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HeaderHtml))
-    @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.CssHeader))
 </head>
 <body>
     @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.TopBannerHtml))
@@ -53,7 +52,7 @@
         <nav class="footer-nav">
             @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.FooterHtml))
         </nav>
-        <div class="footer-network" style="margin-top:.5rem;">
+        <div class="footer-network u-mt-05rem">
             <a href="/network">Monerica Network</a>
         </div>
     </footer>

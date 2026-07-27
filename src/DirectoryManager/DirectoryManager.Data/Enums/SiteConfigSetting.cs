@@ -8,7 +8,6 @@
         HomePageDisplayHtml = 3,
         PaymentCurrencyMessage = 4,
         HomePageMetaTags = 5,
-        CssHeader = 6,
         DirectoryLegendHtml = 7,
         HomePageTitle = 8,
         DonationHtml = 9,

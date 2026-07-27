@@ -28,6 +28,11 @@
     <p><b>Categorization:</b> @Model.SubcategoryName</p>
 }
 
+@if (Model.DirectoryEntryViewModel.KycPolicy.HasValue)
+{
+    <p><b>KYC Policy:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.DirectoryEntryViewModel.KycPolicy.Value)</p>
+}
+
 <ul class="blank_list_item">
     @await Html.PartialAsync("_DirectoryEntryPartial", Model.DirectoryEntryViewModel)
 </ul>

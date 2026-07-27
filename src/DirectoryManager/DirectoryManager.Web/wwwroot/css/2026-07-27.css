@@ -4451,3 +4451,86 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 .empty-slot-plus { font-size: 34px; line-height: 1; color: var(--orange-bright); }
 .empty-slot-label { font-weight: 600; }
 .empty-slot-cta { font-size: 0.85rem; opacity: 0.85; }
+
+/* Main sponsors: contained, centered 5-across row on the wide (filter) layout — matches the homepage. */
+@media (min-width: 768px){.main-content-wide section.sponsors{max-width:75rem!important;margin-left:auto!important;margin-right:auto!important}.main-content-wide .sponsors-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important;max-width:75rem!important;margin:0 auto!important;padding:0 1.5rem!important}}
+/* Main sponsors: force a single 5-across row on centered layouts too (search page, home). */
+@media (min-width: 768px){.main-content-centered section.sponsors .sponsors-grid{grid-template-columns:repeat(5,minmax(0,1fr))!important}}
+
+/* ===================================================================
+   2026-07-27: page-level and inline CSS consolidated out of Razor views.
+   =================================================================== */
+
+/* --- KYC policy badges on directory filter cards
+       (was inline <style> in Views/DirectoryFilter/Index.cshtml) --- */
+.dir-badge-row { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; min-width: 0; }
+.dir-badge-kyc {
+    flex: 0 0 auto;
+    font-family: var(--font-mono);
+    font-size: 0.58rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 2px 7px;
+    border-radius: var(--radius-pill, 999px);
+    line-height: 1.4;
+    white-space: nowrap;
+    color: var(--fg-muted);
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid var(--border-strong);
+}
+.dir-badge-kyc.kyc-guaranteednokyc { color: var(--green); background: rgba(24, 255, 109, 0.10); border-color: rgba(24, 255, 109, 0.40); }
+.dir-badge-kyc.kyc-rarekyc { color: #3fbf7f; background: rgba(63, 191, 127, 0.10); border-color: rgba(63, 191, 127, 0.45); }
+.dir-badge-kyc.kyc-shotgunkyc { color: #ffd633; background: rgba(255, 214, 51, 0.10); border-color: rgba(255, 214, 51, 0.45); }
+.dir-badge-kyc.kyc-mandatorykyc { color: var(--red); background: rgba(255, 77, 77, 0.10); border-color: rgba(255, 77, 77, 0.40); }
+.dir-badge-kyc.kyc-variesbyprovider { color: #c77dff; background: rgba(199, 125, 255, 0.12); border-color: rgba(199, 125, 255, 0.45); }
+
+/* --- Verification requests admin: responsive stacked table on phones
+       (was inline <style> in Views/VerificationRequestsAdmin/Index.cshtml) --- */
+@media (max-width: 700px) {
+    .vr-table thead { display: none; }
+    .vr-table, .vr-table tbody, .vr-table tr, .vr-table td { display: block; width: 100% !important; }
+    .vr-table colgroup, .vr-table col { display: none; }
+    .vr-table tr { border-top: 2px solid var(--border-strong, #444); padding: .5rem 0; }
+    .vr-table td { border: 0; padding: .3rem .1rem; }
+    .vr-table td.text-nowrap { white-space: normal !important; }
+    .vr-table td[data-label]::before {
+        content: attr(data-label);
+        display: block;
+        font-size: .7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: .03em;
+        opacity: .55;
+        margin-bottom: .15rem;
+    }
+}
+
+/* --- Sponsorship packages table (was inline <style> in Views/Shared/_SponsorshipPackages.cshtml) --- */
+#packages-table th,
+#packages-table td { white-space: normal; }
+#packages-table th:first-child,
+#packages-table td:first-child { width: 34%; }
+#packages-table th:not(:first-child),
+#packages-table td:not(:first-child) { width: 22%; text-align: center; }
+
+/* --- text-center utility (was inline <style> in Views/Shared/_SponsorshipOffersTable.cshtml) --- */
+.text-center { text-align: center; }
+
+/* --- Utility classes extracted from static inline style="" attributes --- */
+.u-callout { border: 1px solid var(--border-strong); border-radius: var(--radius); padding: .9rem 1rem; margin: 0 0 14px; }
+.u-callout-mb12 { border: 1px solid var(--border-strong); border-radius: var(--radius); padding: .9rem 1rem; margin: 0 0 12px; }
+.u-callout-center { text-align: center; border: 1px solid var(--border-strong); border-radius: var(--radius); padding: 1.1rem 1rem; margin: 0 0 14px; }
+.u-callout-orange { border: 1px solid var(--orange, #ff6600); border-radius: 8px; padding: .6rem .9rem; margin: 0 0 1rem; }
+.u-maxw-340px { max-width: 340px; }
+.u-search-input { max-width: 340px; flex: 1 1 240px; }
+.u-search-row { display: flex; gap: .5rem; justify-content: center; flex-wrap: wrap; margin: 0; }
+.u-heading-sm { font-weight: 800; font-size: 1.2rem; margin: 0 0 .6rem; }
+.u-note-sm { margin: .6rem 0 0; opacity: .85; font-size: .9rem; }
+.u-mt-05rem { margin-top: .5rem; }
+.u-lh-19 { line-height: 1.9; }
+.u-op-08 { opacity: .8; }
+.u-fw-800 { font-weight: 800; }
+.u-h-35rem { height: 3.5rem; }
+.u-prewrap { white-space: pre-wrap; }
+.u-prewrap-break { white-space: pre-wrap; word-break: break-word; }

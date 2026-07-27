@@ -1,6 +1,5 @@
 ﻿using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
-using DirectoryManager.Utilities.Validation;
 using DirectoryManager.Web.Models.ContentSnippet;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -86,8 +85,6 @@ namespace DirectoryManager.Web.Controllers
                 return this.View(model);
             }
 
-            ValidateInput(model);
-
             var dbModel = this.contentSnippetRepository.Get(model.ContentSnippetId);
 
             if (dbModel != null)
@@ -134,8 +131,6 @@ namespace DirectoryManager.Web.Controllers
             {
                 return this.View(model);
             }
-
-            ValidateInput(model);
 
             var dbModel = this.contentSnippetRepository.Get(model.ContentSnippetId);
 
@@ -195,16 +190,6 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return this.RedirectToAction("index");
-        }
-
-        private static void ValidateInput(ContentSnippetEditModel model)
-        {
-            if (model.SnippetType == Data.Enums.SiteConfigSetting.CssHeader &&
-                model.Content != null &&
-                !CssValidator.IsCssValid(model.Content))
-            {
-                throw new Exception("Invalid CSS");
-            }
         }
 
         private string? CleanContentInput(ContentSnippetEditModel model)

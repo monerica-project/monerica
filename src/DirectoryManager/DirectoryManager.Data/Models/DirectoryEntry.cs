@@ -63,6 +63,11 @@ namespace DirectoryManager.Data.Models
         public DirectoryBadge DirectoryBadge { get; set; } = DirectoryBadge.Unknown;
 
         /// <summary>
+        /// The listing's KYC stance. Nullable — a null value means "N/A" (not specified).
+        /// </summary>
+        public KycPolicy? KycPolicy { get; set; }
+
+        /// <summary>
         /// The two-letter ISO country code.
         /// </summary>
         [MaxLength(2)]
@@ -120,6 +125,7 @@ namespace DirectoryManager.Data.Models
                 this.Link2 == other.Link2 &&
                 this.Link3 == other.Link3 &&
                 this.DirectoryStatus == other.DirectoryStatus &&
+                this.KycPolicy == other.KycPolicy &&
                 this.Description == other.Description &&
                 this.Location == other.Location &&
                 this.Processor == other.Processor &&

@@ -2,6 +2,7 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @using DirectoryManager.Web.Constants
 @using DirectoryManager.Data.Enums
+@using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Models
 @{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
@@ -94,6 +95,18 @@
                 }
              
                 <option value="@((int)status)">@status.ToString()</option>
+            }
+        </select>
+    </div>
+
+    <div class="form-group">
+        <label for="KycPolicy">KYC Policy:</label>
+        <select id="KycPolicy" name="KycPolicy" class="form-control select-fit">
+            <option value="" selected="@(Model.KycPolicy == null)">Not Stated</option>
+            @foreach (var kp in Enum.GetValues<KycPolicy>())
+            {
+                if (kp == KycPolicy.NotStated || kp == KycPolicy.Unknown) { continue; }
+                <option value="@((int)kp)" selected="@(Model.KycPolicy == kp)">@EnumHelper.GetDescription(kp)</option>
             }
         </select>
     </div>

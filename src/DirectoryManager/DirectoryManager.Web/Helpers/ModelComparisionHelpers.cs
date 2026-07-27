@@ -4,6 +4,7 @@ using System.Linq;
 using System.Net;
 using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Utilities.Helpers;
 
 namespace DirectoryManager.Web.Helpers
 {
@@ -177,6 +178,14 @@ namespace DirectoryManager.Web.Helpers
             if (entry.DirectoryStatus != submission.DirectoryStatus)
             {
                 AddDifference("Directory Status", entry.DirectoryStatus, submission.DirectoryStatus);
+            }
+
+            if (entry.KycPolicy != submission.KycPolicy)
+            {
+                AddDifference(
+                    "KYC Policy",
+                    entry.KycPolicy.HasValue ? EnumHelper.GetDescription(entry.KycPolicy.Value) : "Not Stated",
+                    submission.KycPolicy.HasValue ? EnumHelper.GetDescription(submission.KycPolicy.Value) : "Not Stated");
             }
 
             if (entry.FoundedDate != submission.FoundedDate)

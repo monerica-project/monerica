@@ -7,6 +7,8 @@ namespace DirectoryManager.Data.Models.TransferModels
         // Querystring names: statuses=Admitted&statuses=Verified etc.
         public List<DirectoryStatus>? Statuses { get; set; }
 
+        public List<KycPolicy>? KycPolicies { get; set; }
+
         public string? Country { get; set; } // ISO2, or null/empty = all
 
         public bool HasVideo { get; set; }

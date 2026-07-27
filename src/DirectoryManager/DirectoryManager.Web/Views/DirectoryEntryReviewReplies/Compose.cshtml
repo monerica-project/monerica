@@ -30,7 +30,7 @@
                 {
                     <p class="mb-1 text-muted"><small>by @ViewBag.ReviewAuthor</small></p>
                 }
-                <blockquote class="mb-0" style="white-space: pre-wrap;">@ViewBag.ReviewBody</blockquote>
+                <blockquote class="mb-0 u-prewrap">@ViewBag.ReviewBody</blockquote>
             </div>
         </div>
     }
@@ -48,7 +48,7 @@
                     var c = thread[i];
                     <div class="@(i < thread.Count - 1 ? "mb-2 pb-2" : "")" style="@(i < thread.Count - 1 ? "border-bottom:1px solid #eee;" : "")">
                         <div class="text-muted mb-1"><small>@(string.IsNullOrWhiteSpace(c.DisplayName) ? "Anonymous" : c.DisplayName)</small></div>
-                        <div style="white-space: pre-wrap;">@c.Body</div>
+                        <div class="u-prewrap">@c.Body</div>
                     </div>
                 }
             </div>

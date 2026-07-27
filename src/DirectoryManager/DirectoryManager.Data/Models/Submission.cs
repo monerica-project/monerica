@@ -77,6 +77,8 @@ namespace DirectoryManager.Data.Models
 
         public DirectoryStatus? DirectoryStatus { get; set; }
 
+        public KycPolicy? KycPolicy { get; set; }
+
         [MaxLength(255)]
         public string? Tags { get; set; }
 

@@ -107,6 +107,7 @@ namespace DirectoryManager.Web.Helpers
             return new List<(string, Func<DirectoryEntriesAudit, string?>)>
             {
                 ("Status",      a => a.DirectoryStatus.ToString()),
+                ("KYC Policy",  a => a.KycPolicy.HasValue ? EnumHelper.GetDescription(a.KycPolicy.Value) : "Not Stated"),
                 ("Name",        a => a.Name),
                 ("Link",        a => a.Link),
                 (l2,            a => a.Link2),

@@ -36,7 +36,7 @@
 
     @* Neutral (non-orange) callout — orange on this page is reserved for the next opening time. *@
     <!-- ELIGIBILITY — stated up front, before the search, so nobody has to ask -->
-    <div style="border:1px solid var(--border-strong);border-radius:var(--radius);padding:.9rem 1rem;margin:0 0 14px;">
+    <div class="u-callout">
         <p><strong>Who can sponsor: both of these are required</strong></p>
         <ol class="u-m-0-0-12px-0-pl-22px">
             <li>
@@ -60,16 +60,15 @@
     </div>
 
     <!-- PROMINENT SEARCH -->
-    <div id="find-listing"
-         style="text-align:center;border:1px solid var(--border-strong);border-radius:var(--radius);padding:1.1rem 1rem;margin:0 0 14px;">
-        <p style="font-weight:800;font-size:1.2rem;margin:0 0 .6rem;">Find your listing</p>
-        <form method="get" action="@Url.Action("Index", "Sponsorship")" class="search-form" style="display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:0;">
+    <div id="find-listing" class="u-callout-center">
+        <p class="u-heading-sm">Find your listing</p>
+        <form method="get" action="@Url.Action("Index", "Sponsorship")" class="search-form u-search-row">
             <input type="search" name="q" value="@q"
                    placeholder="Your listing name or website…"
-                   class="form-control" style="max-width:340px;flex:1 1 240px;" />
+                   class="form-control u-search-input" />
             <button type="submit" class="btn btn-primary btn-cta">Find my listing →</button>
         </form>
-        <p style="margin:.6rem 0 0;opacity:.85;font-size:.9rem;">
+        <p class="u-note-sm">
             Claim a spot or join the waitlist in one step.
             <a href="~/sponsors">See who's sponsoring now →</a>
         </p>
@@ -192,13 +191,13 @@
         var waitingCount = Model.WaitlistBoard?.MainWaitlistCount ?? 0;
 
         @* Only the next opening time is orange — everything else stays neutral so it stands out. *@
-        <div style="border:1px solid var(--border-strong);border-radius:var(--radius);padding:.9rem 1rem;margin:0 0 12px;">
+        <div class="u-callout-mb12">
             <p class="u-m-0-0-6px-0">
                 All <b>@DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings</b>
                 @EnumHelper.GetDescription(SponsorshipType.MainSponsor) spots are currently taken.
             </p>
 
-            <p class="orange-text u-m-0-0-6px-0" style="font-weight:800;">
+            <p class="orange-text u-m-0-0-6px-0 u-fw-800">
                 Next opening:
                 @Model.MainSponsorInventory.NextListingExpiration.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
                 (in @Model.MainSponsorInventory.TimeUntilNextMessage)

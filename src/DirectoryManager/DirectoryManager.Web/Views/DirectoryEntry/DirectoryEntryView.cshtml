@@ -361,7 +361,7 @@
 
         @if (!string.IsNullOrEmpty(Model.Note))
         {
-            <div class="entry-section multi-line-text">
+            <div class="entry-section">
                 @if (Model.DirectoryStatus == DirectoryStatus.Scam || Model.DirectoryStatus == DirectoryStatus.Questionable)
                 {
                     <h4 class="warning-color">Note</h4>
@@ -370,7 +370,7 @@
                 {
                     <h4>Note</h4>
                 }
-                <p class="mb-0"><em>@Html.Raw(ContentSanitizer.Sanitize(Model.Note))</em></p>
+                <p class="mb-0 multi-line-text"><em>@Html.Raw(ContentSanitizer.Sanitize(Model.Note))</em></p>
             </div>
         }
 
@@ -384,9 +384,20 @@
             </div>
         }
 
+        @{
+            // Unset (null) means "Not Stated" — show it as such. Only the reserved
+            // Unknown value is hidden (it is never a real, deliberate policy).
+            var kycPolicyValue = Model.KycPolicy ?? KycPolicy.NotStated;
+        }
+        @if (kycPolicyValue != KycPolicy.Unknown)
+        {
+            <div class="entry-section entry-kyc-policy">
+                <strong>KYC Policy:</strong> @EnumHelper.GetDescription(kycPolicyValue)
+            </div>
+        }
+
         @if (Model.TagsAndKeys?.Any() ?? false)
         {
-            <br />
             <div class="entry-section entry-tags">
                 <strong>Tags:</strong>
                 @{

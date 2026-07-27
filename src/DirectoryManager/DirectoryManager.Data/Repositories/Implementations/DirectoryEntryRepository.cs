@@ -1498,6 +1498,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 baseQ = baseQ.Where(e => e.CountryCode != null && e.CountryCode.ToUpper() == code);
             }
 
+            // KYC Policy filter (checkbox list — any of the selected policies).
+            // "Not Stated" (the NotStated member / null column) is selectable and matches
+            // entries with no recorded policy.
+            if (q.KycPolicies is { Count: > 0 })
+            {
+                bool includeNotStated = q.KycPolicies.Contains(KycPolicy.NotStated);
+                var realPolicies = q.KycPolicies.Where(k => k != KycPolicy.NotStated).ToList();
+                baseQ = baseQ.Where(e =>
+                    (e.KycPolicy != null && realPolicies.Contains(e.KycPolicy.Value))
+                    || (includeNotStated && (e.KycPolicy == null || e.KycPolicy == KycPolicy.NotStated)));
+            }
+
             // Has Video
             if (q.HasVideo)
             {
@@ -1882,6 +1894,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 Social = entry.Social,
                 PgpKey = entry.PgpKey,
                 DirectoryStatus = entry.DirectoryStatus,
+                KycPolicy = entry.KycPolicy,
                 SubCategoryId = entry.SubCategoryId,
                 CreateDate = entry.CreateDate,
                 UpdateDate = entry.UpdateDate,

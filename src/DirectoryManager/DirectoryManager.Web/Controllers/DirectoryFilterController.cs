@@ -430,6 +430,7 @@ public class DirectoryFilterController : Controller
             DirectoryEntryId = e.DirectoryEntryId,
             DirectoryStatus = e.DirectoryStatus,
             DirectoryBadge = e.DirectoryBadge,
+            KycPolicy = e.KycPolicy,
 
             CountryCode = e.CountryCode,
             Location = e.Location,
@@ -489,6 +490,16 @@ public class DirectoryFilterController : Controller
                 DirectoryStatus.Admitted,
                 DirectoryStatus.Questionable,
                 DirectoryStatus.Scam
+            },
+
+            AllKycPolicies = new List<KycPolicy>
+            {
+                KycPolicy.NotStated,
+                KycPolicy.GuaranteedNoKyc,
+                KycPolicy.RareKyc,
+                KycPolicy.ShotgunKyc,
+                KycPolicy.MandatoryKyc,
+                KycPolicy.VariesByProvider
             },
 
             PageSizeOptions = AllowedPageSizes.ToList()

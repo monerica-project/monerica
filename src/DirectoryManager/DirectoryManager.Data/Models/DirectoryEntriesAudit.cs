@@ -40,6 +40,8 @@ namespace DirectoryManager.Data.Models
 
         public DirectoryStatus DirectoryStatus { get; set; }
 
+        public KycPolicy? KycPolicy { get; set; }
+
         [MaxLength(500)]
         public string? Description { get; set; }
 

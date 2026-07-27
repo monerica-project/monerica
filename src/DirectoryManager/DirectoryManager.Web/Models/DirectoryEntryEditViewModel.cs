@@ -11,6 +11,9 @@ namespace DirectoryManager.Web.Models
         [Required]
         public DirectoryStatus DirectoryStatus { get; set; }
 
+        [Display(Name = "KYC Policy")]
+        public KycPolicy? KycPolicy { get; set; }
+
         [Required]
         public int SubCategoryId { get; set; }
 

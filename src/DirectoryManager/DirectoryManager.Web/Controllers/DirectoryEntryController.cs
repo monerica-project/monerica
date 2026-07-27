@@ -232,6 +232,7 @@ namespace DirectoryManager.Web.Controllers
                 ProofLink = vm.ProofLink?.Trim(),
                 VideoLink = vm.VideoLink?.Trim(),
                 CountryCode = vm.CountryCode,
+                KycPolicy = vm.KycPolicy,
                 FoundedDate = foundedDate
             };
 
@@ -297,6 +298,7 @@ namespace DirectoryManager.Web.Controllers
                 VideoLink = entry.VideoLink,
                 Location = entry.Location,
                 CountryCode = entry.CountryCode,
+                KycPolicy = entry.KycPolicy,
                 Processor = entry.Processor,
                 Email = entry.Email,
                 Messenger = entry.Messenger,
@@ -372,6 +374,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Location = vm.Location?.Trim();
             existingEntry.Processor = vm.Processor?.Trim();
             existingEntry.CountryCode = vm.CountryCode;
+            existingEntry.KycPolicy = vm.KycPolicy;
             existingEntry.PgpKey = vm.PgpKey?.Trim();
             existingEntry.FoundedDate = foundedDate;
             existingEntry.ReviewsDisabled = vm.ReviewsDisabled;
@@ -422,6 +425,7 @@ namespace DirectoryManager.Web.Controllers
                 Processor = directoryEntry.Processor,
                 SubCategoryId = directoryEntry.SubCategoryId,
                 CountryCode = directoryEntry.CountryCode,
+                KycPolicy = directoryEntry.KycPolicy,
                 PgpKey = directoryEntry.PgpKey,
                 ProofLink = directoryEntry.ProofLink,
                 VideoLink = directoryEntry.VideoLink,
@@ -1108,6 +1112,7 @@ namespace DirectoryManager.Web.Controllers
                 TagsAndKeys = tagDictionary,
                 AdditionalLinks = additionalLinks ?? new List<string>(),
                 CountryCode = entry.CountryCode,
+                KycPolicy = entry.KycPolicy,
                 IsSponsored = isSponsor,
                 SponsorSinceUtc = sponsorSinceUtc,
                 PgpKey = entry.PgpKey,

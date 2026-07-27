@@ -50,7 +50,7 @@
 
     @if (Model.LeadingCategory != null || Model.LeadingSubcategory != null)
     {
-        <div style="border:1px solid var(--orange,#ff6600);border-radius:8px;padding:.6rem .9rem;margin:0 0 1rem;">
+        <div class="u-callout-orange">
             @if (Model.LeadingCategory != null)
             {
                 <div><strong>Leading category:</strong> @Model.LeadingCategory</div>
@@ -58,7 +58,7 @@
             @if (Model.LeadingSubcategory != null)
             {
                 <div><strong>Leading subcategory:</strong> @Model.LeadingSubcategory
-                    <span style="opacity:.8;">&nbsp;(shown as <em>Category › Subcategory</em>)</span>
+                    <span class="u-op-08">&nbsp;(shown as <em>Category › Subcategory</em>)</span>
                 </div>
             }
         </div>

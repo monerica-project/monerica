@@ -633,6 +633,7 @@ namespace DirectoryManager.Web.Controllers
 
                 submission.SubmissionStatus = model.SubmissionStatus;
                 submission.CountryCode = model.CountryCode;
+                submission.KycPolicy = model.KycPolicy;
 
                 await this.submissionRepository.UpdateAsync(submission);
             }
@@ -1018,6 +1019,7 @@ namespace DirectoryManager.Web.Controllers
                 SubCategoryId = directoryEntry.SubCategoryId,
                 DirectoryEntryId = directoryEntry.DirectoryEntryId,
                 DirectoryStatus = directoryEntry.DirectoryStatus,
+                KycPolicy = directoryEntry.KycPolicy,
                 CountryCode = directoryEntry.CountryCode,
                 PgpKey = directoryEntry.PgpKey,
                 RelatedLink1 = null,
@@ -1055,6 +1057,7 @@ namespace DirectoryManager.Web.Controllers
                 SuggestedSubCategory = submission.SuggestedSubCategory,
                 Tags = submission.Tags,
                 CountryCode = submission.CountryCode,
+                KycPolicy = submission.KycPolicy,
                 PgpKey = submission.PgpKey,
                 RelatedLink1 = related.ElementAtOrDefault(0),
                 RelatedLink2 = related.ElementAtOrDefault(1),
@@ -1161,6 +1164,7 @@ namespace DirectoryManager.Web.Controllers
                     SubCategoryId = submission.SubCategoryId,
                     Tags = tagsList,
                     CountryCode = submission.CountryCode,
+                    KycPolicy = submission.KycPolicy,
                     FoundedDate = submission.FoundedDate,
                 },
                 SubmissionId = submission.SubmissionId,
@@ -1202,9 +1206,15 @@ namespace DirectoryManager.Web.Controllers
 
             if (submissionId == null)
             {
-                var existingDirectoryEntryId = await this.GetExistingEntryAsync(model);
+                // Submit-edit posts the entry id explicitly (hidden field); a public submit
+                // that happens to match an existing listing discovers it by link/name below.
+                var submitterEditedEntry = submissionModel.DirectoryEntryId != null;
+                var existingDirectoryEntryId = submissionModel.DirectoryEntryId ?? await this.GetExistingEntryAsync(model);
 
-                if (existingDirectoryEntryId != null)
+                // Only for a pure override (the submitter did NOT explicitly edit an entry) do we
+                // copy the existing listing's status/KYC onto the submission — otherwise the
+                // submitter's own edits to those fields would be clobbered by the stored values.
+                if (existingDirectoryEntryId != null && !submitterEditedEntry)
                 {
                     await this.AssignExistingProperties(submissionModel, existingDirectoryEntryId.Value);
                 }
@@ -1470,6 +1480,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 // they are submitting a listing that is an override, not an edit, copy the status from the existing listing
                 submissionModel.DirectoryStatus = existingDirectoryEntry.DirectoryStatus;
+                submissionModel.KycPolicy = existingDirectoryEntry.KycPolicy;
             }
         }
 
@@ -1508,6 +1519,7 @@ namespace DirectoryManager.Web.Controllers
                     SubCategoryId = model.SubCategoryId.Value,
                     CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty,
                     CountryCode = model.CountryCode,
+                    KycPolicy = model.KycPolicy,
                     PgpKey = model.PgpKey?.Trim(),
                     ProofLink = model.ProofLink?.Trim(),
                     VideoLink = model.VideoLink?.Trim(),
@@ -1542,6 +1554,7 @@ namespace DirectoryManager.Web.Controllers
             existing.Messenger = model.Messenger?.Trim();
             existing.Social = model.Social?.Trim();
             existing.CountryCode = model.CountryCode;
+            existing.KycPolicy = model.KycPolicy;
             existing.PgpKey = model.PgpKey?.Trim();
             existing.ProofLink = model.ProofLink?.Trim();
             existing.FoundedDate = model.FoundedDate;
@@ -1590,6 +1603,7 @@ namespace DirectoryManager.Web.Controllers
                 NoteToAdmin = model.NoteToAdmin,
                 Tags = model.Tags?.Trim(),
                 CountryCode = model.CountryCode,
+                KycPolicy = model.KycPolicy,
                 PgpKey = (model.PgpKey ?? string.Empty).Trim(),
                 SelectedTagIdsCsv = model.SelectedTagIdsCsv,
                 FoundedDate = foundedDate,
@@ -1639,6 +1653,7 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.SubCategoryId = submissionModel.SubCategoryId;
             existingSubmission.SuggestedSubCategory = submissionModel.SuggestedSubCategory;
             existingSubmission.CountryCode = submissionModel.CountryCode;
+            existingSubmission.KycPolicy = submissionModel.KycPolicy;
             existingSubmission.PgpKey = submissionModel.PgpKey;
             existingSubmission.ProofLink = submissionModel.ProofLink;
             existingSubmission.VideoLink = submissionModel.VideoLink;
@@ -1823,6 +1838,13 @@ namespace DirectoryManager.Web.Controllers
                 {
                     return true;
                 }
+            }
+
+            // KYC policy — nullable; null means "Not Stated". Any change (including to or
+            // from Not Stated) is a real edit, so a KYC-only change still queues a submission.
+            if (existingEntry.KycPolicy != model.KycPolicy)
+            {
+                return true;
             }
 
             if (!string.Equals(NormCountry(existingEntry.CountryCode), NormCountry(model.CountryCode), StringComparison.Ordinal))

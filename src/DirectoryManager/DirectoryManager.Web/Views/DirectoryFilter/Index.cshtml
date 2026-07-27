@@ -15,6 +15,11 @@
     ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
 
     var selectedStatuses = new HashSet<DirectoryStatus>(Model.Query.Statuses ?? new List<DirectoryStatus>());
+    // Default: when no KYC filter is explicitly applied, treat every policy (incl. Not Stated)
+    // as selected so the checkboxes read "showing all" and nothing is hidden by default.
+    var selectedKyc = Model.Query.KycPolicies is { Count: > 0 }
+        ? new HashSet<KycPolicy>(Model.Query.KycPolicies)
+        : new HashSet<KycPolicy>(Model.AllKycPolicies);
     var orderedStatuses = new[]
     {
         DirectoryStatus.Verified,
@@ -131,6 +136,11 @@
                 continue;
             }
 
+            if (string.Equals(kv.Key, "KycPolicies", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             if (string.Equals(kv.Key, "TagIds", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
@@ -155,6 +165,14 @@
                 foreach (var st in Model.Query.Statuses)
                 {
                     built = QueryHelpers.AddQueryString(built, "Statuses", st.ToString());
+                }
+            }
+
+            if (Model.Query.KycPolicies != null && Model.Query.KycPolicies.Count > 0)
+            {
+                foreach (var kp in Model.Query.KycPolicies)
+                {
+                    built = QueryHelpers.AddQueryString(built, "KycPolicies", kp.ToString());
                 }
             }
 
@@ -304,6 +322,20 @@
                             <label class="ui-check">
                                 <input type="checkbox" name="Statuses" value="@st" checked="@(selectedStatuses.Contains(st) ? "checked" : null)" />
                                 <span>@st</span>
+                            </label>
+                        }
+                    </div>
+                </fieldset>
+
+                <!-- KYC Policy -->
+                <fieldset class="ui-fieldset">
+                    <legend class="ui-legend">KYC Policy</legend>
+                    <div class="ui-checks ui-checks-stack">
+                        @foreach (var kp in Model.AllKycPolicies)
+                        {
+                            <label class="ui-check">
+                                <input type="checkbox" name="KycPolicies" value="@kp" checked="@(selectedKyc.Contains(kp) ? "checked" : null)" />
+                                <span>@EnumHelper.GetDescription(kp)</span>
                             </label>
                         }
                     </div>
@@ -561,9 +593,23 @@
                             <header class="dir-card-head">
                                 <div class="dir-title-wrap">
                                     <span class="dir-name-row">@Html.Raw(nameRowHtml)</span>
-                                    @if (e.IsSponsored)
+                                    @{
+                                        // Unset (null) shows as "Not Stated"; only the reserved Unknown value is hidden.
+                                        var cardKyc = e.KycPolicy ?? KycPolicy.NotStated;
+                                        var showKycBadge = cardKyc != KycPolicy.Unknown;
+                                    }
+                                    @if (e.IsSponsored || showKycBadge)
                                     {
-                                        <span class="dir-badge-featured">Sponsored</span>
+                                        <span class="dir-badge-row">
+                                            @if (e.IsSponsored)
+                                            {
+                                                <span class="dir-badge-featured">Sponsored</span>
+                                            }
+                                            @if (showKycBadge)
+                                            {
+                                                <span class="dir-badge-kyc kyc-@(cardKyc.ToString().ToLowerInvariant())">@EnumHelper.GetDescription(cardKyc)</span>
+                                            }
+                                        </span>
                                     }
                                 </div>
 

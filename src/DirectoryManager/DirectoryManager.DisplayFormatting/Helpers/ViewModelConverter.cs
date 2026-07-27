@@ -27,6 +27,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 Description = entry.Description,
                 DirectoryEntryId = entry.DirectoryEntryId,
                 DirectoryStatus = entry.DirectoryStatus,
+                KycPolicy = entry.KycPolicy,
                 Link2 = entry.Link2,
                 Link3 = entry.Link3,
                 Location = entry.Location,

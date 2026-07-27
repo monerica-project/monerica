@@ -110,6 +110,9 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Suggested Status", Prompt = "Status")]
         public DirectoryStatus? DirectoryStatus { get; set; }
 
+        [Display(Name = "KYC Policy")]
+        public KycPolicy? KycPolicy { get; set; }
+
         [MaxLength(255)]
         [Display(Name = "Tags", Prompt = "comma-separated, e.g. vpn, privacy")]
         [CleanSingleLine]

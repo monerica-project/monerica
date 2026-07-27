@@ -39,16 +39,8 @@
     }
 }
 
-@* .table-wrapper forces white-space:nowrap on every cell, which made this table
-   wider than the page. Scoped to this table only so other tables keep nowrap. *@
-<style>
-    #packages-table th,
-    #packages-table td { white-space: normal; }
-    #packages-table th:first-child,
-    #packages-table td:first-child { width: 34%; }
-    #packages-table th:not(:first-child),
-    #packages-table td:not(:first-child) { width: 22%; text-align: center; }
-</style>
+@* #packages-table sizing/white-space rules moved to the site stylesheet
+   (.table-wrapper forces nowrap; #packages-table overrides it). *@
 
 <h2 id="packages" class="u-mt-8px">What each sponsorship includes</h2>
 <p class="u-m-6px-0-12px-0">

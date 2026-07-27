@@ -36,6 +36,8 @@ namespace DirectoryManager.DisplayFormatting.Models
 
         public DirectoryStatus DirectoryStatus { get; set; } = DirectoryStatus.Unknown;
 
+        public KycPolicy? KycPolicy { get; set; }
+
         public DirectoryBadge DirectoryBadge { get; set; } = DirectoryBadge.Unknown;
 
         [MaxLength(500)]

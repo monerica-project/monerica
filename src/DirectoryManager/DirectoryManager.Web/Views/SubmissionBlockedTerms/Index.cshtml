@@ -42,14 +42,14 @@ else
             <td>@(string.IsNullOrWhiteSpace(item.Message) ? "—" : item.Message)</td>
             <td>@(item.IsEnabled ? "Enabled" : "Disabled")</td>
             <td>
-                <form method="post" action="~/submissionblockedterms/toggle" style="display:inline">
+                <form method="post" action="~/submissionblockedterms/toggle" class="u-inline">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="id" value="@item.SubmissionBlockedTermId" />
                     <button type="submit" class="btn btn-secondary btn-sm">
                         @(item.IsEnabled ? "Disable" : "Enable")
                     </button>
                 </form>
-                <form method="post" action="~/submissionblockedterms/delete" style="display:inline"
+                <form method="post" action="~/submissionblockedterms/delete" class="u-inline"
                       onsubmit="return confirm('Delete this term?');">
                     @Html.AntiForgeryToken()
                     <input type="hidden" name="id" value="@item.SubmissionBlockedTermId" />
