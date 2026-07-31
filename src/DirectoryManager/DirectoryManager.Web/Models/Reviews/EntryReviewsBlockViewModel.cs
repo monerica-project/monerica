@@ -6,6 +6,9 @@ namespace DirectoryManager.Web.Models.Reviews
     {
         public int DirectoryEntryId { get; set; }
 
+        // Display name of the listed site — used as the reviewed entity's schema.org name.
+        public string DirectoryEntryName { get; set; } = string.Empty;
+
         public bool ReviewsDisabled { get; set; }
 
         // True only when the listing is in Admitted status (i.e. not yet Verified),

@@ -372,6 +372,7 @@ async Task CreateOfflineSubmissionIfNotExists(
         Email = entry.Email,
         Messenger = entry.Messenger,
         Social = entry.Social,
+        KycPolicy = entry.KycPolicy,
         Note = newNote,
         NoteToAdmin = "(automated submission)",
         Tags = string.IsNullOrWhiteSpace(tagNames) ? null : tagNames,

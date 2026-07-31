@@ -1183,6 +1183,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 DirectoryEntryId = entry.DirectoryEntryId,
                 DirectoryEntryKey = entry.DirectoryEntryKey,
+                DirectoryEntryName = entry.Name,
                 Reviews = reviews,
                 OfficialReviews = officialReviews,
                 RepliesByReviewId = repliesLookup,

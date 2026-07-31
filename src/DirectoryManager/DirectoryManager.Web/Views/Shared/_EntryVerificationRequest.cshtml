@@ -1,0 +1,23 @@
+@using DirectoryManager.Web.Services.Interfaces
+@model DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel
+@inject IUrlResolutionService Urls
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+
+@* Verification-request prompt. Rendered as its own section ABOVE the Reviews
+   block so it isn't mistaken for part of the review system. *@
+@if (Model != null && Model.ShowRequestVerification)
+{
+    <div class="entry-section entry-verification">
+        <div class="verification-request-notice">
+            <span class="vr-text">This listing hasn't been verified by @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)) yet.</span>
+            <form action="@Urls.ResolveToApp("/verification-requests/begin")"
+                  method="post"
+                  class="d-inline"
+                  rel="nofollow">
+                <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
+                <input class="u-hidden" type="text" name="website" value="" tabindex="-1" autocomplete="off" />
+                <button class="btn review-btn btn-sm" type="submit">Request verification</button>
+            </form>
+        </div>
+    </div>
+}

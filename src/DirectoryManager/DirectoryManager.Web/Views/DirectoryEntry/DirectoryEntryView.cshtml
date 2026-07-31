@@ -429,6 +429,10 @@
             </div>
         }
 
+        @* Verification request lives in its own section ABOVE Reviews so the two
+           are visually distinct (verification ≠ reviews). *@
+        @await Html.PartialAsync("_EntryVerificationRequest", (DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
+
         <div class="entry-section">
             @await Html.PartialAsync("_EntryReviews", (DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
         </div>

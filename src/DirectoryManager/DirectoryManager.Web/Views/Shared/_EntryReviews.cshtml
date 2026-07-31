@@ -45,7 +45,11 @@
     }
 }
 
-<div class="reviews-block mt-4">
+<div class="reviews-block mt-4" itemscope itemtype="https://schema.org/Organization">
+    @* Reviewed entity = the listed site. Gives the nested Reviews an implied itemReviewed
+       (with a name) and exposes an aggregateRating, so Google's Review structured data is
+       valid instead of "Review missing author/itemReviewed". *@
+    <meta itemprop="name" content="@(string.IsNullOrWhiteSpace(Model.DirectoryEntryName) ? Model.DirectoryEntryKey : Model.DirectoryEntryName)" />
     <h3 id="reviews" class="mb-3">Reviews</h3>
 
     @if (reviewsDisabled)
@@ -56,21 +60,6 @@
         </div>
     }
 
-    @if (Model.ShowRequestVerification)
-    {
-        <div class="verification-request-notice mb-4">
-            <span class="vr-text">This listing hasn't been verified by @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)) yet.</span>
-            <form action="@Urls.ResolveToApp("/verification-requests/begin")"
-                  method="post"
-                  class="d-inline"
-                  rel="nofollow">
-                <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
-                <input class="u-hidden" type="text" name="website" value="" tabindex="-1" autocomplete="off" />
-                <button class="btn review-btn btn-sm" type="submit">Request verification</button>
-            </form>
-        </div>
-    }
-
     @if (Model.OfficialReviews != null && Model.OfficialReviews.Any())
     {
         <div class="official-reviews mb-4">
@@ -78,6 +67,7 @@
             {
                 <div id="review-@o.DirectoryEntryReviewId"
                      class="official-review"
+                     itemprop="review"
                      itemscope
                      itemtype="https://schema.org/Review">
 
@@ -189,6 +179,12 @@
     @if (Model.ReviewCount > 0)
     {
         <div class="rating-summary" aria-label="Review summary">
+            <div itemprop="aggregateRating" itemscope itemtype="https://schema.org/AggregateRating">
+                <meta itemprop="ratingValue" content="@Model.AverageRating.Value.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)" />
+                <meta itemprop="reviewCount" content="@Model.ReviewCount" />
+                <meta itemprop="bestRating" content="5" />
+                <meta itemprop="worstRating" content="1" />
+            </div>
             <div class="rs-left">
                 <div class="rs-avg">@Model.AverageRating.Value.ToString("0.0")</div>
 
@@ -265,6 +261,7 @@
 
                 <li id="review-@r.DirectoryEntryReviewId"
                     class="mb-4 pb-3 border-bottom"
+                    itemprop="review"
                     itemscope
                     itemtype="https://schema.org/Review">
 

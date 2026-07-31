@@ -955,7 +955,7 @@ namespace DirectoryManager.Web.Controllers
                             ListingName = ResolveListingName(
                                 entry, dto.DirectoryEntryId),
                             ListingUrl =
-                                entry?.Link ?? string.Empty,
+                                WaitlistProfileUrl(entry),
                             JoinedUtc = dto.SubscribedDateUtc
                         };
                     })
@@ -1305,6 +1305,14 @@ namespace DirectoryManager.Web.Controllers
                 .ToList();
         }
 
+        // Waitlist rows link to the entry's Monerica profile page (/site/{key})
+        // rather than its external website. Falls back to the external link only
+        // if the entry or its key is missing.
+        private static string WaitlistProfileUrl(DirectoryEntry? entry)
+            => entry != null && !string.IsNullOrWhiteSpace(entry.DirectoryEntryKey)
+                ? UrlBuilder.ListingPath(entry.DirectoryEntryKey)
+                : (entry?.Link ?? string.Empty);
+
         private async Task<List<WaitlistPublicRowVm>>
             MapWaitlistToRowsAsync(
                 IEnumerable<WaitlistItemDto> dtos)
@@ -1315,7 +1323,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     ListingName = ResolveListingName(
                         entry, dto.DirectoryEntryId),
-                    ListingUrl = entry?.Link ?? string.Empty,
+                    ListingUrl = WaitlistProfileUrl(entry),
                     JoinedUtc = dto.CreateDateUtc
                 });
         }
@@ -1330,7 +1338,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     ListingName = ResolveListingName(
                         entry, dto.DirectoryEntryId),
-                    ListingUrl = entry?.Link ?? string.Empty,
+                    ListingUrl = WaitlistProfileUrl(entry),
                     JoinedUtc = dto.CreateDateUtc
                 });
         }
@@ -1360,7 +1368,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     ListingName = ResolveListingName(
                         entry, dto.DirectoryEntryId),
-                    ListingUrl = entry?.Link ?? string.Empty,
+                    ListingUrl = WaitlistProfileUrl(entry),
                     JoinedUtc = dto.CreateDateUtc
                 };
             }).ToList();
