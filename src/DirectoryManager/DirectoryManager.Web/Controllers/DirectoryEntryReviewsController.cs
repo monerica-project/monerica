@@ -397,17 +397,18 @@ namespace DirectoryManager.Web.Controllers
 
             if (!mod.IsValid)
             {
-                entity.ModerationStatus = ReviewModerationStatus.Rejected;
-                await this.directoryEntryReviewRepository.AddAsync(entity, ct);
+                // Content that can't be accepted (too short / empty / contains HTML) is a fixable
+                // input error — show it on the form so the reviewer can correct and resubmit,
+                // instead of silently accepting a rejected review. The flow is kept so they can retry.
+                this.ModelState.AddModelError(
+                    nameof(input.Body),
+                    mod.ValidationErrorMessage ?? "Your review couldn't be accepted. Please revise it and try again.");
 
-                this.TempData["ReviewMessage"] = mod.ThankYouMessage;
-                this.cache.Remove(CacheKey(flowId));
-
-                // Only send them to the raffle entry page if there's actually a live raffle.
-                return await this.RedirectToRaffleOrThanksAsync(
-                    entity.DirectoryEntryReviewId,
-                    flow.PgpFingerprint,
-                    ct);
+                var modEntry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
+                this.ViewBag.DirectoryEntryName = modEntry?.Name ?? "Listing";
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
+                return this.View("Compose", input);
             }
 
             // Capture any order link the reviewer supplied (already validated as a URL above)

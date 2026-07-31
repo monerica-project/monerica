@@ -521,6 +521,15 @@
             }
         </p>
 
+        @* Owner admin login (PGP). Resolves to the app origin so it works from the static
+           mirror too. Shown only when the listing has a PGP key (their login method). *@
+        @if (!string.IsNullOrEmpty(Model.PgpKey))
+        {
+            <p class="entry-edit-link">
+                <a rel="nofollow" href="@UrlResolver.ResolveToApp($"/site/{Model.DirectoryEntryKey}/admin")">Site owner? Log in to manage reviews &amp; email notifications &rarr;</a>
+            </p>
+        }
+
     </div>
 
     <hr />

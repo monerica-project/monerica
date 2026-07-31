@@ -96,6 +96,13 @@ namespace DirectoryManager.Data.Models
 
         public string? PgpKey { get; set; }
 
+        // Site-owner opt-in (set via the PGP-authenticated /site/{key}/admin page): when true,
+        // the listing's Email is notified once when a new review or reply on this listing is
+        // approved/goes live. EnabledUtc gates out the backlog (only items created after this).
+        public bool ReviewEmailNotificationsEnabled { get; set; }
+
+        public DateTime? ReviewEmailNotificationsEnabledUtc { get; set; }
+
         public virtual Subcategory? SubCategory { get; set; }
 
         public int SubCategoryId { get; set; }

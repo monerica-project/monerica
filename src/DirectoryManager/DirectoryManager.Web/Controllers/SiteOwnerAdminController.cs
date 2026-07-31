@@ -315,6 +315,9 @@ namespace DirectoryManager.Web.Controllers
                 // owner replies can be immediately visible
                 ModerationStatus = ReviewModerationStatus.Approved,
 
+                // The listing owner is replying — flag it so notifications skip their own replies.
+                IsOwner = true,
+
                 AuthorFingerprint = session.OwnerFingerprint,
                 CreateDate = DateTime.UtcNow,
                 CreatedByUserId = "site-owner-admin"
@@ -326,6 +329,50 @@ namespace DirectoryManager.Web.Controllers
             this.TempData["AdminMessage"] = "Reply posted.";
 
             return this.Redirect(AdminPageUrl(directoryEntryKey, returnPage) + $"#review-{directoryEntryReviewId}");
+        }
+
+        // POST: /site/key/admin/notifications  — toggle review/reply email notifications
+        [HttpPost("notifications")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> SaveNotifications(
+            string directoryEntryKey,
+            [FromForm] bool enabled,
+            CancellationToken ct = default)
+        {
+            if (!this.TryGetSession(directoryEntryKey, out var session))
+            {
+                this.TempData["AdminError"] = SessionExpiredMessage;
+                return this.Redirect(AdminPageUrl(directoryEntryKey, 1));
+            }
+
+            var entry = await this.entryRepo.GetByKey(directoryEntryKey);
+            if (entry == null || entry.DirectoryStatus == DirectoryStatus.Removed)
+            {
+                return this.NotFound();
+            }
+
+            // Can only enable when the listing has a real, well-formed email to send to.
+            if (enabled && !DirectoryManager.Utilities.Helpers.EmailValidationHelper.Validate(entry.Email).IsValid)
+            {
+                this.TempData["AdminError"] = "Add a valid email address to your listing before enabling review notifications.";
+                return this.Redirect(AdminPageUrl(directoryEntryKey, 1));
+            }
+
+            // Stamp the enabled-at watermark the first time it's turned on, so only reviews/replies
+            // submitted after this point ever trigger an email (no backlog spam).
+            if (enabled && !entry.ReviewEmailNotificationsEnabled)
+            {
+                entry.ReviewEmailNotificationsEnabledUtc = DateTime.UtcNow;
+            }
+
+            entry.ReviewEmailNotificationsEnabled = enabled;
+            await this.entryRepo.UpdateAsync(entry);
+            this.ClearCachedItems();
+
+            this.TempData["AdminMessage"] = enabled
+                ? "Email notifications enabled — we'll email you when a new review or reply goes live."
+                : "Email notifications disabled.";
+            return this.Redirect(AdminPageUrl(directoryEntryKey, 1));
         }
 
         // POST: /site/key/admin/logout
@@ -416,7 +463,11 @@ namespace DirectoryManager.Web.Controllers
 
                 CurrentPage = page,
                 TotalPages = totalPages,
-                PageSize = pageSize
+                PageSize = pageSize,
+
+                NotificationsEnabled = entry.ReviewEmailNotificationsEnabled,
+                ProfileEmail = entry.Email,
+                EmailIsValid = DirectoryManager.Utilities.Helpers.EmailValidationHelper.Validate(entry.Email).IsValid
             };
 
             return (vm, page);
@@ -627,6 +678,11 @@ namespace DirectoryManager.Web.Controllers
             public int CurrentPage { get; set; }
             public int TotalPages { get; set; }
             public int PageSize { get; set; }
+
+            // Review/reply email-notification settings.
+            public bool NotificationsEnabled { get; set; }
+            public string? ProfileEmail { get; set; }
+            public bool EmailIsValid { get; set; }
         }
 
         private sealed class SiteOwnerAdminFlowState

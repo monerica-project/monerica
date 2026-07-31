@@ -11,6 +11,7 @@ namespace DirectoryManager.Services.Constants
         public const string NewsletterSender = "NewsletterSender";
         public const string SponsoredListingOpening = "SponsoredListingOpening";
         public const string SponsoredListingReminder = "SponsoredListingReminder";
+        public const string ReviewNotifier = "ReviewNotifier";
         public const string Unknown = "Unknown";
     }
 }

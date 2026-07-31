@@ -46,6 +46,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
         public DbSet<DirectoryManager.Data.Models.VerificationRequests.VerificationRequest> VerificationRequests { get; set; }
         DbSet<DirectoryEntryReviewComment> DirectoryEntryReviewComments { get; }
+        DbSet<DirectoryManager.Data.Models.Reviews.ReviewNotification> ReviewNotifications { get; }
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
         public DbSet<AffiliateCommissionEarned> AffiliateCommissionsEarned { get; set; }

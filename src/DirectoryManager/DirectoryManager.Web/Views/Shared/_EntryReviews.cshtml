@@ -178,13 +178,15 @@
 
     @if (Model.ReviewCount > 0)
     {
+        @* aggregateRating is metadata-only (invisible); keep it OUTSIDE .rating-summary so it
+           doesn't become a flex item and shift the layout. *@
+        <div itemprop="aggregateRating" itemscope itemtype="https://schema.org/AggregateRating">
+            <meta itemprop="ratingValue" content="@Model.AverageRating.Value.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)" />
+            <meta itemprop="reviewCount" content="@Model.ReviewCount" />
+            <meta itemprop="bestRating" content="5" />
+            <meta itemprop="worstRating" content="1" />
+        </div>
         <div class="rating-summary" aria-label="Review summary">
-            <div itemprop="aggregateRating" itemscope itemtype="https://schema.org/AggregateRating">
-                <meta itemprop="ratingValue" content="@Model.AverageRating.Value.ToString("0.0", System.Globalization.CultureInfo.InvariantCulture)" />
-                <meta itemprop="reviewCount" content="@Model.ReviewCount" />
-                <meta itemprop="bestRating" content="5" />
-                <meta itemprop="worstRating" content="1" />
-            </div>
             <div class="rs-left">
                 <div class="rs-avg">@Model.AverageRating.Value.ToString("0.0")</div>
 

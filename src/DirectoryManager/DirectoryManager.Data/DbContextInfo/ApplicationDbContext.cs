@@ -53,6 +53,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
         public DbSet<DirectoryManager.Data.Models.VerificationRequests.VerificationRequest> VerificationRequests { get; set; }
         public DbSet<DirectoryEntryReviewComment> DirectoryEntryReviewComments { get; set; } = null!;
+        public DbSet<DirectoryManager.Data.Models.Reviews.ReviewNotification> ReviewNotifications { get; set; } = null!;
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
         public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
@@ -164,6 +165,7 @@ namespace DirectoryManager.Data.DbContextInfo
             ConfigureSearchBlacklistAndReviewTagIndexes(builder);
 
             ConfigureReviewCommentIndexes(builder);
+            ConfigureReviewNotificationIndexes(builder);
             ConfigureDirectoryEntryTagIndexes(builder);
 
             ConfigureProcessorIndexes(builder);
@@ -499,6 +501,37 @@ namespace DirectoryManager.Data.DbContextInfo
                 // ✅ If you ever traverse threads (parent/children)
                 c.HasIndex(x => x.ParentCommentId)
                  .HasDatabaseName("IX_ReviewComments_ParentCommentId");
+            });
+        }
+
+        private static void ConfigureReviewNotificationIndexes(ModelBuilder builder)
+        {
+            builder.Entity<DirectoryManager.Data.Models.Reviews.ReviewNotification>(e =>
+            {
+                e.ToTable("ReviewNotifications");
+                e.HasKey(x => x.ReviewNotificationId);
+                e.Property(x => x.RecipientEmail).HasMaxLength(255);
+                e.Property(x => x.LastError).HasMaxLength(1000);
+
+                e.HasOne(x => x.DirectoryEntry)
+                 .WithMany()
+                 .HasForeignKey(x => x.DirectoryEntryId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                // Poller pulls Pending rows to send.
+                e.HasIndex(x => new { x.Status, x.ReviewNotificationId })
+                 .HasDatabaseName("IX_ReviewNotifications_Status_Id");
+
+                // Once-only per review / per comment (filtered unique — the other id is null).
+                e.HasIndex(x => x.DirectoryEntryReviewId)
+                 .IsUnique()
+                 .HasFilter("\"DirectoryEntryReviewId\" IS NOT NULL")
+                 .HasDatabaseName("UX_ReviewNotifications_ReviewId");
+
+                e.HasIndex(x => x.DirectoryEntryReviewCommentId)
+                 .IsUnique()
+                 .HasFilter("\"DirectoryEntryReviewCommentId\" IS NOT NULL")
+                 .HasDatabaseName("UX_ReviewNotifications_CommentId");
             });
         }
 
