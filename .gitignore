@@ -121,3 +121,4 @@ src/DirectoryManager/DirectoryManager.NewsletterSender/appsettings.Production.js
 src/DirectoryManager/DirectoryManager.SiteChecker/appsettings.Production.json
 src/DirectoryManager/DirectoryManager.SponsoredListingOpening/appsettings.Production.json
 src/DirectoryManager/DirectoryManager.SponsoredListingReminder/appsettings.Production.json
+src/DirectoryManager/DirectoryManager.ReviewNotifier/appsettings.Production.json
