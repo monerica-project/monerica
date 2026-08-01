@@ -1,10 +1,14 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.FileStorage.Constants;
+using DirectoryManager.FileStorage.Repositories.Interfaces;
+using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Models.Reviews;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Caching.Memory;
@@ -20,6 +24,11 @@ namespace DirectoryManager.Web.Controllers
         private readonly IReviewTagRepository reviewTagRepository;
         private readonly IDirectoryEntryReviewTagRepository reviewTagLinkRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly ISiteFilesRepository siteFiles;
+        private readonly ICacheService cacheService;
+
+        private static readonly HashSet<string> ImageExtensions =
+            new (StringComparer.OrdinalIgnoreCase) { ".png", ".jpg", ".jpeg", ".gif", ".webp" };
 
         public ReviewModerationController(
              IDirectoryEntryReviewRepository repo,
@@ -29,6 +38,8 @@ namespace DirectoryManager.Web.Controllers
              IReviewTagRepository reviewTagRepository,
              IDirectoryEntryReviewTagRepository reviewTagLinkRepository,
              IDirectoryEntryRepository directoryEntryRepository,
+             ISiteFilesRepository siteFiles,
+             ICacheService cacheService,
              IMemoryCache cache)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
@@ -37,6 +48,180 @@ namespace DirectoryManager.Web.Controllers
             this.reviewTagRepository = reviewTagRepository;
             this.reviewTagLinkRepository = reviewTagLinkRepository;
             this.directoryEntryRepository = directoryEntryRepository;
+            this.siteFiles = siteFiles;
+            this.cacheService = cacheService;
+        }
+
+        // ---- Review image upload / delete (Screenshot + AML) ----------------------------
+        // Files live in the CDN under directorycontent/reviews/{reviewId}/{filename}; the field
+        // stores the resolved CDN URL. Multi-page (no JS): pick+confirm to upload, confirm to delete.
+
+        private static string NormalizeField(string? field) =>
+            string.Equals(field, "aml", StringComparison.OrdinalIgnoreCase) ? "aml" : "image";
+
+        private static (string Label, string? Url) FieldInfo(DirectoryEntryReview review, string field) =>
+            field == "aml"
+                ? ("AML check screenshot", review.AmlScreenshotUrl)
+                : ("Screenshot", review.ImageUrl);
+
+        // GET /admin/reviews/{id}/upload-image?field=image|aml
+        [HttpGet("{id:int}/upload-image")]
+        public async Task<IActionResult> UploadImage(int id, string? field, CancellationToken ct = default)
+        {
+            var review = await this.repo.GetByIdAsync(id, ct);
+            if (review == null)
+            {
+                return this.NotFound();
+            }
+
+            var f = NormalizeField(field);
+            var (label, current) = FieldInfo(review, f);
+            return this.View("UploadImage", new ReviewImageActionViewModel
+            {
+                DirectoryEntryReviewId = id,
+                Field = f,
+                FieldLabel = label,
+                CurrentUrl = current,
+            });
+        }
+
+        // POST /admin/reviews/{id}/upload-image?field=image|aml
+        [HttpPost("{id:int}/upload-image")]
+        [ValidateAntiForgeryToken]
+        [RequestSizeLimit(30_000_000)]
+        public async Task<IActionResult> UploadImage(int id, string? field, IFormFile? file, CancellationToken ct = default)
+        {
+            var review = await this.repo.GetByIdAsync(id, ct);
+            if (review == null)
+            {
+                return this.NotFound();
+            }
+
+            var f = NormalizeField(field);
+
+            if (file == null || file.Length == 0)
+            {
+                this.TempData["ReviewImageError"] = "Please choose a file to upload.";
+                return this.RedirectToAction("UploadImage", new { id, field = f });
+            }
+
+            var safeName = Path.GetFileName(file.FileName ?? string.Empty);
+            var ext = Path.GetExtension(safeName);
+            if (string.IsNullOrWhiteSpace(safeName) || string.IsNullOrEmpty(ext) || !ImageExtensions.Contains(ext))
+            {
+                this.TempData["ReviewImageError"] = "Only image files are allowed (png, jpg, jpeg, gif, webp).";
+                return this.RedirectToAction("UploadImage", new { id, field = f });
+            }
+
+            if (file.Length > 25 * 1024 * 1024)
+            {
+                this.TempData["ReviewImageError"] = "File is too large (max 25 MB).";
+                return this.RedirectToAction("UploadImage", new { id, field = f });
+            }
+
+            // Clean-replace: remove the file this field previously pointed at (only if WE manage it).
+            await this.DeleteManagedBlobAsync(FieldInfo(review, f).Url);
+
+            Uri blobUri;
+            using (var stream = file.OpenReadStream())
+            {
+                blobUri = await this.siteFiles.UploadAsync(stream, safeName, $"reviews/{id}/");
+            }
+
+            var cdnPrefix = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CdnPrefixWithProtocol);
+            var cdnUrl = UrlBuilder.ConvertBlobToCdnUrl(blobUri.ToString(), this.siteFiles.BlobPrefix, cdnPrefix);
+
+            if (f == "aml")
+            {
+                review.AmlScreenshotUrl = cdnUrl;
+            }
+            else
+            {
+                review.ImageUrl = cdnUrl;
+            }
+
+            await this.repo.UpdateAsync(review, ct);
+            this.TempData["ReviewImageMessage"] = "Image uploaded.";
+            return this.Redirect($"/admin/reviews/{id}/edit");
+        }
+
+        // GET /admin/reviews/{id}/delete-image?field=image|aml  (confirmation page)
+        [HttpGet("{id:int}/delete-image")]
+        public async Task<IActionResult> DeleteImage(int id, string? field, CancellationToken ct = default)
+        {
+            var review = await this.repo.GetByIdAsync(id, ct);
+            if (review == null)
+            {
+                return this.NotFound();
+            }
+
+            var f = NormalizeField(field);
+            var (label, current) = FieldInfo(review, f);
+            if (string.IsNullOrWhiteSpace(current))
+            {
+                return this.Redirect($"/admin/reviews/{id}/edit");
+            }
+
+            return this.View("DeleteImage", new ReviewImageActionViewModel
+            {
+                DirectoryEntryReviewId = id,
+                Field = f,
+                FieldLabel = label,
+                CurrentUrl = current,
+            });
+        }
+
+        // POST /admin/reviews/{id}/delete-image?field=image|aml
+        [HttpPost("{id:int}/delete-image")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> DeleteImageConfirmed(int id, string? field, CancellationToken ct = default)
+        {
+            var review = await this.repo.GetByIdAsync(id, ct);
+            if (review == null)
+            {
+                return this.NotFound();
+            }
+
+            var f = NormalizeField(field);
+            await this.DeleteManagedBlobAsync(FieldInfo(review, f).Url);
+
+            if (f == "aml")
+            {
+                review.AmlScreenshotUrl = string.Empty;
+            }
+            else
+            {
+                review.ImageUrl = string.Empty;
+            }
+
+            await this.repo.UpdateAsync(review, ct);
+            this.TempData["ReviewImageMessage"] = "Image deleted.";
+            return this.Redirect($"/admin/reviews/{id}/edit");
+        }
+
+        // Deletes the underlying blob for a stored CDN URL — but ONLY within our reviews/ folder,
+        // so legacy originals (e.g. exchange-reviews/...) are never touched.
+        private async Task DeleteManagedBlobAsync(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                return;
+            }
+
+            var marker = "/" + StringConstants.ContainerName + "/"; // "/directorycontent/"
+            var idx = url.IndexOf(marker, StringComparison.OrdinalIgnoreCase);
+            if (idx < 0)
+            {
+                return;
+            }
+
+            var blobPath = url[(idx + marker.Length)..].TrimStart('/');
+            if (!blobPath.StartsWith("reviews/", StringComparison.OrdinalIgnoreCase))
+            {
+                return;
+            }
+
+            await this.siteFiles.DeleteFileAsync(blobPath);
         }
 
         // Default route = Pending queue

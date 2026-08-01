@@ -52,6 +52,12 @@ namespace DirectoryManager.Web.Models
 
         public bool ReviewsDisabled { get; set; }
 
+        // Read-only (owner controls these via the PGP /site/{key}/admin page) — shown so the
+        // operator can see whether the listing opted into review/reply email notifications.
+        public bool ReviewEmailNotificationsEnabled { get; set; }
+
+        public DateTime? ReviewEmailNotificationsEnabledUtc { get; set; }
+
         // ✅ Existing tags chosen via checkboxes (these are what get persisted)
         public List<int> SelectedTagIds { get; set; } = new ();
 

@@ -31,6 +31,24 @@
      |
     <a href="@UrlBuilder.ListingPath(Model.DirectoryEntryKey)" target="_blank">View Listing</a>
 
+<div class="mt-2">
+    <strong>Review email notifications:</strong>
+    @if (Model.ReviewEmailNotificationsEnabled)
+    {
+        <span class="badge bg-success">Enabled</span>
+        @if (Model.ReviewEmailNotificationsEnabledUtc.HasValue)
+        {
+            <span class="text-muted"> since @Model.ReviewEmailNotificationsEnabledUtc.Value.ToString("yyyy-MM-dd HH:mm") UTC</span>
+        }
+        <span class="text-muted"> &rarr; @(string.IsNullOrWhiteSpace(Model.Email) ? "(no email!)" : Model.Email)</span>
+    }
+    else
+    {
+        <span class="badge bg-secondary">Disabled</span>
+    }
+    <span class="text-muted">(owner-controlled via their PGP admin page)</span>
+</div>
+
 <br />
 <a target="_blank" href="@Model.Link">@Model.Link</a>
 <br />

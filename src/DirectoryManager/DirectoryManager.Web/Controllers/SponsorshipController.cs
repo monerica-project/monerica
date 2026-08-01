@@ -9,6 +9,7 @@ using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Models.Sponsorship;
+using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using CommonConstants =
@@ -36,6 +37,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISponsoredListingOpeningNotificationRepository
             waitlistRepo;
         private readonly ISponsoredListingInvoiceRepository invoiceRepo;
+        private readonly IUrlResolutionService urlResolver;
 
         public SponsorshipController(
             IDirectoryEntryRepository entryRepo,
@@ -45,7 +47,8 @@ namespace DirectoryManager.Web.Controllers
             ISponsoredListingReservationRepository reservationRepo,
             ISponsoredListingOfferRepository offerRepo,
             ISponsoredListingOpeningNotificationRepository waitlistRepo,
-            ISponsoredListingInvoiceRepository invoiceRepo)
+            ISponsoredListingInvoiceRepository invoiceRepo,
+            IUrlResolutionService urlResolver)
         {
             this.entryRepo = entryRepo;
             this.categoryRepo = categoryRepo;
@@ -55,6 +58,7 @@ namespace DirectoryManager.Web.Controllers
             this.offerRepo = offerRepo;
             this.waitlistRepo = waitlistRepo;
             this.invoiceRepo = invoiceRepo;
+            this.urlResolver = urlResolver;
         }
 
         [HttpGet("")]
@@ -955,7 +959,7 @@ namespace DirectoryManager.Web.Controllers
                             ListingName = ResolveListingName(
                                 entry, dto.DirectoryEntryId),
                             ListingUrl =
-                                WaitlistProfileUrl(entry),
+                                this.WaitlistProfileUrl(entry),
                             JoinedUtc = dto.SubscribedDateUtc
                         };
                     })
@@ -1305,12 +1309,14 @@ namespace DirectoryManager.Web.Controllers
                 .ToList();
         }
 
-        // Waitlist rows link to the entry's Monerica profile page (/site/{key})
-        // rather than its external website. Falls back to the external link only
-        // if the entry or its key is missing.
-        private static string WaitlistProfileUrl(DirectoryEntry? entry)
+        // Waitlist rows link to the entry's canonical Monerica profile page
+        // (https://monerica.com/site/{key}) rather than its external website or the
+        // app.monerica.com host the waitlist itself is served on. The resolver returns
+        // the canonical clearnet URL off-Tor, and a relative path on Tor/local so the
+        // onion still works. Falls back to the external link only if the key is missing.
+        private string WaitlistProfileUrl(DirectoryEntry? entry)
             => entry != null && !string.IsNullOrWhiteSpace(entry.DirectoryEntryKey)
-                ? UrlBuilder.ListingPath(entry.DirectoryEntryKey)
+                ? this.urlResolver.ResolveToRoot(UrlBuilder.ListingPath(entry.DirectoryEntryKey))
                 : (entry?.Link ?? string.Empty);
 
         private async Task<List<WaitlistPublicRowVm>>
@@ -1323,7 +1329,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     ListingName = ResolveListingName(
                         entry, dto.DirectoryEntryId),
-                    ListingUrl = WaitlistProfileUrl(entry),
+                    ListingUrl = this.WaitlistProfileUrl(entry),
                     JoinedUtc = dto.CreateDateUtc
                 });
         }
@@ -1338,7 +1344,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     ListingName = ResolveListingName(
                         entry, dto.DirectoryEntryId),
-                    ListingUrl = WaitlistProfileUrl(entry),
+                    ListingUrl = this.WaitlistProfileUrl(entry),
                     JoinedUtc = dto.CreateDateUtc
                 });
         }
@@ -1368,7 +1374,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     ListingName = ResolveListingName(
                         entry, dto.DirectoryEntryId),
-                    ListingUrl = WaitlistProfileUrl(entry),
+                    ListingUrl = this.WaitlistProfileUrl(entry),
                     JoinedUtc = dto.CreateDateUtc
                 };
             }).ToList();

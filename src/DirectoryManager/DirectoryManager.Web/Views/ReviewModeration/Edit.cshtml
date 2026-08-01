@@ -79,6 +79,17 @@
                                         <input asp-for="ImageUrl" class="form-control" maxlength="2048" />
                                         <span asp-validation-for="ImageUrl" class="text-danger"></span>
                                         <div class="form-text">Optional link to a screenshot or other proof image.</div>
+                                        <div class="mt-1">
+                                            <a class="btn btn-sm btn-outline-primary" href="/admin/reviews/@Model.DirectoryEntryReviewId/upload-image?field=image">Upload image</a>
+                                            @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+                                            {
+                                                <a class="btn btn-sm btn-outline-danger" href="/admin/reviews/@Model.DirectoryEntryReviewId/delete-image?field=image">Delete image</a>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(Model.ImageUrl))
+                                        {
+                                            <a href="@Model.ImageUrl" target="_blank"><img src="@Model.ImageUrl" alt="screenshot" class="mt-2 img-fluid" style="max-height:120px;border:1px solid #ccc;border-radius:4px;" /></a>
+                                        }
                                     </div>
                                     <div class="col-md-6">
                                         <label asp-for="SendingTxUrl" class="form-label"></label>
@@ -96,6 +107,17 @@
                                         <label asp-for="AmlScreenshotUrl" class="form-label"></label>
                                         <input asp-for="AmlScreenshotUrl" class="form-control" maxlength="2048" />
                                         <span asp-validation-for="AmlScreenshotUrl" class="text-danger"></span>
+                                        <div class="mt-1">
+                                            <a class="btn btn-sm btn-outline-primary" href="/admin/reviews/@Model.DirectoryEntryReviewId/upload-image?field=aml">Upload image</a>
+                                            @if (!string.IsNullOrWhiteSpace(Model.AmlScreenshotUrl))
+                                            {
+                                                <a class="btn btn-sm btn-outline-danger" href="/admin/reviews/@Model.DirectoryEntryReviewId/delete-image?field=aml">Delete image</a>
+                                            }
+                                        </div>
+                                        @if (!string.IsNullOrWhiteSpace(Model.AmlScreenshotUrl))
+                                        {
+                                            <a href="@Model.AmlScreenshotUrl" target="_blank"><img src="@Model.AmlScreenshotUrl" alt="AML screenshot" class="mt-2 img-fluid" style="max-height:120px;border:1px solid #ccc;border-radius:4px;" /></a>
+                                        }
                                         <div class="form-text">Optional link to an AML / coin-score check screenshot (e.g. an AMLBot risk report).</div>
                                     </div>
                                     <div class="col-12">

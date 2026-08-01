@@ -312,6 +312,8 @@ namespace DirectoryManager.Web.Controllers
                 SelectedTagIds = selectedIds.ToList(),
                 AdditionalLinks = additionalLinks,
                 ReviewsDisabled = entry.ReviewsDisabled,
+                ReviewEmailNotificationsEnabled = entry.ReviewEmailNotificationsEnabled,
+                ReviewEmailNotificationsEnabledUtc = entry.ReviewEmailNotificationsEnabledUtc,
                 ReviewCount = reviewCount,
             };
 
