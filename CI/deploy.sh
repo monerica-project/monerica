@@ -455,10 +455,14 @@ task_set_configs() {
         --arg sgkey    "${SENDGRID_API_KEY:-}" \
         --arg sgemail  "${SENDGRID_SENDER_EMAIL:-}" \
         --arg sgname   "${SENDGRID_SENDER_NAME:-}" \
+        --arg bzone    "${BUNNY_STORAGE_ZONE:-}" \
+        --arg bkey     "${BUNNY_STORAGE_KEY:-}" \
+        --arg bhost    "${BUNNY_STORAGE_HOST:-storage.bunnycdn.com}" \
         '{
             ConnectionStrings: { DefaultConnection: $conn, AzureStorage: $blobconn },
             Site:              { CustomDomain: $domain, RequestProtocol: $proto },
-            SendGrid:          { ApiKey: $sgkey, SenderEmail: $sgemail, SenderName: $sgname }
+            SendGrid:          { ApiKey: $sgkey, SenderEmail: $sgemail, SenderName: $sgname },
+            BunnyStorage:      { StorageZoneName: $bzone, AccessKey: $bkey, StorageHostname: $bhost }
         }' > "$prod_settings"
     write_ok "Wrote $prod_settings"
 }

@@ -104,7 +104,25 @@ namespace DirectoryManager.Web.Extensions
 
             services.AddScoped<ISponsorTickerService, SponsorTickerService>();
             services.AddTransient<IPgpService, PgpService>();
-            services.AddSingleton<ISiteFilesRepository, SiteFilesRepository>();
+            // Site file storage now lives on Bunny.net Edge Storage (was Azure Blob).
+            // Files keep the same "directorycontent/<path>" layout, so cdn.monerica.com
+            // URLs are unchanged. Credentials come from the "BunnyStorage" config section
+            // (generated into appsettings.Production.json from deploy-config.sh).
+            services.AddSingleton<ISiteFilesRepository>(_ =>
+            {
+                var zone = config["BunnyStorage:StorageZoneName"];
+                var key = config["BunnyStorage:AccessKey"];
+                var host = config["BunnyStorage:StorageHostname"];
+
+                if (string.IsNullOrWhiteSpace(zone) || string.IsNullOrWhiteSpace(key))
+                {
+                    throw new InvalidOperationException(
+                        "Missing BunnyStorage configuration (StorageZoneName / AccessKey). " +
+                        "Set the BunnyStorage section in appsettings or the deploy config.");
+                }
+
+                return new BunnySiteFilesRepository(zone, key, host);
+            });
             services.AddScoped<IRssFeedService, RssFeedService>();
             services.AddScoped<IDirectoryEntriesAuditService, DirectoryEntriesAuditService>();
 
