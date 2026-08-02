@@ -1,32 +1,35 @@
 @model DirectoryManager.Web.Models.Reviews.ReviewImageActionViewModel
 @{
     ViewData["Title"] = $"Upload {Model.FieldLabel}";
+    Layout = "_CenteredLayout";
 }
-<div class="container my-4" style="max-width:640px;">
-    <h1>Upload @Model.FieldLabel</h1>
-    <p class="text-muted">Review #@Model.DirectoryEntryReviewId</p>
+@section PageContent {
+    <div style="max-width:640px;margin:0 auto;">
+        <h1>Upload @Model.FieldLabel</h1>
+        <p class="text-muted">Review #@Model.DirectoryEntryReviewId</p>
 
-    @if (TempData["ReviewImageError"] != null)
-    {
-        <div class="alert alert-danger">@TempData["ReviewImageError"]</div>
-    }
+        @if (TempData["ReviewImageError"] != null)
+        {
+            <div class="alert alert-danger">@TempData["ReviewImageError"]</div>
+        }
 
-    @if (!string.IsNullOrWhiteSpace(Model.CurrentUrl))
-    {
-        <div class="mb-3">
-            <div class="form-text">Current image (uploading a new one replaces it):</div>
-            <img src="@Model.CurrentUrl" alt="current @Model.FieldLabel" class="img-fluid" style="max-height:240px;border:1px solid #ccc;border-radius:6px;" />
-        </div>
-    }
+        @if (!string.IsNullOrWhiteSpace(Model.CurrentUrl))
+        {
+            <div class="mb-3">
+                <div class="form-text">Current image (uploading a new one replaces it):</div>
+                <img src="@Model.CurrentUrl" alt="current @Model.FieldLabel" class="img-fluid" style="max-height:240px;border:1px solid #ccc;border-radius:6px;" />
+            </div>
+        }
 
-    <form asp-action="UploadImage" asp-route-id="@Model.DirectoryEntryReviewId" asp-route-field="@Model.Field"
-          method="post" enctype="multipart/form-data">
-        @Html.AntiForgeryToken()
-        <div class="mb-3">
-            <label for="file" class="form-label">Choose an image (png, jpg, jpeg, gif, webp)</label>
-            <input type="file" id="file" name="file" class="form-control" accept="image/*" required />
-        </div>
-        <button type="submit" class="btn btn-primary">Upload</button>
-        <a class="btn btn-secondary" href="/admin/reviews/@Model.DirectoryEntryReviewId/edit">Cancel</a>
-    </form>
-</div>
+        <form asp-action="UploadImage" asp-route-id="@Model.DirectoryEntryReviewId" asp-route-field="@Model.Field"
+              method="post" enctype="multipart/form-data">
+            @Html.AntiForgeryToken()
+            <div class="mb-3">
+                <label for="file" class="form-label">Choose an image (png, jpg, jpeg, gif, webp)</label>
+                <input type="file" id="file" name="file" class="form-control" accept="image/*" required />
+            </div>
+            <button type="submit" class="btn btn-primary">Upload</button>
+            <a class="btn btn-secondary" href="/admin/reviews/@Model.DirectoryEntryReviewId/edit">Cancel</a>
+        </form>
+    </div>
+}
