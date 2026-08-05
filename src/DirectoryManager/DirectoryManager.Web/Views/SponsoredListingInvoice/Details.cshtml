@@ -76,17 +76,11 @@
         <dt>Paid In Currency</dt>
         <dd>@Model.PaidInCurrency</dd>
 
-        <dt>Paid In Currency</dt>
-        <dd>@Model.PaidInCurrency</dd>
-        
         @if (hasPaidAmount)
         {
             <dt>Effective Rate</dt>
             <dd>@effectiveRate.ToString("0.00") @Model.Currency / @Model.PaidInCurrency</dd>
         }
-        
-        <dt>Payment Status</dt>
-        <dd>@EnumHelper.GetDescription(Model.PaymentStatus)</dd>
 
         <dt>Payment Status</dt>
         <dd>@EnumHelper.GetDescription(Model.PaymentStatus)</dd>

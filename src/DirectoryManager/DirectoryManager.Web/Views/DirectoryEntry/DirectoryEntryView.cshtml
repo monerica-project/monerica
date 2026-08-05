@@ -250,7 +250,7 @@
                         <tr>
                             <th scope="row">Email</th>
                             <td>
-                                @Html.Raw(StringHelpers.RenderContactFieldHtml(Model.Email, cssClass: "multi-line-text"))
+                                @Html.Raw(StringHelpers.RenderContactFieldHtml(Model.Email, ContactFieldKind.Email, cssClass: "multi-line-text"))
                             </td>
                         </tr>
                     }
@@ -260,7 +260,7 @@
                         <tr>
                             <th scope="row">Messenger</th>
                             <td>
-                                @Html.Raw(StringHelpers.RenderContactFieldHtml(Model.Messenger, cssClass: "multi-line-text"))
+                                @Html.Raw(StringHelpers.RenderContactFieldHtml(Model.Messenger, ContactFieldKind.Messenger, cssClass: "multi-line-text"))
                             </td>
                         </tr>
                     }
@@ -270,7 +270,7 @@
                         <tr>
                             <th scope="row">Social</th>
                             <td>
-                                @Html.Raw(StringHelpers.RenderContactFieldHtml(Model.Social, cssClass: "multi-line-text"))
+                                @Html.Raw(StringHelpers.RenderContactFieldHtml(Model.Social, ContactFieldKind.Social, cssClass: "multi-line-text"))
                             </td>
                         </tr>
                     }

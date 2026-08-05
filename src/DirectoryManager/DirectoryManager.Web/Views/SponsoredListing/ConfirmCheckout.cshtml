@@ -29,7 +29,6 @@
 
     Model.SelectedDirectoryEntry.IsSponsored = true;
 
-    var prefillReferral = ViewBag.ReferralCode as string ?? string.Empty;
     var prefillEmail = ViewBag.PrefillEmail as string ?? string.Empty;
 }
 
@@ -140,20 +139,6 @@
  placeholder="yourname@email.com"
  autocomplete="off" />
                     <div class="text-danger">@Html.ValidationMessage("Email")</div>
-                </div>
-
-                <div class="form-group">
-                    <label>Referral code (optional)</label>
-                    <input class="u-w-18pct"
- name="referralCode"
- type="text"
- value="@prefillReferral"
- placeholder="e.g. alice"
- maxlength="12"
- inputmode="latin"
- pattern="^[A-Za-z0-9]{3,12}$"
- title="Letters and numbers only, 3-12 characters."
- autocomplete="off" />
                 </div>
 
                 <hr />

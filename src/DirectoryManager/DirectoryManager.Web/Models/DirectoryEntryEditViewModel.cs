@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Utilities.Validation;
+using DirectoryManager.Web.Attributes;
 
 namespace DirectoryManager.Web.Models
 {
@@ -35,8 +36,13 @@ namespace DirectoryManager.Web.Models
         public string? Location { get; set; }
         public string? CountryCode { get; set; }
         public string? Processor { get; set; }
+        [UrlOrEmail(AllowUrl = false)]
         public string? Email { get; set; }
+
+        [UrlOrEmail]
         public string? Messenger { get; set; }
+
+        [UrlOrEmail]
         public string? Social { get; set; }
         public string? Description { get; set; }
         public string? Note { get; set; }

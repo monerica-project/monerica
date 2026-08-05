@@ -768,7 +768,7 @@ div.centered { text-align: center; }
 }
 .sponsor-card a b,
 section.sponsors .sponsor-card a b {
-  font-size: 19px;
+  font-size: 21px;
   display: inline-block;
   line-height: 1.15;
 }
@@ -830,8 +830,8 @@ section.sponsors .sponsor-card .rating-wrapper .stars {
 .sponsor-card .country-flag-right,
 section.sponsors .sponsor-card .country-flag-right {
   margin: 0 !important;
-  width: 15px;   /* keep ~4:3 so the sprite cell isn't stretched */
-  height: 11px;
+  width: 20px;   /* normal flag size (matches base .flag sprite + category-sponsor flags); 4:3 so the sprite cell isn't stretched */
+  height: 15px;
   flex-shrink: 0;
 }
 
@@ -2129,7 +2129,7 @@ section.sponsors .sponsor-card .country-flag {
   align-items: center;
   justify-content: center;
   width: 15px;
-  height: 11px;
+  height: 15px;
   border-radius: var(--radius-pill);
   background: var(--orange-muted);
   color: var(--bg-card);
@@ -4534,3 +4534,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 .u-h-35rem { height: 3.5rem; }
 .u-prewrap { white-space: pre-wrap; }
 .u-prewrap-break { white-space: pre-wrap; word-break: break-word; }
+
+/* Reserved-checkout / warning box — yellow border so it reads as urgent, not body text. */
+.alert-warning { border: 2px solid #ffcc00; background: rgba(255, 204, 0, 0.09); color: #ffe08a; padding: 12px 14px; border-radius: 8px; margin: 0 0 14px; }
+.alert-warning strong, .alert-warning b { color: #ffd633; }

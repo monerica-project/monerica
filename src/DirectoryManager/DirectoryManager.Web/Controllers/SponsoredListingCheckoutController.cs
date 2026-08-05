@@ -404,12 +404,15 @@ namespace DirectoryManager.Web.Controllers
                 return await this.ExecuteBtcPayCheckoutAsync(invoice, offer, rsvId, normalizedEmail);
             }
 
-            if (string.Equals(selectedProcessor, "BTCPayServerNoJs", StringComparison.OrdinalIgnoreCase))
+            // NOWPayments is retained for legacy/back-compat but is no longer offered in the
+            // checkout UI. It only runs when a request explicitly asks for it — never as a default.
+            if (string.Equals(selectedProcessor, "NOWPayments", StringComparison.OrdinalIgnoreCase))
             {
-                return await this.ExecuteBtcPayNoJsCheckoutAsync(invoice, offer, rsvId, normalizedEmail);
+                return await this.ExecuteNowPaymentsCheckoutAsync(invoice, offer, rsvId, normalizedEmail);
             }
 
-            return await this.ExecuteNowPaymentsCheckoutAsync(invoice, offer, rsvId, normalizedEmail);
+            // Default (BTCPayServerNoJs and any unrecognized value): the self-hosted no-JS BTCPay flow.
+            return await this.ExecuteBtcPayNoJsCheckoutAsync(invoice, offer, rsvId, normalizedEmail);
         }
 
         // =====================================================================

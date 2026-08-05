@@ -392,6 +392,204 @@ namespace DirectoryManager.Utilities.Helpers
             return sb.ToString();
         }
 
+        // =========================
+        // Contact handle → hyperlink (Social / Messenger)
+        // =========================
+
+        // Platform keyword → profile-URL template ({0} = handle without a leading @).
+        // Only platforms whose bare handle maps cleanly to a public profile URL.
+        private static readonly Dictionary<string, (string Template, string Name)> HandlePlatforms = new (StringComparer.OrdinalIgnoreCase)
+        {
+            ["x"] = ("https://x.com/{0}", "X"),
+            ["twitter"] = ("https://x.com/{0}", "X"),
+            ["telegram"] = ("https://t.me/{0}", "Telegram"),
+            ["tg"] = ("https://t.me/{0}", "Telegram"),
+            ["instagram"] = ("https://instagram.com/{0}", "Instagram"),
+            ["ig"] = ("https://instagram.com/{0}", "Instagram"),
+            ["github"] = ("https://github.com/{0}", "GitHub"),
+            ["youtube"] = ("https://youtube.com/@{0}", "YouTube"),
+            ["reddit"] = ("https://www.reddit.com/user/{0}", "Reddit"),
+            ["facebook"] = ("https://facebook.com/{0}", "Facebook"),
+            ["fb"] = ("https://facebook.com/{0}", "Facebook"),
+            ["tiktok"] = ("https://www.tiktok.com/@{0}", "TikTok"),
+            ["keybase"] = ("https://keybase.io/{0}", "Keybase"),
+        };
+
+        // Platforms we recognise by name but whose bare handle can't be turned into a URL
+        // (they need a full invite/link). Their presence blocks the default-platform guess
+        // so we never mislink, e.g., "@user on Session" must NOT become an X link.
+        private static readonly HashSet<string> NonLinkablePlatforms = new (StringComparer.OrdinalIgnoreCase)
+        {
+            "signal", "session", "simplex", "matrix", "nostr", "mastodon", "discord",
+            "xmpp", "jabber", "threema", "briar", "wire", "wickr", "element",
+        };
+
+        // Master matcher for a contact line: scheme URL | email | scheme-less URL | npub |
+        // mastodon (@user@instance) | bare @handle. Order matters (mastodon before handle).
+        private static readonly Regex ContactTokenRegex = new (
+            @"(?<url>(?:https?://|www\.)[^\s<>]+)" +
+            @"|(?<email>(?<![\w.+-])[A-Z0-9._%+\-]+@[A-Z0-9.\-]+\.[A-Z]{2,}(?![\w.+-]))" +
+            @"|(?<bareurl>(?<![\w@/])[A-Za-z0-9\-]+(?:\.[A-Za-z0-9\-]+)+/[^\s<>]+)" +
+            @"|(?<npub>\bnpub1[023456789acdefghjklmnpqrstuvwxyz]{20,}\b)" +
+            @"|(?<masto>(?<![\w/@])@[A-Za-z0-9_]{1,64}@[A-Za-z0-9.\-]+\.[A-Za-z]{2,}\b)" +
+            @"|(?<handle>(?<![\w/@])@[A-Za-z0-9_]{2,64}\b)",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled,
+            TimeSpan.FromMilliseconds(200));
+
+        // An explicitly-named platform: "… on <word>" or a leading "<word>: @handle" /
+        // "<word> - @handle". A lone bare word (e.g. "CoinrunnerHQ") is NOT a platform name.
+        private static readonly Regex OnPlatformRegex = new (
+            @"\bon\s+([A-Za-z][A-Za-z0-9]{1,20})\b",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled,
+            TimeSpan.FromMilliseconds(100));
+
+        private static readonly Regex LeadingPlatformRegex = new (
+            @"^\s*([A-Za-z][A-Za-z0-9]{1,20})\s*[:\-]\s*@",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled,
+            TimeSpan.FromMilliseconds(100));
+
+        /// <summary>
+        /// Resolves which platform a bare handle in <paramref name="value"/> should link to.
+        /// Returns the URL template + display name, or (null, null) when it should stay plain
+        /// text (an unknown/non-linkable platform was named, so we must not guess).
+        /// </summary>
+        private static (string? Template, string? Name) ResolveHandlePlatform(string value, ContactFieldKind kind)
+        {
+            // A known platform named anywhere in the value wins.
+            foreach (Match w in Regex.Matches(value, @"[A-Za-z]+"))
+            {
+                var word = w.Value;
+                if (HandlePlatforms.TryGetValue(word, out var p))
+                {
+                    return (p.Template, p.Name);
+                }
+
+                if (NonLinkablePlatforms.Contains(word))
+                {
+                    return (null, null); // recognised but not handle-linkable → leave as text
+                }
+            }
+
+            // A platform named in an explicit "… on <word>" or "<word>: @handle" slot that we
+            // don't recognise → don't guess a default (e.g. "@wireprot on Pitch"). Known
+            // platforms were already handled by the whole-word scan above.
+            foreach (var em in new[] { OnPlatformRegex.Match(value), LeadingPlatformRegex.Match(value) })
+            {
+                if (em.Success
+                    && !HandlePlatforms.ContainsKey(em.Groups[1].Value)
+                    && !NonLinkablePlatforms.Contains(em.Groups[1].Value))
+                {
+                    return (null, null);
+                }
+            }
+
+            // No platform named → fall back to the field's convention.
+            return kind switch
+            {
+                ContactFieldKind.Social => (HandlePlatforms["x"].Template, HandlePlatforms["x"].Name),
+                ContactFieldKind.Messenger => (HandlePlatforms["telegram"].Template, HandlePlatforms["telegram"].Name),
+                _ => (null, null),
+            };
+        }
+
+        /// <summary>
+        /// Contact field renderer that turns social/messaging <b>handles</b> into real
+        /// hyperlinks. Every resolved contact renders as a single link whose href AND visible
+        /// text are the <b>full URL</b> — e.g. a Social "@neir_io" becomes
+        /// <c>https://x.com/neir_io</c>, a Messenger "@neir_io telegram" becomes
+        /// <c>https://t.me/neir_io</c> — with the original handle/platform words dropped.
+        /// A bare handle defaults to X (Social) / Telegram (Messenger). Emails become
+        /// obfuscated mailto links (address shown as the text). When nothing can be resolved
+        /// to a link (e.g. an unknown platform like "@wireprot on Pitch"), the original text
+        /// is preserved so no information is lost.
+        /// </summary>
+        public static string RenderContactFieldHtml(string? text, ContactFieldKind kind, string cssClass = "multi-line-text")
+        {
+            if (string.IsNullOrWhiteSpace(text))
+            {
+                return string.Empty;
+            }
+
+            // Normalise full-width parentheses some users paste around a platform, e.g. （X）.
+            var value = text.Replace('（', '(').Replace('）', ')').Trim();
+
+            if (IsSingleEmail(value))
+            {
+                return BuildObfuscatedMailtoHtml(ExtractSingleEmail(value), cssClass);
+            }
+
+            var (template, _) = ResolveHandlePlatform(value, kind);
+
+            var links = new List<string>();
+            var unresolvableHandle = false;
+
+            foreach (Match m in ContactTokenRegex.Matches(value))
+            {
+                if (m.Groups["url"].Success || m.Groups["bareurl"].Success)
+                {
+                    var trimmed = TrimTrailingPunctuation(m.Value, out _);
+                    var href = trimmed.StartsWith("http", StringComparison.OrdinalIgnoreCase)
+                        ? trimmed
+                        : "https://" + (trimmed.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? trimmed[4..] : trimmed);
+                    links.Add(BuildExternalLinkHtml(href, href, cssClass, openInNewTab: true, ugcContent: true));
+                }
+                else if (m.Groups["email"].Success)
+                {
+                    var email = TrimTrailingPunctuation(m.Value, out _);
+                    if (IsSingleEmail(email))
+                    {
+                        links.Add(BuildObfuscatedMailtoHtml(ExtractSingleEmail(email), cssClass));
+                    }
+                    else
+                    {
+                        unresolvableHandle = true;
+                    }
+                }
+                else if (m.Groups["npub"].Success)
+                {
+                    var href = "https://njump.me/" + m.Value;
+                    links.Add(BuildExternalLinkHtml(href, href, cssClass, openInNewTab: true, ugcContent: true));
+                }
+                else if (m.Groups["masto"].Success)
+                {
+                    // @user@instance.tld → https://instance.tld/@user
+                    var parts = m.Value.TrimStart('@').Split('@');
+                    var href = $"https://{parts[1]}/@{parts[0]}";
+                    links.Add(BuildExternalLinkHtml(href, href, cssClass, openInNewTab: true, ugcContent: true));
+                }
+                else if (m.Groups["handle"].Success)
+                {
+                    if (template != null)
+                    {
+                        var href = string.Format(CultureInfo.InvariantCulture, template, m.Value.TrimStart('@'));
+                        links.Add(BuildExternalLinkHtml(href, href, cssClass, openInNewTab: true, ugcContent: true));
+                    }
+                    else
+                    {
+                        unresolvableHandle = true; // named an unknown/non-linkable platform
+                    }
+                }
+            }
+
+            // Whole field is a single bare word (no @, no URL) → handle for the default platform.
+            if (links.Count == 0 && !unresolvableHandle && template != null
+                && Regex.IsMatch(value, @"^[A-Za-z0-9_.]{2,64}$"))
+            {
+                var href = string.Format(CultureInfo.InvariantCulture, template, value.TrimStart('@'));
+                links.Add(BuildExternalLinkHtml(href, href, cssClass, openInNewTab: true, ugcContent: true));
+            }
+
+            // Everything resolved → show ONLY the full-URL link(s); drop platform words/labels.
+            if (links.Count > 0 && !unresolvableHandle)
+            {
+                return string.Join("<br/>", links);
+            }
+
+            // Couldn't fully resolve → keep the original text (still linkifying any plain
+            // URLs/emails inline) so nothing is lost and nothing is mislinked.
+            return RenderContactFieldHtml(value, cssClass);
+        }
+
         /// <summary>
         /// Anonymizes all emails (standard and [at]/(at)/AT variants) in plain text.
         /// Use before truncating for snippet display.

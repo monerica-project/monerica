@@ -40,6 +40,19 @@ namespace DirectoryManager.Web.Controllers
                 return await this.BuildLlmsTxtAsync();
             }) ?? string.Empty;
 
+            // The static CDN mirror serves llms.txt as text/plain with NO charset, so browsers
+            // fall back to Latin-1 and show mojibake (e.g. "â€"") for UTF-8 punctuation. Keep the
+            // output ASCII-only so it renders correctly regardless of the declared charset.
+            content = content
+                .Replace('—', '-')   // em dash —
+                .Replace('–', '-')   // en dash –
+                .Replace('‘', '\'')  // '
+                .Replace('’', '\'')  // '
+                .Replace('“', '"')   // "
+                .Replace('”', '"')   // "
+                .Replace("…", "...")  // …
+                .Replace(' ', ' ');  // non-breaking space
+
             return this.Content(content, "text/plain", Encoding.UTF8);
         }
 

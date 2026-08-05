@@ -28,7 +28,6 @@
 
     Model.SelectedDirectoryEntry.IsSponsored = true;
 
-    var prefillReferral = ViewBag.ReferralCode as string ?? string.Empty;
     var prefillEmail = ViewBag.PrefillEmail as string ?? string.Empty;
 }
 
@@ -103,22 +102,15 @@
                 @Html.AntiForgeryToken()
 
                 <hr />
-                <h3>Payment Processor</h3>
+                <h3>Payment Method</h3>
                 <p>Monero (XMR) only.</p>
 
-                <div class="form-check u-mb-4px">
-                    <label class="form-check-label">
-                        <input class="form-check-input" type="radio" name="selectedProcessor" value="BTCPayServerNoJs" checked />
-                        <strong>BTCPay Server</strong> &mdash; self-hosted
-                        <span class="text-muted u-fs-085em">(no JavaScript required)</span>
-                    </label>
-                </div>
-
-                <div class="form-check u-mb-16px">
-                    <label class="form-check-label">
-                        <input class="form-check-input" type="radio" name="selectedProcessor" value="NOWPayments" />
-                        <strong>NOWPayments</strong> &mdash; hosted checkout
-                    </label>
+                @* Only one method is offered, so show it as a label instead of a single-choice
+                   radio. The hidden field still submits the internal BTCPayServerNoJs processor. *@
+                <input type="hidden" name="selectedProcessor" value="BTCPayServerNoJs" />
+                <div class="u-mb-16px">
+                    <strong>Custom Monero Checkout</strong>
+                    <span class="text-muted u-fs-085em">(self-hosted, no JavaScript required)</span>
                 </div>
 
                 <div class="alert alert-info" role="alert">
@@ -141,21 +133,6 @@
  autocomplete="off"
  class="form-control input-width u-w-18pct" />
                     <div class="text-danger">@Html.ValidationMessage("Email")</div>
-                </div>
-
-                <div class="form-group">
-                    <label>Referral code (optional)</label>
-                    <input
- name="referralCode"
- type="text"
- value="@prefillReferral"
- placeholder="e.g. alice"
- maxlength="12"
- inputmode="latin"
- pattern="^[A-Za-z0-9]{3,12}$"
- title="Letters and numbers only, 3-12 characters."
- autocomplete="off"
- class="form-control input-width u-w-18pct" />
                 </div>
 
                 <hr />

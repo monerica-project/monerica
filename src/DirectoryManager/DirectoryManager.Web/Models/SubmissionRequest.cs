@@ -1,6 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Utilities.Validation;
+using DirectoryManager.Web.Attributes;
 using DirectoryManager.Web.ModelBinding;
 
 namespace DirectoryManager.Web.Models
@@ -49,16 +50,19 @@ namespace DirectoryManager.Web.Models
         [MaxLength(255)]
         [Display(Name = "Email", Prompt = "contact@example.com")]
         [CleanSingleLine]
+        [UrlOrEmail(AllowUrl = false)]
         public string? Email { get; set; }
 
         [MaxLength(255)]
-        [Display(Name = "Messenger", Prompt = "@handle on Telegram, Signal, etc.")]
+        [Display(Name = "Messenger", Prompt = "Full link, e.g. https://t.me/yourname or https://signal.me/...")]
         [CleanSingleLine]
+        [UrlOrEmail]
         public string? Messenger { get; set; }
 
         [MaxLength(255)]
-        [Display(Name = "Social", Prompt = "@handle on X, Nostr, etc.")]
+        [Display(Name = "Social", Prompt = "Full link, e.g. https://x.com/yourname")]
         [CleanSingleLine]
+        [UrlOrEmail]
         public string? Social { get; set; }
 
         [MaxLength(75)]
