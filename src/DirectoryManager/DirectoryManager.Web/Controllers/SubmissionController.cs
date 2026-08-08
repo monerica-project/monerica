@@ -256,6 +256,17 @@ namespace DirectoryManager.Web.Controllers
                     $"Your note to the admin is {model.NoteToAdmin.Length} characters, which is over the {SubmissionRequest.NoteToAdminMaxLength}-character limit. Please shorten it and submit again.");
             }
 
+            // Same for the public Note: no hard maxlength on the field, so surface an explicit
+            // over-length error rather than letting a long note get silently truncated.
+            if (!string.IsNullOrEmpty(model.Note)
+                && model.Note.Length > SubmissionRequest.NoteMaxLength
+                && (this.ModelState[nameof(model.Note)]?.Errors.Count ?? 0) == 0)
+            {
+                this.ModelState.AddModelError(
+                    nameof(model.Note),
+                    $"Your note is {model.Note.Length} characters, which is over the {SubmissionRequest.NoteMaxLength}-character limit. Please shorten it and submit again.");
+            }
+
             // ---- If invalid, reload dropdowns + tag list and return to SubmitEdit ----
             if (!this.ModelState.IsValid)
             {

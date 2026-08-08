@@ -2815,7 +2815,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 
 /* Tags: show the first 6, expand to the rest via a pure-CSS toggle (no scroll). */
 .dir-tags { flex-direction: column; gap: 8px; align-items: stretch; }
-.dir-tags .ui-check:nth-child(n+7) { display: none; }
+.dir-tags .ui-check { display: none; }
 #show-all-tags:checked ~ .dir-tags .ui-check { display: inline-flex; }
 
 .dir-tags-toggle { position: absolute; width: 0; height: 0; opacity: 0; pointer-events: none; }
@@ -3581,7 +3581,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
    4. Show fewer tags by default (5, then expand). The existing 2026-05-31 rule
       shows 6; this tightens it to 5. "Show all tags" still reveals the rest.
    ----------------------------------------------------------------------------- */
-.dir-tags .ui-check:nth-child(n+6) { display: none; }
+.dir-tags .ui-check { display: none; }
 #show-all-tags:checked ~ .dir-tags .ui-check { display: inline-flex; }
 
 /* =========================================================================
@@ -4538,3 +4538,7 @@ ul.list-unstyled { padding-left: 0; margin-left: 15px; }
 /* Reserved-checkout / warning box — yellow border so it reads as urgent, not body text. */
 .alert-warning { border: 2px solid #ffcc00; background: rgba(255, 204, 0, 0.09); color: #ffe08a; padding: 12px 14px; border-radius: 8px; margin: 0 0 14px; }
 .alert-warning strong, .alert-warning b { color: #ffd633; }
+
+/* Long unbroken strings in reviews/comments must wrap, not overflow (mobile) */
+[itemprop="reviewBody"],.reply-body,.u-ws-pre-wrap{overflow-wrap:anywhere;word-break:break-word;max-width:100%}
+[itemprop="reviewBody"] *,.reply-body *{overflow-wrap:anywhere;word-break:break-word}

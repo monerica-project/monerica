@@ -854,9 +854,10 @@ namespace DirectoryManager.Web.Controllers
             var now = DateTime.UtcNow;
 
             var paid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
-                .Where(i => i.PaymentStatus == PaymentStatus.Paid);
+                .Where(i => i.PaymentStatus == PaymentStatus.Paid)
+                .ToList();
 
-            var (months, values) = BuildMonthlyHistory(paid, currency, now, lookback);
+            var (months, values, analysis) = BuildForecastInputs(paid, currency, now, lookback);
             var result = IncomeForecaster.Build(months, values, now, horizon, z);
 
             var model = new IncomeForecastViewModel
@@ -895,16 +896,62 @@ namespace DirectoryManager.Web.Controllers
                 }).ToList()
             };
 
-            // ---- Next concrete expected payment: soonest-expiring active paid sponsorship ----
-            // Group by advertiser + slot, take each group's latest paid-through date so an
-            // already-renewed listing doesn't surface a superseded expiration.
+            // ---- Realistic monthly income (earned, cut-short-adjusted) ----
+            model.AverageMonthly3 = TrailingAverage(values, 3);
+            model.AverageMonthly6 = TrailingAverage(values, 6);
+            model.AverageMonthly12 = TrailingAverage(values, 12);
+            model.ExpectedMonthlyOverHorizon = horizon > 0
+                ? Math.Round(result.ProjectedHorizonTotalExpected / horizon, 2)
+                : 0m;
+            model.ActiveMonthlyRunRate = analysis.ActiveMonthlyRunRate;
+            model.ActiveSponsorshipCount = analysis.ActiveSponsorshipCount;
+            model.ActiveSponsors = analysis.ActiveSponsors.Select(s => new ActiveSponsorRow
+            {
+                Advertiser = s.Advertiser,
+                SponsorshipType = s.SponsorshipType,
+                EndsOn = s.EndsOn,
+                Amount = s.Amount,
+                MonthlyValue = Math.Round(s.MonthlyValue, 2)
+            }).ToList();
+
+            // ---- Advertiser health + pricing drift ----
+            model.DistinctAdvertisers = analysis.DistinctAdvertisers;
+            model.LiveAdvertisers = analysis.LiveAdvertisers;
+            model.TerminatedAdvertisers = analysis.TerminatedAdvertisers;
+            model.ChurnRatePct = analysis.ChurnRatePct;
+            model.RepeatAdvertiserRatePct = analysis.RepeatAdvertiserRatePct;
+            model.AvgPriceRecent = analysis.AvgPriceRecent;
+            model.AvgPricePrior = analysis.AvgPricePrior;
+            model.PriceChangePct = analysis.PriceChangePct;
+
+            // ---- Cut-short (collected before expiration was supposed to happen) ----
+            model.CutShortCount = analysis.CutShortCount;
+            model.CutShortCollectedTotal = Math.Round(analysis.CutShortCollectedTotal, 2);
+            model.CutShortUnearnedTotal = Math.Round(analysis.CutShortUnearnedTotal, 2);
+            model.CutShortRows = analysis.CutShortItems.Select(c => new CutShortRow
+            {
+                Advertiser = c.Advertiser,
+                Status = c.Status,
+                SponsorshipType = c.SponsorshipType,
+                PaidThrough = c.PaidThrough,
+                ServedThrough = c.ServedThrough,
+                Collected = Math.Round(c.Collected, 2),
+                Unearned = Math.Round(c.Unearned, 2)
+            }).ToList();
+
+            // ---- Next concrete expected payment: soonest-expiring sponsorship whose advertiser
+            // is STILL Admitted/Verified. A pulled advertiser (e.g. now Removed/Scam) is never
+            // assumed to renew, so it can't surface here as future income.
             var nowDate = now.Date;
-            var nextExpiring = paid
+            var latestPerSlot = paid
                 .GroupBy(i => new { i.DirectoryEntryId, i.SponsorshipType, i.CategoryId, i.SubCategoryId })
                 .Select(g => g.OrderByDescending(x => x.CampaignEndDate).First())
                 .Where(latest => latest.CampaignEndDate.Date >= nowDate)
                 .OrderBy(latest => latest.CampaignEndDate)
-                .FirstOrDefault();
+                .ToList();
+
+            var nextExpiring = latestPerSlot.FirstOrDefault(l =>
+                SponsorshipIncomeAnalyzer.IsLiveAdvertiser(l.DirectoryEntry?.DirectoryStatus ?? DirectoryStatus.Unknown));
 
             if (nextExpiring != null)
             {
@@ -914,6 +961,18 @@ namespace DirectoryManager.Web.Controllers
                 model.NextPaymentAdvertiser = nextExpiring.DirectoryEntry?.Name ?? "(unknown advertiser)";
                 model.NextPaymentSponsorshipType = nextExpiring.SponsorshipType.ToString();
             }
+
+            // Flag when a sooner-expiring sponsorship was hidden because its advertiser is no longer live.
+            var soonestOverall = latestPerSlot.FirstOrDefault();
+            if (soonestOverall != null
+                && (nextExpiring == null || soonestOverall.CampaignEndDate < nextExpiring.CampaignEndDate)
+                && !SponsorshipIncomeAnalyzer.IsLiveAdvertiser(soonestOverall.DirectoryEntry?.DirectoryStatus ?? DirectoryStatus.Unknown))
+            {
+                model.NextPaymentExcludedTerminated = true;
+            }
+
+            // ---- Actionable advice ----
+            model.Advice = BuildAdvice(model, analysis, result);
 
             // Currency dropdown
             model.DisplayCurrencyOptions = Enum.GetValues(typeof(Currency))
@@ -928,7 +987,7 @@ namespace DirectoryManager.Web.Controllers
                 .ToList();
 
             // Confidence dropdown
-            model.ConfidenceOptions = new[] { 50, 68, 80, 90, 95 }
+            model.ConfidenceOptions = new[] { 50, 68, 80, 90, 95, 99 }
                 .Select(p => new SelectListItem
                 {
                     Value = p.ToString(CultureInfo.InvariantCulture),
@@ -954,9 +1013,10 @@ namespace DirectoryManager.Web.Controllers
             var now = DateTime.UtcNow;
 
             var paid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
-                .Where(i => i.PaymentStatus == PaymentStatus.Paid);
+                .Where(i => i.PaymentStatus == PaymentStatus.Paid)
+                .ToList();
 
-            var (months, values) = BuildMonthlyHistory(paid, currency, now, lookback);
+            var (months, values, analysis) = BuildForecastInputs(paid, currency, now, lookback);
             var result = IncomeForecaster.Build(months, values, now, horizon, z);
 
             if (!result.HasEnoughData)
@@ -974,8 +1034,14 @@ namespace DirectoryManager.Web.Controllers
             var forecastLow = result.Months.Select(m => m.Low).ToList();
             var forecastHigh = result.Months.Select(m => m.High).ToList();
 
+            // Reference lines: the forward run-rate (live sponsorships) and the recent 3-month average
+            // give the trend line context — "is the projection above or below what I'm actually booking?"
+            var runRate = analysis.ActiveMonthlyRunRate > 0m ? analysis.ActiveMonthlyRunRate : (decimal?)null;
+            var recentAvg = TrailingAverage(values, 3);
+
             var bytes = new InvoicePlotting().CreateIncomeForecastChart(
-                months, values, forecastMonths, forecastExpected, forecastLow, forecastHigh, currency);
+                months, values, forecastMonths, forecastExpected, forecastLow, forecastHigh, currency,
+                runRate, recentAvg > 0m ? recentAvg : (decimal?)null);
 
             if (bytes == null || bytes.Length == 0)
             {
@@ -1031,6 +1097,146 @@ namespace DirectoryManager.Web.Controllers
             return (months, values);
         }
 
+        // Builds the trend inputs: gross monthly history MINUS the unearned portion of any
+        // cut-short sponsorship (money kept for service never delivered), so the forecast isn't
+        // inflated by one-off revenue that won't recur. Also returns the full analysis.
+        private static (List<DateTime> Months, List<decimal> Values, SponsorshipIncomeAnalyzer.Result Analysis)
+            BuildForecastInputs(IReadOnlyList<SponsoredListingInvoice> paid, Currency currency, DateTime now, int lookback)
+        {
+            var (months, gross) = BuildMonthlyHistory(paid, currency, now, lookback);
+            var analysis = SponsorshipIncomeAnalyzer.Analyze(paid, currency, now);
+
+            var adjusted = new List<decimal>(months.Count);
+            for (int i = 0; i < months.Count; i++)
+            {
+                var deduction = analysis.UnearnedByMonth.TryGetValue(months[i], out var d) ? d : 0m;
+                adjusted.Add(Math.Max(0m, gross[i] - deduction));
+            }
+
+            return (months, adjusted, analysis);
+        }
+
+        private static decimal TrailingAverage(IReadOnlyList<decimal> values, int window)
+        {
+            if (values == null || values.Count == 0)
+            {
+                return 0m;
+            }
+
+            int take = Math.Min(window, values.Count);
+            return Math.Round(values.Skip(values.Count - take).Take(take).Average(), 2);
+        }
+
+        // Turns the numbers into plain-English pricing/retention guidance.
+        private static List<ForecastAdvice> BuildAdvice(
+            IncomeForecastViewModel m, SponsorshipIncomeAnalyzer.Result a, IncomeForecaster.Result r)
+        {
+            var advice = new List<ForecastAdvice>();
+            var trend = m.TrendSlopePerMonth;
+            var recent = m.AverageMonthly3;
+            var runRate = m.ActiveMonthlyRunRate;
+            var inv = CultureInfo.InvariantCulture;
+
+            bool demandStrong = a.RepeatAdvertiserRatePct >= 40m && a.ChurnRatePct <= 30m && a.ActiveSponsorshipCount >= 3;
+
+            if (a.ChurnRatePct > 35m)
+            {
+                advice.Add(new ForecastAdvice
+                {
+                    Kind = "warning",
+                    Text = $"Churn is high — {a.ChurnRatePct.ToString("0.#", inv)}% of advertisers are no longer live. " +
+                           "Shore up retention and vetting before raising prices; losing sponsors costs more than a rate bump earns."
+                });
+            }
+
+            if (demandStrong && a.PriceChangePct <= 5m)
+            {
+                advice.Add(new ForecastAdvice
+                {
+                    Kind = "positive",
+                    Text = $"Demand looks strong — {a.RepeatAdvertiserRatePct.ToString("0.#", inv)}% of advertisers renew and churn is only " +
+                           $"{a.ChurnRatePct.ToString("0.#", inv)}%, yet your average price is roughly flat. Test a 10–15% increase on your most " +
+                           "in-demand slots (start with the Main sponsor tier)."
+                });
+            }
+            else if (demandStrong && a.PriceChangePct > 15m)
+            {
+                advice.Add(new ForecastAdvice
+                {
+                    Kind = "positive",
+                    Text = $"Your recent price increases are sticking — the average price is up {a.PriceChangePct.ToString("0.#", inv)}% and advertisers keep buying. " +
+                           "You likely still have room for another modest bump on the busiest slots."
+                });
+            }
+            else if (!demandStrong && a.ChurnRatePct <= 30m && Math.Abs(trend) < (recent == 0m ? 1m : recent * 0.05m))
+            {
+                advice.Add(new ForecastAdvice
+                {
+                    Kind = "info",
+                    Text = "Income is steady and churn is under control. Pricing looks about right — hold rates and revisit in a quarter, " +
+                           "or raise selectively on any slot that stays full."
+                });
+            }
+
+            if (trend < 0m)
+            {
+                advice.Add(new ForecastAdvice
+                {
+                    Kind = "warning",
+                    Text = $"The income trend is declining (about {Math.Abs(trend).ToString("0.##", inv)} per month). " +
+                           "Prioritize filling open slots and win-back outreach over price increases."
+                });
+            }
+            else if (trend > 0m)
+            {
+                advice.Add(new ForecastAdvice
+                {
+                    Kind = "positive",
+                    Text = $"Income is trending up by about {trend.ToString("0.##", inv)} per month. The projection below assumes this pace continues."
+                });
+            }
+
+            if (recent > 0m && runRate > recent * 1.1m)
+            {
+                advice.Add(new ForecastAdvice
+                {
+                    Kind = "info",
+                    Text = $"Your live book implies a run-rate near {runRate.ToString("0", inv)}/mo — above your recent {recent.ToString("0", inv)}/mo average — " +
+                           "so collections should rise as current sponsorships renew."
+                });
+            }
+            else if (recent > 0m && runRate > 0m && runRate < recent * 0.9m)
+            {
+                advice.Add(new ForecastAdvice
+                {
+                    Kind = "warning",
+                    Text = $"Your live run-rate (~{runRate.ToString("0", inv)}/mo) is below your recent {recent.ToString("0", inv)}/mo average — " +
+                           "some recent income was one-off. Expect softening unless you add sponsors."
+                });
+            }
+
+            if (a.CutShortUnearnedTotal > 0m)
+            {
+                advice.Add(new ForecastAdvice
+                {
+                    Kind = "info",
+                    Text = $"About {a.CutShortUnearnedTotal.ToString("0", inv)} was collected for sponsorships you cut short (service not delivered). " +
+                           "That's one-time money and is already excluded from the forecast so the future isn't overstated."
+                });
+            }
+
+            if (advice.Count == 0)
+            {
+                advice.Add(new ForecastAdvice
+                {
+                    Kind = "info",
+                    Text = "Not enough signal yet for pricing advice — keep booking sponsorships and this will sharpen."
+                });
+            }
+
+            return advice;
+        }
+
         private static int NormalizeConfidence(int percent) =>
             percent switch
             {
@@ -1038,7 +1244,8 @@ namespace DirectoryManager.Web.Controllers
                 <= 68 => 68,
                 <= 80 => 80,
                 <= 90 => 90,
-                _ => 95
+                <= 95 => 95,
+                _ => 99
             };
 
         private static double ConfidenceToZ(int percent) =>
@@ -1049,6 +1256,7 @@ namespace DirectoryManager.Web.Controllers
                 80 => 1.282,
                 90 => 1.645,
                 95 => 1.960,
+                99 => 2.576,
                 _ => 1.282
             };
 

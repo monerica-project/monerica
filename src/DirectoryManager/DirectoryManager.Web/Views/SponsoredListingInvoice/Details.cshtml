@@ -5,6 +5,19 @@
 @using DirectoryManager.Web.Constants;
 @using DirectoryManager.Web.Models
 
+@functions {
+    // Human-readable "time ago" for a UTC timestamp (dates on this page are UTC).
+    static string TimeAgo(DateTime utc)
+    {
+        var diff = DateTime.UtcNow - utc;
+        if (diff < TimeSpan.Zero) return "just now";
+        if (diff.TotalMinutes < 1) return "just now";
+        if (diff.TotalDays >= 1) return $"{(int)diff.TotalDays}d {diff.Hours}h {diff.Minutes}m ago";
+        if (diff.TotalHours >= 1) return $"{diff.Hours}h {diff.Minutes}m ago";
+        return $"{diff.Minutes}m ago";
+    }
+}
+
 @{
     ViewData[StringConstants.TitleHeader] = "Invoice Details";
     Layout = "_CenteredLayout";
@@ -92,10 +105,19 @@
         <dd>@avgUsdPerDay.ToString("0.00")</dd>
 
         <dt>Create Date</dt>
-        <dd>@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</dd>
+        <dd>
+            @Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+            <span style="font-size:.85em;opacity:.7;">(@TimeAgo(Model.CreateDate))</span>
+        </dd>
 
         <dt>Update Date</dt>
-        <dd>@Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</dd>
+        <dd>
+            @Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+            @if (Model.UpdateDate.HasValue)
+            {
+                <span style="font-size:.85em;opacity:.7;">(@TimeAgo(Model.UpdateDate.Value))</span>
+            }
+        </dd>
 
         <dt>Campaign Start Date</dt>
         <dd>@Model.CampaignStartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</dd>

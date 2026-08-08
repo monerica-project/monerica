@@ -28,10 +28,12 @@
     <hr />
 
     <p class="text-muted">
-        A projection of future income based on your past booked revenue. It fits a trend to the
-        last @Model.LookbackMonths months of paid invoices and projects it forward
-        @Model.HorizonMonths months, starting from today. The band reflects normal month-to-month
-        variation at the chosen confidence level — it is an estimate, not a guarantee.
+        A realistic projection of future income from your past booked revenue. It fits a trend to the
+        last @Model.LookbackMonths months of paid invoices and projects it forward @Model.HorizonMonths
+        months from today. To keep it honest, revenue from sponsorships that were <strong>cut short</strong>
+        (the advertiser was pulled) is treated as one-off and removed from the trend, and advertisers who are
+        no longer Admitted/Verified are never assumed to renew. The band reflects normal month-to-month
+        variation at the chosen confidence level — an estimate, not a guarantee.
     </p>
 
     <form method="get" asp-controller="SponsoredListingInvoice" asp-action="Forecast">
@@ -80,10 +82,82 @@
                 </span>
             </div>
             <div class="text-muted u-fs-09em-mt-4px">
-                The soonest-expiring active sponsorship: the date its current campaign ends and a
-                renewal would be due, at that listing's current rate. This is a concrete near-term
-                expectation, separate from the statistical projection below.
+                The soonest-expiring sponsorship whose advertiser is still Admitted/Verified: the date its
+                current campaign ends and a renewal would be due, at that listing's current rate. This is a
+                concrete near-term expectation, separate from the statistical projection below.
             </div>
+        </div>
+    }
+
+    @if (Model.NextPaymentExcludedTerminated)
+    {
+        <div class="alert alert-warning u-p-10px-14px-lh-14">
+            A sooner-expiring sponsorship was left out of "next expected payment" because that advertiser is
+            <strong>no longer Admitted/Verified</strong> — a pulled advertiser isn't assumed to renew, so its
+            paid-through date is not treated as future income.
+        </div>
+    }
+
+    <div class="alert alert-success u-p-10px-14px-lh-14">
+        <strong>Realistic monthly income</strong>
+        <div class="u-mt-6px">
+            <div>
+                Average booked per month —
+                last 3: <strong>@money(Model.AverageMonthly3)</strong>,
+                last 6: <strong>@money(Model.AverageMonthly6)</strong>,
+                last 12: <strong>@money(Model.AverageMonthly12)</strong>
+                <span class="text-muted">(earned revenue; cut-short amounts removed)</span>
+            </div>
+            <div class="u-mt-6px">
+                Forward run-rate from current live sponsorships:
+                <strong>@money(Model.ActiveMonthlyRunRate)</strong> / month
+                <span class="text-muted">
+                    (@Model.ActiveSponsorshipCount active sponsorship@(Model.ActiveSponsorshipCount == 1 ? "" : "s"),
+                    Admitted/Verified only)
+                </span>
+            </div>
+            <div class="u-mt-6px">
+                Expected average over the next @Model.HorizonMonths months:
+                <strong>@money(Model.ExpectedMonthlyOverHorizon)</strong> / month
+            </div>
+        </div>
+    </div>
+
+    <div class="alert alert-secondary u-p-10px-14px-lh-14">
+        <strong>Advertiser health &amp; pricing</strong>
+        <div class="u-mt-6px">
+            <div>
+                Advertisers: <strong>@Model.LiveAdvertisers</strong> live,
+                <strong>@Model.TerminatedAdvertisers</strong> no longer live,
+                of <strong>@Model.DistinctAdvertisers</strong> total —
+                churn <strong>@Model.ChurnRatePct.ToString("0.#")%</strong>,
+                repeat/renew rate <strong>@Model.RepeatAdvertiserRatePct.ToString("0.#")%</strong>
+            </div>
+            <div class="u-mt-6px">
+                Average price per sponsorship — last 6 mo: <strong>@money(Model.AvgPriceRecent)</strong>,
+                prior 6 mo: <strong>@money(Model.AvgPricePrior)</strong>
+                @if (Model.AvgPricePrior > 0m)
+                {
+                    <span class="@(Model.PriceChangePct >= 0m ? "text-success" : "text-danger")">
+                        (@(Model.PriceChangePct >= 0m ? "+" : "")@Model.PriceChangePct.ToString("0.#")%)
+                    </span>
+                }
+            </div>
+        </div>
+    </div>
+
+    @if (Model.Advice.Any())
+    {
+        <div class="alert alert-info u-p-10px-14px-lh-14">
+            <strong>What to do</strong>
+            <ul class="u-mt-6px u-mb-0">
+                @foreach (var ad in Model.Advice)
+                {
+                    var cls = ad.Kind == "positive" ? "text-success"
+                        : ad.Kind == "warning" ? "text-danger" : "text-muted";
+                    <li class="@cls">@ad.Text</li>
+                }
+            </ul>
         </div>
     }
 
@@ -218,11 +292,73 @@
         </table>
 </div>
 
+        @if (Model.CutShortCount > 0)
+        {
+            <br />
+            <h2>Collected before expiration (cut-short sponsorships)</h2>
+            <p class="text-muted">
+                Sponsorships you ended before their paid-through date — the advertiser was pulled (no longer
+                Admitted/Verified) or the live listing was shortened. This money was collected but not fully
+                earned, so it is <strong>excluded from the forecast above</strong>: it's one-time, not recurring.
+                "Unearned" is the portion covering time that was never served.
+            </p>
+
+            <div class="alert alert-secondary u-p-10px-14px-lh-14">
+                <div><strong>@Model.CutShortCount</strong> sponsorship@(Model.CutShortCount == 1 ? "" : "s") cut short</div>
+                <div>Total collected from them: <strong>@money(Model.CutShortCollectedTotal)</strong></div>
+                <div>
+                    Collected for time never served (unearned):
+                    <strong>@money(Model.CutShortUnearnedTotal)</strong>
+                </div>
+            </div>
+
+            <div class="table-wrapper">
+<table class="table table-striped">
+                <thead>
+                    <tr>
+                        <th>Advertiser</th>
+                        <th>Current status</th>
+                        <th>Sponsorship</th>
+                        <th>Paid through</th>
+                        <th>Served through</th>
+                        <th class="u-text-right">Collected</th>
+                        <th class="u-text-right">Unearned</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var c in Model.CutShortRows)
+                    {
+                        <tr>
+                            <td>@c.Advertiser</td>
+                            <td>@c.Status</td>
+                            <td>@c.SponsorshipType</td>
+                            <td>@c.PaidThrough.ToString(dateFmt)</td>
+                            <td>@c.ServedThrough.ToString(dateFmt)</td>
+                            <td class="u-text-right">@money(c.Collected)</td>
+                            <td class="u-text-right">@money(c.Unearned)</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr>
+                        <th colspan="5">Total</th>
+                        <th class="u-text-right">@money(Model.CutShortCollectedTotal)</th>
+                        <th class="u-text-right">@money(Model.CutShortUnearnedTotal)</th>
+                    </tr>
+                </tfoot>
+            </table>
+</div>
+        }
+
+        <br />
+
         <p class="text-muted u-fs-09em">
             Method: ordinary-least-squares linear trend on monthly booked revenue (by invoice paid-date),
-            with a ± @Model.ConfidencePercent% band derived from historical month-to-month variability.
-            The current month is prorated by the days remaining. Forecasts assume past patterns continue;
-            large one-off deals, seasonality, and pricing changes are not separately modeled.
+            with the unearned portion of cut-short sponsorships removed so one-off windfalls don't inflate it,
+            and a ± @Model.ConfidencePercent% band derived from historical month-to-month variability.
+            The current month is prorated by the days remaining. The forward run-rate is the monthly-equivalent
+            value of sponsorships that are currently live (advertiser still Admitted/Verified). Forecasts assume
+            past patterns continue; large one-off deals and seasonality are not separately modeled.
         </p>
     }
 }

@@ -1,0 +1,183 @@
+﻿@model DirectoryManager.Web.Models.Sponsorship.SponsorshipIndexVm
+@using System.Globalization
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.DisplayFormatting.Helpers
+@using DirectoryManager.Utilities.Helpers
+@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Buy the Main Sponsor Slot";
+    Layout = "_CenteredLayout";
+
+    var usd = CultureInfo.GetCultureInfo(DirectoryManager.Web.Constants.StringConstants.EnglishUS);
+    var q = (Model.Query ?? string.Empty).Trim();
+
+    var mainPricing = Model.PricingSummaries?
+        .FirstOrDefault(x => x.SponsorshipType == SponsorshipType.MainSponsor);
+    var fromPrice = mainPricing == null ? null : $"from {mainPricing.MinPriceUsd.ToString("C0", usd)}";
+    var checkoutUrl = Url.Content("~/sponsoredlisting/selectlisting");
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">Buy the <span class="orange-text">Main Sponsor</span> Slot</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+    <hr />
+    <a class="app-link" href="~/">&larr; back to home</a>
+    <hr />
+
+    <p class="u-opacity-9">
+        This page is <strong>only</strong> for buying the <strong>Main Sponsor</strong> placement &mdash;
+        the large boxes at the very top of the home page and directory. Find your listing below and you'll
+        go straight to checkout for the Main slot. (Category and Subcategory placements are sold separately
+        on the <a class="app-link" href="~/sponsorship">full sponsorship page</a>.)
+    </p>
+
+    @* ---- Availability banner ---- *@
+    @if (Model.MainSponsorIsOpen)
+    {
+        <div class="u-callout-center" style="border-color:rgba(255,102,0,.5);">
+            <p class="u-heading-sm orange-text" style="margin:0;">
+                A Main Sponsor spot is open right now
+                <span class="u-opacity-85">(@Model.MainSponsorActiveCount of @Model.MainSponsorMaxSlots filled)</span>
+            </p>
+            <p class="u-opacity-85" style="margin:6px 0 0;">Claim it below before someone else does.</p>
+        </div>
+    }
+    else if (Model.MainSponsorInventory != null)
+    {
+        <div class="u-callout-center">
+            <p class="u-heading-sm" style="margin:0;">
+                All <b>@DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings</b> Main Sponsor spots are currently taken.
+            </p>
+            <p class="u-opacity-85" style="margin:6px 0 0;">
+                Next spot likely frees up
+                <strong>@Model.MainSponsorInventory.NextListingExpiration.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</strong>
+                (in @Model.MainSponsorInventory.TimeUntilNextMessage).
+                Find your listing below to <a class="app-link" href="~/waitlist?type=MainSponsor">join the Main Sponsor waitlist</a>
+                &mdash; we'll email you the moment one opens.
+            </p>
+        </div>
+    }
+
+    @* ---- Find your listing ---- *@
+    <div id="find-listing" class="u-callout-center u-mt-14px">
+        <p class="u-heading-sm">Find your listing</p>
+        <form method="get" action="@Url.Action("MainSponsor", "Sponsorship")" class="search-form u-m-0">
+            <input type="search" name="q" value="@q"
+                   placeholder="Your listing name or website…"
+                   class="form-control u-search-input" />
+            <button type="submit" class="btn btn-primary btn-cta">Find my listing &rarr;</button>
+        </form>
+    </div>
+
+    @if (Model.HasSearched)
+    {
+        @if (Model.Results != null && Model.Results.Any())
+        {
+            <div class="search-results">
+                @foreach (var r in Model.Results)
+                {
+                    var meta = r.Status;
+                    if (!string.IsNullOrWhiteSpace(r.Category)) { meta += $" · {r.Category}"; }
+                    if (!string.IsNullOrWhiteSpace(r.Subcategory)) { meta += $" » {r.Subcategory}"; }
+                    meta += $" · listed {r.AgeDays} days";
+
+                    <div class="result-row u-flex-flexwrap-wrap-items-center-gap-8px-16px-p-12px-0">
+                        <div class="u-flex-1-1-240px-minw-0">
+                            <div class="u-fs-105em-fw-600">
+                                @if (!string.IsNullOrWhiteSpace(r.Link))
+                                {
+                                    <a href="@r.Link" target="_blank" rel="noopener">@r.Name</a>
+                                }
+                                else
+                                {
+                                    @r.Name
+                                }
+                            </div>
+                            <div class="u-opacity-8-fs-9em-mt-2px">@meta</div>
+
+                            @if (!r.CanAdvertise && r.Reasons != null && r.Reasons.Any())
+                            {
+                                <ul class="u-m-6px-0-0-18px-opacity-85-fs-9em">
+                                    @foreach (var reason in r.Reasons)
+                                    {
+                                        <li>@reason</li>
+                                    }
+                                </ul>
+                            }
+                        </div>
+
+                        @if (r.CanAdvertise && Model.MainSponsorIsOpen)
+                        {
+                            @* Straight into the Main checkout — no Options page in between. *@
+                            <form class="u-flex-0-0-auto-m-0" method="post" action="@checkoutUrl">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="sponsorshipType" value="@SponsorshipType.MainSponsor" />
+                                <input type="hidden" name="directoryEntryId" value="@r.DirectoryEntryId" />
+                                <button type="submit" class="btn btn-primary">Buy Main Sponsor for this listing &rarr;</button>
+                            </form>
+                        }
+                        else if (r.CanAdvertise)
+                        {
+                            @* Eligible but Main is full — send them to join the Main waitlist. *@
+                            <a class="btn btn-info u-flex-0-0-auto" href="@Url.Action("Options", "Sponsorship", new { directoryEntryId = r.DirectoryEntryId })">
+                                Join the Main waitlist &rarr;
+                            </a>
+                        }
+                    </div>
+                }
+            </div>
+
+            @if (Model.TotalPages > 1)
+            {
+                <div class="u-m-12px-0-22px-0">
+                    @{
+                        var prev = Model.Page > 1 ? Model.Page - 1 : (int?)null;
+                        var next = Model.Page < Model.TotalPages ? Model.Page + 1 : (int?)null;
+                    }
+                    @if (prev.HasValue)
+                    {
+                        <a class="btn btn-secondary" href="@Url.Action("MainSponsor", "Sponsorship", new { q = q, page = prev.Value })">&larr; Prev</a>
+                    }
+                    <span class="u-opacity-85 u-mx-8px">Page @Model.Page of @Model.TotalPages</span>
+                    @if (next.HasValue)
+                    {
+                        <a class="btn btn-secondary" href="@Url.Action("MainSponsor", "Sponsorship", new { q = q, page = next.Value })">Next &rarr;</a>
+                    }
+                </div>
+            }
+        }
+        else
+        {
+            <p class="u-mt-12px">
+                No directory listing found for <strong>@q</strong>. A site has to be listed in the
+                directory first. <a class="app-link" href="~/submit">Add your site</a>, then come back and search again.
+                Questions? <a href="~/contact">Contact us</a>.
+            </p>
+        }
+    }
+
+    @* ---- What the Main slot gets you ---- *@
+    <h2 class="orange-text u-mt-14px">What the Main Sponsor slot includes</h2>
+    <ul class="u-lh-19">
+        <li><strong>The most visible placement on Monerica</strong> &mdash; large boxes at the top of the home page and every directory page (up to @DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings run at once; longest remaining duration shows on top).</li>
+        <li><strong>The most prominent spot across the whole Monerica network</strong> &mdash; <a href="https://moneropricenow.com" target="_blank" rel="noopener">MoneroPriceNow</a>, <a href="https://moneroacademy.com" target="_blank" rel="noopener">MoneroAcademy</a>, <a href="https://moneromaps.com" target="_blank" rel="noopener">MoneroMaps</a>, <a href="https://moneromarketcap.com" target="_blank" rel="noopener">MoneroMarketCap</a> and <a href="https://monerouserforum.com" target="_blank" rel="noopener">MoneroUserForum</a>.</li>
+        <li><strong>Exclusive to Main sponsors:</strong> mentioned and pinned on our <a href="https://x.com/MonericaProject" target="_blank" rel="noopener">X (Twitter) page</a> as a paid partnership, plus an optional one-time interview on <a href="https://blog.monerica.com/interviews" target="_blank" rel="noopener">Monerica's Blog</a>.</li>
+        <li>A slot in the scrolling sponsor banner at the top of every page, highlighted in search, filters and lists, included in the RSS feed and weekly newsletter.</li>
+        <li>Your direct link is used &mdash; no affiliate or referral tracking. Bought for 30&ndash;365 days, paid in XMR.</li>
+    </ul>
+    @if (fromPrice != null)
+    {
+        <p class="u-opacity-9"><strong>Price:</strong> @fromPrice (USD, paid in XMR) depending on the length you pick. <a class="app-link" href="~/sponsoredlisting/offers">View the full price list &rarr;</a></p>
+    }
+
+    @* ---- Eligibility ---- *@
+    <div class="panel u-mt-14px">
+        <strong>Who can buy the Main slot (both required):</strong>
+        <ol class="u-m-6px-0-0-18px">
+            <li>Your listing is <strong>Verified</strong> (the green checkmark &#9989;).</li>
+            <li>Your listing has been in the directory for at least <strong>@DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring days</strong>.</li>
+        </ol>
+        <span class="u-opacity-85">Searching your listing above tells you exactly if it qualifies. Already a current sponsor? You can always renew.</span>
+    </div>
+}

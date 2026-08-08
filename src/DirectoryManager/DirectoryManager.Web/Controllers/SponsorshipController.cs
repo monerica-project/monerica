@@ -199,6 +199,42 @@ namespace DirectoryManager.Web.Controllers
             return this.View("Options", vm);
         }
 
+        // Dedicated, single-purpose landing for buying ONLY the Main Sponsor slot.
+        // Same search + same checkout as the general page, but the copy explains just
+        // the Main placement and each search result leads straight into the Main
+        // checkout (skipping the 3-placement Options page that confuses buyers).
+        [HttpGet("main")]
+        [HttpGet("/main-sponsor")]
+        public async Task<IActionResult> MainSponsor(string? q, int page = 1)
+        {
+            page = Math.Max(1, page);
+            q = (q ?? string.Empty).Trim();
+
+            var vm = new SponsorshipIndexVm
+            {
+                Query = q,
+                Page = page,
+                PageSize = SearchPageSize,
+                HasSearched = !string.IsNullOrWhiteSpace(q),
+            };
+
+            if (vm.HasSearched)
+            {
+                var result = await this.entryRepo.SearchAsync(q, page, SearchPageSize);
+                vm.TotalCount = result.TotalCount;
+                vm.TotalPages = ComputePageCount(result.TotalCount, SearchPageSize);
+                var activelySponsored = await this.sponsoredListingRepo.GetActivelySponsoredDirectoryEntryIdsAsync();
+                vm.Results = result.Items
+                    .Select(e => this.ToSearchItem(e, activelySponsored)).ToList();
+            }
+
+            await this.PopulateMainSponsorInventoryAsync(vm);
+            vm.PricingSummaries = await this.BuildPricingSummariesAsync();
+            vm.CurrentUtc = DateTime.UtcNow;
+
+            return this.View("MainSponsor", vm);
+        }
+
         [HttpGet("waitlist")]
         public async Task<IActionResult> Waitlist(
             [FromQuery] SponsorshipType type =

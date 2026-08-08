@@ -645,7 +645,9 @@ namespace DirectoryManager.Web.Charting
             IReadOnlyList<decimal> forecastExpected,
             IReadOnlyList<decimal> forecastLow,
             IReadOnlyList<decimal> forecastHigh,
-            Currency displayCurrency)
+            Currency displayCurrency,
+            decimal? runRateReference = null,
+            decimal? recentAverageReference = null)
         {
             historyMonths ??= Array.Empty<DateTime>();
             historyValues ??= Array.Empty<decimal>();
@@ -747,6 +749,25 @@ namespace DirectoryManager.Web.Charting
                 vline.Color = Color.FromHex("#999999");
                 vline.LinePattern = LinePattern.Dashed;
                 vline.LineWidth = 1;
+            }
+
+            // ---- reference lines: recent average + forward run-rate ----
+            if (recentAverageReference.HasValue && recentAverageReference.Value > 0m)
+            {
+                var avgLine = plt.Add.HorizontalLine((double)recentAverageReference.Value);
+                avgLine.Color = Color.FromHex("#6b6b6b");
+                avgLine.LinePattern = LinePattern.Dashed;
+                avgLine.LineWidth = 1;
+                avgLine.LegendText = "Recent 3-mo average";
+            }
+
+            if (runRateReference.HasValue && runRateReference.Value > 0m)
+            {
+                var rrLine = plt.Add.HorizontalLine((double)runRateReference.Value);
+                rrLine.Color = Color.FromHex("#2ca02c");
+                rrLine.LinePattern = LinePattern.Dotted;
+                rrLine.LineWidth = 2;
+                rrLine.LegendText = "Live run-rate";
             }
 
             ApplyMonthCategoryTicksThinned(plt, combinedMonths);

@@ -195,8 +195,8 @@
                 @for (var i = 0; i < openings; i++)
                 {
                     <a class="sponsor-card sponsor-card--empty app-link"
-                       href="~/sponsorship"
-                       aria-label="Available main sponsor slot — select this listing">
+                       href="~/sponsorship/main"
+                       aria-label="Available main sponsor slot — buy the main sponsor slot">
                         <span class="empty-slot-plus" aria-hidden="true">+</span>
                         <span class="empty-slot-label">Available</span>
                         <span class="empty-slot-cta">Select this listing &rarr;</span>
@@ -213,8 +213,8 @@
                 <span class="status-text">@($"{displayCount}/{maxMain} Active")</span>
                 <span aria-hidden="true"> — </span>
                 <a class="app-link"
-                   href="~/sponsorship">
-                    Buy sponsored listing
+                   href="~/sponsorship/main">
+                    Buy main sponsor slot
                 </a>
                 <span> (@openings available)</span>
             }

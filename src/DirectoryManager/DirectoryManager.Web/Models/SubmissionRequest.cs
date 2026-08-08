@@ -88,7 +88,12 @@ namespace DirectoryManager.Web.Models
         [CleanSingleLine]
         public string? Processor { get; set; }
 
-        [MaxLength(255)]
+        /// <summary>Max length of the public note shown on the listing (matches the DB column).</summary>
+        public const int NoteMaxLength = 1000;
+
+        // No [MaxLength] here on purpose: that renders a hard HTML maxlength that silently
+        // truncates a pasted note. The length is enforced in the controller with a clear
+        // over-length error instead (see SubmissionController), so nothing is cut off silently.
         [Display(Name = "Note", Prompt = "Notes about listing you want displayed")]
         [CleanMultiLine]
         public string? Note { get; set; }

@@ -1,6 +1,7 @@
 using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
+using Microsoft.AspNetCore.Authorization;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Reviews;
@@ -454,6 +455,7 @@ namespace DirectoryManager.Web.Controllers
         // Admin CRUD
         // ---------------------------
         [HttpGet("")]
+        [Authorize]
         public async Task<IActionResult> Index(int page = 1, int pageSize = 50, CancellationToken ct = default)
         {
             var items = await this.directoryEntryReviewRepository.ListAsync(page, pageSize, ct);
@@ -464,6 +466,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("{id:int}")]
+        [Authorize]
         public async Task<IActionResult> Details(int id, CancellationToken ct = default)
         {
             var item = await this.directoryEntryReviewRepository.GetByIdAsync(id, ct);

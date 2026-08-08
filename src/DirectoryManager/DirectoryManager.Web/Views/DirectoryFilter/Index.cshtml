@@ -353,10 +353,6 @@
                             <input type="checkbox" name="HasI2p" value="true" checked="@(Model.Query.HasI2p ? "checked" : null)" />
                             <span>Has I2P (.i2p)</span>
                         </label>
-                        <label class="ui-check">
-                            <input type="checkbox" name="HasVideo" value="true" checked="@(Model.Query.HasVideo ? "checked" : null)" />
-                            <span>Has Video</span>
-                        </label>
                     </div>
                 </fieldset>
 
@@ -413,12 +409,9 @@
                     else
                     {
                         // No-JS "show all": a hidden checkbox precedes the list; CSS hides
-                        // tags past the 6th until it is checked. Toggle only rendered when
-                        // there are more than 6 tags.
-                        if (Model.CategoryTagOptions.Count > 6)
-                        {
-                            <input type="checkbox" id="show-all-tags" class="dir-tags-toggle" hidden />
-                        }
+                        // ALL tags until it is checked, keeping the sidebar compact. Starts
+                        // expanded only when some tags are already selected (so active filters show).
+                        <input type="checkbox" id="show-all-tags" class="dir-tags-toggle" hidden checked="@(selectedTagIds.Count > 0 ? "checked" : null)" />
 
                         <div class="ui-checks ui-checks-stack dir-tags">
                             @foreach (var t in Model.CategoryTagOptions)
@@ -430,10 +423,7 @@
                             }
                         </div>
 
-                        if (Model.CategoryTagOptions.Count > 6)
-                        {
-                            <label class="dir-tags-more" for="show-all-tags"></label>
-                        }
+                        <label class="dir-tags-more" for="show-all-tags"></label>
                     }
                 </fieldset>
 

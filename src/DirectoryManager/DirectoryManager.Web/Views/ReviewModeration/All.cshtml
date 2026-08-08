@@ -180,7 +180,7 @@
                     @foreach (var c in Model.Replies)
                     {
                         <tr>
-                            <td>@c.DirectoryEntryReviewCommentId</td>
+                            <td><a asp-action="ShowReply" asp-route-id="@c.DirectoryEntryReviewCommentId">@c.DirectoryEntryReviewCommentId</a></td>
                             <td>@c.ModerationStatus</td>
                             <td>
                                 <span class="badge @(c.ParentCommentId.HasValue ? "bg-secondary" : "bg-info")">
