@@ -19,14 +19,20 @@
     }
     @{
         var torUrl = await cacheHelper.GetSnippetAsync(SiteConfigSetting.FullRootTorUrl);
+        string? onionLocation = null;
         if (!string.IsNullOrWhiteSpace(torUrl))
         {
-            torUrl = DirectoryManager.Web.Helpers.UrlHelper.NormalizeUrl(torUrl);
             var currentPath = Context.Request.Path + Context.Request.QueryString;
-            <meta http-equiv="onion-location" content="@($"{torUrl}{currentPath}")" />
+            onionLocation = DirectoryManager.Web.Helpers.UrlHelper.NormalizeUrl(torUrl) + currentPath;
         }
     }
-    <meta name="viewport" content="width=device-width, initial-scale=1, user-scalable=no" />
+    @if (onionLocation != null)
+    {
+        @* The preceding og: tags (from raw MetaContent) don't end with a newline, so force one
+           here to keep this tag on its own line. The value stays Razor-encoded (no Html.Raw on it). *@
+        @Html.Raw("\n    ")<meta http-equiv="onion-location" content="@onionLocation" />
+    }
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate" />
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />

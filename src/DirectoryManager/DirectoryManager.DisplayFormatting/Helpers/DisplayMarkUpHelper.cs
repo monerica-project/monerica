@@ -188,7 +188,9 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             {
                 sb.Append(" | ");
                 var label = string.IsNullOrWhiteSpace(model.Link2Name) ? "Tor" : model.Link2Name;
-                sb.Append("<a rel=\"sponsored\" href=\"");
+                sb.Append("<a rel=\"sponsored\" aria-label=\"");
+                sb.Append(WebUtility.HtmlEncode($"{label} link for {model.Name}"));
+                sb.Append("\" href=\"");
                 sb.Append(WebUtility.HtmlEncode(model.Link2.Trim()));
                 sb.Append("\" target=\"_blank\">");
                 sb.Append(WebUtility.HtmlEncode(label));
@@ -200,7 +202,9 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             {
                 sb.Append(" | ");
                 var label = string.IsNullOrWhiteSpace(model.Link3Name) ? "I2P" : model.Link3Name;
-                sb.Append("<a rel=\"sponsored\" href=\"");
+                sb.Append("<a rel=\"sponsored\" aria-label=\"");
+                sb.Append(WebUtility.HtmlEncode($"{label} link for {model.Name}"));
+                sb.Append("\" href=\"");
                 sb.Append(WebUtility.HtmlEncode(model.Link3.Trim()));
                 sb.Append("\" target=\"_blank\">");
                 sb.Append(WebUtility.HtmlEncode(label));
@@ -477,7 +481,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             if (!string.IsNullOrWhiteSpace(websiteUrl))
             {
-                AppendInlineLink(sb, "Website", websiteUrl, ref wroteAny, model.IsSponsored || websiteUsingAffiliate);
+                AppendInlineLink(sb, "Website", websiteUrl, ref wroteAny, model.IsSponsored || websiteUsingAffiliate, ariaLabel: $"Website link for {model.Name}");
             }
 
             if (!string.IsNullOrWhiteSpace(model.Link2))
@@ -485,7 +489,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 var label = string.IsNullOrWhiteSpace(model.Link2Name) ? "Tor" : model.Link2Name;
                 bool link2UsingAffiliate = !string.IsNullOrWhiteSpace(model.Link2A) && !model.IsSponsored;
                 var link2Url = link2UsingAffiliate ? model.Link2A!.Trim() : model.Link2.Trim();
-                AppendInlineLink(sb, label, link2Url, ref wroteAny, model.IsSponsored || link2UsingAffiliate);
+                AppendInlineLink(sb, label, link2Url, ref wroteAny, model.IsSponsored || link2UsingAffiliate, ariaLabel: $"{label} link for {model.Name}");
             }
 
             if (!string.IsNullOrWhiteSpace(model.Link3))
@@ -493,11 +497,11 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 var label = string.IsNullOrWhiteSpace(model.Link3Name) ? "I2P" : model.Link3Name;
                 bool link3UsingAffiliate = !string.IsNullOrWhiteSpace(model.Link3A) && !model.IsSponsored;
                 var link3Url = link3UsingAffiliate ? model.Link3A!.Trim() : model.Link3.Trim();
-                AppendInlineLink(sb, label, link3Url, ref wroteAny, model.IsSponsored || link3UsingAffiliate);
+                AppendInlineLink(sb, label, link3Url, ref wroteAny, model.IsSponsored || link3UsingAffiliate, ariaLabel: $"{label} link for {model.Name}");
             }
         }
 
-        private static void AppendInlineLink(StringBuilder sb, string label, string url, ref bool wroteAny, bool isSponsored = false)
+        private static void AppendInlineLink(StringBuilder sb, string label, string url, ref bool wroteAny, bool isSponsored = false, string? ariaLabel = null)
         {
             if (wroteAny)
             {
@@ -506,9 +510,15 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             string relAttr = isSponsored ? " rel=\"sponsored\"" : string.Empty;
 
+            // A distinct aria-label keeps generic labels ("Website"/"Tor"/"I2P") from reading as
+            // "identical links" to assistive tech when several entries repeat them.
+            string ariaAttr = string.IsNullOrWhiteSpace(ariaLabel)
+                ? string.Empty
+                : $" aria-label=\"{WebUtility.HtmlEncode(ariaLabel)}\"";
+
             sb.Append("<a href=\"");
             sb.Append(WebUtility.HtmlEncode(url));
-            sb.Append($"\"{relAttr} target=\"_blank\">");
+            sb.Append($"\"{relAttr}{ariaAttr} target=\"_blank\">");
             sb.Append(WebUtility.HtmlEncode(label));
             sb.Append("</a>");
 
@@ -850,21 +860,27 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 ? $"rel=\"{string.Join(" ", relParts)}\""
                 : string.Empty;
 
+            // Distinct accessible name so repeated generic labels (Tor/I2P) don't read as
+            // "identical links" to assistive tech / audits.
+            string ariaAttr = $"aria-label=\"{WebUtility.HtmlEncode($"{linkName} link for {model.Name}")}\"";
+
             if (isScam)
             {
                 sb.AppendFormat(
-                    "<del><a {2} href=\"{0}\" target=\"_blank\">{1}</a></del>",
+                    "<del><a {2} {3} href=\"{0}\" target=\"_blank\">{1}</a></del>",
                     WebUtility.HtmlEncode(finalUrl),
                     WebUtility.HtmlEncode(linkName),
-                    relAttr);
+                    relAttr,
+                    ariaAttr);
             }
             else
             {
                 sb.AppendFormat(
-                    "<a {2} href=\"{0}\" target=\"_blank\">{1}</a>",
+                    "<a {2} {3} href=\"{0}\" target=\"_blank\">{1}</a>",
                     WebUtility.HtmlEncode(finalUrl),
                     WebUtility.HtmlEncode(linkName),
-                    relAttr);
+                    relAttr,
+                    ariaAttr);
             }
         }
 

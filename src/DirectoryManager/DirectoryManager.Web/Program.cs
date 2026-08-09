@@ -227,6 +227,11 @@ app.UseResponseCaching();
 app.UseStatusCodePagesWithRedirects("/errors/{0}");
 app.UseStaticFiles();
 
+// Trim Razor's leftover whitespace (blank lines, trailing spaces, stray CRs) out of rendered
+// HTML so every page is a bit smaller. Placed after UseStaticFiles so it only wraps dynamic
+// responses, and it never alters <pre>/<textarea>/<script>/<style>.
+app.UseMiddleware<DirectoryManager.Web.Middleware.HtmlWhitespaceTrimMiddleware>();
+
 // Apply ETag only to static paths
 app.UseWhen(
     ctx =>
