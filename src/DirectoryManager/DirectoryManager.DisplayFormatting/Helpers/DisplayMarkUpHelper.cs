@@ -414,6 +414,17 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             string? rootUrl,
             LinkType effectiveLinkType)
         {
+            // Email: keep every link on monerica.com. The external-link icon renders as an
+            // empty <a> in mail clients (its icon is CSS-only, which email strips), so it
+            // becomes an invisible link straight to the entry's external/affiliate domain.
+            // A digest carrying dozens of invisible links to unknown crypto domains is a
+            // textbook spam signal (SendGrid was seeing 550/554 "rejected by spam filter"),
+            // so suppress it for email — readers still reach the site via the name link.
+            if (model.ItemDisplayType == ItemDisplayType.Email)
+            {
+                return;
+            }
+
             // For directory list view:
             // - Non ListingPage: show Link2 | Link3 inline
             // - ListingPage: show external link icon

@@ -74,6 +74,69 @@
         </p>
     </div>
 
+    <!-- WAITLIST ACTIVITY (social proof — placed right under the search to drive demand) -->
+    @if (Model.WaitlistBoard != null)
+    {
+        <h2 class="u-mt-18px">Waitlist activity</h2>
+
+        var preview = (Model.WaitlistBoard?.MainPreview ?? new List<DirectoryManager.Web.Models.Sponsorship.WaitlistPreviewRowVm>())
+            .OrderByDescending(x => x.JoinedUtc)
+            .ToList();
+
+        var shown = preview.Count;
+        var total = Model.WaitlistBoard?.MainWaitlistCount ?? 0;
+        var remaining = Math.Max(0, total - shown);
+
+        <p class="u-m-6px-0-10px-0">
+            Main Sponsor waitlist: <strong>@total</strong> waiting
+            <span class="u-opacity-85">— newest signups shown first.</span>
+        </p>
+
+        @if (shown > 0)
+        {
+            <p class="u-mb-6px">
+                Preview: <span class="u-opacity-85">showing @shown of @total</span>
+            </p>
+            <ul class="u-mt-0">
+                @foreach (var row in preview)
+                {
+                    <li>
+                        @if (!string.IsNullOrWhiteSpace(row.ListingUrl))
+                        {
+                            <a href="@row.ListingUrl" target="_blank" rel="noopener">@row.ListingName</a>
+                        }
+                        else
+                        {
+                            @row.ListingName
+                        }
+                        — joined @row.JoinedUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) (UTC)
+                    </li>
+                }
+            </ul>
+
+            @if (!string.IsNullOrWhiteSpace(Model.WaitlistBoard.BrowseWaitlistUrl))
+            {
+                <div class="u-mt-10px">
+                    <a class="btn btn-info" href="@Model.WaitlistBoard.BrowseWaitlistUrl">
+                        Browse waitlists@(remaining > 0 ? $" (+{remaining} more)" : "")
+                    </a>
+                </div>
+            }
+        }
+        else
+        {
+            <p class="u-opacity-85-mt-8px">No one is waiting yet.</p>
+            @if (!string.IsNullOrWhiteSpace(Model.WaitlistBoard.BrowseWaitlistUrl))
+            {
+                <div class="u-mt-10px">
+                    <a class="btn btn-info" href="@Model.WaitlistBoard.BrowseWaitlistUrl">Browse waitlists</a>
+                </div>
+            }
+        }
+
+        <hr />
+    }
+
     <details class="u-m-0-0-14px-0">
         <summary class="u-cursor-pointer"><strong>How sponsoring works</strong></summary>
         <div class="u-mt-10px">
@@ -226,67 +289,6 @@
     }
 
     @await Html.PartialAsync("_SponsorshipPackages", Model.PricingSummaries)
-
-    <!-- WAITLIST -->
-    @if (Model.WaitlistBoard != null)
-    {
-        <h2>Waitlist activity</h2>
-
-        var preview = (Model.WaitlistBoard?.MainPreview ?? new List<DirectoryManager.Web.Models.Sponsorship.WaitlistPreviewRowVm>())
-            .OrderByDescending(x => x.JoinedUtc)
-            .ToList();
-
-        var shown = preview.Count;
-        var total = Model.WaitlistBoard?.MainWaitlistCount ?? 0;
-        var remaining = Math.Max(0, total - shown);
-
-        <p class="u-m-6px-0-10px-0">
-            Main Sponsor waitlist: <strong>@total</strong> waiting
-            <span class="u-opacity-85">— newest signups shown first.</span>
-        </p>
-
-        @if (shown > 0)
-        {
-            <p class="u-mb-6px">
-                Preview: <span class="u-opacity-85">showing @shown of @total</span>
-            </p>
-            <ul class="u-mt-0">
-                @foreach (var row in preview)
-                {
-                    <li>
-                        @if (!string.IsNullOrWhiteSpace(row.ListingUrl))
-                        {
-                            <a href="@row.ListingUrl" target="_blank" rel="noopener">@row.ListingName</a>
-                        }
-                        else
-                        {
-                            @row.ListingName
-                        }
-                        — joined @row.JoinedUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) (UTC)
-                    </li>
-                }
-            </ul>
-
-            @if (!string.IsNullOrWhiteSpace(Model.WaitlistBoard.BrowseWaitlistUrl))
-            {
-                <div class="u-mt-10px">
-                    <a class="btn btn-info" href="@Model.WaitlistBoard.BrowseWaitlistUrl">
-                        Browse waitlists@(remaining > 0 ? $" (+{remaining} more)" : "")
-                    </a>
-                </div>
-            }
-        }
-        else
-        {
-            <p class="u-opacity-85-mt-8px">No one is waiting yet.</p>
-            @if (!string.IsNullOrWhiteSpace(Model.WaitlistBoard.BrowseWaitlistUrl))
-            {
-                <div class="u-mt-10px">
-                    <a class="btn btn-info" href="@Model.WaitlistBoard.BrowseWaitlistUrl">Browse waitlists</a>
-                </div>
-            }
-        }
-    }
 
     <hr />
     <p class="u-m-18px-0">
