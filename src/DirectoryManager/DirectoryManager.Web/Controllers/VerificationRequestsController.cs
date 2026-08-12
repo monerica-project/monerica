@@ -207,7 +207,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var storeId = this.btcPay.ReviewRequestsStoreId;
+            var storeId = this.btcPay.ReviewDonationsStoreId;
             if (string.IsNullOrWhiteSpace(storeId))
             {
                 // Not configured — send them back to the intro page rather than erroring out.
@@ -289,7 +289,7 @@ namespace DirectoryManager.Web.Controllers
             try
             {
                 var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(
-                    this.btcPay.ReviewRequestsStoreId, request.BtcPayInvoiceId!);
+                    this.btcPay.ReviewDonationsStoreId, request.BtcPayInvoiceId!);
                 if (xmr is not null && !string.IsNullOrWhiteSpace(xmr.Destination))
                 {
                     vm.Address = xmr.Destination;

@@ -92,6 +92,21 @@ namespace DirectoryManager.Data.Models
 
         public DateOnly? FoundedDate { get; set; }
 
+        // ---- Optional "help cover our review costs" donation, tied to this submission ----
+        // Unguessable public token for the pay link (unique). Mirrors the verification-request
+        // flow; funds go to the same review-donations BTCPay store.
+        public Guid PaymentToken { get; set; }
+
+        [MaxLength(100)]
+        public string? BtcPayInvoiceId { get; set; }
+
+        public DateTime? PaidUtc { get; set; }
+
+        public decimal? PaidAmount { get; set; }
+
+        [MaxLength(10)]
+        public string? PaidCurrency { get; set; }
+
         [NotMapped]
         public List<string> RelatedLinks
         {

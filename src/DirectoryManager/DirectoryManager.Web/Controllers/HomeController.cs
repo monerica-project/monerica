@@ -91,6 +91,14 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
+        [HttpGet("terms")]
+        public async Task<IActionResult> TermsAsync()
+        {
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
+            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "terms");
+            return this.View();
+        }
+
         [HttpGet("network")]
         public async Task<IActionResult> NetworkAsync()
         {

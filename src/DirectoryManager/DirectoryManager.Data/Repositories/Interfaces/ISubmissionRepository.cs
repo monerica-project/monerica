@@ -12,5 +12,10 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task UpdateAsync(Submission submission);
         Task DeleteAsync(int submissionId);
         Task<int> GetByStatus(SubmissionStatus pending);
+
+        // ---- Optional review-donation flow (mirrors the verification-request flow) ----
+        Task<Submission?> GetByPaymentTokenAsync(Guid token);
+        Task SetInvoiceIdAsync(int submissionId, string invoiceId);
+        Task SetPaidAsync(int submissionId, decimal? amount, string? currency);
     }
 }

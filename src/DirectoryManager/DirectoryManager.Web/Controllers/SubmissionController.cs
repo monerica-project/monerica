@@ -1,3 +1,5 @@
+using BtcPayServer.API.Interfaces;
+using BtcPayServer.API.Models;
 using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
@@ -39,6 +41,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDomainRegistrationDateService domainRegistrationDateService;
         private readonly IProcessorRepository processorRepo;
         private readonly ICaptchaService captcha;
+        private readonly IBtcPayServerService btcPay;
         private readonly ISubmissionBlockedTermRepository blockedTermRepository;
 
         public SubmissionController(
@@ -58,7 +61,8 @@ namespace DirectoryManager.Web.Controllers
             IDomainRegistrationDateService domainRegistrationDateService,
             IProcessorRepository processorRepo,
             ICaptchaService captcha,
-            ISubmissionBlockedTermRepository blockedTermRepository)
+            ISubmissionBlockedTermRepository blockedTermRepository,
+            IBtcPayServerService btcPay)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.userManager = userManager;
@@ -76,6 +80,7 @@ namespace DirectoryManager.Web.Controllers
             this.domainRegistrationDateService = domainRegistrationDateService;
             this.processorRepo = processorRepo;
             this.captcha = captcha;
+            this.btcPay = btcPay;
         }
 
         [AllowAnonymous]
@@ -468,6 +473,12 @@ namespace DirectoryManager.Web.Controllers
                 .Take(pageSize)
                 .ToList();
 
+            // Refresh donation status for any submission with an invoice that isn't paid yet.
+            foreach (var item in items)
+            {
+                await this.SyncSubmissionPaymentAsync(item);
+            }
+
             var viewModel = new SubmissionPagedList
             {
                 PageNumber = pageNumber,
@@ -487,6 +498,25 @@ namespace DirectoryManager.Web.Controllers
             if (submission == null)
             {
                 return this.NotFound();
+            }
+
+            // Refresh donation status on view; if paid, also surface the XMR amount actually paid.
+            await this.SyncSubmissionPaymentAsync(submission);
+            if (submission.PaidUtc is not null && !string.IsNullOrWhiteSpace(submission.BtcPayInvoiceId))
+            {
+                try
+                {
+                    var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(
+                        this.btcPay.ReviewDonationsStoreId, submission.BtcPayInvoiceId!);
+                    if (xmr is not null && decimal.TryParse(xmr.TotalPaid, out var xmrPaid) && xmrPaid > 0)
+                    {
+                        this.ViewBag.PaidXmr = xmrPaid;
+                    }
+                }
+                catch
+                {
+                    // best-effort — the XMR amount just won't show
+                }
             }
 
             // ----------------------------
@@ -676,6 +706,188 @@ namespace DirectoryManager.Web.Controllers
             return this.View("Success");
         }
 
+        // Optional donation page tied to one submission (unique GUID URL). Shown right after a
+        // submission is confirmed — donating is free/optional but helps speed up the review.
+        [AllowAnonymous]
+        [HttpGet("submission/pay/{token:guid}")]
+        public async Task<IActionResult> Pay(Guid token)
+        {
+            var submission = await this.submissionRepository.GetByPaymentTokenAsync(token);
+            if (submission is null)
+            {
+                return this.NotFound();
+            }
+
+            return this.View(new SubmissionPayViewModel
+            {
+                Token = token,
+                Name = string.IsNullOrWhiteSpace(submission.Name) ? "your listing" : submission.Name,
+                AlreadyPaid = submission.PaidUtc is not null,
+            });
+        }
+
+        // Creates (or reuses) the top-up donation invoice on the review-donations store and
+        // sends the submitter to the internal no-JS Monero checkout (a unique address per submission).
+        [AllowAnonymous]
+        [HttpPost("submission/pay/{token:guid}")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> PayPost(Guid token, CancellationToken ct)
+        {
+            var submission = await this.submissionRepository.GetByPaymentTokenAsync(token);
+            if (submission is null)
+            {
+                return this.NotFound();
+            }
+
+            var storeId = this.btcPay.ReviewDonationsStoreId;
+            if (string.IsNullOrWhiteSpace(storeId))
+            {
+                // Not configured — send them back to the intro page rather than erroring out.
+                return this.RedirectToAction(nameof(this.Pay), new { token });
+            }
+
+            // Reuse a still-valid invoice instead of minting duplicates.
+            if (!string.IsNullOrWhiteSpace(submission.BtcPayInvoiceId))
+            {
+                try
+                {
+                    var existing = await this.btcPay.GetInvoiceOnStoreAsync(storeId, submission.BtcPayInvoiceId!);
+                    if (!existing.IsExpired)
+                    {
+                        return this.RedirectToAction(nameof(this.PayInvoice), new { token });
+                    }
+                }
+                catch
+                {
+                    // fall through and create a fresh invoice
+                }
+            }
+
+            var invoiceRequest = new BtcPayInvoiceRequest
+            {
+                Amount = null, // top-up: pay-what-you-want
+                Currency = "USD",
+                Metadata = new Dictionary<string, object>
+                {
+                    // Tie the BTCPay invoice to this submission's unique GUID. donationType keeps
+                    // submission donations distinguishable from verification donations in the
+                    // shared review-donations store.
+                    ["orderId"] = submission.PaymentToken.ToString(),
+                    ["donationType"] = "submission",
+                    ["itemDesc"] = $"Monerica submission review donation — {submission.Name}",
+                    ["submissionId"] = submission.SubmissionId,
+                },
+                Checkout = new BtcPayCheckoutOptions
+                {
+                    RedirectUrl = this.Url.Action(nameof(this.Success), "Submission", null, this.Request.Scheme),
+                    DefaultPaymentMethod = "XMR",
+                },
+            };
+
+            try
+            {
+                var invoice = await this.btcPay.CreateInvoiceOnStoreAsync(storeId, invoiceRequest);
+                await this.submissionRepository.SetInvoiceIdAsync(submission.SubmissionId, invoice.Id);
+                return this.RedirectToAction(nameof(this.PayInvoice), new { token });
+            }
+            catch
+            {
+                // BTCPay refused or is down. Never crash the submitter — their submission is saved.
+                this.TempData["PayError"] =
+                    "Donations aren't available right now — but your submission is received and in the queue. You can try again later.";
+                return this.RedirectToAction(nameof(this.Pay), new { token });
+            }
+        }
+
+        // No-JS Monero checkout: shows the unique payment address + QR for this submission's
+        // donation invoice, server-rendered (BTCPay's own hosted checkout requires JavaScript).
+        [AllowAnonymous]
+        [HttpGet("submission/pay/{token:guid}/invoice")]
+        public async Task<IActionResult> PayInvoice(Guid token, CancellationToken ct)
+        {
+            var submission = await this.submissionRepository.GetByPaymentTokenAsync(token);
+            if (submission is null || string.IsNullOrWhiteSpace(submission.BtcPayInvoiceId))
+            {
+                return this.RedirectToAction(nameof(this.Pay), new { token });
+            }
+
+            var vm = new SubmissionInvoiceViewModel
+            {
+                Token = token,
+                Name = string.IsNullOrWhiteSpace(submission.Name) ? "your listing" : submission.Name,
+                Paid = submission.PaidUtc is not null,
+            };
+
+            try
+            {
+                var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(
+                    this.btcPay.ReviewDonationsStoreId, submission.BtcPayInvoiceId!);
+                if (xmr is not null && !string.IsNullOrWhiteSpace(xmr.Destination))
+                {
+                    vm.Address = xmr.Destination;
+                    vm.QrDataUri = MoneroQrDataUri(xmr.Destination);
+                }
+            }
+            catch
+            {
+                // page still renders (with a "refresh" prompt) if BTCPay is momentarily unreachable
+            }
+
+            return this.View(vm);
+        }
+
+        // Inline base64 PNG QR of a monero: URI — no separate request/JS needed.
+        private static string MoneroQrDataUri(string address)
+        {
+            var uri = $"monero:{address}";
+            using var generator = new QRCoder.QRCodeGenerator();
+            using var data = generator.CreateQrCode(uri, QRCoder.QRCodeGenerator.ECCLevel.Q);
+            using var png = new QRCoder.PngByteQRCode(data);
+            var bytes = png.GetGraphic(6);
+            return "data:image/png;base64," + Convert.ToBase64String(bytes);
+        }
+
+        // Polls BTCPay for a submission that has an invoice but isn't marked paid yet, and
+        // persists the paid state once a payment is seen. Best-effort: a BTCPay hiccup must
+        // never break the admin queue, so everything here is wrapped and swallowed.
+        private async Task SyncSubmissionPaymentAsync(Submission item)
+        {
+            if (item.PaidUtc is not null || string.IsNullOrWhiteSpace(item.BtcPayInvoiceId))
+            {
+                return;
+            }
+
+            var storeId = this.btcPay.ReviewDonationsStoreId;
+            if (string.IsNullOrWhiteSpace(storeId))
+            {
+                return;
+            }
+
+            try
+            {
+                var invoice = await this.btcPay.GetInvoiceOnStoreAsync(storeId, item.BtcPayInvoiceId!);
+                var isPaid = invoice.IsSettled || invoice.Status == "Processing";
+                if (!isPaid)
+                {
+                    return;
+                }
+
+                decimal? amount = decimal.TryParse(invoice.Amount, out var a) && a > 0 ? a : null;
+                var currency = string.IsNullOrWhiteSpace(invoice.Currency) ? null : invoice.Currency;
+
+                await this.submissionRepository.SetPaidAsync(item.SubmissionId, amount, currency);
+
+                // reflect it in the object we're about to render
+                item.PaidUtc = DateTime.UtcNow;
+                item.PaidAmount = amount;
+                item.PaidCurrency = currency;
+            }
+            catch
+            {
+                // ignore — payment status just won't update this load
+            }
+        }
+
         [AllowAnonymous]
         [HttpGet("submission/findinglisting")]
         public async Task<IActionResult> FindingListing(string? q, int? page, int pageSize = 25)
@@ -794,7 +1006,10 @@ namespace DirectoryManager.Web.Controllers
 
             await this.submissionRepository.UpdateAsync(submission);
 
-            return this.View("Success");
+            // Land on this submission's unique, optional "help cover our review costs" page
+            // (one button that mints a pay-what-you-want Monero donation invoice) rather than
+            // the generic success/donate page.
+            return this.RedirectToAction(nameof(this.Pay), new { token = submission.PaymentToken });
         }
 
         private static bool TryParseFoundedDateParts(

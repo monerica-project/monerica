@@ -42,7 +42,7 @@ namespace DirectoryManager.Web.Controllers
                 return;
             }
 
-            var storeId = this.btcPay.ReviewRequestsStoreId;
+            var storeId = this.btcPay.ReviewDonationsStoreId;
             if (string.IsNullOrWhiteSpace(storeId))
             {
                 return;
@@ -112,6 +112,24 @@ namespace DirectoryManager.Web.Controllers
             }
 
             await this.SyncPaymentAsync(request, ct);
+
+            // If paid, surface the actual XMR amount received (USD is stored on the request).
+            if (request.PaidUtc is not null && !string.IsNullOrWhiteSpace(request.BtcPayInvoiceId))
+            {
+                try
+                {
+                    var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(
+                        this.btcPay.ReviewDonationsStoreId, request.BtcPayInvoiceId!);
+                    if (xmr is not null && decimal.TryParse(xmr.TotalPaid, out var xmrPaid) && xmrPaid > 0)
+                    {
+                        this.ViewBag.PaidXmr = xmrPaid;
+                    }
+                }
+                catch
+                {
+                    // best-effort — the XMR amount just won't show
+                }
+            }
 
             var entry = await this.entryRepo.GetByIdAsync(request.DirectoryEntryId);
 

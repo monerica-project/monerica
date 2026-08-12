@@ -7,7 +7,7 @@ namespace BtcPayServer.API.Interfaces
         string DefaultCurrency { get; }
         string SuccessUrl { get; }
         string CancelUrl { get; }
-        string ReviewRequestsStoreId { get; }
+        string ReviewDonationsStoreId { get; }
 
         // Base URL of the BTCPay instance (e.g. https://btcpayserver.monerica.com), from config.
         string BaseUrl { get; }

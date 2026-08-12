@@ -556,6 +556,21 @@ namespace DirectoryManager.Web.Controllers
                     0.6);
             }
 
+            var termsHtmlConfig = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.TermsAndConditionsHtml);
+
+            if (termsHtmlConfig != null && !string.IsNullOrWhiteSpace(termsHtmlConfig.Content))
+            {
+                var termsHtmlLastModified = new[] { termsHtmlConfig?.UpdateDate, termsHtmlConfig?.CreateDate, date }
+                    .Where(d => d.HasValue)
+                    .Max() ?? date;
+
+                siteMapHelper.AddUrl(
+                    string.Format("{0}/terms", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
+                    termsHtmlLastModified,
+                    ChangeFrequency.Monthly,
+                    0.4);
+            }
+
             var donationHtmlConfig = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.DonationHtml);
 
             if (donationHtmlConfig != null && !string.IsNullOrWhiteSpace(donationHtmlConfig.Content))

@@ -19,7 +19,7 @@ namespace BtcPayServer.API.Implementations
         public string DefaultCurrency { get; }
         public string SuccessUrl { get; }
         public string CancelUrl { get; }
-        public string ReviewRequestsStoreId { get; }
+        public string ReviewDonationsStoreId { get; }
 
         public string BaseUrl { get; }
 
@@ -41,7 +41,7 @@ namespace BtcPayServer.API.Implementations
             this.DefaultCurrency = configs.DefaultCurrency;
             this.SuccessUrl = configs.SuccessUrl;
             this.CancelUrl = configs.CancelUrl;
-            this.ReviewRequestsStoreId = configs.ReviewRequestsStoreId?.Trim() ?? string.Empty;
+            this.ReviewDonationsStoreId = configs.ReviewDonationsStoreId?.Trim() ?? string.Empty;
             this.BaseUrl = configs.BaseUrl.TrimEnd('/');
 
             this.client = new HttpClient

@@ -21,9 +21,10 @@
     <thead>
         <tr>
             <th>Name</th>
-            <th>Submission Status</th>
+            <th>Status</th>
             <th>Create Date</th>
             <th>Update Date</th>
+            <th>Paid</th>
             <th></th>
         </tr>
     </thead>
@@ -51,6 +52,16 @@
                     else
                     {
                         @submission.UpdateDate
+                    }
+                </td>
+                <td>
+                    @if (submission?.PaidUtc != null)
+                    {
+                        <span class="badge bg-success u-display-ib" title="@(submission.PaidAmount is decimal amt && amt > 0 ? $"{amt:0.##} {submission.PaidCurrency}" : "Donation received")">&#128176; Paid</span>
+                    }
+                    else
+                    {
+                        <span class="badge bg-secondary u-display-ib">Not paid</span>
                     }
                 </td>
                 <td>

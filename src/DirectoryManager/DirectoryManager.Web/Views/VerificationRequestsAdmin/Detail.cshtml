@@ -47,7 +47,7 @@
                     <td>
                         @if (r.PaidUtc != null)
                         {
-                            <span class="badge bg-success">&#128176; Paid@(r.PaidAmount is decimal amt && amt > 0 ? $" {amt:0.##} {r.PaidCurrency}" : "")</span>
+                            <span class="badge bg-success">&#128176; Paid@(r.PaidAmount is decimal amt && amt > 0 ? $" {amt:0.##} {r.PaidCurrency}" : "")@(ViewBag.PaidXmr != null ? $" ({((decimal)ViewBag.PaidXmr).ToString("0.############")} XMR)" : "")</span>
                             <span class="text-muted"> &middot; @r.PaidUtc?.ToString(dateFormat)</span>
                             <div class="small"><a href="@BtcPay.BaseUrl/i/@r.BtcPayInvoiceId" target="_blank" rel="noopener">View invoice in BTCPay &rarr;</a></div>
                         }

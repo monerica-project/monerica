@@ -44,6 +44,7 @@
         AboutHtml = 43,
         PgpKey = 44,
         PgpInstructionsHtml = 45,
-        HtmlNotificationSnippet = 46
+        HtmlNotificationSnippet = 46,
+        TermsAndConditionsHtml = 47
     }
 }

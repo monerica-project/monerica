@@ -8,7 +8,7 @@ namespace BtcPayServer.API.Models
 
         // Separate "Monerica - ReviewRequests" store (optional donations tied to a
         // verification request). Same server + account-level ApiKey as StoreId above.
-        public string ReviewRequestsStoreId { get; set; } = string.Empty;
+        public string ReviewDonationsStoreId { get; set; } = string.Empty;
 
         public string WebhookSecret { get; set; } = string.Empty;
         public string SuccessUrl { get; set; } = string.Empty;

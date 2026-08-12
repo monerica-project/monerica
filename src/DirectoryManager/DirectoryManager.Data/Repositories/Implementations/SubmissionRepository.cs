@@ -73,5 +73,37 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                  .Where(x => x.SubmissionStatus == status)
                                  .CountAsync();
         }
+
+        public async Task<Submission?> GetByPaymentTokenAsync(Guid token)
+        {
+            return await this.context.Submissions
+                                 .FirstOrDefaultAsync(x => x.PaymentToken == token);
+        }
+
+        public async Task SetInvoiceIdAsync(int submissionId, string invoiceId)
+        {
+            var submission = await this.GetByIdAsync(submissionId);
+            if (submission == null)
+            {
+                return;
+            }
+
+            submission.BtcPayInvoiceId = invoiceId;
+            await this.context.SaveChangesAsync();
+        }
+
+        public async Task SetPaidAsync(int submissionId, decimal? amount, string? currency)
+        {
+            var submission = await this.GetByIdAsync(submissionId);
+            if (submission == null || submission.PaidUtc != null)
+            {
+                return; // already recorded — don't overwrite
+            }
+
+            submission.PaidUtc = DateTime.UtcNow;
+            submission.PaidAmount = amount;
+            submission.PaidCurrency = currency;
+            await this.context.SaveChangesAsync();
+        }
     }
 }

@@ -104,6 +104,23 @@ namespace DirectoryManager.Data.DbContextInfo
             ConfigureAffiliateCommissionEarnedIndexes(builder);
             ConfigureVerificationRequests(builder);
             ConfigureSiteCheckStatus(builder);
+            ConfigureSubmissionPayment(builder);
+        }
+
+        private static void ConfigureSubmissionPayment(ModelBuilder builder)
+        {
+            builder.Entity<Submission>(e =>
+            {
+                e.Property(x => x.PaidAmount).HasColumnType("numeric(18,8)");
+
+                // gen_random_uuid() gives EVERY existing row a distinct value when the column
+                // is added, so the unique index below won't clash; new rows set their own Guid
+                // client-side, so this is just a fallback.
+                e.Property(x => x.PaymentToken).HasDefaultValueSql("gen_random_uuid()");
+                e.HasIndex(x => x.PaymentToken)
+                 .IsUnique()
+                 .HasDatabaseName("IX_Submissions_PaymentToken");
+            });
         }
 
         private static void ConfigureSiteCheckStatus(ModelBuilder builder)
