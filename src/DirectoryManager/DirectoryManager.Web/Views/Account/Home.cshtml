@@ -85,8 +85,18 @@
             <a href="~/admin/reviews">Reviews (@ViewBag.TotalPendingReviews)</a>
             &middot;
             <a href="~/submission/index">Submissions (@ViewBag.TotalPendingSubmissions)</a>
-            &middot;
-            <a href="~/admin/verification-requests">Verifications (@(ViewBag.TotalPendingVerificationRequests ?? 0))</a>
+        </li>
+        <li>
+            <b>Verifications:</b>
+            <a href="~/admin/verification-requests">Requests (@(ViewBag.TotalPendingVerificationRequests ?? 0))</a>
+            @if (ViewBag.LastVerificationSubmissionUtc is DateTime lastVerifSub)
+            {
+                <small class="u-color-888">&nbsp;&middot; last submission @FormatAgoCompact(lastVerifSub)</small>
+            }
+            @if (ViewBag.LastVerificationPaidUtc is DateTime lastVerifPaid)
+            {
+                <small class="u-color-888">&nbsp;&middot; last paid @FormatAgoCompact(lastVerifPaid)</small>
+            }
         </li>
         <li>
             <b>Invoicing:</b>

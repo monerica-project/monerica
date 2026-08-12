@@ -138,6 +138,8 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.TotalPendingReviewComments = pendingReviewComments;
             this.ViewBag.PendingAffiliateCommissions = pendingAffiliateCommissions;
             this.ViewBag.TotalPendingVerificationRequests = pendingVerificationRequests;
+            this.ViewBag.LastVerificationSubmissionUtc = await this.verificationRequestRepository.GetLastSubmissionUtcAsync();
+            this.ViewBag.LastVerificationPaidUtc = await this.verificationRequestRepository.GetLastPaidUtcAsync();
             // The Bunny syncer stamps two files: last-success.txt on every OK run
             // ("last checked"), and last-sync.txt only when it actually uploaded changed
             // files ("last files synced"). Both are written by the syncer's systemd unit.

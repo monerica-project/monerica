@@ -4,7 +4,7 @@
     Layout = "_CenteredLayout";
 }
 @section PageContent {
-    <div style="max-width:640px;margin:0 auto;">
+    <div class="u-maxw-640-mx-auto">
         <h1>Delete @Model.FieldLabel?</h1>
         <p class="text-muted">Review #@Model.DirectoryEntryReviewId</p>
         <p>This permanently deletes the image file and clears the field. This cannot be undone.</p>
@@ -12,7 +12,7 @@
         @if (!string.IsNullOrWhiteSpace(Model.CurrentUrl))
         {
             <div class="mb-3">
-                <img src="@Model.CurrentUrl" alt="@Model.FieldLabel" class="img-fluid" style="max-height:240px;border:1px solid #ccc;border-radius:6px;" />
+                <img src="@Model.CurrentUrl" alt="@Model.FieldLabel" class="img-fluid u-imgbox-240" />
                 <div class="form-text"><a href="@Model.CurrentUrl" target="_blank">@Model.CurrentUrl</a></div>
             </div>
         }

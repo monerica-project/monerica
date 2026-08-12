@@ -3,6 +3,7 @@
     public class StringConstants
     {
         public const string CacheKeyLlmsTxt = "llms-txt";
+        public const string CacheKeyLlmsFullTxt = "llms-full-txt";
 
         public const string CacheKeyPrefixConversion = "conversion_rate_";
         public const string CacheKeyAllActiveSponsors = "AllActiveSponsors";

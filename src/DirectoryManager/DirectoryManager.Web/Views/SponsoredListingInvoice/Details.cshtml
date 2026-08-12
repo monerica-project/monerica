@@ -107,7 +107,7 @@
         <dt>Create Date</dt>
         <dd>
             @Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
-            <span style="font-size:.85em;opacity:.7;">(@TimeAgo(Model.CreateDate))</span>
+            <span class="u-fs-85em-op-7">(@TimeAgo(Model.CreateDate))</span>
         </dd>
 
         <dt>Update Date</dt>
@@ -115,7 +115,7 @@
             @Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
             @if (Model.UpdateDate.HasValue)
             {
-                <span style="font-size:.85em;opacity:.7;">(@TimeAgo(Model.UpdateDate.Value))</span>
+                <span class="u-fs-85em-op-7">(@TimeAgo(Model.UpdateDate.Value))</span>
             }
         </dd>
 

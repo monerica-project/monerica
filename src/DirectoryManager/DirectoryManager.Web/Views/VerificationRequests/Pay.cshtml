@@ -1,0 +1,63 @@
+@model DirectoryManager.Web.Models.VerificationRequests.VerificationPayViewModel
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    ViewData[StringConstants.TitleHeader] = "Cover Our Review Costs (Optional)";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+    <hr />
+
+    @if (this.TempData["PayError"] is string payError)
+    {
+        <div class="alert alert-danger">@payError</div>
+    }
+
+    @if (Model.AlreadyPaid)
+    {
+        <p><b>Thank you — a donation for this verification request has already been received.</b></p>
+        <p>Your request is in the queue. There's nothing more you need to do.</p>
+        @await Html.PartialAsync("_BackToHome")
+        return;
+    }
+
+    <p>
+        <b>Verification is free — you don't need to pay anything to be reviewed.</b>
+        Your request for <b>@Model.EntryName</b> has already been submitted either way.
+    </p>
+
+    <div class="u-callout">
+        <p>
+            But due to the volume of review requests, a donation helps us
+            <b>test your service without a cost to us</b> — including any fees we'd incur while
+            testing it. It is <b>not required</b>, but it does help us <b>prioritize</b> your request.
+        </p>
+        <p>Proceeding creates a <b>unique payment address tied to your verification request</b>, and you choose the amount.</p>
+        <p><b>Payment does not guarantee verification.</b> It only helps cover our review costs and prioritize the queue &mdash; the outcome depends entirely on our review.</p>
+
+        @if (Model.IsExchange)
+        {
+            <p>
+                <b>If you run an exchange:</b> the most useful contribution is the
+                <b>swapping fees for swapping between $1,000–$5,000</b> — not that amount of money,
+                just the fees it would cost to swap it — so we can properly test your service and write a review.
+            </p>
+        }
+    </div>
+
+    <form method="post" action="~/verification-requests/pay/@Model.Token" class="u-m-0">
+        @Html.AntiForgeryToken()
+        <button type="submit" class="btn btn-primary btn-cta">Proceed to pay →</button>
+    </form>
+
+    <p class="u-note-sm u-mt-10px">
+        You'll be taken to a secure Monero checkout. Paying is entirely optional — your request stays in the queue regardless.
+    </p>
+
+    @await Html.PartialAsync("_BackToHome")
+}

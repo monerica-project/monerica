@@ -1,4 +1,5 @@
 @using DirectoryManager.Data.Enums
+@inject BtcPayServer.API.Interfaces.IBtcPayServerService BtcPay
 @model DirectoryManager.Web.Models.VerificationRequests.VerificationRequestDetailViewModel
 @{
     ViewData["Title"] = "Verification Request";
@@ -40,6 +41,21 @@
                 <tr>
                     <th>Status</th>
                     <td>@r.Status</td>
+                </tr>
+                <tr>
+                    <th>Donation</th>
+                    <td>
+                        @if (r.PaidUtc != null)
+                        {
+                            <span class="badge bg-success">&#128176; Paid@(r.PaidAmount is decimal amt && amt > 0 ? $" {amt:0.##} {r.PaidCurrency}" : "")</span>
+                            <span class="text-muted"> &middot; @r.PaidUtc?.ToString(dateFormat)</span>
+                            <div class="small"><a href="@BtcPay.BaseUrl/i/@r.BtcPayInvoiceId" target="_blank" rel="noopener">View invoice in BTCPay &rarr;</a></div>
+                        }
+                        else
+                        {
+                            <span class="text-muted">No donation</span>
+                        }
+                    </td>
                 </tr>
             </tbody>
         </table>

@@ -1,0 +1,55 @@
+@model DirectoryManager.Web.Models.VerificationRequests.VerificationInvoiceViewModel
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    ViewData[StringConstants.TitleHeader] = "Monero Donation Checkout";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+    <hr />
+
+    @if (Model.Paid)
+    {
+        <div class="alert alert-success"><b>Payment received — thank you!</b> Your verification request for <b>@Model.EntryName</b> is in the queue.</div>
+        @await Html.PartialAsync("_BackToHome")
+        return;
+    }
+
+    <p>
+        Send <b>any amount of Monero</b> to the unique address below to help cover our review costs for
+        <b>@Model.EntryName</b>. This is entirely optional — your verification request is already submitted.
+    </p>
+
+    @if (string.IsNullOrWhiteSpace(Model.Address))
+    {
+        <div class="alert alert-danger">
+            The payment address isn't available yet — it can take a few seconds. Please
+            <a href="~/verification-requests/pay/@Model.Token/invoice">refresh this page</a> in a moment.
+        </div>
+    }
+    else
+    {
+        <div class="u-callout-center">
+            @if (!string.IsNullOrWhiteSpace(Model.QrDataUri))
+            {
+                <div><img class="u-qr-img" src="@Model.QrDataUri" alt="Monero payment QR code" width="240" height="240" /></div>
+            }
+            <p class="u-heading-sm u-mt-10px">Monero address</p>
+            <p class="u-mono-break">@Model.Address</p>
+            <p class="u-note-sm">Pay whatever you like — there is no set amount. It may take a few minutes to confirm on-chain.</p>
+        </div>
+
+        <p class="u-note-sm">
+            Once you've sent it you're done — you can close this page. We see the payment on our side automatically.
+        </p>
+    }
+
+    <p><a class="btn btn-sm" href="~/verification-requests/pay/@Model.Token/invoice">Refresh</a></p>
+
+    @await Html.PartialAsync("_BackToHome")
+}

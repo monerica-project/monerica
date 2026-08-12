@@ -35,21 +35,21 @@
     @* ---- Availability banner ---- *@
     @if (Model.MainSponsorIsOpen)
     {
-        <div class="u-callout-center" style="border-color:rgba(255,102,0,.5);">
-            <p class="u-heading-sm orange-text" style="margin:0;">
+        <div class="u-callout-center u-border-orange-50">
+            <p class="u-heading-sm orange-text u-m-0">
                 A Main Sponsor spot is open right now
                 <span class="u-opacity-85">(@Model.MainSponsorActiveCount of @Model.MainSponsorMaxSlots filled)</span>
             </p>
-            <p class="u-opacity-85" style="margin:6px 0 0;">Claim it below before someone else does.</p>
+            <p class="u-opacity-85 u-m-6px-0-0">Claim it below before someone else does.</p>
         </div>
     }
     else if (Model.MainSponsorInventory != null)
     {
         <div class="u-callout-center">
-            <p class="u-heading-sm" style="margin:0;">
+            <p class="u-heading-sm u-m-0">
                 All <b>@DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings</b> Main Sponsor spots are currently taken.
             </p>
-            <p class="u-opacity-85" style="margin:6px 0 0;">
+            <p class="u-opacity-85 u-m-6px-0-0">
                 Next spot likely frees up
                 <strong>@Model.MainSponsorInventory.NextListingExpiration.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</strong>
                 (in @Model.MainSponsorInventory.TimeUntilNextMessage).

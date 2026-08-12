@@ -65,7 +65,7 @@
                 <table class="table table-sm align-middle u-tablelayout-fixed-w-100pct vr-table">
                     <colgroup>
                         <col class="u-w-26pct" />
-                        <col class="u-w-110px" />
+                        <col class="u-w-130px" />
                         <col />
                         <col class="u-w-130px" />
                     </colgroup>
@@ -117,8 +117,20 @@
                                             }
                                         </td>
                                     }
-                                    <td class="text-nowrap u-valign-top" data-label="Requested">
-                                        @r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
+                                    <td class="u-valign-top" data-label="Requested">
+                                        <div class="text-nowrap">@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</div>
+                                        <div class="u-mt-4px">
+                                            @if (r.PaidUtc != null)
+                                            {
+                                                <span class="badge bg-success u-badge-wrap" title="Donation received @r.PaidUtc?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)">
+                                                    &#128176; Paid@(r.PaidAmount is decimal amt && amt > 0 ? $" {amt:0.##} {r.PaidCurrency}" : "")
+                                                </span>
+                                            }
+                                            else
+                                            {
+                                                <span class="badge bg-secondary u-display-ib">Not paid</span>
+                                            }
+                                        </div>
                                     </td>
                                     <td class="u-valign-top" data-label="Reason">
                                         <div class="u-webkitbox-lineclamp-2-boxorient-vertical-overflow-hidden" title="@r.Comment">@r.Comment</div>
@@ -150,6 +162,24 @@
                     </tbody>
                 </table>
             </div>
+
+            @if (Model.Total > Model.PageSize)
+            {
+                var totalPages = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Model.PageSize));
+                <nav class="mt-3" aria-label="Verification request pages">
+                    <ul class="pagination pagination-sm mb-0 u-flex-wrap">
+                        @if (Model.Page > 1)
+                        {
+                            <li class="page-item"><a class="page-link" href="/admin/verification-requests?status=@Model.Status&page=@(Model.Page - 1)">&larr; Newer</a></li>
+                        }
+                        <li class="page-item disabled"><span class="page-link">Page @Model.Page of @totalPages</span></li>
+                        @if (Model.Page < totalPages)
+                        {
+                            <li class="page-item"><a class="page-link" href="/admin/verification-requests?status=@Model.Status&page=@(Model.Page + 1)">Older &rarr;</a></li>
+                        }
+                    </ul>
+                </nav>
+            }
         }
     </div>
 }

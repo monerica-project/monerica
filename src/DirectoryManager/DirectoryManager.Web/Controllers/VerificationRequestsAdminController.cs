@@ -1,4 +1,6 @@
+using BtcPayServer.API.Interfaces;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models.VerificationRequests;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models.VerificationRequests;
 using DirectoryManager.Web.Services.Interfaces;
@@ -14,17 +16,62 @@ namespace DirectoryManager.Web.Controllers
     {
         private readonly IVerificationRequestRepository requests;
         private readonly IDirectoryEntryRepository entryRepo;
+        private readonly IBtcPayServerService btcPay;
 
         public VerificationRequestsAdminController(
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache,
             IVerificationRequestRepository requests,
-            IDirectoryEntryRepository entryRepo)
+            IDirectoryEntryRepository entryRepo,
+            IBtcPayServerService btcPay)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.requests = requests;
             this.entryRepo = entryRepo;
+            this.btcPay = btcPay;
+        }
+
+        // Polls BTCPay for a request that has an invoice but isn't marked paid yet, and
+        // persists the paid state once a payment is seen. Best-effort: a BTCPay hiccup must
+        // never break the admin queue, so everything here is wrapped and swallowed.
+        private async Task SyncPaymentAsync(VerificationRequest item, CancellationToken ct)
+        {
+            if (item.PaidUtc is not null || string.IsNullOrWhiteSpace(item.BtcPayInvoiceId))
+            {
+                return;
+            }
+
+            var storeId = this.btcPay.ReviewRequestsStoreId;
+            if (string.IsNullOrWhiteSpace(storeId))
+            {
+                return;
+            }
+
+            try
+            {
+                var invoice = await this.btcPay.GetInvoiceOnStoreAsync(storeId, item.BtcPayInvoiceId!);
+                var isPaid = invoice.IsSettled || invoice.Status == "Processing";
+                if (!isPaid)
+                {
+                    return;
+                }
+
+                decimal? amount = decimal.TryParse(invoice.Amount, out var a) && a > 0 ? a : null;
+                var currency = string.IsNullOrWhiteSpace(invoice.Currency) ? null : invoice.Currency;
+                var paidUtc = DateTime.UtcNow;
+
+                await this.requests.SetPaidAsync(item.VerificationRequestId, amount, currency, paidUtc, ct);
+
+                // reflect it in the object we're about to render
+                item.PaidUtc = paidUtc;
+                item.PaidAmount = amount;
+                item.PaidCurrency = currency;
+            }
+            catch
+            {
+                // ignore — payment status just won't update this load
+            }
         }
 
         [HttpGet("")]
@@ -36,6 +83,12 @@ namespace DirectoryManager.Web.Controllers
         {
             var items = await this.requests.ListByStatusAsync(status, page, pageSize, ct);
             var total = await this.requests.CountByStatusAsync(status, ct);
+
+            // Refresh payment status for any request with an invoice that isn't paid yet.
+            foreach (var item in items)
+            {
+                await this.SyncPaymentAsync(item, ct);
+            }
 
             return this.View(new VerificationRequestQueueViewModel
             {
@@ -57,6 +110,8 @@ namespace DirectoryManager.Web.Controllers
             {
                 return this.NotFound();
             }
+
+            await this.SyncPaymentAsync(request, ct);
 
             var entry = await this.entryRepo.GetByIdAsync(request.DirectoryEntryId);
 

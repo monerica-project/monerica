@@ -19,6 +19,9 @@ namespace BtcPayServer.API.Implementations
         public string DefaultCurrency { get; }
         public string SuccessUrl { get; }
         public string CancelUrl { get; }
+        public string ReviewRequestsStoreId { get; }
+
+        public string BaseUrl { get; }
 
         public BtcPayServerService(BtcPayServerConfigs configs)
         {
@@ -38,6 +41,8 @@ namespace BtcPayServer.API.Implementations
             this.DefaultCurrency = configs.DefaultCurrency;
             this.SuccessUrl = configs.SuccessUrl;
             this.CancelUrl = configs.CancelUrl;
+            this.ReviewRequestsStoreId = configs.ReviewRequestsStoreId?.Trim() ?? string.Empty;
+            this.BaseUrl = configs.BaseUrl.TrimEnd('/');
 
             this.client = new HttpClient
             {
@@ -75,6 +80,83 @@ namespace BtcPayServer.API.Implementations
                 throw new InvalidOperationException(
                     $"BTCPay invoice creation failed " +
                     $"({(int)response.StatusCode}): {body}");
+            }
+
+            return JsonConvert.DeserializeObject<BtcPayInvoiceResponse>(body)
+                ?? throw new InvalidOperationException(
+                    "Failed to deserialize BTCPay invoice response.");
+        }
+
+        public Task<BtcPayInvoiceResponse> CreateInvoiceOnStoreAsync(
+            string storeId, BtcPayInvoiceRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(storeId))
+                throw new ArgumentNullException(nameof(storeId));
+            ArgumentNullException.ThrowIfNull(request);
+            return this.PostInvoiceAsync(storeId.Trim(), request);
+        }
+
+        public async Task<BtcPayInvoiceResponse> GetInvoiceOnStoreAsync(
+            string storeId, string invoiceId)
+        {
+            if (string.IsNullOrWhiteSpace(storeId))
+                throw new ArgumentNullException(nameof(storeId));
+            if (string.IsNullOrWhiteSpace(invoiceId))
+                throw new ArgumentNullException(nameof(invoiceId));
+
+            var url = $"api/v1/stores/{storeId.Trim()}/invoices/{invoiceId}";
+            var response = await this.client.GetAsync(url).ConfigureAwait(false);
+            var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException(
+                    $"BTCPay get invoice failed ({(int)response.StatusCode}): {body}");
+            }
+
+            return JsonConvert.DeserializeObject<BtcPayInvoiceResponse>(body)
+                ?? throw new InvalidOperationException(
+                    "Failed to deserialize BTCPay invoice response.");
+        }
+
+        public async Task<BtcPayPaymentMethod?> GetXmrPaymentMethodOnStoreAsync(
+            string storeId, string invoiceId)
+        {
+            if (string.IsNullOrWhiteSpace(storeId))
+                throw new ArgumentNullException(nameof(storeId));
+            if (string.IsNullOrWhiteSpace(invoiceId))
+                throw new ArgumentNullException(nameof(invoiceId));
+
+            var url = $"api/v1/stores/{storeId.Trim()}/invoices/{invoiceId}/payment-methods";
+            var response = await this.client.GetAsync(url).ConfigureAwait(false);
+            var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException(
+                    $"BTCPay get invoice payment methods failed ({(int)response.StatusCode}): {body}");
+            }
+
+            var methods = JsonConvert.DeserializeObject<List<BtcPayPaymentMethod>>(body)
+                ?? new List<BtcPayPaymentMethod>();
+
+            return methods.FirstOrDefault(IsXmrPaymentMethod);
+        }
+
+        private async Task<BtcPayInvoiceResponse> PostInvoiceAsync(
+            string targetStoreId, BtcPayInvoiceRequest request)
+        {
+            var url = $"api/v1/stores/{targetStoreId}/invoices";
+            var json = JsonConvert.SerializeObject(request);
+            var content = new StringContent(json, Encoding.UTF8, StringConstants.JsonMediaType);
+
+            var response = await this.client.PostAsync(url, content).ConfigureAwait(false);
+            var body = await response.Content.ReadAsStringAsync().ConfigureAwait(false);
+
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new InvalidOperationException(
+                    $"BTCPay invoice creation failed ({(int)response.StatusCode}): {body}");
             }
 
             return JsonConvert.DeserializeObject<BtcPayInvoiceResponse>(body)

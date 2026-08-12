@@ -239,7 +239,7 @@
                     {
                         if (sponsorsByCategory.TryGetValue(cat.CategoryId, out var entries))
                         {
-                            <h3 class="sponsor-group-heading" style="font-size:1rem;font-weight:700">@cat.Name</h3>
+                            <h3 class="sponsor-group-heading u-fs-1rem-fw-700">@cat.Name</h3>
                             <ul class="blank_list_item">
                                 @foreach (var e in entries)
                                 {
@@ -339,7 +339,7 @@
                     {
                         if (sponsorsBySubcategory.TryGetValue(sub.SubcategoryId, out var entries))
                         {
-                            <h3 class="sponsor-group-heading" style="font-size:1rem;font-weight:700">@FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name)</h3>
+                            <h3 class="sponsor-group-heading u-fs-1rem-fw-700">@FormattingHelper.SubcategoryFormatting(sub.CategoryName, sub.Name)</h3>
                             <ul class="blank_list_item">
                                 @foreach (var e in entries)
                                 {
@@ -469,7 +469,7 @@
     @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>&nbsp;@Html.Raw(flagTag)
     @if (parent?.IsOfficial == true)
     {
-        <span class="badge bg-orange official-flag" style="color:#1a1a1a" title="Official Monerica review">Official</span>
+        <span class="badge bg-orange official-flag u-color-1a1a1a" title="Official Monerica review">Official</span>
     }
     @RenderReviewTags(parent)
     @if (parent?.Rating.HasValue == true && parent.Rating.Value > 0)
@@ -512,7 +512,7 @@
     @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>&nbsp;@Html.Raw(flagTag)
     @if (r.IsOfficial)
     {
-        <span class="badge bg-orange official-flag" style="color:#1a1a1a" title="Official Monerica review">Official</span>
+        <span class="badge bg-orange official-flag u-color-1a1a1a" title="Official Monerica review">Official</span>
     }
     @RenderReviewTags(r)
     @if (r.Rating.HasValue && r.Rating.Value > 0)
