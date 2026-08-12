@@ -285,7 +285,7 @@ namespace DirectoryManager.Web.Controllers
             static string? StripE(string? s)
                 => string.IsNullOrEmpty(s) ? s : DirectoryManager.Utilities.Validation.UnicodeSanitizer.StripEmoji(s);
             model.Name = StripE(model.Name) ?? string.Empty;
-            model.Description = StripE(model.Description);
+            model.Description = StripE(model.Description) ?? string.Empty;
             model.Location = StripE(model.Location);
             model.Processor = StripE(model.Processor);
             model.Note = StripE(model.Note);

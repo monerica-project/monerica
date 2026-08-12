@@ -44,7 +44,8 @@ namespace DirectoryManager.Web.Models
 
         [UrlOrEmail]
         public string? Social { get; set; }
-        public string? Description { get; set; }
+        [Required(ErrorMessage = "A description is required.")]
+        public string Description { get; set; } = string.Empty;
         public string? Note { get; set; }
 
         // ASCII-armored PGP key — exempt from the HTML guard (armored keys can carry

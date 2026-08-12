@@ -187,7 +187,7 @@
                 @for (var i = 0; i < orderedOffers.Count; i++)
                 {
                     var o = orderedOffers[i];
-                    var rowBorder = i == orderedOffers.Count - 1 ? "0" : "1px solid var(--border-divider)";
+                    var isLastOfferRow = i == orderedOffers.Count - 1;
 
                     int? pctDiscount = null;
                     decimal? totalUsdSaved = null;
@@ -197,7 +197,7 @@
                         pctDiscount = (int)Math.Round((usdDiscountPerDay / baselinePerDay.Value) * 100m, 0, MidpointRounding.AwayFromZero);
                         totalUsdSaved = (baselinePerDay.Value * o.Days) - o.PriceUsd;
                     }
-                    <div style="display:flex; justify-content:space-between; align-items:baseline; gap:12px; padding:9px 12px; border-bottom:@rowBorder;">
+                    <div class="offer-row @(isLastOfferRow ? "" : "offer-row-bordered")">
                         <div class="u-ws-nowrap">
                             <span class="u-fw-600">@o.Days</span>
                             <span class="u-opacity-6"> days</span>

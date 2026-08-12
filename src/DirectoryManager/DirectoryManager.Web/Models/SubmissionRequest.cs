@@ -22,10 +22,11 @@ namespace DirectoryManager.Web.Models
         [CleanSingleLine]
         public string Name { get; set; } = string.Empty;
 
+        [Required(ErrorMessage = "Please add a short description of your listing.")]
         [MaxLength(175)]
         [Display(Name = "Description", Prompt = "Describe your listing")]
         [CleanMultiLine]
-        public string? Description { get; set; }
+        public string Description { get; set; } = string.Empty;
 
         // URL
         [MaxLength(500)]

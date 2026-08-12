@@ -46,7 +46,7 @@
                 @for (var i = 0; i < thread.Count; i++)
                 {
                     var c = thread[i];
-                    <div class="@(i < thread.Count - 1 ? "mb-2 pb-2" : "")" style="@(i < thread.Count - 1 ? "border-bottom:1px solid #eee;" : "")">
+                    <div class="@(i < thread.Count - 1 ? "mb-2 pb-2 thread-reply-divider" : "")">
                         <div class="text-muted mb-1"><small>@(string.IsNullOrWhiteSpace(c.DisplayName) ? "Anonymous" : c.DisplayName)</small></div>
                         <div class="u-prewrap">@c.Body</div>
                     </div>

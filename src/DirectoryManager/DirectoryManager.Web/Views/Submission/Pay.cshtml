@@ -2,7 +2,7 @@
 @using DirectoryManager.Web.Constants
 @{
     ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
-    ViewData[StringConstants.TitleHeader] = "Help Cover Our Review Costs (Optional)";
+    ViewData[StringConstants.TitleHeader] = "Submission Received";
     Layout = "_CenteredLayout";
 }
 
@@ -12,6 +12,12 @@
         @await Html.PartialAsync("_SiteLogo")
     </div>
     <hr />
+
+    <div class="alert alert-success">
+        <b>&#10003; We've got your submission for @Model.Name.</b> It's in our review queue &mdash;
+        <b>there's nothing else you need to do, and no payment is required</b> for it to be reviewed.
+        The optional donation below only helps cover our review/testing costs.
+    </div>
 
     @if (this.TempData["PayError"] is string payError)
     {

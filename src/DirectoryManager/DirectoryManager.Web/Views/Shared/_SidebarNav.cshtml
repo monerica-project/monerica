@@ -130,7 +130,7 @@
 
             <li class="category-item">
                 <div class="cat-row u-flex-items-center-gap-5rem">
-                    <label for="@expanderIdMobile" class="expander u-cursor-pointer" aria-label="Expand @cat.Name">+</label>
+                    <label for="@expanderIdMobile" class="expander u-cursor-pointer" aria-label="Expand @cat.Name"><span class="exp-plus" aria-hidden="true">+</span><span class="exp-minus" aria-hidden="true">-</span></label>
                     <a class="no-app-link @(isCurrentCat ? "active" : "")"
                            href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
                         @cat.Name
@@ -151,10 +151,7 @@
                 </div>
             </li>
         }
-    </ul>
-
-    <ul class="nav-bottom-links">
-        <li><a class="app-link" href="~/submit">Add / Edit a Site</a></li>
+        <li class="mobile-action-first"><a class="app-link" href="~/submit">Add / Edit a Site</a></li>
         <li><a class="app-link" href="~/sponsor-options">Become a Sponsor</a></li>
     </ul>
 </details>
@@ -186,7 +183,7 @@
             var expanderId = $"{cat.CategoryKey}_expander";
 
             <li class="category-item">
-                <label for="@expanderId" class="expander">+</label>
+                <label for="@expanderId" class="expander" aria-label="Expand @cat.Name">+</label>
                 <a class="no-app-link @(isCurrentCat ? "active" : "")"
                        href="@urlResolver.ResolveToRoot(cat.CategoryKey)">
                     @cat.Name
