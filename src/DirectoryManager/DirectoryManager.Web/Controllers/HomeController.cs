@@ -107,6 +107,14 @@ namespace DirectoryManager.Web.Controllers
             return this.View();
         }
 
+        [HttpGet("review-us")]
+        public async Task<IActionResult> ReviewUsAsync()
+        {
+            var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
+            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "review-us");
+            return this.View();
+        }
+
         [HttpGet("pgp")]
         public async Task<IActionResult> PgpAsync()
         {
