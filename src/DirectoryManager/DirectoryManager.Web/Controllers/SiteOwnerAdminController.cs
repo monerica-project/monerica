@@ -158,7 +158,27 @@ namespace DirectoryManager.Web.Controllers
 
             var expectedNormalized = GenerateChallengeCodeNormalized(IntegerConstants.ChallengeLength);
             var plaintextForUser = FormatChallengeCodeForHumans(expectedNormalized);
-            var cipher = this.pgp.EncryptTo(pgpArmored, plaintextForUser);
+
+            // Ownership is proven by decrypting a one-time challenge, so the key MUST have a usable
+            // encryption (sub)key. Sign-only keys, and keys whose only encryption subkey has expired or
+            // been revoked, cannot be encrypted to — PgpService.EncryptTo throws for those. Catch it and
+            // show a clear message instead of a 500.
+            string cipher;
+            try
+            {
+                cipher = this.pgp.EncryptTo(pgpArmored, plaintextForUser);
+            }
+            catch (Exception)
+            {
+                this.ModelState.AddModelError(
+                    string.Empty,
+                    "This PGP key can't be used to verify ownership because it has no usable encryption key: " +
+                    "it is either sign-only, or its encryption subkey has expired or been revoked. " +
+                    "Ownership is verified by encrypting a one-time code to your key, which needs a current, " +
+                    "non-expired encryption subkey. Please update the listing's PGP key to one with a valid " +
+                    "encryption subkey and try again.");
+                return this.View("~/Views/SiteOwnerAdmin/SubmitKey.cshtml", loginVm);
+            }
 
             if (string.IsNullOrWhiteSpace(cipher))
             {
