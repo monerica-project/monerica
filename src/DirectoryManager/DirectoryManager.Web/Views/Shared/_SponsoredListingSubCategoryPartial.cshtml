@@ -1,6 +1,7 @@
 ﻿@using DirectoryManager.Web.Constants
 @using DirectoryManager.Data.Enums
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService Urls
 @model DirectoryManager.Web.Models.SubcategorySponsorModel
 
 @{
@@ -38,8 +39,11 @@
 else if (Model != null && Model.TotalActiveSubCategoryListings >= DirectoryManager.Common.Constants.IntegerConstants.MinRequiredSubcategories)
 {
     <p class="sub-category-sponsored-listing">
-        <a class="app-link"
-           rel="nofollow"
-           href="~/sponsoredlisting/selectlisting?subCategoryId=@Model.SubCategoryId&sponsorshipType=@SponsorshipType.SubcategorySponsor">Advertise here</a>
+        @* Submit button (not a link) so crawlers/prefetch don't hit it and skew analytics — lands on the same Select Listing page. *@
+        <form method="get" action="@Urls.ResolveToApp("/sponsoredlisting/selectlisting")" class="advertise-here-form">
+            <input type="hidden" name="subCategoryId" value="@Model.SubCategoryId" />
+            <input type="hidden" name="sponsorshipType" value="@SponsorshipType.SubcategorySponsor" />
+            <button type="submit" class="advertise-here-btn">Advertise here</button>
+        </form>
     </p>
 }

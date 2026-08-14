@@ -3,6 +3,7 @@
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.Web.Services.Interfaces
 @inject ICacheService _cacheHelper
+@inject IUrlResolutionService Urls
 
 @{
     var link2Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
@@ -47,6 +48,11 @@
 else
 {
     <p class="category-sponsored-listing">
-        <a class="app-link" rel="nofollow" href="@advertiseHref">Advertise here</a>
+        @* Submit button (not a link) so crawlers/prefetch don't hit it and skew analytics — lands on the same Select Listing page. *@
+        <form method="get" action="@Urls.ResolveToApp("/sponsoredlisting/selectlisting")" class="advertise-here-form">
+            <input type="hidden" name="categoryId" value="@categoryId" />
+            <input type="hidden" name="sponsorshipType" value="@SponsorshipType.CategorySponsor" />
+            <button type="submit" class="advertise-here-btn">Advertise here</button>
+        </form>
     </p>
 }
