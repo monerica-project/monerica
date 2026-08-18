@@ -57,6 +57,14 @@
             Already a sponsor, now or in the past? You can always renew or buy another placement,
             even if your listing no longer meets the requirements above.
         </p>
+        <p>
+            <strong>Existing sponsor perk.</strong> If your listing already holds an active
+            placement, you get a discount on adding a <em>different</em> one:
+            a <strong>Main</strong> sponsor gets <strong>20% off</strong> Category or Subcategory,
+            a <strong>Category</strong> sponsor gets <strong>15% off</strong> Main or Subcategory, and
+            a <strong>Subcategory</strong> sponsor gets <strong>10% off</strong> Main or Category.
+            It is applied automatically at checkout (renewing a placement you already hold is not discounted).
+        </p>
     </div>
 
     <!-- PROMINENT SEARCH -->
@@ -298,6 +306,21 @@
     <!-- RECENT PAID (social proof — businesses are paying right now) -->
     @if (Model.RecentPaid != null && Model.RecentPaid.Items != null && Model.RecentPaid.Items.Any())
     {
+        <hr />
+        var trendEnd = DateTime.UtcNow.Date;
+        var trendStart = trendEnd.AddDays(-180);
+        var trendFmt = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+        <h2 class="u-mt-22px">Sponsorship Price Trends &mdash; Last 180 Days</h2>
+        <p class="u-m-6px-0-12px-0">
+            Average price paid per day for a sponsorship slot, by placement (Main, Category &amp; Subcategory),
+            over the last 180 days (@trendStart.ToString(trendFmt) &ndash; @trendEnd.ToString(trendFmt)).
+        </p>
+        <div class="table-wrapper">
+            <img class="u-w-100pct"
+                 src="@Url.Action("PricingTrendsChart", "Sponsorship", new { v = trendEnd.ToString("yyyyMMdd") })"
+                 alt="Sponsorship price trends over the last 180 days" />
+        </div>
+
         <hr />
         <h2 class="u-mt-22px">Recent Sponsorship Payments</h2>
         <p class="u-m-6px-0-12px-0">

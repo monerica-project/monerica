@@ -1,0 +1,62 @@
+@model DirectoryManager.Web.Models.Sponsorship.PublicPricingViewModel
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Enums
+
+@{
+    Layout = "_CenteredLayout";
+    ViewData[StringConstants.TitleHeader] = "Sponsorship Pricing History";
+    var chartV = $"{Model.RangeDays}-{DateTime.UtcNow:yyyyMMdd}-{(Model.SponsorshipType?.ToString() ?? "all")}-{(Model.SubCategoryId?.ToString() ?? "all")}";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">Sponsorship Pricing History</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+    <hr />
+    <a class="app-link" href="~/sponsoredlisting/offers">&larr; back to offers &amp; pricing</a>
+    <hr />
+
+    <p class="u-opacity-9">
+        See what advertisers have actually <strong>paid per day</strong> for each sponsorship placement over the
+        last @Model.WindowDays&nbsp;days. Pick a placement type and, optionally, a subcategory, then adjust the
+        date range. Leave the type on <em>All (compare)</em> to overlay Main, Category and Subcategory.
+    </p>
+
+    <form method="get" asp-controller="Sponsorship" asp-action="PricingHistory">
+        <div class="form-row">
+            <div class="form-group col-md-4">
+                <label for="sponsorshipType">Placement Type</label>
+                <select id="sponsorshipType" name="sponsorshipType" class="form-control" asp-items="Model.SponsorshipTypeOptions"></select>
+            </div>
+            <div class="form-group col-md-4">
+                <label for="rangeDays">Time Range</label>
+                <select id="rangeDays" name="rangeDays" class="form-control" asp-items="Model.RangeOptions"></select>
+            </div>
+            <div class="form-group col-md-4">
+                <label for="subCategoryId">Subcategory</label>
+                <select id="subCategoryId" name="subCategoryId" class="form-control" asp-items="Model.SubCategoryOptions"></select>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Update chart</button>
+    </form>
+
+    <p class="u-opacity-85 u-mt-8px">
+        Showing @Model.StartDate.ToString("MMM d, yyyy") &ndash; @Model.EndDate.ToString("MMM d, yyyy")
+        @if (!string.IsNullOrEmpty(Model.SubCategoryLabel))
+        {
+            <text>&nbsp;·&nbsp; <strong>@Model.SubCategoryLabel</strong></text>
+        }
+        <span class="u-opacity-8"> — the public view can look back at most @Model.WindowDays&nbsp;days.</span>
+    </p>
+
+    <div class="table-wrapper u-mt-10px">
+        <img class="u-w-100pct"
+             src="@Url.Action("PricingHistoryChart", "Sponsorship", new {
+                 rangeDays = Model.RangeDays,
+                 sponsorshipType = Model.SponsorshipType,
+                 subCategoryId = Model.SubCategoryId,
+                 v = chartV })"
+             alt="Sponsorship pricing history over the selected date range" />
+    </div>
+}

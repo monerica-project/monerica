@@ -45,6 +45,22 @@ namespace DirectoryManager.Data.Models.SponsoredListings
         /// </summary>
         public Currency Currency { get; set; } = Currency.Unknown;
 
+        /// <summary>
+        /// The pre-discount (market) price when a cross-tier loyalty discount was applied.
+        /// Null when no discount was applied (in which case <see cref="Amount"/> is the market price).
+        /// </summary>
+        public decimal? OriginalAmount { get; set; }
+
+        /// <summary>
+        /// The cross-tier loyalty discount percent applied to reach <see cref="Amount"/> (e.g. 15). Null/0 = none.
+        /// </summary>
+        public decimal? DiscountPercent { get; set; }
+
+        /// <summary>
+        /// The dollar amount discounted from <see cref="OriginalAmount"/> to reach <see cref="Amount"/>.
+        /// </summary>
+        public decimal? DiscountAmount { get; set; }
+
         public PaymentProcessor PaymentProcessor { get; set; }
 
         [MaxLength(255)]

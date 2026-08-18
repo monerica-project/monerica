@@ -32,6 +32,12 @@
         on the <a class="app-link" href="~/sponsorship">full sponsorship page</a>.)
     </p>
 
+    <p class="u-opacity-9">
+        <strong>Already a Category or Subcategory sponsor?</strong> You get an existing-sponsor perk on Main &mdash;
+        <strong>15% off</strong> if you currently hold a Category placement, or <strong>10% off</strong> if you
+        hold a Subcategory placement. It&#39;s applied automatically at checkout.
+    </p>
+
     @* ---- Availability banner ---- *@
     @if (Model.MainSponsorIsOpen)
     {
@@ -180,4 +186,69 @@
         </ol>
         <span class="u-opacity-85">Searching your listing above tells you exactly if it qualifies. Already a current sponsor? You can always renew.</span>
     </div>
+
+    <hr />
+    <h2 class="u-mt-22px">Main Sponsor Pricing &mdash; Last 180 Days</h2>
+    <p class="u-m-6px-0-12px-0">
+        The average price advertisers actually paid per day for the <strong>Main Sponsor</strong> slot
+        over the last 180&nbsp;days.
+    </p>
+    <div class="table-wrapper">
+        <img class="u-w-100pct"
+             src="@Url.Action("PricingTrendsChart", "Sponsorship", new { sponsorshipType = SponsorshipType.MainSponsor, v = DateTime.UtcNow.ToString("yyyyMMdd") })"
+             alt="Main sponsor average daily price over the last 180 days" />
+    </div>
+
+    @if (Model.RecentPaid?.Items != null && Model.RecentPaid.Items.Any())
+    {
+        <h3 class="u-mt-14px">Recent Main Sponsor Purchases</h3>
+        <p class="u-opacity-85">
+            The last @Model.RecentPaid.Items.Count verified main-sponsor purchases &mdash; real amounts paid, to explain the pricing above.
+        </p>
+        <div class="table-wrapper">
+            <table class="table u-w-100pct">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Sponsor</th>
+                        <th class="u-text-right">Days</th>
+                        <th class="u-text-right">USD / day</th>
+                        <th class="u-text-right">Paid (USD)</th>
+                        <th class="u-text-right">Paid (@Currency.XMR.ToString())</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var item in Model.RecentPaid.Items)
+                    {
+                        <tr>
+                            <td>@item.PaidUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(item.ListingUrl))
+                                {
+                                    <a href="@item.ListingUrl" target="_blank" rel="noopener">@item.ListingName</a>
+                                }
+                                else
+                                {
+                                    @item.ListingName
+                                }
+                            </td>
+                            <td class="u-text-right">@item.Days</td>
+                            <td class="u-text-right">@item.PricePerDayUsd.ToString("C2", usd)</td>
+                            <td class="u-text-right">@item.AmountUsd.ToString("C2", usd)</td>
+                            <td class="u-text-right">
+                                @if (item.PaidCurrency == Currency.XMR.ToString())
+                                {
+                                    @item.PaidAmount.ToString(DirectoryManager.Common.Constants.StringConstants.RoundingFormatCrypto)
+                                }
+                                else
+                                {
+                                    @($"{item.PaidAmount.ToString(DirectoryManager.Common.Constants.StringConstants.RoundingFormatCrypto)} {item.PaidCurrency}")
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
 }

@@ -611,6 +611,7 @@ namespace DirectoryManager.Web.Controllers
                     PriceCurrency = o.PriceCurrency,
                     SponsorshipType = o.SponsorshipType,
                     CategorySubcategory = isDefault ? StringConstants.Default : FormattingHelper.SubcategoryFormatting(o.Subcategory!.Category.Name, o.Subcategory.Name),
+                    ScopeSubCategoryId = o.Subcategory?.SubCategoryId ?? 0,
                     IsAvailable = available,
                     ActionLink = available
                         ? (isDefault
@@ -634,6 +635,7 @@ namespace DirectoryManager.Web.Controllers
                     PriceCurrency = o.PriceCurrency,
                     SponsorshipType = o.SponsorshipType,
                     CategorySubcategory = isDefault ? StringConstants.Default : FormattingHelper.SubcategoryFormatting(o.Subcategory!.Category.Name, o.Subcategory.Name),
+                    ScopeSubCategoryId = o.Subcategory?.SubCategoryId ?? 0,
                     IsAvailable = available,
                     ActionLink = available
                         ? (isDefault

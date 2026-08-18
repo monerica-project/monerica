@@ -19,5 +19,20 @@ namespace DirectoryManager.Web.Models.SponsoredListing
 
         [JsonProperty("sponsorshipType")]
         public SponsorshipType SponsorshipType { get; set; }
+
+        /// <summary>
+        /// Cross-tier existing-sponsor perk percent applied to this price (e.g. 15). 0 = no discount.
+        /// </summary>
+        [JsonProperty("discountPercent")]
+        public decimal DiscountPercent { get; set; }
+
+        /// <summary>
+        /// The price after the cross-tier existing-sponsor perk. Equals <see cref="USDPrice"/> when there is no discount.
+        /// </summary>
+        [JsonProperty("discountedUSDPrice")]
+        public decimal DiscountedUSDPrice { get; set; }
+
+        [JsonIgnore]
+        public bool HasExistingSponsorPerk => this.DiscountPercent > 0m;
     }
 }

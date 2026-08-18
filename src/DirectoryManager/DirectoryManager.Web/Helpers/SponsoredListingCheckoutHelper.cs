@@ -9,13 +9,6 @@ namespace DirectoryManager.Web.Helpers
     /// </summary>
     internal static class SponsoredListingCheckoutHelper
     {
-        internal static readonly PaymentStatus[] HoldExtendingStatuses =
-        {
-            PaymentStatus.InvoiceCreated,
-            PaymentStatus.Pending,
-            PaymentStatus.UnderPayment,
-        };
-
         internal static readonly IReadOnlyDictionary<PaymentStatus, int> StatusRank =
             new Dictionary<PaymentStatus, int>
             {

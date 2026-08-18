@@ -44,6 +44,11 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<SponsoredListingInvoice?> GetByProcessorInvoiceIdAsync(string ipnProcessorId);
         Task<List<RecentPaidPurchaseDto>> GetRecentPaidActivePurchasesAsync(int take);
 
+        Task<List<RecentPaidPurchaseDto>> GetRecentPaidByTypeAsync(
+            SponsorshipType sponsorshipType, int take, IReadOnlyCollection<DirectoryStatus> allowedStatuses);
+
+        Task<bool> HasPaidPurchasesForSubcategoryAsync(SponsorshipType sponsorshipType, int subCategoryId);
+
         DateTime? GetLastPaidInvoiceCreateDate();
 
         DateTime? GetLastPendingInvoiceCreateDate();

@@ -72,4 +72,7 @@
 		<ErrorOnDuplicatePublishOutputFiles>false</ErrorOnDuplicatePublishOutputFiles>
 		<LangVersion>preview</LangVersion>
 	</PropertyGroup>
+	<ItemGroup>
+		<InternalsVisibleTo Include="DirectoryManager.Web.Tests" />
+	</ItemGroup>
 </Project>

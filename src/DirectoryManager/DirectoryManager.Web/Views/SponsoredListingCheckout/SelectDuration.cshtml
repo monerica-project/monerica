@@ -22,7 +22,6 @@
 
     Guid? reservationGuid = ViewBag.ReservationGuid is Guid g ? g : (Guid?)null;
     DateTime? reservationExpiresUtc = ViewBag.ReservationExpiresUtc is DateTime d ? d : (DateTime?)null;
-
     int? minutesLeft = reservationExpiresUtc.HasValue
         ? (int?)Math.Max(0, (int)Math.Ceiling((reservationExpiresUtc.Value - DateTime.UtcNow).TotalMinutes))
         : null;
@@ -43,6 +42,12 @@
     decimal? baselinePerDay = (offersList.Count > 0 && offersList[0].Days > 0)
         ? offersList[0].USDPrice / offersList[0].Days
         : (decimal?)null;
+
+    decimal perkPct = ViewBag.ExistingSponsorPerkPercent is decimal lp ? lp : 0m;
+    SponsorshipType? perkBasis = ViewBag.ExistingSponsorPerkBasisTier as SponsorshipType?;
+    string perkBasisLabel = perkBasis.HasValue
+        ? DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(perkBasis.Value)
+        : "sponsor";
 }
 
 @section PageContent {
@@ -52,6 +57,8 @@
     <a href="@backUrl">&lt; back</a>
     <hr />
 
+    @* Shown only when the buyer already holds an active reservation for this slot (e.g. after going
+       back to change the duration) — so they see the countdown. First-time visitors have no hold. *@
     @if (reservationGuid.HasValue && reservationExpiresUtc.HasValue)
     {
         <div class="alert alert-warning" role="alert">
@@ -59,7 +66,7 @@
             Your slot is held until
             <b>@reservationExpiresUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</b> UTC
             (@minutesLeft minute@(minutesLeft == 1 ? "" : "s") left).
-            Selecting a duration will continue under this reservation.
+            You can change the duration and continue under this reservation.
         </div>
     }
 
@@ -75,7 +82,41 @@
         <p><b>Category:</b> @ViewBag.Category</p>
     }
 
+    @{
+        var chartType = (SponsorshipType)ViewBag.SponsorshipType;
+        var chartTypeDesc = DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(chartType);
+        var listingSubcat = ViewBag.ListingSubcategory as string;
+        var hasSubHistory = ViewBag.HasSubcategoryPricingHistory is bool b && b;
+    }
+    <div class="u-mt-10px u-mb-8px" style="max-width:640px;">
+        <p class="u-m-6px-0-12px-0">
+            <strong>Why this price?</strong> The <strong>bars</strong> are the average paid per day across
+            <strong>all @chartTypeDesc</strong> slots over the last 180&nbsp;days.
+            @if (hasSubHistory)
+            {
+                <text>The <strong>black dotted line</strong> is
+                <strong>your subcategory@(string.IsNullOrWhiteSpace(listingSubcat) ? "" : $" — {listingSubcat}")</strong>,
+                which is how pricing is set &mdash; so you can see where your niche sits versus the overall
+                @chartTypeDesc average.</text>
+            }
+        </p>
+        <img class="u-w-100pct"
+             style="max-width:640px;height:auto;border:1px solid #ddd;border-radius:4px;"
+             src="@Url.Action("PricingTrendsChart", "SponsoredListingCheckout", new { sponsorshipType = ViewBag.SponsorshipType, listingSubCategoryId = ViewBag.ListingSubCategoryId, v = DateTime.UtcNow.ToString("yyyyMMdd") })"
+             alt="Average daily price for this placement over the last 180 days, with your subcategory highlighted" />
+    </div>
+
     <br />
+
+    @if (perkPct > 0m)
+    {
+        <div class="alert alert-warning" role="alert">
+            <strong>Existing sponsor perk &mdash; <span class="text-danger">@perkPct.ToString("0.##")% off</span>.</strong>
+            Because this listing is already an active <strong>@perkBasisLabel</strong>, you get
+            <span class="text-danger">@perkPct.ToString("0.##")% off</span> this placement. Every market price below is
+            struck through and shown with your discounted price.
+        </div>
+    }
 
     <form method="post" action="~/sponsoredlisting/selectduration">
         @Html.AntiForgeryToken()
@@ -93,18 +134,20 @@
             {
                 var offer = offersList[i];
 
-                decimal? offerPerDay = offer.Days > 0 ? offer.USDPrice / offer.Days : (decimal?)null;
-                decimal? usdDiscountPerDay = (i > 0 && baselinePerDay.HasValue && offerPerDay.HasValue)
-                    ? (baselinePerDay.Value - offerPerDay.Value)
-                    : (decimal?)null;
+                var finalPrice = offer.HasExistingSponsorPerk ? offer.DiscountedUSDPrice : offer.USDPrice;
+                decimal? marketPerDay = offer.Days > 0 ? offer.USDPrice / offer.Days : (decimal?)null;
+                decimal? discountedPerDay = offer.Days > 0 ? finalPrice / offer.Days : (decimal?)null;
 
-                int? pctDiscount = (usdDiscountPerDay.HasValue && baselinePerDay > 0)
-                    ? (int?)Math.Round((usdDiscountPerDay.Value / baselinePerDay.Value) * 100m, 0, MidpointRounding.AwayFromZero)
-                    : (int?)null;
-
-                decimal? totalUsdSaved = (i > 0 && baselinePerDay.HasValue)
-                    ? ((baselinePerDay.Value * offer.Days) - offer.USDPrice)
-                    : (decimal?)null;
+                // Combined TOTAL off vs the 30-day base rate — folds the longer-term volume discount AND
+                // the existing-sponsor perk into one figure, so the real total percent off is clear.
+                int? totalPctOff = null;
+                decimal? totalSaved = null;
+                if (baselinePerDay.HasValue && baselinePerDay.Value > 0)
+                {
+                    var baselineTotal = baselinePerDay.Value * offer.Days;
+                    totalSaved = baselineTotal - finalPrice;
+                    totalPctOff = (int)Math.Round((totalSaved.Value / baselineTotal) * 100m, 0, MidpointRounding.AwayFromZero);
+                }
 
                 <div class="form-check u-mb-8px">
                     <label class="form-check-label u-flex-items-center-gap-8px-flexwrap-wrap">
@@ -116,7 +159,15 @@
 
                         <span>
                             <b>@offer.Days</b>-Days &ndash;
-                            @offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture) @Currency.USD
+                            @if (offer.HasExistingSponsorPerk)
+                            {
+                                <s class="price-strike">@offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture)</s>
+                                <b>@offer.DiscountedUSDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture) @Currency.USD</b>
+                            }
+                            else
+                            {
+                                @offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture) @Currency.USD
+                            }
                         </span>
 
                         @if (showConverted)
@@ -124,24 +175,33 @@
                             <span>
                                 &mdash;
                                 @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
-                                    offer.USDPrice,
+                                    offer.HasExistingSponsorPerk ? offer.DiscountedUSDPrice : offer.USDPrice,
                                     conversionRate,
                                     conversionResult.selectedCurrency,
                                     true)
                             </span>
                         }
 
-                        @if (offerPerDay.HasValue)
+                        @if (marketPerDay.HasValue)
                         {
                             <span class="u-opacity-8">
-                                &mdash; @offerPerDay.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture)/day
+                                &mdash;
+                                @if (offer.HasExistingSponsorPerk && discountedPerDay.HasValue)
+                                {
+                                    <s class="price-strike">@marketPerDay.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture)</s>
+                                    <b>@discountedPerDay.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture)/day</b>
+                                }
+                                else
+                                {
+                                    @marketPerDay.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture)<text>/day</text>
+                                }
                             </span>
                         }
 
-                        @if (totalUsdSaved.HasValue && totalUsdSaved.Value > 0 && pctDiscount.HasValue)
+                        @if (totalPctOff.HasValue && totalPctOff.Value > 0 && totalSaved.HasValue && totalSaved.Value > 0)
                         {
                             <span class="text-danger u-ml-6px">
-                                (@(pctDiscount)% off, save @totalUsdSaved.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture))
+                                (Total @(totalPctOff)% off, save @totalSaved.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture))
                             </span>
                         }
 

@@ -29,6 +29,9 @@
     Model.SelectedDirectoryEntry.IsSponsored = true;
 
     var prefillEmail = ViewBag.PrefillEmail as string ?? string.Empty;
+
+    var usdCulture = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
+    var effectivePrice = Model.Offer.HasExistingSponsorPerk ? Model.Offer.DiscountedUSDPrice : Model.Offer.USDPrice;
 }
 
 @section PageContent {
@@ -62,6 +65,20 @@
                     <td><b>Sponsorship Type:</b></td>
                     <td>@DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.Offer.SponsorshipType)</td>
                 </tr>
+                @if (Model.Offer.SponsorshipType == SponsorshipType.CategorySponsor && ViewBag.PurchaseCategoryName != null)
+                {
+                    <tr>
+                        <td><b>Category:</b></td>
+                        <td>@ViewBag.PurchaseCategoryName</td>
+                    </tr>
+                }
+                else if (Model.Offer.SponsorshipType == SponsorshipType.SubcategorySponsor && ViewBag.PurchaseSubcategoryScope != null)
+                {
+                    <tr>
+                        <td><b>Category &amp; Subcategory:</b></td>
+                        <td>@ViewBag.PurchaseSubcategoryScope</td>
+                    </tr>
+                }
                 <tr>
                     <td><b>Days:</b></td>
                     <td>@Model.Offer.Days</td>
@@ -70,19 +87,32 @@
                     <td><b>Description:</b></td>
                     <td>@Model.Offer.Description</td>
                 </tr>
+                @if (Model.Offer.HasExistingSponsorPerk)
+                {
+                    <tr>
+                        <td><b>Market price:</b></td>
+                        <td>
+                            <s class="price-strike">@Model.Offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture) @Currency.USD</s>
+                        </td>
+                    </tr>
+                    <tr>
+                        <td><b>Existing sponsor perk:</b></td>
+                        <td class="text-danger">@Model.Offer.DiscountPercent.ToString("0.##")% off</td>
+                    </tr>
+                }
                 <tr>
                     <td><b>Price:</b></td>
                     <td>
-                        @Model.Offer.USDPrice.ToString(
+                        <b>@effectivePrice.ToString(
                             DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
-                            new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure))
-                        @Currency.USD
+                            usdCulture)
+                        @Currency.USD</b>
                         @if (showConverted)
                         {
                             <i>
                                 (Approximately:
                                 @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
-                                    Model.Offer.USDPrice,
+                                    effectivePrice,
                                     conversionRate,
                                     conversionResult.selectedCurrency,
                                     true))

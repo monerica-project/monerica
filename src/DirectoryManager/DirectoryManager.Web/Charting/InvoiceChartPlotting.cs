@@ -166,6 +166,385 @@ namespace DirectoryManager.Web.Charting
             return plt.GetImageBytes(1200, 600, ImageFormat.Png);
         }
 
+        /// <summary>
+        /// Pricing-trends chart: the average PAID price-per-day for a sponsorship slot, bucketed by
+        /// calendar day across the range. When <paramref name="sponsorshipType"/> is a single type
+        /// it renders as a daily BAR chart for that placement; when null it overlays all three
+        /// placement types (Main / Category / Subcategory) as daily line-with-markers series so the
+        /// trends can be compared. Only PAID invoices should be passed in.
+        /// </summary>
+        public byte[] CreateDailyAvgPriceByTypeChart(
+            IEnumerable<SponsoredListingInvoice> invoices,
+            Currency displayCurrency,
+            DateTime rangeStart,
+            DateTime rangeEnd,
+            SponsorshipType? sponsorshipType,
+            string? filterLabel = null,
+            int width = 1400,
+            int height = 640,
+            IEnumerable<SponsoredListingInvoice>? highlightInvoices = null,
+            string? highlightLabel = null,
+            IReadOnlyDictionary<SponsorshipType, decimal>? currentMarketDailyByType = null)
+        {
+            var data = PricingTrendCalculator.Build(invoices, displayCurrency, rangeStart, rangeEnd);
+            if (data.Days.Count == 0 || !data.HasAnyData)
+            {
+                return Array.Empty<byte>();
+            }
+
+            // Single-placement view with no paid data for that specific placement → nothing to draw.
+            if (sponsorshipType.HasValue &&
+                (!data.Stats.TryGetValue(sponsorshipType.Value, out var selStat) || selStat.DaysWithData == 0))
+            {
+                return Array.Empty<byte>();
+            }
+
+            var days = data.Days;
+            int n = days.Count;
+            string unit = AxisUnitLabel(displayCurrency);
+
+            string DailyLabel(decimal v)
+            {
+                if (displayCurrency == Currency.USD)
+                {
+                    return v.ToString("C", CultureInfo.CreateSpecificCulture(Culture));
+                }
+
+                return v >= 1m ? v.ToString("0.000")
+                     : v >= 0.01m ? v.ToString("0.00000")
+                     : v.ToString("0.0000000").TrimEnd('0').TrimEnd('.');
+            }
+
+            var plt = new Plot();
+
+            // ScottPlot's ShowLegend(Edge) overload adds a NEW legend panel on every call, so calling
+            // it per-series stacks duplicate legends at the bottom. Flag it here and show it exactly once.
+            bool showLegend = false;
+
+            var typesToPlot = sponsorshipType.HasValue
+                ? new[] { sponsorshipType.Value }
+                : PricingTrendCalculator.Types;
+
+            double maxVal = 0;
+
+            // Current market price (per day) for each plotted placement — what a slot costs to buy
+            // right now, so buyers can compare today's price against the historical average.
+            var currentDaily = new List<(SponsorshipType Type, double Value)>();
+            if (currentMarketDailyByType != null)
+            {
+                foreach (var t in typesToPlot)
+                {
+                    if (currentMarketDailyByType.TryGetValue(t, out var d) && d > 0m)
+                    {
+                        currentDaily.Add((t, (double)d));
+                    }
+                }
+            }
+
+            if (sponsorshipType.HasValue)
+            {
+                // Single placement → daily bars.
+                var t = sponsorshipType.Value;
+                var series = data.DailyValues[t];
+                var fill = Color.FromHex(TypeBarColorHex(t));
+                var bars = new List<Bar>();
+                for (int i = 0; i < n; i++)
+                {
+                    double y = double.IsNaN(series[i]) ? 0d : series[i];
+                    if (y > maxVal)
+                    {
+                        maxVal = y;
+                    }
+
+                    bars.Add(new Bar { Position = i, Value = y, FillColor = fill });
+                }
+
+                var barPlot = plt.Add.Bars(bars);
+                PadXAxisForBars(plt, n, rightPad: 0.5);
+
+                // Per-bar value labels are intentionally omitted — at daily granularity they overlap
+                // and become unreadable; the Y axis already shows the price. Read exact values off the
+                // axis / gridlines instead.
+
+                // Overlay: the buyer's OWN segment as a black dotted line, so they can see how their
+                // slice (their subcategory / category, or their own listing for main) compares to the
+                // overall average for this placement — but only when that segment has paid history.
+                if (highlightInvoices != null)
+                {
+                    var subData = PricingTrendCalculator.Build(highlightInvoices, displayCurrency, rangeStart, rangeEnd);
+
+                    if (subData.Stats.TryGetValue(t, out var subStat) && subStat.DaysWithData > 0)
+                    {
+                        var subSeries = subData.DailyValues[t];
+                        foreach (var v in subSeries)
+                        {
+                            if (!double.IsNaN(v) && v > maxVal)
+                            {
+                                maxVal = v;
+                            }
+                        }
+
+                        var subXs = Enumerable.Range(0, n).Select(i => (double)i).ToArray();
+                        var subLine = plt.Add.Scatter(subXs, subSeries);
+                        subLine.Color = Colors.Black;
+                        subLine.LineWidth = 2;
+                        subLine.LinePattern = LinePattern.Dotted;
+                        subLine.MarkerSize = 0;
+                        subLine.LegendText = string.IsNullOrWhiteSpace(highlightLabel) ? "Your subcategory" : highlightLabel;
+
+                        barPlot.LegendText = $"All {FriendlyType(t)} sponsors";
+                        showLegend = true;
+                    }
+                    else
+                    {
+                        // No activity for this segment WITHIN the 6-month window, but it may have older
+                        // paid history — show its historical average per-day as a flat dotted reference
+                        // line so the buyer still sees what their niche has paid before.
+                        decimal totalAmount = 0m;
+                        long totalDays = 0;
+                        foreach (var inv in highlightInvoices)
+                        {
+                            if (inv.SponsorshipType != t)
+                            {
+                                continue;
+                            }
+
+                            var amt = inv.AmountIn(displayCurrency);
+                            if (amt <= 0m)
+                            {
+                                continue;
+                            }
+
+                            var cs = inv.CampaignStartDate.Date;
+                            var ce = inv.CampaignEndDate.Date;
+                            if (ce < cs)
+                            {
+                                continue;
+                            }
+
+                            var span = ce.AddDays(1) - cs;
+                            var campaignDays = (int)span.TotalDays;
+                            if (campaignDays <= 0)
+                            {
+                                continue;
+                            }
+
+                            totalAmount += amt;
+                            totalDays += campaignDays;
+                        }
+
+                        if (totalDays > 0)
+                        {
+                            decimal avgPerDay = totalAmount / totalDays;
+                            double refVal = (double)avgPerDay;
+                            if (refVal > maxVal)
+                            {
+                                maxVal = refVal;
+                            }
+
+                            var refLine = plt.Add.HorizontalLine(refVal);
+                            refLine.Color = Colors.Black;
+                            refLine.LineWidth = 2;
+                            refLine.LinePattern = LinePattern.Dotted;
+                            refLine.LegendText =
+                                $"{(string.IsNullOrWhiteSpace(highlightLabel) ? "Your subcategory" : highlightLabel)} (past avg)";
+
+                            barPlot.LegendText = $"All {FriendlyType(t)} sponsors";
+                            showLegend = true;
+                        }
+                    }
+                }
+
+                plt.Title($"Avg Daily Slot Price — {FriendlyType(t)} ({unit}/day)");
+            }
+            else
+            {
+                // All placements → overlaid daily line-with-markers series (NaN = gap).
+                var xs = Enumerable.Range(0, n).Select(i => (double)i).ToArray();
+                foreach (var t in typesToPlot)
+                {
+                    var series = data.DailyValues[t];
+                    if (data.Stats[t].DaysWithData == 0)
+                    {
+                        continue;
+                    }
+
+                    foreach (var v in series)
+                    {
+                        if (!double.IsNaN(v) && v > maxVal)
+                        {
+                            maxVal = v;
+                        }
+                    }
+
+                    var sc = plt.Add.Scatter(xs, series);
+                    sc.Color = Color.FromHex(TypeColorHex(t));
+                    sc.LineWidth = 2;
+                    sc.MarkerSize = n <= 120 ? 5 : 0;
+                    sc.LegendText = $"{FriendlyType(t)} (avg {DailyLabel(data.Stats[t].AvgPerDay)}/day)";
+                }
+
+                showLegend = true;
+                plt.Title($"Avg Daily Slot Price by Placement ({unit}/day)");
+            }
+
+            // Current market price line(s), in orange, so today's asking price stands out against history.
+            foreach (var c in currentDaily)
+            {
+                if (c.Value > maxVal)
+                {
+                    maxVal = c.Value;
+                }
+
+                var nowLine = plt.Add.HorizontalLine(c.Value);
+                nowLine.Color = Colors.Black;
+                nowLine.LineWidth = 2;
+                nowLine.LinePattern = LinePattern.Dashed;
+                nowLine.LegendText = sponsorshipType.HasValue
+                    ? $"Current market price ({DailyLabel((decimal)c.Value)}/day)"
+                    : $"{FriendlyType(c.Type)} current ({DailyLabel((decimal)c.Value)}/day)";
+            }
+
+            if (currentDaily.Count > 0)
+            {
+                showLegend = true;
+            }
+
+            if (showLegend)
+            {
+                plt.ShowLegend(Edge.Bottom);
+            }
+
+            ApplyDailyTicksThinned(plt, days);
+            plt.Axes.Margins(left: 0.06, right: 0.06, bottom: 0.28, top: 0.18);
+            plt.Axes.AutoScale();
+
+            if (sponsorshipType.HasValue)
+            {
+                PadXAxisForBars(plt, n, rightPad: 0.5);
+            }
+
+            var lim = plt.Axes.GetLimits();
+            double top = Math.Max(lim.Top, (maxVal * 1.12) + 0.0001);
+            plt.Axes.SetLimitsY(0, top);
+
+            // The final (far-right) date tick is centered on the last day, which sits at the very
+            // edge — without extra room its right half is clipped off the image. Reserve ~half a
+            // date label's width on the right, scaled to the pixel size so it works at any width.
+            var xLim = plt.Axes.GetLimits();
+            double xRange = xLim.Right - xLim.Left;
+            if (xRange > 0)
+            {
+                double unitsPerPixel = xRange / Math.Max(1.0, width * 0.90);
+
+                // Reserve extra room on the right when we're printing the current-price label there,
+                // so the USD amount is fully visible and not clipped at the edge.
+                double reservePixels = currentDaily.Count > 0 ? 165.0 : 46.0;
+                double reserve = reservePixels * unitsPerPixel;
+                plt.Axes.SetLimitsX(xLim.Left, xLim.Right + reserve);
+            }
+
+            // Print the current market price at the far right, on its line, in the reserved margin.
+            if (currentDaily.Count > 0)
+            {
+                var lbl = plt.Axes.GetLimits();
+                foreach (var c in currentDaily)
+                {
+                    var txt = plt.Add.Text($"Now: {DailyLabel((decimal)c.Value)}/day", lbl.Right, c.Value);
+                    txt.Alignment = ScottPlot.Alignment.LowerRight;
+                    txt.LabelFontSize = 13;
+                    txt.LabelBold = true;
+                    txt.LabelFontColor = Colors.Black;
+                }
+            }
+
+            plt.XLabel("Day");
+            plt.YLabel($"{unit} per day");
+
+            if (!string.IsNullOrWhiteSpace(filterLabel))
+            {
+                var totalListingDays = typesToPlot.Sum(t => data.Stats[t].ActiveListingDays);
+                AddSubtitleBelowTitle(plt, $"{filterLabel} — {totalListingDays:n0} active listing-days in range");
+            }
+
+            return plt.GetImageBytes(width, height, ImageFormat.Png);
+        }
+
+        // Saturated colours for the compare-mode LINES (need contrast on a white background).
+        private static string TypeColorHex(SponsorshipType t) => t switch
+        {
+            SponsorshipType.MainSponsor => "#e68c28",       // orange
+            SponsorshipType.CategorySponsor => "#3c9a5f",   // green
+            SponsorshipType.SubcategorySponsor => "#3a6ea5", // blue
+            _ => "#8a8a8a",
+        };
+
+        // Lighter fills for BAR charts so the black dotted overlay line stays easy to see on top.
+        private static string TypeBarColorHex(SponsorshipType t) => t switch
+        {
+            SponsorshipType.MainSponsor => "#f4b877",       // light orange
+            SponsorshipType.CategorySponsor => "#82cfa4",   // light green
+            SponsorshipType.SubcategorySponsor => "#9cc6ea", // light blue
+            _ => "#c2c2c2",
+        };
+
+        private static string FriendlyType(SponsorshipType t) => t switch
+        {
+            SponsorshipType.MainSponsor => "Main",
+            SponsorshipType.CategorySponsor => "Category",
+            SponsorshipType.SubcategorySponsor => "Subcategory",
+            _ => t.ToString(),
+        };
+
+        private static void ApplyDailyTicksThinned(ScottPlot.Plot plt, IReadOnlyList<DateTime> days)
+        {
+            int count = days.Count;
+            if (count == 0)
+            {
+                return;
+            }
+
+            const int target = 12;
+            int stride = Math.Max(1, (int)Math.Ceiling(count / (double)target));
+
+            var ticks = new List<double>();
+            var labels = new List<string>();
+
+            void AddTick(int i)
+            {
+                ticks.Add(i);
+                labels.Add($"{days[i]:MMM d}\n{days[i]:yyyy}");
+            }
+
+            for (int i = 0; i < count; i += stride)
+            {
+                AddTick(i);
+            }
+
+            // Always anchor the final day so the range end is labeled — but if the last regular
+            // tick lands within ~0.6 strides of it, the two date labels collide (the "partial
+            // last month" overwrite). In that case drop the crowding regular tick first.
+            int last = count - 1;
+            if (ticks.Count == 0)
+            {
+                AddTick(last);
+            }
+            else if ((int)ticks[ticks.Count - 1] != last)
+            {
+                if (last - (int)ticks[ticks.Count - 1] < stride * 0.6)
+                {
+                    ticks.RemoveAt(ticks.Count - 1);
+                    labels.RemoveAt(labels.Count - 1);
+                }
+
+                AddTick(last);
+            }
+
+            plt.Axes.Bottom.TickGenerator =
+                new ScottPlot.TickGenerators.NumericManual(ticks.ToArray(), labels.ToArray());
+            plt.Axes.Bottom.TickLabelStyle.Rotation = 0;
+        }
+
         public byte[] CreateMonthlyIncomeBarChart(
             IEnumerable<SponsoredListingInvoice> invoices,
             Currency displayCurrency,

@@ -62,6 +62,12 @@
                 {
                     var isDefault = string.Equals(scope.Key, defaultLabel, StringComparison.OrdinalIgnoreCase);
                     var byDays = scope.ToDictionary(o => o.Days, o => o);
+                    var scopeSubId = scope.Select(o => o.ScopeSubCategoryId).FirstOrDefault();
+                    var historyUrl = Url.Action("PricingHistory", "Sponsorship", new
+                    {
+                        sponsorshipType = Model.SponsorshipType,
+                        subCategoryId = (isDefault || scopeSubId <= 0) ? (int?)null : scopeSubId,
+                    });
 
                     <tr>
                         <td>
@@ -74,6 +80,9 @@
                             {
                                 @scope.Key
                             }
+                            <span class="offer-perday">
+                                <a href="@historyUrl">180-day price history &rarr;</a>
+                            </span>
                         </td>
 
                         @foreach (var d in days)

@@ -69,6 +69,26 @@ namespace DirectoryManager.Data.Repositories.Implementations
                              .CountAsync(r => r.ExpirationDateTime > currentDate);
         }
 
+        public async Task<Guid?> GetActiveReservationGuidForEntryAsync(int directoryEntryId, string reservationGroup)
+        {
+            var currentDate = DateTime.UtcNow;
+
+            // Reservation details are built as: Type={type}; ListingId={entryId}; ListingName="...".
+            // The trailing ';' makes the marker exact (ListingId=30; won't match ListingId=300;).
+            var marker = $"ListingId={directoryEntryId};";
+
+            var reservation = await this.context
+                                        .SponsoredListingReservations
+                                        .Where(r => r.ReservationGroup == reservationGroup
+                                            && r.ExpirationDateTime > currentDate
+                                            && r.Details != null
+                                            && r.Details.Contains(marker))
+                                        .OrderByDescending(r => r.ExpirationDateTime)
+                                        .FirstOrDefaultAsync();
+
+            return reservation?.ReservationGuid;
+        }
+
         public async Task<DateTime?> GetActiveReservationExpirationAsync(string reservationGroup)
         {
             var now = DateTime.UtcNow;

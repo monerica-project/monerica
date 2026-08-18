@@ -1,0 +1,201 @@
+@model DirectoryManager.Web.Models.PricingTrendsViewModel
+@using DirectoryManager.Web.Constants;
+@using System.Globalization
+@using DirectoryManager.Data.Enums
+
+@{
+    ViewData[StringConstants.TitleHeader] = "Sponsorship Pricing Trends";
+    Layout = "_CenteredLayout";
+
+    var usd = Model.DisplayCurrency == Currency.USD;
+    var ci = CultureInfo.CreateSpecificCulture(StringConstants.EnglishUS);
+
+    Func<decimal, string> money = v => usd
+        ? v.ToString("C", ci)
+        : $"{v.ToString("0.######")} {Model.DisplayCurrency}";
+
+    // cache-buster so the chart image refreshes when filters change
+    var chartV = $"{Model.StartDate.Ticks}-{Model.EndDate.Ticks}-{(Model.SponsorshipType?.ToString() ?? "all")}-{(Model.SubCategoryId?.ToString() ?? "all")}-{Model.DisplayCurrency}";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+
+    @await Html.PartialAsync("_AdminMenu")
+    @await Html.PartialAsync("_ReportMenu")
+
+    <hr />
+
+    <p class="text-muted u-mb-8px">
+        Average <strong>price&nbsp;per&nbsp;day</strong> that advertisers actually <strong>paid</strong> for a
+        sponsorship slot, bucketed per calendar day across the range and broken out by placement
+        (Main / Category / Subcategory). Each paid invoice's daily rate is its total paid amount ÷ its
+        campaign length; a day's value is the average of every paid campaign active on that day. Days
+        with no paid campaign are gaps (they never dilute the average). Pick a single placement to see
+        it as a daily bar chart; leave it on <em>All (compare)</em> to overlay the three trends. Filter
+        further by any subcategory that has paid — only those are selectable.
+    </p>
+
+    <form method="get" asp-controller="SponsoredListingInvoice" asp-action="PricingTrends">
+        <div class="form-row">
+            <div class="form-group col-md-3">
+                <label for="SponsorshipType">Placement Type</label>
+                <select id="SponsorshipType" name="sponsorshipType" class="form-control"
+                        asp-items="Model.SponsorshipTypeOptions"></select>
+            </div>
+
+            <div class="form-group col-md-3">
+                <label for="StartDate">Start Date</label>
+                <input id="StartDate" name="startDate" type="date" class="form-control"
+                       value="@Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)" required />
+            </div>
+
+            <div class="form-group col-md-3">
+                <label for="EndDate">End Date</label>
+                <input id="EndDate" name="endDate" type="date" class="form-control"
+                       value="@Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)" required />
+            </div>
+
+            <div class="form-group col-md-3">
+                <label for="DisplayCurrency">Display Currency</label>
+                <select id="DisplayCurrency" name="displayCurrency" class="form-control"
+                        asp-items="Model.DisplayCurrencyOptions"></select>
+            </div>
+        </div>
+
+        <div class="form-row">
+            <div class="form-group col-md-6">
+                <label for="SubCategoryId">Subcategory (paying only — @Model.PayingSubcategoryCount available)</label>
+                <select id="SubCategoryId" name="subCategoryId" class="form-control"
+                        asp-items="Model.SubCategoryOptions"></select>
+            </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Update Report</button>
+    </form>
+
+    <br />
+
+    <p>
+        Range:
+        @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+        &ndash;
+        @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)
+        @if (!string.IsNullOrEmpty(Model.SubCategoryLabel))
+        {
+            <span> &nbsp;|&nbsp; <strong>Subcategory:</strong> @Model.SubCategoryLabel</span>
+        }
+    </p>
+
+    @if (!Model.HasData)
+    {
+        <div class="alert alert-warning">
+            No paid sponsorship campaigns were active in this range for the selected filters.
+        </div>
+    }
+    else
+    {
+        <div class="table-responsive">
+            <table class="table table-sm table-striped u-mb-8px">
+                <thead>
+                    <tr>
+                        <th>Placement</th>
+                        <th class="text-right">Avg / day</th>
+                        <th class="text-right">Min / day</th>
+                        <th class="text-right">Max / day</th>
+                        <th class="text-right">Days w/ data</th>
+                        <th class="text-right">Paid invoices</th>
+                        <th class="text-right">Active listing-days</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.Summary)
+                    {
+                        <tr>
+                            <td><strong>@row.TypeLabel</strong></td>
+                            <td class="text-right">@(row.DaysWithData > 0 ? money(row.AvgPerDay) : "—")</td>
+                            <td class="text-right">@(row.DaysWithData > 0 ? money(row.MinPerDay) : "—")</td>
+                            <td class="text-right">@(row.DaysWithData > 0 ? money(row.MaxPerDay) : "—")</td>
+                            <td class="text-right">@row.DaysWithData</td>
+                            <td class="text-right">@row.PaidInvoices</td>
+                            <td class="text-right">@row.ActiveListingDays.ToString("n0")</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <h3 class="u-mt-18px">Suggested Market Price <span class="text-muted" style="font-size:.7em;">(from paid history)</span></h3>
+        <p class="text-muted u-mb-8px" style="font-size:.9em;">
+            Based on the per-day rate advertisers actually paid, weighted by how long each campaign ran.
+            <strong>Suggested / day</strong> is the median going rate over the most recent
+            @Model.RecentWindowDays&nbsp;days of the range (falling back to the whole-range median when
+            there are no recent sales); the <strong>typical range</strong> is the 25th–75th percentile.
+            <strong>Suggested / campaign</strong> applies that rate to the typical purchased length.
+        </p>
+
+        <div class="table-responsive">
+            <table class="table table-sm table-bordered u-mb-8px">
+                <thead>
+                    <tr>
+                        <th>Placement</th>
+                        <th class="text-right">Suggested / day</th>
+                        <th class="text-right">Typical range / day<br /><span class="text-muted" style="font-weight:normal;">(25th–75th pct)</span></th>
+                        <th class="text-right">Recent (@Model.RecentWindowDays d) / day</th>
+                        <th class="text-right">Trend</th>
+                        <th class="text-right">Typical campaign</th>
+                        <th class="text-right">Suggested / campaign</th>
+                        <th class="text-right">Sample</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var row in Model.MarketPrices)
+                    {
+                        <tr>
+                            <td><strong>@row.TypeLabel</strong></td>
+                            @if (!row.HasData)
+                            {
+                                <td colspan="7" class="text-muted">— no paid history in this range —</td>
+                            }
+                            else
+                            {
+                                <td class="text-right"><strong>@money(row.SuggestedPerDay)</strong></td>
+                                <td class="text-right">@money(row.P25PerDay) &ndash; @money(row.P75PerDay)</td>
+                                <td class="text-right">@(row.HasRecent ? money(row.RecentPerDay) : "—")</td>
+                                <td class="text-right">
+                                    @if (row.TrendPercent.HasValue)
+                                    {
+                                        var tp = row.TrendPercent.Value;
+                                        var arrow = tp > 1 ? "▲" : (tp < -1 ? "▼" : "▬");
+                                        var color = tp > 1 ? "#2ca02c" : (tp < -1 ? "#d62728" : "#888");
+                                        <span style="color:@color;">@arrow @tp.ToString("0.#")%</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-muted">—</span>
+                                    }
+                                </td>
+                                <td class="text-right">@row.TypicalCampaignDays days</td>
+                                <td class="text-right"><strong>@money(row.SuggestedPerCampaign)</strong></td>
+                                <td class="text-right">@row.PaidInvoices inv / @row.ActiveListingDays.ToString("n0") days</td>
+                            }
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="u-mt-10px">
+            <img class="u-w-100pct"
+                 src="@Url.Action("PricingTrendsChart", "SponsoredListingInvoice", new {
+                     startDate = Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat),
+                     endDate = Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat),
+                     sponsorshipType = Model.SponsorshipType,
+                     displayCurrency = Model.DisplayCurrency,
+                     subCategoryId = Model.SubCategoryId,
+                     v = chartV
+                 })"
+                 alt="Average daily sponsorship slot price over time" />
+        </div>
+    }
+}

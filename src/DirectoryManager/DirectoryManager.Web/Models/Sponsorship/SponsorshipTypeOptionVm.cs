@@ -23,5 +23,11 @@ namespace DirectoryManager.Web.Models.Sponsorship
 
         public List<ActiveSponsorSlotVm> ActiveSlots { get; set; } = new ();
         public DateTime? YourActiveUntilUtc { get; set; }
+
+        /// <summary>Cross-tier existing-sponsor perk percent that applies to buying this placement (0 = none).</summary>
+        public decimal ExistingSponsorPerkPercent { get; set; }
+
+        /// <summary>The active tier that grants the existing-sponsor perk (for banner copy). Null when no discount.</summary>
+        public SponsorshipType? ExistingSponsorPerkBasisTier { get; set; }
     }
 }

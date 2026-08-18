@@ -523,6 +523,229 @@ namespace DirectoryManager.Web.Controllers
             return this.File(bytes, StringConstants.PngImage);
         }
 
+        // ===================== Pricing Trends (daily avg paid price per slot, per type) =====================
+        [Route("sponsoredlistinginvoice/pricing-trends")]
+        [HttpGet]
+        public async Task<IActionResult> PricingTrends(
+            DateTime? startDate,
+            DateTime? endDate,
+            SponsorshipType? sponsorshipType,
+            Currency? displayCurrency,
+            int? subCategoryId)
+        {
+            var now = DateTime.UtcNow;
+            var fromDate = startDate?.Date ?? now.AddYears(-1).Date;
+            var toDate = endDate?.Date ?? now.Date;
+
+            var model = new PricingTrendsViewModel
+            {
+                StartDate = new DateTime(fromDate.Year, fromDate.Month, fromDate.Day, 0, 0, 0, DateTimeKind.Utc),
+                EndDate = new DateTime(toDate.Year, toDate.Month, toDate.Day, 23, 59, 59, DateTimeKind.Utc),
+                SponsorshipType = sponsorshipType,
+                DisplayCurrency = displayCurrency ?? Currency.USD,
+                SubCategoryId = subCategoryId,
+            };
+
+            // Placement-type dropdown ("All (compare)" + the three real types).
+            model.SponsorshipTypeOptions = PricingTrendCalculator.Types
+                .Select(st => new SelectListItem
+                {
+                    Value = st.ToString(),
+                    Text = FriendlySponsorship(st),
+                    Selected = sponsorshipType.HasValue && sponsorshipType.Value == st,
+                })
+                .Prepend(new SelectListItem { Value = string.Empty, Text = "All (compare)", Selected = !sponsorshipType.HasValue })
+                .ToList();
+
+            // Currency dropdown.
+            model.DisplayCurrencyOptions = Enum.GetValues(typeof(Currency))
+                .Cast<Currency>()
+                .Where(c => c != Currency.Unknown)
+                .Select(c => new SelectListItem
+                {
+                    Value = c.ToString(),
+                    Text = c.ToString(),
+                    Selected = c == model.DisplayCurrency,
+                })
+                .ToList();
+
+            // Paid invoices are the whole basis of this report (who actually paid).
+            var allInvoices = await this.invoiceRepository.GetAllAsync().ConfigureAwait(false);
+            var paid = allInvoices.Where(i => i.PaymentStatus == PaymentStatus.Paid).ToList();
+
+            // Subcategory dropdown: ONLY subcategories with a paid campaign that OVERLAPS the chosen
+            // date range. Because categories get re-organized over time, an all-time list would show
+            // subcategories that don't belong to this window (stale / re-mapped); scoping to the
+            // range keeps the options in sync with what the chart can actually plot.
+            var rStart = model.StartDate.Date;
+            var rEnd = model.EndDate.Date;
+
+            bool OverlapsRange(SponsoredListingInvoice i) =>
+                i.CampaignStartDate.Date <= rEnd && i.CampaignEndDate.Date >= rStart;
+
+            var paidSubIds = paid
+                .Where(i => i.SubCategoryId.HasValue && OverlapsRange(i))
+                .Select(i => i.SubCategoryId!.Value)
+                .Distinct()
+                .ToHashSet();
+
+            // Drop a stale selection: if the picked subcategory has no paid campaign in this range
+            // (e.g. it was re-categorized), fall back to "all" so the dropdown and results agree.
+            if (subCategoryId.HasValue && !paidSubIds.Contains(subCategoryId.Value))
+            {
+                subCategoryId = null;
+                model.SubCategoryId = null;
+            }
+
+            var allSubs = await this.subCategoryRepository.GetAllAsync().ConfigureAwait(false);
+            var catNames = (await this.categoryRepository.GetAllAsync().ConfigureAwait(false))
+                .ToDictionary(c => c.CategoryId, c => c.Name);
+
+            var payingSubs = allSubs
+                .Where(s => paidSubIds.Contains(s.SubCategoryId))
+                .Select(s => new
+                {
+                    s.SubCategoryId,
+                    Label = CategoryFormatter.Format(
+                        s.Category?.Name ?? (catNames.TryGetValue(s.CategoryId, out var cn) ? cn : "Unknown"),
+                        s.Name),
+                })
+                .OrderBy(s => s.Label)
+                .ToList();
+
+            model.PayingSubcategoryCount = payingSubs.Count;
+            model.SubCategoryOptions = payingSubs
+                .Select(s => new SelectListItem
+                {
+                    Value = s.SubCategoryId.ToString(),
+                    Text = s.Label,
+                    Selected = subCategoryId.HasValue && s.SubCategoryId == subCategoryId.Value,
+                })
+                .Prepend(new SelectListItem { Value = string.Empty, Text = "All paying subcategories", Selected = !subCategoryId.HasValue })
+                .ToList();
+
+            if (subCategoryId.HasValue)
+            {
+                model.SubCategoryLabel = payingSubs.FirstOrDefault(s => s.SubCategoryId == subCategoryId.Value)?.Label;
+            }
+
+            // Restrict to the selected subcategory (if any) — the report is campaign-active driven,
+            // so we do NOT filter by CreateDate; the calculator clamps to the range's days.
+            var forCalc = subCategoryId.HasValue
+                ? paid.Where(i => i.SubCategoryId == subCategoryId.Value)
+                : paid;
+
+            var data = PricingTrendCalculator.Build(forCalc, model.DisplayCurrency, model.StartDate, model.EndDate);
+
+            var typesForSummary = sponsorshipType.HasValue
+                ? new[] { sponsorshipType.Value }
+                : PricingTrendCalculator.Types;
+
+            model.Summary = typesForSummary
+                .Select(t =>
+                {
+                    var st = data.Stats.TryGetValue(t, out var s) ? s : new PricingTrendStat();
+                    return new PricingTrendSummaryRow
+                    {
+                        Type = t,
+                        TypeLabel = FriendlySponsorship(t),
+                        AvgPerDay = st.AvgPerDay,
+                        MinPerDay = st.MinPerDay,
+                        MaxPerDay = st.MaxPerDay,
+                        DaysWithData = st.DaysWithData,
+                        PaidInvoices = st.PaidInvoices,
+                        ActiveListingDays = st.ActiveListingDays,
+                    };
+                })
+                .ToList();
+
+            // Suggested market price per placement type (median-based, recency-weighted) from paid history.
+            model.MarketPrices = typesForSummary
+                .Select(t =>
+                {
+                    var est = MarketPriceEstimator.Estimate(
+                        forCalc, t, model.DisplayCurrency, model.StartDate, model.EndDate, model.RecentWindowDays);
+                    return new MarketPriceRow
+                    {
+                        Type = t,
+                        TypeLabel = FriendlySponsorship(t),
+                        HasData = est.HasData,
+                        SuggestedPerDay = est.SuggestedPerDay,
+                        SuggestedPerCampaign = est.SuggestedPerCampaign,
+                        MedianPerDay = est.MedianPerDay,
+                        P25PerDay = est.P25PerDay,
+                        P75PerDay = est.P75PerDay,
+                        HasRecent = est.HasRecent,
+                        RecentPerDay = est.RecentPerDay,
+                        TrendPercent = est.TrendPercent,
+                        TypicalCampaignDays = est.TypicalCampaignDays,
+                        PaidInvoices = est.PaidInvoices,
+                        ActiveListingDays = est.ActiveListingDays,
+                    };
+                })
+                .ToList();
+
+            return this.View(model);
+        }
+
+        [HttpGet("sponsoredlistinginvoice/pricing-trends-chart")]
+        public async Task<IActionResult> PricingTrendsChart(
+            DateTime startDate,
+            DateTime endDate,
+            SponsorshipType? sponsorshipType,
+            Currency? displayCurrency,
+            int? subCategoryId)
+        {
+            var currency = displayCurrency ?? Currency.USD;
+
+            var allInvoices = await this.invoiceRepository.GetAllAsync().ConfigureAwait(false);
+            IEnumerable<SponsoredListingInvoice> paid = allInvoices.Where(i => i.PaymentStatus == PaymentStatus.Paid);
+
+            if (subCategoryId.HasValue)
+            {
+                paid = paid.Where(i => i.SubCategoryId == subCategoryId.Value);
+            }
+
+            var filterLabel = await this.BuildPricingFilterLabelAsync(sponsorshipType, subCategoryId).ConfigureAwait(false);
+
+            var bytes = new InvoicePlotting()
+                .CreateDailyAvgPriceByTypeChart(paid.ToList(), currency, startDate, endDate, sponsorshipType, filterLabel);
+
+            if (bytes == null || bytes.Length == 0)
+            {
+                const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
+  <rect width='100%' height='100%' fill='white'/>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
+        font-family='sans-serif' font-size='20' fill='black'>No paid data in range</text>
+</svg>";
+                return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
+            }
+
+            return this.File(bytes, StringConstants.PngImage);
+        }
+
+        private async Task<string> BuildPricingFilterLabelAsync(SponsorshipType? sponsorshipType, int? subCategoryId)
+        {
+            string left = sponsorshipType.HasValue ? FriendlySponsorship(sponsorshipType) : "All placements";
+
+            if (!subCategoryId.HasValue)
+            {
+                return left;
+            }
+
+            var sub = await this.subCategoryRepository.GetByIdAsync(subCategoryId.Value).ConfigureAwait(false);
+            if (sub is null)
+            {
+                return $"{left} : (subcategory {subCategoryId.Value})";
+            }
+
+            var catName = sub.Category?.Name
+                ?? (await this.categoryRepository.GetByIdAsync(sub.CategoryId).ConfigureAwait(false))?.Name
+                ?? "Unknown";
+
+            return $"{left} : {CategoryFormatter.Format(catName, sub.Name)}";
+        }
+
         [HttpGet("sponsoredlistinginvoice/monthlyincomebarchart")]
         public async Task<IActionResult> MonthlyIncomeBarChart(
             DateTime startDate,

@@ -34,9 +34,16 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<ContentResult> LlmsTxt()
         {
-            var content = await this.cache.GetOrCreateAsync(StringConstants.CacheKeyLlmsTxt, async entry =>
+            // Scope the cache key to a content-version stamp so the file is regenerated the moment
+            // the directory changes — and NOT before. A fixed 1-hour TTL used to let the cache lag
+            // behind a change, so the file would silently re-generate (and get re-mirrored to the
+            // CDN) at a time when the sitemap's <lastmod> showed nothing new — the "files updated
+            // but nothing changed" churn. The version stamp advances on exactly the same signals
+            // that move the sitemap, so llms.txt now changes only in lockstep with a real change.
+            var version = await this.GetContentVersionAsync();
+            var content = await this.cache.GetOrCreateAsync($"{StringConstants.CacheKeyLlmsTxt}:{version}", async entry =>
             {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6); // safety net; the key self-invalidates on change
                 return await this.BuildLlmsTxtAsync();
             }) ?? string.Empty;
 
@@ -60,13 +67,39 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         public async Task<ContentResult> LlmsFullTxt()
         {
-            var content = await this.cache.GetOrCreateAsync(StringConstants.CacheKeyLlmsFullTxt, async entry =>
+            var version = await this.GetContentVersionAsync();
+            var content = await this.cache.GetOrCreateAsync($"{StringConstants.CacheKeyLlmsFullTxt}:{version}", async entry =>
             {
-                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(1);
+                entry.AbsoluteExpirationRelativeToNow = TimeSpan.FromHours(6); // safety net; the key self-invalidates on change
                 return await this.BuildLlmsFullTxtAsync();
             }) ?? string.Empty;
 
             return this.Content(AsciiClean(content), "text/plain", Encoding.UTF8);
+        }
+
+        /// <summary>
+        /// A cheap token that changes whenever anything the llms files render changes: the newest
+        /// directory-entry create/edit, the newest category or subcategory add/rename, and the live
+        /// active-listing count (which catches scheduled/sponsor activations that flip an entry in
+        /// or out without touching its UpdateDate). Every one of these signals also advances the
+        /// sitemap's max &lt;lastmod&gt;, so folding it into the cache key keeps llms.txt / llms-full.txt
+        /// byte-stable until — and only until — a real change the mirror should pick up.
+        /// </summary>
+        private async Task<string> GetContentVersionAsync()
+        {
+            var lastEntryRevision = this.directoryEntryRepository.GetLastRevisionDate();
+            var categoryDates = await this.categoryRepository.GetAllCategoriesLastChangeDatesAsync();
+            var subcategoryDates = await this.subCategoryRepository.GetAllSubCategoriesLastChangeDatesAsync();
+            var totalActive = await this.directoryEntryRepository.TotalActive();
+
+            var latest = new[]
+            {
+                lastEntryRevision,
+                categoryDates.Values.DefaultIfEmpty(DateTime.MinValue).Max(),
+                subcategoryDates.Values.DefaultIfEmpty(DateTime.MinValue).Max(),
+            }.Max();
+
+            return $"{latest.Ticks}-{totalActive}";
         }
 
         // The static CDN mirror serves these as text/plain with NO charset, so browsers fall back

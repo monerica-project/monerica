@@ -5,6 +5,7 @@ using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.Utilities.Helpers;
+using DirectoryManager.Web.Charting;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
@@ -12,6 +13,7 @@ using DirectoryManager.Web.Models.Sponsorship;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Rendering;
 using CommonConstants =
     DirectoryManager.Common.Constants.IntegerConstants;
 using SponsorshipPricingSummaryVm = DirectoryManager.Web.Models.Sponsorship.SponsorshipPricingSummaryVm;
@@ -26,6 +28,9 @@ namespace DirectoryManager.Web.Controllers
         private const int WaitlistPreviewTake = 10;
         private const int WaitlistPageSize = 25;
         private const int RecentPaidTake = 10;
+
+        // The public (non-authenticated) pricing charts only ever look back this many days.
+        private const int PublicPricingWindowDays = 180;
 
         private readonly IDirectoryEntryRepository entryRepo;
         private readonly ICategoryRepository categoryRepo;
@@ -100,6 +105,210 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View("Index", vm);
         }
+
+        // Public pricing-trends chart for the sponsorship pages: the average per-day price paid for a
+        // slot over the last 6 months (same look as the admin report). With no sponsorshipType it
+        // overlays all placements; with one it shows just that placement (e.g. main-only).
+        [HttpGet("pricing-trends-chart")]
+        public async Task<IActionResult> PricingTrendsChart(SponsorshipType? sponsorshipType = null)
+        {
+            var end = DateTime.UtcNow.Date;
+            var start = end.AddDays(-PublicPricingWindowDays);
+
+            var invoices = await this.invoiceRepo.GetAllAsync().ConfigureAwait(false);
+            var paid = invoices.Where(i => i.PaymentStatus == PaymentStatus.Paid).ToList();
+
+            var label = sponsorshipType.HasValue && sponsorshipType.Value != SponsorshipType.Unknown
+                ? $"{EnumHelper.GetDescription(sponsorshipType.Value)} — last {PublicPricingWindowDays} days"
+                : $"Last {PublicPricingWindowDays} days — all placements";
+
+            var type = sponsorshipType == SponsorshipType.Unknown ? null : sponsorshipType;
+
+            // Current market price per day (today's asking price) for each plotted placement, drawn on
+            // the chart so buyers see where the market sits now versus the historical average.
+            var currentDaily = new Dictionary<SponsorshipType, decimal>();
+            var typesForCurrent = type.HasValue
+                ? new[] { type.Value }
+                : new[] { SponsorshipType.MainSponsor, SponsorshipType.CategorySponsor, SponsorshipType.SubcategorySponsor };
+            foreach (var t in typesForCurrent)
+            {
+                var offers = await this.offerRepo.GetByTypeAndSubCategoryAsync(t, null).ConfigureAwait(false);
+                var baseOffer = offers?
+                    .OrderBy(o => o.Days)
+                    .FirstOrDefault(o => o.Days >= 30)
+                    ?? offers?.OrderBy(o => o.Days).FirstOrDefault();
+                if (baseOffer != null && baseOffer.Days > 0)
+                {
+                    currentDaily[t] = Math.Round(baseOffer.Price / baseOffer.Days, 2);
+                }
+            }
+
+            var bytes = new InvoicePlotting().CreateDailyAvgPriceByTypeChart(
+                paid, Currency.USD, start, end, type, label,
+                currentMarketDailyByType: currentDaily);
+
+            if (bytes == null || bytes.Length == 0)
+            {
+                const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
+  <rect width='100%' height='100%' fill='white'/>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
+        font-family='sans-serif' font-size='18' fill='black'>Pricing data coming soon</text>
+</svg>";
+                return this.File(System.Text.Encoding.UTF8.GetBytes(svg), "image/svg+xml");
+            }
+
+            return this.File(bytes, StringConstants.PngImage);
+        }
+
+        // ---- Public pricing-history explorer -------------------------------------------------
+        // A public (non-authenticated) page to explore what advertisers have paid: pick a placement
+        // type + subcategory and a date range, capped to the last 180 days. Mirrors the admin report
+        // but never looks back further than the public window.
+        [HttpGet("pricing")]
+        public async Task<IActionResult> PricingHistory(
+            int? rangeDays, SponsorshipType? sponsorshipType, int? subCategoryId)
+        {
+            var range = NormalizeRangeDays(rangeDays);
+            var end = DateTime.UtcNow.Date;
+            var start = end.AddDays(-range);
+
+            var type = sponsorshipType == SponsorshipType.Unknown ? null : sponsorshipType;
+
+            var model = new PublicPricingViewModel
+            {
+                StartDate = start,
+                EndDate = end,
+                RangeDays = range,
+                WindowDays = PublicPricingWindowDays,
+                SponsorshipType = type,
+                SubCategoryId = subCategoryId,
+                RangeOptions = BuildRangeOptions(range),
+            };
+
+            model.SponsorshipTypeOptions = new[]
+                {
+                    SponsorshipType.MainSponsor, SponsorshipType.CategorySponsor, SponsorshipType.SubcategorySponsor,
+                }
+                .Select(st => new SelectListItem
+                {
+                    Value = st.ToString(),
+                    Text = EnumHelper.GetDescription(st),
+                    Selected = type.HasValue && type.Value == st,
+                })
+                .Prepend(new SelectListItem { Value = string.Empty, Text = "All (compare)", Selected = !type.HasValue })
+                .ToList();
+
+            // Subcategory dropdown: only subcategories that have any paid history (by the listing's subcategory).
+            var paid = (await this.invoiceRepo.GetAllAsync().ConfigureAwait(false))
+                .Where(i => i.PaymentStatus == PaymentStatus.Paid).ToList();
+            var entryIds = paid.Select(i => i.DirectoryEntryId).Distinct().ToList();
+            var entryLookup = await this.entryRepo.GetByIdsAsync(entryIds).ConfigureAwait(false);
+            var payingSubIds = paid
+                .Where(i => entryLookup.TryGetValue(i.DirectoryEntryId, out var e) && e != null)
+                .Select(i => entryLookup[i.DirectoryEntryId].SubCategoryId)
+                .Distinct().ToHashSet();
+
+            var allSubs = await this.subcategoryRepo.GetAllAsync().ConfigureAwait(false);
+            var allCats = (await this.categoryRepo.GetAllAsync().ConfigureAwait(false)).ToList();
+            var catNames = allCats.ToDictionary(c => c.CategoryId, c => c.Name);
+            var enabledCatIds = allCats.Where(c => c.IsEnabled).Select(c => c.CategoryId).ToHashSet();
+
+            // Only offer subcategories that have paid history AND are still enabled (skip hidden /
+            // disabled subcategories, and any whose parent category is disabled — their prices no
+            // longer matter).
+            var payingSubs = allSubs
+                .Where(s => payingSubIds.Contains(s.SubCategoryId) && s.IsEnabled && enabledCatIds.Contains(s.CategoryId))
+                .Select(s => new
+                {
+                    s.SubCategoryId,
+                    Label = DirectoryManager.Common.Helpers.CategoryFormatter.Format(
+                        s.Category?.Name ?? (catNames.TryGetValue(s.CategoryId, out var cn) ? cn : "Unknown"),
+                        s.Name),
+                })
+                .OrderBy(s => s.Label)
+                .ToList();
+
+            model.SubCategoryOptions = payingSubs
+                .Select(s => new SelectListItem
+                {
+                    Value = s.SubCategoryId.ToString(),
+                    Text = s.Label,
+                    Selected = subCategoryId.HasValue && subCategoryId.Value == s.SubCategoryId,
+                })
+                .Prepend(new SelectListItem { Value = string.Empty, Text = "All subcategories", Selected = !subCategoryId.HasValue })
+                .ToList();
+
+            if (subCategoryId.HasValue)
+            {
+                model.SubCategoryLabel = payingSubs.FirstOrDefault(s => s.SubCategoryId == subCategoryId.Value)?.Label;
+            }
+
+            return this.View(model);
+        }
+
+        [HttpGet("pricing-history-chart")]
+        public async Task<IActionResult> PricingHistoryChart(
+            int? rangeDays, SponsorshipType? sponsorshipType, int? subCategoryId)
+        {
+            var range = NormalizeRangeDays(rangeDays);
+            var end = DateTime.UtcNow.Date;
+            var start = end.AddDays(-range);
+
+            var type = sponsorshipType == SponsorshipType.Unknown ? null : sponsorshipType;
+
+            var paid = (await this.invoiceRepo.GetAllAsync().ConfigureAwait(false))
+                .Where(i => i.PaymentStatus == PaymentStatus.Paid).ToList();
+
+            var scopeLabel = "all subcategories";
+            if (subCategoryId.HasValue)
+            {
+                var entryIds = paid.Select(i => i.DirectoryEntryId).Distinct().ToList();
+                var entryLookup = await this.entryRepo.GetByIdsAsync(entryIds).ConfigureAwait(false);
+                paid = paid
+                    .Where(i => entryLookup.TryGetValue(i.DirectoryEntryId, out var e) && e != null && e.SubCategoryId == subCategoryId.Value)
+                    .ToList();
+                scopeLabel = (await this.subcategoryRepo.GetByIdAsync(subCategoryId.Value).ConfigureAwait(false))?.Name
+                    ?? $"subcategory {subCategoryId.Value}";
+            }
+
+            var typeLabel = type.HasValue ? EnumHelper.GetDescription(type.Value) : "All placements";
+            var label = $"{typeLabel} · {scopeLabel} · {start:MMM d, yyyy}–{end:MMM d, yyyy}";
+
+            var bytes = new InvoicePlotting().CreateDailyAvgPriceByTypeChart(
+                paid, Currency.USD, start, end, type, label, width: 1100, height: 460);
+
+            if (bytes == null || bytes.Length == 0)
+            {
+                const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='600' height='120'>
+  <rect width='100%' height='100%' fill='white'/>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
+        font-family='sans-serif' font-size='18' fill='#555'>No paid data for this selection</text>
+</svg>";
+                return this.File(System.Text.Encoding.UTF8.GetBytes(svg), "image/svg+xml");
+            }
+
+            return this.File(bytes, StringConstants.PngImage);
+        }
+
+        // The only look-back windows the public view offers. Never exceeds the 180-day cap.
+        private static readonly int[] AllowedRangeDays = { PublicPricingWindowDays, 90, 60, 30 };
+
+        // Snap a requested window to an allowed preset; anything invalid (or too large) → 180 days.
+        private static int NormalizeRangeDays(int? rangeDays)
+        {
+            var value = rangeDays ?? PublicPricingWindowDays;
+            return AllowedRangeDays.Contains(value) ? value : PublicPricingWindowDays;
+        }
+
+        private static List<SelectListItem> BuildRangeOptions(int selected) =>
+            AllowedRangeDays
+                .Select(d => new SelectListItem
+                {
+                    Value = d.ToString(),
+                    Text = $"Last {d} days",
+                    Selected = d == selected,
+                })
+                .ToList();
 
         [HttpGet("/sponsor-options")]
         [HttpGet("sponsorship/lookup")]
@@ -231,6 +440,30 @@ namespace DirectoryManager.Web.Controllers
             await this.PopulateMainSponsorInventoryAsync(vm);
             vm.PricingSummaries = await this.BuildPricingSummariesAsync();
             vm.CurrentUtc = DateTime.UtcNow;
+
+            // Last 10 MAIN sponsor purchases from VERIFIED listings (good standing; excludes scam /
+            // questionable), shown below the pricing graph as real proof of what people pay.
+            var mainPurchases = await this.invoiceRepo
+                .GetRecentPaidByTypeAsync(SponsorshipType.MainSponsor, 10, new[] { DirectoryStatus.Verified })
+                .ConfigureAwait(false);
+            vm.RecentPaid = new RecentPaidVm
+            {
+                Items = mainPurchases.Select(r => new RecentPaidItemVm
+                {
+                    PaidUtc = r.PaidDateUtc,
+                    SponsorshipTypeEnum = r.SponsorshipType,
+                    SponsorshipType = EnumHelper.GetDescription(r.SponsorshipType),
+                    DirectoryEntryId = r.DirectoryEntryId,
+                    Days = r.Days,
+                    AmountUsd = r.AmountUsd,
+                    PricePerDayUsd = r.PricePerDayUsd,
+                    PaidCurrency = r.PaidCurrency.ToString(),
+                    PaidAmount = r.PaidAmount,
+                    ExpiresUtc = r.ExpiresUtc,
+                    ListingName = r.ListingName,
+                    ListingUrl = r.ListingUrl,
+                }).ToList(),
+            };
 
             return this.View("MainSponsor", vm);
         }
@@ -668,6 +901,12 @@ namespace DirectoryManager.Web.Controllers
             sub.Offers = await this.LoadOffersAsync(
                 SponsorshipType.SubcategorySponsor, pricingSubId);
 
+            // Apply the cross-tier existing-sponsor perk to each placement this listing could buy, so the
+            // options page shows the same discounted pricing the buyer will get at checkout.
+            await this.ApplyExistingSponsorPerkToOptionAsync(entry.DirectoryEntryId, main);
+            await this.ApplyExistingSponsorPerkToOptionAsync(entry.DirectoryEntryId, cat);
+            await this.ApplyExistingSponsorPerkToOptionAsync(entry.DirectoryEntryId, sub);
+
             main.Waitlist = await this.BuildWaitlistPanelAsync(
                 SponsorshipType.MainSponsor, typeId: null);
 
@@ -741,6 +980,24 @@ namespace DirectoryManager.Web.Controllers
                         : Math.Round(o.Price / o.Days, 2),
                 })
                 .ToList();
+        }
+
+        private async Task ApplyExistingSponsorPerkToOptionAsync(
+            int directoryEntryId, SponsorshipTypeOptionVm option)
+        {
+            var (percent, basisTier) = await DirectoryManager.Web.Helpers.SponsorshipDiscountHelper
+                .GetCrossTierDiscountAsync(this.sponsoredListingRepo, directoryEntryId, option.SponsorshipType)
+                .ConfigureAwait(false);
+
+            option.ExistingSponsorPerkPercent = percent;
+            option.ExistingSponsorPerkBasisTier = basisTier;
+
+            foreach (var offer in option.Offers)
+            {
+                offer.DiscountPercent = percent;
+                offer.DiscountedPriceUsd = DirectoryManager.Web.Helpers.SponsorshipDiscountHelper
+                    .ApplyPercentDiscount(offer.PriceUsd, percent);
+            }
         }
 
         private async Task<SponsorshipTypeOptionVm>

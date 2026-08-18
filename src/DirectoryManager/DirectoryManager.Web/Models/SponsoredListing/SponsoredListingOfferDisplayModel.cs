@@ -24,6 +24,12 @@ namespace DirectoryManager.Web.Models.SponsoredListing
         public int SlotId { get; set; }
 
         /// <summary>
+        /// The subcategory this offer row is scoped to (0 for the Default row / Main). Used to
+        /// deep-link the row to the public pricing-history explorer for that subcategory.
+        /// </summary>
+        public int ScopeSubCategoryId { get; set; }
+
+        /// <summary>
         /// true if that slot still has space.
         /// </summary>
         public bool IsAvailable { get; set; }

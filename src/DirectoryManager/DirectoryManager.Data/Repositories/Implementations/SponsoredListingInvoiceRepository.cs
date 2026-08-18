@@ -619,6 +619,79 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }).ToList();
         }
 
+        public async Task<bool> HasPaidPurchasesForSubcategoryAsync(SponsorshipType sponsorshipType, int subCategoryId)
+        {
+            return await this.context.SponsoredListingInvoices
+                .AsNoTracking()
+                .AnyAsync(i =>
+                    i.PaymentStatus == PaymentStatus.Paid &&
+                    i.SponsorshipType == sponsorshipType &&
+                    i.Amount > 0m &&
+                    i.DirectoryEntry != null &&
+                    i.DirectoryEntry.SubCategoryId == subCategoryId)
+                .ConfigureAwait(false);
+        }
+
+        public async Task<List<RecentPaidPurchaseDto>> GetRecentPaidByTypeAsync(
+            SponsorshipType sponsorshipType, int take, IReadOnlyCollection<DirectoryStatus> allowedStatuses)
+        {
+            take = Math.Max(1, take);
+            var statuses = (allowedStatuses != null && allowedStatuses.Count > 0)
+                ? allowedStatuses.ToList()
+                : new List<DirectoryStatus> { DirectoryStatus.Verified };
+
+            var rows = await WithIncludes(this.context.SponsoredListingInvoices)
+                .AsNoTracking()
+                .Where(i => i.PaymentStatus == PaymentStatus.Paid)
+                .Where(i => i.SponsorshipType == sponsorshipType)
+                .Where(i => i.DirectoryEntry != null && statuses.Contains(i.DirectoryEntry.DirectoryStatus))
+                .OrderByDescending(i => i.CreateDate)
+                .ThenByDescending(i => i.SponsoredListingInvoiceId)
+                .Take(take)
+                .Select(i => new
+                {
+                    PaidDateUtc = i.CreateDate,
+                    i.SponsorshipType,
+                    AmountUsd = i.Amount,
+                    i.PaidInCurrency,
+                    i.PaidAmount,
+                    i.OutcomeAmount,
+                    i.CampaignStartDate,
+                    i.CampaignEndDate,
+                    i.DirectoryEntryId,
+                    ListingName = i.DirectoryEntry != null ? (i.DirectoryEntry.Name ?? "") : "",
+                    ListingUrl = i.DirectoryEntry != null ? (i.DirectoryEntry.Link ?? "") : ""
+                })
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            return rows.Select(x =>
+            {
+                var days = (x.CampaignEndDate.Date - x.CampaignStartDate.Date).Days;
+                if (days <= 0)
+                {
+                    days = 1;
+                }
+
+                var paidAmount = x.PaidAmount > 0m ? x.PaidAmount : x.OutcomeAmount;
+
+                return new RecentPaidPurchaseDto
+                {
+                    PaidDateUtc = x.PaidDateUtc,
+                    SponsorshipType = x.SponsorshipType,
+                    AmountUsd = x.AmountUsd,
+                    Days = days,
+                    PricePerDayUsd = Math.Round(x.AmountUsd / days, 2),
+                    PaidCurrency = x.PaidInCurrency,
+                    PaidAmount = paidAmount,
+                    ExpiresUtc = x.CampaignEndDate,
+                    DirectoryEntryId = x.DirectoryEntryId,
+                    ListingName = x.ListingName,
+                    ListingUrl = x.ListingUrl
+                };
+            }).ToList();
+        }
+
         // Centralize eager-loading for all places that need DirectoryEntry populated
         private static IQueryable<SponsoredListingInvoice> WithIncludes(IQueryable<SponsoredListingInvoice> q) =>
             q.Include(i => i.DirectoryEntry) // ensures DirectoryEntry and its Name are populated

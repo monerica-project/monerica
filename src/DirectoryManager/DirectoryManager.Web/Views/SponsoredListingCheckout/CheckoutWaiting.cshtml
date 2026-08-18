@@ -1,0 +1,55 @@
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Models.SponsoredListing
+@model CheckoutWaitingViewModel
+@{
+    Layout = "_CenteredLayout";
+    ViewData[StringConstants.TitleHeader] = "Checkout In Progress";
+    ViewData[StringConstants.IsIndexable] = false;
+}
+
+@section PageContent {
+    @* No JavaScript: while the spot is held, the page reloads itself every 60s to re-check. *@
+    @if (Model.Status == CheckoutWaitingStatus.Reserved)
+    {
+        <meta http-equiv="refresh" content="60" />
+    }
+
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    @if (Model.Status == CheckoutWaitingStatus.Reserved)
+    {
+        <div class="alert alert-warning" role="alert">
+            <strong>Someone is checking out this spot right now.</strong><br />
+            <b>@Model.PlacementLabel</b>
+        </div>
+        <p>
+            Their hold expires at
+            <b>@(Model.ExpiresUtc?.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)) UTC</b>
+            &mdash; about <b>@Model.MinutesLeft minute@(Model.MinutesLeft == 1 ? string.Empty : "s")</b> from now.
+        </p>
+        <p>
+            Hang tight &mdash; if they don't complete the purchase, the spot opens back up and you can grab it.
+            This page checks again on its own every minute; you can also check right now:
+        </p>
+        <p><a class="btn btn-primary btn-cta" href="@Model.RefreshUrl">Check again</a></p>
+    }
+    else if (Model.Status == CheckoutWaitingStatus.Available)
+    {
+        <div class="alert alert-success" role="alert">
+            <strong>Good news &mdash; the spot is open!</strong><br />
+            <b>@Model.PlacementLabel</b>
+        </div>
+        <p>Continue your checkout now, before someone else takes it.</p>
+        <p><a class="btn btn-primary btn-cta" href="@Model.ContinueUrl">Continue checkout &rarr;</a></p>
+    }
+    else
+    {
+        <div class="alert alert-danger" role="alert">
+            <strong>This spot was just purchased by someone else.</strong><br />
+            <b>@Model.PlacementLabel</b>
+        </div>
+        <p>It's taken now &mdash; but join the waitlist and we'll email you the moment it opens up again.</p>
+        <p><a class="btn btn-info btn-cta" href="@Model.WaitlistUrl">Join the waitlist &rarr;</a></p>
+    }
+}

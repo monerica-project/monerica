@@ -6,7 +6,12 @@
         public const int MediumPageSize = 50;
         public const int MaxPageSize = 100;
         public const int CacheDurationSeconds = 86400; // 24 hours
-        public const int ReservationMinutes = 60;
+
+        // Fixed slot-hold window (minutes): created when a buyer enters the checkout funnel and carried
+        // via the reservation guid in the URL, so they can go back, change duration, and create invoices
+        // within it. It is NOT extended by navigation or invoice creation — a hard cap so that abandoned
+        // checkouts free the slot quickly (an unpaid invoice never blocks a slot beyond this window).
+        public const int ReservationMinutes = 15;
         public const int NewestRevisionsToDisplay = 3;
         public const int DefaultAlternativePort = 8081;
         public const int DefaultRemoteHttpPort = 5055;
