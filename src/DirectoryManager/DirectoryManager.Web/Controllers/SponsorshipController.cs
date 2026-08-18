@@ -110,7 +110,7 @@ namespace DirectoryManager.Web.Controllers
         // slot over the last 6 months (same look as the admin report). With no sponsorshipType it
         // overlays all placements; with one it shows just that placement (e.g. main-only).
         [HttpGet("pricing-trends-chart")]
-        public async Task<IActionResult> PricingTrendsChart(SponsorshipType? sponsorshipType = null)
+        public async Task<IActionResult> PricingTrendsChart(SponsorshipType? sponsorshipType = null, bool showCurrentMarket = true)
         {
             var end = DateTime.UtcNow.Date;
             var start = end.AddDays(-PublicPricingWindowDays);
@@ -126,20 +126,26 @@ namespace DirectoryManager.Web.Controllers
 
             // Current market price per day (today's asking price) for each plotted placement, drawn on
             // the chart so buyers see where the market sits now versus the historical average.
+            // The dashed "current market price" reference lines are drawn on the single-placement pages
+            // (e.g. /sponsorship/main) but suppressed on the all-placements overview (/sponsorship),
+            // where three overlaid dashed lines just clutter the chart.
             var currentDaily = new Dictionary<SponsorshipType, decimal>();
-            var typesForCurrent = type.HasValue
-                ? new[] { type.Value }
-                : new[] { SponsorshipType.MainSponsor, SponsorshipType.CategorySponsor, SponsorshipType.SubcategorySponsor };
-            foreach (var t in typesForCurrent)
+            if (showCurrentMarket)
             {
-                var offers = await this.offerRepo.GetByTypeAndSubCategoryAsync(t, null).ConfigureAwait(false);
-                var baseOffer = offers?
-                    .OrderBy(o => o.Days)
-                    .FirstOrDefault(o => o.Days >= 30)
-                    ?? offers?.OrderBy(o => o.Days).FirstOrDefault();
-                if (baseOffer != null && baseOffer.Days > 0)
+                var typesForCurrent = type.HasValue
+                    ? new[] { type.Value }
+                    : new[] { SponsorshipType.MainSponsor, SponsorshipType.CategorySponsor, SponsorshipType.SubcategorySponsor };
+                foreach (var t in typesForCurrent)
                 {
-                    currentDaily[t] = Math.Round(baseOffer.Price / baseOffer.Days, 2);
+                    var offers = await this.offerRepo.GetByTypeAndSubCategoryAsync(t, null).ConfigureAwait(false);
+                    var baseOffer = offers?
+                        .OrderBy(o => o.Days)
+                        .FirstOrDefault(o => o.Days >= 30)
+                        ?? offers?.OrderBy(o => o.Days).FirstOrDefault();
+                    if (baseOffer != null && baseOffer.Days > 0)
+                    {
+                        currentDaily[t] = Math.Round(baseOffer.Price / baseOffer.Days, 2);
+                    }
                 }
             }
 

@@ -317,7 +317,7 @@
         </p>
         <div class="table-wrapper">
             <img class="u-w-100pct"
-                 src="@Url.Action("PricingTrendsChart", "Sponsorship", new { v = trendEnd.ToString("yyyyMMdd") })"
+                 src="@Url.Action("PricingTrendsChart", "Sponsorship", new { showCurrentMarket = false, v = trendEnd.ToString("yyyyMMdd") })"
                  alt="Sponsorship price trends over the last 180 days" />
         </div>
 

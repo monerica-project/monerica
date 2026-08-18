@@ -621,11 +621,56 @@ EOF
 
 task_configure_nginx() {
     write_task "ConfigureNginx"
-    local cert_exists
+    # Bunny mode: app.monerica.com is fronted by a Bunny pull zone for DDoS protection. The origin
+    # keeps a long-lived SELF-SIGNED cert (Bunny connects with origin-SSL-verify OFF) plus an origin
+    # gate snippet that 403s any request lacking Bunny's secret header — so a direct flood of the
+    # origin IP dies at nginx before reaching Kestrel/the DB. The secret lives ONLY in the snippet
+    # (/etc/nginx/snippets/bunny-origin-gate.conf) on the server, never in this repo. If both the
+    # self-signed cert and the snippet are present we regenerate in Bunny mode; this keeps the gate
+    # and cert path intact across every deploy. Falls back to Let's Encrypt, then HTTP-only.
+    local bunny_mode cert_exists
+    bunny_mode=$(ssh_query "test -f /etc/nginx/ssl/app-origin/fullchain.pem && test -f /etc/nginx/snippets/bunny-origin-gate.conf && echo yes || echo no")
     cert_exists=$(ssh_query "test -f /etc/letsencrypt/live/$DOMAIN/fullchain.pem && echo yes || echo no")
 
     local nginx_file="/tmp/$APP_NAME.nginx.conf.local"
-    if [[ "$cert_exists" == "yes" ]]; then
+    if [[ "$bunny_mode" == "yes" ]]; then
+        cat > "$nginx_file" <<EOF
+server {
+    listen 80;
+    listen [::]:80;
+    server_name $DOMAIN www.$DOMAIN;
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / { return 301 https://\$host\$request_uri; }
+}
+server {
+    listen 443 ssl;
+    listen [::]:443 ssl;
+    server_name $DOMAIN www.$DOMAIN;
+    ssl_certificate /etc/nginx/ssl/app-origin/fullchain.pem;
+    ssl_certificate_key /etc/nginx/ssl/app-origin/privkey.pem;
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    add_header Strict-Transport-Security "max-age=31536000" always;
+    include /etc/nginx/snippets/bunny-origin-gate.conf;
+
+    client_max_body_size 50M;
+    proxy_read_timeout 300s;
+
+    location / {
+        proxy_pass         http://127.0.0.1:$APP_PORT;
+        proxy_http_version 1.1;
+        proxy_set_header   Upgrade \$http_upgrade;
+        proxy_set_header   Connection keep-alive;
+        proxy_set_header   Host \$host;
+        proxy_set_header   X-Real-IP \$remote_addr;
+        proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
+        proxy_set_header   X-Forwarded-Proto \$scheme;
+        proxy_cache_bypass \$http_upgrade;
+    }
+}
+EOF
+        write_ok "Nginx: HTTPS proxy (Bunny origin — self-signed cert + origin gate)"
+    elif [[ "$cert_exists" == "yes" ]]; then
         cat > "$nginx_file" <<EOF
 server {
     listen 80;
