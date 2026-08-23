@@ -48,6 +48,11 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Video Link", Prompt = "Video link of using the site")]
         public string? VideoLink { get; set; }
 
+        // URL
+        [MaxLength(500)]
+        [Display(Name = "Source Code Link", Prompt = "Link to the source code, e.g. GitHub or Codeberg")]
+        public string? SourceCodeLink { get; set; }
+
         [MaxLength(255)]
         [Display(Name = "Email", Prompt = "contact@example.com")]
         [CleanSingleLine]

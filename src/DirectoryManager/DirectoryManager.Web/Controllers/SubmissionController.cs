@@ -170,6 +170,11 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(nameof(model.VideoLink), "The video link is not a valid URL.");
             }
 
+            if (!string.IsNullOrWhiteSpace(model.SourceCodeLink) && !UrlHelper.IsValidUrl(model.SourceCodeLink))
+            {
+                this.ModelState.AddModelError(nameof(model.SourceCodeLink), "The source code link is not a valid URL.");
+            }
+
             // Links belong in the dedicated Link fields, not in free-text. Reject URLs
             // pasted into the Description or Note so submitters stop putting them there.
             if (UrlHelper.ContainsUrl(model.Description))
@@ -328,9 +333,10 @@ namespace DirectoryManager.Web.Controllers
             var entryTags = await this.entryTagRepo.GetTagsForEntryAsync(id);
 
             var model = GetSubmissionRequestModel(directoryEntry);
-            model.Tags = string.Join(
-                ", ",
-                entryTags.OrderBy(t => t.Name, StringComparer.OrdinalIgnoreCase).Select(t => t.Name));
+
+            // Existing tags are reflected by the checkbox grid (SelectedTagIds) below — do NOT
+            // pre-fill the free-text "Suggested Tags" box, which is only for proposing NEW tags.
+            model.Tags = null;
 
             // ✅ pre-check existing tag ids
             model.SelectedTagIds = entryTags.Select(t => t.TagId).Distinct().ToList();
@@ -866,14 +872,27 @@ namespace DirectoryManager.Web.Controllers
             try
             {
                 var invoice = await this.btcPay.GetInvoiceOnStoreAsync(storeId, item.BtcPayInvoiceId!);
-                var isPaid = invoice.IsSettled || invoice.Status == "Processing";
-                if (!isPaid)
+
+                // Donations are pay-what-you-want, so count funds that arrived even if the
+                // invoice window had expired by the time the payment confirmed (PaidLate).
+                if (!invoice.IsPaidOrLate)
                 {
                     return;
                 }
 
                 decimal? amount = decimal.TryParse(invoice.Amount, out var a) && a > 0 ? a : null;
                 var currency = string.IsNullOrWhiteSpace(invoice.Currency) ? null : invoice.Currency;
+
+                // Top-up invoices report an invoice amount of 0, so record the actual XMR received.
+                if (amount is null)
+                {
+                    var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(storeId, item.BtcPayInvoiceId!);
+                    if (xmr is not null && decimal.TryParse(xmr.TotalPaid, out var xmrPaid) && xmrPaid > 0)
+                    {
+                        amount = xmrPaid;
+                        currency = "XMR";
+                    }
+                }
 
                 await this.submissionRepository.SetPaidAsync(item.SubmissionId, amount, currency);
 
@@ -1239,6 +1258,7 @@ namespace DirectoryManager.Web.Controllers
                 Location = directoryEntry.Location,
                 ProofLink = directoryEntry.ProofLink,
                 VideoLink = directoryEntry.VideoLink,
+                SourceCodeLink = directoryEntry.SourceCodeLink,
                 Name = directoryEntry.Name,
                 Note = directoryEntry.Note,
                 Processor = directoryEntry.Processor,
@@ -1276,6 +1296,7 @@ namespace DirectoryManager.Web.Controllers
                 Link3 = submission.Link3,
                 ProofLink = submission.ProofLink,
                 VideoLink = submission.VideoLink,
+                SourceCodeLink = submission.SourceCodeLink,
                 Location = submission.Location,
                 Name = submission.Name,
                 Note = submission.Note,
@@ -1749,6 +1770,7 @@ namespace DirectoryManager.Web.Controllers
                     PgpKey = model.PgpKey?.Trim(),
                     ProofLink = model.ProofLink?.Trim(),
                     VideoLink = model.VideoLink?.Trim(),
+                    SourceCodeLink = model.SourceCodeLink?.Trim(),
                     FoundedDate = model.FoundedDate,
                 });
         }
@@ -1783,6 +1805,7 @@ namespace DirectoryManager.Web.Controllers
             existing.KycPolicy = model.KycPolicy;
             existing.PgpKey = model.PgpKey?.Trim();
             existing.ProofLink = model.ProofLink?.Trim();
+            existing.SourceCodeLink = model.SourceCodeLink?.Trim();
             existing.FoundedDate = model.FoundedDate;
 
             if (model.DirectoryStatus != null)
@@ -1814,6 +1837,7 @@ namespace DirectoryManager.Web.Controllers
                 Link3 = (model.Link3 ?? string.Empty).Trim(),
                 ProofLink = (model.ProofLink ?? string.Empty).Trim(),
                 VideoLink = (model.VideoLink ?? string.Empty).Trim(),
+                SourceCodeLink = (model.SourceCodeLink ?? string.Empty).Trim(),
                 Description = (model.Description ?? string.Empty).Trim(),
                 Location = (model.Location ?? string.Empty).Trim(),
                 Processor = (model.Processor ?? string.Empty).Trim(),
@@ -1883,6 +1907,7 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.PgpKey = submissionModel.PgpKey;
             existingSubmission.ProofLink = submissionModel.ProofLink;
             existingSubmission.VideoLink = submissionModel.VideoLink;
+            existingSubmission.SourceCodeLink = submissionModel.SourceCodeLink;
             existingSubmission.SelectedTagIdsCsv = submissionModel.SelectedTagIdsCsv;
             existingSubmission.RelatedLinks = submissionModel.RelatedLinks;
             existingSubmission.FoundedDate = submissionModel.FoundedDate;
@@ -2019,6 +2044,11 @@ namespace DirectoryManager.Web.Controllers
             }
 
             if (!string.Equals(Norm(existingEntry.ProofLink), Norm(model.ProofLink), StringComparison.Ordinal))
+            {
+                return true;
+            }
+
+            if (!string.Equals(Norm(existingEntry.SourceCodeLink), Norm(model.SourceCodeLink), StringComparison.Ordinal))
             {
                 return true;
             }

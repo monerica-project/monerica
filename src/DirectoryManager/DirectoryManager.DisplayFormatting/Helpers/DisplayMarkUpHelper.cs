@@ -51,13 +51,26 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             if (isSponsorBlock)
             {
-                // ⭐ stars next
+                bool hasReviews = (model.AverageRating ?? 0) > 0 && (model.ReviewCount ?? 0) > 0;
+
+                // ⭐ stars next (renders nothing when there are no reviews yet)
                 AppendInlineStarRating(sb, model, rootUrl);
 
-                // ✅ always force new line after stars for sponsor blocks
-                if ((model.AverageRating ?? 0) > 0 && (model.ReviewCount ?? 0) > 0)
+                if (hasReviews)
                 {
+                    // ✅ always force new line after stars for sponsor blocks
                     sb.Append("<br />");
+                }
+                else
+                {
+                    // No reviews yet — invite the first one, linking to the listing's reviews section.
+                    string? reviewsUrl = BuildReviewsUrl(rootUrl, model.ItemPath);
+                    if (!string.IsNullOrWhiteSpace(reviewsUrl))
+                    {
+                        sb.Append($"<a class=\"sponsor-leave-review\" href=\"{reviewsUrl}\" " +
+                            "style=\"font-size:.85rem;color:var(--cyan);text-decoration:none;white-space:nowrap;\">" +
+                            "&#9734; Leave a review</a><br />");
+                    }
                 }
 
                 // description / note after stars

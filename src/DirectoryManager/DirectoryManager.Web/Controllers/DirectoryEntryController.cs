@@ -231,6 +231,7 @@ namespace DirectoryManager.Web.Controllers
                 PgpKey = vm.PgpKey?.Trim(),
                 ProofLink = vm.ProofLink?.Trim(),
                 VideoLink = vm.VideoLink?.Trim(),
+                SourceCodeLink = vm.SourceCodeLink?.Trim(),
                 CountryCode = vm.CountryCode,
                 KycPolicy = vm.KycPolicy,
                 FoundedDate = foundedDate
@@ -296,6 +297,7 @@ namespace DirectoryManager.Web.Controllers
                 Link3A = entry.Link3A,
                 ProofLink = entry.ProofLink,
                 VideoLink = entry.VideoLink,
+                SourceCodeLink = entry.SourceCodeLink,
                 Location = entry.Location,
                 CountryCode = entry.CountryCode,
                 KycPolicy = entry.KycPolicy,
@@ -365,6 +367,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Link3A = vm.Link3A?.Trim();
             existingEntry.ProofLink = vm.ProofLink?.Trim();
             existingEntry.VideoLink = vm.VideoLink?.Trim();
+            existingEntry.SourceCodeLink = vm.SourceCodeLink?.Trim();
             existingEntry.Name = (vm.Name ?? string.Empty).Trim();
             existingEntry.DirectoryEntryKey = StringHelpers.UrlKey(existingEntry.Name);
             existingEntry.Description = vm.Description?.Trim();
@@ -431,6 +434,7 @@ namespace DirectoryManager.Web.Controllers
                 PgpKey = directoryEntry.PgpKey,
                 ProofLink = directoryEntry.ProofLink,
                 VideoLink = directoryEntry.VideoLink,
+                SourceCodeLink = directoryEntry.SourceCodeLink,
             };
 
             foreach (var audit in audits)
@@ -1120,6 +1124,7 @@ namespace DirectoryManager.Web.Controllers
                 PgpKey = entry.PgpKey,
                 ProofLink = entry.ProofLink,
                 VideoLink = entry.VideoLink,
+                SourceCodeLink = entry.SourceCodeLink,
                 FoundedDate = entry.FoundedDate,
                 FormattedLocation = BuildLocationHtml(entry.Location, entry.CountryCode, this.urlResolver)
             };

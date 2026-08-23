@@ -155,6 +155,11 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("ProofLink", entry.ProofLink, submission.ProofLink);
             }
 
+            if (NotEqualTrimmed(entry.SourceCodeLink, submission.SourceCodeLink))
+            {
+                AddDifference("SourceCodeLink", entry.SourceCodeLink, submission.SourceCodeLink);
+            }
+
             if (NotEqualTrimmed(entry.VideoLink, submission.VideoLink))
             {
                 AddDifference("VideoLink", entry.VideoLink, submission.VideoLink);

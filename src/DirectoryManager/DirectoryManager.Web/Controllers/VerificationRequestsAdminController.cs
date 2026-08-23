@@ -51,14 +51,28 @@ namespace DirectoryManager.Web.Controllers
             try
             {
                 var invoice = await this.btcPay.GetInvoiceOnStoreAsync(storeId, item.BtcPayInvoiceId!);
-                var isPaid = invoice.IsSettled || invoice.Status == "Processing";
-                if (!isPaid)
+
+                // Donations are pay-what-you-want, so count funds that arrived even if the
+                // invoice window had expired by the time the payment confirmed (PaidLate).
+                if (!invoice.IsPaidOrLate)
                 {
                     return;
                 }
 
                 decimal? amount = decimal.TryParse(invoice.Amount, out var a) && a > 0 ? a : null;
                 var currency = string.IsNullOrWhiteSpace(invoice.Currency) ? null : invoice.Currency;
+
+                // Top-up invoices report an invoice amount of 0, so record the actual XMR received.
+                if (amount is null)
+                {
+                    var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(storeId, item.BtcPayInvoiceId!);
+                    if (xmr is not null && decimal.TryParse(xmr.TotalPaid, out var xmrPaid) && xmrPaid > 0)
+                    {
+                        amount = xmrPaid;
+                        currency = "XMR";
+                    }
+                }
+
                 var paidUtc = DateTime.UtcNow;
 
                 await this.requests.SetPaidAsync(item.VerificationRequestId, amount, currency, paidUtc, ct);

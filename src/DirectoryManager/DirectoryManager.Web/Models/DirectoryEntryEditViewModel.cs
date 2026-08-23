@@ -33,6 +33,7 @@ namespace DirectoryManager.Web.Models
         public string? Link3A { get; set; }
         public string? ProofLink { get; set; }
         public string? VideoLink { get; set; }
+        public string? SourceCodeLink { get; set; }
         public string? Location { get; set; }
         public string? CountryCode { get; set; }
         public string? Processor { get; set; }

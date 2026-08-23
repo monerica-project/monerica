@@ -47,5 +47,19 @@ namespace BtcPayServer.API.Models
 
         [JsonIgnore]
         public bool IsExpired => Status is "Expired" or "Invalid";
+
+        /// <summary>
+        /// True when the store actually received funds for a pay-what-you-want donation
+        /// invoice, including a payment that landed after the checkout window closed
+        /// (BTCPay marks these <c>Expired</c>/<c>Invalid</c> with an additional status of
+        /// <c>PaidLate</c>) or an overpayment (<c>PaidOver</c>). This is intended for the
+        /// review-donation flow only — sponsorship invoices keep the stricter
+        /// <see cref="IsSettled"/> rule and must not use this.
+        /// </summary>
+        [JsonIgnore]
+        public bool IsPaidOrLate =>
+            this.IsSettled
+            || this.Status == "Processing"
+            || this.AdditionalStatus is "PaidLate" or "PaidOver";
     }
 }

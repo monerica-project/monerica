@@ -34,6 +34,7 @@
                     <tr>
                         <th>Sponsor</th>
                         <th>Placement</th>
+                        <th class="u-text-right">Start (UTC)</th>
                         <th class="u-text-right">Expires (UTC)</th>
                         <th class="u-text-right">Renew</th>
                     </tr>
@@ -67,7 +68,8 @@
                                     <div class="u-fs-8em u-opacity-85">@item.ScopeLabel</div>
                                 }
                             </td>
-                            <td class="u-text-right">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
+                            <td class="u-text-right">@item.StartUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                            <td class="u-text-right">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                             <td class="u-text-right">
                                 @if (!string.IsNullOrWhiteSpace(item.RenewUrl))
                                 {

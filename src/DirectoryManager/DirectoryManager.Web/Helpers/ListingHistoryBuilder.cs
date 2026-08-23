@@ -114,6 +114,7 @@ namespace DirectoryManager.Web.Helpers
                 (l3,            a => a.Link3),
                 ("Video",       a => a.VideoLink),
                 ("Proof",       a => a.ProofLink),
+                ("Source Code", a => a.SourceCodeLink),
                 ("Subcategory", a => SubcategoryDisplay(a)),
                 ("Location",    a => a.Location),
                 ("Country",     a => CountryDisplay(a.CountryCode)),

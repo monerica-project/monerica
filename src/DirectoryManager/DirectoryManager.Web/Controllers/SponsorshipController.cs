@@ -1378,6 +1378,7 @@ namespace DirectoryManager.Web.Controllers
                     SponsorshipType =
                         EnumHelper.GetDescription(x.SponsorshipType),
                     ScopeLabel = await this.BuildSponsorScopeNameAsync(x),
+                    StartUtc = x.CampaignStartDate,
                     ExpiresUtc = x.CampaignEndDate,
                     RenewUrl =
                         x.DirectoryEntryId > 0

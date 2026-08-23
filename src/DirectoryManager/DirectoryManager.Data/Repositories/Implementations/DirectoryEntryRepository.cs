@@ -160,6 +160,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.Link3 = entry.Link3;
             existing.ProofLink = entry.ProofLink;
             existing.VideoLink = entry.VideoLink;
+            existing.SourceCodeLink = entry.SourceCodeLink;
             existing.DirectoryStatus = entry.DirectoryStatus;
             existing.Description = entry.Description;
             existing.Location = entry.Location;
@@ -1883,6 +1884,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 Link3 = entry.Link3,
                 ProofLink = entry.ProofLink,
                 VideoLink = entry.VideoLink,
+                SourceCodeLink = entry.SourceCodeLink,
                 CountryCode = entry.CountryCode,
                 FoundedDate = entry.FoundedDate,
                 Description = entry.Description,

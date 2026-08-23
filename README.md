@@ -348,3 +348,7 @@ Deployed file layout on the VPS:
 - `/var/www/dm-jobs/<job>/` — one directory per job, each with its own `appsettings.json` and `appsettings.Production.json`
 - `/etc/systemd/system/dm-job-<job>.{service,timer}` — installed by `deploy-jobs.sh`
 - `/etc/nginx/sites-available/<app>.conf` and `sites-enabled/` — managed by `deploy.sh --task nginx`
+
+## License
+
+MIT — see the [`LICENSE`](LICENSE) file.

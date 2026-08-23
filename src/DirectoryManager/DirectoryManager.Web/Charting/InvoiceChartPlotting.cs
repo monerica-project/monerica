@@ -732,7 +732,7 @@ namespace DirectoryManager.Web.Charting
                 double y = bars[i].Value;
                 var txt = plt.Add.Text(ValueLabel((decimal)y), x, y + yOffset);
                 txt.Alignment = ScottPlot.Alignment.LowerCenter;
-                txt.LabelFontSize = 12;
+                txt.LabelFontSize = 9;
             }
 
             string unit = displayCurrency == Currency.USD ? "USD" : displayCurrency.ToString();
@@ -743,6 +743,154 @@ namespace DirectoryManager.Web.Charting
             plt.Title($"Average Daily Revenue ({unit}/day)");
             plt.XLabel("Month");
             plt.YLabel($"{unit} per day");
+
+            AddSubtitleBelowTitle(plt, filterLabel);
+
+            return plt.GetImageBytes(1200, 600, ImageFormat.Png);
+        }
+
+        /// <summary>
+        /// Each month's revenue (campaign amounts prorated by the days that fall inside the month),
+        /// shown as bars, with a dashed reference line at the AVERAGE monthly revenue across the
+        /// completed months in range. This is the "per month" companion to the daily-average chart.
+        /// </summary>
+        public byte[] CreateMonthlyAvgRevenueChart(
+            IEnumerable<SponsoredListingInvoice> invoices,
+            Currency displayCurrency,
+            DateTime rangeStart,
+            DateTime rangeEnd,
+            string? filterLabel = null)
+        {
+            var paid = (invoices ?? Enumerable.Empty<SponsoredListingInvoice>()).ToList();
+            if (!paid.Any())
+            {
+                return Array.Empty<byte>();
+            }
+
+            var firstMonth = new DateTime(rangeStart.Year, rangeStart.Month, 1);
+            var lastMonth = new DateTime(rangeEnd.Year, rangeEnd.Month, 1);
+
+            var months = new List<DateTime>();
+            for (var m = firstMonth; m <= lastMonth; m = m.AddMonths(1))
+            {
+                months.Add(m);
+            }
+
+            var data = months.Select(m =>
+            {
+                var ms = m;
+                var me = m.AddMonths(1).AddDays(-1);
+                decimal total = 0m;
+
+                foreach (var inv in paid)
+                {
+                    var amt = inv.AmountIn(displayCurrency);
+                    if (amt <= 0m)
+                    {
+                        continue;
+                    }
+
+                    var s = inv.CampaignStartDate.Date;
+                    var e = inv.CampaignEndDate.Date;
+                    if (e < s)
+                    {
+                        continue;
+                    }
+
+                    var spanDays = (decimal)((e - s).TotalDays + 1);
+                    if (spanDays <= 0)
+                    {
+                        continue;
+                    }
+
+                    var os = s > ms ? s : ms;
+                    var oe = e < me ? e : me;
+                    if (oe < os)
+                    {
+                        continue;
+                    }
+
+                    var overlapDays = (decimal)((oe - os).TotalDays + 1);
+                    total += (amt / spanDays) * overlapDays;
+                }
+
+                return new { Month = m, Total = total };
+            }).ToList();
+
+            if (data.All(d => d.Total <= 0m))
+            {
+                return Array.Empty<byte>();
+            }
+
+            var now = DateTime.UtcNow;
+            var currentMonth = new DateTime(now.Year, now.Month, 1);
+
+            // Average monthly revenue = mean of the COMPLETED months that earned anything.
+            // The current (still-in-progress) month is excluded so a partial month doesn't drag
+            // the average down; if there are no completed earning months yet, fall back to all.
+            var completeMonths = data.Where(d => d.Total > 0m && d.Month < currentMonth).ToList();
+            var basis = completeMonths.Any() ? completeMonths : data.Where(d => d.Total > 0m).ToList();
+            decimal avgMonthly = basis.Any() ? basis.Average(d => d.Total) : 0m;
+
+            var bars = data.Select((d, idx) => new Bar
+            {
+                Position = idx,
+                Value = (double)d.Total,
+                FillColor = (d.Month.Year == now.Year && d.Month.Month == now.Month)
+                    ? Color.FromHex("#000000")
+                    : Color.FromHex("#dddddd"),
+            }).ToList();
+
+            var plt = new Plot();
+            plt.Add.Bars(bars);
+
+            ApplyMonthCategoryTicks(plt, months);
+            plt.Axes.Margins(left: 0.08, right: 0.08, bottom: 0.30, top: 0.18);
+            plt.Axes.AutoScale();
+            PadXAxisForBars(plt, bars.Count, rightPad: 1.0);
+
+            double maxBar = Math.Max(0, bars.Max(b => b.Value));
+            double yOffset = Math.Max(maxBar * 0.025, 0.001);
+            var lim = plt.Axes.GetLimits();
+            double neededTop = Math.Max(lim.Top, maxBar + Math.Max(yOffset * 1.15, 0.002));
+            if (lim.Bottom != 0 || lim.Top < neededTop)
+            {
+                plt.Axes.SetLimitsY(0, neededTop);
+            }
+
+            string ValueLabel(decimal v)
+            {
+                if (displayCurrency == Currency.USD)
+                {
+                    return v.ToString("C", CultureInfo.CreateSpecificCulture(Culture));
+                }
+
+                return v >= 1m ? v.ToString("0.000")
+                     : v >= 0.1m ? v.ToString("0.0000")
+                     : v >= 0.01m ? v.ToString("0.00000")
+                     : v >= 0.001m ? v.ToString("0.000000")
+                     : v.ToString("0.0000000").TrimEnd('0').TrimEnd('.');
+            }
+
+            for (int i = 0; i < bars.Count; i++)
+            {
+                AddBarMoneyLabel(plt, bars[i].Position, bars[i].Value + yOffset, (decimal)bars[i].Value, displayCurrency);
+            }
+
+            if (avgMonthly > 0m)
+            {
+                var avgLine = plt.Add.HorizontalLine((double)avgMonthly);
+                avgLine.Color = Colors.Black;
+                avgLine.LineWidth = 2;
+                avgLine.LinePattern = LinePattern.Dashed;
+                avgLine.LegendText = $"Average monthly revenue ({ValueLabel(avgMonthly)})";
+                plt.ShowLegend(Edge.Bottom);
+            }
+
+            string unit = displayCurrency == Currency.USD ? "USD" : displayCurrency.ToString();
+            plt.Title($"Average Monthly Revenue ({unit}/month)");
+            plt.XLabel("Month");
+            plt.YLabel($"{unit} per month");
 
             AddSubtitleBelowTitle(plt, filterLabel);
 
@@ -1203,6 +1351,33 @@ namespace DirectoryManager.Web.Charting
 
         private static string AxisUnitLabel(Currency currency) =>
             currency == Currency.USD ? "USD" : currency.ToString();
+
+        /// <summary>
+        /// Draws a money value above a bar. For USD the amount is shown in whole dollars (no cents)
+        /// so a large figure like "$12,000" reads cleanly and stays narrow. Non-USD values get a
+        /// single compact label.
+        /// </summary>
+        private static void AddBarMoneyLabel(Plot plt, double x, double labelY, decimal value, Currency displayCurrency)
+        {
+            if (displayCurrency == Currency.USD)
+            {
+                long whole = (long)Math.Round(value, MidpointRounding.AwayFromZero);
+                var wholeLabel = plt.Add.Text(
+                    "$" + whole.ToString("N0", CultureInfo.CreateSpecificCulture(Culture)), x, labelY);
+                wholeLabel.Alignment = ScottPlot.Alignment.LowerCenter;
+                wholeLabel.LabelFontSize = 9;
+                return;
+            }
+
+            string txt = value >= 1m ? value.ToString("0.000")
+                       : value >= 0.1m ? value.ToString("0.0000")
+                       : value >= 0.01m ? value.ToString("0.00000")
+                       : value >= 0.001m ? value.ToString("0.000000")
+                       : value.ToString("0.0000000").TrimEnd('0').TrimEnd('.');
+            var t = plt.Add.Text(txt, x, labelY);
+            t.Alignment = ScottPlot.Alignment.LowerCenter;
+            t.LabelFontSize = 9;
+        }
 
         private static void ApplyMonthCategoryTicks(ScottPlot.Plot plt, IReadOnlyList<DateTime> months)
         {

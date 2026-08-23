@@ -839,6 +839,55 @@ namespace DirectoryManager.Web.Controllers
             return this.File(bytes, StringConstants.PngImage);
         }
 
+        [HttpGet("sponsoredlistinginvoice/monthlyavgrevenuechart")]
+        public async Task<IActionResult> MonthlyAvgRevenueChart(
+            DateTime startDate,
+            DateTime endDate,
+            SponsorshipType? sponsorshipType,
+            Currency? displayCurrency,
+            int? subCategoryId)
+        {
+            var currency = displayCurrency ?? Currency.USD;
+
+            var monthStart = new DateTime(startDate.Year, startDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var monthEndUI = new DateTime(endDate.Year, endDate.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+
+            var invoices = await this.invoiceRepository.GetAllAsync();
+            var paid = invoices.Where(i => i.PaymentStatus == PaymentStatus.Paid);
+
+            if (sponsorshipType.HasValue)
+            {
+                paid = paid.Where(i => i.SponsorshipType == sponsorshipType.Value);
+            }
+
+            if (subCategoryId.HasValue)
+            {
+                paid = paid.Where(i => i.SubCategoryId == subCategoryId.Value);
+            }
+
+            var list = paid.ToList();
+            if (!list.Any())
+            {
+                const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
+  <rect width='100%' height='100%' fill='white'/>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
+        font-family='sans-serif' font-size='20' fill='black'>No results</text>
+</svg>";
+                return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
+            }
+
+            var paidThrough = list.Max(i => i.CampaignEndDate.Date);
+            var paidThroughMonth = new DateTime(paidThrough.Year, paidThrough.Month, 1, 0, 0, 0, DateTimeKind.Utc);
+            var monthEnd = paidThroughMonth > monthEndUI ? paidThroughMonth : monthEndUI;
+
+            var filterLabel = await this.BuildFilterLabelAsync(sponsorshipType, subCategoryId);
+
+            var bytes = new InvoicePlotting()
+                .CreateMonthlyAvgRevenueChart(list, currency, monthStart, monthEnd, filterLabel);
+
+            return this.File(bytes, StringConstants.PngImage);
+        }
+
         // NEW: Churn report action
         [Route("sponsoredlistinginvoice/churn")]
         [HttpGet]

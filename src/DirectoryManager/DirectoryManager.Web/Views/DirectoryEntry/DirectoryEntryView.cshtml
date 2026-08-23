@@ -257,6 +257,23 @@
                         </tr>
                     }
 
+                    @if (!string.IsNullOrEmpty(Model.SourceCodeLink))
+                    {
+                        <tr>
+                            <th scope="row">Source Code</th>
+                            <td>
+                                @if (isScam)
+                                {
+                                    <span class="multi-line-text">@Model.SourceCodeLink</span>
+                                }
+                                else
+                                {
+                                    <a class="multi-line-text" href="@Model.SourceCodeLink" target="_blank" rel="noopener">@Model.SourceCodeLink</a>
+                                }
+                            </td>
+                        </tr>
+                    }
+
                     @if (!string.IsNullOrEmpty(Model.VideoLink))
                     {
                         <tr>

@@ -34,12 +34,12 @@
     <thead>
         <tr>
             <th>ID</th>
-            <th>Create Date</th>
+            <th>Listing</th>
+            <th>Date</th>
             <th>Payment Status</th>
             <th>Amount Asked</th>
             <th>Outcome Amount</th>
             <th>Paid In Currency</th>
-            <th>Actions</th>
         </tr>
     </thead>
     <tbody>
@@ -53,8 +53,16 @@
         @foreach (var invoice in Model)
         {
             <tr>
-                <td>@invoice.SponsoredListingInvoiceId</td>
-                <td>@invoice.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
+                <td>
+                    <a href="@Url.Action("Details", new { id = invoice.SponsoredListingInvoiceId })">@invoice.SponsoredListingInvoiceId</a>
+                </td>
+                <td>
+                    @if (invoice.DirectoryEntry != null)
+                    {
+                        <a href="@Url.Action("Advertiser", new { directoryEntryId = invoice.DirectoryEntryId })">@invoice.DirectoryEntry.Name</a>
+                    }
+                </td>
+                <td>@invoice.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                 <td>
                     @if (invoice.PaymentStatus == DirectoryManager.Data.Enums.PaymentStatus.Paid)
                     {
@@ -72,9 +80,6 @@
                 <td>@invoice.Amount.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat) (@invoice.Currency.ToString())</td>
                 <td>@invoice.OutcomeAmount</td>
                 <td>@invoice.PaidInCurrency</td>
-                <td>
-                    <a href="@Url.Action("Details", new { id = invoice.SponsoredListingInvoiceId })">Details</a>
-                </td>
             </tr>
         }
     </tbody>

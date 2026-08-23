@@ -32,6 +32,9 @@ namespace DirectoryManager.Data.Models
         [MaxLength(500)]
         public string? VideoLink { get; set; }
 
+        [MaxLength(500)]
+        public string? SourceCodeLink { get; set; }
+
         [MaxLength(2)]
         public string? CountryCode { get; set; }
 

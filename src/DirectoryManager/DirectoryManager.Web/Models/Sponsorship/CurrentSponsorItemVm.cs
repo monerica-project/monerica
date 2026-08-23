@@ -22,6 +22,8 @@ namespace DirectoryManager.Web.Models.Sponsorship
         /// </summary>
         public string ScopeLabel { get; set; } = string.Empty;
 
+        public DateTime StartUtc { get; set; }
+
         public DateTime ExpiresUtc { get; set; }
 
         public string RenewUrl { get; set; } = string.Empty;

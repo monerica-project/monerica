@@ -90,6 +90,13 @@ else
         <span>Video Link:</span>
         <a target="_blank" href="@Model.VideoLink">@Model.VideoLink</a>
     }
+
+    @if (!string.IsNullOrEmpty(Model.SourceCodeLink))
+    {
+        <br />
+        <span>Source Code Link:</span>
+        <a target="_blank" href="@Model.SourceCodeLink">@Model.SourceCodeLink</a>
+    }
             
     <br />
     <br />
@@ -242,6 +249,11 @@ else
         <div class="form-group">
             <label asp-for="VideoLink">Video Link (where it shows using site)</label>
             <input class="form-control input-width" asp-for="VideoLink" />
+        </div>
+
+        <div class="form-group">
+            <label asp-for="SourceCodeLink">Source Code Link (e.g. GitHub, Codeberg)</label>
+            <input class="form-control input-width" asp-for="SourceCodeLink" />
         </div>
 
         @{

@@ -55,6 +55,8 @@ namespace DirectoryManager.Web.Models.API
 
         public string? VideoLink { get; set; }
 
+        public string? SourceCodeLink { get; set; }
+
         public bool ReviewsDisabled { get; set; }
 
         public string? PgpKey { get; set; }

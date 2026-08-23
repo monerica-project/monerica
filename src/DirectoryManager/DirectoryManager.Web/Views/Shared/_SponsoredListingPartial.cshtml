@@ -151,8 +151,6 @@
                     }
 
                     bool hasRating = avg.HasValue && count.HasValue && count.Value > 0;
-                    bool hasLinks = !string.IsNullOrWhiteSpace(vm.Link2) || !string.IsNullOrWhiteSpace(vm.Link3);
-                    bool hasFlag = !string.IsNullOrWhiteSpace(vm.CountryCode);
 
                     // /site/sitename#reviews
                     var reviewsUrl = UrlBuilder.ListingPath(vm.DirectoryEntryKey) + "#reviews";
@@ -167,21 +165,25 @@
                                class="title"><b>@vm.Name</b></a>
                         </div>
 
-                        @* Rating on left, flag on right *@
-                        @if (hasRating || hasLinks || hasFlag)
-                        {
-                            <div class="sponsor-meta-row">
-                                <div class="sponsor-rating">
-                                    @if (hasRating)
-                                    {
-                                        @RenderRatingStarsWithLinkedCount(avg!.Value, count!.Value, reviewsUrl)
-                                    }
-                                </div>
-                                <div class="sponsor-flag">
-                                    @RenderCountryFlagRight(vm.CountryCode)
-                                </div>
+                        @* Rating on left, flag on right. Always shown: stars when the sponsor has
+                           reviews, otherwise a "Leave a review" link to the listing's reviews section
+                           so visitors can add the first review. *@
+                        <div class="sponsor-meta-row">
+                            <div class="sponsor-rating">
+                                @if (hasRating)
+                                {
+                                    @RenderRatingStarsWithLinkedCount(avg!.Value, count!.Value, reviewsUrl)
+                                }
+                                else
+                                {
+                                    <a class="sponsor-leave-review" href="@reviewsUrl"
+                                       style="font-size:.85rem;color:var(--cyan);text-decoration:none;white-space:nowrap;">&#9734; Leave a review</a>
+                                }
                             </div>
-                        }
+                            <div class="sponsor-flag">
+                                @RenderCountryFlagRight(vm.CountryCode)
+                            </div>
+                        </div>
 
                         <!-- Truncated HTML-safe description -->
                         <p class="sponsor-desc">

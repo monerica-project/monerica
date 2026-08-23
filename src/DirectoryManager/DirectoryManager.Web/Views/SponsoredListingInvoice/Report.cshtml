@@ -194,7 +194,21 @@
  v = chartV
  })"
  alt="Average Daily Revenue per Month (@Model.DisplayCurrency)" />
- 
+
+    <br />
+
+    <!-- Average Monthly Revenue (revenue per month, with the average line) -->
+    <img class="u-w-100pct"
+ src="@Url.Action("MonthlyAvgRevenueChart", "SponsoredListingInvoice", new {
+ startDate = Model.StartDate,
+ endDate = Model.EndDate,
+ sponsorshipType = Model.SponsorshipType,
+ displayCurrency = Model.DisplayCurrency,
+ subCategoryId = Model.SubCategoryId,
+ v = chartV
+ })"
+ alt="Average Monthly Revenue (@Model.DisplayCurrency)" />
+
     <br />
     <img class="u-w-100pct"
  src="@Url.Action("MonthlyAvgPerListingDailyPriceChart", "SponsoredListingInvoice", new {

@@ -57,6 +57,12 @@ namespace DirectoryManager.Data.Models
         /// </summary>
         public string? VideoLink { get; set; } = string.Empty;
 
+        /// <summary>
+        /// An optional link to the source code for the site (e.g. GitHub, Codeberg).
+        /// </summary>
+        [MaxLength(500)]
+        public string? SourceCodeLink { get; set; }
+
         [Required]
         public DirectoryStatus DirectoryStatus { get; set; }
 
@@ -145,6 +151,7 @@ namespace DirectoryManager.Data.Models
                 this.SubCategoryId == other.SubCategoryId &&
                 this.ProofLink == other.ProofLink &&
                 this.VideoLink == other.VideoLink &&
+                this.SourceCodeLink == other.SourceCodeLink &&
                 this.FoundedDate == other.FoundedDate;
         }
 
