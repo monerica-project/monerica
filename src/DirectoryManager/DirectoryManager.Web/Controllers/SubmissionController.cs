@@ -277,6 +277,19 @@ namespace DirectoryManager.Web.Controllers
                     $"Your note is {model.Note.Length} characters, which is over the {SubmissionRequest.NoteMaxLength}-character limit. Please shorten it and submit again.");
             }
 
+            // Same for the Description: no hard maxlength on the field (so a pasted or existing
+            // longer description is never silently truncated), so surface an explicit over-length
+            // error. The limit matches the DirectoryEntries.Description DB column, so anything the
+            // admin side can save also passes here.
+            if (!string.IsNullOrEmpty(model.Description)
+                && model.Description.Length > SubmissionRequest.DescriptionMaxLength
+                && (this.ModelState[nameof(model.Description)]?.Errors.Count ?? 0) == 0)
+            {
+                this.ModelState.AddModelError(
+                    nameof(model.Description),
+                    $"Your description is {model.Description.Length} characters, which is over the {SubmissionRequest.DescriptionMaxLength}-character limit. Please shorten it and submit again.");
+            }
+
             // ---- If invalid, reload dropdowns + tag list and return to SubmitEdit ----
             if (!this.ModelState.IsValid)
             {
@@ -386,6 +399,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(entries);
         }
 
+        [Authorize]
         [HttpGet("submission/audit/{entryId}")]
         public async Task<IActionResult> AuditAync(int entryId)
         {

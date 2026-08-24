@@ -1005,7 +1005,6 @@ namespace DirectoryManager.Web.Controllers
         }
 
         // --- Subcategory Revenue Pie ---
-        [AllowAnonymous]
         [HttpGet("sponsoredlistinginvoice/subcategory-revenue-pie")]
         public async Task<IActionResult> SubcategoryRevenuePieChart(
             DateTime? startDate,
@@ -1058,7 +1057,6 @@ namespace DirectoryManager.Web.Controllers
         }
 
         // --- Country Revenue Pie ---
-        [AllowAnonymous]
         [HttpGet("sponsoredlistinginvoice/country-revenue-pie")]
         public async Task<IActionResult> CountryRevenuePieChart(
             DateTime? startDate,

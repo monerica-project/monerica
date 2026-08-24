@@ -201,7 +201,7 @@
                         @if (totalPctOff.HasValue && totalPctOff.Value > 0 && totalSaved.HasValue && totalSaved.Value > 0)
                         {
                             <span class="text-danger u-ml-6px">
-                                (Total @(totalPctOff)% off, save @totalSaved.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture))
+                                (@(totalPctOff)% off, save @totalSaved.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture))
                             </span>
                         }
 

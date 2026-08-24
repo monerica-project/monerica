@@ -478,9 +478,11 @@ namespace DirectoryManager.Web.Controllers
             return this.View(item);
         }
 
+        [Authorize]
         [HttpGet("create")]
         public IActionResult Create() => this.View(new CreateDirectoryEntryReviewInputModel());
 
+        [Authorize]
         [HttpPost("create")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(CreateDirectoryEntryReviewInputModel input, CancellationToken ct)
@@ -561,10 +563,12 @@ namespace DirectoryManager.Web.Controllers
 
         // Old edit path — now lives in ReviewModerationController.
         // Keep a redirect so any existing Edit buttons / bookmarks still work.
+        [Authorize]
         [HttpGet("{id:int}/edit")]
         public IActionResult Edit(int id)
             => this.RedirectToAction("Edit", "ReviewModeration", new { id });
 
+        [Authorize]
         [HttpPost("{id:int}/delete")]
         public async Task<IActionResult> Delete(int id, CancellationToken ct = default)
         {
@@ -577,6 +581,7 @@ namespace DirectoryManager.Web.Controllers
             return this.View(item);
         }
 
+        [Authorize]
         [HttpPost("{id:int}/delete/confirmed")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id, CancellationToken ct = default)

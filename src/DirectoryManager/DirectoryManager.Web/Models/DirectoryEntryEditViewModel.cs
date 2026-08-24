@@ -7,6 +7,12 @@ namespace DirectoryManager.Web.Models
 {
     public class DirectoryEntryEditViewModel : IValidatableObject
     {
+        // Length limits match the public SubmissionRequest so admin edit and public submit
+        // validate identically. Both are editorial caps (well under the DB columns) that keep
+        // listing cards compact.
+        public const int DescriptionMaxLength = 175;   // editorial limit (mirrors SubmissionRequest)
+        public const int NoteMaxLength = 250;          // editorial limit (mirrors SubmissionRequest)
+
         public int DirectoryEntryId { get; set; }
 
         [Required]
@@ -85,6 +91,23 @@ namespace DirectoryManager.Web.Models
         public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
         {
             var results = new List<ValidationResult>(InputHtmlGuard.Validate(this));
+
+            // Description / Note length: no hard HTML maxlength on these fields (so a long value
+            // is never silently truncated) — surface a clear over-length error instead, at the
+            // same limits the public submit enforces. Keeps admin edit and submit in lockstep.
+            if (!string.IsNullOrEmpty(this.Description) && this.Description.Length > DescriptionMaxLength)
+            {
+                results.Add(new ValidationResult(
+                    $"The description is {this.Description.Length} characters, which is over the {DescriptionMaxLength}-character limit. Please shorten it.",
+                    new[] { nameof(this.Description) }));
+            }
+
+            if (!string.IsNullOrEmpty(this.Note) && this.Note.Length > NoteMaxLength)
+            {
+                results.Add(new ValidationResult(
+                    $"The note is {this.Note.Length} characters, which is over the {NoteMaxLength}-character limit. Please shorten it.",
+                    new[] { nameof(this.Note) }));
+            }
 
             // PgpKey is [AllowHtml]-exempt from the guard, so require it to be a genuine
             // ASCII-armored PGP public key — the exemption must not smuggle real markup.

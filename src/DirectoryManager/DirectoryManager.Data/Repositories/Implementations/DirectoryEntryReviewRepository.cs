@@ -79,6 +79,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task AddAsync(DirectoryEntryReview entity, CancellationToken ct = default)
         {
+            // Every review must carry an author thumbprint (PGP fingerprint). The public
+            // review flow always supplies one from the PGP-verified session. If any path ever
+            // tries to persist a review with no key, it can't be trusted or auto-published:
+            // at this single insert choke point we label the missing key and force the review
+            // into the moderation queue (Flagged) so a human reviews it, instead of silently
+            // accepting a keyless, unattributable review.
+            if (string.IsNullOrWhiteSpace(entity.AuthorFingerprint))
+            {
+                entity.AuthorFingerprint = "UNKNOWN";
+                entity.ModerationStatus = ReviewModerationStatus.Flagged;
+            }
+
             entity.CreateDate = DateTime.UtcNow;
             entity.UpdateDate = null;
             this.Set.Add(entity);

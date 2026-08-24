@@ -10,13 +10,15 @@ namespace DirectoryManager.Web.Helpers
                 RegexOptions.Compiled |
                 RegexOptions.IgnoreCase);
 
-        // Detects a URL embedded anywhere in free text: an explicit scheme (http/https/ftp),
-        // a "www." prefix, or a bare domain with a common TLD (e.g. "example.com"). Kept
-        // fairly strict on bare domains (known TLD list) to avoid flagging ordinary prose.
+        // Detects an actual link embedded in free text: an explicit scheme (http/https/ftp),
+        // a "www." prefix, or a bare domain with a common TLD that is FOLLOWED BY A PATH
+        // (e.g. "example.com/page"). The trailing "/..." requirement is deliberate: it stops
+        // ordinary product names written in prose — "addy.io", "Proton.me", "Private.Storage" —
+        // from being mis-flagged as links, while still catching pasted clickable URLs.
         private static readonly Regex UrlInTextRegex =
             new Regex(
                 @"(?:https?://|ftp://|www\.)\S+" +
-                @"|\b[a-z0-9][a-z0-9\-]*\.(?:com|net|org|io|co|xyz|info|me|biz|app|dev|site|online|tech|live|link|money|cash|exchange|finance|market|store|shop|page|gg|to|cc|ru|de|uk|nl|eu|onion|i2p)\b",
+                @"|\b[a-z0-9][a-z0-9\-]*\.(?:com|net|org|io|co|xyz|info|me|biz|app|dev|site|online|tech|live|link|money|cash|exchange|finance|market|store|shop|page|gg|to|cc|ru|de|uk|nl|eu|onion|i2p)/\S*",
                 RegexOptions.Compiled |
                 RegexOptions.IgnoreCase);
 

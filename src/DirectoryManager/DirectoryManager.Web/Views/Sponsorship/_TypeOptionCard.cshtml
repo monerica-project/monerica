@@ -265,7 +265,7 @@
                             }
                             @if (o.HasExistingSponsorPerk && totalPctOff.HasValue && totalPctOff.Value > 0)
                             {
-                                <div class="text-danger perk-savings-line">Total @(totalPctOff)% off</div>
+                                <div class="text-danger perk-savings-line">@(totalPctOff)% off</div>
                                 <div class="text-danger perk-savings-line">save @totalSaved!.Value.ToString("C2", usd)</div>
                             }
                             else if (volumeSaved.HasValue && volumeSaved.Value > 0 && volumePctOff.HasValue && volumePctOff.Value > 0)

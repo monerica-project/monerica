@@ -22,8 +22,18 @@ namespace DirectoryManager.Web.Models
         [CleanSingleLine]
         public string Name { get; set; } = string.Empty;
 
+        /// <summary>
+        /// Max length of the listing description. Kept short by design so listing cards stay
+        /// compact; the DB column allows more, but 175 is the intended editorial limit and is
+        /// enforced identically on the admin edit form (see DirectoryEntryEditViewModel).
+        /// </summary>
+        public const int DescriptionMaxLength = 175;
+
+        // No [MaxLength] here on purpose: a hard HTML maxlength silently truncates a pasted
+        // description (and blocks editing existing longer listings). The length is enforced in
+        // the controller with a clear over-length error instead (see SubmissionController), so
+        // nothing is cut off silently — same pattern as Note below.
         [Required(ErrorMessage = "Please add a short description of your listing.")]
-        [MaxLength(175)]
         [Display(Name = "Description", Prompt = "Describe your listing")]
         [CleanMultiLine]
         public string Description { get; set; } = string.Empty;
@@ -94,8 +104,12 @@ namespace DirectoryManager.Web.Models
         [CleanSingleLine]
         public string? Processor { get; set; }
 
-        /// <summary>Max length of the public note shown on the listing (matches the DB column).</summary>
-        public const int NoteMaxLength = 1000;
+        /// <summary>
+        /// Max length of the public note shown on the listing. Kept short by design (editorial
+        /// limit, well under the DB column) so notes stay concise; enforced identically on the
+        /// admin edit form (see DirectoryEntryEditViewModel).
+        /// </summary>
+        public const int NoteMaxLength = 250;
 
         // No [MaxLength] here on purpose: that renders a hard HTML maxlength that silently
         // truncates a pasted note. The length is enforced in the controller with a clear

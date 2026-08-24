@@ -79,7 +79,7 @@ namespace DirectoryManager.Data.Models
         [MaxLength(2)]
         public string? CountryCode { get; set; }
 
-        [MaxLength(500)]
+        [MaxLength(175)]
         public string? Description { get; set; }
 
         [MaxLength(255)]
@@ -88,7 +88,7 @@ namespace DirectoryManager.Data.Models
         [MaxLength(255)]
         public string? Processor { get; set; }
 
-        [MaxLength(1000)]
+        [MaxLength(250)]
         public string? Note { get; set; }
 
         [MaxLength(255)]
