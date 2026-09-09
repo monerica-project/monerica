@@ -1,7 +1,7 @@
 ﻿using System.Text;
+using DirectoryManager.Web.Helpers;
 using Org.BouncyCastle.Bcpg;
 using Org.BouncyCastle.Bcpg.OpenPgp;
-using Org.BouncyCastle.Bcpg.Sig;
 
 namespace DirectoryManager.Web.Services.Interfaces
 {
@@ -35,7 +35,7 @@ namespace DirectoryManager.Web.Services.Interfaces
             // commonly Certify/Sign-only with a separate Encrypt subkey; selecting the wrong key here
             // produces ciphertext that GnuPG (and other RFC 4880 compliant clients) refuse to decrypt
             // because the recipient has no *encryption* secret key for that key id.
-            var encKey = ReadEncryptionKey(armoredPublicKey)
+            var encKey = PgpCapabilities.SelectEncryptionKey(armoredPublicKey)
                 ?? throw new InvalidOperationException("No encryption-capable public key found in the provided key block.");
 
             byte[] data = Encoding.UTF8.GetBytes(message);
@@ -84,117 +84,6 @@ namespace DirectoryManager.Web.Services.Interfaces
             aos.SetHeader("MessageID", null);
             aos.SetHeader("Hash", null);
             aos.SetHeader("Charset", null);
-        }
-
-        /// <summary>
-        /// Selects the public key that messages should be encrypted to.
-        /// Honors RFC 4880 key-usage flags: a key is only treated as an encryption recipient when its
-        /// self-signature / subkey-binding signature carries EncryptComms or EncryptStorage. A valid,
-        /// non-revoked, non-expired encryption subkey is always preferred over the primary key, and the
-        /// newest such subkey wins when more than one exists.
-        /// </summary>
-        private static PgpPublicKey? ReadEncryptionKey(string armoredPublicKey)
-        {
-            using var keyIn = PgpUtilities.GetDecoderStream(
-                new MemoryStream(Encoding.UTF8.GetBytes(armoredPublicKey)));
-
-            var bundle = new PgpPublicKeyRingBundle(keyIn);
-
-            PgpPublicKey? bestSubkey = null;
-            PgpPublicKey? bestPrimary = null;
-
-            foreach (PgpPublicKeyRing ring in bundle.GetKeyRings())
-            {
-                foreach (PgpPublicKey k in ring.GetPublicKeys())
-                {
-                    if (!IsUsableForEncryption(ring, k))
-                    {
-                        continue;
-                    }
-
-                    if (k.IsMasterKey)
-                    {
-                        if (bestPrimary is null || k.CreationTime > bestPrimary.CreationTime)
-                        {
-                            bestPrimary = k;
-                        }
-                    }
-                    else
-                    {
-                        if (bestSubkey is null || k.CreationTime > bestSubkey.CreationTime)
-                        {
-                            bestSubkey = k;
-                        }
-                    }
-                }
-            }
-
-            // Prefer a dedicated encryption subkey; fall back to an encryption-capable primary.
-            return bestSubkey ?? bestPrimary;
-        }
-
-        /// <summary>
-        /// Determines whether a key may be used as an encryption recipient.
-        /// </summary>
-        private static bool IsUsableForEncryption(PgpPublicKeyRing ring, PgpPublicKey key)
-        {
-            // The public-key algorithm must be able to encrypt at all. NOTE: PgpPublicKey.IsEncryptionKey
-            // is algorithm-based only, so it returns true for an RSA primary key even when that key is
-            // flagged Sign/Certify-only. That is exactly why the usage-flag check below is required.
-            if (!key.IsEncryptionKey)
-            {
-                return false;
-            }
-
-            if (key.IsRevoked())
-            {
-                return false;
-            }
-
-            long validSeconds = key.GetValidSeconds();
-            if (validSeconds > 0 && key.CreationTime.AddSeconds(validSeconds) < DateTime.UtcNow)
-            {
-                return false;
-            }
-
-            int? flags = GetKeyUsageFlags(ring, key);
-            if (flags.HasValue)
-            {
-                return (flags.Value & (KeyFlags.EncryptComms | KeyFlags.EncryptStorage)) != 0;
-            }
-
-            // Older keys may carry no usage flags at all; fall back to algorithm capability.
-            return true;
-        }
-
-        /// <summary>
-        /// Reads the aggregated key-usage flags advertised by the primary key for this key
-        /// (self-certification for the primary key, subkey-binding signature for subkeys).
-        /// Returns null when the key advertises no usage flags.
-        /// </summary>
-        private static int? GetKeyUsageFlags(PgpPublicKeyRing ring, PgpPublicKey key)
-        {
-            long primaryKeyId = ring.GetPublicKey().KeyId;
-            int? flags = null;
-
-            foreach (PgpSignature sig in key.GetSignatures())
-            {
-                // Only trust signatures issued by the key's own primary key.
-                if (sig.KeyId != primaryKeyId)
-                {
-                    continue;
-                }
-
-                PgpSignatureSubpacketVector? hashed = sig.GetHashedSubPackets();
-                if (hashed is null || !hashed.HasSubpacket(SignatureSubpacketTag.KeyFlags))
-                {
-                    continue;
-                }
-
-                flags = (flags ?? 0) | hashed.GetKeyFlags();
-            }
-
-            return flags;
         }
 
         /// <summary>

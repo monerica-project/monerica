@@ -63,3 +63,14 @@
         before they go live.
     </div>
 </div>
+
+<div class="form-group">
+    <label asp-for="SponsorshipDisabled">Disable sponsorship purchasing</label>
+    <input type="checkbox" id="SponsorshipDisabled" name="SponsorshipDisabled" value="true"
+    @(Model.SponsorshipDisabled ? "checked" : "") />
+    <input type="hidden" name="SponsorshipDisabled" value="false" />
+    <div class="form-text">
+        When enabled, listings in this subcategory cannot buy any sponsorship — attempting to
+        select a duration shows a "not allowed" message. Sponsorship is allowed by default.
+    </div>
+</div>

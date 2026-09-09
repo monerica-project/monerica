@@ -1355,7 +1355,8 @@ namespace DirectoryManager.Web.Controllers
 
             var ordered = active
                 .Where(x => x.CampaignEndDate > now)
-                .OrderBy(x => x.CampaignEndDate)
+                // Longest time until expiration first (furthest-out end date at the top).
+                .OrderByDescending(x => x.CampaignEndDate)
                 .ThenBy(
                     x => x.DirectoryEntry?.Name,
                     StringComparer.OrdinalIgnoreCase)

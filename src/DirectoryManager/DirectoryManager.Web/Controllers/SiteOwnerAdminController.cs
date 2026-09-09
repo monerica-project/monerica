@@ -142,11 +142,27 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("~/Views/SiteOwnerAdmin/SubmitKey.cshtml", loginVm);
             }
 
-            // ✅ Must match the listing’s stored PGP key (primary or subkeys)
+            // ✅ Must match the listing’s stored PGP key. Historically the submitted identity
+            // fingerprint was matched against ANY stored fingerprint (primary or subkey). We ALSO
+            // accept a match on the PRIMARY key fingerprint, so a routine OpenPGP key update — adding
+            // or rotating an encryption subkey, extending expiry — is still recognized as the same
+            // owner instead of being rejected as a different key. The primary fingerprint is
+            // unforgeable (an attacker would have to reuse the owner's real primary public key, whose
+            // secret they don't hold), and the encryption challenge below still proves control by
+            // requiring the code to be decrypted with the key's (verified) encryption subkey.
             var entryFps = PgpFingerprintTools.GetAllFingerprints(entry.PgpKey);
             var submittedNorm = PgpFingerprintTools.Normalize(fp);
 
-            bool matchesListingKey = entryFps.Any(listingFp => PgpFingerprintTools.Matches(submittedNorm, listingFp));
+            bool matchesAnyStoredFp = entryFps.Any(listingFp => PgpFingerprintTools.Matches(submittedNorm, listingFp));
+
+            var storedPrimaryFp = PgpCapabilities.GetPrimaryFingerprint(entry.PgpKey);
+            var submittedPrimaryFp = PgpCapabilities.GetPrimaryFingerprint(pgpArmored);
+            bool matchesPrimaryFp =
+                !string.IsNullOrEmpty(storedPrimaryFp) &&
+                !string.IsNullOrEmpty(submittedPrimaryFp) &&
+                PgpFingerprintTools.Matches(storedPrimaryFp, submittedPrimaryFp);
+
+            bool matchesListingKey = matchesAnyStoredFp || matchesPrimaryFp;
             if (!matchesListingKey)
             {
                 this.ModelState.AddModelError(string.Empty, "That PGP key does not match the PGP key on this listing.");

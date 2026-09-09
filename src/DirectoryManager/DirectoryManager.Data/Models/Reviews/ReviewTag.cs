@@ -26,6 +26,13 @@ namespace DirectoryManager.Data.Models.Reviews
 
         public bool IsEnabled { get; set; } = true;
 
+        // When false, the tag is hidden from the public "leave a review" tag picker
+        // (reviewers can't self-apply it) but remains fully usable by moderators and
+        // still renders as a badge on reviews it's applied to. Use for admin-only
+        // signals like "Valid Order" (moderator-verified) or "Suspicious Review".
+        [Display(Name = "Public tag — reviewers can select it (uncheck for admin-only tags)")]
+        public bool ReviewerSelectable { get; set; } = true;
+
         // =========================================================
         // Optional money-range metadata.
         //

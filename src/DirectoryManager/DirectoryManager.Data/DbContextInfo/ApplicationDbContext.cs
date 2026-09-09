@@ -585,6 +585,10 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<ReviewTag>()
                    .HasIndex(x => x.Slug)
                    .IsUnique();
+
+            builder.Entity<ReviewTag>()
+                   .Property(x => x.ReviewerSelectable)
+                   .HasDefaultValue(true);
         }
 
         // =========================================================

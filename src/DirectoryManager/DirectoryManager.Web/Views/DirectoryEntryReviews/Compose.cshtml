@@ -80,6 +80,36 @@
             </div>
         }
 
+        @{
+            var availableTags = ViewBag.AvailableReviewTags as List<DirectoryManager.Data.Models.Reviews.ReviewTag>;
+            var selectedTagIds = Model?.SelectedReviewTagIds ?? new List<int>();
+        }
+        @if (availableTags != null && availableTags.Any())
+        {
+            <div class="mb-4">
+                <label class="form-label"><strong>Tags (optional)</strong></label>
+                <div class="form-text fst-italic u-mb-8px">
+                    Select any tags that apply to your experience. A moderator reviews your selection and may
+                    approve or adjust it before it appears.
+                </div>
+                @foreach (var tag in availableTags.OrderBy(t => (int)t.Level).ThenBy(t => t.Name))
+                {
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="SelectedReviewTagIds"
+                               value="@tag.ReviewTagId" id="reviewtag_@tag.ReviewTagId"
+                               @(selectedTagIds.Contains(tag.ReviewTagId) ? "checked" : "") />
+                        <label class="form-check-label" for="reviewtag_@tag.ReviewTagId">
+                            <strong>@tag.Name</strong>
+                            @if (!string.IsNullOrWhiteSpace(tag.Description))
+                            {
+                                <span class="text-muted"> — @tag.Description</span>
+                            }
+                        </label>
+                    </div>
+                }
+            </div>
+        }
+
         <p class="text-muted"><i>Your review may be checked before it appears publicly.</i></p>
 
         <button type="submit" class="btn btn-success btn-cta">Submit Review</button>

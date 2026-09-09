@@ -25,5 +25,9 @@ namespace DirectoryManager.Web.Models
         // verification; the field itself is always optional.
         [MaxLength(2048)]
         public string? OrderProofContext { get; set; }
+
+        // Review tags the reviewer suggests (checkbox selection). Only enabled tags are honored;
+        // the admin reviews and can approve or modify these during moderation.
+        public List<int>? SelectedReviewTagIds { get; set; }
     }
 }

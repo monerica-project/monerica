@@ -66,6 +66,28 @@
             <div>Update Date: @Model.UpdateDate</div>
         }
 
+        <div>
+            <strong>In active queue (IsActive):</strong>
+            @if (Model.IsActive)
+            {
+                <span>Yes &mdash; this subscriber is in the waiting queue and will be checked every 30 minutes.</span>
+            }
+            else
+            {
+                <span>No &mdash; this subscriber is NOT in the queue and will never be emailed until re-queued.</span>
+            }
+        </div>
+
+        <div>
+            <strong>Reminder sent (IsReminderSent):</strong>
+            @(Model.IsReminderSent ? "Yes — the opening email has already been sent." : "No — not yet emailed.")
+        </div>
+
+        @if (Model.ReminderSentDateUtc != null)
+        {
+            <div>Reminder Sent (UTC): @Model.ReminderSentDateUtc</div>
+        }
+
         @if (!string.IsNullOrWhiteSpace(Model.ReminderSentLink))
         {
             <div>
@@ -73,6 +95,22 @@
                 <a href="@Model.ReminderSentLink" target="_blank" rel="noopener">open</a>
             </div>
         }
+    </div>
+
+    <div class="u-m-10px-0-14px-0-grid-gap-6px">
+        <h3>What these fields mean</h3>
+        <ul>
+            <li><strong>Email</strong> — where the "a sponsor slot opened" email is sent.</li>
+            <li><strong>Sponsorship Type</strong> — which slot they are waiting for: <em>Main Sponsor</em> (site-wide, 5 slots), <em>Category Sponsor</em>, or <em>Subcategory Sponsor</em>.</li>
+            <li><strong>Type Id</strong> — the Category or Subcategory id for category/subcategory waits. Blank for Main Sponsor.</li>
+            <li><strong>Reminder Sent</strong> — check = already emailed (removed from the queue). <strong>Un-check to re-queue them</strong>; the next 30-minute run will email them if a slot is open.</li>
+            <li><strong>In active queue (IsActive)</strong> — derived automatically from "Reminder Sent": un-checking Reminder Sent turns this ON, checking it turns it OFF. The background job only emails rows that are <em>in the queue AND not yet sent</em>.</li>
+        </ul>
+        <p>
+            <strong>Note:</strong> re-queuing only sends when there is an actual opening for that slot.
+            A Main Sponsor email goes out when fewer than 5 Main slots are filled;
+            a Category/Subcategory email goes out only when that specific slot is free.
+        </p>
     </div>
 
     <form asp-action="Edit" method="post">
@@ -111,6 +149,7 @@
         <div class="form-group">
             <label asp-for="IsReminderSent"></label>
             <input asp-for="IsReminderSent" class="form-check-input" type="checkbox" />
+            <div><small>Un-check and Save to re-queue this subscriber. They will be re-added to the active queue and emailed within 30 minutes if a slot is open.</small></div>
         </div>
 
         <button class="btn" type="submit">Save</button>

@@ -144,6 +144,7 @@ namespace DirectoryManager.Web.Controllers
             existingSubCategory.PageDetails = subCategory.PageDetails?.Trim();
             existingSubCategory.IsEnabled = subCategory.IsEnabled;
             existingSubCategory.RequireReviewVerification = subCategory.RequireReviewVerification;
+            existingSubCategory.SponsorshipDisabled = subCategory.SponsorshipDisabled;
 
             await this.subcategoryRepository.UpdateAsync(existingSubCategory);
 
@@ -186,6 +187,10 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.SubCategoryKey = subCategory.SubCategoryKey;
             this.ViewBag.CategoryName = category.Name;
             this.ViewBag.SubCategoryName = subCategory.Name;
+
+            // When sponsorship is disabled for this subcategory, hide the "Advertise here" CTA
+            // (buying is already blocked at checkout; this keeps the page consistent).
+            this.ViewBag.SponsorshipDisabled = subCategory.SponsorshipDisabled;
 
             var link2Name = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.Link2Name);
             var link3Name = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.Link3Name);

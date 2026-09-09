@@ -34,6 +34,7 @@
                     <th>Sponsorship Type</th>
                     <th>Type Id</th>
                     <th>Reminder Sent</th>
+                    <th>In Queue (Active)</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -41,7 +42,7 @@
                 @if (Model.TotalCount == 0)
                 {
                     <tr>
-                        <td colspan="6">No notifications found.</td>
+                        <td colspan="7">No notifications found.</td>
                     </tr>
                 }
                 else
@@ -54,6 +55,7 @@
                             <td>@notification.SponsorshipType</td>
                             <td>@notification.TypeId</td>
                             <td>@notification.IsReminderSent</td>
+                            <td>@(notification.IsActive ? "Yes" : "No")</td>
                             <td>
                                 <a href="@Url.Action("Edit", new { id = notification.SponsoredListingOpeningNotificationId })">Edit</a>
                             </td>

@@ -103,6 +103,13 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
 
+            // Sponsorship can be disabled per subcategory (kill-switch for problem categories).
+            var subcatBlocked = this.BlockedBySubcategorySponsorship(entry);
+            if (subcatBlocked != null)
+            {
+                return subcatBlocked;
+            }
+
             // Grandfather clause: a CURRENTLY ACTIVE sponsor can extend / re-sponsor even if the
             // listing no longer meets the standard requirements. A lapsed or refunded past buyer
             // is NOT grandfathered.
@@ -234,6 +241,13 @@ namespace DirectoryManager.Web.Controllers
             if (entry is null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidSelection });
+            }
+
+            // Sponsorship can be disabled per subcategory (kill-switch for problem categories).
+            var subcatBlocked = this.BlockedBySubcategorySponsorship(entry);
+            if (subcatBlocked != null)
+            {
+                return subcatBlocked;
             }
 
             // Grandfather clause: a CURRENTLY ACTIVE sponsor can extend / re-sponsor even if the
@@ -394,6 +408,13 @@ namespace DirectoryManager.Web.Controllers
             if (entry is null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidListing });
+            }
+
+            // Sponsorship can be disabled per subcategory (kill-switch for problem categories).
+            var subcatBlocked = this.BlockedBySubcategorySponsorship(entry);
+            if (subcatBlocked != null)
+            {
+                return subcatBlocked;
             }
 
             var typeIdForGroup = SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(offer.SponsorshipType, entry, null, null);
@@ -1718,6 +1739,24 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.ReservationGuid = rsvId;
             this.ViewBag.ReservationExpiresUtc = expiresUtc.Value;
             return true;
+        }
+
+        // Per-subcategory sponsorship kill-switch. Returns a "not allowed" view (naming the
+        // category/subcategory) when the listing's subcategory has SponsorshipDisabled set, or
+        // null when sponsorship is allowed. Sponsorship is allowed by default — an admin turns
+        // it off per subcategory on the subcategory edit page for ones that are a potential issue.
+        private IActionResult? BlockedBySubcategorySponsorship(DirectoryEntry entry)
+        {
+            if (entry.SubCategory?.SponsorshipDisabled != true)
+            {
+                return null;
+            }
+
+            this.ViewBag.ListingName = entry.Name;
+            this.ViewBag.ScopeLabel = FormattingHelper.SubcategoryFormatting(
+                entry.SubCategory?.Category?.Name, entry.SubCategory?.Name);
+            this.Response.StatusCode = StatusCodes.Status403Forbidden;
+            return this.View("SponsorshipNotAllowed");
         }
 
         // Sponsorship eligibility: a listing must be Verified AND have been in the directory for

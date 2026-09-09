@@ -40,6 +40,11 @@ namespace DirectoryManager.Data.Models
         // An optional free-text "verification details" field is also surfaced to reviewers.
         public bool RequireReviewVerification { get; set; }
 
+        // When true, listings in this subcategory CANNOT buy sponsorship (any tier). Sponsorship
+        // is allowed by default (false) — an admin turns this on for subcategories that are a
+        // potential issue. Enforced in the sponsorship checkout flow (SelectDuration).
+        public bool SponsorshipDisabled { get; set; }
+
         // Navigation Property for the parent Category
         [ForeignKey("CategoryId")]
         public virtual Category Category { get; set; } = null!;

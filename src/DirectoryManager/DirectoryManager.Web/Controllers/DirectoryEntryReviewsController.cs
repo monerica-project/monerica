@@ -35,6 +35,8 @@ namespace DirectoryManager.Web.Controllers
         private readonly IUserContentModerationService moderation;
         private readonly IRaffleRepository raffleRepository;
         private readonly ISubcategoryRepository subcategoryRepository;
+        private readonly IReviewTagRepository reviewTagRepository;
+        private readonly IDirectoryEntryReviewTagRepository reviewTagLinkRepository;
 
         public DirectoryEntryReviewsController(
             IDirectoryEntryReviewRepository repo,
@@ -46,7 +48,9 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryRepository directoryEntryRepository,
             IUserContentModerationService moderation,
             IRaffleRepository raffleRepository,
-            ISubcategoryRepository subcategoryRepository)
+            ISubcategoryRepository subcategoryRepository,
+            IReviewTagRepository reviewTagRepository,
+            IDirectoryEntryReviewTagRepository reviewTagLinkRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.directoryEntryReviewRepository = repo;
@@ -57,6 +61,8 @@ namespace DirectoryManager.Web.Controllers
             this.moderation = moderation;
             this.raffleRepository = raffleRepository;
             this.subcategoryRepository = subcategoryRepository;
+            this.reviewTagRepository = reviewTagRepository;
+            this.reviewTagLinkRepository = reviewTagLinkRepository;
         }
 
         [HttpGet("begin")]
@@ -261,6 +267,14 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.RequireVerification =
                 entry is not null && await this.SubcategoryRequiresVerificationAsync(entry.SubCategoryId);
 
+            // Tags the reviewer can suggest: enabled AND flagged public (ReviewerSelectable).
+            // Admin-only tags (e.g. "Valid Order", "Suspicious Review") are excluded from the
+            // public picker but still usable by moderators. The admin sees the reviewer's
+            // selection and can approve or modify it during moderation.
+            this.ViewBag.AvailableReviewTags = (await this.reviewTagRepository.ListEnabledAsync())
+                .Where(t => t.ReviewerSelectable)
+                .ToList();
+
             return this.View(vm);
         }
 
@@ -421,7 +435,12 @@ namespace DirectoryManager.Web.Controllers
             // clean reviews: a review goes live immediately when it has neither a blacklist term
             // nor a hyperlink in the body (mod.NeedsManualReview is exactly hasBlacklistTerm ||
             // hasLink). Anything that trips either trigger is held for manual moderation.
-            if (requireVerification || mod.NeedsManualReview)
+            // Suggested tags are trust signals ("Valid Order", "Funds held", etc.), so a review that
+            // carries any reviewer-selected tag is always held for manual moderation — the admin must
+            // approve or modify the tag selection before it (and the review) go live. This never
+            // auto-publishes a self-applied tag.
+            var hasSuggestedTags = input.SelectedReviewTagIds is { Count: > 0 };
+            if (requireVerification || mod.NeedsManualReview || hasSuggestedTags)
             {
                 entity.ModerationStatus = ReviewModerationStatus.Pending;
             }
@@ -433,11 +452,34 @@ namespace DirectoryManager.Web.Controllers
 
             await this.directoryEntryReviewRepository.AddAsync(entity, ct);
 
+            // Persist the reviewer's suggested tags. Filter to ENABLED, PUBLIC (ReviewerSelectable)
+            // tags only so a crafted form can't attach a disabled or admin-only tag. They ride with
+            // the review into moderation, where the admin can approve or modify the selection.
+            if (input.SelectedReviewTagIds is { Count: > 0 })
+            {
+                var enabledTagIds = (await this.reviewTagRepository.ListEnabledAsync(ct))
+                    .Where(t => t.ReviewerSelectable)
+                    .Select(t => t.ReviewTagId)
+                    .ToHashSet();
+                var chosenTagIds = input.SelectedReviewTagIds
+                    .Where(enabledTagIds.Contains)
+                    .Distinct()
+                    .ToArray();
+                if (chosenTagIds.Length > 0)
+                {
+                    await this.reviewTagLinkRepository.SetTagsForReviewAsync(
+                        entity.DirectoryEntryReviewId, chosenTagIds, flow.PgpFingerprint, ct);
+                }
+            }
+
             this.TempData["ReviewMessage"] = requireVerification
                 ? "Thanks! Because this listing requires proof of a real order, your review is not published yet. " +
                   "A moderator will manually open the order URL you provided and independently verify that the order " +
                   "is valid and actually took place. Only after we've confirmed it will your review be approved and published."
-                : mod.ThankYouMessage;
+                : (hasSuggestedTags && !mod.NeedsManualReview)
+                    ? "Thanks! Because you selected tags, your review is not published yet — a moderator will review " +
+                      "your tag selection (and may adjust it) before your review is approved and published."
+                    : mod.ThankYouMessage;
 
             this.ClearCachedItems();
             this.cache.Remove(CacheKey(flowId));

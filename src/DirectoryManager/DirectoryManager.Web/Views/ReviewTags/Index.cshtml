@@ -26,6 +26,7 @@
                     <th>Name</th>
                     <th>Slug</th>
                     <th>Enabled</th>
+                    <th>Visibility</th>
                     <th></th>
                 </tr>
             </thead>
@@ -36,6 +37,16 @@
                         <td>@t.Name</td>
                         <td>@t.Slug</td>
                         <td>@t.IsEnabled</td>
+                        <td>
+                            @if (t.ReviewerSelectable)
+                            {
+                                <span class="badge bg-success">Public</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-secondary">Admin-only</span>
+                            }
+                        </td>
                         <td class="text-end">
                             <a class="btn btn-sm btn-secondary" asp-action="Edit" asp-route-id="@t.ReviewTagId">Edit</a>
                             <form asp-action="Delete" asp-route-id="@t.ReviewTagId" method="post" class="d-inline">

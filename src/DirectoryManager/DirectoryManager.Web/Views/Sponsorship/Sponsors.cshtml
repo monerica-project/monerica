@@ -9,6 +9,18 @@
 
 @section PageContent {
 
+    <style>
+        .sponsor-expiring-soon {
+            display: block;
+            margin-top: 2px;
+            font-size: 0.78em;
+            font-weight: 700;
+            color: #d9534f;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+        }
+    </style>
+
     <div class="page-header-bar">
         <h1 class="page-title">Sponsors</h1>
         @await Html.PartialAsync("_SiteLogo")
@@ -18,7 +30,7 @@
 
     <p class="u-m-6px-0-4px-0">
         The businesses currently sponsoring Monerica, and when each sponsorship term expires.
-        Soonest to expire is listed first.
+        Longest remaining term is listed first; the soonest to expire is at the bottom.
     </p>
     <p class="u-m-0-0-16px-0-opacity-85">
         <strong>@sponsors.Count</strong> active sponsorship@(sponsors.Count == 1 ? string.Empty : "s")
@@ -69,7 +81,13 @@
                                 }
                             </td>
                             <td class="u-text-right">@item.StartUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
-                            <td class="u-text-right">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                            <td class="u-text-right">
+                                @item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
+                                @if ((item.ExpiresUtc - Model.CurrentUtc).TotalDays < 7)
+                                {
+                                    <span class="sponsor-expiring-soon">Expiring Soon</span>
+                                }
+                            </td>
                             <td class="u-text-right">
                                 @if (!string.IsNullOrWhiteSpace(item.RenewUrl))
                                 {

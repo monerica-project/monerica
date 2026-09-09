@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Utilities.Validation;
 using DirectoryManager.Web.Attributes;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.ModelBinding;
 
 namespace DirectoryManager.Web.Models
@@ -182,6 +183,20 @@ namespace DirectoryManager.Web.Models
 
             // PgpKey is [AllowHtml]-exempt from the guard, so require it to be a genuine
             // ASCII-armored PGP public key — the exemption must not smuggle real markup.
+            if (!string.IsNullOrWhiteSpace(this.PgpKey) && PgpKeyValidator.IsValid(this.PgpKey)
+                && !PgpCapabilities.HasUsableEncryptionKey(this.PgpKey))
+            {
+                // Ownership/authorship is verified by encrypting a one-time code to the key, so a
+                // sign-only or certify-only key can't be used. Reject it here rather than accepting it
+                // into the listing and failing later at the challenge step.
+                results.Add(new ValidationResult(
+                    "This PGP key has no usable encryption subkey, so it can't be used to verify " +
+                    "ownership (verification works by encrypting a one-time code to the key). Please " +
+                    "provide a key with a current, non-revoked encryption subkey — a sign-only or " +
+                    "certify-only key won't work.",
+                    new[] { nameof(this.PgpKey) }));
+            }
+
             if (!string.IsNullOrWhiteSpace(this.PgpKey) && !PgpKeyValidator.IsValid(this.PgpKey))
             {
                 results.Add(new ValidationResult(

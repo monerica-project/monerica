@@ -55,6 +55,15 @@
                     <label asp-for="IsEnabled" class="form-check-label"></label>
                 </div>
 
+                <div class="form-check mb-3">
+                    <input asp-for="ReviewerSelectable" class="form-check-input" />
+                    <label asp-for="ReviewerSelectable" class="form-check-label"></label>
+                    <div class="form-text">
+                        Checked = public: reviewers can select this tag when leaving a review (a moderator still approves it).
+                        Unchecked = admin-only: hidden from the public review form, but moderators can still apply it and it still shows as a badge.
+                    </div>
+                </div>
+
                 <button class="btn btn-primary" type="submit">Save</button>
                 <a class="btn btn-secondary" asp-action="Index">Cancel</a>
             </form>
@@ -95,6 +104,15 @@
                 <div class="form-check mb-3">
                     <input asp-for="IsEnabled" class="form-check-input" />
                     <label asp-for="IsEnabled" class="form-check-label"></label>
+                </div>
+
+                <div class="form-check mb-3">
+                    <input asp-for="ReviewerSelectable" class="form-check-input" />
+                    <label asp-for="ReviewerSelectable" class="form-check-label"></label>
+                    <div class="form-text">
+                        Checked = public: reviewers can select this tag when leaving a review (a moderator still approves it).
+                        Unchecked = admin-only: hidden from the public review form, but moderators can still apply it and it still shows as a badge.
+                    </div>
                 </div>
 
                 <button class="btn btn-primary" type="submit">Save</button>

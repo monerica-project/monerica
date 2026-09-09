@@ -1,0 +1,42 @@
+@using DirectoryManager.Web.Constants
+@{
+    Layout = "_CenteredLayout";
+    ViewData[StringConstants.TitleHeader] = "Sponsorship Not Available";
+    ViewData[StringConstants.IsIndexable] = false;
+
+    var scope = ViewBag.ScopeLabel as string;
+    var listingName = ViewBag.ListingName as string;
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    <div class="alert alert-warning" role="alert">
+        <strong>Sponsorship is not available for this category.</strong>
+    </div>
+
+    <p>
+        @if (!string.IsNullOrWhiteSpace(listingName))
+        {
+            <text>&ldquo;<b>@listingName</b>&rdquo; </text>
+        }
+        @if (!string.IsNullOrWhiteSpace(scope))
+        {
+            <text>is in <b>@scope</b>, which is not allowed to buy sponsorship.</text>
+        }
+        else
+        {
+            <text>is in a category that is not allowed to buy sponsorship.</text>
+        }
+    </p>
+
+    <p>
+        This category and subcategory have sponsorship purchasing turned off. If you believe this
+        is a mistake, please contact us.
+    </p>
+
+    <p>
+        <a href="~/">&larr; Back to the directory</a>
+    </p>
+}

@@ -107,11 +107,28 @@
         color: #ff6b35;
     }
 
+    .exact-warning {
+        background: #2b1a00;
+        border: 1px solid #ff6b35;
+        color: #ffd7a8;
+        padding: 0.75rem;
+        margin: 0.75rem 0;
+        font-family: sans-serif;
+        font-size: 0.9rem;
+        line-height: 1.5;
+        /* the parent .payment-details sets word-break: break-all for the address;
+           override it here so whole words wrap to the next line instead of breaking mid-word */
+        word-break: normal;
+        overflow-wrap: break-word;
+    }
+
+    .exact-warning strong { color: #ffb37a; }
+
     .address {
-        font-size: 0.75rem;
+        font-size: 0.95rem;
         letter-spacing: 0.02em;
         background: #222;
-        padding: 4px;
+        padding: 6px;
         color: #e8e8e8;
     }
 
@@ -271,6 +288,12 @@
                         <span class="label">Amount (XMR):</span>
                         <span class="value amount">@Model.AmountDue</span>
                     </div>
+                    <div class="exact-warning">
+                        &#9888; Pay this <strong>EXACT</strong> amount in a <strong>single</strong> payment.
+                        If you send even slightly less &mdash; for example, if your wallet or exchange subtracts
+                        the network fee from the total &mdash; the invoice may not complete and your order could
+                        be delayed. Make sure the full amount arrives at the address.
+                    </div>
                     <div class="field">
                         <span class="label">Address:</span>
                         <span class="value address">@Model.Address</span>
@@ -285,7 +308,6 @@
                 </div>
 
                 <div class="instructions">
-                    <p>Send exactly <strong>@Model.AmountDue XMR</strong> to the address above.</p>
                     <p>Do not close this page. It refreshes automatically once payment is detected.</p>
                     @if (Model.ExpiresAt.HasValue)
                     {

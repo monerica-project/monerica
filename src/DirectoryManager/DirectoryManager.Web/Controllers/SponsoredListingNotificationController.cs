@@ -165,6 +165,29 @@ namespace DirectoryManager.Web.Controllers
             existing.TypeId = model.TypeId;
             existing.IsReminderSent = model.IsReminderSent;
 
+            // Keep IsActive in sync with the "reminder sent" flag so the edit page
+            // actually re-queues someone. The opening job only emails rows where
+            // IsActive == true AND IsReminderSent == false; when a reminder is sent,
+            // MarkReminderAsSentAsync sets IsReminderSent = true AND IsActive = false.
+            // Previously this POST changed IsReminderSent but left IsActive = false,
+            // so un-checking "reminder sent" produced IsActive=false/IsReminderSent=false
+            // — a state the job silently skips, and the email never went out.
+            if (model.IsReminderSent)
+            {
+                // Marked as already sent: take them out of the active queue.
+                existing.IsActive = false;
+            }
+            else
+            {
+                // Marked as not-yet-sent: put them back in the queue and clear the
+                // sent audit so the next 30-minute run will email them (if a slot is open).
+                existing.IsActive = true;
+                existing.ReminderSentDateUtc = null;
+                existing.ReminderSentLink = null;
+            }
+
+            existing.UpdateDate = DateTime.UtcNow;
+
             var ok = await this.notificationRepository
                                .UpdateAsync(existing)
                                .ConfigureAwait(false);

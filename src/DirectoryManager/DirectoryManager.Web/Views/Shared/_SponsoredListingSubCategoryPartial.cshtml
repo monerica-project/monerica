@@ -36,7 +36,7 @@
         </ul>
     </div>
 }
-else if (Model != null && Model.TotalActiveSubCategoryListings >= DirectoryManager.Common.Constants.IntegerConstants.MinRequiredSubcategories)
+else if (Model != null && !Model.SponsorshipDisabled && Model.TotalActiveSubCategoryListings >= DirectoryManager.Common.Constants.IntegerConstants.MinRequiredSubcategories)
 {
     <p class="sub-category-sponsored-listing">
         @* Submit button (not a link) so crawlers/prefetch don't hit it and skew analytics — lands on the same Select Listing page. *@

@@ -2,6 +2,7 @@
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Utilities.Validation;
 using DirectoryManager.Web.Attributes;
+using DirectoryManager.Web.Helpers;
 
 namespace DirectoryManager.Web.Models
 {
@@ -111,12 +112,27 @@ namespace DirectoryManager.Web.Models
 
             // PgpKey is [AllowHtml]-exempt from the guard, so require it to be a genuine
             // ASCII-armored PGP public key — the exemption must not smuggle real markup.
-            if (!string.IsNullOrWhiteSpace(this.PgpKey) && !PgpKeyValidator.IsValid(this.PgpKey))
+            if (!string.IsNullOrWhiteSpace(this.PgpKey))
             {
-                results.Add(new ValidationResult(
-                    "The PGP public key block you entered is not valid. " +
-                    "Please supply a valid ASCII-armored PGP public key.",
-                    new[] { nameof(this.PgpKey) }));
+                if (!PgpKeyValidator.IsValid(this.PgpKey))
+                {
+                    results.Add(new ValidationResult(
+                        "The PGP public key block you entered is not valid. " +
+                        "Please supply a valid ASCII-armored PGP public key.",
+                        new[] { nameof(this.PgpKey) }));
+                }
+                else if (!PgpCapabilities.HasUsableEncryptionKey(this.PgpKey))
+                {
+                    // Ownership is verified by encrypting a one-time code to the key, so it needs a
+                    // usable encryption (sub)key. Reject sign-only keys up front instead of accepting
+                    // them and failing later at the challenge step.
+                    results.Add(new ValidationResult(
+                        "This PGP key has no usable encryption subkey, so it can't be used to verify " +
+                        "ownership (verification works by encrypting a one-time code to the key). Please " +
+                        "provide a key with a current, non-revoked encryption subkey — a sign-only or " +
+                        "certify-only key won't work.",
+                        new[] { nameof(this.PgpKey) }));
+                }
             }
 
             return results;

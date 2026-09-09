@@ -107,6 +107,7 @@
         {
             SubCategoryId = Model.SubCategoryId,
             TotalActiveSubCategoryListings = activeEntries.Count(),
+            SponsorshipDisabled = (ViewBag.SponsorshipDisabled as bool?) ?? false,
             DirectoryEntry = (subCategorySponsor?.DirectoryEntry != null)
                 ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
                 {
