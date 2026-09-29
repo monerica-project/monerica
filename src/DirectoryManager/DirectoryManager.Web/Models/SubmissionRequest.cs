@@ -115,7 +115,7 @@ namespace DirectoryManager.Web.Models
         // No [MaxLength] here on purpose: that renders a hard HTML maxlength that silently
         // truncates a pasted note. The length is enforced in the controller with a clear
         // over-length error instead (see SubmissionController), so nothing is cut off silently.
-        [Display(Name = "Note", Prompt = "Notes about listing you want displayed")]
+        [Display(Name = "Note", Prompt = "Coupon/discount codes, fees, or special ordering steps shown on your listing — e.g. 'Use code XMR10 for 10% off', 'Pay by email', or 'Minimum order $50'")]
         [CleanMultiLine]
         public string? Note { get; set; }
 
@@ -205,7 +205,55 @@ namespace DirectoryManager.Web.Models
                     new[] { nameof(this.PgpKey) }));
             }
 
+            // Descriptions must read as clean directory copy: no sentence may end with an
+            // exclamation mark. This flags a "!" that terminates a sentence (end of the text, or
+            // before whitespace, allowing closing quotes/brackets like great!") while still
+            // permitting a "!" that is part of a name mid-word (e.g. "Yahoo!Store").
+            if (!string.IsNullOrWhiteSpace(this.Description) &&
+                System.Text.RegularExpressions.Regex.IsMatch(this.Description, "!+[\"')\\]”’]*(?=\\s|$)"))
+            {
+                results.Add(new ValidationResult(
+                    "Sentences in the description can't end with an exclamation mark (\"!\"). " +
+                    "Please rephrase so no sentence ends with \"!\".",
+                    new[] { nameof(this.Description) }));
+            }
+
+            // The proof link is only useful when it points to a DIFFERENT page than the main link.
+            // Submitters keep pasting the same URL for both; reject that so they either provide a
+            // real separate proof page or leave it blank.
+            if (!string.IsNullOrWhiteSpace(this.ProofLink) && !string.IsNullOrWhiteSpace(this.Link)
+                && NormalizeUrlForCompare(this.ProofLink) == NormalizeUrlForCompare(this.Link))
+            {
+                results.Add(new ValidationResult(
+                    "The proof link is the same as the main link. Only add a proof link when it's a " +
+                    "different page than the main link — otherwise leave it blank.",
+                    new[] { nameof(this.ProofLink) }));
+            }
+
             return results;
+        }
+
+        // Loosely normalizes a URL so trivially-different forms of the same page compare equal:
+        // lowercased, scheme dropped, a leading "www." dropped, and trailing slashes trimmed.
+        // Paths are preserved, so a genuinely different proof page still differs from the main link.
+        private static string NormalizeUrlForCompare(string? url)
+        {
+            var s = (url ?? string.Empty).Trim().ToLowerInvariant();
+            if (s.StartsWith("https://"))
+            {
+                s = s.Substring(8);
+            }
+            else if (s.StartsWith("http://"))
+            {
+                s = s.Substring(7);
+            }
+
+            if (s.StartsWith("www."))
+            {
+                s = s.Substring(4);
+            }
+
+            return s.TrimEnd('/');
         }
 
         public List<string> GetRelatedLinksNormalized(int max = 3)

@@ -301,6 +301,25 @@ namespace DirectoryManager.Web.Controllers
 
             input.DirectoryEntryId = flow.DirectoryEntryId;
 
+            // The "Order amount" dropdown binds to its own single field so an empty choice stays
+            // null; fold the chosen band (if any) into the suggested-tag list so it flows through
+            // moderation and persistence like every other tag. Enabled/selectable + single-band
+            // enforcement still happens where the tags are saved.
+            if (input.SelectedMoneyBandTagId is int bandTagId)
+            {
+                input.SelectedReviewTagIds ??= new List<int>();
+                if (!input.SelectedReviewTagIds.Contains(bandTagId))
+                {
+                    input.SelectedReviewTagIds.Add(bandTagId);
+                }
+            }
+
+            // Repopulate the tag picker up front so every validation-error re-render below keeps the
+            // tag checkboxes + amount dropdown (they'd otherwise disappear when ViewBag is empty).
+            this.ViewBag.AvailableReviewTags = (await this.reviewTagRepository.ListEnabledAsync(ct))
+                .Where(t => t.ReviewerSelectable)
+                .ToList();
+
             var gateEntry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
             if (gateEntry is null || gateEntry.ReviewsDisabled)
             {
@@ -457,13 +476,22 @@ namespace DirectoryManager.Web.Controllers
             // the review into moderation, where the admin can approve or modify the selection.
             if (input.SelectedReviewTagIds is { Count: > 0 })
             {
-                var enabledTagIds = (await this.reviewTagRepository.ListEnabledAsync(ct))
+                var enabledTags = (await this.reviewTagRepository.ListEnabledAsync(ct))
                     .Where(t => t.ReviewerSelectable)
-                    .Select(t => t.ReviewTagId)
-                    .ToHashSet();
-                var chosenTagIds = input.SelectedReviewTagIds
-                    .Where(enabledTagIds.Contains)
+                    .ToDictionary(t => t.ReviewTagId);
+
+                // Keep the reviewer's order, drop anything not enabled/public, de-dupe.
+                var chosen = input.SelectedReviewTagIds
+                    .Where(enabledTags.ContainsKey)
                     .Distinct()
+                    .ToList();
+
+                // Money-band tags (Under $50, $1K–5K, …) are single-select in the UI. Enforce that
+                // server-side too so a crafted form can't attach two amount bands: keep only the
+                // first money band chosen; all non-money-band tags are unaffected.
+                var chosenTagIds = chosen
+                    .Where(id => !enabledTags[id].IsMoneyBand)
+                    .Concat(chosen.Where(id => enabledTags[id].IsMoneyBand).Take(1))
                     .ToArray();
                 if (chosenTagIds.Length > 0)
                 {

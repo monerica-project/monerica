@@ -29,5 +29,11 @@ namespace DirectoryManager.Web.Models
         // Review tags the reviewer suggests (checkbox selection). Only enabled tags are honored;
         // the admin reviews and can approve or modify these during moderation.
         public List<int>? SelectedReviewTagIds { get; set; }
+
+        // The single money-band tag chosen from the "Order amount" dropdown (bound separately from
+        // the checkbox list so an empty "prefer not to say" selection binds cleanly to null instead
+        // of pushing an unparseable "" into SelectedReviewTagIds). Merged into the tag selection in
+        // the controller. Only one amount can ever be selected.
+        public int? SelectedMoneyBandTagId { get; set; }
     }
 }

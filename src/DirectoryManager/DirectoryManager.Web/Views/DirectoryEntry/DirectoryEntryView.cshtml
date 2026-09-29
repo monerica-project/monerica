@@ -14,7 +14,13 @@
 @inject IUrlResolutionService Urls
 
 @{
-    ViewData[StringConstants.TitleHeader] = Model.Name;
+    // SEO title: "<Listing> — <SiteName> Profile" (e.g. "Ava Hosting — Monerica Profile").
+    // SiteName is the configured site name snippet ("Monerica"); fall back to just the listing
+    // name if the snippet is ever empty so the title is never a bare " — Profile".
+    var siteNameForTitle = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
+    ViewData[StringConstants.TitleHeader] = string.IsNullOrWhiteSpace(siteNameForTitle)
+        ? Model.Name
+        : $"{Model.Name} — {siteNameForTitle} Profile";
     var categoryKey = ViewBag.CategoryKey as string;
     var subCategoryKey = ViewBag.SubCategoryKey as string;
     var categoryName = ViewBag.CategoryName as string;

@@ -19,7 +19,7 @@
         <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
         <input type="hidden" asp-for="DirectoryEntryId" />
 
-        <div class="mb-4">
+        <div class="u-mb-16px">
             <label asp-for="Rating" class="form-label"><strong>Rating</strong></label>
             <select asp-for="Rating" class="form-control select-fit">
                 <option value="">— Select a rating —</option>
@@ -32,7 +32,7 @@
             <span asp-validation-for="Rating" class="text-danger"></span>
         </div>
 
-        <div class="mb-4">
+        <div class="u-mb-16px">
             <label asp-for="Body" class="form-label"><strong>Your Review</strong></label>
             <textarea asp-for="Body" class="form-control" cols="40" rows="20"></textarea>
             <span asp-validation-for="Body" class="text-danger"></span>
@@ -45,37 +45,41 @@
 
         @if (requireVerification)
         {
-            <div>
-                <label asp-for="OrderProof" class="form-label"><strong>Order Proof URL (required)</strong></label>
+            <div class="u-mb-16px">
+                <label asp-for="OrderProof" class="form-label"><strong>Order Proof URL</strong> <span class="text-danger">(required)</span></label>
                 <input asp-for="OrderProof" class="form-control" maxlength="2048" required />
                 <span asp-validation-for="OrderProof" class="text-danger"></span>
-                <div class="form-text fst-italic">
-                    Must be a real order URL from @listingName's own domain (or its .onion / I2P address) — not a
-                    blockchain or block-explorer link. Internal verification only, never shown publicly.
+                <div class="form-text">
+                    A real order URL on @listingName's own site — its own domain, .onion, or I2P address.
+                    Not a blockchain or block-explorer link.
+                    <br />
+                    <span class="text-muted">Used only for internal verification — never shown publicly.</span>
                 </div>
             </div>
 
-            <div class="u-h-35rem" aria-hidden="true"></div>
-
-            <div class="mb-4">
-                <label asp-for="OrderProofContext" class="form-label"><strong>Verification Details (optional)</strong></label>
+            <div class="u-mb-16px">
+                <label asp-for="OrderProofContext" class="form-label"><strong>Verification Details</strong> <span class="text-muted">(optional)</span></label>
                 <textarea asp-for="OrderProofContext" class="form-control" maxlength="2048" rows="3"></textarea>
                 <span asp-validation-for="OrderProofContext" class="text-danger"></span>
-                <div class="form-text fst-italic">
-                    If a wallet address or order ID (3rd party one if from an aggregator) is needed to view the order,
-                    include it here so a moderator can see it. Internal verification only, never shown publicly.
+                <div class="form-text">
+                    Anything a moderator needs to open your order — for example a wallet address, or an order ID
+                    (including a third-party one if you ordered through an aggregator).
+                    <br />
+                    <span class="text-muted">Used only for internal verification — never shown publicly.</span>
                 </div>
             </div>
         }
         else
         {
-            <div class="mb-4">
-                <label asp-for="OrderProof" class="form-label"><strong>Order Proof URL (optional)</strong></label>
+            <div class="u-mb-16px">
+                <label asp-for="OrderProof" class="form-label"><strong>Order Proof URL</strong> <span class="text-muted">(optional)</span></label>
                 <input asp-for="OrderProof" class="form-control" maxlength="2048" />
                 <span asp-validation-for="OrderProof" class="text-danger"></span>
-                <div class="form-text fst-italic">
-                    Optional. If included, must be a real order URL from @listingName's own domain — not a
-                    blockchain or block-explorer link. Internal verification only, never shown publicly.
+                <div class="form-text">
+                    Optional. If you add one, it must be a real order URL on @listingName's own site — not a
+                    blockchain or block-explorer link.
+                    <br />
+                    <span class="text-muted">Used only for internal verification — never shown publicly.</span>
                 </div>
             </div>
         }
@@ -86,31 +90,102 @@
         }
         @if (availableTags != null && availableTags.Any())
         {
-            <div class="mb-4">
-                <label class="form-label"><strong>Tags (optional)</strong></label>
-                <div class="form-text fst-italic u-mb-8px">
-                    Select any tags that apply to your experience. A moderator reviews your selection and may
-                    approve or adjust it before it appears.
+            // Money-band tags (Under $50, $1K–5K, Over $100K, …) are mutually exclusive — a single
+            // order has one dollar value — so they're offered as a single-select dropdown. The rest
+            // are checkboxes, split by severity: Warning-or-worse tags (Level >= 3) are framed as
+            // "problem" flags; anything neutral/positive falls under a plain "Other tags" heading.
+            var moneyBands = availableTags
+                .Where(t => t.IsMoneyBand)
+                .OrderBy(t => t.MinUsd ?? 0m)
+                .ThenBy(t => t.MaxUsd ?? decimal.MaxValue)
+                .ToList();
+            var problemTags = availableTags
+                .Where(t => !t.IsMoneyBand && (int)t.Level >= 3)
+                .OrderBy(t => t.Name)
+                .ToList();
+            var otherTags = availableTags
+                .Where(t => !t.IsMoneyBand && (int)t.Level < 3)
+                .OrderBy(t => (int)t.Level)
+                .ThenBy(t => t.Name)
+                .ToList();
+            var selectedBandId = moneyBands.FirstOrDefault(t => selectedTagIds.Contains(t.ReviewTagId))?.ReviewTagId;
+
+            <hr class="u-mt-28px" />
+
+            @* Order amount — its own clearly labelled, single-select optional field. *@
+            @if (moneyBands.Any())
+            {
+                <div class="u-mb-16px">
+                    <label class="form-label" for="reviewtag_amount"><strong>Order amount</strong> <span class="text-muted">(optional)</span></label>
+                    <select class="form-select" name="SelectedMoneyBandTagId" id="reviewtag_amount">
+                        <option value="">— Select order amount —</option>
+                        @foreach (var band in moneyBands)
+                        {
+                            <option value="@band.ReviewTagId" selected="@(selectedBandId == band.ReviewTagId)">@band.Name</option>
+                        }
+                    </select>
+                    <div class="form-text">Roughly how much your order was worth. Pick one, or leave it unset.</div>
                 </div>
-                @foreach (var tag in availableTags.OrderBy(t => (int)t.Level).ThenBy(t => t.Name))
-                {
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" name="SelectedReviewTagIds"
-                               value="@tag.ReviewTagId" id="reviewtag_@tag.ReviewTagId"
-                               @(selectedTagIds.Contains(tag.ReviewTagId) ? "checked" : "") />
-                        <label class="form-check-label" for="reviewtag_@tag.ReviewTagId">
-                            <strong>@tag.Name</strong>
-                            @if (!string.IsNullOrWhiteSpace(tag.Description))
-                            {
-                                <span class="text-muted"> — @tag.Description</span>
-                            }
-                        </label>
+            }
+
+            @* Problem flags — only relevant if something went wrong, so framed that way.
+               A divider + top margin gives clear separation from the amount field above. *@
+            @if (problemTags.Any())
+            {
+                <hr class="u-mt-28px" />
+                <div class="u-mb-16px u-mt-18px">
+                    <label class="form-label"><strong>Report a problem</strong> <span class="text-muted">(optional)</span></label>
+                    <div class="form-text u-mb-8px">
+                        Only check these if something went wrong with your order. Most reviews won't need any.
+                        A moderator reviews anything you flag before it appears.
                     </div>
-                }
-            </div>
+                    @foreach (var tag in problemTags)
+                    {
+                        <div class="form-check u-mt-6px">
+                            <input class="form-check-input" type="checkbox" name="SelectedReviewTagIds"
+                                   value="@tag.ReviewTagId" id="reviewtag_@tag.ReviewTagId"
+                                   @(selectedTagIds.Contains(tag.ReviewTagId) ? "checked" : "") />
+                            <label class="form-check-label" for="reviewtag_@tag.ReviewTagId">
+                                <strong>@tag.Name</strong>
+                                @if (!string.IsNullOrWhiteSpace(tag.Description))
+                                {
+                                    <span class="text-muted"> — @tag.Description</span>
+                                }
+                            </label>
+                        </div>
+                    }
+                </div>
+            }
+
+            @* Any neutral / positive tags an admin adds later. *@
+            @if (otherTags.Any())
+            {
+                <div class="u-mb-16px">
+                    <label class="form-label"><strong>Other tags</strong> <span class="text-muted">(optional)</span></label>
+                    <div class="form-text u-mb-8px">
+                        Anything else that applies to your experience. A moderator reviews your selection before it appears.
+                    </div>
+                    @foreach (var tag in otherTags)
+                    {
+                        <div class="form-check u-mt-6px">
+                            <input class="form-check-input" type="checkbox" name="SelectedReviewTagIds"
+                                   value="@tag.ReviewTagId" id="reviewtag_@tag.ReviewTagId"
+                                   @(selectedTagIds.Contains(tag.ReviewTagId) ? "checked" : "") />
+                            <label class="form-check-label" for="reviewtag_@tag.ReviewTagId">
+                                <strong>@tag.Name</strong>
+                                @if (!string.IsNullOrWhiteSpace(tag.Description))
+                                {
+                                    <span class="text-muted"> — @tag.Description</span>
+                                }
+                            </label>
+                        </div>
+                    }
+                </div>
+            }
         }
 
-        <p class="text-muted"><i>Your review may be checked before it appears publicly.</i></p>
+        <hr class="u-mt-28px" />
+        <p class="text-muted u-mt-12px"><i>Your review may be checked before it appears publicly.</i></p>
 
         <button type="submit" class="btn btn-success btn-cta">Submit Review</button>
     </form>
