@@ -181,7 +181,11 @@
                         </tr>
                     }
 
-                    @if (!string.IsNullOrEmpty(finalLink2))
+                    @* Gate on the BASE link (Link2), not finalLink2: finalLink2 falls back to the
+                       affiliate link (Link2A), so keying off it would render a row for a Tor/I2P
+                       affiliate link whose base link is blank — an empty link. Only show the row when
+                       the base link exists; the affiliate is then used as the href via finalLink2. *@
+                    @if (!string.IsNullOrWhiteSpace(Model.Link2))
                     {
                         <tr>
                             <th scope="row">@Model.Link2Name</th>
@@ -198,7 +202,9 @@
                         </tr>
                     }
 
-                    @if (!string.IsNullOrEmpty(finalLink3))
+                    @* Same as Link2 above: gate on the base Link3, not finalLink3, so a Tor/I2P
+                       affiliate link (Link3A) with a blank base link never renders an empty link. *@
+                    @if (!string.IsNullOrWhiteSpace(Model.Link3))
                     {
                         <tr>
                             <th scope="row">@Model.Link3Name</th>
@@ -415,6 +421,45 @@
         {
             <div class="entry-section entry-kyc-policy">
                 <strong>KYC Policy:</strong> @EnumHelper.GetDescription(kycPolicyValue)
+            </div>
+        }
+
+        @* Liquidity (primarily instant-swap exchanges). Only Own/Mixed/Third Party/Varies render;
+           Unknown and Not Applicable show nothing. *@
+        @if (Model.Liquidity.IsPubliclyShown())
+        {
+            <div class="entry-section entry-liquidity">
+                <strong>Liquidity:</strong> @EnumHelper.GetDescription(Model.Liquidity)
+            </div>
+        }
+
+        @* Deposit guarantees — up to 4 (link + USD amount). A single one shows inline; several
+           collapse into a no-JS <details> so the list never runs long. The point is to surface
+           real deposits so a person feels safe exchanging. *@
+        @if (Model.Guarantees != null && Model.Guarantees.Any())
+        {
+            // Proof links are evidence/citations (often user-submitted) — never pass equity or
+            // endorse the target. ugc+nofollow regardless of scam status.
+            var gRel = "ugc nofollow noopener";
+            <div class="entry-section entry-deposit-guarantee">
+                <strong>@(Model.Guarantees.Count > 1 ? "Deposit Guarantees:" : "Deposit Guarantee:")</strong>
+                @if (Model.Guarantees.Count == 1)
+                {
+                    <span>@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.FormatAmount(Model.Guarantees[0].Amount.GetValueOrDefault(), Model.Guarantees[0].Currency)</span>
+                    <a href="@Model.Guarantees[0].Link" target="_blank" rel="@gRel">view proof</a>
+                }
+                else
+                {
+                    <details class="entry-guarantee-list">
+                        <summary>@Model.Guarantees.Count deposits, totaling @DirectoryManager.Data.Helpers.DepositGuaranteeHelper.SummarizeByCurrency(Model.Guarantees)</summary>
+                        <ul>
+                            @foreach (var g in Model.Guarantees)
+                            {
+                                <li>@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.FormatAmount(g.Amount.GetValueOrDefault(), g.Currency) &mdash; <a href="@g.Link" target="_blank" rel="@gRel">view proof</a></li>
+                            }
+                        </ul>
+                    </details>
+                }
             </div>
         }
 

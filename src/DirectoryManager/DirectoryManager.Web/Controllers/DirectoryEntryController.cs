@@ -47,6 +47,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IUrlResolutionService urlResolver;
         private readonly IDirectoryEntryReviewCommentRepository reviewCommentRepository;
         private readonly IAdditionalLinkRepository additionalLinkRepo;
+        private readonly IDirectoryEntryGuaranteeRepository guaranteeRepo;
         private readonly IProcessorRepository processorRepository;
 
         // -------------------------------------------------------------------------
@@ -70,6 +71,7 @@ namespace DirectoryManager.Web.Controllers
             IUrlResolutionService urlResolver,
             IDirectoryEntryReviewCommentRepository reviewCommentRepository,
             IAdditionalLinkRepository additionalLinkRepo,
+            IDirectoryEntryGuaranteeRepository guaranteeRepo,
             IProcessorRepository processorRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
@@ -88,6 +90,7 @@ namespace DirectoryManager.Web.Controllers
             this.urlResolver = urlResolver;
             this.reviewCommentRepository = reviewCommentRepository;
             this.additionalLinkRepo = additionalLinkRepo;
+            this.guaranteeRepo = guaranteeRepo;
             this.processorRepository = processorRepository;
         }
 
@@ -171,6 +174,8 @@ namespace DirectoryManager.Web.Controllers
                 this.ModelState.AddModelError(nameof(vm.FoundedYear), foundedErr!);
             }
 
+            GuaranteeValidation.ValidateGuarantees(vm.Guarantees, this.ModelState);
+
             if (!this.ModelState.IsValid || vm.DirectoryStatus == DirectoryStatus.Unknown || vm.SubCategoryId == 0)
             {
                 await this.LoadLists();
@@ -234,11 +239,13 @@ namespace DirectoryManager.Web.Controllers
                 SourceCodeLink = vm.SourceCodeLink?.Trim(),
                 CountryCode = vm.CountryCode,
                 KycPolicy = vm.KycPolicy,
+                Liquidity = vm.Liquidity,
                 FoundedDate = foundedDate
             };
 
             await this.directoryEntryRepository.CreateAsync(model);
             await this.SyncAdditionalLinksAsync(model.DirectoryEntryId, normalizedAdditional);
+            await this.SyncGuaranteesAsync(model.DirectoryEntryId, vm.Guarantees);
             await this.AssignTagsAsync(model.DirectoryEntryId, NormalizeSelectedIds(vm.SelectedTagIds), vm.NewTagsCsv);
 
             this.ClearCachedItems();
@@ -301,6 +308,7 @@ namespace DirectoryManager.Web.Controllers
                 Location = entry.Location,
                 CountryCode = entry.CountryCode,
                 KycPolicy = entry.KycPolicy,
+                Liquidity = entry.Liquidity,
                 Processor = entry.Processor,
                 Email = entry.Email,
                 Messenger = entry.Messenger,
@@ -318,6 +326,9 @@ namespace DirectoryManager.Web.Controllers
                 ReviewEmailNotificationsEnabledUtc = entry.ReviewEmailNotificationsEnabledUtc,
                 ReviewCount = reviewCount,
             };
+
+            var guaranteeRows = await this.guaranteeRepo.GetByDirectoryEntryIdAsync(id, CancellationToken.None);
+            vm.Guarantees = BuildGuaranteeFormList(guaranteeRows);
 
             return this.View(vm);
         }
@@ -347,6 +358,8 @@ namespace DirectoryManager.Web.Controllers
             {
                 this.ModelState.AddModelError(nameof(vm.FoundedYear), foundedErr!);
             }
+
+            GuaranteeValidation.ValidateGuarantees(vm.Guarantees, this.ModelState);
 
             if (!this.ModelState.IsValid || vm.DirectoryStatus == DirectoryStatus.Unknown || vm.SubCategoryId == 0)
             {
@@ -380,12 +393,14 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.Processor = vm.Processor?.Trim();
             existingEntry.CountryCode = vm.CountryCode;
             existingEntry.KycPolicy = vm.KycPolicy;
+            existingEntry.Liquidity = vm.Liquidity;
             existingEntry.PgpKey = vm.PgpKey?.Trim();
             existingEntry.FoundedDate = foundedDate;
             existingEntry.ReviewsDisabled = vm.ReviewsDisabled;
 
             await this.directoryEntryRepository.UpdateAsync(existingEntry);
             await this.SyncAdditionalLinksAsync(id, normalizedAdditional);
+            await this.SyncGuaranteesAsync(id, vm.Guarantees);
             await this.SyncTagsAsync(id, NormalizeSelectedIds(vm.SelectedTagIds), vm.NewTagsCsv);
 
             this.ClearCachedItems();
@@ -431,6 +446,7 @@ namespace DirectoryManager.Web.Controllers
                 SubCategoryId = directoryEntry.SubCategoryId,
                 CountryCode = directoryEntry.CountryCode,
                 KycPolicy = directoryEntry.KycPolicy,
+                Liquidity = directoryEntry.Liquidity,
                 PgpKey = directoryEntry.PgpKey,
                 ProofLink = directoryEntry.ProofLink,
                 VideoLink = directoryEntry.VideoLink,
@@ -648,6 +664,10 @@ namespace DirectoryManager.Web.Controllers
             var (link2Name, link3Name) = await this.GetLinkLabelsAsync();
             var (tagNames, tagDict) = await this.GetTagsAsync(entry.DirectoryEntryId);
             var additionalLinkUrls = await this.GetAdditionalLinkUrlsAsync(entry.DirectoryEntryId, ct);
+            var guaranteeRows = await this.guaranteeRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId, ct);
+            var guarantees = guaranteeRows
+                .Select(g => new DirectoryManager.Data.Models.GuaranteeItem { Link = g.Link, Amount = g.Amount, Currency = g.Currency })
+                .ToList();
             bool isSponsor = await this.IsEntrySponsoredAsync(entry.DirectoryEntryId);
             DateTime? sponsorSince = isSponsor
                 ? await this.sponsoredListingRepository.GetSponsorSinceDateAsync(entry.DirectoryEntryId)
@@ -667,7 +687,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.ReviewsVm = reviewsVm;
 
             var model = this.BuildDirectoryEntryViewModel(
-                entry, link2Name, link3Name, tagNames, tagDict, isSponsor, sponsorSince, additionalLinkUrls);
+                entry, link2Name, link3Name, tagNames, tagDict, isSponsor, sponsorSince, additionalLinkUrls, guarantees);
 
             await this.SetCategoryContextViewBagAsync(entry.SubCategoryId);
 
@@ -897,6 +917,65 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
+        // Deposit guarantees: delete-all then recreate, mirroring SyncAdditionalLinksAsync.
+        private async Task SyncGuaranteesAsync(
+            int directoryEntryId,
+            List<GuaranteeItem>? guarantees,
+            CancellationToken ct = default)
+        {
+            await this.guaranteeRepo.DeleteByDirectoryEntryIdAsync(directoryEntryId, ct);
+
+            var normalized = NormalizeGuarantees(guarantees);
+            if (normalized.Count == 0)
+            {
+                return;
+            }
+
+            var userId = this.userManager.GetUserId(this.User) ?? string.Empty;
+            var rows = normalized
+                .Select((g, i) => new DirectoryEntryGuarantee
+                {
+                    DirectoryEntryId = directoryEntryId,
+                    SortOrder = i + 1,
+                    Link = g.Link ?? string.Empty,
+                    Amount = g.Amount.GetValueOrDefault(),
+                    Currency = g.Currency,
+                    CreatedByUserId = userId,
+                    CreateDate = DateTime.UtcNow,
+                })
+                .ToList();
+
+            await this.guaranteeRepo.CreateManyAsync(rows, ct);
+        }
+
+        // Cleaned, capped guarantee list: a row is kept only if it has both a link and a positive amount.
+        private static List<GuaranteeItem> NormalizeGuarantees(IEnumerable<GuaranteeItem>? guarantees)
+        {
+            return (guarantees ?? Enumerable.Empty<GuaranteeItem>())
+                .Where(g => g != null && !string.IsNullOrWhiteSpace(g.Link) && g.Amount > 0)
+                .Select(g => new GuaranteeItem { Link = (g.Link ?? string.Empty).Trim(), Amount = g.Amount, Currency = g.Currency })
+                .Take(IntegerConstants.MaxGuarantees)
+                .ToList();
+        }
+
+        // Prefill list for the edit form: filled rows first, padded to MaxGuarantees with blanks.
+        private static List<GuaranteeItem> BuildGuaranteeFormList(IEnumerable<DirectoryEntryGuarantee>? rows)
+        {
+            var list = (rows ?? Enumerable.Empty<DirectoryEntryGuarantee>())
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.DirectoryEntryGuaranteeId)
+                .Select(x => new GuaranteeItem { Link = x.Link, Amount = x.Amount, Currency = x.Currency })
+                .Take(IntegerConstants.MaxGuarantees)
+                .ToList();
+
+            while (list.Count < IntegerConstants.MaxGuarantees)
+            {
+                list.Add(new GuaranteeItem());
+            }
+
+            return list;
+        }
+
         private async Task AssignTagsAsync(int entryId, HashSet<int> selectedIds, string? newTagsCsv)
         {
             foreach (var tagId in selectedIds)
@@ -1086,7 +1165,8 @@ namespace DirectoryManager.Web.Controllers
             Dictionary<string, string> tagDictionary,
             bool isSponsor,
             DateTime? sponsorSinceUtc,
-            List<string> additionalLinks)
+            List<string> additionalLinks,
+            List<DirectoryManager.Data.Models.GuaranteeItem> guarantees)
         {
             return new DirectoryEntryViewModel
             {
@@ -1119,6 +1199,8 @@ namespace DirectoryManager.Web.Controllers
                 AdditionalLinks = additionalLinks ?? new List<string>(),
                 CountryCode = entry.CountryCode,
                 KycPolicy = entry.KycPolicy,
+                Liquidity = entry.Liquidity,
+                Guarantees = guarantees ?? new List<DirectoryManager.Data.Models.GuaranteeItem>(),
                 IsSponsored = isSponsor,
                 SponsorSinceUtc = sponsorSinceUtc,
                 PgpKey = entry.PgpKey,

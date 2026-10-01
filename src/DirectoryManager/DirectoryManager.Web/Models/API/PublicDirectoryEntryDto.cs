@@ -57,6 +57,10 @@ namespace DirectoryManager.Web.Models.API
 
         public string? SourceCodeLink { get; set; }
 
+        public Liquidity Liquidity { get; set; }
+
+        public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
+
         public bool ReviewsDisabled { get; set; }
 
         public string? PgpKey { get; set; }

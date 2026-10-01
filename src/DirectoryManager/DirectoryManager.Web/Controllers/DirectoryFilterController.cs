@@ -431,6 +431,7 @@ public class DirectoryFilterController : Controller
             DirectoryStatus = e.DirectoryStatus,
             DirectoryBadge = e.DirectoryBadge,
             KycPolicy = e.KycPolicy,
+            Liquidity = e.Liquidity,
 
             CountryCode = e.CountryCode,
             Location = e.Location,
@@ -501,6 +502,8 @@ public class DirectoryFilterController : Controller
                 KycPolicy.MandatoryKyc,
                 KycPolicy.VariesByProvider
             },
+
+            AllLiquidities = LiquidityExtensions.Filterable.ToList(),
 
             PageSizeOptions = AllowedPageSizes.ToList()
         };

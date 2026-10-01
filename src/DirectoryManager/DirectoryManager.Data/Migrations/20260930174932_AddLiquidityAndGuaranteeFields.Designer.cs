@@ -3,6 +3,7 @@ using System;
 using DirectoryManager.Data.DbContextInfo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DirectoryManager.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260930174932_AddLiquidityAndGuaranteeFields")]
+    partial class AddLiquidityAndGuaranteeFields
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -424,6 +427,13 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<DateOnly?>("FoundedDate")
                         .HasColumnType("date");
 
+                    b.Property<int?>("GuaranteeAmountUSD")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("GuaranteeLink")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<int?>("KycPolicy")
                         .HasColumnType("integer");
 
@@ -542,6 +552,13 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<DateOnly?>("FoundedDate")
                         .HasColumnType("date");
 
+                    b.Property<int?>("GuaranteeAmountUSD")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("GuaranteeLink")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
                     b.Property<int?>("KycPolicy")
                         .HasColumnType("integer");
 
@@ -649,55 +666,6 @@ namespace DirectoryManager.Data.Migrations
                         .HasDatabaseName("IX_DirectoryEntries_Update_Create");
 
                     b.ToTable("DirectoryEntries");
-                });
-
-            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryGuarantee", b =>
-                {
-                    b.Property<int>("DirectoryEntryGuaranteeId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("DirectoryEntryGuaranteeId"));
-
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(38, 12)
-                        .HasColumnType("numeric(38,12)");
-
-                    b.Property<DateTime>("CreateDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedByUserId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
-
-                    b.Property<int>("Currency")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("DirectoryEntryId")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("Link")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("character varying(500)");
-
-                    b.Property<int>("SortOrder")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdateDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedByUserId")
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
-
-                    b.HasKey("DirectoryEntryGuaranteeId");
-
-                    b.HasIndex("DirectoryEntryId", "SortOrder")
-                        .IsUnique();
-
-                    b.ToTable("DirectoryEntryGuarantees");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntrySelection", b =>
@@ -2273,8 +2241,12 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<DateOnly?>("FoundedDate")
                         .HasColumnType("date");
 
-                    b.Property<string>("GuaranteesJson")
-                        .HasColumnType("text");
+                    b.Property<int?>("GuaranteeAmountUSD")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("GuaranteeLink")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<string>("IpAddress")
                         .HasMaxLength(255)
@@ -2757,17 +2729,6 @@ namespace DirectoryManager.Data.Migrations
                         .IsRequired();
 
                     b.Navigation("SubCategory");
-                });
-
-            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryGuarantee", b =>
-                {
-                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntry", "DirectoryEntry")
-                        .WithMany()
-                        .HasForeignKey("DirectoryEntryId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.Navigation("DirectoryEntry");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntrySelection", b =>

@@ -143,6 +143,15 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "KYC Policy")]
         public KycPolicy? KycPolicy { get; set; }
 
+        // Liquidity + deposit guarantees — primarily for instant-swap exchanges; all optional.
+        // Liquidity defaults to NotApplicable (most listings). Guarantees is a list (up to 4) of
+        // link + amount + currency, bound from indexed form fields (Guarantees[i].Link / .Amount /
+        // .Currency) and validated in the controller (a link and an amount are required together).
+        [Display(Name = "Liquidity")]
+        public Liquidity Liquidity { get; set; } = Liquidity.NotApplicable;
+
+        public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
+
         [MaxLength(255)]
         [Display(Name = "Tags", Prompt = "comma-separated, e.g. vpn, privacy")]
         [CleanSingleLine]

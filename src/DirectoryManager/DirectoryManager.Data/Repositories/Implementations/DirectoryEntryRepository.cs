@@ -175,6 +175,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.UpdatedByUserId = entry.UpdatedByUserId;
             existing.PgpKey = entry.PgpKey;
             existing.CountryCode = entry.CountryCode;
+            existing.Liquidity = entry.Liquidity;
 
             try
             {
@@ -1511,6 +1512,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     || (includeNotStated && (e.KycPolicy == null || e.KycPolicy == KycPolicy.NotStated)));
             }
 
+            // Liquidity filter (checkbox list — any of the selected liquidity sources).
+            if (q.Liquidities is { Count: > 0 })
+            {
+                var liquidities = q.Liquidities;
+                baseQ = baseQ.Where(e => liquidities.Contains(e.Liquidity));
+            }
+
             // Has Video
             if (q.HasVideo)
             {
@@ -1885,6 +1893,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 ProofLink = entry.ProofLink,
                 VideoLink = entry.VideoLink,
                 SourceCodeLink = entry.SourceCodeLink,
+                Liquidity = entry.Liquidity,
                 CountryCode = entry.CountryCode,
                 FoundedDate = entry.FoundedDate,
                 Description = entry.Description,

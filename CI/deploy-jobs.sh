@@ -231,7 +231,7 @@ task_set_configs() {
     if [[ "${NEEDS_TOR:-0}" -eq 1 ]]; then
         jq_args+=(--arg torhost "${TOR_SOCKS_HOST:-127.0.0.1}" \
                   --arg torport "${TOR_SOCKS_PORT:-9050}" \
-                  --arg ua "${USER_AGENT_HEADER:-Mozilla/5.0 (compatible; MonericaSiteChecker/1.0; +https://monerica.com)}")
+                  --arg ua "${USER_AGENT_HEADER:-Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/125.0.0.0 Safari/537.36}")
         # The C# Program.cs reads these exact keys: TorProxy:Host, TorProxy:Port.
         # On Linux production, TryStartTorAsync first calls IsTorAvailable() which
         # probes 127.0.0.1:9050 — if the system tor@default daemon is already
@@ -241,8 +241,11 @@ task_set_configs() {
         # does the right thing.
         #
         # UserAgent:Header is also required by SiteChecker (Program.cs throws
-        # if missing). Inject a sensible default; override via deploy-config.sh
-        # if you want a different UA string.
+        # if missing). This MUST be a real browser UA string, not a crawler
+        # identifier like "MonericaSiteChecker/1.0": bot-protected sites (e.g.
+        # sporeworks.com) redirect crawler UAs to a block page that 404s, which
+        # the checker would read as "site gone" and falsely flag offline.
+        # Override via deploy-config.sh (USER_AGENT_HEADER) if needed.
         jq_filter+=' + {
             TorProxy: {
                 Host: $torhost,

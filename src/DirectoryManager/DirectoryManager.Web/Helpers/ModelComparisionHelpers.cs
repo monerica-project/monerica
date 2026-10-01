@@ -15,7 +15,8 @@ namespace DirectoryManager.Web.Helpers
             Submission submission,
             IReadOnlyList<string>? entryTagNames = null,
             IReadOnlyList<string>? selectedTagNames = null,
-            IReadOnlyList<string>? entryRelatedLinks = null)
+            IReadOnlyList<string>? entryRelatedLinks = null,
+            IReadOnlyList<DirectoryManager.Data.Models.GuaranteeItem>? entryGuarantees = null)
         {
             if (entry == null || submission == null)
             {
@@ -160,6 +161,11 @@ namespace DirectoryManager.Web.Helpers
                 AddDifference("SourceCodeLink", entry.SourceCodeLink, submission.SourceCodeLink);
             }
 
+            if (entry.Liquidity != submission.Liquidity)
+            {
+                AddDifference("Liquidity", EnumHelper.GetDescription(entry.Liquidity), EnumHelper.GetDescription(submission.Liquidity));
+            }
+
             if (NotEqualTrimmed(entry.VideoLink, submission.VideoLink))
             {
                 AddDifference("VideoLink", entry.VideoLink, submission.VideoLink);
@@ -276,6 +282,52 @@ namespace DirectoryManager.Web.Helpers
                     $"<em>Submission:</em><br> {submissionDisplay}<br>" +
                     $"<em>Added:</em><br> {addedDisplay}<br>" +
                     $"<em>Removed:</em><br> {removedDisplay}</p>");
+            }
+
+            // -----------------------------
+            // Deposit Guarantees diff (link + amount + currency)
+            // -----------------------------
+            static List<DirectoryManager.Data.Models.GuaranteeItem> NormalizeGuarantees(
+                IEnumerable<DirectoryManager.Data.Models.GuaranteeItem>? items)
+            {
+                return (items ?? Enumerable.Empty<DirectoryManager.Data.Models.GuaranteeItem>())
+                    .Where(g => g != null && !string.IsNullOrWhiteSpace(g.Link) && g.Amount.GetValueOrDefault() > 0)
+                    .ToList();
+            }
+
+            // Normalize the amount (strip scale) so 1000.000000000000 (DB, numeric(38,12)) and 1000
+            // (from the submission JSON) compare equal — otherwise an unchanged guarantee shows as
+            // both removed and added.
+            string GuaranteeKey(DirectoryManager.Data.Models.GuaranteeItem g) =>
+                $"{(g.Link ?? string.Empty).Trim().ToLowerInvariant()}|{g.Amount.GetValueOrDefault().ToString("0.############", System.Globalization.CultureInfo.InvariantCulture)}|{(int)g.Currency}";
+
+            string FormatGuarantee(DirectoryManager.Data.Models.GuaranteeItem g)
+            {
+                var amount = DirectoryManager.Data.Helpers.DepositGuaranteeHelper.FormatAmount(g.Amount.GetValueOrDefault(), g.Currency);
+                var link = Enc((g.Link ?? string.Empty).Trim());
+                return $"{Enc(amount)} &mdash; <a href=\"{link}\" target=\"_blank\" rel=\"noopener noreferrer nofollow\">{link}</a>";
+            }
+
+            var entryGs = NormalizeGuarantees(entryGuarantees);
+            var submissionGs = NormalizeGuarantees(submission.Guarantees);
+
+            var entryGKeys = entryGs.Select(GuaranteeKey).ToHashSet(StringComparer.Ordinal);
+            var submissionGKeys = submissionGs.Select(GuaranteeKey).ToHashSet(StringComparer.Ordinal);
+
+            if (!entryGKeys.SetEquals(submissionGKeys))
+            {
+                var added = submissionGs.Where(g => !entryGKeys.Contains(GuaranteeKey(g))).ToList();
+                var removed = entryGs.Where(g => !submissionGKeys.Contains(GuaranteeKey(g))).ToList();
+
+                string Join(List<DirectoryManager.Data.Models.GuaranteeItem> list) =>
+                    list.Count == 0 ? "<i>(none)</i>" : string.Join("<br>", list.Select(FormatGuarantee));
+
+                differences.Add(
+                    "<p><strong>Deposit Guarantees:</strong><br>" +
+                    $"<em>Entry:</em><br> {Join(entryGs)}<br>" +
+                    $"<em>Submission:</em><br> {Join(submissionGs)}<br>" +
+                    $"<em>Added:</em><br> {Join(added)}<br>" +
+                    $"<em>Removed:</em><br> {Join(removed)}</p>");
             }
 
             if (differences.Count > 0)

@@ -58,6 +58,8 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
         public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
         public DbSet<AdditionalLink> AdditionalLinks { get; set; }
+
+        public DbSet<DirectoryEntryGuarantee> DirectoryEntryGuarantees { get; set; }
         public DbSet<ReviewTag> ReviewTags { get; set; }
         public DbSet<DirectoryEntryReviewTag> DirectoryEntryReviewTags { get; set; }
         public DbSet<SiteCheckStatus> SiteCheckStatuses { get; set; }
@@ -574,6 +576,14 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<AdditionalLink>()
                    .HasIndex(x => new { x.DirectoryEntryId, x.SortOrder })
                    .IsUnique();
+
+            builder.Entity<DirectoryEntryGuarantee>()
+                   .HasIndex(x => new { x.DirectoryEntryId, x.SortOrder })
+                   .IsUnique();
+            builder.Entity<DirectoryEntryGuarantee>()
+                   .Property(x => x.Link).HasMaxLength(500);
+            builder.Entity<DirectoryEntryGuarantee>()
+                   .Property(x => x.Amount).HasPrecision(38, 12); // 12 dp to hold full Monero precision
         }
 
         private static void ConfigureSearchBlacklistAndReviewTagIndexes(ModelBuilder builder)

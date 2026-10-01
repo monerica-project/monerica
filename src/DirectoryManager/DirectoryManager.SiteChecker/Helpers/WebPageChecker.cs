@@ -165,6 +165,25 @@ namespace DirectoryManager.SiteChecker.Helpers
             return Array.IndexOf(TelegramHosts, host) >= 0;
         }
 
+        // True when two URLs point at the same resource, ignoring scheme, a leading "www." and a
+        // trailing slash. Used to tell "the requested page 404'd" (genuinely gone) apart from "the
+        // server redirected us elsewhere and THAT 404'd" (a bot-block / error page — site is up).
+        private static bool SameResource(Uri a, Uri b)
+        {
+            static string Norm(Uri u)
+            {
+                var host = u.Host.ToLowerInvariant();
+                if (host.StartsWith("www.", StringComparison.Ordinal))
+                {
+                    host = host.Substring(4);
+                }
+
+                return host + u.AbsolutePath.TrimEnd('/').ToLowerInvariant();
+            }
+
+            return string.Equals(Norm(a), Norm(b), StringComparison.Ordinal);
+        }
+
         private static string NormalizeHost(string value)
         {
             if (string.IsNullOrWhiteSpace(value))
@@ -327,7 +346,19 @@ namespace DirectoryManager.SiteChecker.Helpers
                 // (i.e. the service is reachable) is treated as online.
                 if ((statusCode == 404 || statusCode == 410) && !IsTelegramHost(uri))
                 {
-                    return (false, $"attempt {attempt}: GET {statusCode} in {getSw.ElapsedMilliseconds}ms Server={server}");
+                    // A 404/410 only counts as "resource gone" when it is the REQUESTED url that is
+                    // gone. If the server first redirected us to a DIFFERENT location and that 404s,
+                    // it is almost always a bot-block / error page (e.g. sporeworks.com bounces crawler
+                    // requests to /blocked.php, which 404s) — the site itself is up. Don't verdict on
+                    // it; fall through to the reachability probe, which confirms the server is up.
+                    var finalUri = getResp.RequestMessage?.RequestUri ?? uri;
+                    if (SameResource(finalUri, uri))
+                    {
+                        return (false, $"attempt {attempt}: GET {statusCode} in {getSw.ElapsedMilliseconds}ms Server={server}");
+                    }
+
+                    this.log.Log($"[clearnet GET attempt {attempt}] {uri} → {statusCode} after redirect to {finalUri}; not a 'gone' verdict (likely bot-block/error page)");
+                    return (null, $"attempt {attempt}: GET {statusCode} after redirect to {finalUri.AbsoluteUri}");
                 }
 
                 return (true, $"attempt {attempt}: GET {statusCode} in {getSw.ElapsedMilliseconds}ms");

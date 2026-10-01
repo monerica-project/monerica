@@ -2,6 +2,7 @@ using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Extensions;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.SiteChecker.Helpers;
@@ -353,34 +354,29 @@ async Task CreateOfflineSubmissionIfNotExists(
     {
         SubmissionStatus = SubmissionStatus.Pending,
         DirectoryEntryId = entry.DirectoryEntryId,
-        SubCategoryId = entry.SubCategoryId,
+
+        // This is an "offline" submission: we propose removal and keep the existing note plus an
+        // offline reason. These four fields are caller-owned (see SubmissionContentMapper.ExcludedFieldNames).
         DirectoryStatus = DirectoryStatus.Removed,
-        Name = entry.Name,
-        Link = entry.Link,
-        Link2 = entry.Link2,
-        Link3 = entry.Link3,
-        Description = entry.Description,
-        Location = entry.Location,
-        Processor = entry.Processor,
-        CountryCode = entry.CountryCode,
-        PgpKey = entry.PgpKey,
-        ProofLink = entry.ProofLink,
-        VideoLink = entry.VideoLink,
-        FoundedDate = entry.FoundedDate,
-        // Newer entry fields — carry them forward too, or approving this auto-submission
-        // would blank them out on the live entry.
-        Email = entry.Email,
-        Messenger = entry.Messenger,
-        Social = entry.Social,
-        KycPolicy = entry.KycPolicy,
         Note = newNote,
+
         NoteToAdmin = "(automated submission)",
+
+        // Tags and related links do not live on the DirectoryEntry row — they are read from their
+        // own tables above and set here.
         Tags = string.IsNullOrWhiteSpace(tagNames) ? null : tagNames,
         SelectedTagIdsCsv = entryTags.Count == 0 ? null : selectedTagIdsCsv,
         RelatedLinks = relatedLinks,
+
         SuggestedSubCategory = null,
         IpAddress = null
     };
+
+    // Carry forward EVERY shared content field from the live entry (name, links, description,
+    // contact fields, KYC, founded date, source-code link, …). Reflection-driven so a newly-added
+    // listing field is carried automatically and can never be silently blanked on approval — this
+    // is what previously went wrong for SourceCodeLink. See SubmissionContentMapper.
+    SubmissionContentMapper.CopyContentFields(entry, submission);
 
     await submissionRepository.CreateAsync(submission);
     Console.WriteLine(

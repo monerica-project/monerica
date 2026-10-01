@@ -20,7 +20,11 @@
 
 @{
   Layout = "_LayoutWithNav";
-  ViewData[StringConstants.TitleHeader] = "Category: " + Model.CategoryName + (Model.CurrentPage > 1 ? $" (Page {Model.CurrentPage})" : "");
+  ViewData[StringConstants.TitleHeader] = string.Format(
+      "{0}: {1}{2}",
+      await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName),
+      Model.CategoryName,
+      Model.CurrentPage > 1 ? $" (Page {Model.CurrentPage})" : "");
   ViewData[StringConstants.MetaDescription] = Model.MetaDescription;
 }
  

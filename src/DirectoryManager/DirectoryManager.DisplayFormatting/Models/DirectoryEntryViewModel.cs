@@ -38,6 +38,10 @@ namespace DirectoryManager.DisplayFormatting.Models
 
         public KycPolicy? KycPolicy { get; set; }
 
+        public Liquidity Liquidity { get; set; }
+
+        public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
+
         public DirectoryBadge DirectoryBadge { get; set; } = DirectoryBadge.Unknown;
 
         [MaxLength(500)]

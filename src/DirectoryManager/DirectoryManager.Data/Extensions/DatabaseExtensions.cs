@@ -58,6 +58,7 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IAffiliateCommissionRepository, AffiliateCommissionRepository>();
             services.AddScoped<IDirectoryEntryReviewCommentRepository, DirectoryEntryReviewCommentRepository>();
             services.AddScoped<IAdditionalLinkRepository, AdditionalLinkRepository>();
+            services.AddScoped<IDirectoryEntryGuaranteeRepository, DirectoryEntryGuaranteeRepository>();
             services.AddScoped<ISiteCheckStatusRepository, SiteCheckStatusRepository>();
 
             services.AddScoped<IReviewTagRepository, ReviewTagRepository>();

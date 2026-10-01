@@ -3,6 +3,7 @@ using System;
 using DirectoryManager.Data.DbContextInfo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DirectoryManager.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260930194144_AddDepositGuaranteesTable")]
+    partial class AddDepositGuaranteesTable
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -659,9 +662,8 @@ namespace DirectoryManager.Data.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("DirectoryEntryGuaranteeId"));
 
-                    b.Property<decimal>("Amount")
-                        .HasPrecision(38, 12)
-                        .HasColumnType("numeric(38,12)");
+                    b.Property<int>("AmountUsd")
+                        .HasColumnType("integer");
 
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("timestamp with time zone");
@@ -670,9 +672,6 @@ namespace DirectoryManager.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(36)
                         .HasColumnType("character varying(36)");
-
-                    b.Property<int>("Currency")
-                        .HasColumnType("integer");
 
                     b.Property<int>("DirectoryEntryId")
                         .HasColumnType("integer");

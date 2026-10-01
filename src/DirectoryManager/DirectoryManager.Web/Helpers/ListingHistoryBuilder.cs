@@ -115,6 +115,7 @@ namespace DirectoryManager.Web.Helpers
                 ("Video",       a => a.VideoLink),
                 ("Proof",       a => a.ProofLink),
                 ("Source Code", a => a.SourceCodeLink),
+                ("Liquidity",   a => EnumHelper.GetDescription(a.Liquidity)),
                 ("Subcategory", a => SubcategoryDisplay(a)),
                 ("Location",    a => a.Location),
                 ("Country",     a => CountryDisplay(a.CountryCode)),

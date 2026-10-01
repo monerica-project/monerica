@@ -45,6 +45,8 @@ namespace DirectoryManager.Data.Models
 
         public KycPolicy? KycPolicy { get; set; }
 
+        public Liquidity Liquidity { get; set; }
+
         [MaxLength(500)]
         public string? Description { get; set; }
 

@@ -3,6 +3,7 @@ using System;
 using DirectoryManager.Data.DbContextInfo;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
@@ -11,9 +12,11 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace DirectoryManager.Data.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260930203243_GuaranteeAmountCurrency")]
+    partial class GuaranteeAmountCurrency
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -660,8 +663,8 @@ namespace DirectoryManager.Data.Migrations
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("DirectoryEntryGuaranteeId"));
 
                     b.Property<decimal>("Amount")
-                        .HasPrecision(38, 12)
-                        .HasColumnType("numeric(38,12)");
+                        .HasPrecision(28, 8)
+                        .HasColumnType("numeric(28,8)");
 
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("timestamp with time zone");

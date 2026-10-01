@@ -89,6 +89,39 @@
     </select>
 </div>
 
+@* Liquidity fields — primarily for instant-swap exchanges; all optional. *@
+<div class="form-group">
+    <label for="Liquidity" class="control-label">Liquidity</label>
+    <select class="form-control select-fit" id="Liquidity" name="Liquidity">
+        @foreach (var lq in DirectoryManager.Data.Enums.LiquidityExtensions.Selectable)
+        {
+            <option value="@((int)lq)" selected="@(Model.Liquidity == lq)">@EnumHelper.GetDescription(lq)</option>
+        }
+    </select>
+</div>
+
+@* Deposit guarantees — up to @DirectoryManager.Web.Constants.IntegerConstants.MaxGuarantees (link + USD amount). *@
+<div class="form-group">
+    <label class="control-label">Deposit Guarantees</label>
+    <p class="text-muted"><i>Links to deposits evidencing a liquidity guarantee. Each row needs a link and a USD amount. Up to @DirectoryManager.Web.Constants.IntegerConstants.MaxGuarantees.</i></p>
+    @for (int gi = 0; gi < DirectoryManager.Web.Constants.IntegerConstants.MaxGuarantees; gi++)
+    {
+        var g = Model.Guarantees != null && gi < Model.Guarantees.Count ? Model.Guarantees[gi] : new DirectoryManager.Data.Models.GuaranteeItem();
+        <fieldset class="guarantee-group">
+            <legend>Guarantee @(gi + 1)</legend>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <input autocomplete="off" class="form-control" style="flex:3 1 240px;" type="text" name="Guarantees[@gi].Link" value="@g.Link" placeholder="Proof link, e.g. https://bitcointalk.org/" />
+                <input autocomplete="off" class="form-control" style="flex:1 1 120px;" type="number" min="0" step="any" name="Guarantees[@gi].Amount" value="@(g.Amount > 0 ? g.Amount.Value.ToString("0.############", System.Globalization.CultureInfo.InvariantCulture) : string.Empty)" placeholder="Amount, e.g. 30000" />
+                <select name="Guarantees[@gi].Currency" class="form-control" style="flex:0 1 90px;">
+                    <option value="2" selected="@(g.Currency == DirectoryManager.Data.Enums.Currency.USD)">USD</option>
+                    <option value="3" selected="@(g.Currency == DirectoryManager.Data.Enums.Currency.BTC)">BTC</option>
+                    <option value="1" selected="@(g.Currency == DirectoryManager.Data.Enums.Currency.XMR)">XMR</option>
+                </select>
+            </div>
+        </fieldset>
+    }
+</div>
+
 <div class="form-group">
     <label asp-for="Processor">Processor</label>
     <input autocomplete="off" class="form-control input-width" type="text" asp-for="Processor" />

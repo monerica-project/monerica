@@ -1,0 +1,10 @@
+[Unit]
+Description=Monthly archive+prune of old PriceQuotes partitions
+
+[Timer]
+OnCalendar=*-*-03 03:40:00
+Persistent=true
+RandomizedDelaySec=600
+
+[Install]
+WantedBy=timers.target

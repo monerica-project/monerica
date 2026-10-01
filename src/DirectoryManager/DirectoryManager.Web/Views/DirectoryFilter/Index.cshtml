@@ -20,6 +20,11 @@
     var selectedKyc = Model.Query.KycPolicies is { Count: > 0 }
         ? new HashSet<KycPolicy>(Model.Query.KycPolicies)
         : new HashSet<KycPolicy>(Model.AllKycPolicies);
+    // Liquidity is opt-in: unchecked by default (no filter → all listings show). The filterable
+    // values exclude NotApplicable/Unknown, so "all checked" would wrongly hide the majority.
+    var selectedLiquidity = Model.Query.Liquidities is { Count: > 0 }
+        ? new HashSet<Liquidity>(Model.Query.Liquidities)
+        : new HashSet<Liquidity>();
     var orderedStatuses = new[]
     {
         DirectoryStatus.Verified,
@@ -141,6 +146,11 @@
                 continue;
             }
 
+            if (string.Equals(kv.Key, "Liquidities", StringComparison.OrdinalIgnoreCase))
+            {
+                continue;
+            }
+
             if (string.Equals(kv.Key, "TagIds", StringComparison.OrdinalIgnoreCase))
             {
                 continue;
@@ -173,6 +183,14 @@
                 foreach (var kp in Model.Query.KycPolicies)
                 {
                     built = QueryHelpers.AddQueryString(built, "KycPolicies", kp.ToString());
+                }
+            }
+
+            if (Model.Query.Liquidities != null && Model.Query.Liquidities.Count > 0)
+            {
+                foreach (var lq in Model.Query.Liquidities)
+                {
+                    built = QueryHelpers.AddQueryString(built, "Liquidities", lq.ToString());
                 }
             }
 
@@ -336,6 +354,20 @@
                             <label class="ui-check">
                                 <input type="checkbox" name="KycPolicies" value="@kp" checked="@(selectedKyc.Contains(kp) ? "checked" : null)" />
                                 <span>@EnumHelper.GetDescription(kp)</span>
+                            </label>
+                        }
+                    </div>
+                </fieldset>
+
+                <!-- Liquidity -->
+                <fieldset class="ui-fieldset">
+                    <legend class="ui-legend">Liquidity</legend>
+                    <div class="ui-checks ui-checks-stack">
+                        @foreach (var lq in Model.AllLiquidities)
+                        {
+                            <label class="ui-check">
+                                <input type="checkbox" name="Liquidities" value="@lq" checked="@(selectedLiquidity.Contains(lq) ? "checked" : null)" />
+                                <span>@EnumHelper.GetDescription(lq)</span>
                             </label>
                         }
                     </div>
@@ -522,13 +554,18 @@
                         var websiteUrl = websiteAff ? e.LinkA!.Trim() : (e.Link ?? string.Empty).Trim();
                         var websiteRel = (e.IsSponsored || websiteAff) ? "sponsored noopener" : "noopener";
 
-                        var torAff = !string.IsNullOrWhiteSpace(e.Link2A) && !e.IsSponsored;
-                        var torUrl = torAff ? e.Link2A!.Trim() : (e.Link2 ?? string.Empty).Trim();
+                        // Only show the Tor/I2P link when the BASE link exists. An affiliate link
+                        // (Link2A/Link3A) with a blank base link must NOT render on its own — keying
+                        // off the affiliate would produce an orphan Tor/I2P link with no base URL.
+                        var hasTor = !string.IsNullOrWhiteSpace(e.Link2);
+                        var torAff = hasTor && !string.IsNullOrWhiteSpace(e.Link2A) && !e.IsSponsored;
+                        var torUrl = hasTor ? (torAff ? e.Link2A!.Trim() : e.Link2!.Trim()) : string.Empty;
                         var torLabel = string.IsNullOrWhiteSpace(e.Link2Name) ? "Tor" : e.Link2Name;
                         var torRel = (e.IsSponsored || torAff) ? "sponsored noopener" : "noopener";
 
-                        var i2pAff = !string.IsNullOrWhiteSpace(e.Link3A) && !e.IsSponsored;
-                        var i2pUrl = i2pAff ? e.Link3A!.Trim() : (e.Link3 ?? string.Empty).Trim();
+                        var hasI2p = !string.IsNullOrWhiteSpace(e.Link3);
+                        var i2pAff = hasI2p && !string.IsNullOrWhiteSpace(e.Link3A) && !e.IsSponsored;
+                        var i2pUrl = hasI2p ? (i2pAff ? e.Link3A!.Trim() : e.Link3!.Trim()) : string.Empty;
                         var i2pLabel = string.IsNullOrWhiteSpace(e.Link3Name) ? "I2P" : e.Link3Name;
                         var i2pRel = (e.IsSponsored || i2pAff) ? "sponsored noopener" : "noopener";
 

@@ -74,6 +74,12 @@ namespace DirectoryManager.Data.Models
         public KycPolicy? KycPolicy { get; set; }
 
         /// <summary>
+        /// Where the listing's swap liquidity comes from (primarily instant-swap exchanges).
+        /// Defaults to <see cref="Enums.Liquidity.Unknown"/>; only Own/Mixed/ThirdParty display publicly.
+        /// </summary>
+        public Liquidity Liquidity { get; set; }
+
+        /// <summary>
         /// The two-letter ISO country code.
         /// </summary>
         [MaxLength(2)]
@@ -139,6 +145,7 @@ namespace DirectoryManager.Data.Models
                 this.Link3 == other.Link3 &&
                 this.DirectoryStatus == other.DirectoryStatus &&
                 this.KycPolicy == other.KycPolicy &&
+                this.Liquidity == other.Liquidity &&
                 this.Description == other.Description &&
                 this.Location == other.Location &&
                 this.Processor == other.Processor &&

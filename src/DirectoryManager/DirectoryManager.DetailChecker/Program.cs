@@ -1,6 +1,7 @@
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Extensions;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DetailChecker.Helpers;
@@ -217,24 +218,7 @@ async Task<Submission> BuildRevisionAsync(
     {
         SubmissionStatus = SubmissionStatus.Pending,
         DirectoryEntryId = entry.DirectoryEntryId,
-        SubCategoryId = entry.SubCategoryId,
         DirectoryStatus = entry.DirectoryStatus, // a detail revision — keep the current status
-        Name = entry.Name,
-        Link = entry.Link,
-        Link2 = entry.Link2,
-        Link3 = entry.Link3,
-        Description = entry.Description,
-        Location = entry.Location,
-        Processor = entry.Processor,
-        CountryCode = entry.CountryCode,
-        PgpKey = entry.PgpKey,
-        ProofLink = entry.ProofLink,
-        VideoLink = entry.VideoLink,
-        FoundedDate = entry.FoundedDate,
-        Email = entry.Email,
-        Messenger = entry.Messenger,
-        Social = entry.Social,
-        KycPolicy = entry.KycPolicy,
         Note = entry.Note,
         NoteToAdmin = note,
         Tags = string.IsNullOrWhiteSpace(tagNames) ? null : tagNames,
@@ -243,6 +227,11 @@ async Task<Submission> BuildRevisionAsync(
         SuggestedSubCategory = null,
         IpAddress = null,
     };
+
+    // Carry forward EVERY shared content field from the live entry (name, links, description,
+    // contact fields, KYC, liquidity, source-code link, …) so approving this auto-submission never
+    // silently blanks a field. Reflection-driven, so new listing fields are carried automatically.
+    SubmissionContentMapper.CopyContentFields(entry, submission);
 
     // Apply the confident, auto-fillable changes (country / KYC / email).
     foreach (var change in decision.Changes)

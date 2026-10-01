@@ -38,6 +38,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ITagRepository tagRepo;
         private readonly IDirectoryEntryTagRepository entryTagRepo;
         private readonly IAdditionalLinkRepository additionalLinkRepo;
+        private readonly IDirectoryEntryGuaranteeRepository guaranteeRepo;
         private readonly IDomainRegistrationDateService domainRegistrationDateService;
         private readonly IProcessorRepository processorRepo;
         private readonly ICaptchaService captcha;
@@ -58,6 +59,7 @@ namespace DirectoryManager.Web.Controllers
             ITagRepository tagRepo,
             IDirectoryEntryTagRepository entryTagRepo,
             IAdditionalLinkRepository additionalLinkRepo,
+            IDirectoryEntryGuaranteeRepository guaranteeRepo,
             IDomainRegistrationDateService domainRegistrationDateService,
             IProcessorRepository processorRepo,
             ICaptchaService captcha,
@@ -77,6 +79,7 @@ namespace DirectoryManager.Web.Controllers
             this.tagRepo = tagRepo;
             this.entryTagRepo = entryTagRepo;
             this.additionalLinkRepo = additionalLinkRepo;
+            this.guaranteeRepo = guaranteeRepo;
             this.domainRegistrationDateService = domainRegistrationDateService;
             this.processorRepo = processorRepo;
             this.captcha = captcha;
@@ -174,6 +177,8 @@ namespace DirectoryManager.Web.Controllers
             {
                 this.ModelState.AddModelError(nameof(model.SourceCodeLink), "The source code link is not a valid URL.");
             }
+
+            GuaranteeValidation.ValidateGuarantees(model.Guarantees, this.ModelState);
 
             // Links belong in the dedicated Link fields, not in free-text. Reject URLs
             // pasted into the Description or Note so submitters stop putting them there.
@@ -346,6 +351,11 @@ namespace DirectoryManager.Web.Controllers
             var entryTags = await this.entryTagRepo.GetTagsForEntryAsync(id);
 
             var model = GetSubmissionRequestModel(directoryEntry);
+
+            var entryGuarantees = await this.guaranteeRepo.GetByDirectoryEntryIdAsync(id, ct);
+            model.Guarantees = entryGuarantees
+                .Select(g => new GuaranteeItem { Link = g.Link, Amount = g.Amount, Currency = g.Currency })
+                .ToList();
 
             // Existing tags are reflected by the checkbox grid (SelectedTagIds) below — do NOT
             // pre-fill the free-text "Suggested Tags" box, which is only for proposing NEW tags.
@@ -613,12 +623,20 @@ namespace DirectoryManager.Web.Controllers
                         .Take(MaxLinks)
                         .ToList();
 
+                    // existing/current entry deposit guarantees (for the guarantee diff)
+                    var existingGuaranteeRows = await this.guaranteeRepo
+                        .GetByDirectoryEntryIdAsync(existing.DirectoryEntryId, ct);
+                    var entryGuarantees = existingGuaranteeRows
+                        .Select(g => new GuaranteeItem { Link = g.Link, Amount = g.Amount, Currency = g.Currency })
+                        .ToList();
+
                     this.ViewBag.Differences = ModelComparisonHelpers.CompareEntries(
                         existing,
                         submission,
                         entryTagNames: existingTagNames,
                         selectedTagNames: selectedTagNames,
-                        entryRelatedLinks: entryRelatedLinks);
+                        entryRelatedLinks: entryRelatedLinks,
+                        entryGuarantees: entryGuarantees);
                 }
             }
 
@@ -636,11 +654,19 @@ namespace DirectoryManager.Web.Controllers
             Submission model,
             int[] selectedTagIds,
             List<string>? relatedLinks,
+            List<GuaranteeItem>? guaranteeItems,
             string? foundedYear,
             string? foundedMonth,
             string? foundedDay,
             CancellationToken ct)
         {
+            // Guarantees bind to this dedicated parameter, NOT to the Submission's JSON-computed
+            // Guarantees property (a computed collection property does not model-bind cleanly and
+            // was producing an empty-message ModelState error). Validate the raw rows (catches a
+            // link without an amount, etc.), then set them on the model for save + re-render.
+            GuaranteeValidation.ValidateGuarantees(guaranteeItems, this.ModelState);
+            model.Guarantees = guaranteeItems ?? new List<GuaranteeItem>();
+
             var normalizedRelated = NormalizeRelatedLinks(relatedLinks, max: 3);
 
             this.ValidateRelatedLinks(normalizedRelated);
@@ -695,6 +721,8 @@ namespace DirectoryManager.Web.Controllers
                 submission.SubmissionStatus = model.SubmissionStatus;
                 submission.CountryCode = model.CountryCode;
                 submission.KycPolicy = model.KycPolicy;
+                submission.Liquidity = model.Liquidity;
+                submission.Guarantees = model.Guarantees;
 
                 await this.submissionRepository.UpdateAsync(submission);
             }
@@ -1280,6 +1308,7 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryId = directoryEntry.DirectoryEntryId,
                 DirectoryStatus = directoryEntry.DirectoryStatus,
                 KycPolicy = directoryEntry.KycPolicy,
+                Liquidity = directoryEntry.Liquidity,
                 CountryCode = directoryEntry.CountryCode,
                 PgpKey = directoryEntry.PgpKey,
                 RelatedLink1 = null,
@@ -1319,6 +1348,8 @@ namespace DirectoryManager.Web.Controllers
                 Tags = submission.Tags,
                 CountryCode = submission.CountryCode,
                 KycPolicy = submission.KycPolicy,
+                Liquidity = submission.Liquidity,
+                Guarantees = submission.Guarantees,
                 PgpKey = submission.PgpKey,
                 RelatedLink1 = related.ElementAtOrDefault(0),
                 RelatedLink2 = related.ElementAtOrDefault(1),
@@ -1426,6 +1457,8 @@ namespace DirectoryManager.Web.Controllers
                     Tags = tagsList,
                     CountryCode = submission.CountryCode,
                     KycPolicy = submission.KycPolicy,
+                    Liquidity = submission.Liquidity,
+                    Guarantees = submission.Guarantees,
                     FoundedDate = submission.FoundedDate,
                 },
                 SubmissionId = submission.SubmissionId,
@@ -1546,6 +1579,39 @@ namespace DirectoryManager.Web.Controllers
             // {
             //     await this.additionalLinkRepo.CreateAsync(m, ct);
             // }
+        }
+
+        // Deposit guarantees: delete-all then recreate from the submission's guarantee list.
+        private async Task SyncGuaranteesAsync(int directoryEntryId, IEnumerable<GuaranteeItem>? guarantees, CancellationToken ct = default)
+        {
+            await this.guaranteeRepo.DeleteByDirectoryEntryIdAsync(directoryEntryId, ct);
+
+            var normalized = (guarantees ?? Enumerable.Empty<GuaranteeItem>())
+                .Where(g => g != null && !string.IsNullOrWhiteSpace(g.Link) && g.Amount > 0)
+                .Select(g => new GuaranteeItem { Link = (g.Link ?? string.Empty).Trim(), Amount = g.Amount, Currency = g.Currency })
+                .Take(IntegerConstants.MaxGuarantees)
+                .ToList();
+
+            if (normalized.Count == 0)
+            {
+                return;
+            }
+
+            var userId = this.userManager.GetUserId(this.User) ?? string.Empty;
+            var rows = normalized
+                .Select((g, i) => new DirectoryEntryGuarantee
+                {
+                    DirectoryEntryId = directoryEntryId,
+                    SortOrder = i + 1,
+                    Link = g.Link ?? string.Empty,
+                    Amount = g.Amount.GetValueOrDefault(),
+                    Currency = g.Currency,
+                    CreatedByUserId = userId,
+                    CreateDate = DateTime.UtcNow,
+                })
+                .ToList();
+
+            await this.guaranteeRepo.CreateManyAsync(rows, ct);
         }
 
         private async Task PopulateCountryDropDownList(object? selectedId = null)
@@ -1742,6 +1808,12 @@ namespace DirectoryManager.Web.Controllers
                 // they are submitting a listing that is an override, not an edit, copy the status from the existing listing
                 submissionModel.DirectoryStatus = existingDirectoryEntry.DirectoryStatus;
                 submissionModel.KycPolicy = existingDirectoryEntry.KycPolicy;
+                submissionModel.Liquidity = existingDirectoryEntry.Liquidity;
+
+                var existingGuarantees = await this.guaranteeRepo.GetByDirectoryEntryIdAsync(existingDirectoryEntry.DirectoryEntryId);
+                submissionModel.Guarantees = existingGuarantees
+                    .Select(g => new GuaranteeItem { Link = g.Link, Amount = g.Amount, Currency = g.Currency })
+                    .ToList();
             }
         }
 
@@ -1761,32 +1833,35 @@ namespace DirectoryManager.Web.Controllers
 
             var status = (DirectoryStatus)(model.DirectoryStatus == null ? DirectoryStatus.Admitted : model.DirectoryStatus);
 
-            await this.directoryEntryRepository.CreateAsync(
-                new DirectoryEntry
-                {
-                    DirectoryEntryKey = StringHelpers.UrlKey(model.Name ?? string.Empty),
-                    Name = (model.Name ?? string.Empty).Trim(),
-                    Link = (model.Link ?? string.Empty).Trim(),
-                    Link2 = model.Link2?.Trim(),
-                    Link3 = model.Link3?.Trim(),
-                    Description = model.Description?.Trim(),
-                    Location = model.Location?.Trim(),
-                    Processor = model.Processor?.Trim(),
-                    Note = model.Note?.Trim(),
-                    Email = model.Email?.Trim(),
-                    Messenger = model.Messenger?.Trim(),
-                    Social = model.Social?.Trim(),
-                    DirectoryStatus = status,
-                    SubCategoryId = model.SubCategoryId.Value,
-                    CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty,
-                    CountryCode = model.CountryCode,
-                    KycPolicy = model.KycPolicy,
-                    PgpKey = model.PgpKey?.Trim(),
-                    ProofLink = model.ProofLink?.Trim(),
-                    VideoLink = model.VideoLink?.Trim(),
-                    SourceCodeLink = model.SourceCodeLink?.Trim(),
-                    FoundedDate = model.FoundedDate,
-                });
+            var entry = new DirectoryEntry
+            {
+                DirectoryEntryKey = StringHelpers.UrlKey(model.Name ?? string.Empty),
+                Name = (model.Name ?? string.Empty).Trim(),
+                Link = (model.Link ?? string.Empty).Trim(),
+                Link2 = model.Link2?.Trim(),
+                Link3 = model.Link3?.Trim(),
+                Description = model.Description?.Trim(),
+                Location = model.Location?.Trim(),
+                Processor = model.Processor?.Trim(),
+                Note = model.Note?.Trim(),
+                Email = model.Email?.Trim(),
+                Messenger = model.Messenger?.Trim(),
+                Social = model.Social?.Trim(),
+                DirectoryStatus = status,
+                SubCategoryId = model.SubCategoryId.Value,
+                CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty,
+                CountryCode = model.CountryCode,
+                KycPolicy = model.KycPolicy,
+                Liquidity = model.Liquidity,
+                PgpKey = model.PgpKey?.Trim(),
+                ProofLink = model.ProofLink?.Trim(),
+                VideoLink = model.VideoLink?.Trim(),
+                SourceCodeLink = model.SourceCodeLink?.Trim(),
+                FoundedDate = model.FoundedDate,
+            };
+
+            await this.directoryEntryRepository.CreateAsync(entry);
+            await this.SyncGuaranteesAsync(entry.DirectoryEntryId, model.Guarantees);
         }
 
         private async Task UpdateDirectoryEntry(Submission model)
@@ -1817,6 +1892,7 @@ namespace DirectoryManager.Web.Controllers
             existing.Social = model.Social?.Trim();
             existing.CountryCode = model.CountryCode;
             existing.KycPolicy = model.KycPolicy;
+            existing.Liquidity = model.Liquidity;
             existing.PgpKey = model.PgpKey?.Trim();
             existing.ProofLink = model.ProofLink?.Trim();
             existing.SourceCodeLink = model.SourceCodeLink?.Trim();
@@ -1831,6 +1907,7 @@ namespace DirectoryManager.Web.Controllers
             existing.UpdatedByUserId = this.userManager.GetUserId(this.User);
 
             await this.directoryEntryRepository.UpdateAsync(existing);
+            await this.SyncGuaranteesAsync(existing.DirectoryEntryId, model.Guarantees);
         }
 
         private Submission FormatSubmissionRequest(SubmissionRequest model)
@@ -1868,6 +1945,8 @@ namespace DirectoryManager.Web.Controllers
                 Tags = model.Tags?.Trim(),
                 CountryCode = model.CountryCode,
                 KycPolicy = model.KycPolicy,
+                Liquidity = model.Liquidity,
+                Guarantees = model.Guarantees,
                 PgpKey = (model.PgpKey ?? string.Empty).Trim(),
                 SelectedTagIdsCsv = model.SelectedTagIdsCsv,
                 FoundedDate = foundedDate,
@@ -1918,6 +1997,8 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.SuggestedSubCategory = submissionModel.SuggestedSubCategory;
             existingSubmission.CountryCode = submissionModel.CountryCode;
             existingSubmission.KycPolicy = submissionModel.KycPolicy;
+            existingSubmission.Liquidity = submissionModel.Liquidity;
+            existingSubmission.Guarantees = submissionModel.Guarantees;
             existingSubmission.PgpKey = submissionModel.PgpKey;
             existingSubmission.ProofLink = submissionModel.ProofLink;
             existingSubmission.VideoLink = submissionModel.VideoLink;
@@ -2113,6 +2194,11 @@ namespace DirectoryManager.Web.Controllers
             // KYC policy — nullable; null means "Not Stated". Any change (including to or
             // from Not Stated) is a real edit, so a KYC-only change still queues a submission.
             if (existingEntry.KycPolicy != model.KycPolicy)
+            {
+                return true;
+            }
+
+            if (existingEntry.Liquidity != model.Liquidity)
             {
                 return true;
             }

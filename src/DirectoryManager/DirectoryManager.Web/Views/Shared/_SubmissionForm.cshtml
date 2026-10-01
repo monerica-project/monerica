@@ -51,7 +51,14 @@
 
 <div class="form-group">
     <label asp-for="Description">Description</label>
-    <textarea asp-for="Description" class="form-control input-width" required></textarea>
+    @* Native maxlength (no JS) gives a hard client-side stop at the same limit the server enforces,
+       so nobody discovers the cap only at Preview. Value comes from the server constant so the two
+       can never drift. Note: browsers silently truncate pasted text beyond maxlength, so the hint
+       below states the limit up front. *@
+    <textarea asp-for="Description" class="form-control input-width" required
+              maxlength="@DirectoryManager.Web.Models.SubmissionRequest.DescriptionMaxLength"
+              aria-describedby="descriptionHint"></textarea>
+    <small id="descriptionHint" class="text-muted">Maximum @DirectoryManager.Web.Models.SubmissionRequest.DescriptionMaxLength characters.</small>
     <span asp-validation-for="Description" class="text-danger"></span>
 </div>
 
@@ -146,6 +153,41 @@
         }
     </select>
 </div>
+
+@* Liquidity fields — primarily for instant-swap exchanges; all optional. *@
+<div class="form-group">
+    <label for="Liquidity" class="control-label">Liquidity</label>
+    <p class="text-muted"><i>Primarily for exchanges. Leave as "Not Applicable" if it doesn't apply.</i></p>
+    <select class="form-control select-fit" id="Liquidity" name="Liquidity">
+        @foreach (var lq in LiquidityExtensions.Selectable)
+        {
+            <option value="@((int)lq)" selected="@(Model.Liquidity == lq)">@EnumHelper.GetDescription(lq)</option>
+        }
+    </select>
+</div>
+
+@* Deposit guarantees — up to @DirectoryManager.Web.Constants.IntegerConstants.MaxGuarantees (link + USD amount).
+   Optional; each row needs both a link and an amount to count. Collapsed by default (no JS needed). *@
+<details class="form-group">
+    <summary>Deposit guarantees (optional)</summary>
+    <p class="text-muted"><i>Links to deposits that show a liquidity guarantee, so people feel safe exchanging. Up to @DirectoryManager.Web.Constants.IntegerConstants.MaxGuarantees.</i></p>
+    @for (int gi = 0; gi < DirectoryManager.Web.Constants.IntegerConstants.MaxGuarantees; gi++)
+    {
+        var g = Model.Guarantees != null && gi < Model.Guarantees.Count ? Model.Guarantees[gi] : new DirectoryManager.Data.Models.GuaranteeItem();
+        <fieldset class="guarantee-group">
+            <legend>Guarantee @(gi + 1)</legend>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <input autocomplete="off" name="Guarantees[@gi].Link" value="@g.Link" class="form-control" style="flex:3 1 240px;" placeholder="Proof link, e.g. https://bitcointalk.org/" />
+                <input autocomplete="off" name="Guarantees[@gi].Amount" value="@(g.Amount > 0 ? g.Amount.Value.ToString("0.############", System.Globalization.CultureInfo.InvariantCulture) : string.Empty)" type="number" min="0" step="any" class="form-control" style="flex:1 1 120px;" placeholder="Amount, e.g. 30000" />
+                <select name="Guarantees[@gi].Currency" class="form-control" style="flex:0 1 90px;">
+                    <option value="2" selected="@(g.Currency == DirectoryManager.Data.Enums.Currency.USD)">USD</option>
+                    <option value="3" selected="@(g.Currency == DirectoryManager.Data.Enums.Currency.BTC)">BTC</option>
+                    <option value="1" selected="@(g.Currency == DirectoryManager.Data.Enums.Currency.XMR)">XMR</option>
+                </select>
+            </div>
+        </fieldset>
+    }
+</details>
 
 <div class="form-group">
     <label asp-for="Note">Note</label>

@@ -20,6 +20,8 @@ namespace DirectoryManager.Web.Models
 
         public List<DirectoryManager.Data.Enums.KycPolicy> AllKycPolicies { get; set; } = new ();
 
+        public List<DirectoryManager.Data.Enums.Liquidity> AllLiquidities { get; set; } = new ();
+
         public CategorySponsorModel? CategorySponsorModel { get; set; }
         public SubcategorySponsorModel? SubcategorySponsorModel { get; set; }
 

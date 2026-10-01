@@ -22,6 +22,11 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "KYC Policy")]
         public KycPolicy? KycPolicy { get; set; }
 
+        [Display(Name = "Liquidity")]
+        public Liquidity Liquidity { get; set; } = Liquidity.NotApplicable;
+
+        public List<DirectoryManager.Data.Models.GuaranteeItem> Guarantees { get; set; } = new ();
+
         [Required]
         public int SubCategoryId { get; set; }
 

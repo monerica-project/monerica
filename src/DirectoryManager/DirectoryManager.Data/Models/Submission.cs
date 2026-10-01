@@ -82,6 +82,11 @@ namespace DirectoryManager.Data.Models
 
         public KycPolicy? KycPolicy { get; set; }
 
+        public Liquidity Liquidity { get; set; }
+
+        /// <summary>JSON carrier for the proposed deposit guarantees (see <see cref="Guarantees"/>).</summary>
+        public string? GuaranteesJson { get; set; }
+
         [MaxLength(255)]
         public string? Tags { get; set; }
 
@@ -148,6 +153,53 @@ namespace DirectoryManager.Data.Models
                     ? null
                     : JsonSerializer.Serialize(normalized);
             }
+        }
+
+        /// <summary>
+        /// Proposed deposit guarantees (link + USD amount), backed by <see cref="GuaranteesJson"/>.
+        /// Normalized on read/write: blank links or non-positive amounts are dropped, capped at 4
+        /// (IntegerConstants.MaxGuarantees).
+        /// </summary>
+        [NotMapped]
+        public List<GuaranteeItem> Guarantees
+        {
+            get
+            {
+                if (string.IsNullOrWhiteSpace(this.GuaranteesJson))
+                {
+                    return new List<GuaranteeItem>();
+                }
+
+                try
+                {
+                    var list = JsonSerializer.Deserialize<List<GuaranteeItem>>(this.GuaranteesJson)
+                               ?? new List<GuaranteeItem>();
+
+                    return NormalizeGuarantees(list);
+                }
+                catch
+                {
+                    return new List<GuaranteeItem>();
+                }
+            }
+
+            set
+            {
+                var normalized = NormalizeGuarantees(value);
+
+                this.GuaranteesJson = normalized.Count == 0
+                    ? null
+                    : JsonSerializer.Serialize(normalized);
+            }
+        }
+
+        private static List<GuaranteeItem> NormalizeGuarantees(IEnumerable<GuaranteeItem>? items)
+        {
+            return (items ?? new List<GuaranteeItem>())
+                .Where(x => x != null && !string.IsNullOrWhiteSpace(x.Link) && x.Amount > 0)
+                .Select(x => new GuaranteeItem { Link = (x.Link ?? string.Empty).Trim(), Amount = x.Amount, Currency = x.Currency })
+                .Take(4)
+                .ToList();
         }
     }
 }

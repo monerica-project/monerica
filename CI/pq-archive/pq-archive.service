@@ -1,0 +1,16 @@
+[Unit]
+Description=Archive old MoneroPriceNow PriceQuotes partitions to Bunny, then drop them
+After=postgresql.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/pq-archive.sh
+User=root
+Nice=10
+IOSchedulingClass=idle
+
+# Retention window (days). Partitions whose month is entirely older than this are
+# archived to Bunny and dropped. Change the number and `systemctl daemon-reload`
+# to adjust. A one-off with a different value: `sudo PQ_RETENTION_DAYS=180 pq-archive.sh`.
+Environment=PQ_RETENTION_DAYS=90

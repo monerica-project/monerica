@@ -33,6 +33,24 @@
     <p><b>KYC Policy:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.DirectoryEntryViewModel.KycPolicy.Value)</p>
 }
 
+@if (DirectoryManager.Data.Enums.LiquidityExtensions.IsPubliclyShown(Model.DirectoryEntryViewModel.Liquidity))
+{
+    <p><b>Liquidity:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.DirectoryEntryViewModel.Liquidity)</p>
+}
+
+@if (Model.DirectoryEntryViewModel.Guarantees != null && Model.DirectoryEntryViewModel.Guarantees.Any())
+{
+    <p>
+        <b>@(Model.DirectoryEntryViewModel.Guarantees.Count > 1 ? "Deposit Guarantees:" : "Deposit Guarantee:")</b>
+    </p>
+    <ul class="blank_list_item">
+        @foreach (var g in Model.DirectoryEntryViewModel.Guarantees)
+        {
+            <li>@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.FormatAmount(g.Amount.GetValueOrDefault(), g.Currency) &mdash; <a target="_blank" href="@g.Link" rel="ugc nofollow noopener">view proof</a></li>
+        }
+    </ul>
+}
+
 <ul class="blank_list_item">
     @await Html.PartialAsync("_DirectoryEntryPartial", Model.DirectoryEntryViewModel)
 </ul>

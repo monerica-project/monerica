@@ -40,6 +40,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 LinkA = entry.LinkA,
                 Link2A = entry.Link2A,
                 Link3A = entry.Link3A,
+                Liquidity = entry.Liquidity,
                 DirectoryBadge = entry.DirectoryBadge,
                 ItemDisplayType = itemDisplayType,
                 CountryCode = entry.CountryCode,

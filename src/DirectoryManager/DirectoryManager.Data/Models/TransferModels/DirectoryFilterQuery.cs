@@ -9,6 +9,8 @@ namespace DirectoryManager.Data.Models.TransferModels
 
         public List<KycPolicy>? KycPolicies { get; set; }
 
+        public List<Liquidity>? Liquidities { get; set; }
+
         public string? Country { get; set; } // ISO2, or null/empty = all
 
         public bool HasVideo { get; set; }
