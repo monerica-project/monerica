@@ -1,0 +1,22 @@
+@using DirectoryManager.Web.Services.Interfaces
+@model DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel
+@inject IUrlResolutionService Urls
+
+@* Report-a-problem prompt. Unlike the verification prompt, this is shown on EVERY
+   listing regardless of status, and is placed BELOW the Reviews block. *@
+@if (Model != null && Model.DirectoryEntryId > 0)
+{
+    <div class="entry-section entry-report-problem">
+        <div class="verification-request-notice">
+            <span class="vr-text">See something wrong with this listing — bad info, a dead link, or a scam?</span>
+            <form action="@Urls.ResolveToApp("/problem-reports/begin")"
+                  method="post"
+                  class="d-inline"
+                  rel="nofollow">
+                <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
+                <input class="u-hidden" type="text" name="website" value="" tabindex="-1" autocomplete="off" />
+                <button class="btn review-btn btn-sm" type="submit">&#128681; Report a problem</button>
+            </form>
+        </div>
+    </div>
+}

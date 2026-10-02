@@ -1,0 +1,35 @@
+@using DirectoryManager.Web.Constants
+@model DirectoryManager.Web.Models.ProblemReports.CreateProblemReportInputModel
+@{
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    ViewData[StringConstants.TitleHeader] = "Report a Problem";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    @if (ViewBag.EntryName != null)
+    {
+        <p class="text-muted">Listing: <strong>@ViewBag.EntryName</strong></p>
+    }
+    <hr />
+
+    <p>Tell us what's wrong with this listing — for example wrong or outdated information, a dead or hijacked link, a scam or exit, or anything else that needs our attention.</p>
+    <p>If you can include a URL that backs up the problem (for example a public thread, a report, or a screenshot host), it helps us look into it faster.</p>
+
+    <div asp-validation-summary="All" class="text-danger"></div>
+
+    <form asp-action="ComposePost" asp-controller="ProblemReports" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+        <input class="u-hidden" type="text" name="Website" value="" tabindex="-1" autocomplete="off" />
+
+        <div class="mb-3">
+            <label asp-for="Comment" class="form-label"></label>
+            <textarea asp-for="Comment" rows="5" class="form-control" maxlength="4000"></textarea>
+            <span asp-validation-for="Comment" class="text-danger"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-cta">Submit report</button>
+    </form>
+}

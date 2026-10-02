@@ -126,18 +126,10 @@ namespace DirectoryManager.Web.Models
                         "Please supply a valid ASCII-armored PGP public key.",
                         new[] { nameof(this.PgpKey) }));
                 }
-                else if (!PgpCapabilities.HasUsableEncryptionKey(this.PgpKey))
-                {
-                    // Ownership is verified by encrypting a one-time code to the key, so it needs a
-                    // usable encryption (sub)key. Reject sign-only keys up front instead of accepting
-                    // them and failing later at the challenge step.
-                    results.Add(new ValidationResult(
-                        "This PGP key has no usable encryption subkey, so it can't be used to verify " +
-                        "ownership (verification works by encrypting a one-time code to the key). Please " +
-                        "provide a key with a current, non-revoked encryption subkey — a sign-only or " +
-                        "certify-only key won't work.",
-                        new[] { nameof(this.PgpKey) }));
-                }
+
+                // A valid sign-only / certify-only key (e.g. the Qubes master signing key) is allowed
+                // — it's a legitimate identity key worth storing. The encryption-subkey requirement
+                // applies only to the owner self-verification flow (SiteOwnerAdminController).
             }
 
             return results;

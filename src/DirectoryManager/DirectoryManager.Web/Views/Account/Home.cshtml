@@ -99,6 +99,18 @@
             }
         </li>
         <li>
+            <b>Problems:</b>
+            <a href="~/admin/problem-reports">Reports (@(ViewBag.TotalPendingProblemReports ?? 0))</a>
+            @if (ViewBag.LastProblemReportSubmissionUtc is DateTime lastProbSub)
+            {
+                <small class="u-color-888">&nbsp;&middot; last report @FormatAgoCompact(lastProbSub)</small>
+            }
+            @if (ViewBag.LastProblemReportPaidUtc is DateTime lastProbPaid)
+            {
+                <small class="u-color-888">&nbsp;&middot; last paid @FormatAgoCompact(lastProbPaid)</small>
+            }
+        </li>
+        <li>
             <b>Invoicing:</b>
             <a href="~/sponsoredlistinginvoice">Sponsors</a>
             @if (ViewBag.LastInvoicePaidUtc is DateTime lastPaid)
@@ -128,6 +140,7 @@
                 <li><a href="~/directory-entry-reviews">All reviews</a></li>
                 <li><a href="~/review-tags">Review tags</a></li>
                 <li><a href="~/admin/verification-requests">Verification requests (@(ViewBag.TotalPendingVerificationRequests ?? 0))</a></li>
+                <li><a href="~/admin/problem-reports">Problem reports (@(ViewBag.TotalPendingProblemReports ?? 0))</a></li>
             </ul>
         </li>
         <li>

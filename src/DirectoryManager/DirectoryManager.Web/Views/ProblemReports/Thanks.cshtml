@@ -1,0 +1,20 @@
+@using DirectoryManager.Web.Constants
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@{
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    ViewData[StringConstants.TitleHeader] = "Problem Report Received";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+    <hr />
+
+    <p><b>Thank you for reporting a problem — your message was received.</b></p>
+    <p>We review reports manually and prioritize by demand. Reporting is free — you don't need to pay anything.</p>
+
+    @await Html.PartialAsync("_BackToHome")
+}

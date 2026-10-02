@@ -1,19 +1,19 @@
 @using DirectoryManager.Data.Enums
-@model DirectoryManager.Web.Models.VerificationRequests.VerificationRequestQueueViewModel
+@model DirectoryManager.Web.Models.ProblemReports.ProblemReportQueueViewModel
 @{
-    ViewData["Title"] = "Verification Requests";
+    ViewData["Title"] = "Problem Reports";
     Layout = "_CenteredLayout";
 
-    VerificationRequestStatus[] tabs =
+    ProblemReportStatus[] tabs =
     {
-        VerificationRequestStatus.Pending,
-        VerificationRequestStatus.Reviewed,
-        VerificationRequestStatus.Dismissed
+        ProblemReportStatus.Pending,
+        ProblemReportStatus.Reviewed,
+        ProblemReportStatus.Dismissed
     };
 
     // Items arrive newest-first from the repository. Group them by listing so multiple
-    // requests for the same listing sit together, ordering the groups by their newest
-    // request (newest group at the top) and each group's requests newest-first.
+    // reports for the same listing sit together, ordering the groups by their newest
+    // report (newest group at the top) and each group's reports newest-first.
     var groups = Model.Items
         .GroupBy(r => r.DirectoryEntryId)
         .Select(g => new
@@ -21,17 +21,17 @@
             DirectoryEntryId = g.Key,
             Entry = g.Select(x => x.DirectoryEntry).FirstOrDefault(x => x != null),
             Requests = g.OrderByDescending(x => x.CreateDate)
-                        .ThenByDescending(x => x.VerificationRequestId)
+                        .ThenByDescending(x => x.ProblemReportId)
                         .ToList()
         })
         .OrderByDescending(g => g.Requests[0].CreateDate)
-        .ThenByDescending(g => g.Requests[0].VerificationRequestId)
+        .ThenByDescending(g => g.Requests[0].ProblemReportId)
         .ToList();
 }
 
 @section PageContent {
     <div class="container py-4">
-        <h1 class="mb-3">Verification Requests</h1>
+        <h1 class="mb-3">Problem Reports</h1>
         <hr />
         @await Html.PartialAsync("_AdminMenu")
 
@@ -45,13 +45,13 @@
             {
                 <li class="nav-item">
                     <a class="nav-link @(Model.Status == t ? "active" : "")"
-                       href="/admin/verification-requests?status=@t">@t</a>
+                       href="/admin/problem-reports?status=@t">@t</a>
                 </li>
             }
         </ul>
 
         <p class="text-muted">
-            @Model.Total @Model.Status request@(Model.Total == 1 ? "" : "s")
+            @Model.Total @Model.Status report@(Model.Total == 1 ? "" : "s")
             across @groups.Count listing@(groups.Count == 1 ? "" : "s").
         </p>
 
@@ -72,8 +72,8 @@
                     <thead>
                         <tr>
                             <th>Listing</th>
-                            <th>Requested</th>
-                            <th>Reason</th>
+                            <th>Reported</th>
+                            <th>Problem</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
@@ -101,7 +101,7 @@
                                                     <a href="/site/@grp.Entry.DirectoryEntryKey" target="_blank" rel="noopener">@grp.Entry.Name</a>
                                                     @if (rowCount > 1)
                                                     {
-                                                        <span class="badge bg-info u-ml-6px">@rowCount requests</span>
+                                                        <span class="badge bg-info u-ml-6px">@rowCount reports</span>
                                                     }
                                                 </div>
                                                 <div>
@@ -117,7 +117,7 @@
                                             }
                                         </td>
                                     }
-                                    <td class="u-valign-top" data-label="Requested">
+                                    <td class="u-valign-top" data-label="Reported">
                                         <div class="text-nowrap">@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</div>
                                         <div class="u-mt-4px">
                                             @if (r.PaidUtc != null)
@@ -132,19 +132,19 @@
                                             }
                                         </div>
                                     </td>
-                                    <td class="u-valign-top" data-label="Reason">
+                                    <td class="u-valign-top" data-label="Problem">
                                         <div class="u-webkitbox-lineclamp-2-boxorient-vertical-overflow-hidden" title="@r.Comment">@r.Comment</div>
-                                        <a href="/admin/verification-requests/@r.VerificationRequestId" class="small">View full text &rarr;</a>
+                                        <a href="/admin/problem-reports/@r.ProblemReportId" class="small">View full text &rarr;</a>
                                     </td>
                                     <td class="u-valign-top" data-label="Actions">
-                                        @if (r.Status == VerificationRequestStatus.Pending)
+                                        @if (r.Status == ProblemReportStatus.Pending)
                                         {
                                             <div class="u-flex-flexdir-column-gap-4px-items-stretch">
-                                                <form action="/admin/verification-requests/@r.VerificationRequestId/reviewed" method="post">
+                                                <form action="/admin/problem-reports/@r.ProblemReportId/reviewed" method="post">
                                                     @Html.AntiForgeryToken()
-                                                    <button type="submit" class="btn btn-sm btn-primary u-w-100pct" title="Mark this request reviewed">&#10003; Reviewed</button>
+                                                    <button type="submit" class="btn btn-sm btn-primary u-w-100pct" title="Mark this report reviewed">&#10003; Reviewed</button>
                                                 </form>
-                                                <form action="/admin/verification-requests/@r.VerificationRequestId/dismiss" method="post">
+                                                <form action="/admin/problem-reports/@r.ProblemReportId/dismiss" method="post">
                                                     @Html.AntiForgeryToken()
                                                     <button type="submit" class="btn btn-sm btn-outline-secondary u-w-100pct">Dismiss</button>
                                                 </form>
@@ -166,16 +166,16 @@
             @if (Model.Total > Model.PageSize)
             {
                 var totalPages = Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Model.PageSize));
-                <nav class="mt-3" aria-label="Verification request pages">
+                <nav class="mt-3" aria-label="Problem report pages">
                     <ul class="pagination pagination-sm mb-0 u-flex-wrap">
                         @if (Model.Page > 1)
                         {
-                            <li class="page-item"><a class="page-link" href="/admin/verification-requests?status=@Model.Status&page=@(Model.Page - 1)">&larr; Newer</a></li>
+                            <li class="page-item"><a class="page-link" href="/admin/problem-reports?status=@Model.Status&page=@(Model.Page - 1)">&larr; Newer</a></li>
                         }
                         <li class="page-item disabled"><span class="page-link">Page @Model.Page of @totalPages</span></li>
                         @if (Model.Page < totalPages)
                         {
-                            <li class="page-item"><a class="page-link" href="/admin/verification-requests?status=@Model.Status&page=@(Model.Page + 1)">Older &rarr;</a></li>
+                            <li class="page-item"><a class="page-link" href="/admin/problem-reports?status=@Model.Status&page=@(Model.Page + 1)">Older &rarr;</a></li>
                         }
                     </ul>
                 </nav>

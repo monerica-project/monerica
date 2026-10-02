@@ -504,6 +504,10 @@
             @await Html.PartialAsync("_EntryReviews", (DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
         </div>
 
+        @* Report-a-problem prompt lives BELOW Reviews, and shows on every listing
+           regardless of status so anyone can flag a problem. *@
+        @await Html.PartialAsync("_EntryProblemReport", (DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)
+
         @* ---------------------------------------------------------------
            "Review us on Monerica" embed badge. Listing owners copy this HTML
            onto their own site to send visitors here to leave a review.

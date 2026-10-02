@@ -192,19 +192,10 @@ namespace DirectoryManager.Web.Models
 
             // PgpKey is [AllowHtml]-exempt from the guard, so require it to be a genuine
             // ASCII-armored PGP public key — the exemption must not smuggle real markup.
-            if (!string.IsNullOrWhiteSpace(this.PgpKey) && PgpKeyValidator.IsValid(this.PgpKey)
-                && !PgpCapabilities.HasUsableEncryptionKey(this.PgpKey))
-            {
-                // Ownership/authorship is verified by encrypting a one-time code to the key, so a
-                // sign-only or certify-only key can't be used. Reject it here rather than accepting it
-                // into the listing and failing later at the challenge step.
-                results.Add(new ValidationResult(
-                    "This PGP key has no usable encryption subkey, so it can't be used to verify " +
-                    "ownership (verification works by encrypting a one-time code to the key). Please " +
-                    "provide a key with a current, non-revoked encryption subkey — a sign-only or " +
-                    "certify-only key won't work.",
-                    new[] { nameof(this.PgpKey) }));
-            }
+            // A valid sign-only / certify-only key (e.g. the Qubes master signing key) is ACCEPTED
+            // here — it's a legitimate published identity key worth storing and displaying. The
+            // encryption-subkey requirement applies only to the owner self-verification flow
+            // (SiteOwnerAdminController), which verifies by encrypting a one-time code to the key.
 
             if (!string.IsNullOrWhiteSpace(this.PgpKey) && !PgpKeyValidator.IsValid(this.PgpKey))
             {

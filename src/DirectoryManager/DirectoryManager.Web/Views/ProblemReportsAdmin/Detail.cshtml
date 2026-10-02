@@ -1,0 +1,83 @@
+@using DirectoryManager.Data.Enums
+@inject BtcPayServer.API.Interfaces.IBtcPayServerService BtcPay
+@model DirectoryManager.Web.Models.ProblemReports.ProblemReportDetailViewModel
+@{
+    ViewData["Title"] = "Problem Report";
+    Layout = "_CenteredLayout";
+    var r = Model.Request;
+    var dateFormat = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+}
+
+@section PageContent {
+    <div class="container py-4">
+        <h1 class="mb-3">Problem Report #@r.ProblemReportId</h1>
+        <hr />
+        @await Html.PartialAsync("_AdminMenu")
+
+        <p><a href="/admin/problem-reports">&larr; Back to problem reports</a></p>
+
+        <div class="table-wrapper">
+<table class="table table-sm">
+            <tbody>
+                <tr>
+                    <th class="u-w-130px">Listing</th>
+                    <td>
+                        @if (Model.Entry != null)
+                        {
+                            <a href="/site/@Model.Entry.DirectoryEntryKey" target="_blank" rel="noopener">@Model.Entry.Name</a>
+                            <span> &middot; </span>
+                            <a href="/admin/reviews/entry/@r.DirectoryEntryId">Open in review moderation &rarr;</a>
+                        }
+                        else
+                        {
+                            <span class="text-muted">#@r.DirectoryEntryId</span>
+                        }
+                    </td>
+                </tr>
+                <tr>
+                    <th>Reported</th>
+                    <td class="text-nowrap">@r.CreateDate.ToString(dateFormat)</td>
+                </tr>
+                <tr>
+                    <th>Status</th>
+                    <td>@r.Status</td>
+                </tr>
+                <tr>
+                    <th>Donation</th>
+                    <td>
+                        @if (r.PaidUtc != null)
+                        {
+                            <span class="badge bg-success">&#128176; Paid@(r.PaidAmount is decimal amt && amt > 0 ? $" {amt:0.##} {r.PaidCurrency}" : "")@(ViewBag.PaidXmr != null ? $" ({((decimal)ViewBag.PaidXmr).ToString("0.############")} XMR)" : "")</span>
+                            <span class="text-muted"> &middot; @r.PaidUtc?.ToString(dateFormat)</span>
+                            <div class="small"><a href="@BtcPay.BaseUrl/i/@r.BtcPayInvoiceId" target="_blank" rel="noopener">View invoice in BTCPay &rarr;</a></div>
+                        }
+                        else
+                        {
+                            <span class="text-muted">No donation</span>
+                        }
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+</div>
+
+        <h2 class="h5 mt-4">Full description</h2>
+        <div class="card">
+            <div class="card-body u-prewrap-break">@r.Comment</div>
+        </div>
+
+        @if (r.Status == ProblemReportStatus.Pending)
+        {
+            <div class="d-flex gap-2 mt-3">
+                <form action="/admin/problem-reports/@r.ProblemReportId/reviewed" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-primary">Mark reviewed</button>
+                </form>
+                <form action="/admin/problem-reports/@r.ProblemReportId/dismiss" method="post">
+                    @Html.AntiForgeryToken()
+                    <button type="submit" class="btn btn-outline-secondary">Dismiss</button>
+                </form>
+            </div>
+        }
+    </div>
+}

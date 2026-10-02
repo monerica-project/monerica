@@ -52,6 +52,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<ReviewerKey> ReviewerKeys { get; set; }
         public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
         public DbSet<DirectoryManager.Data.Models.VerificationRequests.VerificationRequest> VerificationRequests { get; set; }
+        public DbSet<DirectoryManager.Data.Models.ProblemReports.ProblemReport> ProblemReports { get; set; }
         public DbSet<DirectoryEntryReviewComment> DirectoryEntryReviewComments { get; set; } = null!;
         public DbSet<DirectoryManager.Data.Models.Reviews.ReviewNotification> ReviewNotifications { get; set; } = null!;
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
@@ -105,6 +106,7 @@ namespace DirectoryManager.Data.DbContextInfo
             ConfigurePropertyMappings(builder);       // ✅ column types, max lengths, table names, etc. (no HasIndex)
             ConfigureAffiliateCommissionEarnedIndexes(builder);
             ConfigureVerificationRequests(builder);
+            ConfigureProblemReports(builder);
             ConfigureSiteCheckStatus(builder);
             ConfigureSubmissionPayment(builder);
         }
@@ -168,6 +170,32 @@ namespace DirectoryManager.Data.DbContextInfo
                 e.HasIndex(x => x.PaymentToken)
                  .IsUnique()
                  .HasDatabaseName("IX_VerificationRequests_PaymentToken");
+            });
+        }
+
+        private static void ConfigureProblemReports(ModelBuilder builder)
+        {
+            builder.Entity<DirectoryManager.Data.Models.ProblemReports.ProblemReport>(e =>
+            {
+                e.ToTable("ProblemReports");
+                e.HasKey(x => x.ProblemReportId);
+                e.Property(x => x.Comment).IsRequired();
+                e.Property(x => x.SourceIpHash).HasMaxLength(64);
+
+                e.HasOne(x => x.DirectoryEntry)
+                 .WithMany()
+                 .HasForeignKey(x => x.DirectoryEntryId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasIndex(x => new { x.Status, x.CreateDate, x.ProblemReportId })
+                 .HasDatabaseName("IX_ProblemReports_Status_Create_Id");
+
+                e.Property(x => x.PaidAmount).HasColumnType("numeric(18,8)");
+
+                e.Property(x => x.PaymentToken).HasDefaultValueSql("gen_random_uuid()");
+                e.HasIndex(x => x.PaymentToken)
+                 .IsUnique()
+                 .HasDatabaseName("IX_ProblemReports_PaymentToken");
             });
         }
 

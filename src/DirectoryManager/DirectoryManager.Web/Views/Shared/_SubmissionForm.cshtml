@@ -104,6 +104,16 @@
 
 
 <div class="form-group">
+    <div style="border-left:4px solid #ff6600; background:rgba(255,102,0,0.08); padding:.6rem .8rem; border-radius:4px; margin-bottom:.6rem;">
+        <strong>&#9888;&#65039; These contact details are shown publicly on your listing.</strong>
+        The <strong>Email</strong>, <strong>Messenger</strong>, and <strong>Social</strong> fields below are
+        displayed <strong>on your public listing page</strong> so visitors can contact you &mdash; they are
+        <strong>not</strong> a private way to reach Monerica, and they are not kept confidential.
+        Only enter details you're comfortable showing to everyone. Leave any field blank to not display it.
+    </div>
+</div>
+
+<div class="form-group">
     <label asp-for="Email">Email</label>
     <input autocomplete="off" asp-for="Email" class="form-control input-width" />
     <span asp-validation-for="Email" class="text-danger"></span>

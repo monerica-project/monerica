@@ -279,6 +279,9 @@ HTML
 
 enable_maintenance_page() {
     write_step "Enabling maintenance page"
+    # Mark maintenance active so the EXIT trap can restore the live proxy if the deploy
+    # dies or is interrupted before task_configure_nginx runs (see cleanup_on_exit).
+    MAINT_ACTIVE=1
 
     local html_file="/tmp/maintenance-$APP_NAME.html.local"
     maintenance_html > "$html_file"
@@ -733,8 +736,18 @@ EOF
     scp_send "$nginx_file" "/tmp/$APP_NAME.conf"
     ssh_run "mv /tmp/$APP_NAME.conf /etc/nginx/sites-available/$APP_NAME.conf"
     ssh_run "ln -sf /etc/nginx/sites-available/$APP_NAME.conf /etc/nginx/sites-enabled/$APP_NAME.conf"
-    ssh_run "nginx -t && systemctl reload nginx"
-    write_ok "Nginx reloaded"
+    # RESTART, not reload, when restoring the live proxy. This path runs at the end of every
+    # deploy (and as the standalone `maintenance-off` task) to replace the 503 maintenance
+    # vhost with the real proxy. A graceful `reload` keeps OLD worker processes serving
+    # already-open connections on the OLD (503) config until those connections close — and
+    # BunnyCDN holds long-lived HTTP/2 keep-alive connections to this origin, so a reload
+    # leaves the CDN pinned to the maintenance page and the site appears "stuck Updating"
+    # externally even though maintenance is off. A hard restart drops those pinned
+    # connections so Bunny reconnects and immediately picks up the live config.
+    ssh_run "nginx -t && systemctl restart nginx"
+    write_ok "Nginx restarted (live proxy restored; drops CDN keep-alives pinned to maintenance)"
+    # Live proxy is back — maintenance is no longer active, so the EXIT trap must not restore.
+    MAINT_ACTIVE=0
 }
 
 install_renewal_hook() {
@@ -958,11 +971,41 @@ deploy_service() {
 # ============================================================================
 # MAIN
 # ============================================================================
+
+# Fail-safe: a deploy puts the site behind a 503 "Updating…" maintenance vhost
+# (enable_maintenance_page) and only restores the live proxy at the very end
+# (task_configure_nginx). If the script dies or is interrupted in between, the
+# maintenance page would otherwise stay up until a human intervenes. This trap
+# restores the live proxy (and hard-restarts nginx, so BunnyCDN's pinned keep-alive
+# connections drop and it stops seeing the 503) whenever we exit abnormally with
+# maintenance still active. MAINT_ACTIVE is toggled by those two functions.
+MAINT_ACTIVE=0
+CURRENT_SVC=""
+cleanup_on_exit() {
+    local code=$?
+    trap - EXIT INT TERM            # don't re-enter the trap
+    if [[ $code -ne 0 && "${MAINT_ACTIVE:-0}" -eq 1 ]]; then
+        echo
+        write_warn "Deploy exited abnormally (code $code) with the maintenance page still live for ${DOMAIN:-?}."
+        write_warn "Restoring the live proxy so the site doesn't stay stuck on the Updating page…"
+        if task_configure_nginx; then
+            write_ok "Live proxy restored automatically."
+        else
+            write_err "Automatic restore FAILED. Run manually:  ./deploy.sh ${CURRENT_SVC:-web} --task maintenance-off"
+        fi
+    fi
+    exit $code
+}
+trap cleanup_on_exit EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+
 if [[ -z "$SINGLE_TASK" ]]; then
     : # skipping bootstrap and mssql — server already configured
 fi
 
 for svc in "${SERVICES[@]}"; do
+    CURRENT_SVC="$svc"
     deploy_service "$svc"
 done
 

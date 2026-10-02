@@ -641,9 +641,8 @@ namespace DirectoryManager.Web.Controllers
             {
                 var daysLeft = required - days;
                 reasons.Add(
-                    $"Listing is too new: {days} days listed. " +
-                    $"Needs {daysLeft} more day{(daysLeft == 1 ? string.Empty : "s")} " +
-                    $"(must be listed at least {required} days to sponsor).");
+                    $"Listing is too new. A listing must be in the directory at least " +
+                    $"{required} days to sponsor — {daysLeft} more day{(daysLeft == 1 ? string.Empty : "s")} to go.");
             }
         }
 

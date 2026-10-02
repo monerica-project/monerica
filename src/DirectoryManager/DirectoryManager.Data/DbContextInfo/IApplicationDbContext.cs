@@ -45,6 +45,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<ReviewerKey> ReviewerKeys { get; set; }
         public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
         public DbSet<DirectoryManager.Data.Models.VerificationRequests.VerificationRequest> VerificationRequests { get; set; }
+        public DbSet<DirectoryManager.Data.Models.ProblemReports.ProblemReport> ProblemReports { get; set; }
         DbSet<DirectoryEntryReviewComment> DirectoryEntryReviewComments { get; }
         DbSet<DirectoryManager.Data.Models.Reviews.ReviewNotification> ReviewNotifications { get; }
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
