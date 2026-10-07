@@ -19,7 +19,7 @@
 	</ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="HtmlSanitizer" Version="9.2.995" />
+    <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
     <PackageReference Include="Humanizer.Core" Version="3.0.10" />
   </ItemGroup>
 

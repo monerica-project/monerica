@@ -1,5 +1,7 @@
 @using DirectoryManager.Web.Constants;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @{
+    var siteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
     ViewData[StringConstants.TitleHeader] = "Review Us";
     Layout = "_CenteredLayout";
 }
@@ -12,12 +14,12 @@
     <hr />
     @await Html.PartialAsync("_BackToHome")
     <hr />
-    <p>Have you used Monerica? Honest reviews help others find trustworthy, no-KYC Monero services. If you'd like to leave one, we're listed on these independent directories:</p>
+    <p>Have you used @siteName? Honest reviews help others find trustworthy, no-KYC Monero services. If you'd like to leave one, we're listed on these independent directories:</p>
     <ul>
         <li><a href="https://cryptwerk.com/company/monerica/" rel="noopener" target="_blank">Cryptwerk</a></li>
         <li><a href="https://kycnot.me/service/monerica" rel="noopener" target="_blank">KYCnot.me</a></li>
         <li><a href="https://bitlist.co/service/monerica" rel="noopener" target="_blank">BitList</a></li>
         <li><a href="https://monero.forum/directory/monerica/reviews" rel="noopener" target="_blank">Monero.Forum</a></li>
     </ul>
-    <p>Thank you for supporting Monerica.</p>
+    <p>Thank you for supporting @siteName.</p>
 }

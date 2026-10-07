@@ -1,6 +1,8 @@
 @using DirectoryManager.Web.Constants
 @model DirectoryManager.Web.Models.VerificationRequests.CreateVerificationRequestInputModel
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @{
+    var siteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
     ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
     ViewData[StringConstants.TitleHeader] = "Request Verification";
     Layout = "_CenteredLayout";
@@ -14,7 +16,7 @@
     }
     <hr />
 
-    <p>Tell us why you'd like Monerica to verify this listing. Your reason helps us prioritize which listings to review first.</p>
+    <p>Tell us why you'd like @siteName to verify this listing. Your reason helps us prioritize which listings to review first.</p>
     <p>If you can include a URL that proves someone has actually used the product or service (for example a public review, transaction, or thread), it makes the verification process easier and faster for us to perform.</p>
 
     <div asp-validation-summary="All" class="text-danger"></div>

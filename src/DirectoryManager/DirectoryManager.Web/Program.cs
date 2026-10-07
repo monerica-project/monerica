@@ -56,7 +56,7 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
     // nginx is on loopback / private IP and we don't enumerate it, so clear the
     // default known-proxy list to accept the headers from any upstream.
-    options.KnownNetworks.Clear();
+    options.KnownIPNetworks.Clear();
     options.KnownProxies.Clear();
 });
 

@@ -59,7 +59,7 @@
             @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.FooterHtml))
         </nav>
         <div class="footer-network u-mt-05rem">
-            <a href="/network">Monerica Network</a>
+            <a href="/network">@(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)) Network</a>
         </div>
     </footer>
 </body>

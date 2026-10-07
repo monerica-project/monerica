@@ -11,10 +11,16 @@ public static class CaptchaTools
 
     public static string GenerateText(int length = 5)
     {
-        // Same charset idea you used (customize as you wish)
+        // Ambiguous-looking characters (0/O, 1/I) are excluded. Use a cryptographic RNG
+        // rather than System.Random so the challenge isn't predictable/seedable.
         const string chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-        var r = new Random();
-        return new string(Enumerable.Repeat(chars, length).Select(s => s[r.Next(s.Length)]).ToArray());
+        var result = new char[length];
+        for (var i = 0; i < length; i++)
+        {
+            result[i] = chars[System.Security.Cryptography.RandomNumberGenerator.GetInt32(chars.Length)];
+        }
+
+        return new string(result);
     }
 
     public static void Store(HttpContext http, string ctx, string captchaText)

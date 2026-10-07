@@ -102,5 +102,47 @@ namespace DirectoryManager.Web.Tests.Sponsorship
 
             Assert.Equal(expectedPercent, percent);
         }
+
+        // ---------------------------------------------------------------------
+        // Renewal regression: renewing a tier you hold must STILL grant the
+        // cross-tier perk from a DIFFERENT tier you also hold. (Previously this
+        // short-circuited to 0% — the bug that cost a Main+Sub sponsor their 10%
+        // Main renewal discount.) The same tier as the target still grants nothing.
+        // ---------------------------------------------------------------------
+        [Theory]
+
+        // The exact reported case: hold Main + Subcategory, renew Main → 10% from Subcategory.
+        [InlineData(SponsorshipType.MainSponsor, true, false, true, 10)]
+
+        // Renew Main while also holding Category → 15% from Category.
+        [InlineData(SponsorshipType.MainSponsor, true, true, false, 15)]
+
+        // Renew Main while holding Category + Subcategory → highest different (Category) 15%.
+        [InlineData(SponsorshipType.MainSponsor, true, true, true, 15)]
+
+        // Renew Category while holding Main → 20% from Main.
+        [InlineData(SponsorshipType.CategorySponsor, true, true, false, 20)]
+
+        // Renew Category while holding Subcategory → 10% from Subcategory.
+        [InlineData(SponsorshipType.CategorySponsor, false, true, true, 10)]
+
+        // Renew Subcategory while holding Main → 20% from Main.
+        [InlineData(SponsorshipType.SubcategorySponsor, true, false, true, 20)]
+
+        // Renew Subcategory while holding Category → 15% from Category.
+        [InlineData(SponsorshipType.SubcategorySponsor, false, true, true, 15)]
+
+        // Pure same-tier renewals (nothing else held) → no perk.
+        [InlineData(SponsorshipType.MainSponsor, true, false, false, 0)]
+        [InlineData(SponsorshipType.CategorySponsor, false, true, false, 0)]
+        [InlineData(SponsorshipType.SubcategorySponsor, false, false, true, 0)]
+        public void ResolveCrossTierPerk_RenewalStillGetsPerkFromOtherHeldTier(
+            SponsorshipType target, bool holdsMain, bool holdsCategory, bool holdsSubcategory, int expectedPercent)
+        {
+            var (percent, _) = SponsorshipDiscountHelper.ResolveCrossTierPerk(
+                target, holdsMain, holdsCategory, holdsSubcategory);
+
+            Assert.Equal(expectedPercent, percent);
+        }
     }
 }

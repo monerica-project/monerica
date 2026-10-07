@@ -84,8 +84,11 @@ namespace DirectoryManager.Web.Services.Implementations
         {
             var trimmed = (body ?? string.Empty).Trim();
 
-            // 1) Minimum length (don’t mention exact length)
-            if (string.IsNullOrWhiteSpace(trimmed) || trimmed.Length <= IntegerConstants.MinLengthCommentChars)
+            // 1) Minimum length (don’t mention exact length). Replies have a shorter floor than reviews.
+            var tooShort = isReply
+                ? trimmed.Length < IntegerConstants.MinLengthReplyChars
+                : trimmed.Length <= IntegerConstants.MinLengthCommentChars;
+            if (string.IsNullOrWhiteSpace(trimmed) || tooShort)
             {
                 return new UserContentModerationResult
                 {

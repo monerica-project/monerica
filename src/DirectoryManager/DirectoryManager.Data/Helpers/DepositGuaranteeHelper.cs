@@ -20,6 +20,44 @@ namespace DirectoryManager.Data.Helpers
             return Abbreviate(amount) + " " + currency.ToString();
         }
 
+        /// <summary>
+        /// Link text for a guarantee's proof URL: the bare hostname (no scheme, no "www.", no path),
+        /// e.g. "https://orangefren.com/x" -> "orangefren.com", "bitcointalk.org/index.php?t=1" ->
+        /// "bitcointalk.org". Falls back to "view proof" when the URL can't be parsed.
+        /// </summary>
+        public static string ProofLinkLabel(string? url)
+        {
+            const string fallback = "view proof";
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                return fallback;
+            }
+
+            var s = url.Trim();
+            if (!s.Contains("://", StringComparison.Ordinal))
+            {
+                s = "http://" + s;
+            }
+
+            if (!Uri.TryCreate(s, UriKind.Absolute, out var uri))
+            {
+                return fallback;
+            }
+
+            var host = uri.Host;
+            if (string.IsNullOrEmpty(host))
+            {
+                return fallback;
+            }
+
+            if (host.StartsWith("www.", StringComparison.OrdinalIgnoreCase))
+            {
+                host = host.Substring(4);
+            }
+
+            return string.IsNullOrEmpty(host) ? fallback : host;
+        }
+
         /// <summary>Totals the guarantees per currency and renders them, e.g. "15K USD, 1 BTC".</summary>
         public static string SummarizeByCurrency(IEnumerable<GuaranteeItem>? guarantees)
         {

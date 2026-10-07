@@ -1258,6 +1258,10 @@ namespace DirectoryManager.Web.Controllers
 
             this.ApplyOwnerDisplayNamesToReplies(entry, allReplies);
 
+            // Mark replies signed with the directory's OWN PGP key as official "Moderator" responses.
+            var sitePgpKey = await this.cacheService.GetSnippetAsync(SiteConfigSetting.PgpKey);
+            ApplyModeratorFlagToReplies(sitePgpKey, allReplies);
+
             var repliesLookup = allReplies
                 .GroupBy(x => x.DirectoryEntryReviewId)
                 .ToDictionary(g => g.Key, g => g.ToList());
@@ -1438,6 +1442,31 @@ namespace DirectoryManager.Web.Controllers
                 bool isOwner = entryFps.Any(fp => PgpFingerprintTools.Matches(replyNorm, fp));
                 c.IsOwner = isOwner;
                 c.DisplayName = isOwner ? entry.Name : null;
+            }
+        }
+
+        // Flags replies whose AuthorFingerprint matches the directory's own PGP key
+        // (SiteConfigSetting.PgpKey) so the UI can label them as official "Moderator" responses.
+        private static void ApplyModeratorFlagToReplies(string? sitePgpKey, List<DirectoryEntryReviewComment> replies)
+        {
+            if (replies == null || replies.Count == 0 || string.IsNullOrWhiteSpace(sitePgpKey))
+            {
+                return;
+            }
+
+            var siteFps = PgpFingerprintTools.GetAllFingerprints(sitePgpKey);
+            if (siteFps == null || siteFps.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var c in replies)
+            {
+                var replyNorm = PgpFingerprintTools.Normalize(c.AuthorFingerprint);
+                if (siteFps.Any(fp => PgpFingerprintTools.Matches(replyNorm, fp)))
+                {
+                    c.IsModerator = true;
+                }
             }
         }
 

@@ -50,5 +50,11 @@ namespace DirectoryManager.Data.Models.Reviews
         // visibly mark replies that come from the actual site/listing owner.
         [NotMapped]
         public bool IsOwner { get; set; }
+
+        // True when this reply's AuthorFingerprint matches the DIRECTORY's own PGP key
+        // (SiteConfigSetting.PgpKey). Set by the presentation layer so the UI can label it
+        // as an official "Moderator" response (distinct from a listing-owner reply).
+        [NotMapped]
+        public bool IsModerator { get; set; }
     }
 }

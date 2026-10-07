@@ -469,7 +469,7 @@
     @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>&nbsp;@Html.Raw(flagTag)
     @if (parent?.IsOfficial == true)
     {
-        <span class="badge bg-orange official-flag u-color-1a1a1a" title="Official Monerica review">Official</span>
+        <span class="badge bg-orange official-flag u-color-1a1a1a" title="Official @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)) review">Official</span>
     }
     @RenderReviewTags(parent)
     @if (parent?.Rating.HasValue == true && parent.Rating.Value > 0)
@@ -512,7 +512,7 @@
     @Html.Raw(statusIcon)<a href="@listingUrl">@listingName</a>&nbsp;@Html.Raw(flagTag)
     @if (r.IsOfficial)
     {
-        <span class="badge bg-orange official-flag u-color-1a1a1a" title="Official Monerica review">Official</span>
+        <span class="badge bg-orange official-flag u-color-1a1a1a" title="Official @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)) review">Official</span>
     }
     @RenderReviewTags(r)
     @if (r.Rating.HasValue && r.Rating.Value > 0)

@@ -184,6 +184,7 @@ async Task CheckAndSubmitAsync(
     var scopedSubmissionRepo = scope.ServiceProvider.GetRequiredService<ISubmissionRepository>();
     var scopedEntryTagRepo = scope.ServiceProvider.GetRequiredService<IDirectoryEntryTagRepository>();
     var scopedAdditionalLinkRepo = scope.ServiceProvider.GetRequiredService<IAdditionalLinkRepository>();
+    var scopedGuaranteeRepo = scope.ServiceProvider.GetRequiredService<IDirectoryEntryGuaranteeRepository>();
     var scopedStatusRepo = scope.ServiceProvider.GetRequiredService<ISiteCheckStatusRepository>();
     var checker = scope.ServiceProvider.GetRequiredService<WebPageChecker>();
     var torChecker = scope.ServiceProvider.GetRequiredService<TorWebPageChecker>();
@@ -281,6 +282,7 @@ async Task CheckAndSubmitAsync(
             scopedSubmissionRepo,
             scopedEntryTagRepo,
             scopedAdditionalLinkRepo,
+            scopedGuaranteeRepo,
             clearnetShouldFlag,
             onionShouldFlag);
     }
@@ -291,6 +293,7 @@ async Task CreateOfflineSubmissionIfNotExists(
     ISubmissionRepository submissionRepository,
     IDirectoryEntryTagRepository entryTagRepository,
     IAdditionalLinkRepository additionalLinkRepository,
+    IDirectoryEntryGuaranteeRepository guaranteeRepository,
     bool clearnetOffline,
     bool onionOffline)
 {
@@ -350,6 +353,21 @@ async Task CreateOfflineSubmissionIfNotExists(
         .Take(MaxRelatedLinks)
         .ToList();
 
+    // ── Deposit guarantees ─────────────────────────────────────────────────
+    // Guarantees live in their own table (DirectoryEntryGuarantee), read via
+    // IDirectoryEntryGuaranteeRepository — the same pattern as tags / related links
+    // above. They are NOT a field on the DirectoryEntry row, so the reflection-driven
+    // SubmissionContentMapper can never carry them. Without this block an offline
+    // submission proposed zero guarantees, so approving it wiped the entry's existing
+    // guarantees. Submission.Guarantees normalizes + caps them (IntegerConstants.MaxGuarantees).
+    var entryGuarantees = await guaranteeRepository.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId);
+
+    var guaranteeItems = (entryGuarantees ?? new List<DirectoryEntryGuarantee>())
+        .OrderBy(g => g.SortOrder)
+        .ThenBy(g => g.DirectoryEntryGuaranteeId)
+        .Select(g => new GuaranteeItem { Link = g.Link, Amount = g.Amount, Currency = g.Currency })
+        .ToList();
+
     var submission = new Submission
     {
         SubmissionStatus = SubmissionStatus.Pending,
@@ -368,6 +386,10 @@ async Task CreateOfflineSubmissionIfNotExists(
         SelectedTagIdsCsv = entryTags.Count == 0 ? null : selectedTagIdsCsv,
         RelatedLinks = relatedLinks,
 
+        // Guarantees also live in their own table (loaded above); carry them forward so an
+        // approved offline submission does not blank the entry's deposit guarantees.
+        Guarantees = guaranteeItems,
+
         SuggestedSubCategory = null,
         IpAddress = null
     };
@@ -381,5 +403,5 @@ async Task CreateOfflineSubmissionIfNotExists(
     await submissionRepository.CreateAsync(submission);
     Console.WriteLine(
         $"Created submission for entry ID {entry.DirectoryEntryId}: '{offlineReason}' " +
-        $"(tags: {entryTags.Count}, related links: {relatedLinks.Count}).");
+        $"(tags: {entryTags.Count}, related links: {relatedLinks.Count}, guarantees: {guaranteeItems.Count}).");
 }

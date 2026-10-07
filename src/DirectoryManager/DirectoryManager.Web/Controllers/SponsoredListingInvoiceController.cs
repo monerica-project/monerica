@@ -1684,6 +1684,27 @@ namespace DirectoryManager.Web.Controllers
             static string N8(decimal v) => v.ToString("0.########", CultureInfo.InvariantCulture);
             static string Money(decimal v) => v.ToString("0.00", CultureInfo.InvariantCulture);
 
+            // Escapes a free-text CSV field: neutralizes spreadsheet formula injection (a leading
+            // =, +, -, @, tab or CR is treated as a formula by Excel/Sheets) by prefixing a single
+            // quote, then CSV-quotes if the value contains a comma, quote, or newline. Only needed
+            // for free text (e.g. Description, which can embed a user-submitted listing name) —
+            // the numeric/date columns are machine-formatted and safe.
+            static string Csv(string? field)
+            {
+                var s = field ?? string.Empty;
+                if (s.Length > 0 && (s[0] == '=' || s[0] == '+' || s[0] == '-' || s[0] == '@' || s[0] == '\t' || s[0] == '\r'))
+                {
+                    s = "'" + s;
+                }
+
+                if (s.IndexOfAny(new[] { ',', '"', '\n', '\r' }) >= 0)
+                {
+                    s = "\"" + s.Replace("\"", "\"\"") + "\"";
+                }
+
+                return s;
+            }
+
             await writer.WriteLineAsync("Quantity,Description,Sales Date,Purchase Date,Sales Price,Cost");
 
             try
@@ -1697,7 +1718,7 @@ namespace DirectoryManager.Web.Controllers
                     await writer.WriteLineAsync(string.Join(
                         ",",
                         N8(r.Quantity),
-                        r.Description,
+                        Csv(r.Description),
                         D(r.PaidDateUtc),
                         D(r.PaidDateUtc),
                         Money(sales),

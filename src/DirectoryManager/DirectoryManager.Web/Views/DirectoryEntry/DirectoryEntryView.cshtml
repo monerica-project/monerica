@@ -233,7 +233,7 @@
                                 }
                                 else
                                 {
-                                    <a class="multi-line-text" href="@Model.ProofLink" target="_blank">@Model.ProofLink</a>
+                                    <a class="multi-line-text" href="@(DirectoryManager.Web.Helpers.UrlSchemeGuard.SafeHref(Model.ProofLink))" target="_blank" rel="nofollow noopener">@Model.ProofLink</a>
                                 }
                             </td>
                         </tr>
@@ -280,7 +280,7 @@
                                 }
                                 else
                                 {
-                                    <a class="multi-line-text" href="@Model.SourceCodeLink" target="_blank" rel="noopener">@Model.SourceCodeLink</a>
+                                    <a class="multi-line-text" href="@(DirectoryManager.Web.Helpers.UrlSchemeGuard.SafeHref(Model.SourceCodeLink))" target="_blank" rel="noopener">@Model.SourceCodeLink</a>
                                 }
                             </td>
                         </tr>
@@ -297,7 +297,7 @@
                                 }
                                 else
                                 {
-                                    <a class="multi-line-text" href="@Model.VideoLink" target="_blank">@Model.VideoLink</a>
+                                    <a class="multi-line-text" href="@(DirectoryManager.Web.Helpers.UrlSchemeGuard.SafeHref(Model.VideoLink))" target="_blank" rel="nofollow noopener">@Model.VideoLink</a>
                                 }
                             </td>
                         </tr>
@@ -420,7 +420,7 @@
         @if (kycPolicyValue != KycPolicy.Unknown)
         {
             <div class="entry-section entry-kyc-policy">
-                <strong>KYC Policy:</strong> @EnumHelper.GetDescription(kycPolicyValue)
+                <strong>KYC Policy:</strong> <a href="~/faq#@(DirectoryManager.Web.Helpers.FaqAnchorHelper.KycPolicyAnchor(kycPolicyValue))" title="What this KYC policy means">@EnumHelper.GetDescription(kycPolicyValue)</a>
             </div>
         }
 
@@ -429,7 +429,7 @@
         @if (Model.Liquidity.IsPubliclyShown())
         {
             <div class="entry-section entry-liquidity">
-                <strong>Liquidity:</strong> @EnumHelper.GetDescription(Model.Liquidity)
+                <strong>Liquidity:</strong> <a href="~/faq#@(DirectoryManager.Web.Helpers.FaqAnchorHelper.LiquidityAnchor(Model.Liquidity))" title="What this liquidity type means">@EnumHelper.GetDescription(Model.Liquidity)</a>
             </div>
         }
 
@@ -446,7 +446,7 @@
                 @if (Model.Guarantees.Count == 1)
                 {
                     <span>@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.FormatAmount(Model.Guarantees[0].Amount.GetValueOrDefault(), Model.Guarantees[0].Currency)</span>
-                    <a href="@Model.Guarantees[0].Link" target="_blank" rel="@gRel">view proof</a>
+                    <a href="@(DirectoryManager.Web.Helpers.UrlSchemeGuard.SafeHref(Model.Guarantees[0].Link))" target="_blank" rel="@gRel">@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.ProofLinkLabel(Model.Guarantees[0].Link)</a>
                 }
                 else
                 {
@@ -455,7 +455,7 @@
                         <ul>
                             @foreach (var g in Model.Guarantees)
                             {
-                                <li>@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.FormatAmount(g.Amount.GetValueOrDefault(), g.Currency) &mdash; <a href="@g.Link" target="_blank" rel="@gRel">view proof</a></li>
+                                <li>@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.FormatAmount(g.Amount.GetValueOrDefault(), g.Currency) &mdash; <a href="@(DirectoryManager.Web.Helpers.UrlSchemeGuard.SafeHref(g.Link))" target="_blank" rel="@gRel">@DirectoryManager.Data.Helpers.DepositGuaranteeHelper.ProofLinkLabel(g.Link)</a></li>
                             }
                         </ul>
                     </details>
@@ -581,16 +581,17 @@
                href="@UrlResolver.ResolveToApp($"/history/{Model.DirectoryEntryId}")">
                 View change history
             </a>
-            @if (!isScam)
-            {
-                <span class="listing-history-sep">&middot;</span>
+        </p>
+        @if (!isScam)
+        {
+            <p class="entry-edit-link">
                 <span>See something out of date?</span>
                 <a rel="nofollow"
                    href="@UrlResolver.ResolveToApp($"/submission/submitedit/{Model.DirectoryEntryId}")">
                     Submit a revision
                 </a>
-            }
-        </p>
+            </p>
+        }
 
         @* Owner admin login (PGP). Resolves to the app origin so it works from the static
            mirror too. Shown only when the listing has a PGP key (their login method). *@

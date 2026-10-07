@@ -92,6 +92,9 @@
         <p class="u-m-6px-0-12px-0">
             <strong>Why this price?</strong> The <strong>bars</strong> are the average paid per day across
             <strong>all @chartTypeDesc</strong> slots over the last 180&nbsp;days.
+            The <strong>black dashed line labelled &ldquo;Current market price&rdquo;</strong> shows
+            <strong>today&rsquo;s going rate</strong> for this placement &mdash; that is the price reflected
+            in the duration options below.
             @if (hasSubHistory)
             {
                 <text>The <strong>black dotted line</strong> is
@@ -103,7 +106,7 @@
         <img class="u-w-100pct"
              style="max-width:640px;height:auto;border:1px solid #ddd;border-radius:4px;"
              src="@Url.Action("PricingTrendsChart", "SponsoredListingCheckout", new { sponsorshipType = ViewBag.SponsorshipType, listingSubCategoryId = ViewBag.ListingSubCategoryId, v = DateTime.UtcNow.ToString("yyyyMMdd") })"
-             alt="Average daily price for this placement over the last 180 days, with your subcategory highlighted" />
+             alt="Average daily price for this placement over the last 180 days, with the current market price shown as a dashed line and your subcategory highlighted" />
     </div>
 
     <br />

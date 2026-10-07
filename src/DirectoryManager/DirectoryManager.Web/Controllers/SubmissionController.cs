@@ -530,8 +530,20 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            // Refresh donation status on view; if paid, also surface the XMR amount actually paid.
+            // Refresh donation status on view; if paid, surface the USD headline value + the XMR
+            // actually paid so the view can render "Amount: $X USD (Y XMR)".
             await this.SyncSubmissionPaymentAsync(submission);
+
+            // A fiat-denominated donation already stores its USD amount in PaidAmount. A
+            // pay-what-you-want / top-up donation is recorded directly in XMR (PaidCurrency == "XMR",
+            // invoice amount 0), so its USD headline is derived from the captured rate below.
+            if (submission.PaidAmount is decimal fiatAmt && fiatAmt > 0 &&
+                !string.IsNullOrWhiteSpace(submission.PaidCurrency) &&
+                !string.Equals(submission.PaidCurrency, "XMR", StringComparison.OrdinalIgnoreCase))
+            {
+                this.ViewBag.PaidUsd = fiatAmt;
+            }
+
             if (submission.PaidUtc is not null && !string.IsNullOrWhiteSpace(submission.BtcPayInvoiceId))
             {
                 try
@@ -541,11 +553,19 @@ namespace DirectoryManager.Web.Controllers
                     if (xmr is not null && decimal.TryParse(xmr.TotalPaid, out var xmrPaid) && xmrPaid > 0)
                     {
                         this.ViewBag.PaidXmr = xmrPaid;
+
+                        // XMR-recorded donation: derive the USD headline from BTCPay's captured rate
+                        // (USD per 1 XMR at payment time).
+                        if (this.ViewBag.PaidUsd is null &&
+                            decimal.TryParse(xmr.Rate, out var rate) && rate > 0)
+                        {
+                            this.ViewBag.PaidUsd = Math.Round(xmrPaid * rate, 2, MidpointRounding.AwayFromZero);
+                        }
                     }
                 }
                 catch
                 {
-                    // best-effort — the XMR amount just won't show
+                    // best-effort — the amounts just won't show
                 }
             }
 
@@ -822,7 +842,7 @@ namespace DirectoryManager.Web.Controllers
                     // shared review-donations store.
                     ["orderId"] = submission.PaymentToken.ToString(),
                     ["donationType"] = "submission",
-                    ["itemDesc"] = $"Monerica submission review donation — {submission.Name}",
+                    ["itemDesc"] = $"{await this.cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)} submission review donation — {submission.Name}",
                     ["submissionId"] = submission.SubmissionId,
                 },
                 Checkout = new BtcPayCheckoutOptions

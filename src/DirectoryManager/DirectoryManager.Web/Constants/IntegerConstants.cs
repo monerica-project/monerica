@@ -19,6 +19,7 @@
         public const int DefaultDebuggingHttpPort = 5007;
         public const int DefaultDebuggingHttpsPort = 7145;
         public const int MinLengthCommentChars = 35;
+        public const int MinLengthReplyChars = 10;
         public const int MaxAdditionalLinks = 3;
         public const int MaxGuarantees = 4;
         public const int ReviewsPageSize = 10;

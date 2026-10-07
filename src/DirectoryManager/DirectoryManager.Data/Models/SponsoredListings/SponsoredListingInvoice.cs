@@ -36,6 +36,14 @@ namespace DirectoryManager.Data.Models.SponsoredListings
         public Currency PaidInCurrency { get; set; } = Currency.Unknown;
 
         /// <summary>
+        /// The actual exchange rate captured from the payment processor (BTCPay) when the invoice
+        /// is created / paid: the invoice currency per 1 unit of the paid crypto (e.g. USD per XMR).
+        /// This is BTCPay's real quoted/locked rate — NOT the rate implied by dividing
+        /// <see cref="Amount"/> by <see cref="PaidAmount"/>. 0 = not captured (older invoices).
+        /// </summary>
+        public decimal PaymentRate { get; set; }
+
+        /// <summary>
         /// The requested amount.
         /// </summary>
         public decimal Amount { get; set; }

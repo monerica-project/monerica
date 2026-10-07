@@ -23,6 +23,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryRepository entries;
         private readonly IVerificationRequestRepository requests;
         private readonly IBtcPayServerService btcPay;
+        private readonly ICacheService cacheHelper;
 
         public VerificationRequestsController(
             IMemoryCache cache,
@@ -31,7 +32,8 @@ namespace DirectoryManager.Web.Controllers
             ICaptchaService captcha,
             IDirectoryEntryRepository entries,
             IVerificationRequestRepository requests,
-            IBtcPayServerService btcPay)
+            IBtcPayServerService btcPay,
+            ICacheService cacheHelper)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
             this.cache = cache;
@@ -39,6 +41,7 @@ namespace DirectoryManager.Web.Controllers
             this.entries = entries;
             this.requests = requests;
             this.btcPay = btcPay;
+            this.cacheHelper = cacheHelper;
         }
 
         private static string CacheKey(Guid id) => $"{CacheKeyPrefix}{id}";
@@ -241,7 +244,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     // Tie the BTCPay invoice to this request's unique GUID.
                     ["orderId"] = request.PaymentToken.ToString(),
-                    ["itemDesc"] = $"Monerica review-cost donation — {entry?.Name}",
+                    ["itemDesc"] = $"{await this.cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)} review-cost donation — {entry?.Name}",
                     ["verificationRequestId"] = request.VerificationRequestId,
                 },
                 Checkout = new BtcPayCheckoutOptions

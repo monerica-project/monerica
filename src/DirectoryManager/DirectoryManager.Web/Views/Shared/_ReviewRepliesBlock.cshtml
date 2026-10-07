@@ -60,7 +60,15 @@
 
                     <div class="reply-meta">
                         <small class="text-muted multi-line-text">
-                            Author: @(string.IsNullOrWhiteSpace(c.DisplayName) ? c.AuthorFingerprint : c.DisplayName)
+                            Author:
+                            @if (c.IsModerator)
+                            {
+                                <span class="moderator-tag" title="@c.AuthorFingerprint" style="background:#e8820c;color:#000;padding:1px 7px;border-radius:4px;font-weight:600;cursor:help;">Moderator</span>
+                            }
+                            else
+                            {
+                                @(string.IsNullOrWhiteSpace(c.DisplayName) ? c.AuthorFingerprint : c.DisplayName)
+                            }
                             <span class="ms-1">(posts: @PostsFor(c.AuthorFingerprint))</span>
                         </small>
                         <small class="text-muted ms-2">•</small>

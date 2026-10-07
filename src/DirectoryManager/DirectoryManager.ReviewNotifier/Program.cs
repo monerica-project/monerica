@@ -52,6 +52,20 @@ var serviceProvider = new ServiceCollection()
 
 var emailService = serviceProvider.GetRequiredService<IEmailService>();
 
+// Site name from config (ContentSnippet) so notification emails aren't hardcoded to "Monerica"
+// — this job is shared by forks of the directory. Falls back to "Monerica" if unset.
+string siteName;
+using (var cfgScope = serviceProvider.CreateScope())
+{
+    siteName = cfgScope.ServiceProvider.GetRequiredService<IContentSnippetRepository>()
+        .GetValue(SiteConfigSetting.SiteName);
+}
+
+if (string.IsNullOrWhiteSpace(siteName))
+{
+    siteName = "Monerica";
+}
+
 static bool IsValidEmail(string? e)
 {
     if (string.IsNullOrWhiteSpace(e))
@@ -175,23 +189,23 @@ using (var scope = serviceProvider.CreateScope())
         string plain;
         if (n.NotificationType == ReviewNotificationType.NewReply)
         {
-            subject = $"New reply on your Monerica listing: {name} (left {leftStr})";
-            plain = $"Someone replied to a review on your Monerica listing \"{name}\".\n\n"
+            subject = $"New reply on your {siteName} listing: {name} (left {leftStr})";
+            plain = $"Someone replied to a review on your {siteName} listing \"{name}\".\n\n"
                 + $"Reply left: {leftStr}\n\n"
                 + $"View your live listing: {profileUrl}\n"
                 + $"Log in to view & respond (PGP): {adminUrl}\n";
         }
         else
         {
-            subject = $"New review on your Monerica listing: {name} (left {leftStr})";
-            plain = $"Your Monerica listing \"{name}\" received a new review.\n\n"
+            subject = $"New review on your {siteName} listing: {name} (left {leftStr})";
+            plain = $"Your {siteName} listing \"{name}\" received a new review.\n\n"
                 + $"Review left: {leftStr}\n\n"
                 + $"View your live listing: {profileUrl}\n"
                 + $"Log in to view & respond (PGP): {adminUrl}\n";
         }
 
         var itemWord = n.NotificationType == ReviewNotificationType.NewReply ? "Reply" : "Review";
-        var html = $"<p>{System.Net.WebUtility.HtmlEncode($"{itemWord} on your Monerica listing: {name}")}</p>"
+        var html = $"<p>{System.Net.WebUtility.HtmlEncode($"{itemWord} on your {siteName} listing: {name}")}</p>"
             + $"<p><strong>{itemWord} left:</strong> {leftStr}</p>"
             + $"<p><a href=\"{profileUrl}\">View your live listing</a><br />"
             + $"<a href=\"{adminUrl}\">Log in to view &amp; respond (PGP)</a></p>";

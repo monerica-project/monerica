@@ -539,12 +539,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         private static int ComputeAgeDays(DateTime createDate)
-        {
-            return createDate == DateTime.MinValue
-                ? 0
-                : (int)Math.Floor(
-                    (DateTime.UtcNow - createDate).TotalDays);
-        }
+            => SponsorshipEligibilityHelper.ComputeAgeDays(createDate, DateTime.UtcNow);
 
         private static int GetMaxSlots(SponsorshipType type)
         {
@@ -597,54 +592,15 @@ namespace DirectoryManager.Web.Controllers
                 : "Anonymous listing";
         }
 
+        // Thin wrapper over the pure, unit-tested SponsorshipEligibilityHelper.
         private static (bool CanAdvertise, List<string> Reasons)
             CheckEligibility(DirectoryEntry e, bool grandfathered)
-        {
-            // Grandfather clause: a current or past sponsor can always sponsor again or
-            // extend, even if the listing no longer meets the standard requirements.
-            if (grandfathered)
-            {
-                return (true, new List<string>());
-            }
-
-            var reasons = new List<string>();
-
-            // Requirement 1: must be Verified (green checkmark).
-            if (e.DirectoryStatus != DirectoryStatus.Verified)
-            {
-                reasons.Add(
-                    $"Status is {e.DirectoryStatus}. " +
-                    "Listing must be Verified (green checkmark) to sponsor.");
-            }
-
-            // Requirement 2: must have been listed long enough.
-            CheckListingAge(e, reasons);
-
-            return (reasons.Count == 0, reasons);
-        }
-
-        private static void CheckListingAge(
-            DirectoryEntry e, List<string> reasons)
-        {
-            if (e.CreateDate == DateTime.MinValue)
-            {
-                reasons.Add(
-                    "Listing age is unknown " +
-                    "(missing create date).");
-                return;
-            }
-
-            var required = CommonConstants.MinimumDaysListedBeforeSponsoring;
-            var days = ComputeAgeDays(e.CreateDate);
-
-            if (days < required)
-            {
-                var daysLeft = required - days;
-                reasons.Add(
-                    $"Listing is too new. A listing must be in the directory at least " +
-                    $"{required} days to sponsor — {daysLeft} more day{(daysLeft == 1 ? string.Empty : "s")} to go.");
-            }
-        }
+            => SponsorshipEligibilityHelper.CheckEligibility(
+                e.DirectoryStatus,
+                e.CreateDate,
+                grandfathered,
+                CommonConstants.MinimumDaysListedBeforeSponsoring,
+                DateTime.UtcNow);
 
         private static List<(SponsorshipType Type, int? TypeId)>
             CollectSubscriptionScopes(

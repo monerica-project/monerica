@@ -733,7 +733,7 @@ namespace DirectoryManager.Web.Controllers
             this.logger.LogDebug("BTCPay webhook received ({Bytes} bytes).", rawBody?.Length ?? 0);
 
             var sig = this.Request.Headers["BTCPay-Sig"].FirstOrDefault() ?? string.Empty;
-            if (!this.btcPayServerService.IsWebhookValid(rawBody, sig, out var sigError))
+            if (!this.btcPayServerService.IsWebhookValid(rawBody ?? string.Empty, sig, out var sigError))
             {
                 this.logger.LogWarning("BTCPay webhook signature invalid: {Error}", sigError);
                 return this.Ok();
@@ -1020,6 +1020,13 @@ namespace DirectoryManager.Web.Controllers
             invoice.InvoiceRequest = JsonConvert.SerializeObject(req);
             invoice.InvoiceResponse = JsonConvert.SerializeObject(btcPayInvoice);
             invoice.Email = InputHelper.SetEmail(normalizedEmail);
+
+            // XMR-only BTCPay store: record the payment currency + capture BTCPay's actual locked
+            // rate (USD per XMR) now, so the details view shows "Monero" and the real rate at
+            // creation — not just once paid. Best-effort; must never block checkout.
+            invoice.PaidInCurrency = Currency.XMR;
+            await this.CaptureBtcPayRateAsync(invoice, btcPayInvoice.Id).ConfigureAwait(false);
+
             await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice).ConfigureAwait(false);
 
             return this.RedirectToAction("BtcPayNoJsInvoice", new
@@ -1304,6 +1311,18 @@ namespace DirectoryManager.Web.Controllers
             invoice.InvoiceRequest = JsonConvert.SerializeObject(req);
             invoice.InvoiceResponse = JsonConvert.SerializeObject(btcPayInvoice);
             invoice.Email = InputHelper.SetEmail(normalizedEmail);
+
+            // This invoice is denominated for Monero payment (the BTCPay store is XMR-only), so
+            // record the payment currency up front — the details view then shows "Monero" at
+            // creation, not just once paid.
+            invoice.PaidInCurrency = Currency.XMR;
+
+            // Capture the ACTUAL exchange rate BTCPay locked for this invoice (USD per XMR) so the
+            // details view shows the real rate, not one implied from the amount paid. BTCPay
+            // computes the per-method rate a moment AFTER creation, so this retries briefly.
+            // Best-effort — a rate hiccup must never block checkout.
+            await this.CaptureBtcPayRateAsync(invoice, btcPayInvoice.Id).ConfigureAwait(false);
+
             await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
             return this.Redirect(btcPayInvoice.CheckoutLink);
         }
@@ -1504,6 +1523,52 @@ namespace DirectoryManager.Web.Controllers
         }
 
         /// <summary>
+        /// Captures BTCPay's quoted exchange rate for the XMR payment method (invoice currency per
+        /// 1 XMR, e.g. USD per XMR) and stores it on the invoice. Called at invoice creation so the
+        /// details view can show the REAL rate, not one implied from Amount/PaidAmount. Best-effort.
+        /// </summary>
+        private async Task CaptureBtcPayRateAsync(SponsoredListingInvoice invoice, string processorInvoiceId)
+        {
+            var ns = System.Globalization.NumberStyles.Any;
+            var ci = System.Globalization.CultureInfo.InvariantCulture;
+
+            try
+            {
+                // 1. Preferred: the rate BTCPay locked onto THIS invoice's XMR payment method.
+                //    But our store uses lazy payment methods, so that method (and its rate) isn't
+                //    generated until the buyer opens checkout — at creation it reads 0. One immediate
+                //    attempt only; the old multi-second backoff just slowed every checkout for nothing.
+                var xmr = await this.btcPayServerService.GetXmrPaymentMethodAsync(processorInvoiceId).ConfigureAwait(false);
+                if (xmr != null
+                    && decimal.TryParse(xmr.Rate, ns, ci, out var rate)
+                    && rate > 0m)
+                {
+                    invoice.PaymentRate = rate;
+                    return;
+                }
+
+                // 2. Fallback (the normal case at creation): the store's current XMR/USD rate, pulled
+                //    straight from the same rate source BTCPay locks from — so it matches the invoice's
+                //    locked rate to the second of creation and is shown on the details view right away.
+                var spot = await this.btcPayServerService.GetXmrRateAsync("USD").ConfigureAwait(false);
+                if (spot > 0m)
+                {
+                    invoice.PaymentRate = spot;
+                    return;
+                }
+
+                this.logger.LogWarning(
+                    "CaptureBtcPayRate: no XMR rate available for invoice {Id} at creation; " +
+                    "will be captured on the first payment webhook instead.",
+                    processorInvoiceId);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogWarning(ex, "Could not capture BTCPay exchange rate for invoice {Id}", processorInvoiceId);
+            }
+        }
+
+        /// <summary>
         /// Fetches the XMR amount paid from the BTCPay payment-methods endpoint and writes it
         /// into PaidAmount, OutcomeAmount, and PaidInCurrency.
         /// Both amounts are the XMR crypto value — the USD invoice amount is already in
@@ -1525,6 +1590,18 @@ namespace DirectoryManager.Web.Controllers
 
                 var ns = System.Globalization.NumberStyles.Any;
                 var ci = System.Globalization.CultureInfo.InvariantCulture;
+
+                // Capture the payment currency + BTCPay's actual quoted rate (USD per XMR) FIRST —
+                // these are available as soon as the invoice exists, independent of any payment, so
+                // do it BEFORE the no-payment early return below. This is the real rate (not the one
+                // implied by Amount/PaidAmount) and it also backfills invoices created before the
+                // rate was captured at checkout.
+                invoice.PaidInCurrency = Currency.XMR;
+                if (decimal.TryParse(xmrMethod.Rate, ns, ci, out var xmrRate) && xmrRate > 0m)
+                {
+                    invoice.PaymentRate = xmrRate;
+                }
+
                 var xmrPaid = 0m;
 
                 // Try paymentMethodPaid first, fall back to totalPaid.
@@ -1552,7 +1629,6 @@ namespace DirectoryManager.Web.Controllers
 
                 invoice.PaidAmount = xmrPaid;
                 invoice.OutcomeAmount = xmrPaid;
-                invoice.PaidInCurrency = Currency.XMR;
             }
             catch (Exception ex)
             {

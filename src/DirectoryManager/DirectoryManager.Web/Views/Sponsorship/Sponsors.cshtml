@@ -1,6 +1,8 @@
 @model DirectoryManager.Web.Models.Sponsorship.SponsorsPageVm
 @using DirectoryManager.Data.Enums
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @{
+    var siteName = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
     ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Sponsors";
     Layout = "_CenteredLayout";
 
@@ -29,7 +31,7 @@
     @await Html.PartialAsync("_BackToHome")
 
     <p class="u-m-6px-0-4px-0">
-        The businesses currently sponsoring Monerica, and when each sponsorship term expires.
+        The businesses currently sponsoring @siteName, and when each sponsorship term expires.
         Longest remaining term is listed first; the soonest to expire is at the bottom.
     </p>
     <p class="u-m-0-0-16px-0-opacity-85">

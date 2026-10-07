@@ -168,9 +168,10 @@
                                                    type="checkbox"
                                                    name="SelectedTagIds"
                                                    value="@tag.Id"
+                                                   id="modtag_@tag.Id"
                                                    @(isChecked ? "checked" : "")
                                                    @(tag.IsEnabled ? "" : "disabled") />
-                                            <label class="form-check-label">
+                                            <label class="form-check-label" for="modtag_@tag.Id">
                                                 @tag.Name @(tag.IsEnabled ? "" : "(disabled)")
                                             </label>
                                         </div>

@@ -758,6 +758,10 @@ namespace DirectoryManager.Data.DbContextInfo
                    .Property(e => e.OutcomeAmount)
                    .HasColumnType("decimal(20, 12)");
 
+            builder.Entity<SponsoredListingInvoice>()
+                   .Property(e => e.PaymentRate)
+                   .HasColumnType("decimal(20, 12)");
+
             builder.Entity<SponsoredListingOffer>()
                    .Property(e => e.Price)
                    .HasColumnType("decimal(20, 12)");

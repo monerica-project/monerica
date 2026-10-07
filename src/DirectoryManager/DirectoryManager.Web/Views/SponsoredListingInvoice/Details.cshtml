@@ -28,10 +28,13 @@
     var totalDays = totalDaysRaw <= 0 ? 1 : (int)totalDaysRaw;   // protect against div/zero or bad dates
     var avgUsdPerDay = Math.Round(Model.Amount / totalDays, 2);     // 2 decimals
 
-    var hasPaidAmount = Model.PaidAmount > 0m;
-    var effectiveRate = hasPaidAmount
-        ? Math.Round(Model.Amount / Model.PaidAmount, 2)
-        : 0m;
+    // The exchange rate for this invoice (invoice currency per 1 unit of the paid crypto, e.g.
+    // USD per XMR): BTCPay's actual rate captured at checkout, or the implied rate for older
+    // invoices backfilled before capture existed. 0 = not recorded.
+    var hasStoredRate = Model.PaymentRate > 0m;
+    var rateCurrency = Model.PaidInCurrency != DirectoryManager.Data.Enums.Currency.Unknown
+        ? Model.PaidInCurrency.ToString()
+        : DirectoryManager.Data.Enums.Currency.XMR.ToString();
 }
 
 @section PageContent {
@@ -89,10 +92,10 @@
         <dt>Paid In Currency</dt>
         <dd>@Model.PaidInCurrency</dd>
 
-        @if (hasPaidAmount)
+        @if (hasStoredRate)
         {
-            <dt>Effective Rate</dt>
-            <dd>@effectiveRate.ToString("0.00") @Model.Currency / @Model.PaidInCurrency</dd>
+            <dt>Exchange Rate</dt>
+            <dd>@Model.PaymentRate.ToString("0.00") @Model.Currency / @rateCurrency</dd>
         }
 
         <dt>Payment Status</dt>

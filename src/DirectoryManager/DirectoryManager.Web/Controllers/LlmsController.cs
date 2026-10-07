@@ -127,10 +127,12 @@ namespace DirectoryManager.Web.Controllers
                 .Where(e => e.DirectoryStatus != DirectoryStatus.Scam && e.SubCategory?.Category != null)
                 .ToList();
 
+            var siteName = await this.cacheService.GetSnippetAsync(SiteConfigSetting.SiteName);
+
             var sb = new StringBuilder();
 
-            sb.AppendLine("# Monerica - Full Directory");
-            sb.AppendLine($"> Every live listing in the Monerica directory ({totalActive} websites and services that accept or relate to Monero (XMR)).");
+            sb.AppendLine($"# {siteName} - Full Directory");
+            sb.AppendLine($"> Every live listing in the {siteName} directory ({totalActive} websites and services that accept or relate to Monero (XMR)).");
             sb.AppendLine($"> {domain}");
             sb.AppendLine($"> For the concise category map, see {domain}/llms.txt");
             sb.AppendLine();
@@ -183,10 +185,11 @@ namespace DirectoryManager.Web.Controllers
 
             var totalActive = await this.directoryEntryRepository.TotalActive();
             var categories = (await this.categoryRepository.GetActiveCategoriesAsync()).ToList();
+            var siteName = await this.cacheService.GetSnippetAsync(SiteConfigSetting.SiteName);
 
             var sb = new StringBuilder();
 
-            sb.AppendLine("# Monerica");
+            sb.AppendLine($"# {siteName}");
             sb.AppendLine($"> A curated directory of {totalActive} websites and services that accept or relate to Monero (XMR).");
             sb.AppendLine($"> {domain}");
             sb.AppendLine();

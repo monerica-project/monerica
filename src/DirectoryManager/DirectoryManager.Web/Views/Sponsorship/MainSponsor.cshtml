@@ -3,7 +3,9 @@
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.DisplayFormatting.Helpers
 @using DirectoryManager.Utilities.Helpers
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @{
+    var siteName = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
     ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Buy the Main Sponsor Slot";
     Layout = "_CenteredLayout";
 
@@ -166,7 +168,7 @@
     @* ---- What the Main slot gets you ---- *@
     <h2 class="orange-text u-mt-14px">What the Main Sponsor slot includes</h2>
     <ul class="u-lh-19">
-        <li><strong>The most visible placement on Monerica</strong> &mdash; large boxes at the top of the home page and every directory page (up to @DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings run at once; longest remaining duration shows on top).</li>
+        <li><strong>The most visible placement on @siteName</strong> &mdash; large boxes at the top of the home page and every directory page (up to @DirectoryManager.Common.Constants.IntegerConstants.MaxMainSponsoredListings run at once; longest remaining duration shows on top).</li>
         <li><strong>The most prominent spot across the whole Monerica network</strong> &mdash; <a href="https://moneropricenow.com" target="_blank" rel="noopener">MoneroPriceNow</a>, <a href="https://moneroacademy.com" target="_blank" rel="noopener">MoneroAcademy</a>, <a href="https://moneromaps.com" target="_blank" rel="noopener">MoneroMaps</a>, <a href="https://moneromarketcap.com" target="_blank" rel="noopener">MoneroMarketCap</a> and <a href="https://monerouserforum.com" target="_blank" rel="noopener">MoneroUserForum</a>.</li>
         <li><strong>Exclusive to Main sponsors:</strong> mentioned and pinned on our <a href="https://x.com/MonericaProject" target="_blank" rel="noopener">X (Twitter) page</a> as a paid partnership, plus an optional one-time interview on <a href="https://blog.monerica.com/interviews" target="_blank" rel="noopener">Monerica's Blog</a>.</li>
         <li>A slot in the scrolling sponsor banner at the top of every page, highlighted in search, filters and lists, included in the RSS feed and weekly newsletter.</li>

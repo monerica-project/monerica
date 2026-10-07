@@ -1,5 +1,7 @@
 ﻿@using DirectoryManager.Web.Constants
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @{
+    var siteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
     ViewData[StringConstants.TitleHeader] = "Affiliate Program";
     Layout = "_CenteredLayout";
 }
@@ -11,7 +13,7 @@
     </div>
     <hr />
 
-    <p>Earn commission by referring <strong>new</strong> advertisers to Monerica.</p>
+    <p>Earn commission by referring <strong>new</strong> advertisers to @siteName.</p>
 
     <h3>Rules</h3>
     <ul>
@@ -22,7 +24,7 @@
             (anyone already listed there does <em>not</em> qualify).
         </li>
         <li>
-            Commission: <strong>50% (minus network fees)</strong> of what the advertiser pays to Monerica for a new package
+            Commission: <strong>50% (minus network fees)</strong> of what the advertiser pays to @siteName for a new package
             (Main, Category, or Subcategory sponsor).
         </li>
         <li>

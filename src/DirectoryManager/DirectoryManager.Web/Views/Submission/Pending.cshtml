@@ -51,7 +51,7 @@
                             @if (submission?.PaidUtc != null)
                             {
                                 <span class="badge bg-success u-badge-wrap" title="Donation received @submission.PaidUtc?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)">
-                                    &#128176; Paid@(submission.PaidAmount is decimal amt && amt > 0 ? $" {amt:0.##} {submission.PaidCurrency}" : "")
+                                    &#128176; Paid@(submission.PaidAmount is decimal amt && amt > 0 ? $" {amt.ToString(string.Equals(submission.PaidCurrency, "XMR", StringComparison.OrdinalIgnoreCase) ? "0.############" : "0.##")} {submission.PaidCurrency}" : "")
                                 </span>
                             }
                             else

@@ -32,14 +32,12 @@ namespace DirectoryManager.Web.Helpers
         internal static (decimal Percent, SponsorshipType? BasisTier) ResolveCrossTierPerk(
             SponsorshipType targetType, bool holdsMain, bool holdsCategory, bool holdsSubcategory)
         {
-            var holdsTarget = (targetType == SponsorshipType.MainSponsor && holdsMain)
-                || (targetType == SponsorshipType.CategorySponsor && holdsCategory)
-                || (targetType == SponsorshipType.SubcategorySponsor && holdsSubcategory);
-            if (holdsTarget)
-            {
-                return (0m, null);
-            }
-
+            // The perk comes from the highest tier the listing HOLDS that is DIFFERENT from the tier
+            // it's buying. Holding the SAME tier as the target is a renewal and grants no perk by
+            // itself — but a DIFFERENT held tier still does. (Earlier this short-circuited to 0% the
+            // moment you held the target tier, which wrongly denied the cross-tier perk on a renewal:
+            // e.g. a Main+Subcategory sponsor renewing Main lost the 10% their Subcategory should give.)
+            // Each check below already excludes the same tier via `targetType != ...`.
             if (holdsMain && targetType != SponsorshipType.MainSponsor)
             {
                 return (DirectoryManager.Common.Constants.IntegerConstants.MainSponsorCrossTierDiscountPercent, SponsorshipType.MainSponsor);

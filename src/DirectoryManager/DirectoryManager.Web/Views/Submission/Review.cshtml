@@ -27,7 +27,17 @@
         <b>&#128176; Donation received for this submission.</b>
         @if (Model.PaidAmount is decimal paidAmt && paidAmt > 0)
         {
-            <text> Amount: <b>@paidAmt.ToString("0.##") @Model.PaidCurrency</b></text>
+            @if (ViewBag.PaidUsd != null)
+            {
+                <text> Amount: <b>$@(((decimal)ViewBag.PaidUsd).ToString("0.00")) USD</b></text>
+            }
+            else
+            {
+                // No USD value available: show the recorded amount, using full precision for XMR so a
+                // sub-cent donation never rounds to "0".
+                var inXmr = string.Equals(Model.PaidCurrency, "XMR", StringComparison.OrdinalIgnoreCase);
+                <text> Amount: <b>@paidAmt.ToString(inXmr ? "0.############" : "0.##") @Model.PaidCurrency</b></text>
+            }
             @if (ViewBag.PaidXmr != null)
             {
                 <text> (<b>@(((decimal)ViewBag.PaidXmr).ToString("0.############")) XMR</b>)</text>

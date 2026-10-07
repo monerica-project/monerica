@@ -736,6 +736,16 @@ EOF
     scp_send "$nginx_file" "/tmp/$APP_NAME.conf"
     ssh_run "mv /tmp/$APP_NAME.conf /etc/nginx/sites-available/$APP_NAME.conf"
     ssh_run "ln -sf /etc/nginx/sites-available/$APP_NAME.conf /etc/nginx/sites-enabled/$APP_NAME.conf"
+
+    # SAFETY NET — guarantee a neutral catch-all default_server is always enabled. Without an
+    # explicit 443 default_server, nginx serves unmatched-Host requests from the FIRST-alphabetical
+    # vhost (bitcoinlando.com.conf), so during this very nginx swap a request for app.monerica.com
+    # (momentarily unmatched) could be answered by — and cached by Bunny as — the WRONG site. With
+    # 000-default-maintenance.conf (server_name _, listen 443 default_server → 503) enabled, an
+    # unmatched Host gets a neutral 503 that Bunny won't cache. Re-asserted every deploy so it can
+    # never silently go missing. See memory: monerica-vps-nginx-default-server.
+    ssh_run "test -f /etc/nginx/sites-available/000-default-maintenance.conf && ln -sf /etc/nginx/sites-available/000-default-maintenance.conf /etc/nginx/sites-enabled/000-default-maintenance.conf || true"
+
     # RESTART, not reload, when restoring the live proxy. This path runs at the end of every
     # deploy (and as the standalone `maintenance-off` task) to replace the 503 maintenance
     # vhost with the real proxy. A graceful `reload` keeps OLD worker processes serving

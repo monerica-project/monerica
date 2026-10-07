@@ -399,7 +399,11 @@ namespace DirectoryManager.Web.Charting
                 var nowLine = plt.Add.HorizontalLine(c.Value);
                 nowLine.Color = Colors.Black;
                 nowLine.LineWidth = 2;
-                nowLine.LinePattern = LinePattern.Dashed;
+
+                // Long, clearly-spaced dashes (not ScottPlot's default short Dashed) so this line is
+                // unmistakably different from the Dotted "your subcategory" line — and wide enough that
+                // the legend swatch shows several dashes rather than a single stub.
+                nowLine.LinePattern = new LinePattern(new float[] { 10f, 6f }, 0f, "longdash");
                 nowLine.LegendText = sponsorshipType.HasValue
                     ? $"Current market price ({DailyLabel((decimal)c.Value)}/day)"
                     : $"{FriendlyType(c.Type)} current ({DailyLabel((decimal)c.Value)}/day)";
@@ -413,6 +417,10 @@ namespace DirectoryManager.Web.Charting
             if (showLegend)
             {
                 plt.ShowLegend(Edge.Bottom);
+
+                // Widen the legend line swatch so the dashed "current market price" entry renders as
+                // ~3 distinct dashes (default is too short to tell apart from the dotted entry).
+                plt.Legend.SymbolWidth = 50f;
             }
 
             ApplyDailyTicksThinned(plt, days);

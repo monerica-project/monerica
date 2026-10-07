@@ -1,6 +1,7 @@
 @model List<DirectoryManager.Web.Models.Sponsorship.SponsorshipPricingSummaryVm>
 @using System.Globalization
 @using DirectoryManager.Data.Enums
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @*
     Shared explanation of the three sponsorship packages — rendered on /sponsorship and
     /sponsor-options so both say exactly the same thing.
@@ -129,7 +130,7 @@
     <li>A slot in the scrolling sponsor banner that runs across the top of every page.</li>
     <li>Highlighted in search, filters, lists and on your listing profile.</li>
     <li>
-        Shown across the Monerica network &mdash;
+        Shown across the @(await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName)) network &mdash;
         <a href="https://moneropricenow.com" target="_blank" rel="noopener">MoneroPriceNow</a>,
         <a href="https://moneroacademy.com" target="_blank" rel="noopener">MoneroAcademy</a>,
         <a href="https://moneromaps.com" target="_blank" rel="noopener">MoneroMaps</a>,
