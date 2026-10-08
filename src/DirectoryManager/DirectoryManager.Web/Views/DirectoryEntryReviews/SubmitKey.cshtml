@@ -7,19 +7,27 @@
 @section PageContent {
     <h1>@ViewData[StringConstants.TitleHeader]</h1>
     <hr />
-    @await Html.PartialAsync("_PgpMessage")
-    <hr />
+
     <div asp-validation-summary="All" class="text-danger"></div>
 
-    <form asp-action="SubmitKeyPost" asp-controller="DirectoryEntryReviews" method="post">
- 
-        @Html.AntiForgeryToken()
-        <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
+    <div class="row g-4">
+        <div class="col-lg-7">
+            <form asp-action="SubmitKeyPost" asp-controller="DirectoryEntryReviews" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="flowId" value="@ViewBag.FlowId" />
 
-        <p>Paste your PGP public key:</p>
-        <textarea name="pgpArmored"  cols="40" rows="10" class="form-control" placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----"></textarea>
+                <p>Paste your PGP public key:</p>
+                <textarea name="pgpArmored" rows="14" class="form-control" placeholder="-----BEGIN PGP PUBLIC KEY BLOCK-----"></textarea>
 
-        <br />
-        <button type="submit" class="btn btn-primary btn-cta">Get Challenge</button>
-    </form>
+                <br />
+                <button type="submit" class="btn btn-primary btn-cta">Get Challenge</button>
+            </form>
+        </div>
+
+        <div class="col-lg-5">
+            <div class="card p-3">
+                @await Html.PartialAsync("_PgpMessage")
+            </div>
+        </div>
+    </div>
 }

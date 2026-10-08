@@ -714,6 +714,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
             target.OutcomeAmount = src.OutcomeAmount;
             target.PaidInCurrency = src.PaidInCurrency;
 
+            // USD-per-XMR rate captured at invoice creation (and refreshed on the
+            // payment webhook). Must be copied here or the captured rate is dropped
+            // on save and the details view shows nothing.
+            target.PaymentRate = src.PaymentRate;
+
             // business data that can change during the flow
             target.Email = src.Email;
             target.ReservationGuid = src.ReservationGuid;

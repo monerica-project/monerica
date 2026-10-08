@@ -55,7 +55,9 @@
                     }
 
                     <div class="reply-body">
-                        @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(c.Body, cssClass: "multi-line-text", ugcContent: true))
+                        @* Owner (listing) and moderator (official site) replies are trusted business/site
+                           contacts, so their emails show in full; regular users' emails stay masked. *@
+                        @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(c.Body, cssClass: "multi-line-text", ugcContent: true, maskEmails: !(c.IsOwner || c.IsModerator)))
                     </div>
 
                     <div class="reply-meta">

@@ -245,20 +245,23 @@ namespace DirectoryManager.Utilities.Helpers
         public static string RenderBodyWithLinksHtml(
             string? text,
             string cssClass = "multi-line-text",
-            bool ugcContent = false)
+            bool ugcContent = false,
+            bool maskEmails = true)
         {
             if (string.IsNullOrEmpty(text))
             {
                 return string.Empty;
             }
 
-            // Pre-process: normalise [at]/(at)/AT obfuscations into anonymized emails
-            // so the main loop handles them uniformly.
+            // Pre-process: normalise [at]/(at)/AT obfuscations. Public views anonymize them;
+            // admin moderation views (maskEmails: false) de-obfuscate to the real address so a
+            // moderator can see the contact the author actually supplied.
             text = ObfuscatedEmailRegex.Replace(text, m =>
             {
                 var local = m.Groups[1].Value;
                 var domain = m.Groups[2].Value;
-                return AnonymizeEmail($"{local}@{domain}");
+                var full = $"{local}@{domain}";
+                return maskEmails ? AnonymizeEmail(full) : full;
             });
 
             var sb = new StringBuilder(text.Length + 32);
@@ -288,9 +291,17 @@ namespace DirectoryManager.Utilities.Helpers
                 {
                     var raw = m.Groups["email"].Value;
                     var email = TrimTrailingPunctuation(raw, out var trailing);
-                    var masked = AnonymizeEmail(email);
 
-                    sb.Append(WebUtility.HtmlEncode(masked));
+                    if (maskEmails)
+                    {
+                        sb.Append(WebUtility.HtmlEncode(AnonymizeEmail(email)));
+                    }
+                    else
+                    {
+                        // Admin moderation view: show the real address (clickable), unmasked.
+                        var enc = WebUtility.HtmlEncode(email);
+                        sb.Append($"<a href=\"mailto:{enc}\">{enc}</a>");
+                    }
 
                     if (!string.IsNullOrEmpty(trailing))
                     {

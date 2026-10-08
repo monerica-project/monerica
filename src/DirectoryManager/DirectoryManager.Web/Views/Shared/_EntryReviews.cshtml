@@ -71,7 +71,7 @@
                      itemscope
                      itemtype="https://schema.org/Review">
 
-                    <div class="official-badge">
+                    <div class="official-badge" title="@o.AuthorFingerprint" style="cursor:help;">
                         <span class="official-badge-dot" aria-hidden="true"></span>
                         Official review
                     </div>
@@ -96,7 +96,7 @@
                     @EntryReviewHtmlHelper.RenderReviewTags(o)
 
                     <div class="mt-2" itemprop="reviewBody">
-                        @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(o.Body, cssClass: "multi-line-text", ugcContent: false))
+                        @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(o.Body, cssClass: "multi-line-text", ugcContent: false, maskEmails: false))
                     </div>
 
                     @if (!string.IsNullOrWhiteSpace(o.OrderUrl)
@@ -144,14 +144,14 @@
                         <details class="official-verification mt-3">
                             <summary class="official-verification-summary">Verification details</summary>
                             <div class="official-verification-body mt-2" itemprop="description">
-                                @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(o.OrderProofContext, cssClass: "multi-line-text", ugcContent: false))
+                                @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(o.OrderProofContext, cssClass: "multi-line-text", ugcContent: false, maskEmails: false))
                             </div>
                         </details>
                     }
 
                     <div class="official-meta mt-2">
                         <small class="text-muted">
-                            Official review by @(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName)).
+                            Official review by <span title="@o.AuthorFingerprint" style="cursor:help;">@(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName))</span>.
                             @if (o.TestedAt.HasValue)
                             {
                                 <span class="ms-1">

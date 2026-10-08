@@ -81,7 +81,7 @@
         </dd>
 
         <dt class="col-sm-3">Body</dt>
-            <dd class="col-sm-9"><pre class="u-ws-pre-wrap">@Html.Raw(StringHelpers.RenderBodyWithLinksHtml(r.Body, cssClass: "multi-line-text", ugcContent: true))</pre></dd>
+            <dd class="col-sm-9"><pre class="u-ws-pre-wrap">@Html.Raw(StringHelpers.RenderBodyWithLinksHtml(r.Body, cssClass: "multi-line-text", ugcContent: true, maskEmails: false))</pre></dd>
     </dl>
 
     <div class="mt-3">

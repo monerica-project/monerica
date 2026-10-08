@@ -59,11 +59,11 @@
             </div>
         }
 
-        <div>Subscribed Date: @Model.SubscribedDate</div>
+        <div>Subscribed Date (UTC): @Model.SubscribedDate.ToString("yyyy-MM-dd HH:mm:ss")</div>
 
         @if (Model.UpdateDate != null)
         {
-            <div>Update Date: @Model.UpdateDate</div>
+            <div>Update Date (UTC): @Model.UpdateDate.Value.ToString("yyyy-MM-dd HH:mm:ss")</div>
         }
 
         <div>
@@ -85,7 +85,7 @@
 
         @if (Model.ReminderSentDateUtc != null)
         {
-            <div>Reminder Sent (UTC): @Model.ReminderSentDateUtc</div>
+            <div>Reminder Sent (UTC): @Model.ReminderSentDateUtc.Value.ToString("yyyy-MM-dd HH:mm:ss")</div>
         }
 
         @if (!string.IsNullOrWhiteSpace(Model.ReminderSentLink))
