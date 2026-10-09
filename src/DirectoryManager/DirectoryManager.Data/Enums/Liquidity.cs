@@ -7,8 +7,8 @@ namespace DirectoryManager.Data.Enums
     /// <para>
     /// <see cref="Unknown"/> (0) is the reserved default for rows that predate this field.
     /// <see cref="NotApplicable"/> is the form default and what most listings are set to. Only
-    /// <see cref="Own"/> / <see cref="Mixed"/> / <see cref="ThirdParty"/> / <see cref="VariesByProvider"/>
-    /// are shown publicly — Unknown and NotApplicable render nothing on the listing page.
+    /// <see cref="Own"/> / <see cref="Mixed"/> / <see cref="OwnAndThirdParty"/> / <see cref="ThirdParty"/> /
+    /// <see cref="VariesByProvider"/> are shown publicly — Unknown and NotApplicable render nothing on the listing page.
     /// </para>
     /// </summary>
     public enum Liquidity
@@ -29,5 +29,8 @@ namespace DirectoryManager.Data.Enums
 
         [Description("Varies By Provider")]
         VariesByProvider = 5,
+
+        [Description("Own & Third-Party")]
+        OwnAndThirdParty = 6,
     }
 }

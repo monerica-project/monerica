@@ -18,6 +18,7 @@ namespace DirectoryManager.Data.Enums
             Liquidity.NotApplicable,
             Liquidity.Own,
             Liquidity.Mixed,
+            Liquidity.OwnAndThirdParty,
             Liquidity.ThirdParty,
             Liquidity.VariesByProvider,
         };
@@ -27,6 +28,7 @@ namespace DirectoryManager.Data.Enums
         {
             Liquidity.Own,
             Liquidity.Mixed,
+            Liquidity.OwnAndThirdParty,
             Liquidity.ThirdParty,
             Liquidity.VariesByProvider,
         };

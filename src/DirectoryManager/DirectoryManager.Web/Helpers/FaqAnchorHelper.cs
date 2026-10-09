@@ -25,6 +25,7 @@ namespace DirectoryManager.Web.Helpers
         {
             Liquidity.Own => "liquidity-own",
             Liquidity.Mixed => "liquidity-mixed",
+            Liquidity.OwnAndThirdParty => "liquidity-own-third-party",
             Liquidity.ThirdParty => "liquidity-third-party",
             Liquidity.VariesByProvider => "liquidity-varies",
             _ => "liquidity",

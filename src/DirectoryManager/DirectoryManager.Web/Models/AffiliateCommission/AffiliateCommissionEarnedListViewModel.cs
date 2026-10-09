@@ -18,6 +18,19 @@ namespace DirectoryManager.Web.Models.AffiliateCommissionPaid
         public DateTime? StartDate { get; set; }
         public DateTime? EndDate { get; set; }
 
+        /// <summary>
+        /// The currently selected quick date-range preset (e.g. "currentyear", "last1year"),
+        /// or null/empty for a custom range. Drives the no-JS quick-range dropdown selection.
+        /// </summary>
+        public string? QuickRange { get; set; }
+
+        /// <summary>
+        /// Sum of the amount actually received, broken out per payment currency, for the
+        /// current filter. Shown in parenthesis next to the USD total.
+        /// </summary>
+        public IReadOnlyDictionary<Currency, decimal> CurrencyTotals { get; set; }
+            = new Dictionary<Currency, decimal>();
+
         public List<SelectListItem> DirectoryEntries { get; set; } = new ();
 
         public int TotalPages =>

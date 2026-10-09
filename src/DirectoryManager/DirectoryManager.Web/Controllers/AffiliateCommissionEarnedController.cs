@@ -39,7 +39,8 @@ namespace DirectoryManager.Web.Controllers
             int pageSize = DefaultPageSize,
             int? directoryEntryId = null,
             DateTime? startDate = null,
-            DateTime? endDate = null)
+            DateTime? endDate = null,
+            string? quickRange = null)
         {
             if (page < 1)
             {
@@ -51,9 +52,14 @@ namespace DirectoryManager.Web.Controllers
                 pageSize = DefaultPageSize;
             }
 
+            // A quick-range preset (no-JS dropdown) overrides any posted start/end dates and
+            // populates them, so the resolved dates also show in the date inputs.
+            quickRange = ApplyQuickRange(quickRange, ref startDate, ref endDate);
+
             IEnumerable<AffiliateCommissionEarned> items;
             int totalCount;
             decimal totalUsd;
+            IReadOnlyDictionary<Currency, decimal> currencyTotals;
 
             if (directoryEntryId.HasValue && directoryEntryId.Value > 0)
             {
@@ -63,6 +69,8 @@ namespace DirectoryManager.Web.Controllers
                 totalCount = result.TotalCount;
                 totalUsd = await this.commissionRepo
                     .GetTotalUsdValueByDirectoryEntryAsync(directoryEntryId.Value);
+                currencyTotals = await this.commissionRepo
+                    .GetCurrencyTotalsByDirectoryEntryAsync(directoryEntryId.Value);
             }
             else if (startDate.HasValue && endDate.HasValue)
             {
@@ -72,6 +80,8 @@ namespace DirectoryManager.Web.Controllers
                 totalCount = result.TotalCount;
                 totalUsd = await this.commissionRepo
                     .GetTotalUsdValueByDateRangeAsync(startDate.Value, endDate.Value);
+                currencyTotals = await this.commissionRepo
+                    .GetCurrencyTotalsByDateRangeAsync(startDate.Value, endDate.Value);
             }
             else
             {
@@ -79,6 +89,7 @@ namespace DirectoryManager.Web.Controllers
                 items = result.Items;
                 totalCount = result.TotalCount;
                 totalUsd = await this.commissionRepo.GetTotalUsdValueAsync();
+                currencyTotals = await this.commissionRepo.GetCurrencyTotalsAsync();
             }
 
             var vm = new AffiliateCommissionEarnedListViewModel
@@ -88,13 +99,47 @@ namespace DirectoryManager.Web.Controllers
                 PageSize = pageSize,
                 TotalCount = totalCount,
                 TotalUsdValue = totalUsd,
+                CurrencyTotals = currencyTotals,
                 DirectoryEntryId = directoryEntryId,
                 StartDate = startDate,
                 EndDate = endDate,
+                QuickRange = quickRange,
                 DirectoryEntries = await this.BuildDirectoryEntrySelectListAsync(directoryEntryId)
             };
 
             return this.View(vm);
+        }
+
+        /// <summary>
+        /// Resolves a quick date-range preset into concrete start/end dates. Returns the
+        /// normalized preset key (empty for a custom range). End date is end-of-today so the
+        /// current day's commissions are included while the date input still shows today.
+        /// </summary>
+        private static string ApplyQuickRange(string? quickRange, ref DateTime? startDate, ref DateTime? endDate)
+        {
+            if (string.IsNullOrWhiteSpace(quickRange))
+            {
+                return string.Empty;
+            }
+
+            var today = DateTime.UtcNow.Date;
+            var endOfToday = today.AddDays(1).AddSeconds(-1);
+
+            switch (quickRange.Trim().ToLowerInvariant())
+            {
+                case "currentyear":
+                    startDate = new DateTime(today.Year, 1, 1, 0, 0, 0, DateTimeKind.Utc);
+                    endDate = endOfToday;
+                    return "currentyear";
+
+                case "last1year":
+                    startDate = today.AddYears(-1);
+                    endDate = endOfToday;
+                    return "last1year";
+
+                default:
+                    return string.Empty;
+            }
         }
 
         [HttpGet("totals")]

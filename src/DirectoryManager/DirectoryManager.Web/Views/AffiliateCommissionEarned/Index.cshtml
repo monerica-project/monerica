@@ -1,7 +1,22 @@
-﻿@model DirectoryManager.Web.Models.AffiliateCommissionPaid.AffiliateCommissionEarnedListViewModel
+﻿@using DirectoryManager.Data.Enums
+@model DirectoryManager.Web.Models.AffiliateCommissionPaid.AffiliateCommissionEarnedListViewModel
 @{
     ViewData["Title"] = "Affiliate Commissions Earned";
     Layout = "_CenteredLayout";
+
+    // Format a payment-currency total: USD as currency, crypto trimmed to significant decimals.
+    Func<Currency, decimal, string> formatCurrencyTotal = (currency, amount) =>
+        currency == Currency.USD
+            ? amount.ToString("C")
+            : $"{amount.ToString("0.########")} {currency}";
+
+    // Stable display order: XMR, BTC, USD, then anything else, nonzero only.
+    var currencyOrder = new[] { Currency.XMR, Currency.BTC, Currency.USD };
+    var orderedCurrencyTotals = Model.CurrencyTotals
+        .Where(kvp => kvp.Value != 0m)
+        .OrderBy(kvp => Array.IndexOf(currencyOrder, kvp.Key) is var i && i >= 0 ? i : int.MaxValue)
+        .ThenBy(kvp => kvp.Key.ToString())
+        .ToList();
 }
 
  @section PageContent {
@@ -22,31 +37,53 @@
     <fieldset>
         <legend>Filter</legend>
 
+        <label>Quick range:</label>
+        <select name="quickRange" class="form-control">
+            <option value="" selected="@(string.IsNullOrEmpty(Model.QuickRange))">Custom (use dates below)</option>
+            <option value="currentyear" selected="@(Model.QuickRange == "currentyear")">Current year</option>
+            <option value="last1year" selected="@(Model.QuickRange == "last1year")">Last 1 year</option>
+        </select>
+
         <label>Directory Entry:</label>
-        <select name="directoryEntryId" asp-items="Model.DirectoryEntries">
+        <select name="directoryEntryId" class="form-control" asp-items="Model.DirectoryEntries">
             <option value="">— All —</option>
         </select>
 
         <label>Start:</label>
-        <input type="date" name="startDate"
+        <input type="date" name="startDate" class="form-control"
                value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
 
         <label>End:</label>
-        <input type="date" name="endDate"
+        <input type="date" name="endDate" class="form-control"
                value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
 
         <label>Page size:</label>
-        <input class="u-w-6em" type="number" name="pageSize" value="@Model.PageSize" min="1" max="200" />
+        <input class="form-control u-w-6em" type="number" name="pageSize" value="@Model.PageSize" min="1" max="200" />
 
         <button type="submit" class="btn btn-primary">Apply</button>
         <a asp-action="Index" class="btn btn-secondary">Reset</a>
     </fieldset>
+    <p class="text-muted">
+        Pick a quick range to auto-fill the dates, or leave it on “Custom” and set Start/End yourself.
+    </p>
 </form>
 
 <p>
     <strong>Total rows:</strong> @Model.TotalCount
     &nbsp;|&nbsp;
     <strong>Total USD:</strong> @Model.TotalUsdValue.ToString("C")
+    @if (orderedCurrencyTotals.Any())
+    {
+        <text>&nbsp;(</text>@for (var i = 0; i < orderedCurrencyTotals.Count; i++)
+        {
+            var kvp = orderedCurrencyTotals[i];
+            @formatCurrencyTotal(kvp.Key, kvp.Value)
+            if (i < orderedCurrencyTotals.Count - 1)
+            {
+                <text>, </text>
+            }
+        }<text>)</text>
+    }
 </p>
     <div class="table-wrapper">
       

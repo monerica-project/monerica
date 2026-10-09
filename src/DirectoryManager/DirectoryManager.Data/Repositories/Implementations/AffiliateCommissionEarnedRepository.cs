@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -117,6 +118,28 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .SumAsync(c => (decimal?)c.UsdValue) ?? 0m;
         }
 
+        public async Task<IReadOnlyDictionary<Currency, decimal>> GetCurrencyTotalsAsync()
+        {
+            return await this.CurrencyTotalsAsync(this.context.AffiliateCommissionsEarned.AsNoTracking());
+        }
+
+        public async Task<IReadOnlyDictionary<Currency, decimal>> GetCurrencyTotalsByDirectoryEntryAsync(
+            int directoryEntryId)
+        {
+            return await this.CurrencyTotalsAsync(this.context.AffiliateCommissionsEarned
+                .AsNoTracking()
+                .Where(c => c.DirectoryEntryId == directoryEntryId));
+        }
+
+        public async Task<IReadOnlyDictionary<Currency, decimal>> GetCurrencyTotalsByDateRangeAsync(
+            DateTime startDate,
+            DateTime endDate)
+        {
+            return await this.CurrencyTotalsAsync(this.context.AffiliateCommissionsEarned
+                .AsNoTracking()
+                .Where(c => c.CommissionDate >= startDate && c.CommissionDate <= endDate));
+        }
+
         public async Task<IEnumerable<AffiliateCommissionEarnedTotal>> GetTotalsByDirectoryEntryAsync()
         {
             return await this.context.AffiliateCommissionsEarned
@@ -205,6 +228,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.context.AffiliateCommissions
                 .AsNoTracking()
                 .AnyAsync(c => c.AffiliateCommissionId == affiliateCommissionId);
+        }
+
+        private async Task<IReadOnlyDictionary<Currency, decimal>> CurrencyTotalsAsync(
+            IQueryable<AffiliateCommissionEarned> query)
+        {
+            var grouped = await query
+                .GroupBy(c => c.PaymentCurrency)
+                .Select(g => new { Currency = g.Key, Amount = g.Sum(x => x.PaymentCurrencyAmount) })
+                .ToListAsync();
+
+            return grouped.ToDictionary(g => g.Currency, g => g.Amount);
         }
     }
 }

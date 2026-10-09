@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Models;
+﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.TransferModels;
 
@@ -30,6 +31,14 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<decimal> GetTotalUsdValueByDirectoryEntryAsync(int directoryEntryId);
 
         Task<decimal> GetTotalUsdValueByDateRangeAsync(DateTime startDate, DateTime endDate);
+
+        Task<IReadOnlyDictionary<Currency, decimal>> GetCurrencyTotalsAsync();
+
+        Task<IReadOnlyDictionary<Currency, decimal>> GetCurrencyTotalsByDirectoryEntryAsync(int directoryEntryId);
+
+        Task<IReadOnlyDictionary<Currency, decimal>> GetCurrencyTotalsByDateRangeAsync(
+            DateTime startDate,
+            DateTime endDate);
 
         Task<IEnumerable<AffiliateCommissionEarnedTotal>> GetTotalsByDirectoryEntryAsync();
 
