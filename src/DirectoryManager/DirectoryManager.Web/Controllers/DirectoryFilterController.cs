@@ -117,6 +117,9 @@ public class DirectoryFilterController : Controller
     // -------------------------
     // Query normalization
     // -------------------------
+    private const int MaxSearchTermLength = 100;
+    private const int MaxPage = 100000;
+
     private static void NormalizeQuery(DirectoryFilterQuery q)
     {
         // Page size: accept a value from the allow-list, otherwise default.
@@ -132,6 +135,23 @@ public class DirectoryFilterController : Controller
         {
             q.Sort = DefaultSort;
             q.Page = 1;
+        }
+
+        // Only publicly listed statuses may be requested: never Removed/Unknown entries.
+        q.Statuses = q.Statuses?
+            .Where(s => s is DirectoryStatus.Verified or DirectoryStatus.Admitted or DirectoryStatus.Questionable or DirectoryStatus.Scam)
+            .Distinct()
+            .ToList();
+
+        if (q.SearchTerm is { Length: > MaxSearchTermLength })
+        {
+            q.SearchTerm = q.SearchTerm.Substring(0, MaxSearchTermLength);
+        }
+
+        // Guard the Skip() arithmetic against absurd page numbers.
+        if (q.Page > MaxPage)
+        {
+            q.Page = MaxPage;
         }
 
         // Default statuses if none selected

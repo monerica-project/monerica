@@ -98,23 +98,25 @@ namespace DirectoryManager.Web.Services.Interfaces
 
             var bundle = new PgpPublicKeyRingBundle(keyIn);
 
-            foreach (PgpPublicKeyRing ring in bundle.GetKeyRings())
+            // Only the FIRST key ring is considered (see PgpCapabilities.SelectEncryptionKey):
+            // identity and encryption target must always come from the same ring.
+            var firstRing = bundle.GetKeyRings().Cast<PgpPublicKeyRing>().FirstOrDefault();
+            if (firstRing is null)
             {
-                foreach (PgpPublicKey k in ring.GetPublicKeys())
-                {
-                    if (k.IsEncryptionKey)
-                    {
-                        return k;
-                    }
-                }
+                return null;
             }
 
-            foreach (PgpPublicKeyRing ring in bundle.GetKeyRings())
+            foreach (PgpPublicKey k in firstRing.GetPublicKeys())
             {
-                foreach (PgpPublicKey k in ring.GetPublicKeys())
+                if (k.IsEncryptionKey)
                 {
                     return k;
                 }
+            }
+
+            foreach (PgpPublicKey k in firstRing.GetPublicKeys())
+            {
+                return k;
             }
 
             return null;

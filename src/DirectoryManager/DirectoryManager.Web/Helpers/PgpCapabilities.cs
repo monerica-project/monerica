@@ -59,7 +59,11 @@ public static class PgpCapabilities
         PgpPublicKey? bestSubkey = null;
         PgpPublicKey? bestPrimary = null;
 
-        foreach (PgpPublicKeyRing ring in bundle.GetKeyRings())
+        // Only the FIRST key ring is ever used, here and for the identity/primary
+        // fingerprints. If rings were mixed, an armor block holding a victim's ring followed by
+        // an attacker's ring would be identified as the victim while the challenge was
+        // encrypted to the attacker.
+        foreach (PgpPublicKeyRing ring in bundle.GetKeyRings().Cast<PgpPublicKeyRing>().Take(1))
         {
             foreach (PgpPublicKey k in ring.GetPublicKeys())
             {
@@ -108,7 +112,7 @@ public static class PgpCapabilities
 
             var bundle = new PgpPublicKeyRingBundle(keyIn);
 
-            foreach (PgpPublicKeyRing ring in bundle.GetKeyRings())
+            foreach (PgpPublicKeyRing ring in bundle.GetKeyRings().Cast<PgpPublicKeyRing>().Take(1))
             {
                 var master = ring.GetPublicKey(); // the master (primary) key of the ring
                 byte[] fp = master.GetFingerprint();

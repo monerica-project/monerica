@@ -8,7 +8,12 @@ namespace DirectoryManager.Web.Helpers
             new Regex(
                 @"^http[s]?://[a-z2-7]{16}\.onion(/.*)?$",
                 RegexOptions.Compiled |
-                RegexOptions.IgnoreCase);
+                RegexOptions.IgnoreCase,
+                TimeSpan.FromMilliseconds(250));
+
+        // Free-text fields are a few hundred characters at most; never run the pattern over
+        // an arbitrarily large body (it backtracks badly on long hyphenated input).
+        private const int MaxUrlScanLength = 5000;
 
         // Detects an actual link embedded in free text: an explicit scheme (http/https/ftp),
         // a "www." prefix, or a bare domain with a common TLD that is FOLLOWED BY A PATH
@@ -77,7 +82,20 @@ namespace DirectoryManager.Web.Helpers
                 return false;
             }
 
-            return UrlInTextRegex.IsMatch(text);
+            if (text.Length > MaxUrlScanLength)
+            {
+                text = text.Substring(0, MaxUrlScanLength);
+            }
+
+            try
+            {
+                return UrlInTextRegex.IsMatch(text);
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                // Input that stalls the matcher is treated as containing a link, so it is rejected.
+                return true;
+            }
         }
 
         public static string NormalizeUrl(string url)

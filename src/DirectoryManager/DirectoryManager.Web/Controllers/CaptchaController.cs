@@ -17,7 +17,7 @@ public class CaptchaController : Controller
 
         // Store BOTH the contexted key AND the legacy key so both consumers work.
         this.HttpContext.Session.SetString($"CaptchaCode:{ctx}", code);
-        this.HttpContext.Session.SetString("CaptchaCode", code);
+        this.HttpContext.Session.SetString(CaptchaTools.LegacySessionKey, code);
 
         // Draw PNG (your existing SkiaSharp logic)
         var pngBytes = CaptchaTools.RenderPng(code); // returns byte[]

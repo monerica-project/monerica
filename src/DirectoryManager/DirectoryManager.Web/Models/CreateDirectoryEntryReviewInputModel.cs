@@ -12,6 +12,7 @@ namespace DirectoryManager.Web.Models
         public byte? Rating { get; set; }
 
         [Required]
+        [StringLength(10000, ErrorMessage = "Your review is too long. Please keep it under {1} characters.")]
         [CleanMultiLine]
         public string? Body { get; set; }
 

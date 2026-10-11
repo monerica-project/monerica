@@ -71,7 +71,10 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var review = await this.reviewRepo.GetByIdAsync(directoryEntryReviewId, ct);
-            if (review is null)
+
+            // Only a published review can be replied to. Pending, rejected or flagged reviews
+            // must never be reachable (or readable) through the reply flow.
+            if (review is null || review.ModerationStatus != ReviewModerationStatus.Approved)
             {
                 return this.NotFound();
             }
@@ -190,6 +193,10 @@ namespace DirectoryManager.Web.Controllers
             state.ChallengeCode = expectedNormalized;
             state.ChallengeCiphertext = cipher;
             state.VerifyAttempts = 0;
+
+            // A newly submitted key must prove itself: never carry over a challenge solved
+            // with a different key earlier in this flow.
+            state.ChallengeSolved = false;
 
             this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
             return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });

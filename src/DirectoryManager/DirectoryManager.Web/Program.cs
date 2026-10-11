@@ -182,6 +182,10 @@ else
     });
 }
 
+// Refuse SQL-injection / script-injection probes in the query string with a bare 400,
+// before static files, status-code pages, routing or any controller sees them.
+app.UseMiddleware<DirectoryManager.Web.Middleware.SuspiciousInputMiddleware>();
+
 // Site-wide security headers. The no-JS policy (script-src 'none') is identical for
 // every response, so this runs early — before static files — and never needs the
 // matched endpoint, so it no longer sits after UseRouting.

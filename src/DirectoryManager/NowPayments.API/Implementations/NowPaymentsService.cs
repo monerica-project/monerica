@@ -27,8 +27,14 @@ namespace NowPayments.API.Implementations
 
             this.apiKey = paymentConfigs.ApiKey
                 ?? throw new ArgumentNullException(nameof(paymentConfigs.ApiKey));
-            this.ipnSecretKey = paymentConfigs.IpnSecretKey
-                ?? throw new ArgumentNullException(nameof(paymentConfigs.IpnSecretKey));
+            // A blank secret would make every callback signature computable by anyone, so the
+            // service refuses to start without one.
+            if (string.IsNullOrWhiteSpace(paymentConfigs.IpnSecretKey))
+            {
+                throw new ArgumentException("NOWPayments IpnSecretKey must be configured.", nameof(paymentConfigs));
+            }
+
+            this.ipnSecretKey = paymentConfigs.IpnSecretKey;
 
             if (string.IsNullOrWhiteSpace(paymentConfigs.PayCurrency))
             {
@@ -85,7 +91,23 @@ namespace NowPayments.API.Implementations
                 return false;
             }
 
-            var requestData = JsonConvert.DeserializeObject<Dictionary<string, object>>(requestBody);
+            if (string.IsNullOrWhiteSpace(this.ipnSecretKey))
+            {
+                errorMsg = "IPN secret is not configured.";
+                return false;
+            }
+
+            Dictionary<string, object>? requestData;
+            try
+            {
+                requestData = JsonConvert.DeserializeObject<Dictionary<string, object>>(requestBody);
+            }
+            catch (JsonException)
+            {
+                errorMsg = "Error reading POST data";
+                return false;
+            }
+
             if (requestData == null || requestData.Count == 0)
             {
                 errorMsg = "Error reading POST data";

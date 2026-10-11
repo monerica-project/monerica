@@ -256,13 +256,20 @@ namespace DirectoryManager.Utilities.Helpers
             // Pre-process: normalise [at]/(at)/AT obfuscations. Public views anonymize them;
             // admin moderation views (maskEmails: false) de-obfuscate to the real address so a
             // moderator can see the contact the author actually supplied.
-            text = ObfuscatedEmailRegex.Replace(text, m =>
+            try
             {
-                var local = m.Groups[1].Value;
-                var domain = m.Groups[2].Value;
-                var full = $"{local}@{domain}";
-                return maskEmails ? AnonymizeEmail(full) : full;
-            });
+                text = ObfuscatedEmailRegex.Replace(text, m =>
+                {
+                    var local = m.Groups[1].Value;
+                    var domain = m.Groups[2].Value;
+                    var full = $"{local}@{domain}";
+                    return maskEmails ? AnonymizeEmail(full) : full;
+                });
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                // Pathological input: leave the text as it is rather than fail the whole page.
+            }
 
             var sb = new StringBuilder(text.Length + 32);
             int last = 0;
@@ -614,12 +621,19 @@ namespace DirectoryManager.Utilities.Helpers
             }
 
             // Handle [at] / (at) / AT obfuscations first
-            text = ObfuscatedEmailRegex.Replace(text, m =>
+            try
             {
-                var local = m.Groups[1].Value;
-                var domain = m.Groups[2].Value;
-                return AnonymizeEmail($"{local}@{domain}");
-            });
+                text = ObfuscatedEmailRegex.Replace(text, m =>
+                {
+                    var local = m.Groups[1].Value;
+                    var domain = m.Groups[2].Value;
+                    return AnonymizeEmail($"{local}@{domain}");
+                });
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                // Pathological input: leave the text as it is rather than fail the whole page.
+            }
 
             // Handle standard emails
             text = EmailRegex.Replace(text, m => AnonymizeEmail(m.Value));

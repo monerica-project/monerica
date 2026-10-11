@@ -54,6 +54,15 @@ public class SearchController : Controller
             return this.BadRequest("No search performed.");
         }
 
+        // Bounded input only: long terms and wildcard-only terms are never searched or logged.
+        if (q.Trim().Length > 100 || q.Trim().Trim('%', '_', '\\', '*', '?', '.', ' ').Length == 0)
+        {
+            return this.BadRequest("Invalid search.");
+        }
+
+        page = Math.Clamp(page, 1, 100000);
+        pageSize = Math.Clamp(pageSize, 1, 50);
+
         if (ScriptValidation.ContainsScriptTag(q) || HtmlValidation.ContainsHtmlTag(q))
         {
             return this.BadRequest("Invalid search.");

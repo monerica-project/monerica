@@ -149,6 +149,10 @@ namespace DirectoryManager.Web.Controllers
             state.ChallengeCiphertext = cipher;
             state.VerifyAttempts = 0;
 
+            // A newly submitted key must prove itself: never carry over a challenge solved
+            // with a different key earlier in this flow.
+            state.ChallengeSolved = false;
+
             this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
             return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
         }

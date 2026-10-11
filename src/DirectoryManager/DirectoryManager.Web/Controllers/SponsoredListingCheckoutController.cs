@@ -398,13 +398,13 @@ namespace DirectoryManager.Web.Controllers
         [Route("sponsoredlisting/selectduration")]
         public async Task<IActionResult> SelectDurationAsync(int directoryEntryId, int selectedOfferId, Guid? rsvId = null)
         {
-            var offer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId).ConfigureAwait(false);
+            var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId).ConfigureAwait(false);
+            var offer = await this.GetOfferForEntryAsync(selectedOfferId, entry).ConfigureAwait(false);
             if (offer is null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
             }
 
-            var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId).ConfigureAwait(false);
             if (entry is null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidListing });
@@ -505,8 +505,8 @@ namespace DirectoryManager.Web.Controllers
                 return await this.RebuildConfirmViewWithErrorAsync(directoryEntryId, selectedOfferId, rsvId, referralCode, email, "Captcha", "Incorrect CAPTCHA. Please try again.");
             }
 
-            var offer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
             var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
+            var offer = await this.GetOfferForEntryAsync(selectedOfferId, entry);
             if (offer == null || entry == null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
@@ -661,6 +661,14 @@ namespace DirectoryManager.Web.Controllers
             var invoice = await this.FindInvoiceForIpnAsync(msg);
             if (invoice == null)
             {
+                return this.Ok();
+            }
+
+            // A NOWPayments callback may only ever touch an invoice that was created with
+            // NOWPayments, never a BTCPay one.
+            if (invoice.PaymentProcessor != PaymentProcessor.NOWPayments)
+            {
+                this.logger.LogWarning("NOWPayments IPN ignored: invoice {InvoiceId} was not created with NOWPayments.", invoice.InvoiceId);
                 return this.Ok();
             }
 
@@ -1041,16 +1049,24 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         private async Task<ConfirmValidationResult> ValidateConfirmRequestAsync(int directoryEntryId, int selectedOfferId, Guid? rsvId)
         {
-            var offer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId).ConfigureAwait(false);
-            if (offer == null)
-            {
-                return ConfirmValidationResult.Fail(this.BadRequest(new { Error = StringConstants.InvalidOfferSelection }));
-            }
-
             var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId).ConfigureAwait(false);
             if (entry == null)
             {
                 return ConfirmValidationResult.Fail(this.BadRequest(new { Error = StringConstants.InvalidSelection }));
+            }
+
+            // Same eligibility rule as the first checkout steps, re-checked here so nobody can skip
+            // straight to the final confirm for a listing that may not sponsor.
+            if (!this.IsEligibleToSponsor(entry)
+                && !await this.sponsoredListingRepository.HasActiveSponsorshipAsync(entry.DirectoryEntryId).ConfigureAwait(false))
+            {
+                return ConfirmValidationResult.Fail(this.BadRequest(new { Error = $"To sponsor, a listing must be Verified and listed in the directory for at least {DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring} days." }));
+            }
+
+            var offer = await this.GetOfferForEntryAsync(selectedOfferId, entry).ConfigureAwait(false);
+            if (offer == null)
+            {
+                return ConfirmValidationResult.Fail(this.BadRequest(new { Error = StringConstants.InvalidOfferSelection }));
             }
 
             var (group, typeIdForCap) = this.BuildGroupAndCapacity(offer.SponsorshipType, entry);
@@ -1106,8 +1122,8 @@ namespace DirectoryManager.Web.Controllers
             int directoryEntryId, int selectedOfferId, Guid? rsvId, string? referralCode,
             string? prefillEmail, string key, string message)
         {
-            var offer = await this.sponsoredListingOfferRepository.GetByIdAsync(selectedOfferId);
             var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
+            var offer = await this.GetOfferForEntryAsync(selectedOfferId, entry);
             if (offer == null || entry == null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
@@ -1169,7 +1185,12 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var existing = await this.sponsoredListingInvoiceRepository.GetByReservationGuidAsync(reservation.ReservationGuid);
-            if (existing == null || existing.PaymentStatus == PaymentStatus.Paid)
+            // Only an untouched invoice is stale. Once a payment has been seen (awaiting
+            // confirmations, under/over-paid, paid) it must never be canceled from here, or the
+            // buyer pays and nothing activates.
+            if (existing == null
+                || existing.PaymentStatus is PaymentStatus.Paid or PaymentStatus.Pending
+                    or PaymentStatus.UnderPayment or PaymentStatus.OverPayment or PaymentStatus.Refunded)
             {
                 return;
             }
@@ -1793,19 +1814,15 @@ namespace DirectoryManager.Web.Controllers
                 return false;
             }
 
-            DateTime? expiresUtc = null;
-            try
+            // The hold must be for THIS slot and still running. (This used to read a non-existent
+            // "ExpirationDate" property by reflection, so any GUID ever issued was accepted while
+            // someone else held the slot.)
+            if (!string.Equals(existing.ReservationGroup, reservationGroup, StringComparison.Ordinal))
             {
-                expiresUtc = (DateTime?)existing.GetType().GetProperty("ExpirationDate")?.GetValue(existing);
-            }
-            catch
-            {
+                return false;
             }
 
-            if (!expiresUtc.HasValue)
-            {
-                expiresUtc = await this.sponsoredListingReservationRepository.GetActiveReservationExpirationAsync(reservationGroup).ConfigureAwait(false);
-            }
+            DateTime? expiresUtc = existing.ExpirationDateTime;
 
             if (!expiresUtc.HasValue || expiresUtc.Value <= DateTime.UtcNow)
             {
@@ -1893,6 +1910,30 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return entries.OrderBy(e => e.Name).ToList();
+        }
+
+        // The offer id is the only thing a buyer submits, so it is checked against the offers
+        // actually shown for this listing (enabled, right tier, right subcategory pricing).
+        // Returns null for an unknown, disabled or mismatched offer.
+        private async Task<SponsoredListingOffer?> GetOfferForEntryAsync(int selectedOfferId, DirectoryEntry? entry)
+        {
+            if (entry is null || selectedOfferId <= 0)
+            {
+                return null;
+            }
+
+            foreach (var type in new[] { SponsorshipType.MainSponsor, SponsorshipType.CategorySponsor, SponsorshipType.SubcategorySponsor })
+            {
+                var offers = await this.sponsoredListingOfferRepository
+                    .GetByTypeAndSubCategoryAsync(type, entry.SubCategoryId).ConfigureAwait(false);
+                var match = offers.FirstOrDefault(o => o.SponsoredListingOfferId == selectedOfferId);
+                if (match is not null)
+                {
+                    return match;
+                }
+            }
+
+            return null;
         }
 
         private async Task<List<SponsoredListingOfferModel>> GetListingDurationsAsync(

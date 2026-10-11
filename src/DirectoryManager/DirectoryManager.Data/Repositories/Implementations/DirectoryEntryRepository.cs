@@ -1229,17 +1229,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
         private static AuthorSearchTerm NormalizeAuthorSearch(string q)
         {
             var term = (q ?? string.Empty).Trim().ToLowerInvariant();
-            var pattern = $"%{term}%";
+            var pattern = $"%{EscapeLike(term)}%";
 
             string? rootPattern = null;
             if (term.EndsWith("s") && term.Length > 3)
             {
                 var root = term[..^1];
-                rootPattern = $"%{root}%";
+                rootPattern = $"%{EscapeLike(root)}%";
             }
 
             var compact = new string(term.Where(char.IsLetterOrDigit).ToArray());
-            string? compactPattern = string.IsNullOrEmpty(compact) ? null : $"%{compact}%";
+            string? compactPattern = string.IsNullOrEmpty(compact) ? null : $"%{EscapeLike(compact)}%";
 
             return new AuthorSearchTerm(term, pattern, rootPattern, compact, compactPattern);
         }
@@ -1292,17 +1292,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             string? countryCode = Utilities.Helpers.CountryHelper.ExtractCountryCode(term);
 
-            var primaryPattern = $"%{term}%";
+            var primaryPattern = $"%{EscapeLike(term)}%";
             string? rootTerm = null;
             string? rootPattern = null;
             if (term.EndsWith("s") && term.Length > 3)
             {
                 rootTerm = term[..^1];
-                rootPattern = $"%{rootTerm}%";
+                rootPattern = $"%{EscapeLike(rootTerm)}%";
             }
 
             string termCompact = new string(term.Where(char.IsLetterOrDigit).ToArray());
-            string? compactPattern = string.IsNullOrEmpty(termCompact) ? null : $"%{termCompact}%";
+            string? compactPattern = string.IsNullOrEmpty(termCompact) ? null : $"%{EscapeLike(termCompact)}%";
 
             static bool LooksLikeUrl(string s) =>
                 s.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
@@ -1343,10 +1343,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
             string hostOnly = isUrlTerm ? ExtractHost(term) : string.Empty;
             string hostNoWww = isUrlTerm ? StripWww(hostOnly) : string.Empty;
 
-            string pNoSlash = $"%{noSlash}%";
-            string pWithSlash = $"%{withSlash}%";
-            string pHostOnly = string.IsNullOrEmpty(hostOnly) ? "" : $"%{hostOnly}%";
-            string pNoWww = string.IsNullOrEmpty(hostNoWww) ? "" : $"%{hostNoWww}%";
+            string pNoSlash = $"%{EscapeLike(noSlash)}%";
+            string pWithSlash = $"%{EscapeLike(withSlash)}%";
+            string pHostOnly = string.IsNullOrEmpty(hostOnly) ? "" : $"%{EscapeLike(hostOnly)}%";
+            string pNoWww = string.IsNullOrEmpty(hostNoWww) ? "" : $"%{EscapeLike(hostNoWww)}%";
 
             return new SearchTermInfo(
                 term: term,
@@ -1574,7 +1574,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             // EF Core translates Contains to SQL LIKE '%term%'. Case-insensitivity
             // follows the database collation (SQL Server default is CI).
-            var like = $"%{term}%";
+            var like = $"%{EscapeLike(term)}%";
 
             baseQ = baseQ.Where(e =>
                 EF.Functions.ILike(e.Name, like) ||
@@ -1913,5 +1913,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 UpdatedByUserId = entry.UpdatedByUserId
             }).ConfigureAwait(false);
         }
+
+        // Escapes the LIKE/ILIKE wildcards so user input is matched literally: without this a
+        // search for "_" or "%" matches every row. Backslash is PostgreSQL's default LIKE escape.
+        private static string EscapeLike(string value) =>
+            value.Replace("\\", "\\\\").Replace("%", "\\%").Replace("_", "\\_");
     }
 }

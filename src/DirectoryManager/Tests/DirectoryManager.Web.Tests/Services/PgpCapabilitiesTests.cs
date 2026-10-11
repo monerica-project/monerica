@@ -86,16 +86,53 @@ namespace DirectoryManager.Web.Tests.Services
             Assert.Equal(PabloEncryptionSubkeyFingerprint, ToHex(encKey!.GetFingerprint()));
         }
 
+        // Attack: one armor block holding the victim's key ring followed by the attacker's.
+        // Identity and encryption target must both come from the first ring, otherwise the
+        // block is identified as the victim while the challenge is encrypted to the attacker.
+        [Fact]
+        public void TwoKeyRingsInOneBlock_IdentityAndEncryptionKeyBothComeFromTheFirstRing()
+        {
+            // The attacker's key is the newer one, which is what made the old "newest subkey across
+            // all rings" selection pick it.
+            string victimArmored = BuildRsaKey(withEncryptionSubkey: true, out string victimPrimary, DateTime.UtcNow.AddDays(-30));
+            string attackerArmored = BuildRsaKey(withEncryptionSubkey: true, out string attackerPrimary);
+            PgpPublicKeyRing victimRing = ReadRing(victimArmored);
+            PgpPublicKeyRing attackerRing = ReadRing(attackerArmored);
+
+            using var ms = new MemoryStream();
+            using (var aos = new ArmoredOutputStream(ms))
+            {
+                victimRing.Encode(aos);
+                attackerRing.Encode(aos);
+            }
+
+            string combined = Encoding.ASCII.GetString(ms.ToArray());
+
+            var victimKeys = victimRing.GetPublicKeys().Cast<PgpPublicKey>().Select(k => ToHex(k.GetFingerprint())).ToHashSet();
+            PgpPublicKey? chosen = PgpCapabilities.SelectEncryptionKey(combined);
+
+            Assert.NotEqual(victimPrimary, attackerPrimary);
+            Assert.Equal(victimPrimary, PgpCapabilities.GetPrimaryFingerprint(combined));
+            Assert.NotNull(chosen);
+            Assert.Contains(ToHex(chosen!.GetFingerprint()), victimKeys);
+        }
+
+        private static PgpPublicKeyRing ReadRing(string armored)
+        {
+            using var keyIn = PgpUtilities.GetDecoderStream(new MemoryStream(Encoding.UTF8.GetBytes(armored)));
+            return new PgpPublicKeyRingBundle(keyIn).GetKeyRings().Cast<PgpPublicKeyRing>().First();
+        }
+
         private static string ToHex(byte[] data)
             => string.Concat(data.Select(b => b.ToString("X2")));
 
         private static string BuildRsaKey(bool withEncryptionSubkey)
             => BuildRsaKey(withEncryptionSubkey, out _);
 
-        private static string BuildRsaKey(bool withEncryptionSubkey, out string primaryFingerprintHex)
+        private static string BuildRsaKey(bool withEncryptionSubkey, out string primaryFingerprintHex, DateTime? createdUtc = null)
         {
             var random = new SecureRandom();
-            DateTime when = DateTime.UtcNow;
+            DateTime when = createdUtc ?? DateTime.UtcNow;
 
             var primaryFlags = new PgpSignatureSubpacketGenerator();
             primaryFlags.SetKeyFlags(false, KeyFlags.CertifyOther | KeyFlags.SignData);

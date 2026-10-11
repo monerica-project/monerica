@@ -26,6 +26,10 @@ namespace DirectoryManager.Web.Controllers
 {
     public class SubmissionController : BaseController
     {
+        private const string DraftSessionKey = "SubmissionDrafts";
+        private const string DraftNotYoursMessage =
+            "This draft belongs to a different browser session, or your session has expired. Please start your submission again.";
+
         private const int MaxLinks = DirectoryManager.Web.Constants.IntegerConstants.MaxAdditionalLinks;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly ISubmissionRepository submissionRepository;
@@ -99,6 +103,11 @@ namespace DirectoryManager.Web.Controllers
                 if (submission == null || submission.SubmissionStatus != SubmissionStatus.Preview)
                 {
                     return this.BadRequest(Constants.StringConstants.SubmissionAlreadySubmitted);
+                }
+
+                if (!this.OwnsDraft(submission.SubmissionId))
+                {
+                    return this.BadRequest(DraftNotYoursMessage);
                 }
 
                 model = GetSubmissionCreateModel(submission);
@@ -331,6 +340,18 @@ namespace DirectoryManager.Web.Controllers
             if (submission == null)
             {
                 return this.BadRequest(Constants.StringConstants.SubmissionDoesNotExist);
+            }
+
+            // A draft (including its private note to the admin) is only shown to the browser
+            // session that created it, and only while it is still a draft.
+            if (!this.OwnsDraft(submission.SubmissionId))
+            {
+                return this.BadRequest(DraftNotYoursMessage);
+            }
+
+            if (submission.SubmissionStatus != SubmissionStatus.Preview && this.User?.Identity?.IsAuthenticated != true)
+            {
+                return this.BadRequest(Constants.StringConstants.SubmissionAlreadySubmitted);
             }
 
             var model = await this.GetSubmissionPreviewAsync(submission);
@@ -1037,9 +1058,16 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(Constants.StringConstants.SubmissionDoesNotExist);
             }
 
-            if (submission.SubmissionStatus == SubmissionStatus.Pending)
+            // Only a draft can be confirmed. Anything else (pending, approved, rejected, spam,
+            // removed) has already been through this step and must not be re-queued.
+            if (submission.SubmissionStatus != SubmissionStatus.Preview)
             {
                 return this.BadRequest(Constants.StringConstants.SubmissionAlreadySubmitted);
+            }
+
+            if (!this.OwnsDraft(submission.SubmissionId))
+            {
+                return this.BadRequest(DraftNotYoursMessage);
             }
 
             // ---- Captcha (anti-spam) ----
@@ -1536,6 +1564,7 @@ namespace DirectoryManager.Web.Controllers
                 submissionModel.DirectoryEntryId = existingDirectoryEntryId;
                 var createdSub = await this.submissionRepository.CreateAsync(submissionModel);
                 submissionId = createdSub.SubmissionId;
+                this.RememberDraft(createdSub.SubmissionId);
             }
             else
             {
@@ -1544,6 +1573,18 @@ namespace DirectoryManager.Web.Controllers
                 if (existingSubmission == null)
                 {
                     return this.BadRequest(Constants.StringConstants.SubmissionDoesNotExist);
+                }
+
+                // The posted SubmissionId is untrusted: only this session's own draft may be
+                // overwritten, and never a submission that has already been sent for review.
+                if (existingSubmission.SubmissionStatus != SubmissionStatus.Preview)
+                {
+                    return this.BadRequest(Constants.StringConstants.SubmissionAlreadySubmitted);
+                }
+
+                if (!this.OwnsDraft(existingSubmission.SubmissionId))
+                {
+                    return this.BadRequest(DraftNotYoursMessage);
                 }
 
                 await this.UpdateSubmission(submissionModel, existingSubmission);
@@ -1994,6 +2035,37 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.SubCategories = subCategories;
         }
+
+        // Drafts are addressed by a sequential id, so the id alone must never grant access.
+        // Each draft is tied to the browser session that created it (the same session the
+        // captcha already relies on); signed-in admins may open any.
+        private void RememberDraft(int submissionId)
+        {
+            var ids = this.ReadDraftIds();
+            if (!ids.Contains(submissionId))
+            {
+                ids.Add(submissionId);
+            }
+
+            // Keep the most recent few; nobody edits dozens of drafts in one session.
+            const int keep = 20;
+            if (ids.Count > keep)
+            {
+                ids = ids.Skip(ids.Count - keep).ToList();
+            }
+
+            this.HttpContext.Session.SetString(DraftSessionKey, string.Join(',', ids));
+        }
+
+        private bool OwnsDraft(int submissionId) =>
+            this.User?.Identity?.IsAuthenticated == true || this.ReadDraftIds().Contains(submissionId);
+
+        private List<int> ReadDraftIds() =>
+            (this.HttpContext.Session.GetString(DraftSessionKey) ?? string.Empty)
+                .Split(',', StringSplitOptions.RemoveEmptyEntries)
+                .Select(x => int.TryParse(x, out var id) ? id : 0)
+                .Where(id => id > 0)
+                .ToList();
 
         private async Task UpdateSubmission(Submission submissionModel, Submission existingSubmission)
         {

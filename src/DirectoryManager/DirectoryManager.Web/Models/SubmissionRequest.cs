@@ -97,6 +97,7 @@ namespace DirectoryManager.Web.Models
         // brackets, e.g. a Comment/UID email); Validate() below still requires it to
         // be a genuine PGP public key so the exemption can't smuggle markup.
         [AllowHtml]
+        [StringLength(20000, ErrorMessage = "The PGP key is too long. Paste a single public key block.")]
         [Display(Name = "PGP Key", Prompt = "PGP Key")]
         public string? PgpKey { get; set; }
 
