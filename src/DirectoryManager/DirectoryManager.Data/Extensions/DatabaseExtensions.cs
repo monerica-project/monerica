@@ -43,7 +43,6 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<ITrafficLogRepository, TrafficLogRepository>();
             services.AddScoped<IExcludeUserAgentRepository, ExcludeUserAgentRepository>();
             services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
-            services.AddScoped<IProcessorConfigRepository, ProcessorConfigRepository>();
             services.AddScoped<IBlockedIPRepository, BlockedIPRepository>();
             services.AddScoped<ISubmissionBlockedTermRepository, SubmissionBlockedTermRepository>();
             services.AddScoped<ITagRepository, TagRepository>();
@@ -53,6 +52,7 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IDirectoryEntryReviewRepository, DirectoryEntryReviewRepository>();
             services.AddScoped<IVerificationRequestRepository, VerificationRequestRepository>();
             services.AddScoped<IProblemReportRepository, ProblemReportRepository>();
+            services.AddScoped<IVideoSponsorshipRepository, VideoSponsorshipRepository>();
             services.AddScoped<IReviewerKeyRepository, ReviewerKeyRepository>();
 
             services.AddScoped<IAffiliateAccountRepository, AffiliateAccountRepository>();

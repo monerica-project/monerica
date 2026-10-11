@@ -1,0 +1,75 @@
+@using System.Globalization
+@model DirectoryManager.Web.Models.VideoSponsorship.VideoSponsorCheckoutVm
+@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Choose a Video Type";
+    Layout = "_CenteredLayout";
+    var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
+    var hasPerk = Model.DiscountPercent > 0m;
+}
+
+@section PageContent {
+    <h1>Choose a Video Type</h1>
+    <hr />
+    @await Html.PartialAsync("_Steps", 2)
+
+    <p>Listing: <strong>@Model.ListingName</strong> &middot; <a href="@Url.Action("Start", "VideoSponsorship")">change</a></p>
+
+    @if (hasPerk)
+    {
+        <div class="alert alert-info" role="alert">
+            <strong>Existing Sponsor Perk:</strong> this listing is an active
+            @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.DiscountBasisTier!.Value),
+            so it gets <strong>@Model.DiscountPercent.ToString("0.##")% off</strong> video sponsorship.
+        </div>
+    }
+
+    @if (!Model.Offers.Any())
+    {
+        <p class="text-muted">No video sponsorship options are available right now.</p>
+    }
+    else
+    {
+        <form method="post" action="@Url.Action("TypePost", "VideoSponsorship")">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
+
+            @foreach (var o in Model.Offers)
+            {
+                var isSelected = Model.SelectedOffer != null && Model.SelectedOffer.VideoSponsorOfferId == o.VideoSponsorOfferId;
+                <div class="u-callout">
+                    <div class="form-check u-mb-8px">
+                        <label class="form-check-label u-flex-items-center-gap-8px-flexwrap-wrap">
+                            <input class="form-check-input" type="radio" name="offerId" value="@o.VideoSponsorOfferId" @(isSelected ? "checked" : "") />
+                            <span><strong>@o.Name</strong></span>
+                        </label>
+                    </div>
+                    <p>@o.Description</p>
+                    @if (o.RequiresVideoSelection)
+                    {
+                        <p>Your segment runs inside a video that is <strong>around @DirectoryManager.Common.Constants.IntegerConstants.VideoSponsorSegmentVideoMinutes minutes long</strong>.</p>
+                    }
+                    <p>
+                        <b>Price:</b>
+                        @if (hasPerk)
+                        {
+                            <s class="price-strike">@o.Price.ToString("C2", usd) USD</s>
+                            <strong class="text-danger">@o.DiscountedPrice.ToString("C2", usd) USD</strong>
+                        }
+                        else
+                        {
+                            <strong>@o.Price.ToString("C2", usd) USD</strong>
+                        }
+                        @(o.RequiresVideoSelection ? "per video" : "") &middot; paid in Monero
+                    </p>
+                    <p class="text-muted">
+                        @(o.RequiresVideoSelection
+                            ? "Next you'll choose which upcoming video(s) your segment goes in."
+                            : "You'll describe the video you want on the next page.")
+                    </p>
+                </div>
+            }
+
+            <button class="btn btn-cta" type="submit">Continue</button>
+        </form>
+    }
+}

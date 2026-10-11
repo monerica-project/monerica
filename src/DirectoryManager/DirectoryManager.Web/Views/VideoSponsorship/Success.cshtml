@@ -1,0 +1,79 @@
+@using System.Globalization
+@model DirectoryManager.Web.Models.VideoSponsorship.VideoSponsorSuccessVm
+@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = Model.IsPaid ? "Payment Received" : "Video Sponsorship Order";
+    Layout = "_CenteredLayout";
+    var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
+    var order = Model.Order;
+    var invoiceUrl = Url.Action("Invoice", "VideoSponsorship", new { orderId = order.InvoiceId });
+}
+
+@section PageContent {
+    <h1>@ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader]</h1>
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    @if (Model.IsPaid)
+    {
+        <p>&#9989; Thank you. Your video sponsorship payment has been received.</p>
+        <p>
+            Each video will be published within <strong>@Model.DeliveryDays days</strong>
+            (by @((order.PaidUtc ?? DateTime.UtcNow).AddDays(Model.DeliveryDays).ToString("yyyy-MM-dd")) UTC).
+            @if (!string.IsNullOrWhiteSpace(order.Email))
+            {
+                <span>We'll email you the link when each one is live.</span>
+            }
+        </p>
+    }
+    else if (Model.IsUnderPaid)
+    {
+        <div class="alert alert-danger" role="alert">
+            <strong>Partial payment received.</strong> Less than the full amount arrived, so this order is on hold.
+            Please contact us with your order ID and we'll sort it out.
+        </div>
+    }
+    else if (order.PaymentStatus == DirectoryManager.Data.Enums.PaymentStatus.Pending)
+    {
+        <p>&#8987; Payment detected. Waiting for it to confirm on the Monero network. <a href="@invoiceUrl">Check again</a></p>
+    }
+    else if (order.PaymentStatus == DirectoryManager.Data.Enums.PaymentStatus.InvoiceCreated)
+    {
+        <p>This order has not been paid yet. <a href="@invoiceUrl">Go to the payment page &rarr;</a></p>
+    }
+    else
+    {
+        <p>
+            This order was not completed (@DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(order.PaymentStatus)).
+            <a href="@Url.Action("Start", "VideoSponsorship")">Start a new order &rarr;</a>
+        </p>
+    }
+
+    <h2>Order</h2>
+    <table>
+        <tr><td><b>Order ID:</b></td><td>@order.InvoiceId</td></tr>
+        <tr><td><b>Listing:</b></td><td>@order.DirectoryEntry?.Name</td></tr>
+        <tr><td><b>Video type:</b></td><td>@order.OfferName</td></tr>
+        <tr>
+            <td><b>Videos:</b></td>
+            <td>
+                <ul class="u-m-0-0-12px-0-pl-22px">
+                    @foreach (var item in order.Items)
+                    {
+                        <li>@(item.VideoIdea?.Title ?? item.Title)</li>
+                    }
+                </ul>
+            </td>
+        </tr>
+        @if (order.DiscountPercent > 0m)
+        {
+            <tr><td><b>Existing sponsor perk:</b></td><td>@order.DiscountPercent.ToString("0.##")% off</td></tr>
+        }
+        @if (order.DemoCostUsd > 0m)
+        {
+            <tr><td><b>Product demo cost:</b></td><td>@order.DemoCostUsd.ToString("C2", usd) USD (included in the total)</td></tr>
+        }
+        <tr><td><b>Total:</b></td><td>@order.Amount.ToString("C2", usd) USD</td></tr>
+    </table>
+    <p class="text-muted">Keep your order ID. It is the reference for this sponsorship.</p>
+}

@@ -1,0 +1,36 @@
+@using System.Globalization
+@model List<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOffer>
+@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Video Types & Prices";
+    Layout = "_CenteredLayout";
+    var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
+}
+
+@section PageContent {
+    <h1>Video Types &amp; Prices</h1>
+    @await Html.PartialAsync("_Nav")
+
+    <p><a href="~/admin/video-sponsorship/offers/edit">Add a video type</a></p>
+
+    <div class="table-wrapper">
+        <table class="table table-sm">
+            <thead>
+                <tr><th>Order</th><th>Type</th><th>Buyer picks videos?</th><th class="text-end">Price (USD)</th><th>Enabled</th><th></th></tr>
+            </thead>
+            <tbody>
+                @foreach (var o in Model)
+                {
+                    <tr>
+                        <td>@o.SortOrder</td>
+                        <td><strong>@o.Name</strong><div class="text-muted">@o.Description</div></td>
+                        <td>@(o.RequiresVideoSelection ? "Yes, priced per video" : "No, one video described in notes")</td>
+                        <td class="text-end">@o.PriceUsd.ToString("C2", usd)</td>
+                        <td>@(o.IsEnabled ? "Yes" : "No")</td>
+                        <td><a href="~/admin/video-sponsorship/offers/edit?id=@o.VideoSponsorOfferId">Edit</a></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+    <p class="text-muted">Price changes apply to new orders only. Existing orders keep the price they were bought at.</p>
+}

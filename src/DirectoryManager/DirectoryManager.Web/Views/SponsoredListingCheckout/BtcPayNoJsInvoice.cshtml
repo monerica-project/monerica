@@ -3,8 +3,10 @@
 @{
     ViewData["Title"] = "Pay with Monero";
     bool shouldRefresh = !Model.IsPaid && !Model.IsExpired;
-    var qrUrl = Url.Action("BtcPayNoJsQr", "SponsoredListingCheckout", new { processorInvoiceId = Model.ProcessorInvoiceId });
-    var refreshUrl = Url.Action("BtcPayNoJsInvoice", "SponsoredListingCheckout", new { processorInvoiceId = Model.ProcessorInvoiceId, orderId = Model.OrderId });
+    var qrUrl = Model.QrUrlOverride ?? Url.Action("BtcPayNoJsQr", "SponsoredListingCheckout", new { processorInvoiceId = Model.ProcessorInvoiceId });
+    var refreshUrl = Model.RefreshUrlOverride ?? Url.Action("BtcPayNoJsInvoice", "SponsoredListingCheckout", new { processorInvoiceId = Model.ProcessorInvoiceId, orderId = Model.OrderId });
+    var successUrl = Model.SuccessUrlOverride ?? Url.Action("BtcPaySuccess", "SponsoredListingCheckout", new { orderId = Model.OrderId });
+    var startOverUrl = Model.StartOverUrlOverride ?? Url.Action("SelectListing", "SponsoredListingCheckout");
     bool txDetected = !string.IsNullOrWhiteSpace(Model.TxId);
 }
 
@@ -215,7 +217,7 @@
                 <p class="txid">@Model.TxId</p>
             }
             <p class="u-mt-075rem">
-                <a class="u-color-81c784" href="@Url.Action("BtcPaySuccess", "SponsoredListingCheckout", new { orderId = Model.OrderId })">
+                <a class="u-color-81c784" href="@successUrl">
                     Continue &rarr;
                 </a>
             </p>
@@ -227,7 +229,7 @@
     {
         <div class="invoice-status expired">
             <p>&#10007; This invoice has expired.</p>
-            <a class="u-color-ef9a9a" href="@Url.Action("SelectListing", "SponsoredListingCheckout")">Start over &rarr;</a>
+            <a class="u-color-ef9a9a" href="@startOverUrl">Start over &rarr;</a>
         </div>
     }
 

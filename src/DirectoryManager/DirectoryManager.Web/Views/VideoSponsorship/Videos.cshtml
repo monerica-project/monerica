@@ -1,0 +1,77 @@
+@using System.Globalization
+@model DirectoryManager.Web.Models.VideoSponsorship.VideoSponsorCheckoutVm
+@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Choose Your Videos";
+    Layout = "_CenteredLayout";
+    var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
+    var hasPerk = Model.DiscountPercent > 0m;
+    var preselected = (Model.SelectedVideoIds ?? string.Empty).Split(',', StringSplitOptions.RemoveEmptyEntries);
+}
+
+@section PageContent {
+    <h1>Choose Your Videos</h1>
+    <hr />
+    @await Html.PartialAsync("_Steps", 3)
+
+    <p>
+        Listing: <strong>@Model.ListingName</strong> &middot;
+        Type: <strong>@Model.SelectedOffer!.Name</strong> &middot;
+        <a href="@Url.Action("Type", "VideoSponsorship", new { directoryEntryId = Model.DirectoryEntryId })">change</a>
+    </p>
+
+    <p>
+        <b>Price:</b>
+        @if (hasPerk)
+        {
+            <s class="price-strike">@Model.SelectedOffer.Price.ToString("C2", usd) USD</s>
+            <strong class="text-danger">@Model.SelectedOffer.DiscountedPrice.ToString("C2", usd) USD</strong>
+            <span>per video (Existing Sponsor Perk, @Model.DiscountPercent.ToString("0.##")% off)</span>
+        }
+        else
+        {
+            <strong>@Model.SelectedOffer.Price.ToString("C2", usd) USD</strong> <span>per video</span>
+        }
+        &middot; paid in Monero. Select one or more; each video has one sponsor. Each video is around @(DirectoryManager.Common.Constants.IntegerConstants.VideoSponsorSegmentVideoMinutes) minutes long.
+    </p>
+
+    @if (!string.IsNullOrWhiteSpace(Model.Error))
+    {
+        <div class="alert alert-danger" role="alert">@Model.Error</div>
+    }
+
+    @if (!Model.AvailableVideos.Any())
+    {
+        <p class="text-muted">
+            Every upcoming video already has a sponsor right now. Check back soon, or
+            <a href="@Url.Action("Type", "VideoSponsorship", new { directoryEntryId = Model.DirectoryEntryId })">choose a different video type</a>.
+        </p>
+    }
+    else
+    {
+        <form method="post" action="@Url.Action("VideosPost", "VideoSponsorship")">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="directoryEntryId" value="@Model.DirectoryEntryId" />
+            <input type="hidden" name="offerId" value="@Model.SelectedOffer.VideoSponsorOfferId" />
+
+            @foreach (var v in Model.AvailableVideos)
+            {
+                var isChecked = preselected.Contains(v.VideoIdeaId.ToString());
+                <div class="form-check u-mb-16px">
+                    <label class="form-check-label u-flex-items-center-gap-8px-flexwrap-wrap">
+                        <input class="form-check-input" type="checkbox" name="videoIdeaIds" value="@v.VideoIdeaId" id="video_@v.VideoIdeaId" @(isChecked ? "checked" : "") />
+                        <span><strong>@v.Title</strong></span>
+                    </label>
+                    @if (!string.IsNullOrWhiteSpace(v.Description))
+                    {
+                        <details class="u-m-8px-0-0-0-pl-18px u-ml-8px">
+                            <summary class="text-muted">Description</summary>
+                            <p class="u-ws-pre-wrap text-muted">@v.Description</p>
+                        </details>
+                    }
+                </div>
+            }
+
+            <button class="btn btn-cta" type="submit">Continue</button>
+        </form>
+    }
+}

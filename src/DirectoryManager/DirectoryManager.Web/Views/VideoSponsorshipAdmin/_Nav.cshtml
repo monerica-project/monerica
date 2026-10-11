@@ -1,0 +1,19 @@
+@using DirectoryManager.Web.Constants
+@await Html.PartialAsync("_AdminMenu")
+<p>
+    <a href="~/admin/video-sponsorship">Overview</a> &middot;
+    <a href="~/admin/video-sponsorship/orders">Orders</a> &middot;
+    <a href="~/admin/video-sponsorship/videos">Video ideas</a> &middot;
+    <a href="~/admin/video-sponsorship/offers">Types &amp; prices</a> &middot;
+    <a href="~/admin/video-sponsorship/sponsors">Video sponsors</a> &middot;
+    <a href="~/admin/video-sponsorship/reports">Reports</a>
+</p>
+<hr />
+@if (TempData[StringConstants.SuccessMessage] != null)
+{
+    <div class="alert alert-success">@TempData[StringConstants.SuccessMessage]</div>
+}
+@if (TempData[StringConstants.ErrorMessage] != null)
+{
+    <div class="alert alert-danger">@TempData[StringConstants.ErrorMessage]</div>
+}

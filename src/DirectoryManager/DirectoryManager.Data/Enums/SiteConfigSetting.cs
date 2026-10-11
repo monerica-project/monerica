@@ -45,6 +45,12 @@
         PgpKey = 44,
         PgpInstructionsHtml = 45,
         HtmlNotificationSnippet = 46,
-        TermsAndConditionsHtml = 47
+        TermsAndConditionsHtml = 47,
+
+        // "true" switches the public video-sponsorship pages and checkout on.
+        VideoSponsorshipEnabled = 48,
+
+        // The YouTube channel the sponsored videos are published on.
+        VideoSponsorshipChannelUrl = 49
     }
 }

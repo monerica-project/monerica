@@ -1,0 +1,86 @@
+@model DirectoryManager.Web.Models.VideoSponsorship.VideoSponsorStartVm
+@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Sponsor a Video";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>Sponsor a Video</h1>
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+    @await Html.PartialAsync("_Steps", 1)
+
+    <div class="u-callout">
+        <p><strong>Who can sponsor a video: both of these are required</strong></p>
+        <ol class="u-m-0-0-12px-0-pl-22px">
+            <li>Your listing is <strong>Verified</strong> (the green checkmark &#9989;).</li>
+            <li>
+                Your listing has been in the directory for at least
+                <strong>@DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring days</strong>.
+            </li>
+        </ol>
+    </div>
+
+    <form method="get" action="@Url.Action("Start", "VideoSponsorship")" class="search-form u-m-16px-0">
+        <input type="search" name="q" value="@Model.Query" placeholder="Search listings…" class="form-control u-maxw-340px" />
+        <button type="submit" class="btn btn-primary btn-cta">Find my listing</button>
+    </form>
+
+    @if (Model.HasSearched)
+    {
+        <h2 class="u-mt-18px">Search results</h2>
+        <p class="u-m-6px-0-12px-0">
+            @Model.TotalCount result@(Model.TotalCount == 1 ? "" : "s")
+            @if (Model.TotalPages > 1)
+            {
+                <span> — page @Model.Page of @Model.TotalPages</span>
+            }
+        </p>
+
+        <div class="search-results">
+            @foreach (var r in Model.Results)
+            {
+                <div class="result-row u-flex-flexwrap-wrap-items-center-gap-8px-16px-p-12px-0">
+                    <div class="u-flex-1-1-240px-minw-0">
+                        <div class="u-fs-105em-fw-600">@r.Name</div>
+                        <div class="u-opacity-8-fs-9em-mt-2px">@r.Category</div>
+                        @if (!r.CanSponsor && r.Reasons.Any())
+                        {
+                            <ul class="u-m-6px-0-0-18px-opacity-85-fs-9em">
+                                @foreach (var reason in r.Reasons)
+                                {
+                                    <li>@reason</li>
+                                }
+                            </ul>
+                        }
+                    </div>
+                    <div class="u-flex-0-0-auto-m-0">
+                        @if (r.CanSponsor)
+                        {
+                            <a class="btn btn-info" href="@Url.Action("Type", "VideoSponsorship", new { directoryEntryId = r.DirectoryEntryId })">Select this listing</a>
+                        }
+                        else
+                        {
+                            <span class="text-muted">Not eligible yet</span>
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            <p class="u-m-12px-0-22px-0">
+                @if (Model.Page > 1)
+                {
+                    <a href="@Url.Action("Start", "VideoSponsorship", new { q = Model.Query, page = Model.Page - 1 })">&larr; Previous</a>
+                }
+                @if (Model.Page < Model.TotalPages)
+                {
+                    <span>&nbsp;</span>
+                    <a href="@Url.Action("Start", "VideoSponsorship", new { q = Model.Query, page = Model.Page + 1 })">Next &rarr;</a>
+                }
+            </p>
+        }
+    }
+}

@@ -1,0 +1,23 @@
+@model int
+@{
+    // Shared progress line for the video-sponsor checkout. Model = the current step (1-4).
+    string[] steps = { "Your listing", "Video type", "Videos & details", "Pay" };
+}
+<p class="text-muted">
+    @for (var i = 0; i < steps.Length; i++)
+    {
+        var n = i + 1;
+        if (n == Model)
+        {
+            <strong>@n. @steps[i]</strong>
+        }
+        else
+        {
+            <span>@n. @steps[i]</span>
+        }
+        if (n < steps.Length)
+        {
+            <span> &rarr; </span>
+        }
+    }
+</p>

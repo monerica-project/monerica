@@ -476,7 +476,7 @@
     {
         @: — @RenderInlineRatingStars_NoCount_LinkToReview(parent.Rating.Value, reviewAnchorUrl)
     }
-    — @reviewSnippet
+    — <span class="@(parent?.IsStruckThrough == true ? "review-struck" : null)">@reviewSnippet</span>
     <br />
     &nbsp;&nbsp;<a href="@replyAnchorUrl">↩ <em>Reply:</em></a> @replySnippet
 </li>
@@ -519,7 +519,7 @@
     {
         @: — @RenderInlineRatingStars_NoCount_LinkToReview(r.Rating.Value, reviewAnchorUrl)
     }
-    — @reviewSnippet
+    — <span class="@(r.IsStruckThrough ? "review-struck" : null)">@reviewSnippet</span>
 </li>
                     }
                 }

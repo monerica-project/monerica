@@ -1,0 +1,70 @@
+@using System.Globalization
+@model DirectoryManager.Web.Models.VideoSponsorship.VideoSponsorReportVm
+@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Video Sponsorship Reports";
+    Layout = "_CenteredLayout";
+    var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
+}
+
+@section PageContent {
+    <h1>Video Sponsorship Reports</h1>
+    @await Html.PartialAsync("_Nav")
+
+    <p class="text-muted">Paid orders only. Separate from the site-sponsor invoicing reports.</p>
+
+    <h2>Totals</h2>
+    <ul>
+        <li>Sponsorship revenue: <strong>@Model.TotalRevenueUsd.ToString("C2", usd) USD</strong></li>
+        <li>Product demo costs collected (money to spend on demos, not income): @Model.TotalDemoCostsUsd.ToString("C2", usd)</li>
+        <li>XMR received in total: @Model.TotalPaidXmr.ToString("0.####", CultureInfo.InvariantCulture)</li>
+        <li>Discounts given (Existing Sponsor Perk): @Model.TotalDiscountsUsd.ToString("C2", usd)</li>
+        <li>Orders: @Model.TotalOrders &middot; Videos sold: @Model.TotalVideos</li>
+        <li>
+            Videos delivered: @Model.VideosDelivered &middot; still to deliver: @Model.VideosOutstanding
+            @if (Model.VideosOverdue > 0)
+            {
+                <strong class="text-danger">(@Model.VideosOverdue overdue)</strong>
+            }
+        </li>
+    </ul>
+
+    @foreach (var block in new[] { ("By month", Model.ByMonth), ("By video type", Model.ByType) })
+    {
+        <h2>@block.Item1</h2>
+        @if (block.Item2.Count == 0)
+        {
+            <p class="text-muted">No data yet.</p>
+            continue;
+        }
+
+        <div class="table-wrapper">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>@(block.Item1 == "By month" ? "Month" : "Type")</th>
+                        <th>Orders</th>
+                        <th>Videos</th>
+                        <th class="text-end">Revenue (USD)</th>
+                        <th class="text-end">Demo costs</th>
+                        <th class="text-end">Discounts</th>
+                        <th class="text-end">XMR received</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var r in block.Item2)
+                    {
+                        <tr>
+                            <td>@r.Label</td>
+                            <td>@r.Orders</td>
+                            <td>@r.Videos</td>
+                            <td class="text-end">@r.RevenueUsd.ToString("C2", usd)</td>
+                            <td class="text-end">@r.DemoCostsUsd.ToString("C2", usd)</td>
+                            <td class="text-end">@r.DiscountsUsd.ToString("C2", usd)</td>
+                            <td class="text-end">@r.PaidXmr.ToString("0.####", CultureInfo.InvariantCulture)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}

@@ -25,6 +25,15 @@ namespace DirectoryManager.Web.Helpers
         }
 
         /// <summary>
+        /// The perk for a purchase that is NOT a site-sponsor tier (e.g. a video sponsorship): the
+        /// highest tier the listing currently holds decides it (Main 20% &gt; Category 15% &gt;
+        /// Subcategory 10%). Never stacked.
+        /// </summary>
+        public static Task<(decimal Percent, SponsorshipType? BasisTier)> GetHighestHeldTierPerkAsync(
+            ISponsoredListingRepository repo, int directoryEntryId) =>
+            GetCrossTierDiscountAsync(repo, directoryEntryId, SponsorshipType.Unknown);
+
+        /// <summary>
         /// Pure matrix: given the tiers a listing currently holds and the tier it's buying, returns the
         /// existing-sponsor perk percent and the tier that granted it. Buying a tier they already hold is
         /// a renewal (no perk); otherwise the highest held tier wins (Main 20% &gt; Category 15% &gt; Sub 10%).

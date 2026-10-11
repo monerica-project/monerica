@@ -1304,6 +1304,9 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<bool>("IsOfficial")
                         .HasColumnType("boolean");
 
+                    b.Property<bool>("IsStruckThrough")
+                        .HasColumnType("boolean");
+
                     b.Property<DateTime?>("LastAutoModerationAttemptUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -1829,47 +1832,6 @@ namespace DirectoryManager.Data.Migrations
                         .HasDatabaseName("IX_SiteCheckStatuses_DirectoryEntryId");
 
                     b.ToTable("SiteCheckStatuses", (string)null);
-                });
-
-            modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.ProcessorConfig", b =>
-                {
-                    b.Property<int>("ProcessorConfigId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("ProcessorConfigId"));
-
-                    b.Property<string>("Configuration")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<DateTime>("CreateDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("CreatedByUserId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
-
-                    b.Property<int>("PaymentProcessor")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdateDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("UpdatedByUserId")
-                        .HasMaxLength(36)
-                        .HasColumnType("character varying(36)");
-
-                    b.Property<bool>("UseProcessor")
-                        .HasColumnType("boolean");
-
-                    b.HasKey("ProcessorConfigId");
-
-                    b.HasIndex("PaymentProcessor")
-                        .IsUnique();
-
-                    b.ToTable("ProcessorConfigs");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.SponsoredListing", b =>
@@ -2614,6 +2576,282 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("VerificationRequests", (string)null);
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.VideoSponsorships.VideoIdea", b =>
+                {
+                    b.Property<int>("VideoIdeaId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VideoIdeaId"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<int?>("HeldByOrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("HeldUntilUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsDedicated")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<int?>("SponsoredByOrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("Status")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("VideoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("VideoIdeaId");
+
+                    b.HasIndex("Status", "SortOrder", "VideoIdeaId")
+                        .HasDatabaseName("IX_VideoIdeas_Status_Sort_Id");
+
+                    b.ToTable("VideoIdeas", (string)null);
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOffer", b =>
+                {
+                    b.Property<int>("VideoSponsorOfferId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VideoSponsorOfferId"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<decimal>("PriceUsd")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<bool>("RequiresVideoSelection")
+                        .HasColumnType("boolean");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("VideoSponsorOfferId");
+
+                    b.ToTable("VideoSponsorOffers", (string)null);
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrder", b =>
+                {
+                    b.Property<int>("VideoSponsorOrderId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VideoSponsorOrderId"));
+
+                    b.Property<string>("AdminNote")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)");
+
+                    b.Property<decimal>("Amount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("Currency")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("DemoCostUsd")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int>("DirectoryEntryId")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("DiscountAmount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<int?>("DiscountBasisTier")
+                        .HasColumnType("integer");
+
+                    b.Property<decimal>("DiscountPercent")
+                        .HasColumnType("numeric(5,2)");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)");
+
+                    b.Property<bool>("HasConflict")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("InvoiceDescription")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("InvoiceExpiresUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("InvoiceId")
+                        .HasColumnType("uuid");
+
+                    b.Property<string>("InvoiceRequest")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("InvoiceResponse")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("IpAddress")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)");
+
+                    b.Property<string>("OfferName")
+                        .IsRequired()
+                        .HasMaxLength(150)
+                        .HasColumnType("character varying(150)");
+
+                    b.Property<decimal>("OriginalAmount")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<decimal>("PaidAmount")
+                        .HasColumnType("numeric(20,12)");
+
+                    b.Property<int>("PaidInCurrency")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("PaidUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("PaymentRate")
+                        .HasColumnType("numeric(20,12)");
+
+                    b.Property<string>("PaymentResponse")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<int>("PaymentStatus")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("ProcessorInvoiceId")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int>("Quantity")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("RefundAddress")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)");
+
+                    b.Property<decimal>("UnitPrice")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<int>("VideoSponsorOfferId")
+                        .HasColumnType("integer");
+
+                    b.HasKey("VideoSponsorOrderId");
+
+                    b.HasIndex("DirectoryEntryId");
+
+                    b.HasIndex("InvoiceId")
+                        .IsUnique()
+                        .HasDatabaseName("IX_VideoSponsorOrders_InvoiceId");
+
+                    b.HasIndex("ProcessorInvoiceId")
+                        .HasDatabaseName("IX_VideoSponsorOrders_ProcessorInvoiceId");
+
+                    b.HasIndex("VideoSponsorOfferId");
+
+                    b.HasIndex("PaymentStatus", "CreateDate")
+                        .HasDatabaseName("IX_VideoSponsorOrders_Status_Create");
+
+                    b.ToTable("VideoSponsorOrders", (string)null);
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrderItem", b =>
+                {
+                    b.Property<int>("VideoSponsorOrderItemId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VideoSponsorOrderItemId"));
+
+                    b.Property<DateTime?>("CompletedUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("CompletionEmailResult")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<DateTime?>("CompletionEmailSentUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal>("Price")
+                        .HasColumnType("numeric(18,2)");
+
+                    b.Property<string>("Title")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)");
+
+                    b.Property<int?>("VideoIdeaId")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("VideoSponsorOrderId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("VideoUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("VideoSponsorOrderItemId");
+
+                    b.HasIndex("VideoIdeaId");
+
+                    b.HasIndex("VideoSponsorOrderId");
+
+                    b.ToTable("VideoSponsorOrderItems", (string)null);
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
                 {
                     b.Property<string>("Id")
@@ -3091,6 +3329,43 @@ namespace DirectoryManager.Data.Migrations
                     b.Navigation("DirectoryEntry");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrder", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntry", "DirectoryEntry")
+                        .WithMany()
+                        .HasForeignKey("DirectoryEntryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.HasOne("DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOffer", "VideoSponsorOffer")
+                        .WithMany()
+                        .HasForeignKey("VideoSponsorOfferId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DirectoryEntry");
+
+                    b.Navigation("VideoSponsorOffer");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrderItem", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.VideoSponsorships.VideoIdea", "VideoIdea")
+                        .WithMany()
+                        .HasForeignKey("VideoIdeaId")
+                        .OnDelete(DeleteBehavior.Restrict);
+
+                    b.HasOne("DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrder", "VideoSponsorOrder")
+                        .WithMany("Items")
+                        .HasForeignKey("VideoSponsorOrderId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("VideoIdea");
+
+                    b.Navigation("VideoSponsorOrder");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
                 {
                     b.HasOne("Microsoft.AspNetCore.Identity.IdentityRole", null)
@@ -3187,6 +3462,11 @@ namespace DirectoryManager.Data.Migrations
             modelBuilder.Entity("DirectoryManager.Data.Models.Tag", b =>
                 {
                     b.Navigation("EntryTags");
+                });
+
+            modelBuilder.Entity("DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrder", b =>
+                {
+                    b.Navigation("Items");
                 });
 #pragma warning restore 612, 618
         }

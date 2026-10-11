@@ -457,6 +457,7 @@ namespace DirectoryManager.Web.Controllers
                 OrderProof = review.OrderUrl ?? review.OrderId,
                 OrderProofContext = review.OrderProofContext,
                 IsOfficial = review.IsOfficial,
+                IsStruckThrough = review.IsStruckThrough,
                 TestedAt = review.TestedAt,
                 ImageUrl = review.ImageUrl,
                 SendingTxUrl = review.SendingTxUrl,
@@ -546,6 +547,7 @@ namespace DirectoryManager.Web.Controllers
 
             // ----- Official review -----
             review.IsOfficial = input.IsOfficial;
+            review.IsStruckThrough = input.IsStruckThrough;
             review.TestedAt = input.TestedAt.HasValue
                 ? DateTime.SpecifyKind(input.TestedAt.Value.Date, DateTimeKind.Utc)
                 : null;

@@ -1,0 +1,64 @@
+@using System.Globalization
+@model List<DirectoryManager.Web.Models.VideoSponsorship.VideoSponsorSummaryRow>
+@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Video Sponsors";
+    Layout = "_CenteredLayout";
+    var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
+}
+
+@section PageContent {
+    <h1>Video Sponsors</h1>
+    @await Html.PartialAsync("_Nav")
+
+    @if (Model.Count == 0)
+    {
+        <p class="text-muted">No paid video sponsorships yet.</p>
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Listing</th>
+                        <th>Last paid (UTC)</th>
+                        <th>First paid (UTC)</th>
+                        <th>Orders</th>
+                        <th>Videos</th>
+                        <th class="text-end">Total paid</th>
+                        <th>Email</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var s in Model)
+                    {
+                        <tr>
+                            <td>
+                                @if (!string.IsNullOrWhiteSpace(s.DirectoryEntryKey))
+                                {
+                                    <a href="/site/@s.DirectoryEntryKey">@s.ListingName</a>
+                                }
+                                else
+                                {
+                                    @s.ListingName
+                                }
+                            </td>
+                            <td><strong>@(s.LastPaidUtc?.ToString("yyyy-MM-dd"))</strong></td>
+                            <td>@(s.FirstPaidUtc?.ToString("yyyy-MM-dd"))</td>
+                            <td>@s.Orders</td>
+                            <td>@s.VideosDelivered / @s.Videos delivered</td>
+                            <td class="text-end">
+                                @s.TotalPaidUsd.ToString("C2", usd)
+                                @if (s.DemoCostsUsd > 0m)
+                                {
+                                    <div class="text-muted">incl. @s.DemoCostsUsd.ToString("C2", usd) demo costs</div>
+                                }
+                            </td>
+                            <td>@s.Email</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}

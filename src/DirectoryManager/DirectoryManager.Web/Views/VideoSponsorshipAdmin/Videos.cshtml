@@ -1,0 +1,78 @@
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Models.VideoSponsorships
+@model List<VideoIdea>
+@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Video Ideas";
+    Layout = "_CenteredLayout";
+    var ordersById = ViewBag.OrdersById as Dictionary<int, VideoSponsorOrder> ?? new Dictionary<int, VideoSponsorOrder>();
+    var now = DateTime.UtcNow;
+    VideoIdeaStatus[] groups = { VideoIdeaStatus.Queued, VideoIdeaStatus.Completed, VideoIdeaStatus.Retired };
+}
+
+@section PageContent {
+    <h1>Video Ideas</h1>
+    @await Html.PartialAsync("_Nav")
+
+    <p><a href="~/admin/video-sponsorship/videos/edit">Add a video idea</a></p>
+
+    @foreach (var status in groups)
+    {
+        var rows = Model.Where(v => v.Status == status).ToList();
+        <h2>@status (@rows.Count)</h2>
+        @if (rows.Count == 0)
+        {
+            <p class="text-muted">None.</p>
+            continue;
+        }
+
+        <div class="table-wrapper">
+            <table class="table table-sm">
+                <thead>
+                    <tr><th>Order</th><th>Topic</th><th>Sponsor</th><th></th></tr>
+                </thead>
+                <tbody>
+                    @foreach (var v in rows)
+                    {
+                        <tr>
+                            <td>@v.SortOrder</td>
+                            <td>
+                                <strong>@v.Title</strong>
+                                @if (v.IsDedicated)
+                                {
+                                    <span class="text-muted">(dedicated)</span>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(v.Description))
+                                {
+                                    <div class="text-muted">@v.Description</div>
+                                }
+                                @if (!string.IsNullOrWhiteSpace(v.VideoUrl))
+                                {
+                                    <div><a href="@v.VideoUrl" target="_blank" rel="noopener">@v.VideoUrl</a></div>
+                                }
+                            </td>
+                            <td>
+                                @if (v.SponsoredByOrderId is int paidOrderId)
+                                {
+                                    ordersById.TryGetValue(paidOrderId, out var paidOrder);
+                                    <a href="~/admin/video-sponsorship/orders/@paidOrderId">@(paidOrder?.DirectoryEntry?.Name ?? $"Order {paidOrderId}")</a>
+                                    <span class="text-success">(paid)</span>
+                                }
+                                else if (v.HeldByOrderId is int heldOrderId && v.HeldUntilUtc > now)
+                                {
+                                    ordersById.TryGetValue(heldOrderId, out var heldOrder);
+                                    <a href="~/admin/video-sponsorship/orders/@heldOrderId">@(heldOrder?.DirectoryEntry?.Name ?? $"Order {heldOrderId}")</a>
+                                    <span class="text-muted">(in checkout until @v.HeldUntilUtc.Value.ToString("HH:mm") UTC)</span>
+                                }
+                                else if (status == VideoIdeaStatus.Queued)
+                                {
+                                    <span class="text-muted">Open</span>
+                                }
+                            </td>
+                            <td><a href="~/admin/video-sponsorship/videos/edit?id=@v.VideoIdeaId">Edit</a></td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}

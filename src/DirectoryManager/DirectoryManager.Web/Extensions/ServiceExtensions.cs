@@ -16,6 +16,7 @@ using DirectoryManager.Services.Constants;
 using DirectoryManager.Services.Implementations;
 using DirectoryManager.Services.Interfaces;
 using DirectoryManager.Services.Models;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Implementations;
 using DirectoryManager.Web.Services.Interfaces;
@@ -149,38 +150,22 @@ namespace DirectoryManager.Web.Extensions
 
             services.AddScoped<ISearchBlacklistCache, Services.SearchBlacklistCache>();
 
-            // NOWPayments: config loaded from DB via IProcessorConfigRepository
+            // NOWPayments + BTCPay Server: settings come from the "PaymentProcessors" configuration
+            // section (appsettings), not the database. See PaymentProcessorSettings.
             services.AddScoped<INowPaymentsService>(provider =>
-            {
-                var configRepo = provider.GetRequiredService<IProcessorConfigRepository>();
-                var processorConfig = configRepo.GetByProcessorAsync(PaymentProcessor.NOWPayments)
-                                                .GetAwaiter().GetResult()
-                                        ?? throw new Exception("NOWPayments processor config not found");
+                new NowPaymentsService(PaymentProcessorSettings.GetNowPayments(config)));
 
-                var nowPaymentsConfig = JsonConvert.DeserializeObject<NowPaymentConfigs>(processorConfig.Configuration)
-                                        ?? throw new Exception("NOWPayments config not found");
-
-                return new NowPaymentsService(nowPaymentsConfig);
-            });
-
-            // BtcPayServerService: config loaded from DB via IProcessorConfigRepository.
             // Registered once as the concrete class, then aliased to both interfaces
             // so each scope gets ONE instance serving IBtcPayServerService AND IRateConversionService.
             services.AddScoped<BtcPayServerService>(provider =>
-            {
-                var configRepo = provider.GetRequiredService<IProcessorConfigRepository>();
-                var processorConfig = configRepo.GetByProcessorAsync(PaymentProcessor.BTCPayServer)
-                                                .GetAwaiter().GetResult()
-                                        ?? throw new Exception("BTCPayServer processor config not found");
-
-                var btcPayConfig = JsonConvert.DeserializeObject<BtcPayServerConfigs>(processorConfig.Configuration)
-                                   ?? throw new Exception("BTCPayServer config not found");
-
-                return new BtcPayServerService(btcPayConfig);
-            });
+                new BtcPayServerService(PaymentProcessorSettings.GetBtcPayServer(config)));
 
             services.AddScoped<IBtcPayServerService>(sp => sp.GetRequiredService<BtcPayServerService>());
             services.AddScoped<IRateConversionService>(sp => sp.GetRequiredService<BtcPayServerService>());
+
+            // Separate BTCPay store for video sponsorships (null client until configured).
+            services.AddScoped<IVideoSponsorPaymentGateway, VideoSponsorPaymentGateway>();
+            services.AddScoped<IVideoSponsorOrderProcessor, VideoSponsorOrderProcessor>();
 
             services.AddScoped<ISearchBlacklistRepository, SearchBlacklistRepository>();
             services.AddScoped<IChurnService, ChurnService>();

@@ -26,7 +26,6 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<EmailSubscription> EmailSubscriptions { get; set; }
         public DbSet<ExcludeUserAgent> ExcludeUserAgents { get; set; }
         public DbSet<LogEntry> LogEntries { get; set; }
-        public DbSet<ProcessorConfig> ProcessorConfigs { get; set; }
         public DbSet<SentEmailRecord> SentEmailRecords { get; set; }
         public DbSet<EmailSendLog> EmailSendLogs { get; set; }
         public DbSet<SponsoredListingOpeningNotification> SponsoredListingOpeningNotifications { get; set; }
@@ -46,6 +45,10 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
         public DbSet<DirectoryManager.Data.Models.VerificationRequests.VerificationRequest> VerificationRequests { get; set; }
         public DbSet<DirectoryManager.Data.Models.ProblemReports.ProblemReport> ProblemReports { get; set; }
+        public DbSet<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOffer> VideoSponsorOffers { get; set; }
+        public DbSet<DirectoryManager.Data.Models.VideoSponsorships.VideoIdea> VideoIdeas { get; set; }
+        public DbSet<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrder> VideoSponsorOrders { get; set; }
+        public DbSet<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrderItem> VideoSponsorOrderItems { get; set; }
         DbSet<DirectoryEntryReviewComment> DirectoryEntryReviewComments { get; }
         DbSet<DirectoryManager.Data.Models.Reviews.ReviewNotification> ReviewNotifications { get; }
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }

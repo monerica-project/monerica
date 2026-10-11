@@ -449,7 +449,22 @@ task_set_configs() {
     #   SENDGRID_SENDER_NAME); never committed. Rotate by editing deploy-config.sh
     #   and re-running this task.
     #
+    # - PaymentProcessors (NOWPayments + BTCPay Server): YES. API keys, webhook/IPN
+    #   secrets, store IDs and callback URLs. The web app reads them from the
+    #   "PaymentProcessors" config section (see Web/Helpers/PaymentProcessorSettings.cs).
+    #   Source of truth is deploy-config.sh (NOWPAYMENTS_* / BTCPAY_*); never committed.
+    #   A required one that is missing aborts the deploy (checked below).
+    #
     # - Neutrino API: NO. Removed — service is no longer used.
+    local required_var
+    for required_var in NOWPAYMENTS_API_KEY NOWPAYMENTS_IPN_SECRET_KEY \
+                        BTCPAY_BASE_URL BTCPAY_API_KEY BTCPAY_STORE_ID BTCPAY_WEBHOOK_SECRET; do
+        if [[ -z "${!required_var:-}" ]]; then
+            write_err "$required_var is not set in deploy-config.sh — payments would break. Aborting."
+            exit 1
+        fi
+    done
+
     local prod_settings="$WEB_PROJECT_DIR/appsettings.Production.json"
     jq -n \
         --arg conn     "$DB_CONNECTION_STRING" \
@@ -462,11 +477,42 @@ task_set_configs() {
         --arg bzone    "${BUNNY_STORAGE_ZONE:-}" \
         --arg bkey     "${BUNNY_STORAGE_KEY:-}" \
         --arg bhost    "${BUNNY_STORAGE_HOST:-storage.bunnycdn.com}" \
+        --arg npkey    "${NOWPAYMENTS_API_KEY:-}" \
+        --arg npipn    "${NOWPAYMENTS_IPN_SECRET_KEY:-}" \
+        --arg npok     "${NOWPAYMENTS_SUCCESS_URL:-}" \
+        --arg npcancel "${NOWPAYMENTS_CANCEL_URL:-}" \
+        --arg npcb     "${NOWPAYMENTS_IPN_CALLBACK_URL:-}" \
+        --arg nppart   "${NOWPAYMENTS_PARTIALLY_PAID_URL:-}" \
+        --arg nppay    "${NOWPAYMENTS_PAY_CURRENCY:-}" \
+        --arg npprice  "${NOWPAYMENTS_PRICE_CURRENCY:-}" \
+        --arg bpurl    "${BTCPAY_BASE_URL:-}" \
+        --arg bpkey    "${BTCPAY_API_KEY:-}" \
+        --arg bpstore  "${BTCPAY_STORE_ID:-}" \
+        --arg bphook   "${BTCPAY_WEBHOOK_SECRET:-}" \
+        --arg bpok     "${BTCPAY_SUCCESS_URL:-}" \
+        --arg bpcancel "${BTCPAY_CANCEL_URL:-}" \
+        --arg bpcur    "${BTCPAY_DEFAULT_CURRENCY:-}" \
+        --arg bpreview "${BTCPAY_REVIEW_DONATIONS_STORE_ID:-}" \
+        --arg bpvstore "${BTCPAY_VIDEO_SPONSOR_STORE_ID:-}" \
+        --arg bpvkey   "${BTCPAY_VIDEO_SPONSOR_API_KEY:-}" \
+        --arg bpvhook  "${BTCPAY_VIDEO_SPONSOR_WEBHOOK_SECRET:-}" \
         '{
             ConnectionStrings: { DefaultConnection: $conn, AzureStorage: $blobconn },
             Site:              { CustomDomain: $domain, RequestProtocol: $proto },
             SendGrid:          { ApiKey: $sgkey, SenderEmail: $sgemail, SenderName: $sgname },
-            BunnyStorage:      { StorageZoneName: $bzone, AccessKey: $bkey, StorageHostname: $bhost }
+            BunnyStorage:      { StorageZoneName: $bzone, AccessKey: $bkey, StorageHostname: $bhost },
+            PaymentProcessors: {
+                NOWPayments: {
+                    ApiKey: $npkey, IpnSecretKey: $npipn, SuccessUrl: $npok, CancelUrl: $npcancel,
+                    IpnCallbackUrl: $npcb, PartiallyPaidUrl: $nppart, PayCurrency: $nppay, PriceCurrency: $npprice
+                },
+                BTCPayServer: {
+                    BaseUrl: $bpurl, ApiKey: $bpkey, StoreId: $bpstore, WebhookSecret: $bphook,
+                    SuccessUrl: $bpok, CancelUrl: $bpcancel, DefaultCurrency: $bpcur,
+                    ReviewDonationsStoreId: $bpreview, VideoSponsorStoreId: $bpvstore,
+                    VideoSponsorApiKey: $bpvkey, VideoSponsorWebhookSecret: $bpvhook
+                }
+            }
         }' > "$prod_settings"
     write_ok "Wrote $prod_settings"
 }
@@ -579,6 +625,9 @@ task_sync_files() {
     scp_send "$web_tar" "/tmp/$APP_NAME.tar.gz"
     ssh_run "mkdir -p $DEPLOY_PATH && tar -xzf /tmp/$APP_NAME.tar.gz -C $DEPLOY_PATH && rm /tmp/$APP_NAME.tar.gz"
     ssh_run "chown -R www-data:www-data $DEPLOY_PATH && chmod -R 755 $DEPLOY_PATH"
+    # The settings files hold secrets (DB password, SendGrid, payment processor keys):
+    # readable only by the service user, not by every account on the box.
+    ssh_run "chmod 600 $DEPLOY_PATH/appsettings*.json"
     ssh_run "mkdir -p /var/keys/$APP_NAME && chown www-data:www-data /var/keys/$APP_NAME && chmod 700 /var/keys/$APP_NAME"
     write_ok "Files synced to $DEPLOY_PATH"
 

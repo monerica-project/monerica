@@ -114,6 +114,16 @@ namespace DirectoryManager.Data.Models.Reviews
         // =========================================================
         public bool IsOfficial { get; set; }
 
+        // =========================================================
+        // Retracted / struck-through review
+        //
+        // When true, the review is kept and still shown, but its entire body is
+        // rendered with a strike-through. Used when an author later retracts a
+        // review (e.g. an issue was fixed) and we want to visibly cross it out
+        // rather than delete it. Admin-toggled on the review edit page.
+        // =========================================================
+        public bool IsStruckThrough { get; set; }
+
         // Date the listing was tested/verified, stored as a UTC date (date-only).
         public DateTime? TestedAt { get; set; }
 

@@ -46,4 +46,14 @@ public class BtcPayNoJsInvoiceViewModel
     /// <summary>Human-readable description of what was purchased.</summary>
     public string InvoiceDescription { get; set; } = string.Empty;
     public string ListingName { get; set; } = string.Empty;
+
+    // Optional overrides so another checkout flow (e.g. video sponsorships) can reuse this page.
+    // Null = the site-sponsor checkout's own routes.
+    public string? QrUrlOverride { get; set; }
+
+    public string? RefreshUrlOverride { get; set; }
+
+    public string? SuccessUrlOverride { get; set; }
+
+    public string? StartOverUrlOverride { get; set; }
 }

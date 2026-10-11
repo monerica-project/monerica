@@ -1,0 +1,104 @@
+@using System.Globalization
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@model DirectoryManager.Web.Models.VideoSponsorship.VideoSponsorPublicVm
+@{
+    var siteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Video Sponsorship";
+    Layout = "_CenteredLayout";
+    var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
+}
+
+@section PageContent {
+    <h1>Video Sponsorship</h1>
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    <div class="u-callout">
+        <p>
+            <strong>This is sponsorship of videos on the @siteName YouTube channel</strong>, not a placement on the
+            @siteName website. Your product is featured in a video we publish there.
+        </p>
+        @if (!string.IsNullOrWhiteSpace(Model.ChannelUrl))
+        {
+            <p>
+                <strong>YouTube channel:</strong>
+                <a href="@Model.ChannelUrl" target="_blank" rel="noopener">@Model.ChannelUrl</a>
+            </p>
+        }
+    </div>
+
+    <p>
+        Paid in Monero. Each sponsored video is published within <strong>@Model.DeliveryDays days</strong> of payment.
+        One sponsor per video. If we can't deliver, we refund your payment minus Monero network fees.
+    </p>
+    <p>
+        If demonstrating your product in the video costs more than
+        $@DirectoryManager.Common.Constants.IntegerConstants.VideoSponsorDemoCostThresholdUsd
+        (for example buying it or doing a swap), that cost is added to your order in full.
+    </p>
+
+    @if (Model.Offers.Any())
+    {
+        <h2>Options</h2>
+        @foreach (var o in Model.Offers)
+        {
+            <div class="u-callout">
+                <p><strong>@o.Name</strong></p>
+                <p>@o.Description</p>
+                @if (o.RequiresVideoSelection)
+                {
+                    <p>Your segment runs inside a video that is <strong>around @DirectoryManager.Common.Constants.IntegerConstants.VideoSponsorSegmentVideoMinutes minutes long</strong>.</p>
+                }
+                <p><strong>@o.Price.ToString("C0", usd) USD</strong>@(o.RequiresVideoSelection ? " per video" : "")</p>
+            </div>
+        }
+    }
+
+    <p>
+        <a class="btn btn-cta" href="@Url.Action("Start", "VideoSponsorship")">Sponsor a video</a>
+        &nbsp;
+        <a href="@Url.Action("Upcoming", "VideoSponsorship")">See upcoming videos &rarr;</a>
+    </p>
+
+    <hr />
+    <h2>Video sponsors</h2>
+    @if (!Model.Sponsorships.Any())
+    {
+        <p class="text-muted">No video sponsorships yet.</p>
+    }
+    else
+    {
+        @foreach (var s in Model.Sponsorships)
+        {
+            <div class="u-callout">
+                <p>
+                    <strong>
+                        @if (!string.IsNullOrWhiteSpace(s.DirectoryEntryKey))
+                        {
+                            <a href="/site/@s.DirectoryEntryKey">@s.ListingName</a>
+                        }
+                        else
+                        {
+                            @s.ListingName
+                        }
+                    </strong>
+                </p>
+                <p>
+                    Video:
+                    @if (!string.IsNullOrWhiteSpace(s.VideoUrl))
+                    {
+                        <a href="@s.VideoUrl" target="_blank" rel="noopener">@s.VideoTitle</a>
+                    }
+                    else
+                    {
+                        @s.VideoTitle <span class="text-muted">(upcoming)</span>
+                    }
+                </p>
+                <p>
+                    @s.OfferName &middot; @s.AmountUsd.ToString("C2", usd) USD
+                    &middot; paid @(s.PaidUtc?.ToString("yyyy-MM-dd")) UTC
+                </p>
+            </div>
+        }
+    }
+}

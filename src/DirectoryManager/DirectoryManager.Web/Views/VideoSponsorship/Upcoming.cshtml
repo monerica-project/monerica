@@ -1,0 +1,39 @@
+@model List<DirectoryManager.Web.Models.VideoSponsorship.VideoUpcomingRow>
+@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Upcoming Videos";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>Upcoming Videos</h1>
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    <p>
+        Videos in the queue that are still open for a sponsor. Each one can have a single sponsor, and is removed from this list once it is paid for.
+        <a href="@Url.Action("Index", "VideoSponsorship")">About video sponsorship &rarr;</a>
+    </p>
+
+    @if (!Model.Any())
+    {
+        <p class="text-muted">No videos are open for sponsorship right now.</p>
+    }
+    else
+    {
+        @foreach (var v in Model)
+        {
+            <div class="u-callout">
+                <p><strong>@v.Title</strong></p>
+                @if (!string.IsNullOrWhiteSpace(v.Description))
+                {
+                    <details>
+                        <summary>Description</summary>
+                        <p class="u-ws-pre-wrap">@v.Description</p>
+                    </details>
+                }
+            </div>
+        }
+    }
+
+    <p><a class="btn btn-cta" href="@Url.Action("Start", "VideoSponsorship")">Sponsor a video</a></p>
+}

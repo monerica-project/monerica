@@ -1,0 +1,239 @@
+@using System.Globalization
+@using DirectoryManager.Data.Enums
+@model DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrder
+@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = $"Video Sponsor Order #{Model.VideoSponsorOrderId}";
+    Layout = "_CenteredLayout";
+    var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
+    var now = DateTime.UtcNow;
+    var deliveryDays = DirectoryManager.Common.Constants.IntegerConstants.VideoSponsorDeliveryDays;
+    var isPaid = Model.PaymentStatus is PaymentStatus.Paid or PaymentStatus.OverPayment;
+    var isClosed = Model.PaymentStatus is PaymentStatus.Canceled or PaymentStatus.Refunded;
+    var dueUtc = Model.PaidUtc?.AddDays(deliveryDays);
+    var daysLeft = dueUtc.HasValue ? (int)Math.Ceiling((dueUtc.Value - now).TotalDays) : 0;
+    var anyCompleted = Model.Items.Any(i => i.CompletedUtc != null);
+    var basePath = $"/admin/video-sponsorship";
+}
+
+@section PageContent {
+    <h1>@ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader]</h1>
+    @await Html.PartialAsync("_Nav")
+
+    @if (Model.HasConflict)
+    {
+        <div class="alert alert-danger" role="alert">
+            <strong>&#9888; Conflict:</strong> this order was paid after its hold had lapsed, and at least one of its videos
+            had already been sold to another sponsor. Contact the buyer to pick another video or refund them.
+        </div>
+    }
+    @if (Model.PaymentStatus == PaymentStatus.UnderPayment)
+    {
+        <div class="alert alert-danger" role="alert">
+            <strong>Underpaid:</strong> less than the invoice amount arrived. Check the payment store, then either
+            mark the order as paid or refund and cancel it.
+        </div>
+    }
+
+    <h2>Order</h2>
+    <table>
+        <tr><td><b>Order ID:</b></td><td>@Model.InvoiceId</td></tr>
+        <tr>
+            <td><b>Listing:</b></td>
+            <td>
+                @Model.DirectoryEntry?.Name
+                @if (!string.IsNullOrWhiteSpace(Model.DirectoryEntry?.DirectoryEntryKey))
+                {
+                    <a href="/site/@Model.DirectoryEntry!.DirectoryEntryKey">(view)</a>
+                }
+            </td>
+        </tr>
+        <tr><td><b>Video type:</b></td><td>@Model.OfferName</td></tr>
+        <tr><td><b>Created (UTC):</b></td><td>@Model.CreateDate.ToString("yyyy-MM-dd HH:mm")</td></tr>
+        <tr>
+            <td><b>Payment status:</b></td>
+            <td>
+                <strong class="@(isPaid ? "text-success" : "text-danger")">@DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.PaymentStatus)</strong>
+            </td>
+        </tr>
+        <tr><td><b>Paid (UTC):</b></td><td>@(Model.PaidUtc?.ToString("yyyy-MM-dd HH:mm") ?? "not paid")</td></tr>
+        @if (isPaid && dueUtc.HasValue)
+        {
+            <tr>
+                <td><b>Due by (UTC):</b></td>
+                <td>
+                    @dueUtc.Value.ToString("yyyy-MM-dd")
+                    @if (Model.Items.All(i => i.CompletedUtc != null))
+                    {
+                        <span class="text-success">&mdash; all delivered</span>
+                    }
+                    else if (daysLeft >= 0)
+                    {
+                        <strong>&mdash; @daysLeft day@(daysLeft == 1 ? "" : "s") remaining</strong>
+                    }
+                    else
+                    {
+                        <strong class="text-danger">&mdash; @(-daysLeft) day@(daysLeft == -1 ? "" : "s") overdue</strong>
+                    }
+                </td>
+            </tr>
+        }
+        <tr><td><b>Price per video:</b></td><td>@Model.UnitPrice.ToString("C2", usd) &times; @Model.Quantity</td></tr>
+        @if (Model.DiscountPercent > 0m)
+        {
+            <tr><td><b>Regular price:</b></td><td>@Model.OriginalAmount.ToString("C2", usd)</td></tr>
+            <tr>
+                <td><b>Existing sponsor perk:</b></td>
+                <td>
+                    @Model.DiscountPercent.ToString("0.##")% off (&minus;@Model.DiscountAmount.ToString("C2", usd))
+                    @if (Model.DiscountBasisTier.HasValue)
+                    {
+                        <span class="text-muted">as @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.DiscountBasisTier.Value)</span>
+                    }
+                </td>
+            </tr>
+        }
+        <tr>
+            <td><b>Product demo cost:</b></td>
+            <td>
+                @if (Model.DemoCostUsd > 0m)
+                {
+                    <strong>@Model.DemoCostUsd.ToString("C2", usd)</strong> <span class="text-muted">(entered by the buyer, included in the amount charged)</span>
+                }
+                else
+                {
+                    <span class="text-muted">none declared ($@DirectoryManager.Common.Constants.IntegerConstants.VideoSponsorDemoCostThresholdUsd or less)</span>
+                }
+            </td>
+        </tr>
+        <tr><td><b>Amount charged:</b></td><td><b>@Model.Amount.ToString("C2", usd) USD</b></td></tr>
+        <tr>
+            <td><b>Received:</b></td>
+            <td>
+                @(Model.PaidAmount > 0m ? $"{Model.PaidAmount.ToString("0.############", CultureInfo.InvariantCulture)} XMR" : "nothing yet")
+                @if (Model.PaymentRate > 0m)
+                {
+                    <span class="text-muted">(rate @Model.PaymentRate.ToString("C2", usd) per XMR)</span>
+                }
+            </td>
+        </tr>
+        <tr><td><b>Processor invoice:</b></td><td>@Model.ProcessorInvoiceId</td></tr>
+        <tr><td><b>Buyer email:</b></td><td>@(string.IsNullOrWhiteSpace(Model.Email) ? "none given" : Model.Email)</td></tr>
+        <tr><td><b>Refund address:</b></td><td class="u-ws-pre-wrap">@Model.RefundAddress</td></tr>
+    </table>
+
+    <h3>Buyer's notes</h3>
+    @if (string.IsNullOrWhiteSpace(Model.Notes))
+    {
+        <p class="text-muted">None.</p>
+    }
+    else
+    {
+        <div class="u-callout u-ws-pre-wrap">@Model.Notes</div>
+    }
+
+    <hr />
+    <h2>Videos</h2>
+    @foreach (var item in Model.Items)
+    {
+        var done = item.CompletedUtc != null;
+        <div class="u-callout">
+            <p>
+                <strong>@(item.VideoIdea?.Title ?? item.Title)</strong>
+                &middot; @item.Price.ToString("C2", usd)
+                &middot;
+                @if (done)
+                {
+                    <span class="text-success">Completed @item.CompletedUtc!.Value.ToString("yyyy-MM-dd HH:mm") UTC</span>
+                }
+                else
+                {
+                    <span class="text-muted">Not completed</span>
+                }
+            </p>
+
+            <form method="post" action="@basePath/items/@item.VideoSponsorOrderItemId/save-url">
+                @Html.AntiForgeryToken()
+                <div class="form-group">
+                    <label for="videoUrl_@item.VideoSponsorOrderItemId"><b>Video URL</b></label>
+                    <input class="form-control" id="videoUrl_@item.VideoSponsorOrderItemId" name="videoUrl" type="text" value="@item.VideoUrl" maxlength="500" placeholder="https://www.youtube.com/watch?v=..." />
+                </div>
+                <button class="btn btn-primary btn-sm" type="submit">Save URL</button>
+            </form>
+
+            @if (isPaid && !done && !string.IsNullOrWhiteSpace(item.VideoUrl))
+            {
+                <form method="post" action="@basePath/items/@item.VideoSponsorOrderItemId/complete" class="u-mt-4px">
+                    @Html.AntiForgeryToken()
+                    <button class="btn btn-success btn-sm" type="submit">Complete</button>
+                    <span class="text-muted">
+                        @(string.IsNullOrWhiteSpace(Model.Email)
+                            ? "Marks this video complete. No email will be sent (the buyer left none)."
+                            : $"Marks this video complete and sends a one-time email with the link to {Model.Email}.")
+                    </span>
+                </form>
+            }
+            else if (isPaid && !done)
+            {
+                <p class="text-muted u-mt-4px">Save the video URL to enable the Complete button.</p>
+            }
+
+            @if (done)
+            {
+                <p class="u-mt-4px">
+                    <b>Email:</b>
+                    @(item.CompletionEmailSentUtc.HasValue
+                        ? $"{item.CompletionEmailResult} on {item.CompletionEmailSentUtc.Value:yyyy-MM-dd HH:mm} UTC"
+                        : item.CompletionEmailResult)
+                </p>
+                @if (!item.CompletionEmailSentUtc.HasValue && !string.IsNullOrWhiteSpace(Model.Email))
+                {
+                    <form method="post" action="@basePath/items/@item.VideoSponsorOrderItemId/send-email">
+                        @Html.AntiForgeryToken()
+                        <button class="btn btn-secondary btn-sm" type="submit">Retry sending the email</button>
+                    </form>
+                }
+            }
+        </div>
+    }
+
+    <hr />
+    <h2>Admin note</h2>
+    <form method="post" action="@basePath/orders/@Model.VideoSponsorOrderId/note">
+        @Html.AntiForgeryToken()
+        <textarea class="form-control" name="adminNote" rows="3" maxlength="2000">@Model.AdminNote</textarea>
+        <br />
+        <button class="btn btn-primary btn-sm" type="submit">Save note</button>
+    </form>
+
+    @if (!isClosed && (!isPaid || !anyCompleted))
+    {
+        <hr />
+        <h2>Payment actions</h2>
+        @if (!isPaid)
+        {
+            <form method="post" action="@basePath/orders/@Model.VideoSponsorOrderId/mark-paid" class="u-mb-16px">
+                @Html.AntiForgeryToken()
+                <button class="btn btn-secondary btn-sm" type="submit">Mark as paid</button>
+                <span class="text-muted">Use only after confirming the money arrived in the payment store.</span>
+            </form>
+        }
+        @if (!anyCompleted)
+        {
+            <form method="post" action="@basePath/orders/@Model.VideoSponsorOrderId/cancel" class="u-mb-16px">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="refunded" value="false" />
+                <button class="btn btn-danger btn-sm" type="submit">Cancel order</button>
+                <span class="text-muted">Releases its videos for other sponsors.</span>
+            </form>
+            @if (isPaid || Model.PaidAmount > 0m)
+            {
+                <form method="post" action="@basePath/orders/@Model.VideoSponsorOrderId/cancel">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="refunded" value="true" />
+                    <button class="btn btn-danger btn-sm" type="submit">Mark as refunded</button>
+                    <span class="text-muted">Records that you sent the refund manually, and releases its videos.</span>
+                </form>
+            }
+        }
+    }
+}

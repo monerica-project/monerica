@@ -31,6 +31,11 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Official review")]
         public bool IsOfficial { get; set; }
 
+        // When checked, the review is kept but rendered with its entire body struck
+        // through (used to show an author retracted it without deleting it).
+        [Display(Name = "Strike through (retracted — show body crossed out)")]
+        public bool IsStruckThrough { get; set; }
+
         [Display(Name = "Tested date (UTC)")]
         [DataType(DataType.Date)]
         public DateTime? TestedAt { get; set; }

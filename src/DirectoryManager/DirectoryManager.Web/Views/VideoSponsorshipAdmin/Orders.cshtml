@@ -1,0 +1,102 @@
+@using System.Globalization
+@using DirectoryManager.Data.Enums
+@model List<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrder>
+@{
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Video Sponsor Orders";
+    Layout = "_CenteredLayout";
+    var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
+    var filter = ViewBag.Filter as string ?? "paid";
+    var attention = ViewBag.AttentionCount is int n ? n : 0;
+    var now = DateTime.UtcNow;
+    var deliveryDays = DirectoryManager.Common.Constants.IntegerConstants.VideoSponsorDeliveryDays;
+    (string Key, string Label)[] tabs =
+    {
+        ("paid", "Paid"),
+        ("outstanding", "To deliver"),
+        ("attention", $"Needs attention ({attention})"),
+        ("open", "In checkout"),
+        ("all", "All"),
+    };
+}
+
+@section PageContent {
+    <h1>Video Sponsor Orders</h1>
+    @await Html.PartialAsync("_Nav")
+
+    <ul class="nav nav-pills mb-3">
+        @foreach (var t in tabs)
+        {
+            <li class="nav-item">
+                <a class="nav-link @(filter == t.Key ? "active" : "")" href="~/admin/video-sponsorship/orders?filter=@t.Key">@t.Label</a>
+            </li>
+        }
+    </ul>
+
+    @if (Model.Count == 0)
+    {
+        <p class="text-muted">Nothing here.</p>
+    }
+    else
+    {
+        <div class="table-wrapper">
+            <table class="table table-sm">
+                <thead>
+                    <tr>
+                        <th>Order</th>
+                        <th>Listing</th>
+                        <th>Type</th>
+                        <th>Videos</th>
+                        <th class="text-end">Amount</th>
+                        <th>Status</th>
+                        <th>Paid (UTC)</th>
+                        <th>Delivery</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var o in Model)
+                    {
+                        var isPaid = o.PaymentStatus is PaymentStatus.Paid or PaymentStatus.OverPayment;
+                        var done = o.Items.Count(i => i.CompletedUtc != null);
+                        var daysLeft = o.PaidUtc.HasValue
+                            ? (int)Math.Ceiling((o.PaidUtc.Value.AddDays(deliveryDays) - now).TotalDays)
+                            : 0;
+                        <tr>
+                            <td><a href="~/admin/video-sponsorship/orders/@o.VideoSponsorOrderId">#@o.VideoSponsorOrderId</a></td>
+                            <td>@o.DirectoryEntry?.Name</td>
+                            <td>@o.OfferName</td>
+                            <td>@done / @o.Items.Count done</td>
+                            <td class="text-end">@o.Amount.ToString("C2", usd)</td>
+                            <td>
+                                <span class="@(isPaid ? "text-success" : (o.PaymentStatus is PaymentStatus.UnderPayment or PaymentStatus.Failed ? "text-danger" : "text-muted"))">
+                                    @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(o.PaymentStatus)
+                                </span>
+                                @if (o.HasConflict)
+                                {
+                                    <strong class="text-danger">&#9888; conflict</strong>
+                                }
+                            </td>
+                            <td>@(o.PaidUtc?.ToString("yyyy-MM-dd"))</td>
+                            <td>
+                                @if (isPaid && done < o.Items.Count)
+                                {
+                                    if (daysLeft >= 0)
+                                    {
+                                        <span>@daysLeft day@(daysLeft == 1 ? "" : "s") left</span>
+                                    }
+                                    else
+                                    {
+                                        <strong class="text-danger">@(-daysLeft) day@(daysLeft == -1 ? "" : "s") overdue</strong>
+                                    }
+                                }
+                                else if (isPaid)
+                                {
+                                    <span class="text-success">Delivered</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    }
+}

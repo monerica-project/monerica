@@ -1,0 +1,39 @@
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@{
+    // Top of the site-sponsor pages: says plainly that there are two kinds of sponsorship
+    // and which one this page is. While video sponsorship is switched off, only the
+    // "Site sponsorship" heading is rendered.
+    var videoSponsorshipEnabled = string.Equals(
+        (await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.VideoSponsorshipEnabled) ?? string.Empty).Trim(),
+        "true",
+        StringComparison.OrdinalIgnoreCase);
+    var siteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
+}
+@if (videoSponsorshipEnabled)
+{
+    <p><strong>There are two ways to sponsor @siteName:</strong></p>
+
+    <div class="u-callout">
+        <p><strong>1. Site sponsorship</strong> &mdash; this page</p>
+        <p>
+            Your listing is featured on the @siteName website itself: site-wide (Main), in its Category,
+            or in its Subcategory.
+        </p>
+        <p><a href="#site-sponsorship">Continue below &darr;</a></p>
+    </div>
+
+    <div class="u-callout">
+        <p><strong>2. Video sponsorship</strong> &mdash; a separate checkout</p>
+        <p>
+            Your product is featured in a video on the @siteName YouTube channel: a 1-minute segment
+            in an upcoming video, or a dedicated video. Paid in Monero.
+        </p>
+        <p>
+            <a class="btn btn-primary btn-cta app-link" href="~/video-sponsorship/start">Sponsor a video &rarr;</a>
+            <a class="app-link u-ml-8px u-ws-nowrap" href="~/video-sponsorship">How it works &amp; prices &rarr;</a>
+        </p>
+    </div>
+
+    <hr />
+}
+<h2 id="site-sponsorship">Site sponsorship</h2>

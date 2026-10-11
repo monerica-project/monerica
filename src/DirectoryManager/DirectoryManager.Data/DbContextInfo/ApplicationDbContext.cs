@@ -34,7 +34,6 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<EmailSubscription> EmailSubscriptions { get; set; }
         public DbSet<ExcludeUserAgent> ExcludeUserAgents { get; set; }
         public DbSet<LogEntry> LogEntries { get; set; }
-        public DbSet<ProcessorConfig> ProcessorConfigs { get; set; }
         public DbSet<SentEmailRecord> SentEmailRecords { get; set; }
         public DbSet<EmailSendLog> EmailSendLogs { get; set; }
         public DbSet<SponsoredListingOpeningNotification> SponsoredListingOpeningNotifications { get; set; }
@@ -53,6 +52,10 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<DirectoryEntryReview> DirectoryEntryReviews { get; set; }
         public DbSet<DirectoryManager.Data.Models.VerificationRequests.VerificationRequest> VerificationRequests { get; set; }
         public DbSet<DirectoryManager.Data.Models.ProblemReports.ProblemReport> ProblemReports { get; set; }
+        public DbSet<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOffer> VideoSponsorOffers { get; set; }
+        public DbSet<DirectoryManager.Data.Models.VideoSponsorships.VideoIdea> VideoIdeas { get; set; }
+        public DbSet<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrder> VideoSponsorOrders { get; set; }
+        public DbSet<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrderItem> VideoSponsorOrderItems { get; set; }
         public DbSet<DirectoryEntryReviewComment> DirectoryEntryReviewComments { get; set; } = null!;
         public DbSet<DirectoryManager.Data.Models.Reviews.ReviewNotification> ReviewNotifications { get; set; } = null!;
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
@@ -107,6 +110,7 @@ namespace DirectoryManager.Data.DbContextInfo
             ConfigureAffiliateCommissionEarnedIndexes(builder);
             ConfigureVerificationRequests(builder);
             ConfigureProblemReports(builder);
+            ConfigureVideoSponsorships(builder);
             ConfigureSiteCheckStatus(builder);
             ConfigureSubmissionPayment(builder);
         }
@@ -173,6 +177,69 @@ namespace DirectoryManager.Data.DbContextInfo
             });
         }
 
+        private static void ConfigureVideoSponsorships(ModelBuilder builder)
+        {
+            builder.Entity<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOffer>(e =>
+            {
+                e.ToTable("VideoSponsorOffers");
+                e.Property(x => x.PriceUsd).HasColumnType("numeric(18,2)");
+            });
+
+            builder.Entity<DirectoryManager.Data.Models.VideoSponsorships.VideoIdea>(e =>
+            {
+                e.ToTable("VideoIdeas");
+                e.HasIndex(x => new { x.Status, x.SortOrder, x.VideoIdeaId })
+                 .HasDatabaseName("IX_VideoIdeas_Status_Sort_Id");
+            });
+
+            builder.Entity<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrder>(e =>
+            {
+                e.ToTable("VideoSponsorOrders");
+                e.Property(x => x.UnitPrice).HasColumnType("numeric(18,2)");
+                e.Property(x => x.OriginalAmount).HasColumnType("numeric(18,2)");
+                e.Property(x => x.DiscountPercent).HasColumnType("numeric(5,2)");
+                e.Property(x => x.DiscountAmount).HasColumnType("numeric(18,2)");
+                e.Property(x => x.DemoCostUsd).HasColumnType("numeric(18,2)");
+                e.Property(x => x.Amount).HasColumnType("numeric(18,2)");
+                e.Property(x => x.PaidAmount).HasColumnType("numeric(20,12)");
+                e.Property(x => x.PaymentRate).HasColumnType("numeric(20,12)");
+
+                e.HasOne(x => x.DirectoryEntry)
+                 .WithMany()
+                 .HasForeignKey(x => x.DirectoryEntryId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasOne(x => x.VideoSponsorOffer)
+                 .WithMany()
+                 .HasForeignKey(x => x.VideoSponsorOfferId)
+                 .OnDelete(DeleteBehavior.Restrict);
+
+                e.HasIndex(x => x.InvoiceId)
+                 .IsUnique()
+                 .HasDatabaseName("IX_VideoSponsorOrders_InvoiceId");
+                e.HasIndex(x => x.ProcessorInvoiceId)
+                 .HasDatabaseName("IX_VideoSponsorOrders_ProcessorInvoiceId");
+                e.HasIndex(x => new { x.PaymentStatus, x.CreateDate })
+                 .HasDatabaseName("IX_VideoSponsorOrders_Status_Create");
+            });
+
+            builder.Entity<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrderItem>(e =>
+            {
+                e.ToTable("VideoSponsorOrderItems");
+                e.Property(x => x.Price).HasColumnType("numeric(18,2)");
+
+                e.HasOne(x => x.VideoSponsorOrder)
+                 .WithMany(o => o.Items)
+                 .HasForeignKey(x => x.VideoSponsorOrderId)
+                 .OnDelete(DeleteBehavior.Cascade);
+
+                e.HasOne(x => x.VideoIdea)
+                 .WithMany()
+                 .HasForeignKey(x => x.VideoIdeaId)
+                 .OnDelete(DeleteBehavior.Restrict);
+            });
+        }
+
         private static void ConfigureProblemReports(ModelBuilder builder)
         {
             builder.Entity<DirectoryManager.Data.Models.ProblemReports.ProblemReport>(e =>
@@ -211,7 +278,6 @@ namespace DirectoryManager.Data.DbContextInfo
             ConfigureSponsoredListingOfferIndexes(builder);
             ConfigureSponsoredListingReservationIndexes(builder);
 
-            ConfigureProcessorConfigIndexes(builder);
             ConfigureEmailIndexes(builder);
             ConfigureBlockedIpIndexes(builder);
 
@@ -445,13 +511,6 @@ namespace DirectoryManager.Data.DbContextInfo
 
             builder.Entity<SponsoredListingReservation>()
                    .HasIndex(e => e.ExpirationDateTime);
-        }
-
-        private static void ConfigureProcessorConfigIndexes(ModelBuilder builder)
-        {
-            builder.Entity<ProcessorConfig>()
-                   .HasIndex(e => e.PaymentProcessor)
-                   .IsUnique();
         }
 
         private static void ConfigureEmailIndexes(ModelBuilder builder)

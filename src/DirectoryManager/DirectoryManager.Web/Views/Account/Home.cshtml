@@ -112,7 +112,7 @@
         </li>
         <li>
             <b>Invoicing:</b>
-            <a href="~/sponsoredlistinginvoice">Sponsors</a>
+            <a href="~/sponsoredlistinginvoice">Site Sponsors</a>
             @if (ViewBag.LastInvoicePaidUtc is DateTime lastPaid)
             {
                 <small class="u-color-888">&nbsp;(last paid @FormatAgoCompact(lastPaid))</small>
@@ -121,6 +121,15 @@
             {
                 <small class="u-color-c0392b">&nbsp;⚠ pending @FormatAgoCompact(lastPending)</small>
             }
+        </li>
+        <li>
+            <b>Video sponsorship:</b>
+            <a href="~/admin/video-sponsorship/sponsors">Video Sponsors</a>
+            @if (ViewBag.LastVideoSponsorPaidUtc is DateTime lastVideoPaid)
+            {
+                <small class="u-color-888">&nbsp;(last paid @FormatAgoCompact(lastVideoPaid))</small>
+            }
+            &middot; <a href="~/admin/video-sponsorship/orders">Orders</a>
         </li>
         <li>
             <b>Search logs:</b>
@@ -175,6 +184,17 @@
         <li><a href="~/sponsoredlisting/list">Active listings</a></li>
         <li><a href="~/sponsoredlistingoffer/index">Offers</a></li>
         <li><a href="~/sponsoredlistingnotification/list">Expiry notifications</a></li>
+    </ul>
+
+    @* ------------------- Video Sponsorship ------------------- *@
+    <h3>Video Sponsorship</h3>
+    <ul>
+        <li><a href="~/admin/video-sponsorship">Overview &amp; settings</a></li>
+        <li><a href="~/admin/video-sponsorship/orders">Orders</a></li>
+        <li><a href="~/admin/video-sponsorship/videos">Video ideas</a></li>
+        <li><a href="~/admin/video-sponsorship/offers">Types &amp; prices</a></li>
+        <li><a href="~/admin/video-sponsorship/sponsors">Video sponsors</a></li>
+        <li><a href="~/admin/video-sponsorship/reports">Reports</a></li>
     </ul>
 
     @* ------------------- Search & Logs ------------------- *@
@@ -271,7 +291,6 @@
             Payment processors
             <ul>
                 <li><a href="~/processors">Processors (all)</a></li>
-                <li><a href="~/processorconfig/index">Processor configs</a></li>
             </ul>
         </li>
     </ul>

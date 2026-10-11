@@ -1,0 +1,52 @@
+@using System.Globalization
+@model DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOffer
+@{
+    var isNew = Model.VideoSponsorOfferId == 0;
+    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = isNew ? "Add Video Type" : "Edit Video Type";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader]</h1>
+    @await Html.PartialAsync("_Nav")
+
+    <form method="post" action="~/admin/video-sponsorship/offers/edit">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="videoSponsorOfferId" value="@Model.VideoSponsorOfferId" />
+
+        <div class="form-group">
+            <label for="name"><b>Name</b></label>
+            <input class="form-control" id="name" name="name" type="text" value="@Model.Name" maxlength="150" required />
+        </div>
+        <div class="form-group">
+            <label for="description"><b>Description</b> (shown to buyers)</label>
+            <textarea class="form-control" id="description" name="description" rows="3" maxlength="1000">@Model.Description</textarea>
+        </div>
+        <div class="form-group">
+            <label for="priceUsd"><b>Price in USD</b> (for one video)</label>
+            <input class="form-control u-w-200px-imp" id="priceUsd" name="priceUsd" type="number" step="0.01" min="0.01" value="@Model.PriceUsd.ToString("0.00", CultureInfo.InvariantCulture)" required />
+        </div>
+        <div class="form-check">
+            <label class="form-check-label u-flex-items-center-gap-8px-flexwrap-wrap">
+                <input class="form-check-input" type="checkbox" id="requiresVideoSelection" name="requiresVideoSelection" value="true" @(Model.RequiresVideoSelection ? "checked" : "") />
+                <span><b>Buyer picks from the upcoming videos</b></span>
+            </label>
+            <input type="hidden" name="requiresVideoSelection" value="false" />
+            <div class="form-text">On: a segment inside one or more queued videos, priced per video. Off: one stand-alone video the buyer describes.</div>
+        </div>
+        <div class="form-check">
+            <label class="form-check-label u-flex-items-center-gap-8px-flexwrap-wrap">
+                <input class="form-check-input" type="checkbox" id="isEnabled" name="isEnabled" value="true" @(Model.IsEnabled ? "checked" : "") />
+                <span><b>Enabled</b> (offered to buyers)</span>
+            </label>
+            <input type="hidden" name="isEnabled" value="false" />
+        </div>
+        <div class="form-group">
+            <label for="sortOrder"><b>Display order</b> (lowest first)</label>
+            <input class="form-control u-w-200px-imp" id="sortOrder" name="sortOrder" type="number" value="@Model.SortOrder" />
+        </div>
+        <br />
+        <button class="btn btn-primary" type="submit">Save</button>
+        <a class="btn btn-secondary" href="~/admin/video-sponsorship/offers">Cancel</a>
+    </form>
+}

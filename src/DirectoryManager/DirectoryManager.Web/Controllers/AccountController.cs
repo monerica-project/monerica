@@ -19,6 +19,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository;
         private readonly IVerificationRequestRepository verificationRequestRepository;
         private readonly IProblemReportRepository problemReportRepository;
+        private readonly IVideoSponsorshipRepository videoSponsorshipRepository;
         private readonly SignInManager<ApplicationUser> signInManager;
         private readonly UserManager<ApplicationUser> userManager;
         private readonly IAffiliateCommissionRepository affiliateCommissionRepository;
@@ -34,6 +35,7 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryReviewCommentRepository directoryEntryReviewCommentRepository,
             IVerificationRequestRepository verificationRequestRepository,
             IProblemReportRepository problemReportRepository,
+            IVideoSponsorshipRepository videoSponsorshipRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
             IAffiliateCommissionRepository affiliateCommissionRepository,
@@ -49,6 +51,7 @@ namespace DirectoryManager.Web.Controllers
             this.directoryEntryReviewRepository = directoryEntryReviewRepository;
             this.verificationRequestRepository = verificationRequestRepository;
             this.problemReportRepository = problemReportRepository;
+            this.videoSponsorshipRepository = videoSponsorshipRepository;
             this.directoryEntryReviewCommentRepository = directoryEntryReviewCommentRepository;
             this.affiliateCommissionRepository = affiliateCommissionRepository;
             this.SponsoredListingInvoiceRepository = sponsoredListingInvoiceRepository;
@@ -148,6 +151,8 @@ namespace DirectoryManager.Web.Controllers
                 await this.problemReportRepository.CountByStatusAsync(Data.Enums.ProblemReportStatus.Pending);
             this.ViewBag.LastProblemReportSubmissionUtc = await this.problemReportRepository.GetLastSubmissionUtcAsync();
             this.ViewBag.LastProblemReportPaidUtc = await this.problemReportRepository.GetLastPaidUtcAsync();
+
+            this.ViewBag.LastVideoSponsorPaidUtc = await this.videoSponsorshipRepository.GetLastPaidUtcAsync();
             // The Bunny syncer stamps two files: last-success.txt on every OK run
             // ("last checked"), and last-sync.txt only when it actually uploaded changed
             // files ("last files synced"). Both are written by the syncer's systemd unit.
