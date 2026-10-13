@@ -24,6 +24,8 @@ namespace DirectoryManager.Web.Controllers
     [Route("sponsorship")]
     public class SponsorshipController : Controller
     {
+        private const string CaptchaContextWaitlist = "sponsorship-waitlist";
+
         private const int SearchPageSize = 20;
         private const int WaitlistPreviewTake = 10;
         private const int WaitlistPageSize = 25;
@@ -507,12 +509,20 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            if (!CaptchaTools.Validate(this.HttpContext, CaptchaContextWaitlist, this.Request.Form["Captcha"].ToString(), consume: true))
+            {
+                return this.Redirect($"/sponsorship/options/{entry.DirectoryEntryId}?captcha=0#join-waitlist");
+            }
+
             var email = (vm.Email ?? string.Empty).Trim();
-            if (string.IsNullOrWhiteSpace(email))
+            var (emailOk, normalizedEmail, _) = EmailValidationHelper.Validate(email);
+            if (!emailOk || string.IsNullOrWhiteSpace(normalizedEmail) || normalizedEmail.Length > 100)
             {
                 return this.RedirectToOptions(
                     vm.DirectoryEntryId);
             }
+
+            email = normalizedEmail;
 
             var scopes = CollectSubscriptionScopes(vm, entry);
             if (scopes.Count == 0)

@@ -31,6 +31,7 @@ namespace DirectoryManager.Web.Controllers
     {
         private const string ConfirmCheckoutView = "ConfirmCheckout";
         private const string CaptchaContextCheckout = "sponsoredlisting-confirmcheckout";
+        private const string CaptchaContextSelectDuration = "sponsoredlisting-selectduration";
 
         private readonly ISubcategoryRepository subCategoryRepository;
         private readonly ICategoryRepository categoryRepository;
@@ -423,6 +424,15 @@ namespace DirectoryManager.Web.Controllers
             var isExtension = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId, offer.SponsorshipType).ConfigureAwait(false);
 
             rsvId = await this.ValidateExistingReservationAsync(rsvId, reservationGroup, directoryEntryId);
+
+            // A captcha is required before a slot is held, so holds cannot be created in bulk
+            // to block other buyers. A buyer coming back with their own live hold is not asked again.
+            if (!rsvId.HasValue
+                && !CaptchaTools.Validate(this.HttpContext, CaptchaContextSelectDuration, this.Request.Form["Captcha"].ToString(), consume: true))
+            {
+                return this.Redirect(
+                    $"/sponsoredlisting/selectduration?directoryEntryId={directoryEntryId}&sponsorshipType={offer.SponsorshipType}&captcha=0");
+            }
 
             if (!isExtension && !rsvId.HasValue)
             {

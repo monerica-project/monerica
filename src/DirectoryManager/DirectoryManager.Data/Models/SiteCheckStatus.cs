@@ -30,6 +30,17 @@ namespace DirectoryManager.Data.Models
         /// </summary>
         public int OnionFailStreak { get; set; }
 
+        /// <summary>
+        /// Consecutive runs the clearnet site was reachable but presented a bad TLS certificate
+        /// (expired, wrong domain, untrusted). Reset to 0 on a healthy certificate; left
+        /// unchanged when the certificate could not be inspected at all.
+        /// </summary>
+        public int SslFailStreak { get; set; }
+
+        /// <summary>The most recent certificate problem seen, e.g. "expired on 2026-10-03".</summary>
+        [System.ComponentModel.DataAnnotations.MaxLength(300)]
+        public string? LastSslIssue { get; set; }
+
         public DateTime LastCheckedUtc { get; set; }
     }
 }

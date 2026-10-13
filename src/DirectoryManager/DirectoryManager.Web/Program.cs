@@ -32,7 +32,8 @@ if (args.Contains("--migrate-only"))
 var appSettings = builder.Configuration.GetSection("ApplicationSettings").Get<ApplicationSettings>()
         ?? new ApplicationSettings { TorPort = IntegerConstants.DefaultAlternativePort };
 
-// Configure Serilog logging
+// Configure Serilog logging. Errors go to the console (journald on the server); the old
+// SQL Server "LogEntries" sink was removed because the site runs on PostgreSQL.
 var logger = new LoggerConfiguration()
     .WriteTo.Console()
     .ReadFrom.Configuration(builder.Configuration)

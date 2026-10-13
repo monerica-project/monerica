@@ -16,6 +16,7 @@ const string UserAgentHeader = "UserAgent:Header";
 const string TorProxyHostKey = "TorProxy:Host";
 const string TorProxyPortKey = "TorProxy:Port";
 const string SiteOfflineMessage = "site offline";
+const string SslProblemPrefix = "SSL certificate problem";
 
 // Keep this in sync with DirectoryManager.Web.Constants.IntegerConstants.MaxAdditionalLinks.
 // The edit form and the admin approval/sync path both cap related links at 3,
@@ -56,6 +57,26 @@ var onionFlagThreshold = int.TryParse(config["SiteCheck:OnionFlagThreshold"], ou
 // is fine, because tor.exe wouldn't run on Linux anyway).
 // On Windows dev, IsTorAvailable returns false, so it proceeds to start the
 // bundled tor.exe from the publish output.
+// A reachable site must present a bad TLS certificate this many CONSECUTIVE weekly runs
+// before it is flagged (certificates often lapse for a day or two and get renewed).
+// Tunable via "SiteCheck:SslFlagThreshold"; defaults to 2.
+var sslFlagThreshold = int.TryParse(config["SiteCheck:SslFlagThreshold"], out var sft) && sft > 0
+    ? sft
+    : 2;
+
+// Diagnostic: `SiteChecker --ssl-check <url> [<url>...]` prints each certificate verdict and exits.
+if (args.Length > 1 && args[0] == "--ssl-check")
+{
+    foreach (var sslUrl in args.Skip(1))
+    {
+        var (sslChecked, sslProblem) = await DirectoryManager.Utilities.Helpers.SslCertificateInspector
+            .InspectAsync(sslUrl, TimeSpan.FromSeconds(15));
+        Console.WriteLine($"[ssl] {sslUrl} → {(sslChecked ? (sslProblem ?? "OK") : "could not inspect")}");
+    }
+
+    return;
+}
+
 var torExePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tor", "tor.exe");
 bool torAvailable = await TorWebPageChecker.TryStartTorAsync(torExePath, torHost, torPort);
 
@@ -237,6 +258,7 @@ async Task CheckAndSubmitAsync(
 
     bool clearnetShouldFlag = false;
     bool onionShouldFlag = false;
+    string? sslIssueToFlag = null;
 
     if (clearnetUrls.Count > 0)
     {
@@ -272,8 +294,53 @@ async Task CheckAndSubmitAsync(
         }
     }
 
+    // ── 4b. TLS certificate of the main clearnet link ─────────────────────
+    // Only looked at when the site itself is up (an offline site is already flagged above).
+    // The fetches above accept any certificate on purpose, so this is the only place a bad
+    // one is noticed. Flags after sslFlagThreshold consecutive runs.
+    var sslUrl = clearnetUrls.FirstOrDefault(u => u!.StartsWith("https://", StringComparison.OrdinalIgnoreCase));
+    if (sslUrl != null && !clearnetOffline)
+    {
+        var (sslChecked, sslIssue) = await DirectoryManager.Utilities.Helpers.SslCertificateInspector
+            .InspectAsync(sslUrl, TimeSpan.FromSeconds(15));
+
+        if (sslChecked && sslIssue is null)
+        {
+            status.SslFailStreak = 0;
+            status.LastSslIssue = null;
+        }
+        else if (sslChecked)
+        {
+            status.SslFailStreak++;
+            status.LastSslIssue = sslIssue;
+
+            bool flagSsl = status.SslFailStreak >= sslFlagThreshold;
+            Console.WriteLine(
+                $"[ssl] {sslUrl} → {sslIssue} (streak {status.SslFailStreak}/{sslFlagThreshold})" +
+                (flagSsl ? " → flagging" : " → not flagging yet"));
+
+            if (flagSsl)
+            {
+                sslIssueToFlag = $"{sslIssue}; seen on {status.SslFailStreak} checks in a row";
+            }
+        }
+
+        // Not inspectable (connection refused to us, timeout): leave the streak as it is.
+    }
+
     status.LastCheckedUtc = DateTime.UtcNow;
     await scopedStatusRepo.UpsertAsync(status);
+
+    if (sslIssueToFlag != null && !clearnetShouldFlag && !onionShouldFlag)
+    {
+        await CreateSslSubmissionIfNotExists(
+            dirEntry,
+            scopedSubmissionRepo,
+            scopedEntryTagRepo,
+            scopedAdditionalLinkRepo,
+            scopedGuaranteeRepo,
+            sslIssueToFlag);
+    }
 
     if (clearnetShouldFlag || onionShouldFlag)
     {
@@ -318,6 +385,46 @@ async Task CreateOfflineSubmissionIfNotExists(
         ? offlineReason
         : $"{entry.Note} | {offlineReason}";
 
+    // An "offline" submission proposes removal and keeps the existing note plus the reason.
+    await CreateAutomatedSubmissionAsync(
+        entry, submissionRepository, entryTagRepository, additionalLinkRepository, guaranteeRepository,
+        DirectoryStatus.Removed, newNote, "(automated submission)", offlineReason);
+}
+
+// A bad certificate is a warning for the moderator, not a removal: the listing's status and
+// public note are proposed UNCHANGED and the problem is described in the private note to
+// the admin, so approving it changes nothing and the moderator decides what to do.
+async Task CreateSslSubmissionIfNotExists(
+    DirectoryEntry entry,
+    ISubmissionRepository submissionRepository,
+    IDirectoryEntryTagRepository entryTagRepository,
+    IAdditionalLinkRepository additionalLinkRepository,
+    IDirectoryEntryGuaranteeRepository guaranteeRepository,
+    string sslIssue)
+{
+    var existingSubmission = await submissionRepository.GetByLinkAndStatusAsync(entry.Link, SubmissionStatus.Pending);
+    if (existingSubmission != null)
+    {
+        Console.WriteLine($"Skipping SSL submission for entry ID {entry.DirectoryEntryId}: a pending submission already exists for this link.");
+        return;
+    }
+
+    await CreateAutomatedSubmissionAsync(
+        entry, submissionRepository, entryTagRepository, additionalLinkRepository, guaranteeRepository,
+        entry.DirectoryStatus, entry.Note, $"(automated submission) {SslProblemPrefix}: {sslIssue}.", $"{SslProblemPrefix}: {sslIssue}");
+}
+
+async Task CreateAutomatedSubmissionAsync(
+    DirectoryEntry entry,
+    ISubmissionRepository submissionRepository,
+    IDirectoryEntryTagRepository entryTagRepository,
+    IAdditionalLinkRepository additionalLinkRepository,
+    IDirectoryEntryGuaranteeRepository guaranteeRepository,
+    DirectoryStatus proposedStatus,
+    string? proposedNote,
+    string noteToAdmin,
+    string reasonForLog)
+{
     // ── Tags ──────────────────────────────────────────────────────────────
     // Tags are NOT stored on the DirectoryEntry row. They live in the
     // DirectoryEntryTag join table and must be pulled via the tag repo —
@@ -373,12 +480,11 @@ async Task CreateOfflineSubmissionIfNotExists(
         SubmissionStatus = SubmissionStatus.Pending,
         DirectoryEntryId = entry.DirectoryEntryId,
 
-        // This is an "offline" submission: we propose removal and keep the existing note plus an
-        // offline reason. These four fields are caller-owned (see SubmissionContentMapper.ExcludedFieldNames).
-        DirectoryStatus = DirectoryStatus.Removed,
-        Note = newNote,
+        // Caller-owned fields (see SubmissionContentMapper.ExcludedFieldNames).
+        DirectoryStatus = proposedStatus,
+        Note = proposedNote,
 
-        NoteToAdmin = "(automated submission)",
+        NoteToAdmin = noteToAdmin,
 
         // Tags and related links do not live on the DirectoryEntry row — they are read from their
         // own tables above and set here.
@@ -402,6 +508,6 @@ async Task CreateOfflineSubmissionIfNotExists(
 
     await submissionRepository.CreateAsync(submission);
     Console.WriteLine(
-        $"Created submission for entry ID {entry.DirectoryEntryId}: '{offlineReason}' " +
+        $"Created submission for entry ID {entry.DirectoryEntryId}: '{reasonForLog}' " +
         $"(tags: {entryTags.Count}, related links: {relatedLinks.Count}, guarantees: {guaranteeItems.Count}).");
 }

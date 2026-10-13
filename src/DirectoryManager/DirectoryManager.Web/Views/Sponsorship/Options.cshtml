@@ -262,7 +262,6 @@
  class="form-control u-flex-1-1-260px-maxw-420px"
  placeholder="you@example.com"
  required="required" />
-            <button type="submit" class="btn btn-primary btn-cta u-flex-0-0-auto">Join the waitlist &rarr;</button>
         </div>
         <div class="u-mt-6px-opacity-85-fs-9em">
             We’ll email you the moment a slot opens — pick which slots below.
@@ -336,6 +335,17 @@
         <div class="u-mt-8px-opacity-85">
             Tip: subscribing again updates your subscription (no duplicates) and refreshes your waitlist join date.
         </div>
+    
+        @if (Context.Request.Query["captcha"] == "0")
+        {
+            <div class="alert alert-danger u-mt-12px" role="alert">Incorrect CAPTCHA. Please try again.</div>
+        }
+
+        <div class="u-mt-12px">
+            @await Html.PartialAsync("_CaptchaBlock", "sponsorship-waitlist")
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-cta u-mt-12px">Join the waitlist &rarr;</button>
     </form>
 
     <hr class="u-m-18px-0" />

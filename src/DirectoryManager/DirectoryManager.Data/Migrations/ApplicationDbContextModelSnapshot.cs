@@ -1819,7 +1819,14 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<DateTime>("LastCheckedUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("LastSslIssue")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)");
+
                     b.Property<int>("OnionFailStreak")
+                        .HasColumnType("integer");
+
+                    b.Property<int>("SslFailStreak")
                         .HasColumnType("integer");
 
                     b.Property<DateTime?>("UpdateDate")

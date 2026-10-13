@@ -12,6 +12,8 @@ namespace DirectoryManager.Web.Controllers
 {
     public class EmailSubscriptionController : Controller
     {
+        private const string CaptchaContextUnsubscribe = "newsletter-unsubscribe";
+
         private readonly IEmailSubscriptionRepository emailSubscriptionRepository;
         private readonly IBlockedIPRepository blockedIPRepository;
         private readonly IEmailCampaignRepository emailCampaignRepository;
@@ -167,7 +169,22 @@ namespace DirectoryManager.Web.Controllers
         [AcceptVerbs("GET", "POST")]
         public IActionResult Unsubscribe([FromQuery] string? email, [FromForm] string? formEmail)
         {
-            var finalEmailRaw = !string.IsNullOrWhiteSpace(email) ? email : formEmail;
+            // A link (GET) only pre-fills the form. Unsubscribing itself is a POST with a captcha,
+            // so nobody can unsubscribe someone else in bulk by requesting URLs.
+            if (!HttpMethods.IsPost(this.Request.Method))
+            {
+                this.ViewBag.PrefillEmail = (email ?? string.Empty).Trim();
+                return this.View(nameof(this.Unsubscribe), null);
+            }
+
+            var finalEmailRaw = formEmail;
+            this.ViewBag.PrefillEmail = (finalEmailRaw ?? string.Empty).Trim();
+
+            if (!CaptchaTools.Validate(this.HttpContext, CaptchaContextUnsubscribe, this.Request.Form["Captcha"].ToString(), consume: true))
+            {
+                this.ModelState.AddModelError(string.Empty, "Incorrect CAPTCHA. Please try again.");
+                return this.View(nameof(this.Unsubscribe), null);
+            }
 
             // If nothing supplied, render the form to collect email
             if (string.IsNullOrWhiteSpace(finalEmailRaw))

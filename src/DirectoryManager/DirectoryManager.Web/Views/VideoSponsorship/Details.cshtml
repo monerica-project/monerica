@@ -99,7 +99,7 @@
             <label for="notes">
                 <b>@(offer.RequiresVideoSelection ? "Notes for your sponsor segment (optional)" : "Describe the video you want")</b>
             </label>
-            <p class="text-muted">What should we say or show? Include links, key points and anything we should avoid.</p>
+            <p class="text-muted">What should we say or show? Include links, key points and anything we should avoid. We use plain links, not affiliate links, unless you tell us to here.</p>
             <textarea id="notes" name="notes" rows="6" maxlength="4000" class="form-control">@Model.Notes</textarea>
             <div class="text-danger">@Html.ValidationMessage("Notes")</div>
         </div>

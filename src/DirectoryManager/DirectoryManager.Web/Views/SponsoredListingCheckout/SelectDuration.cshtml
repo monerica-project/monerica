@@ -219,6 +219,17 @@
 
         @if (offersList.Count > 0)
         {
+            @* Asked before the slot is held; skipped when this buyer already holds it. *@
+            @if (!reservationGuid.HasValue)
+            {
+                @if (Context.Request.Query["captcha"] == "0")
+                {
+                    <div class="alert alert-danger" role="alert">Incorrect CAPTCHA. Please try again.</div>
+                }
+
+                @await Html.PartialAsync("_CaptchaBlock", "sponsoredlisting-selectduration")
+            }
+
             <button type="submit" class="btn btn-primary btn-cta">Select</button>
         }
         else

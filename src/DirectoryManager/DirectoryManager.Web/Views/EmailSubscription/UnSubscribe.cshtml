@@ -26,9 +26,15 @@
     }
     <form asp-controller="EmailSubscription" asp-action="Unsubscribe" method="post">
 
-        <input name="formEmail" type="email" id="inlineFormInput" placeholder="yourname@email.com" required>
+        @Html.AntiForgeryToken()
 
-            <button type="submit" class="btn btn-primary ui-submit btn-cta">Unsubscribe</button>
+        <div class="form-group">
+            <input class="form-control input-width" name="formEmail" type="email" id="inlineFormInput" placeholder="yourname@email.com" value="@(ViewBag.PrefillEmail as string)" required>
+        </div>
+
+        @await Html.PartialAsync("_CaptchaBlock", "newsletter-unsubscribe")
+
+        <button type="submit" class="btn btn-primary ui-submit btn-cta">Unsubscribe</button>
     </form>
 }
 else

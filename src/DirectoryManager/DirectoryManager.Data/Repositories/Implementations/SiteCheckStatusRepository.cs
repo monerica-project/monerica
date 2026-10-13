@@ -35,6 +35,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             {
                 existing.ClearnetFailStreak = model.ClearnetFailStreak;
                 existing.OnionFailStreak = model.OnionFailStreak;
+                existing.SslFailStreak = model.SslFailStreak;
+                existing.LastSslIssue = model.LastSslIssue;
                 existing.LastCheckedUtc = model.LastCheckedUtc;
                 existing.UpdateDate = DateTime.UtcNow;
             }
