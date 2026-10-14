@@ -168,6 +168,7 @@ namespace DirectoryManager.Web.Extensions
             services.AddScoped<IVideoSponsorOrderProcessor, VideoSponsorOrderProcessor>();
 
             services.AddScoped<ISearchBlacklistRepository, SearchBlacklistRepository>();
+            services.AddScoped<IMarketingEmailContactRepository, MarketingEmailContactRepository>();
             services.AddScoped<IChurnService, ChurnService>();
             services.AddScoped<IUserContentModerationService, UserContentModerationService>();
 

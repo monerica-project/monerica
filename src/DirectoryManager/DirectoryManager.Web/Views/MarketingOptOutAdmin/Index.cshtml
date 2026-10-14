@@ -1,0 +1,112 @@
+@using DirectoryManager.Data.Models.TransferModels
+@model PagedResult<DirectoryManager.Data.Models.Emails.MarketingEmailContact>
+@{
+    Layout = "_CenteredLayout";
+    int page = (int)(ViewBag.Page ?? 1);
+    int pageSize = (int)(ViewBag.PageSize ?? 50);
+    bool all = (bool)(ViewBag.All ?? false);
+    string linkBase = (string)ViewBag.LinkBase;
+    int totalPages = (int)Math.Ceiling(Model.TotalCount / (double)pageSize);
+    ViewData["Title"] = "Marketing email opt-outs";
+}
+@section PageContent {
+    <h1>Marketing Email Opt-Outs</h1>
+    @await Html.PartialAsync("_AdminMenu")
+
+    <p>
+        Addresses on this list must not be sent marketing email (for example sponsorship offers).
+        It is separate from the newsletter subscriber list. People are added here when they use
+        the opt-out link in an email, or when you add them below.
+    </p>
+
+    @if (TempData["MarketingOptOutMessage"] is string message)
+    {
+        <div class="alert alert-info">@message</div>
+    }
+
+    <form method="post" action="~/admin/marketing-opt-out/add">
+        @Html.AntiForgeryToken()
+        <div class="mb-3">
+            <label class="form-label" for="optOutEmail">Email address</label>
+            <input autocomplete="off" id="optOutEmail" name="email" type="email" class="form-control" maxlength="255" required />
+        </div>
+        <div class="mb-3">
+            <label class="form-label" for="optOutNote">Note (optional)</label>
+            <input autocomplete="off" id="optOutNote" name="note" class="form-control" maxlength="250" placeholder="e.g., asked by reply on 2026-10-13" />
+        </div>
+        <button class="btn btn-primary" type="submit" name="optOut" value="true">Opt out</button>
+        <button class="btn btn-link" type="submit" name="optOut" value="false">Only create an opt-out link</button>
+    </form>
+
+    <hr />
+
+    <p>
+        @if (all)
+        {
+            <strong>All contacts (@Model.TotalCount)</strong>
+            <span>&middot;</span>
+            <a href="~/admin/marketing-opt-out">Opted out only (@ViewBag.OptedOutCount)</a>
+        }
+        else
+        {
+            <strong>Opted out (@Model.TotalCount)</strong>
+            <span>&middot;</span>
+            <a href="~/admin/marketing-opt-out?all=true">All contacts</a>
+        }
+    </p>
+
+    @if (!Model.Items.Any())
+    {
+        <p>@(all ? "No contacts yet." : "Nobody has opted out.")</p>
+    }
+    else
+    {
+        @foreach (var c in Model.Items)
+        {
+            <div class="u-callout">
+                <p>
+                    <strong>@c.Email</strong>
+                    @if (c.OptedOutUtc != null)
+                    {
+                        <span>&middot; opted out @c.OptedOutUtc.Value.ToString("yyyy-MM-dd HH:mm") UTC (by @c.OptOutSource)</span>
+                    }
+                    else
+                    {
+                        <span>&middot; can be emailed</span>
+                    }
+                </p>
+                @if (!string.IsNullOrWhiteSpace(c.Note))
+                {
+                    <p>@c.Note</p>
+                }
+                <p><small>@(linkBase + c.Token)</small></p>
+                <form method="post" action="~/admin/marketing-opt-out/set/@c.MarketingEmailContactId">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="all" value="@(all ? "true" : "false")" />
+                    @if (c.OptedOutUtc != null)
+                    {
+                        <button type="submit" class="btn btn-link" name="optOut" value="false">Undo opt-out</button>
+                    }
+                    else
+                    {
+                        <button type="submit" class="btn btn-link" name="optOut" value="true">Opt out</button>
+                    }
+                </form>
+            </div>
+        }
+
+        @if (totalPages > 1)
+        {
+            <nav aria-label="Pagination">
+                <ul class="pagination">
+                    @for (int p = 1; p <= totalPages; p++)
+                    {
+                        <li class="page-item @(p == page ? "active" : "")">
+                            <a class="page-link" href="~/admin/marketing-opt-out/page/@p@(all ? "?all=true" : "")">@p</a>
+                        </li>
+                    }
+                </ul>
+            </nav>
+        }
+    }
+}

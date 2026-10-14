@@ -34,6 +34,30 @@ namespace DirectoryManager.Utilities.Validation
         }
 
         /// <summary>
+        /// For free-text comment fields: true if the text contains HTML, CSS or scripting, while
+        /// still allowing ordinary http(s) links. See
+        /// <see cref="ScriptValidation.ContainsSuspiciousMarkupAllowingUrls"/>.
+        /// </summary>
+        /// <returns></returns>
+        public static bool ContainsMarkupAllowingUrls(string? input)
+        {
+            return ScriptValidation.ContainsSuspiciousMarkupAllowingUrls(input);
+        }
+
+        /// <summary>
+        /// Validation result for a comment field that failed <see cref="ContainsMarkupAllowingUrls"/>.
+        /// </summary>
+        /// <returns></returns>
+        public static ValidationResult CommentViolation(string memberName)
+        {
+            return new ValidationResult(
+                "Please remove any HTML or JavaScript (tags such as <b>, <img> or <script>, " +
+                "on… event handlers, and javascript:/data: links). Plain text and normal links " +
+                "(https://…) are fine.",
+                new[] { memberName });
+        }
+
+        /// <summary>
         /// Scans every public, readable string (and IEnumerable&lt;string&gt;) property on
         /// <paramref name="model"/> and yields one <see cref="ValidationResult"/> per field
         /// that contains markup. Properties decorated with <see cref="AllowHtmlAttribute"/>

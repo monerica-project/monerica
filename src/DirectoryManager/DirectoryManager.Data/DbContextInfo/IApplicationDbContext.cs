@@ -55,6 +55,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
         public DbSet<AffiliateCommissionEarned> AffiliateCommissionsEarned { get; set; }
         public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
+        public DbSet<DirectoryManager.Data.Models.Emails.MarketingEmailContact> MarketingEmailContacts { get; set; }
         public DbSet<AdditionalLink> AdditionalLinks { get; set; }
         public DbSet<ReviewTag> ReviewTags { get; set; }
         public DbSet<DirectoryEntryReviewTag> DirectoryEntryReviewTags { get; set; }

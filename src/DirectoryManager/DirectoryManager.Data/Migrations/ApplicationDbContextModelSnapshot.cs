@@ -1047,6 +1047,49 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("EmailSubscriptions");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.Emails.MarketingEmailContact", b =>
+                {
+                    b.Property<int>("MarketingEmailContactId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("MarketingEmailContactId"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(250)
+                        .HasColumnType("character varying(250)");
+
+                    b.Property<string>("OptOutSource")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)");
+
+                    b.Property<DateTime?>("OptedOutUtc")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.HasKey("MarketingEmailContactId");
+
+                    b.HasIndex("Email")
+                        .IsUnique();
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.ToTable("MarketingEmailContacts");
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.Emails.SentEmailRecord", b =>
                 {
                     b.Property<int>("SentEmailRecordId")

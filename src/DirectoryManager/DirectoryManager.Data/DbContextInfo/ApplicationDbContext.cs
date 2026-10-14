@@ -61,6 +61,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
         public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
         public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
+        public DbSet<DirectoryManager.Data.Models.Emails.MarketingEmailContact> MarketingEmailContacts { get; set; }
         public DbSet<AdditionalLink> AdditionalLinks { get; set; }
 
         public DbSet<DirectoryEntryGuarantee> DirectoryEntryGuarantees { get; set; }
@@ -677,6 +678,14 @@ namespace DirectoryManager.Data.DbContextInfo
         {
             builder.Entity<SearchBlacklistTerm>()
                    .HasIndex(e => e.Term)
+                   .IsUnique();
+
+            builder.Entity<DirectoryManager.Data.Models.Emails.MarketingEmailContact>()
+                   .HasIndex(e => e.Email)
+                   .IsUnique();
+
+            builder.Entity<DirectoryManager.Data.Models.Emails.MarketingEmailContact>()
+                   .HasIndex(e => e.Token)
                    .IsUnique();
 
             builder.Entity<ReviewTag>()

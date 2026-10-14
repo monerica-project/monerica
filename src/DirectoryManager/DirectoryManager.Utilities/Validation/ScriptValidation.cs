@@ -26,6 +26,27 @@ namespace DirectoryManager.Utilities.Validation
         private static readonly Regex DangerousUriRegex =
             new Regex(@"(javascript|vbscript|data)\s*:", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
 
+        // The patterns below are used only by ContainsSuspiciousMarkupAllowingUrls.
+        private static readonly Regex AngleBracketUrlRegex =
+            new Regex(@"<(https?://[^\s<>""']+)>", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly Regex HttpUrlRegex =
+            new Regex(@"https?://[^\s<>""']+", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        // A tag that was never closed but already carries an attribute, e.g. "<b onmouseover=".
+        private static readonly Regex UnclosedTagWithAttributeRegex =
+            new Regex(@"<\s*/?\s*[a-z][a-z0-9]*\s+[a-z-]+\s*=", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly Regex EventHandlerExceptOnionRegex =
+            new Regex(@"\bon(?!ion\b)[a-z]+\s*=", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        private static readonly Regex ScriptUriRegex =
+            new Regex(@"(javascript|vbscript)\s*:", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
+        // A real data URI ("data:text/html,..." / "data:image/png;base64,..."), not the word "data:".
+        private static readonly Regex DataUriRegex =
+            new Regex(@"\bdata\s*:\s*[a-z]+/[a-z0-9.+-]+\s*[;,]", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant | RegexOptions.Compiled);
+
         // Tab, CR, LF, form-feed, and NUL are stripped from URLs by browsers
         // before the scheme is parsed, so "java&#9;script:" / "java\tscript:"
         // still executes as "javascript:". Remove them before the URI check
@@ -85,6 +106,41 @@ namespace DirectoryManager.Utilities.Validation
         public static bool ContainsSuspiciousMarkup(object? obj)
         {
             return ScanObject(obj, ContainsSuspiciousMarkup);
+        }
+
+        /// <summary>
+        /// Variant of <see cref="ContainsSuspiciousMarkup(string?)"/> for free-text fields where
+        /// people are expected to paste ordinary http(s) links and write normal prose (e.g. a
+        /// report comment). It still rejects every HTML tag, script/dangerous tags, unclosed tags
+        /// carrying attributes, inline event handlers and javascript:/vbscript:/data: URIs, but:
+        ///   - an http(s) URL is allowed, including one written as &lt;https://example.com&gt;;
+        ///   - text inside a URL is not scanned for event handlers (e.g. "?online=1");
+        ///   - the word "data:" in a sentence is allowed; only a real data URI ("data:text/html,") is not;
+        ///   - "onion=" is not treated as an event handler.
+        /// </summary>
+        /// <returns></returns>
+        public static bool ContainsSuspiciousMarkupAllowingUrls(string? input)
+        {
+            if (string.IsNullOrWhiteSpace(input))
+            {
+                return false;
+            }
+
+            string decoded = MultiDecode(input, 3);
+
+            // "<https://example.com/page>" is a plain-text way to write a link, not a tag.
+            string unwrapped = AngleBracketUrlRegex.Replace(decoded, "$1");
+            string withoutUrls = HttpUrlRegex.Replace(unwrapped, " ");
+            string schemeNormalized = UriIgnoredCharsRegex.Replace(unwrapped, string.Empty);
+
+            return HtmlValidation.ContainsHtmlTag(unwrapped)
+                || ScriptTagRegex.IsMatch(unwrapped)
+                || DangerousTagRegex.IsMatch(unwrapped)
+                || UnclosedTagWithAttributeRegex.IsMatch(withoutUrls)
+                || EventHandlerExceptOnionRegex.IsMatch(withoutUrls)
+                || ScriptUriRegex.IsMatch(unwrapped)
+                || ScriptUriRegex.IsMatch(schemeNormalized)
+                || DataUriRegex.IsMatch(schemeNormalized);
         }
 
         // Walks a string, a collection, or all public string properties of an object,

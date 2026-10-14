@@ -1,0 +1,40 @@
+@using DirectoryManager.Web.Constants
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@model DirectoryManager.Data.Models.Emails.MarketingEmailContact?
+@{
+    Layout = "_CenteredLayout";
+    var siteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
+    ViewData[StringConstants.TitleHeader] = "Email opt-out";
+}
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+
+    @if (Model == null)
+    {
+        <p>This opt-out link isn't recognised. Reply to the email you received and we'll remove you by hand.</p>
+    }
+    else if (Model.OptedOutUtc == null)
+    {
+        <p>
+            Stop marketing email from @siteName to <strong>@Model.Email</strong>?
+        </p>
+        <form method="post" action="~/email-opt-out/@Model.Token">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-primary ui-submit btn-cta">Opt out</button>
+        </form>
+    }
+    else
+    {
+        <p>
+            <strong>@Model.Email</strong> is opted out. @siteName won't send marketing email to this address again.
+        </p>
+        <p>Emails about an order or a listing you manage are not affected.</p>
+        <form method="post" action="~/email-opt-out/@Model.Token/undo">
+            @Html.AntiForgeryToken()
+            <button type="submit" class="btn btn-link">Opted out by mistake? Undo</button>
+        </form>
+    }
+}
