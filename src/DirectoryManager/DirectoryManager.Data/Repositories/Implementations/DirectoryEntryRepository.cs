@@ -183,6 +183,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.KycPolicy = entry.KycPolicy;
             existing.DirectoryBadge = entry.DirectoryBadge;
             existing.ReviewsDisabled = entry.ReviewsDisabled;
+            existing.RequireReviewVerificationDetails = entry.RequireReviewVerificationDetails;
             existing.ReviewEmailNotificationsEnabled = entry.ReviewEmailNotificationsEnabled;
             existing.ReviewEmailNotificationsEnabledUtc = entry.ReviewEmailNotificationsEnabledUtc;
 

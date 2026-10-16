@@ -517,6 +517,9 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<bool>("RequireReviewVerificationDetails")
+                        .HasColumnType("boolean");
+
                     b.Property<bool>("ReviewEmailNotificationsEnabled")
                         .HasColumnType("boolean");
 

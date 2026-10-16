@@ -72,6 +72,8 @@ namespace DirectoryManager.Web.Models
 
         public bool ReviewsDisabled { get; set; }
 
+        public bool RequireReviewVerificationDetails { get; set; }
+
         // Read-only (owner controls these via the PGP /site/{key}/admin page) — shown so the
         // operator can see whether the listing opted into review/reply email notifications.
         public bool ReviewEmailNotificationsEnabled { get; set; }

@@ -40,6 +40,7 @@
 
         @{
             var requireVerification = ViewBag.RequireVerification == true;
+            var requireDetails = ViewBag.RequireVerificationDetails == true;
             var listingName = ViewBag.DirectoryEntryName as string ?? "the listing";
         }
 
@@ -58,11 +59,18 @@
             </div>
 
             <div class="u-mb-16px">
-                <label asp-for="OrderProofContext" class="form-label"><strong>Verification Details</strong> <span class="text-muted">(optional)</span></label>
-                <textarea asp-for="OrderProofContext" class="form-control" maxlength="2048" rows="3"></textarea>
+                <label asp-for="OrderProofContext" class="form-label"><strong>Verification Details</strong> @if (requireDetails) { <span class="text-danger">(required)</span> } else { <span class="text-muted">(optional)</span> }</label>
+                @if (requireDetails)
+                {
+                    <textarea asp-for="OrderProofContext" class="form-control" maxlength="2048" rows="3" required></textarea>
+                }
+                else
+                {
+                    <textarea asp-for="OrderProofContext" class="form-control" maxlength="2048" rows="3"></textarea>
+                }
                 <span asp-validation-for="OrderProofContext" class="text-danger"></span>
                 <div class="form-text">
-                    Anything a moderator needs to open your order — for example a wallet address, or an order ID
+                    Anything a moderator needs to open your order — for example your receiving wallet address, or an order ID
                     (including a third-party one if you ordered through an aggregator).
                     <br />
                     <span class="text-muted">Used only for internal verification — never shown publicly.</span>
@@ -82,6 +90,21 @@
                     <span class="text-muted">Used only for internal verification — never shown publicly.</span>
                 </div>
             </div>
+
+            @if (requireDetails)
+            {
+                <div class="u-mb-16px">
+                    <label asp-for="OrderProofContext" class="form-label"><strong>Verification Details</strong> <span class="text-danger">(required)</span></label>
+                    <textarea asp-for="OrderProofContext" class="form-control" maxlength="2048" rows="3" required></textarea>
+                    <span asp-validation-for="OrderProofContext" class="text-danger"></span>
+                    <div class="form-text">
+                        Something a moderator can use to confirm your order with @listingName — for example
+                        your receiving wallet address, a transaction ID, or your order ID.
+                        <br />
+                        <span class="text-muted">Used only for internal verification — never shown publicly.</span>
+                    </div>
+                </div>
+            }
         }
 
         @{

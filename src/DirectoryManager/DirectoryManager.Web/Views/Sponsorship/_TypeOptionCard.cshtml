@@ -130,7 +130,7 @@
     <div class="u-mt-12px-flex-gap-10px-flexwrap-wrap-items-center">
         @if (opt.IsExtension)
         {
-            <a class="btn btn-info btn-cta" href="@extendHref">Extend</a>
+            <a class="btn btn-primary btn-cta" href="@extendHref">Extend</a>
         }
         else if (availableNow)
         {
@@ -157,7 +157,7 @@
         {
             @if (hasWaitlist && !string.IsNullOrWhiteSpace(waitlistUrl))
             {
-                <a class="btn btn-info" href="@waitlistUrl">View waitlist</a>
+                <a class="btn btn-primary" href="@waitlistUrl">View waitlist</a>
             }
         }
     </div>
@@ -358,7 +358,7 @@
             @if (!string.IsNullOrWhiteSpace(waitlistUrl))
             {
                 <div class="u-mt-10px">
-                    <a class="btn btn-info" href="@waitlistUrl">View waitlist</a>
+                    <a class="btn btn-primary" href="@waitlistUrl">View waitlist</a>
                 </div>
             }
         </div>

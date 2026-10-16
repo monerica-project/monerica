@@ -230,7 +230,21 @@ app.UseMiddleware<OnionLocationMiddleware>();
 
 app.UseResponseCaching();
 app.UseStatusCodePagesWithRedirects("/errors/{0}");
-app.UseStaticFiles();
+// Fonts and the dated stylesheets never change in place (a new version gets a new file name),
+// so browsers and the CDN may keep them for a year. Without this every refresh re-checked the
+// fonts and the text briefly rendered in a fallback font before switching.
+app.UseStaticFiles(new StaticFileOptions
+{
+    OnPrepareResponse = ctx =>
+    {
+        var path = ctx.Context.Request.Path;
+        if (path.StartsWithSegments("/fonts", StringComparison.OrdinalIgnoreCase) ||
+            path.StartsWithSegments("/css", StringComparison.OrdinalIgnoreCase))
+        {
+            ctx.Context.Response.Headers.CacheControl = "public, max-age=31536000, immutable";
+        }
+    },
+});
 
 // Trim Razor's leftover whitespace (blank lines, trailing spaces, stray CRs) out of rendered
 // HTML so every page is a bit smaller. Placed after UseStaticFiles so it only wraps dynamic

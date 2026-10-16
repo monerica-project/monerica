@@ -127,6 +127,11 @@ namespace DirectoryManager.Data.Models
 
         public bool ReviewsDisabled { get; set; }
 
+        // Admin-set per listing: when true, a public review must include the "Verification Details"
+        // (e.g. a wallet address or order ID the moderator can check), and such reviews are always
+        // held for manual moderation.
+        public bool RequireReviewVerificationDetails { get; set; }
+
         public ICollection<DirectoryEntryTag> EntryTags { get; set; }
            = new List<DirectoryEntryTag>();
 

@@ -240,7 +240,9 @@ namespace DirectoryManager.Web.Controllers
                 CountryCode = vm.CountryCode,
                 KycPolicy = vm.KycPolicy,
                 Liquidity = vm.Liquidity,
-                FoundedDate = foundedDate
+                FoundedDate = foundedDate,
+                ReviewsDisabled = vm.ReviewsDisabled,
+                RequireReviewVerificationDetails = vm.RequireReviewVerificationDetails,
             };
 
             await this.directoryEntryRepository.CreateAsync(model);
@@ -322,6 +324,7 @@ namespace DirectoryManager.Web.Controllers
                 SelectedTagIds = selectedIds.ToList(),
                 AdditionalLinks = additionalLinks,
                 ReviewsDisabled = entry.ReviewsDisabled,
+                RequireReviewVerificationDetails = entry.RequireReviewVerificationDetails,
                 ReviewEmailNotificationsEnabled = entry.ReviewEmailNotificationsEnabled,
                 ReviewEmailNotificationsEnabledUtc = entry.ReviewEmailNotificationsEnabledUtc,
                 ReviewCount = reviewCount,
@@ -397,6 +400,7 @@ namespace DirectoryManager.Web.Controllers
             existingEntry.PgpKey = vm.PgpKey?.Trim();
             existingEntry.FoundedDate = foundedDate;
             existingEntry.ReviewsDisabled = vm.ReviewsDisabled;
+            existingEntry.RequireReviewVerificationDetails = vm.RequireReviewVerificationDetails;
 
             await this.directoryEntryRepository.UpdateAsync(existingEntry);
             await this.SyncAdditionalLinksAsync(id, normalizedAdditional);

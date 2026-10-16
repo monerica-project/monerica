@@ -269,6 +269,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.PgpFingerprint = state.PgpFingerprint;
             this.ViewBag.RequireVerification =
                 entry is not null && await this.SubcategoryRequiresVerificationAsync(entry.SubCategoryId);
+            this.ViewBag.RequireVerificationDetails = entry?.RequireReviewVerificationDetails == true;
 
             // Tags the reviewer can suggest: enabled AND flagged public (ReviewerSelectable).
             // Admin-only tags (e.g. "Valid Order", "Suspicious Review") are excluded from the
@@ -347,6 +348,10 @@ namespace DirectoryManager.Web.Controllers
             var requireVerification = await this.SubcategoryRequiresVerificationAsync(gateEntry.SubCategoryId);
             this.ViewBag.RequireVerification = requireVerification;
 
+            // Per-listing admin setting: the Verification Details box must be filled in.
+            var requireDetails = gateEntry.RequireReviewVerificationDetails;
+            this.ViewBag.RequireVerificationDetails = requireDetails;
+
             if (!this.ModelState.IsValid)
             {
                 var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
@@ -381,6 +386,19 @@ namespace DirectoryManager.Web.Controllers
 
                 var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
                 this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
+                return this.View("Compose", input);
+            }
+
+            // When the listing requires verification details, the details box is mandatory.
+            if (requireDetails && string.IsNullOrWhiteSpace(input.OrderProofContext))
+            {
+                this.ModelState.AddModelError(
+                    nameof(input.OrderProofContext),
+                    "Verification details are required for reviews of this listing (for example your receiving wallet address, or your order ID).");
+
+                this.ViewBag.DirectoryEntryName = gateEntry.Name ?? "Listing";
                 this.ViewBag.FlowId = flowId;
                 this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
                 return this.View("Compose", input);
@@ -468,7 +486,7 @@ namespace DirectoryManager.Web.Controllers
             // approve or modify the tag selection before it (and the review) go live. This never
             // auto-publishes a self-applied tag.
             var hasSuggestedTags = input.SelectedReviewTagIds is { Count: > 0 };
-            if (requireVerification || mod.NeedsManualReview || hasSuggestedTags)
+            if (requireVerification || requireDetails || mod.NeedsManualReview || hasSuggestedTags)
             {
                 entity.ModerationStatus = ReviewModerationStatus.Pending;
             }
