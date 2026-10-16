@@ -124,7 +124,7 @@ namespace DirectoryManager.Web.Controllers
             var typeIdForGroup = SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(sponsorshipType, entry, subCategoryId, categoryId);
             var group = ReservationGroupHelper.BuildReservationGroupName(sponsorshipType, typeIdForGroup);
             int? typeIdForCap = sponsorshipType == SponsorshipType.MainSponsor ? (int?)null : typeIdForGroup;
-            var isExtension = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId, sponsorshipType).ConfigureAwait(false);
+            var isExtension = await this.sponsoredListingRepository.IsSponsoredListingActiveInScopeAsync(directoryEntryId, sponsorshipType, typeIdForGroup).ConfigureAwait(false);
             var hasToken = await this.TryAttachReservationAsync(rsvId, group, directoryEntryId);
 
             if (sponsorshipType == SponsorshipType.MainSponsor && !isExtension)
@@ -263,7 +263,7 @@ namespace DirectoryManager.Web.Controllers
 
             var typeIdForGroup = SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(sponsorshipType, entry, null, null);
             var reservationGroup = ReservationGroupHelper.BuildReservationGroupName(sponsorshipType, typeIdForGroup);
-            var isExtension = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId, sponsorshipType);
+            var isExtension = await this.sponsoredListingRepository.IsSponsoredListingActiveInScopeAsync(directoryEntryId, sponsorshipType, typeIdForGroup);
 
             // Show the countdown banner only when this buyer actually holds an active reservation for this
             // slot — from the URL guid, or (on back-navigation without a guid) recovered from the DB by
@@ -422,7 +422,7 @@ namespace DirectoryManager.Web.Controllers
             var typeIdForGroup = SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(offer.SponsorshipType, entry, null, null);
             var reservationGroup = ReservationGroupHelper.BuildReservationGroupName(offer.SponsorshipType, typeIdForGroup);
             int? typeIdForCap = offer.SponsorshipType == SponsorshipType.MainSponsor ? (int?)null : typeIdForGroup;
-            var isExtension = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId, offer.SponsorshipType).ConfigureAwait(false);
+            var isExtension = await this.sponsoredListingRepository.IsSponsoredListingActiveInScopeAsync(directoryEntryId, offer.SponsorshipType, typeIdForGroup).ConfigureAwait(false);
 
             rsvId = await this.ValidateExistingReservationAsync(rsvId, reservationGroup, directoryEntryId);
 
@@ -1080,7 +1080,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var (group, typeIdForCap) = this.BuildGroupAndCapacity(offer.SponsorshipType, entry);
-            var isExtension = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId, offer.SponsorshipType).ConfigureAwait(false);
+            var isExtension = await this.sponsoredListingRepository.IsSponsoredListingActiveInScopeAsync(directoryEntryId, offer.SponsorshipType, typeIdForCap).ConfigureAwait(false);
 
             if (!isExtension && offer.SponsorshipType == SponsorshipType.MainSponsor)
             {
@@ -1166,7 +1166,7 @@ namespace DirectoryManager.Web.Controllers
         {
             if (!await this.TryAttachReservationAsync(rsvId, group, directoryEntryId))
             {
-                var isActive = await this.sponsoredListingRepository.IsSponsoredListingActive(directoryEntryId, offer.SponsorshipType);
+                var isActive = await this.sponsoredListingRepository.IsSponsoredListingActiveInScopeAsync(directoryEntryId, offer.SponsorshipType, typeIdForCap);
                 var totalActive = await this.sponsoredListingRepository.GetActiveSponsorsCountAsync(offer.SponsorshipType, typeIdForCap);
                 var totalReserved = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(group);
 
@@ -1254,7 +1254,9 @@ namespace DirectoryManager.Web.Controllers
         private async Task<SponsoredListingInvoice> BuildBaseInvoiceAsync(
             DirectoryEntry entry, SponsoredListingOffer offer, string ipAddress)
         {
-            var existing = await this.sponsoredListingRepository.GetActiveSponsorAsync(entry.DirectoryEntryId, offer.SponsorshipType);
+            // An extension starts when the current campaign in the SAME (sub)category ends.
+            var scopeId = SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(offer.SponsorshipType, entry, null, null);
+            var existing = await this.sponsoredListingRepository.GetActiveSponsorInScopeAsync(entry.DirectoryEntryId, offer.SponsorshipType, scopeId);
             var startDate = existing?.CampaignEndDate ?? DateTime.UtcNow;
             return await this.CreateInvoiceAsync(entry, offer, startDate, ipAddress);
         }
@@ -1771,7 +1773,12 @@ namespace DirectoryManager.Web.Controllers
                     USDPrice = offer.Price,
                     SponsorshipType = offer.SponsorshipType,
                 },
-                IsExtension = current.Any(x => x.DirectoryEntryId == de.DirectoryEntryId),
+                // Only an active campaign in THIS listing's current (sub)category counts as an extension.
+                IsExtension = current.Any(x => x.DirectoryEntryId == de.DirectoryEntryId &&
+                    SponsoredListingCheckoutHelper.IsSameScope(
+                        x,
+                        offer.SponsorshipType,
+                        SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(offer.SponsorshipType, de, null, null))),
             };
 
         // =====================================================================

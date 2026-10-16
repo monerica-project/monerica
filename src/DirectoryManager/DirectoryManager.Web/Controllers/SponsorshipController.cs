@@ -1023,9 +1023,11 @@ namespace DirectoryManager.Web.Controllers
                 string scopeLabel,
                 bool includeMainSubcategoryCap = false)
         {
+            // Only a campaign in this listing's CURRENT (sub)category is extendable; one left over in
+            // a (sub)category the listing moved out of doesn't hold the new slot.
             var isExtension = await this.sponsoredListingRepo
-                .IsSponsoredListingActive(
-                    entry.DirectoryEntryId, type);
+                .IsSponsoredListingActiveInScopeAsync(
+                    entry.DirectoryEntryId, type, typeIdForScope);
 
             var poolAvailable = await this.IsPoolAvailableAsync(
                 type, typeIdForScope);

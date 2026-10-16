@@ -141,6 +141,86 @@ namespace DirectoryManager.Web.Tests.Sponsorship
             Assert.Equal(listing.SponsoredListingId, (await h.ReloadInvoiceAsync()).SponsoredListingId);
         }
 
+        // A sponsor whose listing MOVED subcategory still has a live campaign in the old one. That is
+        // not an extension of the new subcategory's slot: if another listing holds that slot, the
+        // buyer is sent to the waiting page instead of getting an invoice.
+        [Fact]
+        public async Task MovedListing_CannotBuyANewSubcategorySlotThatIsTaken()
+        {
+            using var h = new Harness();
+            h.Db.DirectoryEntries.Add(new DirectoryEntry
+            {
+                DirectoryEntryId = 11,
+                Name = "Other Swap",
+                DirectoryEntryKey = "other-swap",
+                Link = "https://other.example",
+                SubCategoryId = SubCategoryId,
+                DirectoryStatus = DirectoryStatus.Verified,
+            });
+            h.Db.SponsoredListings.AddRange(
+                new SponsoredListing
+                {
+                    DirectoryEntryId = EntryId,
+                    SponsorshipType = SponsorshipType.SubcategorySponsor,
+                    SubCategoryId = 99, // the subcategory the listing moved out of
+                    CampaignStartDate = DateTime.UtcNow.AddDays(-25),
+                    CampaignEndDate = DateTime.UtcNow.AddDays(5),
+                    SponsoredListingInvoiceId = 998,
+                },
+                new SponsoredListing
+                {
+                    DirectoryEntryId = 11,
+                    SponsorshipType = SponsorshipType.SubcategorySponsor,
+                    SubCategoryId = SubCategoryId, // the new subcategory's only slot, held by someone else
+                    CampaignStartDate = DateTime.UtcNow.AddDays(-10),
+                    CampaignEndDate = DateTime.UtcNow.AddDays(20),
+                    SponsoredListingInvoiceId = 997,
+                });
+            await h.Db.SaveChangesAsync();
+
+            Assert.False(await h.SponsoredListings.IsSponsoredListingActiveInScopeAsync(EntryId, SponsorshipType.SubcategorySponsor, SubCategoryId));
+            Assert.True(await h.SponsoredListings.IsSponsoredListingActiveInScopeAsync(EntryId, SponsorshipType.SubcategorySponsor, 99));
+
+            var result = await h.ConfirmCheckoutAsync();
+
+            var redirect = Assert.IsType<RedirectResult>(result);
+            Assert.Contains("/sponsoredlisting/checkout-waiting", redirect.Url);
+            Assert.Empty(h.Db.SponsoredListingInvoices);
+        }
+
+        // When the new subcategory's slot is free, the moved listing buys it as a NEW campaign: it
+        // starts now (not when the old campaign ends) and paying it creates a separate listing
+        // instead of extending the old subcategory's one.
+        [Fact]
+        public async Task MovedListing_BuysTheFreeSlotAsANewCampaign_OldOneUntouched()
+        {
+            using var h = new Harness();
+            var oldEnd = DateTime.UtcNow.AddDays(5);
+            h.Db.SponsoredListings.Add(new SponsoredListing
+            {
+                DirectoryEntryId = EntryId,
+                SponsorshipType = SponsorshipType.SubcategorySponsor,
+                SubCategoryId = 99,
+                CampaignStartDate = DateTime.UtcNow.AddDays(-25),
+                CampaignEndDate = oldEnd,
+                SponsoredListingInvoiceId = 998,
+            });
+            await h.Db.SaveChangesAsync();
+
+            await h.ConfirmCheckoutAsync();
+            var invoice = await h.ReloadInvoiceAsync();
+            Assert.True(invoice.CampaignStartDate < DateTime.UtcNow.AddMinutes(1), "a new slot starts now, not after the old campaign");
+
+            await h.WebhookAsync("InvoiceSettled", invoice.ProcessorInvoiceId!);
+
+            var listings = await h.Db.SponsoredListings.AsNoTracking().ToListAsync();
+            Assert.Equal(2, listings.Count);
+            var old = listings.Single(l => l.SubCategoryId == 99);
+            Assert.Equal(oldEnd, old.CampaignEndDate, TimeSpan.FromSeconds(1));
+            var created = listings.Single(l => l.SubCategoryId == SubCategoryId);
+            Assert.Equal(created.SponsoredListingId, (await h.ReloadInvoiceAsync()).SponsoredListingId);
+        }
+
         [Fact]
         public async Task ReconfirmCancelsOldInvoice_ButPayingItStillActivatesTheListing()
         {

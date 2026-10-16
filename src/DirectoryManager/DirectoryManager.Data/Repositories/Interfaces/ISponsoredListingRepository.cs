@@ -17,6 +17,10 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<List<SponsoredListing>> GetPaginatedListingsAsync(int page, int pageSize);
         Task<SponsoredListing?> GetActiveSponsorAsync(int directoryEntryId, SponsorshipType sponsorshipType);
 
+        // The listing's active campaign in a specific scope (category id for CategorySponsor,
+        // subcategory id for SubcategorySponsor; ignored for MainSponsor), or null.
+        Task<SponsoredListing?> GetActiveSponsorInScopeAsync(int directoryEntryId, SponsorshipType sponsorshipType, int? scopeId);
+
         /// <summary>
         /// The earliest campaign start date across ALL of an entry's sponsorships (paid
         /// listings), i.e. when they first became a sponsor. Null if they never sponsored.
@@ -29,6 +33,12 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<bool> UpdateAsync(SponsoredListing sponsoredListing);
         Task DeleteAsync(int sponsoredListingId);
         Task<bool> IsSponsoredListingActive(int directoryEntryId, SponsorshipType sponsorshipType);
+
+        // Like IsSponsoredListingActive, but only counts a campaign in the given scope: the category
+        // (CategorySponsor) or subcategory (SubcategorySponsor) id; ignored for MainSponsor. Use this to
+        // decide whether a purchase is an EXTENSION — a sponsor whose listing moved to another
+        // (sub)category is buying a new slot there, not extending the old one.
+        Task<bool> IsSponsoredListingActiveInScopeAsync(int directoryEntryId, SponsorshipType sponsorshipType, int? scopeId);
         Task<Dictionary<int, DateTime>> GetLastChangeDatesBySubcategoryAsync();
         Task<Dictionary<int, DateTime>> GetLastChangeDatesByCategoryAsync();
         Task<DateTime?> GetLastChangeDateForMainSponsorAsync();

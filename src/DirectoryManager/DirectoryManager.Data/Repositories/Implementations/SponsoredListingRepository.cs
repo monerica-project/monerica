@@ -203,6 +203,26 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                           x.CampaignEndDate >= now);
         }
 
+        public Task<SponsoredListing?> GetActiveSponsorInScopeAsync(int directoryEntryId, SponsorshipType sponsorshipType, int? scopeId)
+        {
+            var now = DateTime.UtcNow;
+
+            var query = this.context.SponsoredListings
+                .Where(x => x.DirectoryEntryId == directoryEntryId &&
+                            x.SponsorshipType == sponsorshipType &&
+                            x.CampaignStartDate <= now &&
+                            x.CampaignEndDate >= now);
+
+            query = sponsorshipType switch
+            {
+                SponsorshipType.CategorySponsor => query.Where(x => x.CategoryId == scopeId),
+                SponsorshipType.SubcategorySponsor => query.Where(x => x.SubCategoryId == scopeId),
+                _ => query,
+            };
+
+            return query.FirstOrDefaultAsync();
+        }
+
         public async Task<HashSet<int>> GetActivelySponsoredDirectoryEntryIdsAsync()
         {
             var now = DateTime.UtcNow;
@@ -259,6 +279,26 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                    .FirstOrDefaultAsync();
 
             return result != null;
+        }
+
+        public async Task<bool> IsSponsoredListingActiveInScopeAsync(int directoryEntryId, SponsorshipType sponsorshipType, int? scopeId)
+        {
+            var now = DateTime.UtcNow;
+
+            var query = this.context.SponsoredListings
+                .Where(x => x.CampaignStartDate <= now &&
+                            x.CampaignEndDate >= now &&
+                            x.DirectoryEntryId == directoryEntryId &&
+                            x.SponsorshipType == sponsorshipType);
+
+            query = sponsorshipType switch
+            {
+                SponsorshipType.CategorySponsor => query.Where(x => x.CategoryId == scopeId),
+                SponsorshipType.SubcategorySponsor => query.Where(x => x.SubCategoryId == scopeId),
+                _ => query,
+            };
+
+            return await query.AnyAsync();
         }
 
         public async Task<Dictionary<int, DateTime>> GetLastChangeDatesByCategoryAsync()

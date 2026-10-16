@@ -1,5 +1,6 @@
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
+using DirectoryManager.Data.Models.SponsoredListings;
 
 namespace DirectoryManager.Web.Helpers
 {
@@ -159,6 +160,16 @@ namespace DirectoryManager.Web.Helpers
 
         /// <summary>Resolves the integer ID used to key reservation groups and capacity checks.</summary>
         /// <returns></returns>
+        // True when an existing campaign is in the same slot scope as a purchase: same category for
+        // CategorySponsor, same subcategory for SubcategorySponsor; Main has a single scope.
+        internal static bool IsSameScope(SponsoredListing listing, SponsorshipType type, int? scopeId) => type switch
+        {
+            SponsorshipType.MainSponsor => listing.SponsorshipType == SponsorshipType.MainSponsor,
+            SponsorshipType.CategorySponsor => listing.SponsorshipType == type && listing.CategoryId == scopeId,
+            SponsorshipType.SubcategorySponsor => listing.SponsorshipType == type && listing.SubCategoryId == scopeId,
+            _ => false,
+        };
+
         internal static int ResolveTypeIdForGroup(
             SponsorshipType type,
             DirectoryEntry entry,

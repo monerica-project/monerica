@@ -1,3 +1,4 @@
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Helpers;
@@ -63,8 +64,16 @@ namespace DirectoryManager.Web.Services.Implementations
                 return;
             }
 
+            // Only a campaign in the SAME slot (category / subcategory) as this invoice is a renewal.
+            // A listing that moved (sub)category keeps its old campaign untouched and gets a new one.
+            int? scopeId = invoice.SponsorshipType switch
+            {
+                SponsorshipType.CategorySponsor => invoice.CategoryId,
+                SponsorshipType.SubcategorySponsor => invoice.SubCategoryId,
+                _ => null,
+            };
             var active = await this.sponsoredListingRepository
-                .GetActiveSponsorAsync(invoice.DirectoryEntryId, invoice.SponsorshipType).ConfigureAwait(false);
+                .GetActiveSponsorInScopeAsync(invoice.DirectoryEntryId, invoice.SponsorshipType, scopeId).ConfigureAwait(false);
 
             if (active == null)
             {
