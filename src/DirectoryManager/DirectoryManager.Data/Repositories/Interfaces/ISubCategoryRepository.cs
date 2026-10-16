@@ -11,6 +11,12 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync(int minimumInSubCategory);
         Task<Subcategory?> GetByIdAsync(int subCategoryId);
         Task<Subcategory?> GetByCategoryIdAndKeyAsync(int categoryId, string subCategoryKey);
+
+        /// <summary>
+        /// True when another subcategory (not <paramref name="excludeSubCategoryId"/>) in the same
+        /// category already uses this key (enabled or not, with or without entries).
+        /// </summary>
+        Task<bool> KeyExistsAsync(int categoryId, string subCategoryKey, int? excludeSubCategoryId = null);
         Task CreateAsync(Subcategory subCategory);
         Task UpdateAsync(Subcategory subCategory);
         Task DeleteAsync(int subCategoryId);

@@ -42,7 +42,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync(ct);
         }
 
-        public async Task SetPaidAsync(int id, decimal? amount, string? currency, DateTime paidUtc, CancellationToken ct = default)
+        public async Task SetPaidAsync(int id, decimal? amount, string? currency, decimal? paidUsd, DateTime paidUtc, CancellationToken ct = default)
         {
             var existing = await this.Set.FindAsync(new object[] { id }, ct);
             if (existing is null || existing.PaidUtc is not null)
@@ -53,6 +53,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.PaidUtc = paidUtc;
             existing.PaidAmount = amount;
             existing.PaidCurrency = currency;
+            existing.PaidUsd = paidUsd;
             existing.UpdateDate = DateTime.UtcNow;
             await this.context.SaveChangesAsync(ct);
         }

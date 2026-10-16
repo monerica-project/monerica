@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Constants;
@@ -15,7 +16,6 @@ namespace DirectoryManager.Web.Controllers
         private readonly IRssFeedService rssFeedService;
         private readonly IMemoryCache cache;
         private readonly ICacheService cacheService;
-        private readonly ISponsoredListingRepository sponsoredListingRepository;
 
         private readonly IDirectoryEntryReviewRepository reviewRepository;
         private readonly IDirectoryEntryReviewCommentRepository commentRepository;
@@ -27,7 +27,6 @@ namespace DirectoryManager.Web.Controllers
             IRssFeedService rssFeedService,
             IMemoryCache cache,
             ICacheService cacheService,
-            ISponsoredListingRepository sponsoredListingRepository,
             IDirectoryEntryReviewRepository reviewRepository,
             IDirectoryEntryReviewCommentRepository commentRepository)
             : base(trafficLogRepository, userAgentCacheService, cache)
@@ -36,7 +35,6 @@ namespace DirectoryManager.Web.Controllers
             this.rssFeedService = rssFeedService;
             this.cache = cache;
             this.cacheService = cacheService;
-            this.sponsoredListingRepository = sponsoredListingRepository;
             this.reviewRepository = reviewRepository;
             this.commentRepository = commentRepository;
         }
@@ -124,8 +122,23 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpGet("newest")]
         [HttpGet("newest/page/{pageNumber:int}")]
-        public async Task<IActionResult> Newest(int pageNumber = 1, int pageSize = IntegerConstants.MaxPageSize)
+        public async Task<IActionResult> Newest(int pageNumber = 1)
         {
+            // Fixed page size (no longer taken from the query string) and page < 1 rejected
+            // BEFORE querying; out-of-range pages 301 to page 1 like the category pages.
+            const int PageSize = IntegerConstants.MaxPageSize;
+            if (pageNumber < 1)
+            {
+                return this.RedirectPermanent("/newest");
+            }
+
+            int totalEntries = await this.directoryEntryRepository.TotalActive();
+            int totalPages = PagingHelper.TotalPages(totalEntries, PageSize);
+            if (pageNumber > totalPages)
+            {
+                return this.RedirectPermanent("/newest");
+            }
+
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             var basePath = "newest";
             var path = pageNumber > 1
@@ -134,11 +147,10 @@ namespace DirectoryManager.Web.Controllers
             this.ViewData[StringConstants.CanonicalUrl] =
                 UrlBuilder.CombineUrl(canonicalDomain, path);
 
-            var groupedNewestAdditions = await this.directoryEntryRepository.GetNewestAdditionsGrouped(pageSize, pageNumber);
+            var groupedNewestAdditions = await this.directoryEntryRepository.GetNewestAdditionsGrouped(PageSize, pageNumber);
 
-            int totalEntries = await this.directoryEntryRepository.TotalActive();
             this.ViewBag.TotalEntries = totalEntries;
-            this.ViewBag.TotalPages = (int)Math.Ceiling((double)totalEntries / pageSize);
+            this.ViewBag.TotalPages = totalPages;
             this.ViewBag.PageNumber = pageNumber;
 
             return this.View("Newest", groupedNewestAdditions);
@@ -161,19 +173,6 @@ namespace DirectoryManager.Web.Controllers
             this.ClearCachedItems();
             this.TempData["CacheCleared"] = true;
             return this.RedirectToAction(nameof(this.ExpireCache));
-        }
-
-        [HttpGet("/snippets/main-sponsors")]
-        [Produces("text/html")]
-        [ResponseCache(Duration = 300, Location = ResponseCacheLocation.Any, NoStore = false)]
-        [AllowAnonymous]
-        public async Task<IActionResult> MainSponsorsAsync()
-        {
-            // If you need CORS for fetch():
-            this.Response.Headers["Access-Control-Allow-Origin"] = "*";
-
-            var sponsors = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(SponsorshipType.MainSponsor);
-            return this.PartialView("_MainSponsorsSnippet", sponsors);
         }
     }
 }

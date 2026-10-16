@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using System.Xml.Linq;
 using DirectoryManager.Common.Helpers;
+using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 
@@ -31,13 +32,15 @@ namespace DirectoryManager.Web.Services.Implementations
                         new XAttribute("url", logoUrl)));
             }
 
+            var siteOrigin = GetOrigin(feedLink);
+
             // Add directory entries
             channelElements.AddRange(
                 directoryEntries.Select(entryWrapper =>
                     new XElement(
                         "item",
-                        new XElement("title", this.GetFormattedTitle(entryWrapper)),
-                        new XElement("link", entryWrapper.GetLink()),
+                        new XElement("title", GetFormattedTitle(entryWrapper)),
+                        new XElement("link", GetItemLink(entryWrapper, siteOrigin)),
                         new XElement("description", this.FormatDescription(entryWrapper.DirectoryEntry)),
                         new XElement("pubDate", entryWrapper.DirectoryEntry.CreateDate.ToString("R")))));
 
@@ -49,18 +52,42 @@ namespace DirectoryManager.Web.Services.Implementations
             return new XDocument(rss);
         }
 
-        private string GetFormattedTitle(DirectoryEntryWrapper wrapper)
+        // XElement escapes text itself, so the status marks must be the real characters — an
+        // HTML entity like "&#x274C;" would be double-encoded and show up literally in readers.
+        internal static string GetFormattedTitle(DirectoryEntryWrapper wrapper)
         {
             var baseTitle = wrapper.DirectoryEntry.DirectoryStatus switch
             {
-                Data.Enums.DirectoryStatus.Scam => $"&#x274C; {wrapper.GetName()}",
-                Data.Enums.DirectoryStatus.Verified => $"&#x2705; {wrapper.GetName()}",
-                Data.Enums.DirectoryStatus.Questionable => $"&#x2753; {wrapper.GetName()}",
+                Data.Enums.DirectoryStatus.Scam => $"❌ {wrapper.GetName()}",
+                Data.Enums.DirectoryStatus.Verified => $"✅ {wrapper.GetName()}",
+                Data.Enums.DirectoryStatus.Questionable => $"❓ {wrapper.GetName()}",
                 _ => wrapper.GetName()
             };
 
             // Append "(sponsored)" if it is sponsored
             return wrapper.IsSponsored ? $"{baseTitle} (sponsored)" : baseTitle;
+        }
+
+        // Scam listings must never link straight to the scam site — send readers to the
+        // listing's profile page (which carries the warning) instead.
+        internal static string GetItemLink(DirectoryEntryWrapper wrapper, string siteOrigin)
+        {
+            var entry = wrapper.DirectoryEntry;
+            if (entry.DirectoryStatus == Data.Enums.DirectoryStatus.Scam)
+            {
+                return string.IsNullOrWhiteSpace(entry.DirectoryEntryKey)
+                    ? siteOrigin
+                    : siteOrigin.TrimEnd('/') + UrlBuilder.ListingPath(entry.DirectoryEntryKey);
+            }
+
+            return wrapper.GetLink();
+        }
+
+        private static string GetOrigin(string feedLink)
+        {
+            return Uri.TryCreate(feedLink, UriKind.Absolute, out var uri)
+                ? uri.GetLeftPart(UriPartial.Authority)
+                : string.Empty;
         }
 
         private string FormatDescription(Data.Models.DirectoryEntry entry)

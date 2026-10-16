@@ -2,6 +2,7 @@ using BtcPayServer.API.Interfaces;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.VerificationRequests;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models.VerificationRequests;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Authorization;
@@ -63,6 +64,7 @@ namespace DirectoryManager.Web.Controllers
                 var currency = string.IsNullOrWhiteSpace(invoice.Currency) ? null : invoice.Currency;
 
                 // Top-up invoices report an invoice amount of 0, so record the actual XMR received.
+                string? xmrRateUsd = null;
                 if (amount is null)
                 {
                     var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(storeId, item.BtcPayInvoiceId!);
@@ -70,12 +72,15 @@ namespace DirectoryManager.Web.Controllers
                     {
                         amount = xmrPaid;
                         currency = "XMR";
+                        xmrRateUsd = xmr.Rate;
                     }
                 }
 
+                var paidUsd = DonationUsdHelper.ToUsd(amount, currency, xmrRateUsd);
+
                 var paidUtc = DateTime.UtcNow;
 
-                await this.requests.SetPaidAsync(item.VerificationRequestId, amount, currency, paidUtc, ct);
+                await this.requests.SetPaidAsync(item.VerificationRequestId, amount, currency, paidUsd, paidUtc, ct);
 
                 // reflect it in the object we're about to render
                 item.PaidUtc = paidUtc;

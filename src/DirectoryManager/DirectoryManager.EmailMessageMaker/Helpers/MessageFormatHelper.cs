@@ -234,19 +234,19 @@ namespace DirectoryManager.EmailMessageMaker.Helpers
                     {
                         if (entry.DirectoryStatus == Data.Enums.DirectoryStatus.Scam)
                         {
-                            result.AppendLine($"     + Scam! - {entry.Name} - {entry.Link} - {entry.Description}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $" <i>({entry.Note})</i>")}".TrimEnd());
+                            result.AppendLine($"     + Scam! - {entry.Name} - {entry.Link} - {entry.Description}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $" ({entry.Note})")}".TrimEnd());
                         }
                         else if (entry.DirectoryStatus == Data.Enums.DirectoryStatus.Questionable)
                         {
-                            result.AppendLine($"     + Questionable! - {entry.Name} - {entry.Link} - {entry.Description}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $" <i>({entry.Note})</i>")}".TrimEnd());
+                            result.AppendLine($"     + Questionable! - {entry.Name} - {entry.Link} - {entry.Description}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $" ({entry.Note})")}".TrimEnd());
                         }
                         else if (entry.DirectoryStatus == Data.Enums.DirectoryStatus.Verified)
                         {
-                            result.AppendLine($"     + Verified - {entry.Name} - {entry.Link} - {entry.Description}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $" <i>({entry.Note})</i>")}".TrimEnd());
+                            result.AppendLine($"     + Verified - {entry.Name} - {entry.Link} - {entry.Description}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $" ({entry.Note})")}".TrimEnd());
                         }
                         else
                         {
-                            result.AppendLine($"     + {entry.Name} - {entry.Link} - {entry.Description}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $" <i>({entry.Note})</i>")}".TrimEnd());
+                            result.AppendLine($"     + {entry.Name} - {entry.Link} - {entry.Description}{(string.IsNullOrWhiteSpace(entry.Note) ? "" : $" ({entry.Note})")}".TrimEnd());
                         }
                     }
 

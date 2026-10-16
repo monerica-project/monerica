@@ -1,10 +1,12 @@
 ﻿using System.Text.RegularExpressions;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
 using DirectoryManager.Utilities.Validation;
 using DirectoryManager.Web.Extensions;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Services.Interfaces;
 using Microsoft.AspNetCore.Mvc;
@@ -60,8 +62,10 @@ public class SearchController : Controller
             return this.BadRequest("Invalid search.");
         }
 
+        // Same bounds the repository applies (SearchNonRemovedAsync clamps to 10..50), so the
+        // pager math here always matches the rows actually returned.
         page = Math.Clamp(page, 1, 100000);
-        pageSize = Math.Clamp(pageSize, 1, 50);
+        pageSize = Math.Clamp(pageSize, 10, 50);
 
         if (ScriptValidation.ContainsScriptTag(q) || HtmlValidation.ContainsHtmlTag(q))
         {
@@ -101,6 +105,14 @@ public class SearchController : Controller
         }
 
         var result = await this.entryRepo.SearchNonRemovedAsync(q, page, pageSize);
+
+        // Past the last page: back to page 1 of the same search (consistent with the other
+        // paged pages) instead of an empty 200. Checked before logging so it isn't logged twice.
+        if (page > PagingHelper.TotalPages(result.TotalCount, pageSize))
+        {
+            return this.Redirect(PagingRedirectHelper.FirstPageUrl("/search", this.Request.Query));
+        }
+
         var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
         var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
 

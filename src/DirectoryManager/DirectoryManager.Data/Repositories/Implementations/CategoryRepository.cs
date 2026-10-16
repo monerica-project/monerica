@@ -60,6 +60,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.context.Categories.FirstOrDefaultAsync(sc => sc.CategoryKey == categoryKey);
         }
 
+        public async Task<bool> KeyExistsAsync(string categoryKey, int? excludeCategoryId = null)
+        {
+            return await this.context.Categories
+                .AnyAsync(c => c.CategoryKey == categoryKey &&
+                               (excludeCategoryId == null || c.CategoryId != excludeCategoryId.Value));
+        }
+
         public async Task<IEnumerable<Category>> GetActiveCategoriesAsync()
         {
             return await (

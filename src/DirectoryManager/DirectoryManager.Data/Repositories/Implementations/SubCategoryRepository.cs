@@ -102,6 +102,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .FirstOrDefaultAsync();
         }
 
+        public async Task<bool> KeyExistsAsync(int categoryId, string subCategoryKey, int? excludeSubCategoryId = null)
+        {
+            return await this.context.Subcategories
+                .AnyAsync(s => s.CategoryId == categoryId &&
+                               s.SubCategoryKey == subCategoryKey &&
+                               (excludeSubCategoryId == null || s.SubCategoryId != excludeSubCategoryId.Value));
+        }
+
         public async Task<IEnumerable<Subcategory>> GetByCategoryAsync(int categoryId)
         {
             return await this.context.Subcategories

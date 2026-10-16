@@ -77,18 +77,28 @@
 
     var processorParts = ViewBag.ProcessorParts as List<DirectoryManager.Web.Models.ProcessorPart>;
 
-    // Copy-and-paste "Review us on Monerica" badge for listing owners.
+    // Copy-and-paste "Review us on <SiteName>" badge for listing owners.
     // Full, self-contained HTML (inline styles + absolute logo URL) so it renders
     // correctly on any external site. Links to the listing page (not the #reviews hash).
     var listingUrl = UrlHelper.MakeFullUrl(domain, UrlBuilder.ListingPath(Model.DirectoryEntryKey));
 
-    // The embed badge always uses the hosted CDN logo so it renders on any external site.
-    var badgeLogoUrl = "https://cdn.monerica.com/directorycontent/images/monerica-logo.png";
+    // The embed badge uses an absolute (CDN) logo URL from config so it renders on any external
+    // site. Not hardcoded: the codebase is forked. Empty snippet = badge without the logo.
+    var badgeLogoUrl = (await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.ReviewBadgeLogoUrl) ?? string.Empty).Trim();
+    var badgeSiteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
 
     // Attribute-encode URLs (a CDN logo URL may contain query params) and text.
     var encodedListingUrl = System.Net.WebUtility.HtmlEncode(listingUrl);
     var encodedBadgeLogoUrl = System.Net.WebUtility.HtmlEncode(badgeLogoUrl);
     var encodedListingName = System.Net.WebUtility.HtmlEncode(Model.Name);
+    var encodedBadgeSiteName = System.Net.WebUtility.HtmlEncode(badgeSiteName);
+
+    var badgeLogoHtml = string.IsNullOrWhiteSpace(badgeLogoUrl)
+        ? string.Empty
+        : "<span style=\"display:inline-flex;align-items:center;background:#ffffff;" +
+          "border-radius:4px;padding:3px 5px;line-height:0;\">" +
+          $"<img src=\"{encodedBadgeLogoUrl}\" alt=\"{encodedBadgeSiteName}\" height=\"18\" " +
+          "style=\"height:18px;width:auto;display:block;border:0;\" /></span>";
 
     var reviewBadgeSnippet =
         $"<a href=\"{encodedListingUrl}\" target=\"_blank\" rel=\"noopener\" " +
@@ -96,11 +106,8 @@
         "font-family:Arial,Helvetica,sans-serif;font-size:14px;font-weight:bold;line-height:1.2;" +
         "color:#ffffff;background-color:#1d1d1d;border:1px solid #ff6600;border-radius:8px;" +
         "text-decoration:none;\">" +
-        "<span style=\"display:inline-flex;align-items:center;background:#ffffff;" +
-        "border-radius:4px;padding:3px 5px;line-height:0;\">" +
-        $"<img src=\"{encodedBadgeLogoUrl}\" alt=\"{(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName))}\" height=\"18\" " +
-        "style=\"height:18px;width:auto;display:block;border:0;\" /></span>" +
-        $"Review {encodedListingName} on {(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName))}</a>";
+        badgeLogoHtml +
+        $"Review {encodedListingName} on {encodedBadgeSiteName}</a>";
 }
 
 @{

@@ -1,3 +1,4 @@
+using System.Net;
 using DirectoryManager.Common.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
@@ -86,59 +87,69 @@ var expiringListings = await listingRepo.GetExpiringSponsorsWithinTimeAsync(expi
 
 Console.WriteLine($"Found {expiringListings.Count()} listings expiring within {hours} hours.");
 
-// Process each listing
+// Process each listing. One failure (bad address, SendGrid hiccup, DB error) is logged and the
+// batch continues — it must not abort the reminders for every other sponsor.
 foreach (var listing in expiringListings)
 {
-    var invoice = await invoiceRepo.GetByIdAsync(listing.SponsoredListingInvoiceId);
-
-    if (invoice == null)
+    try
     {
-        Console.WriteLine($"No invoice found for Listing ID: {listing.SponsoredListingId}");
-        continue;
+        var invoice = await invoiceRepo.GetByIdAsync(listing.SponsoredListingInvoiceId);
+
+        if (invoice == null)
+        {
+            Console.WriteLine($"No invoice found for Listing ID: {listing.SponsoredListingId}");
+            continue;
+        }
+
+        if (string.IsNullOrWhiteSpace(invoice.Email))
+        {
+            Console.WriteLine($"No email associated with Invoice ID: {invoice.SponsoredListingInvoiceId}");
+            continue;
+        }
+
+        if (invoice.IsReminderSent)
+        {
+            Console.WriteLine($"Reminder already sent for Invoice ID: {invoice.SponsoredListingInvoiceId}");
+            continue;
+        }
+
+        // Generate the renewal link using the template and replace placeholders
+        var renewalLink = renewalLinkTemplate
+            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.DirectoryEntryIdPlaceholder, listing.DirectoryEntryId.ToString())
+            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder, listing.SponsorshipType.ToString());
+
+        var listingName = listing.DirectoryEntry?.Name ??
+            DirectoryManager.SponsoredListingReminder.Constants.StringConstants.DefaultListingName;
+
+        // Prepare the email content by replacing placeholders
+        var plainTextContent = emailMessage.EmailBodyText
+            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingNameToken, listingName)
+            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingRenewalLinkToken, renewalLink);
+
+        // The listing name is user-submitted: HTML-encode it (and the link) for the HTML part.
+        var htmlContent = emailMessage.EmailBodyHtml
+            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingNameToken, WebUtility.HtmlEncode(listingName))
+            .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingRenewalLinkToken, WebUtility.HtmlEncode(renewalLink));
+
+        // Send the email using the EmailService
+        await emailService.SendEmailAsync(emailMessage.EmailSubject, plainTextContent, htmlContent, new List<string> { invoice.Email });
+
+        // Mark the reminder as sent
+        invoice.IsReminderSent = true;
+        var updated = await invoiceRepo.UpdateAsync(invoice);
+
+        if (updated)
+        {
+            Console.WriteLine($"Reminder sent and marked for Invoice ID: {invoice.SponsoredListingInvoiceId}");
+        }
+        else
+        {
+            Console.WriteLine($"Failed to update Invoice ID: {invoice.SponsoredListingInvoiceId}");
+        }
     }
-
-    if (string.IsNullOrWhiteSpace(invoice.Email))
+    catch (Exception ex)
     {
-        Console.WriteLine($"No email associated with Invoice ID: {invoice.SponsoredListingInvoiceId}");
-        continue;
-    }
-
-    if (invoice.IsReminderSent)
-    {
-        Console.WriteLine($"Reminder already sent for Invoice ID: {invoice.SponsoredListingInvoiceId}");
-        continue;
-    }
-
-    // Generate the renewal link using the template and replace placeholders
-    var renewalLink = renewalLinkTemplate
-        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.DirectoryEntryIdPlaceholder, listing.DirectoryEntryId.ToString())
-        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.SponsorshipTypePlaceholder, listing.SponsorshipType.ToString());
-
-    // Prepare the email content by replacing placeholders
-    var plainTextContent = emailMessage.EmailBodyText
-        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingNameToken, listing.DirectoryEntry?.Name ??
-            DirectoryManager.SponsoredListingReminder.Constants.StringConstants.DefaultListingName)
-        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingRenewalLinkToken, renewalLink);
-
-    var htmlContent = emailMessage.EmailBodyHtml
-        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingNameToken, listing.DirectoryEntry?.Name ??
-            DirectoryManager.SponsoredListingReminder.Constants.StringConstants.DefaultListingName)
-        .Replace(DirectoryManager.SponsoredListingReminder.Constants.StringConstants.ListingRenewalLinkToken, renewalLink);
-
-    // Send the email using the EmailService
-    await emailService.SendEmailAsync(emailMessage.EmailSubject, plainTextContent, htmlContent, new List<string> { invoice.Email });
-
-    // Mark the reminder as sent
-    invoice.IsReminderSent = true;
-    var updated = await invoiceRepo.UpdateAsync(invoice);
-
-    if (updated)
-    {
-        Console.WriteLine($"Reminder sent and marked for Invoice ID: {invoice.SponsoredListingInvoiceId}");
-    }
-    else
-    {
-        Console.WriteLine($"Failed to update Invoice ID: {invoice.SponsoredListingInvoiceId}");
+        Console.WriteLine($"Failed to send reminder for Listing ID {listing.SponsoredListingId}: {ex.Message}");
     }
 }
 

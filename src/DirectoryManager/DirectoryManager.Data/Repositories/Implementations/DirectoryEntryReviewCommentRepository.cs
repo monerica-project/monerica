@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -115,6 +116,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return;
             }
 
+            await this.ReparentChildrenAsync(existing, ct);
             this.Set.Remove(existing);
             await this.context.SaveChangesAsync(ct);
         }
@@ -138,7 +140,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.Set.AsNoTracking()
                 .OrderByDescending(x => x.UpdateDate ?? x.CreateDate)
                 .ThenByDescending(x => x.DirectoryEntryReviewCommentId)
-                .Skip((page - 1) * pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
                 .Take(pageSize)
                 .ToListAsync(ct);
         }
@@ -176,7 +178,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var q = ApplyThreadOrder(this.ApprovedForReviewQuery(directoryEntryReviewId));
 
             return await q
-                .Skip((page - 1) * pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
                 .Take(pageSize)
                 .ToListAsync(ct);
         }
@@ -217,7 +219,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Where(c => c.ModerationStatus == status)
                 .OrderBy(x => x.CreateDate)
                 .ThenBy(x => x.DirectoryEntryReviewCommentId)
-                .Skip((page - 1) * pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
                 .Take(pageSize)
                 .ToListAsync(ct);
         }
@@ -341,9 +343,27 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return false;
             }
 
+            await this.ReparentChildrenAsync(comment, ct);
             this.Set.Remove(comment);
             await this.context.SaveChangesAsync(ct);
             return true;
+        }
+
+        // Replies the user may see in their own "my reviews" thread view: every Approved reply
+        // plus the user's OWN replies in any status (so they can see their pending/rejected ones).
+        // Other people's Pending/Rejected replies are never exposed.
+        public async Task<List<DirectoryEntryReviewComment>> ListForReviewVisibleToAuthorAsync(
+            int directoryEntryReviewId, string fingerprint, CancellationToken ct = default)
+        {
+            fingerprint = (fingerprint ?? string.Empty).Trim();
+
+            var q = ApplyThreadOrder(
+                this.Set.AsNoTracking().Where(c =>
+                    c.DirectoryEntryReviewId == directoryEntryReviewId &&
+                    (c.ModerationStatus == ReviewModerationStatus.Approved ||
+                     (fingerprint != string.Empty && c.AuthorFingerprint == fingerprint))));
+
+            return await q.ToListAsync(ct);
         }
 
         public async Task<Dictionary<string, int>> GetApprovedReplyCountsByAuthorAsync(CancellationToken ct = default)
@@ -366,6 +386,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 x => x.Fingerprint,
                 x => x.Count,
                 StringComparer.OrdinalIgnoreCase);
+        }
+
+        // ParentCommentId is a RESTRICT self-FK, so deleting a reply that has replies of its own
+        // would fail. Move the children up to the deleted reply's parent (null = top level under
+        // the review) in the SAME SaveChanges as the delete, so the thread stays intact.
+        private async Task ReparentChildrenAsync(DirectoryEntryReviewComment parent, CancellationToken ct)
+        {
+            var children = await this.Set
+                .Where(c => c.ParentCommentId == parent.DirectoryEntryReviewCommentId)
+                .ToListAsync(ct);
+
+            foreach (var child in children)
+            {
+                child.ParentCommentId = parent.ParentCommentId;
+                child.ParentComment = null;
+            }
+
+            parent.Children?.Clear();
         }
     }
 }

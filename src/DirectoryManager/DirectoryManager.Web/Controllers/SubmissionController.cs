@@ -967,6 +967,7 @@ namespace DirectoryManager.Web.Controllers
                 var currency = string.IsNullOrWhiteSpace(invoice.Currency) ? null : invoice.Currency;
 
                 // Top-up invoices report an invoice amount of 0, so record the actual XMR received.
+                string? xmrRateUsd = null;
                 if (amount is null)
                 {
                     var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(storeId, item.BtcPayInvoiceId!);
@@ -974,10 +975,13 @@ namespace DirectoryManager.Web.Controllers
                     {
                         amount = xmrPaid;
                         currency = "XMR";
+                        xmrRateUsd = xmr.Rate;
                     }
                 }
 
-                await this.submissionRepository.SetPaidAsync(item.SubmissionId, amount, currency);
+                var paidUsd = DonationUsdHelper.ToUsd(amount, currency, xmrRateUsd);
+
+                await this.submissionRepository.SetPaidAsync(item.SubmissionId, amount, currency, paidUsd);
 
                 // reflect it in the object we're about to render
                 item.PaidUtc = DateTime.UtcNow;

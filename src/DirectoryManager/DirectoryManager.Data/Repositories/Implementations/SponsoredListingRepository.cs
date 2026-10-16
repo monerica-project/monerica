@@ -1,5 +1,7 @@
-﻿using DirectoryManager.Data.DbContextInfo;
+﻿using System.Linq.Expressions;
+using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -9,6 +11,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
 {
     public class SponsoredListingRepository : ISponsoredListingRepository
     {
+        /// <summary>
+        /// A sponsor is only promoted while its listing is live (Admitted or Verified) — the same
+        /// rule as <see cref="DirectoryStatusExtensions.IsLive"/> (written out here so EF can
+        /// translate it). A listing set to Removed/Scam/Questionable stops being shown even if its
+        /// paid campaign has not ended yet.
+        /// </summary>
+        private static readonly Expression<Func<SponsoredListing, bool>> IsLiveSponsor =
+            x => x.DirectoryEntry != null &&
+                 (x.DirectoryEntry.DirectoryStatus == DirectoryStatus.Admitted ||
+                  x.DirectoryEntry.DirectoryStatus == DirectoryStatus.Verified);
+
         private readonly IApplicationDbContext context;
 
         public SponsoredListingRepository(IApplicationDbContext context)
@@ -39,6 +52,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                      .Where(x => x.SponsorshipType == sponsorshipType &&
                                                  x.CampaignStartDate <= currentDate &&
                                                  x.CampaignEndDate >= currentDate) // Filter active listings
+                                     .Where(IsLiveSponsor)
                                      .OrderByDescending(x => x.CampaignEndDate) // Sort primarily by end date
                                      .ThenByDescending(x => x.CampaignStartDate) // Then by start date
                                      .ToListAsync();
@@ -54,6 +68,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                      .ThenInclude(x => x.Category!)
                                      .Where(x => x.CampaignStartDate <= currentDate &&
                                                  x.CampaignEndDate >= currentDate) // Filter active listings
+                                     .Where(IsLiveSponsor)
                                      .OrderByDescending(x => x.CampaignEndDate) // Sort primarily by end date
                                      .ThenByDescending(x => x.CampaignStartDate) // Then by start date
                                      .ToListAsync();
@@ -69,6 +84,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                                  x.SubCategoryId == subCategoryId &&
                                                  x.CampaignStartDate <= currentDate &&
                                                  x.CampaignEndDate >= currentDate) // Filter active listings
+                                     .Where(IsLiveSponsor)
                                      .OrderByDescending(x => x.CampaignEndDate) // Sort primarily by end date
                                      .ThenByDescending(x => x.CampaignStartDate) // Then by start date
                                      .ToListAsync();
@@ -79,7 +95,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<int> GetActiveSponsorsCountAsync(SponsorshipType sponsorshipType, int? typeId)
         {
             var now = DateTime.UtcNow;
+            // Same live rule as the sponsor boxes: a Removed/Scam sponsor isn't shown, so its slot
+            // counts as free here too (both capacity checks must agree).
             IQueryable<SponsoredListing> query = this.context.SponsoredListings
+                .Where(IsLiveSponsor)
                 .Where(x =>
                     x.SponsorshipType == sponsorshipType &&
                     x.CampaignStartDate <= now &&
@@ -130,8 +149,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.context.SponsoredListings
                 .OrderByDescending(x => x.CampaignEndDate)
                 .Include(l => l.DirectoryEntry)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
+                .Take(PagingHelper.Take(pageSize))
                 .ToListAsync();
         }
 
@@ -317,6 +336,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     x.DirectoryEntry.SubCategory.CategoryId == categoryId &&
                     x.CampaignStartDate <= now &&
                     x.CampaignEndDate >= now)
+                .Where(IsLiveSponsor)
                 .OrderByDescending(x => x.CampaignEndDate)
                 .ThenByDescending(x => x.CampaignStartDate)
                 .ToListAsync();
@@ -370,6 +390,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .AsNoTracking()
                 .Include(x => x.DirectoryEntry)
                 .Where(x => x.CampaignStartDate <= now && x.CampaignEndDate >= now)
+                .Where(IsLiveSponsor)
                 .ToListAsync();
 
             static int TierRank(SponsorshipType t) => t switch

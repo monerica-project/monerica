@@ -51,6 +51,18 @@
         VideoSponsorshipEnabled = 48,
 
         // The YouTube channel the sponsored videos are published on.
-        VideoSponsorshipChannelUrl = 49
+        VideoSponsorshipChannelUrl = 49,
+
+        // Extra Main Sponsor benefit bullets (raw HTML <li> items) on /sponsorship/main — e.g. the
+        // partner/network sites and social/blog perks. Empty = those bullets are not shown.
+        MainSponsorExtraBenefitsHtml = 50,
+
+        // Absolute URL of the logo shown in the copy-and-paste "Review us" badge on listing
+        // pages (must work on external sites, so a full CDN URL). Empty = badge has no logo.
+        ReviewBadgeLogoUrl = 51,
+
+        // What the directory's listings accept/relate to, e.g. "Monero (XMR)". Used in llms.txt;
+        // the part before " (" is the short form ("Monero"). Empty = generic wording.
+        DirectoryCurrencyName = 52
     }
 }

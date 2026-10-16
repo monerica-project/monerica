@@ -11,6 +11,9 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task DeleteAsync(int categoryId);
         Task<Category> GetByNameAsync(string categoryName);
         Task<Category?> GetByKeyAsync(string categoryKey);
+
+        /// <summary>True when another category (not <paramref name="excludeCategoryId"/>) already uses this key.</summary>
+        Task<bool> KeyExistsAsync(string categoryKey, int? excludeCategoryId = null);
         Task<IEnumerable<Category>> GetActiveCategoriesAsync();
         Task<Dictionary<int, DateTime>> GetAllCategoriesLastChangeDatesAsync();
     }

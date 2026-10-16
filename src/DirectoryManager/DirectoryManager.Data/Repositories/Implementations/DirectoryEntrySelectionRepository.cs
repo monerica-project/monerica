@@ -56,6 +56,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     .ThenInclude(sc => sc.Category!)
                 .Where(e => this.context.DirectoryEntrySelections
                     .Any(s => s.EntrySelectionType == type && s.DirectoryEntryId == e.DirectoryEntryId))
+
+                // Only promote live listings (same rule as active sponsors): a featured entry
+                // that is later set to Removed/Scam/Questionable drops off the list.
+                .Where(e => e.DirectoryStatus == DirectoryStatus.Admitted ||
+                            e.DirectoryStatus == DirectoryStatus.Verified)
                 .ToListAsync()
                 .ConfigureAwait(false);
 

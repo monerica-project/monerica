@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -76,19 +77,26 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            // 2) canonical URL
+            // Out-of-range pagination pages 301 to page 1 (the site turns 404s into a soft-404
+            // via UseStatusCodePagesWithRedirects, so a permanent redirect is the clean signal).
+            // Reject page < 1 BEFORE querying (a negative OFFSET is a 500 on Postgres).
+            if (page < 1)
+            {
+                return this.RedirectPermanent($"/{category.CategoryKey}");
+            }
+
+            // 2) canonical URL — the page's own URL (page 1 has no /page/N suffix)
             var cd = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[Constants.StringConstants.CanonicalUrl] =
-                UrlBuilder.CombineUrl(cd, categoryKey);
+            this.ViewData[Constants.StringConstants.CanonicalUrl] = page > 1
+                ? UrlBuilder.CombineUrl(cd, $"{category.CategoryKey}/page/{page}")
+                : UrlBuilder.CombineUrl(cd, category.CategoryKey);
 
             // 3) fetch paged entries
             var paged = await this.directoryEntryRepository
                 .ListEntriesByCategoryAsync(category.CategoryId, page, PageSize);
 
-            // Out-of-range pagination pages 301 to page 1 (the site turns 404s into a soft-404
-            // via UseStatusCodePagesWithRedirects, so a permanent redirect is the clean signal).
-            var totalPages = (int)Math.Ceiling(paged.TotalCount / (double)PageSize);
-            if (page < 1 || page > Math.Max(1, totalPages))
+            var totalPages = PagingHelper.TotalPages(paged.TotalCount, PageSize);
+            if (page > totalPages)
             {
                 return this.RedirectPermanent($"/{category.CategoryKey}");
             }
@@ -166,6 +174,13 @@ namespace DirectoryManager.Web.Controllers
             category.CreatedByUserId = this.userManager.GetUserId(this.User) ?? string.Empty;
             this.PrepareCategory(category);
 
+            // CategoryKey is unique: pre-check so a duplicate is a validation error, not a 500.
+            if (await this.categoryRepository.KeyExistsAsync(category.CategoryKey))
+            {
+                this.ModelState.AddModelError(string.Empty, DuplicateKeyMessage(category.CategoryKey));
+                return this.View(category);
+            }
+
             await this.categoryRepository.CreateAsync(category);
             this.ClearCachedItems();
 
@@ -181,6 +196,13 @@ namespace DirectoryManager.Web.Controllers
             if (existingCategory == null)
             {
                 return this.NotFound();
+            }
+
+            var newKey = StringHelpers.UrlKey(category.Name);
+            if (await this.categoryRepository.KeyExistsAsync(newKey, id))
+            {
+                this.ModelState.AddModelError(string.Empty, DuplicateKeyMessage(newKey));
+                return this.View(category);
             }
 
             this.UpdateExistingCategory(existingCategory, category);
@@ -205,16 +227,10 @@ namespace DirectoryManager.Web.Controllers
             return this.View(category);
         }
 
-        [HttpPost("category/delete")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
-        {
-            await this.categoryRepository.DeleteAsync(id);
-
-            this.ClearCachedItems();
-
-            return this.RedirectToAction(nameof(this.Index));
-        }
+        // NOTE: there is intentionally no hard-delete endpoint. Deleting a category either failed
+        // (FK) or cascaded into entries/invoices/sponsorships/reviews; disable it instead.
+        private static string DuplicateKeyMessage(string key) =>
+            $"Another category already uses the URL key \"{key}\". Choose a different name.";
 
         private void PrepareCategory(Category category)
         {

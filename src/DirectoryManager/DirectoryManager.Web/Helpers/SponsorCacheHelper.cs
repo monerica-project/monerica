@@ -9,12 +9,13 @@ namespace DirectoryManager.Web.Helpers
         // sponsorship) shows on the next request.
         public static void ClearSponsorCaches(IMemoryCache cache)
         {
-            CachePrefixManager.ExpirePrefix(StringConstants.DirectoryFilterCachePrefix);
-            CachePrefixManager.ExpirePrefix(StringConstants.ActiveSubcategoriesByCategoryCachePrefix);
-            CachePrefixManager.ExpirePrefix(StringConstants.ActiveTagsByCategoryCachePrefix);
-            CachePrefixManager.ExpirePrefix(StringConstants.ActiveTagIdsByCategoryCachePrefix);
-            CachePrefixManager.ExpirePrefix(StringConstants.CacheKeyPrefixConversion);
-            CachePrefixManager.ExpirePrefix(StringConstants.PrefixActiveTagsByCat);
+            // Expire the token prefixes the filter's cached option lists are actually registered
+            // under (categories, subcategories, tags, tag ids, countries).
+            foreach (var prefix in StringConstants.FilterCacheTokenPrefixes)
+            {
+                CachePrefixManager.ExpirePrefix(prefix);
+            }
+
             cache.Remove(StringConstants.CacheKeyAuthorPostCounts);
             cache.Remove(StringConstants.CacheKeyEntries);
             cache.Remove(StringConstants.CacheKeySponsoredListings);

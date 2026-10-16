@@ -22,8 +22,7 @@ namespace DirectoryManager.Web.Forecasting
     {
         private const double DaysPerMonth = 30.4375;
 
-        public static bool IsLiveAdvertiser(DirectoryStatus s) =>
-            s == DirectoryStatus.Admitted || s == DirectoryStatus.Verified;
+        public static bool IsLiveAdvertiser(DirectoryStatus s) => s.IsLive();
 
         public sealed class CutShortItem
         {

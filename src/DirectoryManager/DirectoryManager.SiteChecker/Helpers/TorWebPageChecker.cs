@@ -157,7 +157,10 @@ namespace DirectoryManager.SiteChecker.Helpers
 
         private async Task<(CheckOutcome? result, string summary)> TryOnceAsync(Uri uri, int attempt)
         {
-            // 1) HEAD
+            // 1) HEAD. Any non-success (405, other status, or an exception such as a reset or
+            //    a server that simply ignores HEAD) falls through to GET — many onion servers
+            //    mishandle HEAD, so a HEAD failure alone must never end the attempt.
+            string? headFailure = null;
             var headSw = Stopwatch.StartNew();
             try
             {
@@ -189,17 +192,17 @@ namespace DirectoryManager.SiteChecker.Helpers
             catch (TaskCanceledException)
             {
                 headSw.Stop();
-                var summary = $"attempt {attempt}: HEAD timeout after {headSw.ElapsedMilliseconds}ms";
-                this.log.Log($"[TOR HEAD attempt {attempt}] {uri} — {summary}");
-                return (null, summary);
+                headFailure = $"HEAD timeout after {headSw.ElapsedMilliseconds}ms";
+                this.log.Log($"[TOR HEAD attempt {attempt}] {uri} — {headFailure}; trying GET");
             }
             catch (Exception ex)
             {
                 headSw.Stop();
-                var summary = $"attempt {attempt}: HEAD failed ({headSw.ElapsedMilliseconds}ms): {DiagnosticLogger.SummarizeException(ex)}";
-                this.log.Log($"[TOR HEAD attempt {attempt}] {uri} — {summary}");
-                return (null, summary);
+                headFailure = $"HEAD failed ({headSw.ElapsedMilliseconds}ms): {DiagnosticLogger.SummarizeException(ex)}";
+                this.log.Log($"[TOR HEAD attempt {attempt}] {uri} — {headFailure}; trying GET");
             }
+
+            var headNote = headFailure is null ? string.Empty : $"{headFailure}; ";
 
             // 2) GET
             var getSw = Stopwatch.StartNew();
@@ -216,22 +219,22 @@ namespace DirectoryManager.SiteChecker.Helpers
 
                 if (statusCode == 404 || statusCode == 410)
                 {
-                    return (CheckOutcome.Offline, $"attempt {attempt}: GET {statusCode} in {getSw.ElapsedMilliseconds}ms");
+                    return (CheckOutcome.Offline, $"attempt {attempt}: {headNote}GET {statusCode} in {getSw.ElapsedMilliseconds}ms");
                 }
 
-                return (CheckOutcome.Online, $"attempt {attempt}: GET {statusCode} in {getSw.ElapsedMilliseconds}ms");
+                return (CheckOutcome.Online, $"attempt {attempt}: {headNote}GET {statusCode} in {getSw.ElapsedMilliseconds}ms");
             }
             catch (TaskCanceledException)
             {
                 getSw.Stop();
-                var summary = $"attempt {attempt}: GET timeout after {getSw.ElapsedMilliseconds}ms";
+                var summary = $"attempt {attempt}: {headNote}GET timeout after {getSw.ElapsedMilliseconds}ms";
                 this.log.Log($"[TOR GET attempt {attempt}] {uri} — {summary}");
                 return (null, summary);
             }
             catch (Exception ex)
             {
                 getSw.Stop();
-                var summary = $"attempt {attempt}: GET failed ({getSw.ElapsedMilliseconds}ms): {DiagnosticLogger.SummarizeException(ex)}";
+                var summary = $"attempt {attempt}: {headNote}GET failed ({getSw.ElapsedMilliseconds}ms): {DiagnosticLogger.SummarizeException(ex)}";
                 this.log.Log($"[TOR GET attempt {attempt}] {uri} — {summary}");
                 return (null, summary);
             }

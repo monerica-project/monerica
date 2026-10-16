@@ -196,10 +196,12 @@ namespace DirectoryManager.Web.Controllers
                     0.7);
 
                 // Paginated listing review pages: /site/{key}/page/{p}
+                // Paged by the SAME count as the profile (approved crowd reviews, excluding pinned
+                // official reviews) so the sitemap never lists a page that 301s back.
                 if (approvedReviewStatsByEntry.TryGetValue(entry.DirectoryEntryId, out var st)
-                    && st.Count > IntegerConstants.ReviewsPageSize)
+                    && st.PagedCount > IntegerConstants.ReviewsPageSize)
                 {
-                    int totalPages = (int)Math.Ceiling(st.Count / (double)IntegerConstants.ReviewsPageSize);
+                    int totalPages = (int)Math.Ceiling(st.PagedCount / (double)IntegerConstants.ReviewsPageSize);
 
                     for (int p = 2; p <= totalPages; p++)
                     {

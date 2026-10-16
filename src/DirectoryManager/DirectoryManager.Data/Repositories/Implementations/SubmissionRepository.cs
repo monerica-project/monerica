@@ -40,6 +40,35 @@ namespace DirectoryManager.Data.Repositories.Implementations
                              .FirstOrDefaultAsync();
         }
 
+        public async Task<bool> HasPendingWithNoteContainingAsync(int directoryEntryId, string? link, string noteFragment)
+        {
+            if (string.IsNullOrEmpty(noteFragment))
+            {
+                return false;
+            }
+
+            var hasLink = !string.IsNullOrWhiteSpace(link);
+
+            return await this.context
+                             .Submissions
+                             .AnyAsync(x =>
+                                 x.SubmissionStatus == SubmissionStatus.Pending &&
+                                 ((directoryEntryId > 0 && x.DirectoryEntryId == directoryEntryId) ||
+                                  (hasLink && x.Link == link)) &&
+                                 x.Note != null &&
+                                 x.Note.Contains(noteFragment));
+        }
+
+        public async Task<List<Submission>> ListByDirectoryEntryAndStatusAsync(int directoryEntryId, SubmissionStatus submissionStatus)
+        {
+            return await this.context
+                             .Submissions
+                             .AsNoTracking()
+                             .Where(x => x.DirectoryEntryId == directoryEntryId && x.SubmissionStatus == submissionStatus)
+                             .OrderByDescending(x => x.CreateDate)
+                             .ToListAsync();
+        }
+
         public async Task<Submission> CreateAsync(Submission submission)
         {
             // Ensure only the ID is set for the foreign key, and EF does not track the SubCategory entity itself
@@ -92,7 +121,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync();
         }
 
-        public async Task SetPaidAsync(int submissionId, decimal? amount, string? currency)
+        public async Task SetPaidAsync(int submissionId, decimal? amount, string? currency, decimal? paidUsd)
         {
             var submission = await this.GetByIdAsync(submissionId);
             if (submission == null || submission.PaidUtc != null)
@@ -103,6 +132,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             submission.PaidUtc = DateTime.UtcNow;
             submission.PaidAmount = amount;
             submission.PaidCurrency = currency;
+            submission.PaidUsd = paidUsd;
             await this.context.SaveChangesAsync();
         }
     }

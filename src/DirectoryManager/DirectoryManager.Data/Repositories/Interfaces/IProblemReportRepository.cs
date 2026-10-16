@@ -13,7 +13,7 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         Task SetInvoiceIdAsync(int id, string invoiceId, CancellationToken ct = default);
 
-        Task SetPaidAsync(int id, decimal? amount, string? currency, DateTime paidUtc, CancellationToken ct = default);
+        Task SetPaidAsync(int id, decimal? amount, string? currency, decimal? paidUsd, DateTime paidUtc, CancellationToken ct = default);
 
         Task<List<ProblemReport>> ListByStatusAsync(ProblemReportStatus status, int page, int pageSize, CancellationToken ct = default);
 

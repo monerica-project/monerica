@@ -44,5 +44,9 @@ namespace DirectoryManager.Data.Models.ProblemReports
 
         [MaxLength(10)]
         public string? PaidCurrency { get; set; }
+
+        // The donation's value in USD when it was paid (USD invoices: the amount; XMR top-ups:
+        // XMR received x BTCPay's locked rate). Used by the revenue report.
+        public decimal? PaidUsd { get; set; }
     }
 }

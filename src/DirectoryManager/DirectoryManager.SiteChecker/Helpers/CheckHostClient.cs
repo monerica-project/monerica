@@ -44,8 +44,13 @@ namespace DirectoryManager.SiteChecker.Helpers
             this.http.DefaultRequestHeaders.Accept.ParseAdd("application/json");
         }
 
-        // True if any check-host node reaches the URL with a 2xx/3xx response.
-        public async Task<bool> IsUpAsync(Uri uri)
+        // Tri-state second opinion:
+        //   Online       — at least one check-host node reached the URL with a 2xx/3xx.
+        //   Offline      — every node reported back and none could reach it (confirmed down).
+        //   Inconclusive — check-host itself failed (HTTP error, rate limit, bad JSON, timeout
+        //                  waiting for nodes). That says nothing about the site, so callers must
+        //                  NOT treat it as "down".
+        public async Task<CheckOutcome> CheckAsync(Uri uri)
         {
             await Throttle.WaitAsync().ConfigureAwait(false);
             try
@@ -58,7 +63,7 @@ namespace DirectoryManager.SiteChecker.Helpers
                     if (!startResp.IsSuccessStatusCode)
                     {
                         this.log.Log($"[check-host] start failed for {uri}: HTTP {(int)startResp.StatusCode}");
-                        return false;
+                        return CheckOutcome.Inconclusive;
                     }
 
                     var startJson = await startResp.Content.ReadAsStringAsync().ConfigureAwait(false);
@@ -70,7 +75,8 @@ namespace DirectoryManager.SiteChecker.Helpers
 
                 if (string.IsNullOrEmpty(requestId))
                 {
-                    return false;
+                    this.log.Log($"[check-host] no request id for {uri}");
+                    return CheckOutcome.Inconclusive;
                 }
 
                 // Nodes report asynchronously over a few seconds — poll until we
@@ -87,33 +93,57 @@ namespace DirectoryManager.SiteChecker.Helpers
                     }
 
                     var resultJson = await resultResp.Content.ReadAsStringAsync().ConfigureAwait(false);
-                    var (anyUp, allReported) = ParseResults(resultJson);
+                    var outcome = InterpretResults(resultJson);
 
-                    if (anyUp)
+                    if (outcome == CheckOutcome.Online)
                     {
                         this.log.Log($"[check-host] {uri} → reachable from an external node");
-                        return true;
+                        return outcome;
                     }
 
-                    if (allReported)
+                    if (outcome == CheckOutcome.Offline)
                     {
                         this.log.Log($"[check-host] {uri} → no external node could reach it either");
-                        return false;
+                        return outcome;
                     }
                 }
 
-                this.log.Log($"[check-host] {uri} → timed out waiting for node results");
-                return false;
+                this.log.Log($"[check-host] {uri} → timed out waiting for node results (inconclusive)");
+                return CheckOutcome.Inconclusive;
             }
             catch (Exception ex)
             {
-                this.log.Log($"[check-host] error for {uri}: {DiagnosticLogger.SummarizeException(ex)}");
-                return false;
+                this.log.Log($"[check-host] error for {uri} (inconclusive): {DiagnosticLogger.SummarizeException(ex)}");
+                return CheckOutcome.Inconclusive;
             }
             finally
             {
                 Throttle.Release();
             }
+        }
+
+        // Maps one check-result payload to the tri-state outcome: Online if any node is up,
+        // Offline only once EVERY node has reported and none is up, otherwise Inconclusive
+        // (still waiting, or nothing parseable).
+        internal static CheckOutcome InterpretResults(string json)
+        {
+            bool anyUp;
+            bool allReported;
+            try
+            {
+                (anyUp, allReported) = ParseResults(json);
+            }
+            catch (JsonException)
+            {
+                return CheckOutcome.Inconclusive;
+            }
+
+            if (anyUp)
+            {
+                return CheckOutcome.Online;
+            }
+
+            return allReported ? CheckOutcome.Offline : CheckOutcome.Inconclusive;
         }
 
         // Each node value is an array holding one result array of the form

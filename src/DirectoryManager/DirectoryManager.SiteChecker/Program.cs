@@ -222,6 +222,7 @@ async Task CheckAndSubmitAsync(
         .Where(u => !string.IsNullOrWhiteSpace(u))
         .Where(u => !u!.Contains(".onion", StringComparison.OrdinalIgnoreCase) &&
                     !u!.Contains(".i2p", StringComparison.OrdinalIgnoreCase))
+        .Select(u => u!)
         .Distinct(StringComparer.OrdinalIgnoreCase)
         .ToList();
 
@@ -364,9 +365,10 @@ async Task CreateOfflineSubmissionIfNotExists(
     bool clearnetOffline,
     bool onionOffline)
 {
-    var existingSubmission = await submissionRepository.GetByLinkAndStatusAsync(entry.Link, SubmissionStatus.Pending);
-
-    if (existingSubmission != null && existingSubmission.Note?.Contains(SiteOfflineMessage) == true)
+    // Look specifically for a pending "site offline" proposal for this entry. (The old check took
+    // an ARBITRARY pending submission for the link and only skipped if that one happened to be the
+    // offline one, so any other pending edit let a duplicate offline submission through each run.)
+    if (await submissionRepository.HasPendingWithNoteContainingAsync(entry.DirectoryEntryId, entry.Link, SiteOfflineMessage))
     {
         Console.WriteLine($"Skipping submission for entry ID {entry.DirectoryEntryId}, already marked as '{SiteOfflineMessage}'.");
         return;

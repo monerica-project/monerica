@@ -573,7 +573,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             var catUrl = $"{domain}/{catKey}";
             var subUrl = $"{domain}/{catKey}/{subKey}";
 
-            sb.AppendFormat($"<p><a class=\"no-app-link\" href=\"{WebUtility.HtmlEncode(catUrl)}\">{catName}</a> &rsaquo; <a class=\"no-app-link\" href=\"{WebUtility.HtmlEncode(subUrl)}\">{subName}</a></p>");
+            sb.Append($"<p><a class=\"no-app-link\" href=\"{WebUtility.HtmlEncode(catUrl)}\">{catName}</a> &rsaquo; <a class=\"no-app-link\" href=\"{WebUtility.HtmlEncode(subUrl)}\">{subName}</a></p>");
         }
 
         private static void AppendDescriptionNoteLine(StringBuilder sb, DirectoryEntryViewModel model)
@@ -819,7 +819,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             if (isScam)
             {
-                sb.AppendFormat($"<a {relAttr} href=\"{WebUtility.HtmlEncode(finalLink)}\" {target}>{name}</a>");
+                sb.Append($"<a {relAttr} href=\"{WebUtility.HtmlEncode(finalLink)}\" {target}>{name}</a>");
             }
             else
             {

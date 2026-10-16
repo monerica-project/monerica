@@ -23,7 +23,11 @@ var config = new ConfigurationBuilder()
     .AddJsonFile($"appsettings.{environment}.json", optional: true, reloadOnChange: false)
     .Build();
 
-var userAgent = config["UserAgent:Header"] ?? "MonericaDetailChecker/1.0";
+// Generic fallback only — production sets UserAgent:Header in config. No site name here: the
+// codebase is forked for other directories.
+var userAgent = string.IsNullOrWhiteSpace(config["UserAgent:Header"])
+    ? "Mozilla/5.0 (compatible; DirectoryDetailChecker/1.0)"
+    : config["UserAgent:Header"]!;
 var torHost = config["TorProxy:Host"] ?? "127.0.0.1";
 var torPort = int.TryParse(config["TorProxy:Port"], out var tp) ? tp : 9050;
 
@@ -125,6 +129,7 @@ async Task<ProcessResult> ProcessAsync(
     var submissionRepo = scope.ServiceProvider.GetRequiredService<ISubmissionRepository>();
     var entryTagRepo = scope.ServiceProvider.GetRequiredService<IDirectoryEntryTagRepository>();
     var additionalLinkRepo = scope.ServiceProvider.GetRequiredService<IAdditionalLinkRepository>();
+    var guaranteeRepo = scope.ServiceProvider.GetRequiredService<IDirectoryEntryGuaranteeRepository>();
 
     var text = await contentFetcher.FetchSiteTextAsync(entry.Link);
     if (text is null)
@@ -158,6 +163,16 @@ async Task<ProcessResult> ProcessAsync(
     }
 
     var note = BuildNote(decision);
+
+    // Don't re-propose what a moderator already rejected: skip when a previously REJECTED
+    // auto-detail revision for this entry proposed the same thing.
+    var rejected = await submissionRepo.ListByDirectoryEntryAndStatusAsync(entry.DirectoryEntryId, SubmissionStatus.Rejected);
+    if (rejected.Any(r => IsSameAsRejectedProposal(r, decision, note)))
+    {
+        Console.WriteLine($"[{entry.DirectoryEntryId}] {entry.Name}: same proposal was rejected before — skipping.");
+        return ProcessResult.NoChange;
+    }
+
     Console.WriteLine($"[{entry.DirectoryEntryId}] {entry.Name}: {decision.Changes.Count} change(s), {decision.Uncertainties.Count} flag(s)");
     Console.WriteLine($"    {note.Replace("\n", "\n    ")}");
 
@@ -166,7 +181,7 @@ async Task<ProcessResult> ProcessAsync(
         return ProcessResult.Proposed;
     }
 
-    var submission = await BuildRevisionAsync(entry, decision, note, entryTagRepo, additionalLinkRepo);
+    var submission = await BuildRevisionAsync(entry, decision, note, entryTagRepo, additionalLinkRepo, guaranteeRepo);
     await submissionRepo.CreateAsync(submission);
     return ProcessResult.Proposed;
 }
@@ -195,7 +210,8 @@ async Task<Submission> BuildRevisionAsync(
     DetailDecision decision,
     string note,
     IDirectoryEntryTagRepository entryTagRepo,
-    IAdditionalLinkRepository additionalLinkRepo)
+    IAdditionalLinkRepository additionalLinkRepo,
+    IDirectoryEntryGuaranteeRepository guaranteeRepo)
 {
     // Carry tags + related links forward exactly like the offline auto-submission, so that
     // approving this revision never blanks them (they live in their own tables).
@@ -214,6 +230,16 @@ async Task<Submission> BuildRevisionAsync(
         .Take(MaxRelatedLinks)
         .ToList();
 
+    // Deposit guarantees live in their own table too. Approving a submission replaces the
+    // entry's guarantees with the submission's (SubmissionController.SyncGuaranteesAsync deletes
+    // all, then recreates), so they MUST be carried forward — same as SiteChecker does.
+    var entryGuarantees = await guaranteeRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId);
+    var guaranteeItems = (entryGuarantees ?? new List<DirectoryEntryGuarantee>())
+        .OrderBy(g => g.SortOrder)
+        .ThenBy(g => g.DirectoryEntryGuaranteeId)
+        .Select(g => new GuaranteeItem { Link = g.Link, Amount = g.Amount, Currency = g.Currency })
+        .ToList();
+
     var submission = new Submission
     {
         SubmissionStatus = SubmissionStatus.Pending,
@@ -224,6 +250,7 @@ async Task<Submission> BuildRevisionAsync(
         Tags = string.IsNullOrWhiteSpace(tagNames) ? null : tagNames,
         SelectedTagIdsCsv = entryTags.Count == 0 ? null : selectedTagIdsCsv,
         RelatedLinks = relatedLinks,
+        Guarantees = guaranteeItems,
         SuggestedSubCategory = null,
         IpAddress = null,
     };
@@ -251,6 +278,36 @@ async Task<Submission> BuildRevisionAsync(
     }
 
     return submission;
+}
+
+// True when a REJECTED submission is an earlier auto-detail revision proposing the same thing:
+// either every proposed field value matches what it proposed, or (for flag-only revisions) its
+// note body — everything after the dated marker line — is identical.
+static bool IsSameAsRejectedProposal(Submission rejected, DetailDecision decision, string note)
+{
+    if (rejected.NoteToAdmin is null || !rejected.NoteToAdmin.StartsWith(NoteMarker, StringComparison.Ordinal))
+    {
+        return false;
+    }
+
+    static string Body(string n)
+    {
+        var i = n.IndexOf('\n');
+        return i < 0 ? string.Empty : n.Substring(i + 1).Trim();
+    }
+
+    if (decision.Changes.Count > 0)
+    {
+        return decision.Changes.All(c => c.Field switch
+        {
+            "CountryCode" => string.Equals(rejected.CountryCode, c.NewValue, StringComparison.OrdinalIgnoreCase),
+            "Email" => string.Equals(rejected.Email, c.NewValue, StringComparison.OrdinalIgnoreCase),
+            "KycPolicy" => rejected.KycPolicy == DetailAnalyzer.KycFromLlm(MapKycLabelToToken(c.NewValue)),
+            _ => false,
+        });
+    }
+
+    return string.Equals(Body(rejected.NoteToAdmin), Body(note), StringComparison.Ordinal);
 }
 
 // The note stores the human label ("Guaranteed No KYC"); translate back to the token the

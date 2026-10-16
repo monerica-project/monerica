@@ -1,6 +1,7 @@
 ﻿using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Models.TransferModels;
@@ -269,8 +270,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             int total = scored.Count;
 
             var items = scored
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
+                .Take(PagingHelper.Take(pageSize))
                 .Select(x => x.Entry)
                 .ToList();
 
@@ -371,8 +372,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             var page = await this.ActiveQuery()
                 .OrderByDescending(e => e.CreateDate)
-                .Skip((pageNumber - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(PagingHelper.Skip(pageNumber, pageSize))
+                .Take(PagingHelper.Take(pageSize))
                 .ToListAsync()
                 .ConfigureAwait(false);
 
@@ -529,8 +530,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             var total = await query.CountAsync();
             var items = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
+                .Take(PagingHelper.Take(pageSize))
                 .ToListAsync();
 
             return new PagedResult<DirectoryEntry>
@@ -578,8 +579,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             var total = await query.CountAsync();
             var items = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
+                .Take(PagingHelper.Take(pageSize))
                 .ToListAsync();
 
             return new PagedResult<DirectoryEntry>
@@ -662,7 +663,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToList();
 
             int total = items.Count;
-            var pageItems = items.Skip((page - 1) * pageSize).Take(pageSize).ToList();
+            var pageItems = items.Skip(PagingHelper.Skip(page, pageSize)).Take(PagingHelper.Take(pageSize)).ToList();
 
             return new PagedResult<CountryWithCount>
             {
@@ -698,7 +699,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .OrderBy(e => e.Name);
 
             var total = await q.CountAsync();
-            var items = await q.Skip((page - 1) * pageSize).Take(pageSize).ToListAsync();
+            var items = await q.Skip(PagingHelper.Skip(page, pageSize)).Take(PagingHelper.Take(pageSize)).ToListAsync();
 
             return new PagedResult<DirectoryEntry> { TotalCount = total, Items = items };
         }
@@ -799,8 +800,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             int total = scored.Count;
             var items = scored
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
+                .Take(PagingHelper.Take(pageSize))
                 .Select(x => x.Entry)
                 .ToList();
 
@@ -889,8 +890,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 orderedIds = await this.BuildTopRatedOrderedIdsAsync(baseQ, q.SponsoredEntryIds).ConfigureAwait(false);
                 total = orderedIds.Count;
                 orderedIds = orderedIds
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
+                    .Skip(PagingHelper.Skip(page, pageSize))
+                    .Take(PagingHelper.Take(pageSize))
                     .ToList();
             }
             else
@@ -898,8 +899,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 var pageIdsQ = this.BuildFilterPageIdsQuery(baseQ, q.Sort);
                 total = await this.GetFilterTotalAsync(baseQ, q.Sort).ConfigureAwait(false);
                 orderedIds = await pageIdsQ
-                    .Skip((page - 1) * pageSize)
-                    .Take(pageSize)
+                    .Skip(PagingHelper.Skip(page, pageSize))
+                    .Take(PagingHelper.Take(pageSize))
                     .ToListAsync()
                     .ConfigureAwait(false);
             }
@@ -1106,8 +1107,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var pageIds = await merged
                 .OrderByDescending(x => x.Last)
                 .ThenByDescending(x => x.EntryId)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
+                .Take(PagingHelper.Take(pageSize))
                 .Select(x => x.EntryId)
                 .ToListAsync(ct)
                 .ConfigureAwait(false);

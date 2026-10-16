@@ -1125,6 +1125,9 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
 
+                    b.Property<decimal?>("PaidUsd")
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<DateTime?>("PaidUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -2315,6 +2318,9 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
 
+                    b.Property<decimal?>("PaidUsd")
+                        .HasColumnType("numeric(18,2)");
+
                     b.Property<DateTime?>("PaidUtc")
                         .HasColumnType("timestamp with time zone");
 
@@ -2505,6 +2511,9 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("PaidCurrency")
                         .HasMaxLength(10)
                         .HasColumnType("character varying(10)");
+
+                    b.Property<decimal?>("PaidUsd")
+                        .HasColumnType("numeric(18,2)");
 
                     b.Property<DateTime?>("PaidUtc")
                         .HasColumnType("timestamp with time zone");

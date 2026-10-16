@@ -1,5 +1,6 @@
 ﻿using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -153,8 +154,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var total = await query.CountAsync().ConfigureAwait(false);
 
             var items = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
+                .Take(PagingHelper.Take(pageSize))
                 .ToListAsync()
                 .ConfigureAwait(false);
 
@@ -238,8 +239,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             var total = await query.CountAsync().ConfigureAwait(false);
             var items = await query
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
+                .Take(PagingHelper.Take(pageSize))
                 .ToListAsync()
                 .ConfigureAwait(false);
 

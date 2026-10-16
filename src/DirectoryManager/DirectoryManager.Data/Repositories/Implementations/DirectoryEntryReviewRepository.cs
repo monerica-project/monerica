@@ -5,6 +5,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -69,8 +70,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             return await this.Set.AsNoTracking()
                 .OrderByDescending(x => x.CreateDate)
                 .ThenByDescending(x => x.DirectoryEntryReviewId)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
+                .Take(PagingHelper.Take(pageSize))
                 .ToListAsync(ct);
         }
 
@@ -112,6 +113,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return;
             }
 
+            await this.FlattenRepliesAsync(id, ct);
             this.Set.Remove(existing);
             await this.context.SaveChangesAsync(ct);
         }
@@ -144,8 +146,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
             q = ApplyApprovedListingOrder(q);
 
             return await q
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
+                .Take(PagingHelper.Take(pageSize))
                 .ToListAsync(ct);
         }
 
@@ -245,8 +247,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                         .ThenInclude(sc => sc.Category!)
                 .OrderByDescending(r => r.CreateDate)
                 .ThenByDescending(r => r.DirectoryEntryReviewId)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
+                .Take(PagingHelper.Take(pageSize))
                 .ToListAsync(ct);
         }
 
@@ -274,6 +276,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return false;
             }
 
+            await this.FlattenRepliesAsync(review.DirectoryEntryReviewId, ct);
             this.Set.Remove(review);
             await this.context.SaveChangesAsync(ct);
             return true;
@@ -404,8 +407,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Where(r => r.ModerationStatus == status)
                 .OrderBy(r => r.CreateDate)
                 .ThenBy(r => r.DirectoryEntryReviewId)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
+                .Take(PagingHelper.Take(pageSize))
                 .ToListAsync(ct);
         }
 
@@ -478,8 +481,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Where(r => r.DirectoryEntryId == directoryEntryId)
                 .OrderByDescending(x => x.CreateDate)
                 .ThenByDescending(x => x.DirectoryEntryReviewId)
-                .Skip((page - 1) * pageSize)
-                .Take(pageSize)
+                .Skip(PagingHelper.Skip(page, pageSize))
+                .Take(PagingHelper.Take(pageSize))
                 .ToListAsync(ct);
         }
 
@@ -547,6 +550,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 {
                     DirectoryEntryId = g.Key,
                     Count = g.Count(),
+                    PagedCount = g.Count(x => !x.IsOfficial),
                     Last = g.Max(x => (x.UpdateDate ?? x.CreateDate))
                 })
                 .ToListAsync(ct);
@@ -606,6 +610,29 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
 
             return await q.AnyAsync(ct);
+        }
+
+        // Replies on a review cascade-delete with it, but ParentCommentId is a RESTRICT self-FK,
+        // so a nested reply chain would block that cascade. Flatten the thread first (all replies
+        // become top-level) so the review and its replies can then be removed cleanly.
+        private async Task FlattenRepliesAsync(int reviewId, CancellationToken ct)
+        {
+            var nested = await this.context.DirectoryEntryReviewComments
+                .Where(c => c.DirectoryEntryReviewId == reviewId && c.ParentCommentId != null)
+                .ToListAsync(ct);
+
+            if (nested.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var c in nested)
+            {
+                c.ParentCommentId = null;
+                c.ParentComment = null;
+            }
+
+            await this.context.SaveChangesAsync(ct);
         }
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System.Security.Cryptography;
 using System.Text;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models.Reviews;
@@ -250,6 +251,8 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var fp = state.PgpFingerprint;
+            page = PagingHelper.ClampPage(page);
+            pageSize = PagingHelper.ClampPageSize(pageSize, 25);
 
             var reviews = await this.reviewRepo.ListByAuthorFingerprintAsync(fp, page, pageSize, ct);
             var total = await this.reviewRepo.CountByAuthorFingerprintAsync(fp, ct);
@@ -257,15 +260,16 @@ namespace DirectoryManager.Web.Controllers
             var vm = new MyReviewsIndexVm
             {
                 Fingerprint = fp,
-                Page = page < 1 ? 1 : page,
-                PageSize = pageSize < 1 ? 25 : pageSize,
+                Page = page,
+                PageSize = pageSize,
                 TotalReviews = total
             };
 
             foreach (var r in reviews)
             {
-                // show full thread (any status) so user sees replies they made even if pending/rejected
-                var comments = await this.commentRepo.ListForReviewAnyStatusAsync(r.DirectoryEntryReviewId, ct);
+                // Approved replies plus the user's OWN replies in any status (so they see their
+                // pending/rejected ones) — never other people's unapproved replies.
+                var comments = await this.commentRepo.ListForReviewVisibleToAuthorAsync(r.DirectoryEntryReviewId, fp, ct);
 
                 vm.Reviews.Add(new MyReviewRowVm
                 {

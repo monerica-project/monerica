@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Implementations;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -57,6 +58,13 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet("page/{page:int}")]
         public async Task<IActionResult> All(int page = 1)
         {
+            // Same out-of-range rule as the category/tag pages: 301 to page 1, checked
+            // BEFORE querying for page < 1 (a negative OFFSET is a 500 on Postgres).
+            if (page < 1)
+            {
+                return this.RedirectPermanent("/tagged");
+            }
+
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             var path = page > 1 ? $"tagged/page/{page}" : "tagged";
 
@@ -67,6 +75,11 @@ namespace DirectoryManager.Web.Controllers
             var paged = await this.tagRepo
                 .ListTagsWithCountsPagedAsync(page, pageSize)
                 .ConfigureAwait(false);
+
+            if (page > PagingHelper.TotalPages(paged.TotalCount, pageSize))
+            {
+                return this.RedirectPermanent("/tagged");
+            }
 
             var vm = new TagListViewModel
             {
@@ -94,6 +107,14 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            // Out-of-range pagination pages 301 to page 1 (the site turns 404s into a soft-404
+            // via UseStatusCodePagesWithRedirects, so a permanent redirect is the clean signal).
+            // page < 1 is rejected BEFORE querying (a negative OFFSET is a 500 on Postgres).
+            if (page < 1)
+            {
+                return this.RedirectPermanent($"/tagged/{tagSlug}");
+            }
+
             await this.SetCanonicalAsync(tagSlug, page);
 
             // get the paged raw entries
@@ -101,6 +122,11 @@ namespace DirectoryManager.Web.Controllers
                 tag.Name,
                 page,
                 PageSize);
+
+            if (page > PagingHelper.TotalPages(paged.TotalCount, PageSize))
+            {
+                return this.RedirectPermanent($"/tagged/{tagSlug}");
+            }
 
             // grab link-2/3 names just once
             var link2 = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
@@ -127,14 +153,6 @@ namespace DirectoryManager.Web.Controllers
 
             // ✅ apply ratings (avg + count)
             await this.ApplyRatingsAsync(items);
-
-            // Out-of-range pagination pages 301 to page 1 (the site turns 404s into a soft-404
-            // via UseStatusCodePagesWithRedirects, so a permanent redirect is the clean signal).
-            var totalPages = (int)Math.Ceiling(paged.TotalCount / (double)PageSize);
-            if (page < 1 || page > Math.Max(1, totalPages))
-            {
-                return this.RedirectPermanent($"/tagged/{tagSlug}");
-            }
 
             var vmOut = new TaggedEntriesViewModel
             {

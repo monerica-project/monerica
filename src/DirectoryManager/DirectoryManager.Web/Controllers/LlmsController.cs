@@ -114,6 +114,31 @@ namespace DirectoryManager.Web.Controllers
             .Replace("…", "...") // ellipsis
             .Replace(' ', ' ');  // non-breaking space
 
+        // " that accept or relate to Monero (XMR)" from the DirectoryCurrencyName snippet
+        // (config, not hardcoded — the codebase is forked); empty when the snippet isn't set.
+        internal static string AcceptOrRelateClause(string? currencyName) =>
+            string.IsNullOrWhiteSpace(currencyName)
+                ? string.Empty
+                : $" that accept or relate to {currencyName.Trim()}";
+
+        // " that accept Monero": the short form is the part before " (" ("Monero (XMR)" -> "Monero").
+        internal static string AcceptShortClause(string? currencyName)
+        {
+            if (string.IsNullOrWhiteSpace(currencyName))
+            {
+                return string.Empty;
+            }
+
+            var name = currencyName.Trim();
+            var paren = name.IndexOf(" (", StringComparison.Ordinal);
+            if (paren > 0)
+            {
+                name = name.Substring(0, paren).Trim();
+            }
+
+            return $" that accept {name}";
+        }
+
         private async Task<string> BuildLlmsFullTxtAsync()
         {
             var domain = (await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain))
@@ -128,11 +153,12 @@ namespace DirectoryManager.Web.Controllers
                 .ToList();
 
             var siteName = await this.cacheService.GetSnippetAsync(SiteConfigSetting.SiteName);
+            var currency = await this.cacheService.GetSnippetAsync(SiteConfigSetting.DirectoryCurrencyName);
 
             var sb = new StringBuilder();
 
             sb.AppendLine($"# {siteName} - Full Directory");
-            sb.AppendLine($"> Every live listing in the {siteName} directory ({totalActive} websites and services that accept or relate to Monero (XMR)).");
+            sb.AppendLine($"> Every live listing in the {siteName} directory ({totalActive} websites and services{AcceptOrRelateClause(currency)}).");
             sb.AppendLine($"> {domain}");
             sb.AppendLine($"> For the concise category map, see {domain}/llms.txt");
             sb.AppendLine();
@@ -186,11 +212,13 @@ namespace DirectoryManager.Web.Controllers
             var totalActive = await this.directoryEntryRepository.TotalActive();
             var categories = (await this.categoryRepository.GetActiveCategoriesAsync()).ToList();
             var siteName = await this.cacheService.GetSnippetAsync(SiteConfigSetting.SiteName);
+            var currency = await this.cacheService.GetSnippetAsync(SiteConfigSetting.DirectoryCurrencyName);
+            var acceptShort = AcceptShortClause(currency);
 
             var sb = new StringBuilder();
 
             sb.AppendLine($"# {siteName}");
-            sb.AppendLine($"> A curated directory of {totalActive} websites and services that accept or relate to Monero (XMR).");
+            sb.AppendLine($"> A curated directory of {totalActive} websites and services{AcceptOrRelateClause(currency)}.");
             sb.AppendLine($"> {domain}");
             sb.AppendLine();
 
@@ -207,7 +235,7 @@ namespace DirectoryManager.Web.Controllers
 
                 foreach (var sub in subcategories)
                 {
-                    sb.AppendLine($"- [{sub.Name}]({domain}/{category.CategoryKey}/{sub.SubCategoryKey}): {category.Name} — {sub.Name} that accept Monero.");
+                    sb.AppendLine($"- [{sub.Name}]({domain}/{category.CategoryKey}/{sub.SubCategoryKey}): {category.Name} — {sub.Name}{acceptShort}.");
                 }
 
                 sb.AppendLine();

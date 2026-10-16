@@ -10,6 +10,8 @@ namespace DirectoryManager.Web.TagHelpers
     [HtmlTargetElement("cache-content")]
     public class CacheContentTagHelper : TagHelper
     {
+        private const double MinimumCacheSeconds = 1;
+
         private readonly IMemoryCache cache;
         private readonly ISponsoredListingRepository sponsoredListingRepository;
 
@@ -39,14 +41,10 @@ namespace DirectoryManager.Web.TagHelpers
                 var childContent = await output.GetChildContentAsync();
                 cachedContent = childContent.GetContent();
 
-                // Determine the cache expiration time
-                var cacheExpiration = (nextExpirationDate.HasValue && nextExpirationDate != DateTime.MinValue)
-                    ? TimeSpan.FromSeconds(Math.Min((nextExpirationDate.Value - DateTime.UtcNow).TotalSeconds, this.CacheDurationSeconds))
-                    : TimeSpan.FromSeconds(this.CacheDurationSeconds);
-
                 var cacheEntryOptions = new MemoryCacheEntryOptions
                 {
-                    AbsoluteExpirationRelativeToNow = cacheExpiration
+                    AbsoluteExpirationRelativeToNow = ComputeExpiration(
+                        nextExpirationDate, DateTime.UtcNow, this.CacheDurationSeconds)
                 };
 
                 this.cache.Set(this.CacheKey, cachedContent, cacheEntryOptions);
@@ -54,6 +52,23 @@ namespace DirectoryManager.Web.TagHelpers
 
             output.Content.SetHtmlContent(cachedContent);
             output.TagName = null;
+        }
+
+        /// <summary>
+        /// Cache lifetime: the configured duration, shortened so it ends when the next sponsorship
+        /// expires. Never zero/negative (a sponsorship that expires "now" or a clock skew would
+        /// otherwise make MemoryCache throw ArgumentOutOfRangeException) — at least 1 second.
+        /// </summary>
+        internal static TimeSpan ComputeExpiration(DateTime? nextExpirationDate, DateTime utcNow, int durationSeconds)
+        {
+            double seconds = Math.Max(1, durationSeconds);
+
+            if (nextExpirationDate.HasValue && nextExpirationDate.Value != DateTime.MinValue)
+            {
+                seconds = Math.Min((nextExpirationDate.Value - utcNow).TotalSeconds, seconds);
+            }
+
+            return TimeSpan.FromSeconds(Math.Max(MinimumCacheSeconds, seconds));
         }
     }
 }

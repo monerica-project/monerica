@@ -130,21 +130,28 @@ namespace DirectoryManager.SiteChecker.Helpers
             }
 
             // Direct connect failed entirely — the signature of our own IP being
-            // blocked. Ask external vantage points before flagging, so a host
+            // blocked. Ask external vantage points (once) before flagging, so a host
             // that blocks our datacenter IP isn't recorded as dead.
-            if (this.secondOpinion != null && await this.secondOpinion.IsUpAsync(uri).ConfigureAwait(false))
+            if (this.secondOpinion != null)
             {
-                this.Verdict(uri, true, "direct unreachable; external nodes (check-host) report UP");
-                return true;
+                var external = await this.secondOpinion.CheckAsync(uri).ConfigureAwait(false);
+
+                if (external == CheckOutcome.Online)
+                {
+                    this.Verdict(uri, true, "direct unreachable; external nodes (check-host) report UP");
+                    return true;
+                }
+
+                // check-host itself failed or never finished: that is NOT evidence the site is
+                // down, so don't flag it on this run (it is checked again next run).
+                if (external == CheckOutcome.Inconclusive)
+                {
+                    this.Verdict(uri, true, "direct unreachable; external check inconclusive — not flagging");
+                    return true;
+                }
             }
 
-            if (this.secondOpinion != null && await this.secondOpinion.IsUpAsync(uri).ConfigureAwait(false))
-            {
-                this.Verdict(uri, true, "direct unreachable; external nodes (check-host) report UP");
-                return true;
-            }
-
-            this.Verdict(uri, false, "HTTP inconclusive; reachability probe + external check failed");
+            this.Verdict(uri, false, "HTTP inconclusive; reachability probe failed and external nodes confirm DOWN");
             this.log.LogOfflineFailure(uri.ToString(), "clearnet", attemptSummaries);
             return false;
         }
@@ -152,7 +159,9 @@ namespace DirectoryManager.SiteChecker.Helpers
         // Telegram link-preview hosts. A link on one of these can't be verdicted by
         // HTTP status the way an ordinary site can — see the note in TryOnceAsync.
         private static readonly string[] TelegramHosts =
-            { "t.me", "telegram.me", "telegram.dog", "telega.one" };
+        {
+            "t.me", "telegram.me", "telegram.dog", "telega.one",
+        };
 
         private static bool IsTelegramHost(Uri uri)
         {

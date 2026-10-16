@@ -36,6 +36,9 @@ namespace DirectoryManager.Web.Controllers
         private const int WaitlistPageSize = 25;
         private const int RecentPaidTake = 10;
 
+        private const string SponsorshipDisabledReason =
+            "Sponsorship is not available for listings in this subcategory.";
+
         // The public (non-authenticated) pricing charts only ever look back this many days.
         private const int PublicPricingWindowDays = 180;
 
@@ -415,6 +418,13 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            // Subcategory sponsorship kill-switch: show "not available" instead of prices and
+            // the waitlist form (checkout already refuses these listings).
+            if (entry.SubCategory?.SponsorshipDisabled == true)
+            {
+                return this.SponsorshipNotAvailable(entry);
+            }
+
             var vm = await this.BuildOptionsVmAsync(
                 entry, subscribed);
 
@@ -512,6 +522,12 @@ namespace DirectoryManager.Web.Controllers
             if (entry == null)
             {
                 return this.NotFound();
+            }
+
+            // Never accept a waitlist signup for a listing whose subcategory can't buy sponsorship.
+            if (entry.SubCategory?.SponsorshipDisabled == true)
+            {
+                return this.SponsorshipNotAvailable(entry);
             }
 
             var email = (vm.Email ?? string.Empty).Trim();
@@ -616,15 +632,27 @@ namespace DirectoryManager.Web.Controllers
                 : "Anonymous listing";
         }
 
-        // Thin wrapper over the pure, unit-tested SponsorshipEligibilityHelper.
+        // Thin wrapper over the pure, unit-tested SponsorshipEligibilityHelper, plus the
+        // per-subcategory kill-switch (Subcategory.SponsorshipDisabled), which wins over
+        // everything — including the grandfather clause — exactly as checkout enforces it.
         private static (bool CanAdvertise, List<string> Reasons)
             CheckEligibility(DirectoryEntry e, bool grandfathered)
-            => SponsorshipEligibilityHelper.CheckEligibility(
+        {
+            var (ok, reasons) = SponsorshipEligibilityHelper.CheckEligibility(
                 e.DirectoryStatus,
                 e.CreateDate,
                 grandfathered,
                 CommonConstants.MinimumDaysListedBeforeSponsoring,
                 DateTime.UtcNow);
+
+            if (e.SubCategory?.SponsorshipDisabled == true)
+            {
+                reasons = new List<string>(reasons) { SponsorshipDisabledReason };
+                ok = false;
+            }
+
+            return (ok, reasons);
+        }
 
         private static List<(SponsorshipType Type, int? TypeId)>
             CollectSubscriptionScopes(
@@ -768,6 +796,15 @@ namespace DirectoryManager.Web.Controllers
 
             return !string.IsNullOrWhiteSpace(subKey)
                 ? $"/{subKey}" : "/";
+        }
+
+        // Same "not available" page the checkout shows for a subcategory with sponsorship disabled.
+        private IActionResult SponsorshipNotAvailable(DirectoryEntry entry)
+        {
+            this.ViewBag.ListingName = entry.Name;
+            this.ViewBag.ScopeLabel = FormattingHelper.SubcategoryFormatting(
+                entry.SubCategory?.Category?.Name, entry.SubCategory?.Name);
+            return this.View("~/Views/SponsoredListingCheckout/SponsorshipNotAllowed.cshtml");
         }
 
         private SponsorshipSearchItemVm ToSearchItem(

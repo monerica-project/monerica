@@ -463,15 +463,8 @@ namespace DirectoryManager.Web.Controllers
             return this.View(audits);
         }
 
-        [HttpPost("directoryentry/delete/{id}")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(int id)
-        {
-            await this.directoryEntryRepository.DeleteAsync(id);
-            this.ClearCachedItems();
-            return this.RedirectToAction(nameof(this.Index));
-        }
-
+        // NOTE: there is intentionally no hard-delete endpoint. Deleting an entry cascaded into its
+        // invoices/sponsorships/reviews (or failed on FKs); set its status to Removed instead.
         [HttpGet("directoryentry/report")]
         public IActionResult Report()
         {

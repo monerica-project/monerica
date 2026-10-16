@@ -76,6 +76,7 @@ var serviceProvider = new ServiceCollection()
 var notificationRepo = serviceProvider.GetRequiredService<ISponsoredListingOpeningNotificationRepository>();
 var listingRepo = serviceProvider.GetRequiredService<ISponsoredListingRepository>();
 var directoryEntryRepository = serviceProvider.GetRequiredService<IDirectoryEntryRepository>();
+var subcategoryRepository = serviceProvider.GetRequiredService<ISubcategoryRepository>();
 var sponsoredListingRepository = serviceProvider.GetRequiredService<ISponsoredListingRepository>();
 var reservationRepo = serviceProvider.GetRequiredService<ISponsoredListingReservationRepository>();
 var emailMessageRepo = serviceProvider.GetRequiredService<IEmailMessageRepository>();
@@ -145,12 +146,43 @@ foreach (var notification in pendingNotifications)
             }
         }
 
+        // SUBCATEGORY: never announce an opening in a subcategory whose sponsorship is turned off
+        // (checkout would refuse the purchase anyway).
+        if (notification.SponsorshipType == SponsorshipType.SubcategorySponsor
+            && notification.TypeId is > 0)
+        {
+            var subcategory = await subcategoryRepository.GetByIdAsync(notification.TypeId.Value);
+            if (subcategory?.SponsorshipDisabled == true)
+            {
+                Console.WriteLine($"Sponsorship disabled for subcategory {notification.TypeId}. Skipping: {notification.Email}");
+                continue;
+            }
+        }
+
         // Choose template: with listing if directoryEntryId exists AND entry still exists
         var useWithListing = false;
 
         if (notification.DirectoryEntryId.HasValue && notification.DirectoryEntryId.Value > 0)
         {
             var entry = await directoryEntryRepository.GetByIdAsync(notification.DirectoryEntryId.Value);
+
+            if (entry != null)
+            {
+                // The listing must still be live (same rule as active sponsors) and allowed to
+                // buy sponsorship; otherwise the email would invite a purchase that can't happen.
+                if (!entry.DirectoryStatus.IsLive())
+                {
+                    Console.WriteLine($"Listing {entry.DirectoryEntryId} is {entry.DirectoryStatus}. Skipping: {notification.Email}");
+                    continue;
+                }
+
+                if (entry.SubCategory?.SponsorshipDisabled == true)
+                {
+                    Console.WriteLine($"Sponsorship disabled for listing {entry.DirectoryEntryId}'s subcategory. Skipping: {notification.Email}");
+                    continue;
+                }
+            }
+
             useWithListing = entry != null;
         }
 

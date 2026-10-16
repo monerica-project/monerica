@@ -53,7 +53,7 @@ var serviceProvider = new ServiceCollection()
 var emailService = serviceProvider.GetRequiredService<IEmailService>();
 
 // Site name from config (ContentSnippet) so notification emails aren't hardcoded to "Monerica"
-// — this job is shared by forks of the directory. Falls back to "Monerica" if unset.
+// — this job is shared by forks of the directory. Falls back to a generic name if unset.
 string siteName;
 using (var cfgScope = serviceProvider.CreateScope())
 {
@@ -63,7 +63,7 @@ using (var cfgScope = serviceProvider.CreateScope())
 
 if (string.IsNullOrWhiteSpace(siteName))
 {
-    siteName = "Monerica";
+    siteName = "directory"; // reads as "your directory listing"
 }
 
 static bool IsValidEmail(string? e)

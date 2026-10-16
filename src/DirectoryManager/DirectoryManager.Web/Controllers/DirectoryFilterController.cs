@@ -1,4 +1,5 @@
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -76,6 +77,13 @@ public class DirectoryFilterController : Controller
 
         // core results
         var result = await this.entryRepo.FilterAsync(q);
+
+        // Past the last page: send the visitor back to page 1 of the same filter instead of
+        // rendering an empty 200 (same rule as the category/subcategory/tag pages).
+        if (q.Page > PagingHelper.TotalPages(result.TotalCount, q.PageSize))
+        {
+            return this.Redirect(PagingRedirectHelper.FirstPageUrl("/filter", this.Request.Query));
+        }
 
         // link labels (used in both view models + sponsor models)
         var (link2Name, link3Name) = await this.GetLinkLabelsAsync();
@@ -379,11 +387,15 @@ public class DirectoryFilterController : Controller
             var subSponsor = subCategorySponsors.FirstOrDefault();
 
             int totalActiveInSub = await this.entryRepo.CountBySubcategoryAsync(subId);
+            var subcategory = await this.subcategoryRepo.GetByIdAsync(subId);
 
             subcategorySponsorModel = new SubcategorySponsorModel
             {
                 SubCategoryId = subId,
                 TotalActiveSubCategoryListings = totalActiveInSub,
+
+                // Hide the "Advertise here" CTA when this subcategory can't buy sponsorship.
+                SponsorshipDisabled = subcategory?.SponsorshipDisabled == true,
                 DirectoryEntry = (subSponsor?.DirectoryEntry != null)
                     ? BuildSponsorEntryVm(subSponsor.DirectoryEntry, link2Name, link3Name)
                     : null

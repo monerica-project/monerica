@@ -1,0 +1,221 @@
+@model DirectoryManager.Web.Models.Reports.RevenueForecastViewModel
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Data.Enums
+@using System.Globalization
+@{
+    ViewData[StringConstants.TitleHeader] = "Revenue Forecast";
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    Layout = "_CenteredLayout";
+
+    var usd = CultureInfo.GetCultureInfo("en-US");
+    var r = Model.Result;
+    var q = $"horizonMonths={Model.HorizonMonths}&confidence={Model.ConfidencePercent}&priceGrowth={Model.PriceGrowthPercent.ToString(CultureInfo.InvariantCulture)}";
+    var v = r.AsOfUtc.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+    var lowPct = (100 - Model.ConfidencePercent) / 2;
+    var highPct = 100 - lowPct;
+    var nowMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
+
+    string TierName(SponsorshipType t) => t switch
+    {
+        SponsorshipType.MainSponsor => "Main",
+        SponsorshipType.CategorySponsor => "Category",
+        SponsorshipType.SubcategorySponsor => "Subcategory",
+        _ => t.ToString(),
+    };
+
+    var next12 = r.Months.Take(12).ToList();
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    @await Html.PartialAsync("_AdminMenu")
+
+    <p>
+        <a href="~/admin/revenue">Revenue</a> |
+        <strong>Forecast</strong>
+    </p>
+    <hr />
+
+    <p class="text-muted">
+        This forecast is built from how sponsorships actually behave, not from a trend line.
+        Revenue is counted as <strong>earned</strong>: a sponsorship earns its price spread over the days it runs, so a year paid
+        up front is about 1/365 of the price per day for a year, not a spike in the month it was paid.
+    </p>
+    <ul class="text-muted">
+        <li><strong>Already paid for:</strong> every running or prepaid campaign keeps earning its daily rate until it ends.</li>
+        <li><strong>Renewals:</strong> when a live advertiser's campaign ends, it renews as often as that tier has historically
+            (shown below), for the same length, at <em>recent</em> prices@(Model.PriceGrowthPercent != 0m ? $", changing {Model.PriceGrowthPercent.ToString("0.#", CultureInfo.InvariantCulture)}% per year" : " (prices are assumed to stay where they are)"). Pulled advertisers never renew.</li>
+        <li><strong>New sponsors</strong> arrive at the rate they have recently (the last six months count most), but only into free slots. A tier that is always sold out, like Main, refills an open slot as fast as it has in the past.</li>
+        <li><strong>Other income</strong> (video sponsorships, affiliate commissions, and submission review, verification and problem report payments) is drawn from the last 12 months.</li>
+    </ul>
+    <p class="text-muted">
+        All figures are <strong>revenue, not profit</strong>: review and verification payments pay for the review work, and
+        video sponsorships carry production costs. Costs aren't subtracted.
+    </p>
+    <p class="text-muted">
+        Each month is simulated @Model.ConfidencePercent% of the time inside the range shown; "Expected" is the average of
+        several thousand simulated futures.
+    </p>
+
+    <form method="get" action="~/admin/revenue/forecast">
+        <div class="form-row">
+            <div class="form-group col-md-4">
+                <label for="horizonMonths">Months ahead</label>
+                <input id="horizonMonths" name="horizonMonths" type="number" min="1" max="24" class="form-control" value="@Model.HorizonMonths" />
+            </div>
+            <div class="form-group col-md-4">
+                <label for="confidence">Range confidence (%)</label>
+                <input id="confidence" name="confidence" type="number" min="50" max="95" class="form-control" value="@Model.ConfidencePercent" />
+            </div>
+            <div class="form-group col-md-4">
+                <label for="priceGrowth">Price change per year (%)</label>
+                <input id="priceGrowth" name="priceGrowth" type="number" min="-50" max="200" step="1" class="form-control" value="@Model.PriceGrowthPercent.ToString("0.#", CultureInfo.InvariantCulture)" />
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Update</button>
+    </form>
+
+    @if (Model.Advice.Count > 0)
+    {
+        <h2>What this means</h2>
+        <ul>
+            @foreach (var a in Model.Advice)
+            {
+                <li class="@(a.Kind == "warning" ? "text-warning" : a.Kind == "positive" ? "text-success" : "")">@a.Text</li>
+            }
+        </ul>
+    }
+
+    <h2>Summary</h2>
+    <div class="u-overflowx-auto">
+    <table class="table table-sm">
+        <tbody>
+            <tr><td>Expected revenue, next @next12.Count months</td><td class="text-right"><strong>@next12.Sum(m => m.Expected).ToString("C0", usd)</strong></td></tr>
+            <tr><td>Range (sum of monthly @lowPct–@highPct percentiles)</td><td class="text-right">@next12.Sum(m => m.Low).ToString("C0", usd) – @next12.Sum(m => m.High).ToString("C0", usd)</td></tr>
+            <tr><td>Already paid for, still to be served</td><td class="text-right">@r.ContractedRemaining.ToString("C0", usd)</td></tr>
+            <tr><td>Expected cash in (renewals and new sponsors pay up front)</td><td class="text-right">@next12.Sum(m => m.CashExpected).ToString("C0", usd)</td></tr>
+            <tr><td>Other income, monthly average (last 12 months)</td><td class="text-right">@r.OtherMonthlyAverage.ToString("C0", usd)</td></tr>
+        </tbody>
+    </table>
+    </div>
+
+    <img class="u-maxw-100pct-h-auto-block-m-0-auto-pb-10px" alt="Revenue history and forecast" src="~/admin/revenue/forecast.png?@q&v=@v" width="1400" height="650" />
+
+    <h2>By month</h2>
+    <div class="u-overflowx-auto">
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Month</th>
+                <th class="text-right">Already paid for</th>
+                <th class="text-right">Expected earned</th>
+                <th class="text-right">Range (@lowPct–@highPct%)</th>
+                <th class="text-right">Sponsors</th>
+                <th class="text-right">Other</th>
+                <th class="text-right">Expected cash in</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var m in r.Months)
+            {
+                <tr>
+                    <td>@m.MonthStart.ToString("MMM yyyy", CultureInfo.InvariantCulture)@(m.ActualSoFar > 0m ? " (so far: " + m.ActualSoFar.ToString("C0", usd) + ")" : "")</td>
+                    <td class="text-right">@m.Contracted.ToString("C0", usd)</td>
+                    <td class="text-right"><strong>@m.Expected.ToString("C0", usd)</strong></td>
+                    <td class="text-right">@m.Low.ToString("C0", usd) – @m.High.ToString("C0", usd)</td>
+                    <td class="text-right">@m.SponsorExpected.ToString("C0", usd)</td>
+                    <td class="text-right">@m.OtherExpected.ToString("C0", usd)</td>
+                    <td class="text-right">@m.CashExpected.ToString("C0", usd)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    </div>
+
+    <h2>What the model learned</h2>
+    <div class="u-overflowx-auto">
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Tier</th>
+                <th class="text-right">Running now / slots</th>
+                <th class="text-right">Sold out (last 90 days)</th>
+                <th class="text-right">Earning now (per day)</th>
+                <th class="text-right">Renewal rate</th>
+                <th class="text-right">New sponsors per month</th>
+                <th class="text-right">Recent price (per day)</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in r.Tiers)
+            {
+                <tr>
+                    <td>@TierName(t.Type)</td>
+                    <td class="text-right">@t.ActiveNow / @(t.Capacity == int.MaxValue ? "∞" : t.Capacity.ToString(CultureInfo.InvariantCulture))</td>
+                    <td class="text-right">@t.SoldOutPctLast90Days.ToString("0", CultureInfo.InvariantCulture)%</td>
+                    <td class="text-right">@t.ContractedDailyRunRate.ToString("C2", usd)</td>
+                    <td class="text-right">@t.RenewalRatePct.ToString("0.#", CultureInfo.InvariantCulture)% <span class="text-muted">(@t.CampaignsRenewed of @t.CampaignsEnded)</span></td>
+                    <td class="text-right">@t.NewSponsorsPerMonth.ToString("0.##", CultureInfo.InvariantCulture)</td>
+                    <td class="text-right">@t.RecentDailyRate.ToString("C2", usd)</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+    </div>
+    <p class="text-muted">Renewal rate: of the campaigns that ended between 18 and 1.5 months ago, how many were followed by another campaign in the same slot.</p>
+
+    <h2>How accurate is it?</h2>
+    @if (r.Backtests.Count == 0)
+    {
+        <p class="text-muted">Not enough history yet to test the forecast against the past.</p>
+    }
+    else
+    {
+        <p class="text-muted">
+            The same model was run as if it were an earlier date, using only what was known then, and compared with what was
+            actually earned. Mean error is how far "expected" was from actual, on average. "Inside range" is how often the actual
+            month fell inside the @Model.ConfidencePercent% range.
+        </p>
+        <p class="text-muted">
+            Prices have risen a lot over time, and future price changes are your decision, not something the model can know.
+            So it's scored twice: with the prices known at the time (which misses every later increase), and with the prices you
+            actually charged — the second shows how well it predicts renewals and new sponsors on their own.
+        </p>
+        <div class="u-overflowx-auto">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Forecast made</th>
+                    <th class="text-right">Months</th>
+                    <th class="text-right">Predicted total</th>
+                    <th class="text-right">Actual total</th>
+                    <th class="text-right">Mean error per month</th>
+                    <th class="text-right">Inside range</th>
+                    <th class="text-right">With actual prices: predicted</th>
+                    <th class="text-right">With actual prices: mean error</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var bt in r.Backtests)
+                {
+                    <tr>
+                        <td>@bt.AsOfUtc.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</td>
+                        <td class="text-right">@bt.Months.Count</td>
+                        <td class="text-right">@bt.TotalPredicted.ToString("C0", usd)</td>
+                        <td class="text-right">@bt.TotalActual.ToString("C0", usd)</td>
+                        <td class="text-right">@bt.MeanAbsPctError.ToString("0.#", CultureInfo.InvariantCulture)%</td>
+                        <td class="text-right">@bt.CoveragePct.ToString("0", CultureInfo.InvariantCulture)%</td>
+                        <td class="text-right">@bt.VolumeOnlyTotalPredicted.ToString("C0", usd)</td>
+                        <td class="text-right">@bt.VolumeOnlyMeanAbsPctError.ToString("0.#", CultureInfo.InvariantCulture)%</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        </div>
+        @foreach (var bt in r.Backtests)
+        {
+            var monthsBack = ((nowMonth.Year - bt.AsOfUtc.Year) * 12) + nowMonth.Month - bt.AsOfUtc.Month;
+            <img class="u-maxw-100pct-h-auto-block-m-0-auto-pb-10px" alt="Backtest from @bt.AsOfUtc.ToString("MMM yyyy", CultureInfo.InvariantCulture)" src="~/admin/revenue/backtest/@(monthsBack).png?@q&v=@v" width="1100" height="450" />
+        }
+    }
+}

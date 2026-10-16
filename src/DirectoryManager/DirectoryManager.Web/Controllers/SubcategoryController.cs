@@ -1,4 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -93,6 +94,15 @@ namespace DirectoryManager.Web.Controllers
             subCategory.MetaDescription = subCategory.MetaDescription?.Trim();
             subCategory.PageDetails = subCategory.PageDetails?.Trim();
 
+            // (SubCategoryKey, CategoryId) is unique: pre-check so a duplicate is a validation
+            // error on the form rather than a failed insert.
+            if (await this.subcategoryRepository.KeyExistsAsync(subCategory.CategoryId, subCategory.SubCategoryKey))
+            {
+                this.ModelState.AddModelError(string.Empty, DuplicateKeyMessage(subCategory.SubCategoryKey));
+                this.ViewBag.Categories = await this.categoryRepository.GetAllAsync();
+                return this.View(subCategory);
+            }
+
             try
             {
                 await this.subcategoryRepository.CreateAsync(subCategory);
@@ -134,6 +144,14 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            var newKey = StringHelpers.UrlKey(subCategory.Name.Trim());
+            if (await this.subcategoryRepository.KeyExistsAsync(subCategory.CategoryId, newKey, existingSubCategory.SubCategoryId))
+            {
+                this.ModelState.AddModelError(string.Empty, DuplicateKeyMessage(newKey));
+                this.ViewBag.Categories = await this.categoryRepository.GetAllAsync();
+                return this.View(subCategory);
+            }
+
             existingSubCategory.Name = subCategory.Name.Trim();
             existingSubCategory.SubCategoryKey = StringHelpers.UrlKey(existingSubCategory.Name);
             existingSubCategory.CategoryId = subCategory.CategoryId;
@@ -172,13 +190,19 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            // Out-of-range pagination pages 301 to page 1 (the site turns 404s into a soft-404
+            // via UseStatusCodePagesWithRedirects, so a permanent redirect is the clean signal).
+            // Reject page < 1 BEFORE querying (a negative OFFSET is a 500 on Postgres).
+            if (page < 1)
+            {
+                return this.RedirectPermanent($"/{category.CategoryKey}/{subCategory.SubCategoryKey}");
+            }
+
             var paged = await this.directoryEntryRepository.GetActiveEntriesBySubcategoryPagedAsync(
                 subCategory.SubCategoryId, page, PageSize);
 
-            // Out-of-range pagination pages 301 to page 1 (the site turns 404s into a soft-404
-            // via UseStatusCodePagesWithRedirects, so a permanent redirect is the clean signal).
-            var totalPages = (int)Math.Ceiling(paged.TotalCount / (double)PageSize);
-            if (page < 1 || page > Math.Max(1, totalPages))
+            var totalPages = PagingHelper.TotalPages(paged.TotalCount, PageSize);
+            if (page > totalPages)
             {
                 return this.RedirectPermanent($"/{category.CategoryKey}/{subCategory.SubCategoryKey}");
             }
@@ -228,9 +252,20 @@ namespace DirectoryManager.Web.Controllers
                 EntryViewModels = viewModelList
             };
 
-            this.SetCannonicalUrl();
+            this.SetCannonicalUrl(category.CategoryKey, subCategory.SubCategoryKey, page);
             return this.View("SubCategoryListings", vm);
         }
+
+        // The canonical is built only from known route values (never the raw query string), so
+        // tracking/junk parameters can't leak into it. Page 1 has no /page/N suffix.
+        internal static string BuildSubcategoryCanonicalPath(string categoryKey, string subCategoryKey, int page)
+        {
+            var path = $"/{categoryKey}/{subCategoryKey}";
+            return page > 1 ? $"{path}/page/{page}" : path;
+        }
+
+        private static string DuplicateKeyMessage(string key) =>
+            $"Another subcategory in this category already uses the URL key \"{key}\". Choose a different name.";
 
         private async Task ApplyRatingsAsync(List<DirectoryEntryViewModel> items)
         {
@@ -258,26 +293,23 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
-        private void SetCannonicalUrl()
+        private void SetCannonicalUrl(string categoryKey, string subCategoryKey, int page)
         {
             var canonicalDomainSnippet = this.contentSnippetRepository.Get(Data.Enums.SiteConfigSetting.CanonicalDomain);
             var canonicalDomainValue = canonicalDomainSnippet != null ? canonicalDomainSnippet.Content : string.Empty;
+            var path = BuildSubcategoryCanonicalPath(categoryKey, subCategoryKey, page);
 
             if (!string.IsNullOrWhiteSpace(canonicalDomainValue))
             {
                 // Normalize the canonical domain by ensuring it doesn't end with a '/'
                 canonicalDomainValue = canonicalDomainValue.TrimEnd('/');
 
-                // Build the canonical URL
-                var originalPathAndQuery = $"{this.Request.Path}{this.Request.QueryString}";
-                var canonicalUrl = $"{canonicalDomainValue}{originalPathAndQuery}";
-
-                this.ViewData[StringConstants.CanonicalUrl] = UrlHelper.NormalizeUrl(canonicalUrl);
+                this.ViewData[StringConstants.CanonicalUrl] = UrlHelper.NormalizeUrl($"{canonicalDomainValue}{path}");
             }
             else
             {
-                // Fallback to original URL if no canonical domain is set
-                var originalUrl = $"{this.Request.Scheme}://{this.Request.Host}{this.Request.Path}{this.Request.QueryString}";
+                // Fallback to the request host if no canonical domain is set
+                var originalUrl = $"{this.Request.Scheme}://{this.Request.Host}{path}";
                 this.ViewData[StringConstants.CanonicalUrl] = UrlHelper.NormalizeUrl(originalUrl);
             }
         }

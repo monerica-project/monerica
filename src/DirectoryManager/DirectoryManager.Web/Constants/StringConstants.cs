@@ -46,12 +46,16 @@
         public const string NavMenu = "NavModel";
         public const string CacheKeySearchBlacklistTermsCacheKey = "blacklistterms";
         public const string UserAgent = "User-Agent";
+
+        // Expiration-token prefixes (CachePrefixManager) the directory filter registers its cached
+        // option lists under. SponsorCacheHelper expires every one in FilterCacheTokenPrefixes.
         public const string PrefixDirectoryFilter = "DirectoryFilter:";
         public const string PrefixActiveCategories = "ActiveCategories:";
         public const string PrefixActiveSubcats = "ActiveSubcategoriesByCategory:";
         public const string PrefixActiveTagsByCat = "ActiveTagsByCategory:";
         public const string PrefixActiveTagIdsByCat = "ActiveTagIdsByCategory:";
-        public const string DirectoryFilterCachePrefix = "DirectoryFilter:";
+
+        // Cache KEYS (not token prefixes) for the filter option lists.
         public const string ActiveCountriesCacheName = "DirectoryFilter:CountryOptions:Active";
         public const string ActiveCategoriesCacheName = "ActiveCategoriesCacheName";
         public const string ActiveSubcategoriesByCategoryCachePrefix = "ActiveSubcategoriesByCategoryCachePrefix_";
@@ -61,5 +65,18 @@
         public const string ActiveTagIdsAllCacheName = "active-tag-ids-all";
         public const string CodeAlphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
         public const string CacheKeyAuthorPostCounts = "AuthorPostCounts:Approved:Reviews+Replies:v1";
+
+        /// <summary>
+        /// Every token prefix a cached filter entry can be registered under. Invalidation must
+        /// expire exactly these, so a new prefix only needs adding here.
+        /// </summary>
+        public static readonly IReadOnlyList<string> FilterCacheTokenPrefixes = new[]
+        {
+            PrefixDirectoryFilter,
+            PrefixActiveCategories,
+            PrefixActiveSubcats,
+            PrefixActiveTagsByCat,
+            PrefixActiveTagIdsByCat,
+        };
     }
 }

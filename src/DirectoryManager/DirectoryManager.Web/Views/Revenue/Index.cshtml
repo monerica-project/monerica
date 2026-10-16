@@ -1,0 +1,148 @@
+@model DirectoryManager.Web.Models.Reports.RevenueReportViewModel
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Revenue
+@using System.Globalization
+@{
+    ViewData[StringConstants.TitleHeader] = "Revenue";
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    Layout = "_CenteredLayout";
+
+    var usd = CultureInfo.GetCultureInfo("en-US");
+    var earned = Model.Basis == RevenueBasis.Earned;
+    var chartQuery = string.IsNullOrEmpty(Model.ChartQuery) ? "?" : Model.ChartQuery + "&";
+    var cacheBust = DateTime.UtcNow.ToString("yyyyMMddHHmm", CultureInfo.InvariantCulture);
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    @await Html.PartialAsync("_AdminMenu")
+
+    <p>
+        <strong>Revenue</strong> |
+        <a href="~/admin/revenue/forecast">Forecast</a> |
+        <a href="~/report">Sponsorship invoice report</a>
+    </p>
+    <hr />
+
+    <form method="get" action="~/admin/revenue">
+        <div class="form-row">
+            <div class="form-group col-md-3">
+                <label for="period">Period</label>
+                <select id="period" name="period" class="form-control">
+                    @foreach (var (key, label) in Model.PeriodOptions)
+                    {
+                        <option value="@key" selected="@(key == Model.Period)">@label</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group col-md-3">
+                <label for="from">From (custom)</label>
+                <input id="from" name="from" type="date" class="form-control" value="@(Model.Period == "custom" ? Model.From.ToString("yyyy-MM-dd") : "")" />
+            </div>
+            <div class="form-group col-md-3">
+                <label for="to">To (custom, inclusive)</label>
+                <input id="to" name="to" type="date" class="form-control" value="@(Model.Period == "custom" ? Model.To.AddDays(-1).ToString("yyyy-MM-dd") : "")" />
+            </div>
+            <div class="form-group col-md-3">
+                <label for="basis">Count revenue as</label>
+                <select id="basis" name="basis" class="form-control">
+                    <option value="Earned" selected="@earned">Earned (spread over service days)</option>
+                    <option value="Cash" selected="@(!earned)">Cash (when paid)</option>
+                </select>
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Show</button>
+    </form>
+
+    <p class="text-muted u-mt-4px">
+        @if (earned)
+        {
+            <text>Earned: each sponsorship counts a little every day it runs (amount ÷ days paid for), so a year paid up front doesn't look like a one-month spike. Review and verification payments, video sponsorships and affiliate commissions count on the day they were paid.</text>
+        }
+        else
+        {
+            <text>Cash: everything counts on the day the money arrived, including sponsorships paid months in advance.</text>
+        }
+    </p>
+
+    <h2>@Model.PeriodLabel: @Model.Report.GrandTotal.ToString("C0", usd) in revenue</h2>
+    <p class="text-muted">
+        This is money received, <strong>not profit</strong>. Submission review, verification and problem report payments
+        pay for the review work they buy, and video sponsorships carry production costs (including any product demo cost
+        the sponsor paid for). None of those costs are subtracted here.
+    </p>
+
+    <img class="u-maxw-100pct-h-auto-block-m-0-auto-pb-10px" alt="Revenue by source, @Model.PeriodLabel" src="~/admin/revenue/pie.png@(chartQuery)v=@cacheBust" width="900" height="520" />
+
+    <div class="u-overflowx-auto">
+
+    <table class="table table-sm">
+        <thead>
+            <tr>
+                <th>Source</th>
+                <th class="text-right">Amount</th>
+                <th class="text-right">Share</th>
+                <th class="text-right">@(earned ? "Payments / sponsorships" : "Payments")</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var t in Model.Report.Totals)
+            {
+                <tr>
+                    <td>@RevenueReportBuilder.Label(t.Source)</td>
+                    <td class="text-right">@t.AmountUsd.ToString("C2", usd)</td>
+                    <td class="text-right">@t.SharePct.ToString("0.#", CultureInfo.InvariantCulture)%</td>
+                    <td class="text-right">@t.Count</td>
+                </tr>
+            }
+        </tbody>
+        <tfoot>
+            <tr>
+                <th>Total</th>
+                <th class="text-right">@Model.Report.GrandTotal.ToString("C2", usd)</th>
+                <th></th>
+                <th class="text-right">@Model.Report.Totals.Sum(t => t.Count)</th>
+            </tr>
+        </tfoot>
+    </table>
+    </div>
+
+    @if (Model.MissingUsdCount > 0)
+    {
+        <p class="text-warning">@Model.MissingUsdCount paid review or verification payment(s) in this period have no USD value recorded, so they count as $0 above.</p>
+    }
+
+    <h2>By month</h2>
+    <img class="u-maxw-100pct-h-auto-block-m-0-auto-pb-10px" alt="Revenue by month and source" src="~/admin/revenue/monthly.png@(chartQuery)v=@cacheBust" width="1400" height="600" />
+
+    @if (Model.Report.Months.Count > 1)
+    {
+        <div class="u-overflowx-auto">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Month</th>
+                    @foreach (var s in RevenueReportBuilder.Sources)
+                    {
+                        <th class="text-right">@RevenueReportBuilder.Label(s)</th>
+                    }
+                    <th class="text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var m in Model.Report.Months)
+                {
+                    <tr>
+                        <td>@m.Month.ToString("MMM yyyy", CultureInfo.InvariantCulture)</td>
+                        @foreach (var s in RevenueReportBuilder.Sources)
+                        {
+                            <td class="text-right">@m.BySource[s].ToString("C0", usd)</td>
+                        }
+                        <td class="text-right"><strong>@m.Total.ToString("C0", usd)</strong></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        </div>
+    }
+}

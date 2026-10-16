@@ -118,6 +118,7 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<Submission>(e =>
             {
                 e.Property(x => x.PaidAmount).HasColumnType("numeric(18,8)");
+                e.Property(x => x.PaidUsd).HasColumnType("numeric(18,2)");
 
                 // gen_random_uuid() gives EVERY existing row a distinct value when the column
                 // is added, so the unique index below won't clash; new rows set their own Guid
@@ -164,6 +165,7 @@ namespace DirectoryManager.Data.DbContextInfo
                  .HasDatabaseName("IX_VerificationRequests_Status_Create_Id");
 
                 e.Property(x => x.PaidAmount).HasColumnType("numeric(18,8)");
+                e.Property(x => x.PaidUsd).HasColumnType("numeric(18,2)");
 
                 // gen_random_uuid() (core in PG13+) gives EVERY existing row a distinct
                 // value when the column is added, so the unique index below won't clash;
@@ -256,6 +258,7 @@ namespace DirectoryManager.Data.DbContextInfo
                  .HasDatabaseName("IX_ProblemReports_Status_Create_Id");
 
                 e.Property(x => x.PaidAmount).HasColumnType("numeric(18,8)");
+                e.Property(x => x.PaidUsd).HasColumnType("numeric(18,2)");
 
                 e.Property(x => x.PaymentToken).HasDefaultValueSql("gen_random_uuid()");
                 e.HasIndex(x => x.PaymentToken)

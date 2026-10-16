@@ -79,8 +79,9 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            // Not verified => show login (PGP key box)
-            if (!this.TryGetSession(entry.DirectoryEntryKey, out var session))
+            // Not verified (or the listing's PGP key changed since sign-in) => show login (PGP key box)
+            if (!this.TryGetSession(entry.DirectoryEntryKey, out var session)
+                || !this.SessionStillValidForListing(entry.DirectoryEntryKey, session, entry))
             {
                 var loginVm = new SiteOwnerAdminLoginVm
                 {
@@ -295,6 +296,7 @@ namespace DirectoryManager.Web.Controllers
                 DirectoryEntryKey = flow.DirectoryEntryKey,
                 DirectoryEntryName = flow.DirectoryEntryName,
                 OwnerFingerprint = flow.PgpFingerprint ?? string.Empty,
+                OwnerPrimaryFingerprint = PgpCapabilities.GetPrimaryFingerprint(flow.PgpArmored ?? string.Empty) ?? string.Empty,
                 ExpiresUtc = DateTime.UtcNow.AddMinutes(AdminSessionMinutes)
             };
 
@@ -331,10 +333,33 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            if (!this.SessionStillValidForListing(directoryEntryKey, session, entry))
+            {
+                this.TempData["AdminError"] = SessionExpiredMessage;
+                this.SaveReplyDraft(directoryEntryReviewId, body);
+                return this.Redirect(AdminPageUrl(directoryEntryKey, 1));
+            }
+
             var review = await this.reviewRepo.GetByIdAsync(directoryEntryReviewId, ct);
             if (review == null || review.DirectoryEntryId != entry.DirectoryEntryId)
             {
                 return this.NotFound();
+            }
+
+            // A nested reply must point at an existing, non-rejected reply on THIS review —
+            // never at a comment on another review/listing (the posted id is untrusted).
+            if (parentCommentId.HasValue)
+            {
+                var parent = parentCommentId.Value > 0
+                    ? await this.commentRepo.GetByIdAsync(parentCommentId.Value, ct)
+                    : null;
+
+                if (!IsValidParentComment(parent, directoryEntryReviewId))
+                {
+                    this.TempData["AdminError"] = "The reply you were responding to no longer exists.";
+                    this.SaveReplyDraft(directoryEntryReviewId, body);
+                    return this.Redirect(AdminPageUrl(directoryEntryKey, returnPage) + $"#review-{directoryEntryReviewId}");
+                }
             }
 
             body ??= string.Empty;
@@ -396,6 +421,12 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            if (!this.SessionStillValidForListing(directoryEntryKey, session, entry))
+            {
+                this.TempData["AdminError"] = SessionExpiredMessage;
+                return this.Redirect(AdminPageUrl(directoryEntryKey, 1));
+            }
+
             // Can only enable when the listing has a real, well-formed email to send to.
             if (enabled && !DirectoryManager.Utilities.Helpers.EmailValidationHelper.Validate(entry.Email).IsValid)
             {
@@ -435,6 +466,38 @@ namespace DirectoryManager.Web.Controllers
             this.TempData["AdminMessage"] = "Signed out.";
             return this.Redirect(AdminPageUrl(directoryEntryKey, 1));
         }
+
+        /// <summary>
+        /// Same matching rule as sign-in (SubmitKey): the session's identity fingerprint matches
+        /// any fingerprint of the listing's current key, or the session's primary-key fingerprint
+        /// matches the current key's primary fingerprint. No key on the listing = no session.
+        /// </summary>
+        internal static bool SessionKeyMatchesListingKey(
+            string? sessionFingerprint, string? sessionPrimaryFingerprint, string? listingPgpKey)
+        {
+            if (string.IsNullOrWhiteSpace(listingPgpKey) || string.IsNullOrWhiteSpace(sessionFingerprint))
+            {
+                return false;
+            }
+
+            var sessionNorm = PgpFingerprintTools.Normalize(sessionFingerprint);
+            if (PgpFingerprintTools.GetAllFingerprints(listingPgpKey)
+                .Any(listingFp => PgpFingerprintTools.Matches(sessionNorm, listingFp)))
+            {
+                return true;
+            }
+
+            var listingPrimary = PgpCapabilities.GetPrimaryFingerprint(listingPgpKey);
+            return !string.IsNullOrEmpty(listingPrimary)
+                && !string.IsNullOrEmpty(sessionPrimaryFingerprint)
+                && PgpFingerprintTools.Matches(listingPrimary, sessionPrimaryFingerprint);
+        }
+
+        /// <summary>A posted parent reply is acceptable only if it exists on the same review and isn't rejected.</summary>
+        internal static bool IsValidParentComment(DirectoryEntryReviewComment? parent, int directoryEntryReviewId) =>
+            parent != null
+            && parent.DirectoryEntryReviewId == directoryEntryReviewId
+            && parent.ModerationStatus != ReviewModerationStatus.Rejected;
 
         // =========================
         // VM builder
@@ -617,6 +680,27 @@ namespace DirectoryManager.Web.Controllers
             return true;
         }
 
+        // The owner session is bound to the PGP key that was on the listing at sign-in. Re-check it
+        // against the listing's CURRENT key on every request: if an admin changed/removed the key
+        // (e.g. ownership moved), the old session is dropped instead of living on for up to 12h.
+        private bool SessionStillValidForListing(
+            string directoryEntryKey, SiteOwnerAdminSessionState session, DirectoryEntry entry)
+        {
+            if (session.DirectoryEntryId == entry.DirectoryEntryId
+                && SessionKeyMatchesListingKey(session.OwnerFingerprint, session.OwnerPrimaryFingerprint, entry.PgpKey))
+            {
+                return true;
+            }
+
+            if (this.TryGetSessionIdFromCookie(directoryEntryKey, out var sid))
+            {
+                this.cache.Remove(SessionCacheKey(sid));
+            }
+
+            this.ClearSessionCookie(directoryEntryKey);
+            return false;
+        }
+
         private bool TryGetSessionIdFromCookie(string directoryEntryKey, out Guid sessionId)
         {
             sessionId = default;
@@ -767,6 +851,10 @@ namespace DirectoryManager.Web.Controllers
             public string DirectoryEntryName { get; set; } = string.Empty;
 
             public string OwnerFingerprint { get; set; } = string.Empty;
+
+            // Primary-key fingerprint of the key the owner signed in with (see SubmitKey), so a
+            // routine subkey rotation on the listing doesn't log them out.
+            public string OwnerPrimaryFingerprint { get; set; } = string.Empty;
             public DateTime ExpiresUtc { get; set; }
         }
     }

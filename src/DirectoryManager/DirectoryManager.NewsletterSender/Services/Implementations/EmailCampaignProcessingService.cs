@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Repositories.Interfaces;
+﻿using DirectoryManager.Data.Models.Emails;
+using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.NewsletterSender.Services.Interfaces;
 using DirectoryManager.Services.Exceptions;
 using DirectoryManager.Services.Implementations;
@@ -58,9 +59,14 @@ namespace DirectoryManager.NewsletterSender.Services.Implementations
                     continue;
                 }
 
+                // Deterministic send order. Weekly digests are all created with the same
+                // SequenceOrder (-1), so tie-break oldest-first by creation date, then id —
+                // otherwise "next message" was whatever order the DB happened to return.
                 var messages = this.emailCampaignMessageRepository
                                   .GetMessagesByCampaign(campaign.EmailCampaignId)
                                   .OrderBy(m => m.SequenceOrder)
+                                  .ThenBy(m => m.CreateDate)
+                                  .ThenBy(m => m.EmailCampaignMessageId)
                                   .ToList();
 
                 var messageCache = new Dictionary<int, (string PlainText, string Html)>(messages.Count);
@@ -100,20 +106,40 @@ namespace DirectoryManager.NewsletterSender.Services.Implementations
                     var subject = next.EmailMessage.EmailSubject;
                     var recipientEmail = subscription.EmailSubscription.Email;
 
+                    // Record the send BEFORE sending (IsDelivered=false). Previously the record was
+                    // written after a successful send, so if that save failed the subscriber got the
+                    // same newsletter again on every run. Now a DB failure means we don't send at all
+                    // (retried next run), and a send failure removes the reservation so it's retried.
+                    SentEmailRecord reservation;
+                    try
+                    {
+                        reservation = this.sentEmailRecordRepository.Create(new SentEmailRecord
+                        {
+                            EmailSubscriptionId = subscription.EmailSubscriptionId,
+                            EmailMessageId = next.EmailMessageId,
+                            SentDate = DateTime.UtcNow,
+                            IsDelivered = false,
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        totalFailed++;
+                        Console.WriteLine($"Could not record send for {recipientEmail} / message {next.EmailMessageId}; NOT sending (will retry next run): {ex.Message}");
+                        continue;
+                    }
+
                     var delivered = await this.TrySendWithRetryAsync(
                         subject, plainTextContent, htmlContent, recipientEmail);
 
                     if (delivered)
                     {
-                        this.sentEmailRecordRepository.LogMessageDelivery(
-                            subscription.EmailSubscriptionId,
-                            next.EmailMessageId);
                         totalSent++;
+                        this.TryMarkDelivered(reservation);
                     }
                     else
                     {
                         totalFailed++;
-                        Console.WriteLine($"GIVING UP on {recipientEmail} for message {next.EmailMessageId}. Will retry next run.");
+                        this.TryReleaseReservation(reservation, recipientEmail);
                     }
 
                     await Task.Delay(this.delayMilliseconds);
@@ -162,6 +188,35 @@ namespace DirectoryManager.NewsletterSender.Services.Implementations
             }
 
             return false;
+        }
+
+        // The email went out; flip the reservation to delivered. If this update fails the record
+        // still exists (IsDelivered=false), which is enough to stop a duplicate send next run.
+        private void TryMarkDelivered(SentEmailRecord reservation)
+        {
+            try
+            {
+                reservation.IsDelivered = true;
+                this.sentEmailRecordRepository.Update(reservation);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Sent, but could not mark record {reservation.SentEmailRecordId} delivered (no resend will happen): {ex.Message}");
+            }
+        }
+
+        // The send failed: drop the reservation so the message is retried next run.
+        private void TryReleaseReservation(SentEmailRecord reservation, string recipientEmail)
+        {
+            try
+            {
+                this.sentEmailRecordRepository.Delete(reservation.SentEmailRecordId);
+                Console.WriteLine($"GIVING UP on {recipientEmail} for message {reservation.EmailMessageId}. Will retry next run.");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"GIVING UP on {recipientEmail} for message {reservation.EmailMessageId}, and could not clear its send record ({ex.Message}) — it will NOT be retried automatically.");
+            }
         }
 
         private string AppendFooter(string body, string footer)

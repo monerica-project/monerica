@@ -64,6 +64,14 @@ namespace DirectoryManager.Data.Repositories.Interfaces
              int directoryEntryReviewId,
              CancellationToken ct = default);
 
+        /// <summary>
+        /// Approved replies on a review plus the given author's own replies in any status.
+        /// </summary>
+        Task<List<DirectoryEntryReviewComment>> ListForReviewVisibleToAuthorAsync(
+             int directoryEntryReviewId,
+             string fingerprint,
+             CancellationToken ct = default);
+
         Task<bool> DeleteOwnedAsync(int commentId, string fingerprint, CancellationToken ct = default);
 
         Task<Dictionary<string, int>> GetApprovedReplyCountsByAuthorAsync(CancellationToken ct = default);
