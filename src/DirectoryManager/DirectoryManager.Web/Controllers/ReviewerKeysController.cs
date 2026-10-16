@@ -80,7 +80,19 @@ namespace DirectoryManager.Web.Controllers
                 return this.View(model);
             }
 
-            await this.repo.UpdateAsync(model);
+            // Load the tracked entity and copy only the posted fields so CreateDate /
+            // CreatedByUserId (and anything else not on the form) are preserved.
+            var existing = await this.repo.GetByIdAsync(id);
+            if (existing is null)
+            {
+                return this.NotFound();
+            }
+
+            existing.Fingerprint = model.Fingerprint;
+            existing.Alias = model.Alias;
+            existing.PublicKeyBlock = model.PublicKeyBlock;
+
+            await this.repo.UpdateAsync(existing);
             return this.RedirectToAction(nameof(this.Index));
         }
 

@@ -46,6 +46,34 @@ namespace DirectoryManager.Web.Helpers
         internal static bool IsPaidOrOverpaid(PaymentStatus s) =>
             s is PaymentStatus.Paid or PaymentStatus.OverPayment;
 
+        /// <summary>
+        /// Whether a payment event may move an invoice from <paramref name="current"/> to
+        /// <paramref name="proposed"/>. Status only moves forward, and a terminal status is final,
+        /// with one exception: Canceled and Expired are decisions WE made locally (a re-confirmed
+        /// checkout, a lapsed window), but the processor invoice can still be paid. Real money
+        /// arriving must win, or the buyer pays and gets nothing.
+        /// </summary>
+        /// <returns>True when the status should change.</returns>
+        internal static bool CanAdvanceStatus(PaymentStatus current, PaymentStatus proposed)
+        {
+            if (proposed == PaymentStatus.Unknown || proposed == current)
+            {
+                return false;
+            }
+
+            if (current is PaymentStatus.Canceled or PaymentStatus.Expired)
+            {
+                return IsPaidOrOverpaid(proposed);
+            }
+
+            if (IsTerminal(current))
+            {
+                return false;
+            }
+
+            return StatusRank[proposed] > StatusRank[current];
+        }
+
         internal static bool CanPurchaseListing(int totalActive, int totalReserved, SponsorshipType type)
         {
             var max = GetMaxSlotsForType(type);

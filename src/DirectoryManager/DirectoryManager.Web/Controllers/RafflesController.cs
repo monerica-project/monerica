@@ -145,9 +145,23 @@ namespace DirectoryManager.Web.Controllers
                 return this.View(model);
             }
 
+            // Load the tracked entity and copy only the posted fields so CreateDate /
+            // CreatedByUserId (not trusted from the form) are preserved.
+            var existing = await this.raffleRepository.GetByIdAsync(id, ct);
+            if (existing is null)
+            {
+                return this.NotFound();
+            }
+
+            existing.Name = model.Name;
+            existing.Description = model.Description;
+            existing.StartDate = model.StartDate;
+            existing.EndDate = model.EndDate;
+            existing.IsEnabled = model.IsEnabled;
+
             try
             {
-                await this.raffleRepository.UpdateAsync(model, ct);
+                await this.raffleRepository.UpdateAsync(existing, ct);
                 this.TempData["SuccessMessage"] = "Raffle updated.";
                 return this.RedirectToAction(nameof(this.Index));
             }

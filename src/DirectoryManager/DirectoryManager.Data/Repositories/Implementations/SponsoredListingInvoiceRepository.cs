@@ -722,7 +722,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             // business data that can change during the flow
             target.Email = src.Email;
             target.ReservationGuid = src.ReservationGuid;
-            target.ReferralCodeUsed = src.ReferralCodeUsed;
             target.SponsoredListingId = src.SponsoredListingId;
 
             // campaign / pricing (if you allow updating them)

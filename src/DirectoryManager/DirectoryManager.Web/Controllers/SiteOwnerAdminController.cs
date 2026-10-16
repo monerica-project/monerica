@@ -22,6 +22,12 @@ namespace DirectoryManager.Web.Controllers
         private const string SessionExpiredMessage =
             "Session expired. Please re-verify with your PGP key.";
 
+        // TempData keys (read by Views/SiteOwnerAdmin/Index.cshtml) used to keep a typed
+        // reply when posting fails (moderation rejection or expired session).
+        private const string TempDataReplyDraftReviewId = "ReplyDraftReviewId";
+        private const string TempDataReplyDraftBody = "ReplyDraftBody";
+        private const int MaxReplyDraftLength = 8000;
+
         private const int AdminSessionMinutes = 12 * 60; // stay signed in
         private const int FlowMinutes = 20;              // short-lived verification flow
 
@@ -315,6 +321,7 @@ namespace DirectoryManager.Web.Controllers
             if (!this.TryGetSession(directoryEntryKey, out var session))
             {
                 this.TempData["AdminError"] = SessionExpiredMessage;
+                this.SaveReplyDraft(directoryEntryReviewId, body);
                 return this.Redirect(AdminPageUrl(directoryEntryKey, 1));
             }
 
@@ -331,6 +338,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             body ??= string.Empty;
+            var typedBody = body;
 
             // Emojis are not allowed in replies/comments — strip any out before moderation and saving.
             body = DirectoryManager.Utilities.Validation.UnicodeSanitizer.StripEmoji(body);
@@ -339,6 +347,7 @@ namespace DirectoryManager.Web.Controllers
             if (!mod.IsValid)
             {
                 this.TempData["AdminError"] = mod.ValidationErrorMessage ?? "Invalid reply.";
+                this.SaveReplyDraft(directoryEntryReviewId, typedBody);
                 return this.Redirect(AdminPageUrl(directoryEntryKey, returnPage) + $"#review-{directoryEntryReviewId}");
             }
 
@@ -559,6 +568,20 @@ namespace DirectoryManager.Web.Controllers
                     Expires = expiresUtc,
                     IsEssential = true
                 });
+        }
+
+        // Keeps the owner's typed reply (as plain text, HTML-encoded on render) so a failed
+        // post doesn't lose it. Only stored, never saved/approved — moderation still applies on resubmit.
+        private void SaveReplyDraft(int directoryEntryReviewId, string? body)
+        {
+            if (directoryEntryReviewId <= 0 || string.IsNullOrWhiteSpace(body))
+            {
+                return;
+            }
+
+            var draft = body.Length > MaxReplyDraftLength ? body.Substring(0, MaxReplyDraftLength) : body;
+            this.TempData[TempDataReplyDraftReviewId] = directoryEntryReviewId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            this.TempData[TempDataReplyDraftBody] = draft;
         }
 
         private void ClearSessionCookie(string directoryEntryKey)

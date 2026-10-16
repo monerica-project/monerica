@@ -3,11 +3,21 @@
 @{
     ViewData[StringConstants.TitleHeader] = "Enter the Raffle";
     Layout = "_CenteredLayout";
+
+    // The review's status notice (e.g. "held for moderation") set by the review submit.
+    // Peek (not read) so it survives to the review Thanks page if the author clicks Skip,
+    // or to the Entered / Already Entered page if they submit.
+    var reviewMessage = TempData.Peek("ReviewMessage") as string;
 }
 
 @section PageContent {
     <h1>@ViewData[StringConstants.TitleHeader]</h1>
     <hr />
+
+    @if (!string.IsNullOrWhiteSpace(reviewMessage))
+    {
+        <p><b>@reviewMessage</b></p>
+    }
 
     <p>
         Your verified review makes you eligible for our raffle.

@@ -55,8 +55,6 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IVideoSponsorshipRepository, VideoSponsorshipRepository>();
             services.AddScoped<IReviewerKeyRepository, ReviewerKeyRepository>();
 
-            services.AddScoped<IAffiliateAccountRepository, AffiliateAccountRepository>();
-            services.AddScoped<IAffiliateCommissionRepository, AffiliateCommissionRepository>();
             services.AddScoped<IDirectoryEntryReviewCommentRepository, DirectoryEntryReviewCommentRepository>();
             services.AddScoped<IAdditionalLinkRepository, AdditionalLinkRepository>();
             services.AddScoped<IDirectoryEntryGuaranteeRepository, DirectoryEntryGuaranteeRepository>();

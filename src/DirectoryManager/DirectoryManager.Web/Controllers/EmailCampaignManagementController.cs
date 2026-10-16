@@ -53,7 +53,7 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpPost("Create")]
         [ValidateAntiForgeryToken]
-        public IActionResult Create(EmailCampaignModel model)
+        public IActionResult Create(EmailCampaignModel model, int? selectedMessageId)
         {
             if (!this.ModelState.IsValid)
             {
@@ -74,13 +74,29 @@ namespace DirectoryManager.Web.Controllers
 
             this.emailCampaignRepository.Create(newCampaign);
 
+            // The selected message (if any) becomes the first message in the sequence,
+            // followed by any posted campaign messages (in posted order, de-duplicated).
+            var messageIds = new List<int>();
+            if (selectedMessageId.HasValue && selectedMessageId.Value > 0)
+            {
+                messageIds.Add(selectedMessageId.Value);
+            }
+
             foreach (var messageId in model.CampaignMessages.Select(m => m.EmailMessageId))
+            {
+                if (messageId > 0 && !messageIds.Contains(messageId))
+                {
+                    messageIds.Add(messageId);
+                }
+            }
+
+            for (int i = 0; i < messageIds.Count; i++)
             {
                 var campaignMessage = new EmailCampaignMessage
                 {
                     EmailCampaignId = newCampaign.EmailCampaignId,
-                    EmailMessageId = messageId,
-                    SequenceOrder = model.CampaignMessages.FindIndex(m => m.EmailMessageId == messageId) + 1
+                    EmailMessageId = messageIds[i],
+                    SequenceOrder = i + 1
                 };
                 this.emailCampaignMessageRepository.Create(campaignMessage);
             }
@@ -185,19 +201,7 @@ namespace DirectoryManager.Web.Controllers
             campaign.IsEnabled = model.IsEnabled;
             this.emailCampaignRepository.Update(campaign);
 
-            this.emailCampaignMessageRepository.Delete(campaign.EmailCampaignId);
-
-            foreach (var messageId in model.CampaignMessages.Select(m => m.EmailMessageId))
-            {
-                var campaignMessage = new EmailCampaignMessage
-                {
-                    EmailCampaignId = campaign.EmailCampaignId,
-                    EmailMessageId = messageId,
-                    SequenceOrder = model.CampaignMessages.FindIndex(m => m.EmailMessageId == messageId) + 1
-                };
-                this.emailCampaignMessageRepository.Create(campaignMessage);
-            }
-
+            // Campaign messages are managed separately via the AddMessage/DeleteMessage actions.
             return this.RedirectToAction("Index");
         }
     }

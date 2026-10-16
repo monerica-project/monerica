@@ -1,0 +1,26 @@
+@using DirectoryManager.Web.Constants
+@model string?
+@{
+    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    ViewData[StringConstants.TitleHeader] = "Your Session Expired";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    <p class="text-danger"><strong>Your message was not saved.</strong> The form was open too long, or the site restarted while you were writing.</p>
+
+    @if (!string.IsNullOrWhiteSpace(Model))
+    {
+        <p>Here is what you wrote. Copy it, then go back to the listing and start again.</p>
+        <textarea class="form-control" rows="8" readonly>@Model</textarea>
+    }
+    else
+    {
+        <p>Go back to the listing and start again.</p>
+    }
+
+    <p class="u-mt-4px"><a href="~/">Return to the home page</a></p>
+}

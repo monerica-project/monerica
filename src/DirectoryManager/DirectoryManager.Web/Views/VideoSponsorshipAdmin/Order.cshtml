@@ -133,6 +133,14 @@
 
     <hr />
     <h2>Videos</h2>
+    @* One form for every video so all URLs save together. The first submit button is
+       the Enter-key default, so it must be Save (never Complete, which emails the buyer). *@
+    <form method="post" action="@basePath/orders/@Model.VideoSponsorOrderId/save-urls">
+    @Html.AntiForgeryToken()
+    <p>
+        <button class="btn btn-primary" type="submit">Save video URLs and note</button>
+        <span class="text-muted">A saved URL shows on the public video sponsorship page right away.</span>
+    </p>
     @foreach (var item in Model.Items)
     {
         var done = item.CompletedUtc != null;
@@ -151,30 +159,25 @@
                 }
             </p>
 
-            <form method="post" action="@basePath/items/@item.VideoSponsorOrderItemId/save-url">
-                @Html.AntiForgeryToken()
-                <div class="form-group">
-                    <label for="videoUrl_@item.VideoSponsorOrderItemId"><b>Video URL</b></label>
-                    <input class="form-control" id="videoUrl_@item.VideoSponsorOrderItemId" name="videoUrl" type="text" value="@item.VideoUrl" maxlength="500" placeholder="https://www.youtube.com/watch?v=..." />
-                </div>
-                <button class="btn btn-primary btn-sm" type="submit">Save URL</button>
-            </form>
+            <div class="form-group">
+                <label for="videoUrl_@item.VideoSponsorOrderItemId"><b>Video URL</b></label>
+                <input class="form-control" id="videoUrl_@item.VideoSponsorOrderItemId" name="videoUrls[@item.VideoSponsorOrderItemId]" type="text" value="@item.VideoUrl" maxlength="500" placeholder="https://www.youtube.com/watch?v=..." />
+            </div>
 
             @if (isPaid && !done && !string.IsNullOrWhiteSpace(item.VideoUrl))
             {
-                <form method="post" action="@basePath/items/@item.VideoSponsorOrderItemId/complete" class="u-mt-4px">
-                    @Html.AntiForgeryToken()
-                    <button class="btn btn-success btn-sm" type="submit">Complete</button>
+                <p class="u-mt-4px">
+                    <button class="btn btn-success btn-sm" type="submit" formaction="@basePath/items/@item.VideoSponsorOrderItemId/complete">Complete</button>
                     <span class="text-muted">
                         @(string.IsNullOrWhiteSpace(Model.Email)
                             ? "Marks this video complete. No email will be sent (the buyer left none)."
                             : $"Marks this video complete and sends a one-time email with the link to {Model.Email}.")
                     </span>
-                </form>
+                </p>
             }
             else if (isPaid && !done)
             {
-                <p class="text-muted u-mt-4px">Save the video URL to enable the Complete button.</p>
+                <p class="text-muted u-mt-4px">Save this video's URL to enable the Complete button.</p>
             }
 
             @if (done)
@@ -187,10 +190,9 @@
                 </p>
                 @if (!item.CompletionEmailSentUtc.HasValue && !string.IsNullOrWhiteSpace(Model.Email))
                 {
-                    <form method="post" action="@basePath/items/@item.VideoSponsorOrderItemId/send-email">
-                        @Html.AntiForgeryToken()
-                        <button class="btn btn-secondary btn-sm" type="submit">Retry sending the email</button>
-                    </form>
+                    <p>
+                        <button class="btn btn-secondary btn-sm" type="submit" formaction="@basePath/items/@item.VideoSponsorOrderItemId/send-email">Retry sending the email</button>
+                    </p>
                 }
             }
         </div>
@@ -198,11 +200,10 @@
 
     <hr />
     <h2>Admin note</h2>
-    <form method="post" action="@basePath/orders/@Model.VideoSponsorOrderId/note">
-        @Html.AntiForgeryToken()
-        <textarea class="form-control" name="adminNote" rows="3" maxlength="2000">@Model.AdminNote</textarea>
-        <br />
-        <button class="btn btn-primary btn-sm" type="submit">Save note</button>
+    @* Part of the same form, so a note typed here is saved by any button above or below. *@
+    <textarea class="form-control" name="adminNote" rows="3" maxlength="2000">@Model.AdminNote</textarea>
+    <br />
+    <button class="btn btn-primary" type="submit">Save video URLs and note</button>
     </form>
 
     @if (!isClosed && (!isPaid || !anyCompleted))

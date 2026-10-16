@@ -107,9 +107,6 @@ namespace DirectoryManager.Data.Models.SponsoredListings
         [StringLength(100)]
         public string? Email { get; set; } = string.Empty;
 
-        [StringLength(12, MinimumLength = 3)]
-        public string? ReferralCodeUsed { get; set; }
-
         public bool IsReminderSent { get; set; }
 
         public virtual DirectoryEntry? DirectoryEntry { get; set; }

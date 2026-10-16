@@ -341,7 +341,6 @@
                         <th class="u-text-right">Paid (@Currency.XMR.ToString())</th>
                         <th class="u-text-right">USD</th>
                         <th class="u-text-right">Expires</th>
-                        <th class="u-text-right">$/day</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -366,8 +365,7 @@
                                 @item.PaidAmount.ToString(DirectoryManager.Common.Constants.StringConstants.RoundingFormatCrypto)
                             </td>
                             <td class="u-text-right">@item.AmountUsd.ToString("C2", usd)</td>
-                            <td class="u-text-right">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
-                            <td class="u-text-right">@item.PricePerDayUsd.ToString("C2", usd)</td>
+                            <td class="u-text-right">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                         </tr>
                     }
                 </tbody>

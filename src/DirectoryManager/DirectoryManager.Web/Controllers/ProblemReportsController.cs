@@ -69,7 +69,7 @@ namespace DirectoryManager.Web.Controllers
             var state = new ProblemReportFlowState
             {
                 DirectoryEntryId = directoryEntryId,
-                ExpiresUtc = DateTime.UtcNow.AddMinutes(IntegerConstants.SessinExpiresMinutes)
+                ExpiresUtc = DateTime.UtcNow.AddMinutes(IntegerConstants.ComposeFlowExpiresMinutes)
             };
             this.cache.Set(CacheKey(id), state, state.ExpiresUtc);
 
@@ -124,6 +124,11 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            if (state.SavedPaymentToken is Guid savedToken)
+            {
+                return this.RedirectToAction(nameof(this.Pay), new { token = savedToken });
+            }
+
             this.ViewBag.FlowId = flowId;
             this.ViewBag.EntryName = entry.Name;
             return this.View(new CreateProblemReportInputModel());
@@ -133,42 +138,64 @@ namespace DirectoryManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ComposePost(Guid flowId, CreateProblemReportInputModel input, CancellationToken ct)
         {
-            if (!this.TryGetFlow(flowId, out var state) || !state.CaptchaOk)
+            if (!this.TryGetFlow(flowId, out var state))
+            {
+                // The flow timed out (or the app restarted) while they were writing. Don't drop
+                // them on the homepage: say the message was NOT saved and give it back to copy.
+                return this.View("~/Views/Shared/FlowExpired.cshtml", input?.Comment);
+            }
+
+            if (!state.CaptchaOk)
             {
                 return this.RedirectToAction(nameof(this.Captcha), new { flowId });
             }
 
-            if (!string.IsNullOrWhiteSpace(input.Website))
+            await state.SaveGate.WaitAsync(ct);
+            try
             {
-                return this.BadRequest();
+                if (state.SavedPaymentToken is Guid savedToken)
+                {
+                    return this.RedirectToAction(nameof(this.Pay), new { token = savedToken });
+                }
+
+                if (!string.IsNullOrWhiteSpace(input.Website))
+                {
+                    return this.BadRequest();
+                }
+
+                var entry = await this.entries.GetByIdAsync(state.DirectoryEntryId);
+                if (entry is null)
+                {
+                    return this.NotFound();
+                }
+
+                if (!this.ModelState.IsValid)
+                {
+                    this.ViewBag.FlowId = flowId;
+                    this.ViewBag.EntryName = entry.Name;
+                    return this.View("Compose", input);
+                }
+
+                var request = new ProblemReport
+                {
+                    DirectoryEntryId = state.DirectoryEntryId,
+                    Comment = input.Comment.Trim(),
+                    Status = ProblemReportStatus.Pending
+                };
+                await this.requests.AddAsync(request, ct);
+
+                // Keep the flow (until it expires) so a repeated submit finds the saved report.
+                state.SavedPaymentToken = request.PaymentToken;
+                this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
+
+                // Land straight on the report's unique pay page (one optional "Proceed to pay"
+                // button that goes to the BTCPay invoice) — no intermediate step.
+                return this.RedirectToAction(nameof(this.Pay), new { token = request.PaymentToken });
             }
-
-            var entry = await this.entries.GetByIdAsync(state.DirectoryEntryId);
-            if (entry is null)
+            finally
             {
-                return this.NotFound();
+                state.SaveGate.Release();
             }
-
-            if (!this.ModelState.IsValid)
-            {
-                this.ViewBag.FlowId = flowId;
-                this.ViewBag.EntryName = entry.Name;
-                return this.View("Compose", input);
-            }
-
-            var request = new ProblemReport
-            {
-                DirectoryEntryId = state.DirectoryEntryId,
-                Comment = input.Comment.Trim(),
-                Status = ProblemReportStatus.Pending
-            };
-            await this.requests.AddAsync(request, ct);
-
-            this.cache.Remove(CacheKey(flowId));
-
-            // Land straight on the report's unique pay page (one optional "Proceed to pay"
-            // button that goes to the BTCPay invoice) — no intermediate step.
-            return this.RedirectToAction(nameof(this.Pay), new { token = request.PaymentToken });
         }
 
         [HttpGet("thanks")]

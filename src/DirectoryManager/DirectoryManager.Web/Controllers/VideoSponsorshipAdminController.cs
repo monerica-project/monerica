@@ -367,9 +367,12 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Order), new { id });
         }
 
-        [HttpPost("orders/{id:int}/note")]
+        // ---- Per-video: save the URLs (all videos in one form), then complete ----
+        // A saved URL shows on the public page straight away; Complete only
+        // records delivery and sends the buyer's one-time email.
+        [HttpPost("orders/{id:int}/save-urls")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SaveNote(int id, string? adminNote, CancellationToken ct)
+        public async Task<IActionResult> SaveItemUrls(int id, Dictionary<int, string?> videoUrls, string? adminNote, CancellationToken ct)
         {
             var order = await this.repository.GetOrderAsync(id, ct);
             if (order is null)
@@ -377,52 +380,94 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            adminNote = (adminNote ?? string.Empty).Trim();
-            order.AdminNote = adminNote.Length == 0 ? null : (adminNote.Length > 2000 ? adminNote[..2000] : adminNote);
-            await this.repository.UpdateOrderAsync(order, ct);
+            var (saved, errors) = await this.ApplyPostedEditsAsync(order, videoUrls, adminNote, ct);
 
-            this.TempData[StringConstants.SuccessMessage] = "Note saved.";
+            if (errors.Count > 0)
+            {
+                this.TempData[StringConstants.ErrorMessage] = string.Join(" ", errors);
+            }
+
+            if (saved > 0 || errors.Count == 0)
+            {
+                this.TempData[StringConstants.SuccessMessage] = saved switch
+                {
+                    0 => "No changes to save.",
+                    1 => "1 change saved.",
+                    _ => $"{saved} changes saved.",
+                };
+            }
+
             return this.RedirectToAction(nameof(this.Order), new { id });
         }
 
-        // ---- Per-video: save the URL, then complete (sends the one-time email) ----
-        [HttpPost("items/{itemId:int}/save-url")]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SaveItemUrl(int itemId, string? videoUrl, CancellationToken ct)
+        // Saves everything typed on the order page (every video URL and the admin note), so the
+        // Complete and Retry buttons, which submit the same form, never lose unsaved edits.
+        // Returns how many values changed and any per-video errors.
+        private async Task<(int Saved, List<string> Errors)> ApplyPostedEditsAsync(
+            VideoSponsorOrder order, Dictionary<int, string?>? videoUrls, string? adminNote, CancellationToken ct)
         {
-            var item = await this.repository.GetItemAsync(itemId, ct);
-            if (item is null)
+            videoUrls ??= new Dictionary<int, string?>();
+            var errors = new List<string>();
+            var saved = 0;
+            foreach (var item in order.Items)
             {
-                return this.NotFound();
-            }
-
-            videoUrl = (videoUrl ?? string.Empty).Trim();
-            if (videoUrl.Length > 0 && (videoUrl.Length > 500 || !IsHttpUrl(videoUrl)))
-            {
-                this.TempData[StringConstants.ErrorMessage] = "The video URL must start with http:// or https://.";
-            }
-            else if (item.CompletedUtc is not null && videoUrl.Length == 0)
-            {
-                this.TempData[StringConstants.ErrorMessage] = "A completed video needs its URL.";
-            }
-            else
-            {
-                item.VideoUrl = videoUrl.Length > 0 ? videoUrl : null;
-                if (item.CompletedUtc is not null && item.VideoIdea is not null)
+                if (!videoUrls.TryGetValue(item.VideoSponsorOrderItemId, out var raw))
                 {
-                    item.VideoIdea.VideoUrl = item.VideoUrl;
+                    continue;
                 }
 
-                await this.repository.UpdateItemAsync(item, ct);
-                this.TempData[StringConstants.SuccessMessage] = "Video URL saved.";
+                var videoUrl = (raw ?? string.Empty).Trim();
+                var title = item.VideoIdea?.Title ?? item.Title;
+                if (videoUrl.Length > 0 && (videoUrl.Length > 500 || !IsHttpUrl(videoUrl)))
+                {
+                    errors.Add($"\"{title}\": the video URL must start with http:// or https://.");
+                    continue;
+                }
+
+                if (item.CompletedUtc is not null && videoUrl.Length == 0)
+                {
+                    errors.Add($"\"{title}\": a completed video needs its URL.");
+                    continue;
+                }
+
+                var newUrl = videoUrl.Length > 0 ? videoUrl : null;
+                if (newUrl == item.VideoUrl)
+                {
+                    continue;
+                }
+
+                item.VideoUrl = newUrl;
+                if (item.VideoIdea is not null)
+                {
+                    item.VideoIdea.VideoUrl = newUrl;
+                }
+
+                saved++;
             }
 
-            return this.RedirectToAction(nameof(this.Order), new { id = item.VideoSponsorOrderId });
+            // The note field is only on the page form when it is posted (null = not posted).
+            if (adminNote is not null)
+            {
+                var note = adminNote.Trim();
+                var newNote = note.Length == 0 ? null : (note.Length > 2000 ? note[..2000] : note);
+                if (newNote != order.AdminNote)
+                {
+                    order.AdminNote = newNote;
+                    saved++;
+                }
+            }
+
+            if (saved > 0)
+            {
+                await this.repository.UpdateOrderAsync(order, ct);
+            }
+
+            return (saved, errors);
         }
 
         [HttpPost("items/{itemId:int}/complete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CompleteItem(int itemId, CancellationToken ct)
+        public async Task<IActionResult> CompleteItem(int itemId, Dictionary<int, string?> videoUrls, string? adminNote, CancellationToken ct)
         {
             var item = await this.repository.GetItemAsync(itemId, ct);
             if (item is null)
@@ -430,8 +475,23 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var order = item.VideoSponsorOrder;
             var redirect = this.RedirectToAction(nameof(this.Order), new { id = item.VideoSponsorOrderId });
+
+            // Save what was typed first, so the email carries the URL on screen, not an old one.
+            var order = await this.repository.GetOrderAsync(item.VideoSponsorOrderId, ct);
+            if (order is null)
+            {
+                return this.NotFound();
+            }
+
+            var (_, editErrors) = await this.ApplyPostedEditsAsync(order, videoUrls, adminNote, ct);
+            if (editErrors.Count > 0)
+            {
+                this.TempData[StringConstants.ErrorMessage] = "Nothing was completed. " + string.Join(" ", editErrors);
+                return redirect;
+            }
+
+            item = order.Items.FirstOrDefault(i => i.VideoSponsorOrderItemId == itemId) ?? item;
 
             if (!SponsoredListingCheckoutHelper.IsPaidOrOverpaid(order.PaymentStatus))
             {
@@ -468,12 +528,25 @@ namespace DirectoryManager.Web.Controllers
         // Only offered when a video is complete but its email never went out (send failed).
         [HttpPost("items/{itemId:int}/send-email")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SendItemEmail(int itemId, CancellationToken ct)
+        public async Task<IActionResult> SendItemEmail(int itemId, Dictionary<int, string?> videoUrls, string? adminNote, CancellationToken ct)
         {
             var item = await this.repository.GetItemAsync(itemId, ct);
             if (item is null)
             {
                 return this.NotFound();
+            }
+
+            var order = await this.repository.GetOrderAsync(item.VideoSponsorOrderId, ct);
+            if (order is not null)
+            {
+                var (_, editErrors) = await this.ApplyPostedEditsAsync(order, videoUrls, adminNote, ct);
+                if (editErrors.Count > 0)
+                {
+                    this.TempData[StringConstants.ErrorMessage] = "The email was not sent. " + string.Join(" ", editErrors);
+                    return this.RedirectToAction(nameof(this.Order), new { id = item.VideoSponsorOrderId });
+                }
+
+                item = order.Items.FirstOrDefault(i => i.VideoSponsorOrderItemId == itemId) ?? item;
             }
 
             if (item.CompletedUtc is null || item.CompletionEmailSentUtc is not null)

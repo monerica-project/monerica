@@ -98,6 +98,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.RedirectToAction(nameof(this.Index));
             }
 
+            await this.SetFormViewBagsAsync().ConfigureAwait(false);
             return this.View(sponsoredListingOffer);
         }
 
@@ -142,12 +143,40 @@ namespace DirectoryManager.Web.Controllers
         {
             if (this.ModelState.IsValid)
             {
+                // The form posts the id as SponsoredListingOfferId (the route has no {id}).
+                var offerId = sponsoredListingOffer.SponsoredListingOfferId != 0
+                    ? sponsoredListingOffer.SponsoredListingOfferId
+                    : id;
+
+                SponsoredListingOffer existing;
+                try
+                {
+                    existing = await this.sponsoredListingOfferRepository
+                                         .GetByIdAsync(offerId)
+                                         .ConfigureAwait(false);
+                }
+                catch
+                {
+                    return this.NotFound();
+                }
+
+                // Copy only the fields the Edit form posts, so CreateDate / CreatedByUserId /
+                // CategoryId (not on the form) are preserved.
+                existing.SponsorshipType = sponsoredListingOffer.SponsorshipType;
+                existing.SubcategoryId = sponsoredListingOffer.SubcategoryId;
+                existing.Description = sponsoredListingOffer.Description;
+                existing.Days = sponsoredListingOffer.Days;
+                existing.Price = sponsoredListingOffer.Price;
+                existing.PriceCurrency = sponsoredListingOffer.PriceCurrency;
+                existing.IsEnabled = sponsoredListingOffer.IsEnabled;
+
                 await this.sponsoredListingOfferRepository
-                         .UpdateAsync(sponsoredListingOffer)
+                         .UpdateAsync(existing)
                          .ConfigureAwait(false);
                 return this.RedirectToAction(nameof(this.Index));
             }
 
+            await this.SetFormViewBagsAsync(sponsoredListingOffer.SponsorshipType).ConfigureAwait(false);
             return this.View(sponsoredListingOffer);
         }
 
@@ -171,6 +200,28 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return this.RedirectToAction(nameof(this.Index));
+        }
+
+        private async Task SetFormViewBagsAsync(Data.Enums.SponsorshipType? selectedType = null)
+        {
+            var subCategories = await this.subCategoryRepository
+                                      .GetAllActiveSubCategoriesAsync()
+                                      .ConfigureAwait(false);
+            var categories = await this.categoryRepository
+                                         .GetAllAsync()
+                                         .ConfigureAwait(false);
+
+            this.ViewBag.SubCategories = subCategories
+                                         .OrderBy(sc => sc.Category.Name)
+                                         .ThenBy(sc => sc.Name)
+                                         .ToList();
+            this.ViewBag.Categories = categories
+                                        .OrderBy(c => c.Name)
+                                        .ToList();
+
+            this.ViewBag.SponsorshipTypeSelectList = selectedType.HasValue
+                ? new SelectList(Enum.GetValues(typeof(Data.Enums.SponsorshipType)), selectedType.Value)
+                : new SelectList(Enum.GetValues(typeof(Data.Enums.SponsorshipType)));
         }
     }
 }

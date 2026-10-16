@@ -29,6 +29,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubcategoryRepository subCategoryRepository;
         private readonly ICacheService cacheService;
         private readonly IChurnService churnService;
+        private readonly ISponsoredListingActivator activator;
         private readonly ILogger<SponsoredListingInvoiceController> logger;
 
         public SponsoredListingInvoiceController(
@@ -38,6 +39,7 @@ namespace DirectoryManager.Web.Controllers
             ISubcategoryRepository subCategoryRepository,
             ICacheService cacheService,
             IChurnService churnService,
+            ISponsoredListingActivator activator,
             ILogger<SponsoredListingInvoiceController> logger)
         {
             this.invoiceRepository = invoiceRepository;
@@ -46,6 +48,7 @@ namespace DirectoryManager.Web.Controllers
             this.subCategoryRepository = subCategoryRepository;
             this.cacheService = cacheService;
             this.churnService = churnService ?? throw new ArgumentNullException(nameof(churnService));
+            this.activator = activator;
             this.logger = logger;
         }
 
@@ -195,10 +198,22 @@ namespace DirectoryManager.Web.Controllers
             invoice.PaymentStatus = paymentStatus;
             invoice.Email = string.IsNullOrWhiteSpace(email) ? null : email.Trim();
 
-            var ok = await this.invoiceRepository.UpdateAsync(invoice).ConfigureAwait(false);
+            var ok = true;
+            try
+            {
+                // Marking an invoice paid also creates (or extends) the sponsored listing it paid
+                // for, so a payment the webhook missed can be activated from here.
+                await this.activator.SaveAndActivateAsync(invoice).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                this.logger.LogError(ex, "Admin edit of invoice {InvoiceId} failed to save or activate.", invoice.InvoiceId);
+                ok = false;
+            }
+
             if (!ok)
             {
-                this.ModelState.AddModelError(string.Empty, "Failed to update the invoice.");
+                this.ModelState.AddModelError(string.Empty, "Failed to update the invoice, or to create the sponsored listing it paid for. Check the logs.");
                 this.ViewBag.PaymentStatusOptions = BuildPaymentStatusOptions(invoice.PaymentStatus);
                 return this.View(invoice);
             }

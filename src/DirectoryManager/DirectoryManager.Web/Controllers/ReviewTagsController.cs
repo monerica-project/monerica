@@ -88,9 +88,25 @@ namespace DirectoryManager.Web.Controllers
                 return this.View(model);
             }
 
+            // Load the stored tag and copy only the fields the Edit form posts, so
+            // columns it doesn't carry (MinUsd/MaxUsd money-band bounds, CreateDate,
+            // CreatedByUserId) aren't wiped by attaching the bound model wholesale.
+            var existing = await this.repo.GetByIdAsync(id, ct);
+            if (existing is null)
+            {
+                return this.NotFound();
+            }
+
+            existing.Name = model.Name;
+            existing.Slug = model.Slug;
+            existing.Description = model.Description;
+            existing.Level = model.Level;
+            existing.IsEnabled = model.IsEnabled;
+            existing.ReviewerSelectable = model.ReviewerSelectable;
+
             try
             {
-                await this.repo.UpdateAsync(model, ct);
+                await this.repo.UpdateAsync(existing, ct);
                 this.TempData["SuccessMessage"] = "Tag updated.";
                 return this.RedirectToAction(nameof(this.Index));
             }

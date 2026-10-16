@@ -156,8 +156,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.Name = entry.Name;
             existing.DirectoryEntryKey = entry.DirectoryEntryKey;
             existing.Link = entry.Link;
+            existing.LinkA = entry.LinkA;
             existing.Link2 = entry.Link2;
+            existing.Link2A = entry.Link2A;
             existing.Link3 = entry.Link3;
+            existing.Link3A = entry.Link3A;
             existing.ProofLink = entry.ProofLink;
             existing.VideoLink = entry.VideoLink;
             existing.SourceCodeLink = entry.SourceCodeLink;
@@ -176,6 +179,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.PgpKey = entry.PgpKey;
             existing.CountryCode = entry.CountryCode;
             existing.Liquidity = entry.Liquidity;
+            existing.KycPolicy = entry.KycPolicy;
+            existing.DirectoryBadge = entry.DirectoryBadge;
+            existing.ReviewsDisabled = entry.ReviewsDisabled;
+            existing.ReviewEmailNotificationsEnabled = entry.ReviewEmailNotificationsEnabled;
+            existing.ReviewEmailNotificationsEnabledUtc = entry.ReviewEmailNotificationsEnabledUtc;
 
             try
             {

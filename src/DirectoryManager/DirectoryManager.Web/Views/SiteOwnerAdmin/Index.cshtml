@@ -9,6 +9,18 @@
     string PageUrl(int p) => p <= 1
         ? $"/site/{Model.DirectoryEntryKey}/admin"
         : $"/site/{Model.DirectoryEntryKey}/admin/page/{p}";
+
+    // A reply that failed to post (moderation / expired session) is kept in TempData.
+    // Only consume it once the review it belongs to is on this page.
+    int replyDraftReviewId = 0;
+    string? replyDraftBody = null;
+    if (int.TryParse(TempData.Peek("ReplyDraftReviewId") as string, out var peekedDraftReviewId)
+        && Model.Reviews.Any(x => x.DirectoryEntryReviewId == peekedDraftReviewId))
+    {
+        replyDraftReviewId = peekedDraftReviewId;
+        _ = TempData["ReplyDraftReviewId"];
+        replyDraftBody = TempData["ReplyDraftBody"] as string;
+    }
 }
 
 @functions {
@@ -216,7 +228,7 @@ else
                     <input type="hidden" name="directoryEntryReviewId" value="@r.DirectoryEntryReviewId" />
                     <input type="hidden" name="returnPage" value="@Model.CurrentPage" />
 
-                    <textarea name="body" class="form-control" rows="4" placeholder="Write your reply..."></textarea>
+                    <textarea name="body" class="form-control" rows="4" placeholder="Write your reply...">@(r.DirectoryEntryReviewId == replyDraftReviewId ? replyDraftBody : null)</textarea>
 
                     <br />
                     <button type="submit" class="btn btn-success btn-cta">Post Reply</button>

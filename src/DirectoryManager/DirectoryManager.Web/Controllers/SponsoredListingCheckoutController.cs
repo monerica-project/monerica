@@ -4,7 +4,6 @@ using BtcPayServer.API.Models;
 using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -33,6 +32,11 @@ namespace DirectoryManager.Web.Controllers
         private const string CaptchaContextCheckout = "sponsoredlisting-confirmcheckout";
         private const string CaptchaContextSelectDuration = "sponsoredlisting-selectduration";
 
+        // Set in the session when the buyer solves the select-duration captcha, so the confirm step
+        // doesn't ask again. One invoice per solve; it also lapses after CheckoutVerifiedLifetime.
+        private const string CheckoutVerifiedSessionKeyPrefix = "sponsoredlisting-verified:";
+        private static readonly TimeSpan CheckoutVerifiedLifetime = TimeSpan.FromMinutes(30);
+
         private readonly ISubcategoryRepository subCategoryRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
@@ -44,8 +48,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISponsoredListingReservationRepository sponsoredListingReservationRepository;
         private readonly IBlockedIPRepository blockedIPRepository;
         private readonly ICacheService cacheService;
-        private readonly IAffiliateAccountRepository affiliateRepo;
-        private readonly IAffiliateCommissionRepository commissionRepo;
+        private readonly ISponsoredListingActivator activator;
         private readonly ILogger<SponsoredListingCheckoutController> logger;
 
         public SponsoredListingCheckoutController(
@@ -63,8 +66,7 @@ namespace DirectoryManager.Web.Controllers
             ISponsoredListingReservationRepository sponsoredListingReservationRepository,
             IBlockedIPRepository blockedIPRepository,
             ICacheService cacheService,
-            IAffiliateAccountRepository affiliateRepo,
-            IAffiliateCommissionRepository commissionRepo,
+            ISponsoredListingActivator activator,
             ILogger<SponsoredListingCheckoutController> logger)
             : base(trafficLogRepository, userAgentCacheService, cache)
         {
@@ -79,8 +81,7 @@ namespace DirectoryManager.Web.Controllers
             this.sponsoredListingReservationRepository = sponsoredListingReservationRepository;
             this.blockedIPRepository = blockedIPRepository;
             this.cacheService = cacheService;
-            this.affiliateRepo = affiliateRepo;
-            this.commissionRepo = commissionRepo;
+            this.activator = activator;
             this.logger = logger;
         }
 
@@ -434,6 +435,11 @@ namespace DirectoryManager.Web.Controllers
                     $"/sponsoredlisting/selectduration?directoryEntryId={directoryEntryId}&sponsorshipType={offer.SponsorshipType}&captcha=0");
             }
 
+            if (!rsvId.HasValue)
+            {
+                this.MarkCheckoutVerified(directoryEntryId);
+            }
+
             if (!isExtension && !rsvId.HasValue)
             {
                 if (offer.SponsorshipType == SponsorshipType.MainSponsor)
@@ -477,8 +483,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> ConfirmCheckoutAsync(
             int directoryEntryId,
             int selectedOfferId,
-            Guid? rsvId = null,
-            string? referralCode = null)
+            Guid? rsvId = null)
         {
             var v = await this.ValidateConfirmRequestAsync(directoryEntryId, selectedOfferId, rsvId);
             if (v.ErrorResult != null)
@@ -486,7 +491,8 @@ namespace DirectoryManager.Web.Controllers
                 return v.ErrorResult;
             }
 
-            this.SetConfirmViewBag(v.Offer!, v.Entry!, referralCode);
+            this.SetConfirmViewBag(v.Offer!, v.Entry!);
+            this.ViewBag.CaptchaRequired = !this.IsCheckoutVerified(directoryEntryId);
             var vm = BuildConfirmationViewModel(v.Offer!, v.Entry!, v.Link2Name!, v.Link3Name!, v.Current!);
             await this.ApplyExistingSponsorPerkToOfferModelAsync(vm.Offer, v.Entry!.DirectoryEntryId).ConfigureAwait(false);
             vm.CanCreateSponsoredListing = true;
@@ -501,8 +507,7 @@ namespace DirectoryManager.Web.Controllers
             int selectedOfferId,
             string selectedProcessor,
             Guid? rsvId = null,
-            string? email = null,
-            string? referralCode = null)
+            string? email = null)
         {
             var ipAddress = this.GetClientIpAddress();
             if (this.blockedIPRepository.IsBlockedIp(ipAddress))
@@ -510,9 +515,12 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            if (!CaptchaTools.Validate(this.HttpContext, CaptchaContextCheckout, this.Request.Form["Captcha"].ToString(), consume: true))
+            // Buyers who solved the captcha on the previous step aren't asked again. Anyone who
+            // reached this form another way (direct post, expired session) still gets a captcha.
+            if (!this.IsCheckoutVerified(directoryEntryId)
+                && !CaptchaTools.Validate(this.HttpContext, CaptchaContextCheckout, this.Request.Form["Captcha"].ToString(), consume: true))
             {
-                return await this.RebuildConfirmViewWithErrorAsync(directoryEntryId, selectedOfferId, rsvId, referralCode, email, "Captcha", "Incorrect CAPTCHA. Please try again.");
+                return await this.RebuildConfirmViewWithErrorAsync(directoryEntryId, selectedOfferId, rsvId, email, "Captcha", "Incorrect CAPTCHA. Please try again.");
             }
 
             var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
@@ -530,7 +538,7 @@ namespace DirectoryManager.Web.Controllers
                 return reservationError;
             }
 
-            var (emailOk, normalizedEmail, emailView) = await this.ValidateEmailAsync(email, directoryEntryId, selectedOfferId, rsvId, referralCode, offer, entry, group);
+            var (emailOk, normalizedEmail, emailView) = await this.ValidateEmailAsync(email, directoryEntryId, selectedOfferId, rsvId);
             if (!emailOk)
             {
                 return emailView!;
@@ -542,7 +550,10 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest(new { Error = mainCapError });
             }
 
-            var invoice = await this.BuildBaseInvoiceAsync(entry, offer, ipAddress, referralCode);
+            // One invoice per solved captcha: going back to confirm again shows the captcha.
+            this.HttpContext.Session.Remove(CheckoutVerifiedSessionKeyPrefix + directoryEntryId);
+
+            var invoice = await this.BuildBaseInvoiceAsync(entry, offer, ipAddress);
 
             if (string.Equals(selectedProcessor, "BTCPayServer", StringComparison.OrdinalIgnoreCase))
             {
@@ -682,16 +693,6 @@ namespace DirectoryManager.Web.Controllers
                 return this.Ok();
             }
 
-            if (SponsoredListingCheckoutHelper.IsTerminal(invoice.PaymentStatus))
-            {
-                if (invoice.PaymentStatus == PaymentStatus.Paid)
-                {
-                    await this.TryCreateAffiliateCommissionAsync(invoice);
-                }
-
-                return this.Ok();
-            }
-
             await this.ApplyIpnStatusUpdateAsync(invoice, msg);
             return this.Ok();
         }
@@ -780,11 +781,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.Ok();
             }
 
-            if (!SponsoredListingCheckoutHelper.IsTerminal(invoice.PaymentStatus))
-            {
-                await this.ApplyBtcPayWebhookUpdateAsync(invoice, payload);
-            }
-
+            await this.ApplyBtcPayWebhookUpdateAsync(invoice, payload);
             return this.Ok();
         }
 
@@ -1045,7 +1042,10 @@ namespace DirectoryManager.Web.Controllers
             invoice.PaidInCurrency = Currency.XMR;
             await this.CaptureBtcPayRateAsync(invoice, btcPayInvoice.Id).ConfigureAwait(false);
 
-            await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice).ConfigureAwait(false);
+            if (!await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice).ConfigureAwait(false))
+            {
+                return this.InvoiceSaveFailed(invoice);
+            }
 
             return this.RedirectToAction("BtcPayNoJsInvoice", new
             {
@@ -1106,7 +1106,7 @@ namespace DirectoryManager.Web.Controllers
             return ConfirmValidationResult.Ok(offer, entry, l2, l3, current);
         }
 
-        private void SetConfirmViewBag(SponsoredListingOffer offer, DirectoryEntry entry, string? referralCode)
+        private void SetConfirmViewBag(SponsoredListingOffer offer, DirectoryEntry entry)
         {
             var typeId = SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(offer.SponsorshipType, entry, null, null);
             if (offer.SponsorshipType == SponsorshipType.SubcategorySponsor)
@@ -1123,13 +1123,10 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.PurchaseCategoryName = entry.SubCategory?.Category?.Name;
             this.ViewBag.PurchaseSubcategoryScope = FormattingHelper.SubcategoryFormatting(
                 entry.SubCategory?.Category?.Name, entry.SubCategory?.Name);
-
-            referralCode ??= this.Request.Query["ref"].ToString();
-            this.ViewBag.ReferralCode = ReferralCodeHelper.NormalizeOrNull(referralCode) ?? string.Empty;
         }
 
         private async Task<IActionResult> RebuildConfirmViewWithErrorAsync(
-            int directoryEntryId, int selectedOfferId, Guid? rsvId, string? referralCode,
+            int directoryEntryId, int selectedOfferId, Guid? rsvId,
             string? prefillEmail, string key, string message)
         {
             var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
@@ -1153,7 +1150,6 @@ namespace DirectoryManager.Web.Controllers
             var l3 = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
             var cur = await this.sponsoredListingRepository.GetActiveSponsorsByTypeAsync(offer.SponsorshipType);
 
-            this.ViewBag.ReferralCode = ReferralCodeHelper.NormalizeOrNull(referralCode) ?? string.Empty;
             await this.TryAttachReservationAsync(rsvId, ReservationGroupHelper.BuildReservationGroupName(offer.SponsorshipType, typeId), directoryEntryId);
 
             var vm = BuildConfirmationViewModel(offer, entry, l2, l3, cur);
@@ -1161,6 +1157,7 @@ namespace DirectoryManager.Web.Controllers
             vm.CanCreateSponsoredListing = true;
             this.ModelState.AddModelError(key, message);
             this.ViewBag.PrefillEmail = prefillEmail;
+            this.ViewBag.CaptchaRequired = !this.IsCheckoutVerified(directoryEntryId);
             return this.View(ConfirmCheckoutView, vm);
         }
 
@@ -1211,8 +1208,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         private async Task<(bool ok, string? normalized, IActionResult? errorView)> ValidateEmailAsync(
-            string? email, int directoryEntryId, int selectedOfferId, Guid? rsvId, string? referralCode,
-            SponsoredListingOffer offer, DirectoryEntry entry, string group)
+            string? email, int directoryEntryId, int selectedOfferId, Guid? rsvId)
         {
             if (string.IsNullOrWhiteSpace(email))
             {
@@ -1225,7 +1221,7 @@ namespace DirectoryManager.Web.Controllers
                 return (true, norm!, null);
             }
 
-            return (false, null, await this.RebuildConfirmViewWithErrorAsync(directoryEntryId, selectedOfferId, rsvId, referralCode, email, "Email", emailError!));
+            return (false, null, await this.RebuildConfirmViewWithErrorAsync(directoryEntryId, selectedOfferId, rsvId, email, "Email", emailError!));
         }
 
         private async Task<string?> CheckNewMainSponsorCapAsync(int directoryEntryId, SponsoredListingOffer offer)
@@ -1256,17 +1252,11 @@ namespace DirectoryManager.Web.Controllers
         }
 
         private async Task<SponsoredListingInvoice> BuildBaseInvoiceAsync(
-            DirectoryEntry entry, SponsoredListingOffer offer, string ipAddress, string? referralCode)
+            DirectoryEntry entry, SponsoredListingOffer offer, string ipAddress)
         {
             var existing = await this.sponsoredListingRepository.GetActiveSponsorAsync(entry.DirectoryEntryId, offer.SponsorshipType);
             var startDate = existing?.CampaignEndDate ?? DateTime.UtcNow;
-            var invoice = await this.CreateInvoiceAsync(entry, offer, startDate, ipAddress);
-            if (ReferralCodeHelper.TryNormalize(referralCode, out var norm, out _) && !string.IsNullOrEmpty(norm))
-            {
-                invoice.ReferralCodeUsed = norm;
-            }
-
-            return invoice;
+            return await this.CreateInvoiceAsync(entry, offer, startDate, ipAddress);
         }
 
         private async Task<IActionResult> ExecuteNowPaymentsCheckoutAsync(
@@ -1295,7 +1285,10 @@ namespace DirectoryManager.Web.Controllers
             invoice.InvoiceRequest = JsonConvert.SerializeObject(req);
             invoice.InvoiceResponse = JsonConvert.SerializeObject(processorInvoice);
             invoice.Email = InputHelper.SetEmail(normalizedEmail);
-            await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
+            if (!await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice))
+            {
+                return this.InvoiceSaveFailed(invoice);
+            }
 
             if (string.IsNullOrWhiteSpace(processorInvoice.InvoiceUrl))
             {
@@ -1354,7 +1347,11 @@ namespace DirectoryManager.Web.Controllers
             // Best-effort — a rate hiccup must never block checkout.
             await this.CaptureBtcPayRateAsync(invoice, btcPayInvoice.Id).ConfigureAwait(false);
 
-            await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice);
+            if (!await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice))
+            {
+                return this.InvoiceSaveFailed(invoice);
+            }
+
             return this.Redirect(btcPayInvoice.CheckoutLink);
         }
 
@@ -1425,6 +1422,14 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task ApplyIpnStatusUpdateAsync(SponsoredListingInvoice invoice, IpnPaymentMessage msg)
         {
+            var proposed = SponsoredListingCheckoutHelper.ConvertToInternalStatus(
+                EnumHelper.ParseStringToEnum<NowPayments.API.Enums.PaymentStatus>(msg.PaymentStatus));
+
+            if (!this.ShouldProcessPaymentEvent(invoice, proposed))
+            {
+                return;
+            }
+
             invoice.PaymentResponse = JsonConvert.SerializeObject(msg);
             invoice.PaidAmount = msg.PayAmount;
             invoice.OutcomeAmount = msg.OutcomeAmount;
@@ -1433,31 +1438,21 @@ namespace DirectoryManager.Web.Controllers
                 invoice.PaidInCurrency = EnumHelper.ParseStringToEnum<Currency>(msg.PayCurrency);
             }
 
-            var proposed = SponsoredListingCheckoutHelper.ConvertToInternalStatus(
-                EnumHelper.ParseStringToEnum<NowPayments.API.Enums.PaymentStatus>(msg.PaymentStatus));
-
-            if (!SponsoredListingCheckoutHelper.IsTerminal(invoice.PaymentStatus))
+            if (SponsoredListingCheckoutHelper.CanAdvanceStatus(invoice.PaymentStatus, proposed))
             {
-                var curRank = SponsoredListingCheckoutHelper.StatusRank[invoice.PaymentStatus];
-                var nxtRank = SponsoredListingCheckoutHelper.StatusRank[proposed];
-                if (nxtRank > curRank)
-                {
-                    invoice.PaymentStatus = proposed;
-                }
-                else if (nxtRank < curRank)
-                {
-                    this.logger.LogInformation("Ignoring status regression on invoice {Id}: {Cur} -> {Proposed}", invoice.InvoiceId, invoice.PaymentStatus, proposed);
-                }
+                this.LogLatePayment(invoice, proposed);
+                invoice.PaymentStatus = proposed;
+            }
+            else if (proposed != invoice.PaymentStatus)
+            {
+                this.logger.LogInformation("Ignoring status change on invoice {Id}: {Cur} -> {Proposed}", invoice.InvoiceId, invoice.PaymentStatus, proposed);
             }
 
             // NOTE: the slot hold is a FIXED 15-minute window and is deliberately NOT extended by
             // invoice creation or payment status — an unpaid (or slowly-paid) invoice must never keep a
             // slot held beyond that window. Only a settled payment permanently consumes the slot.
-            await this.CreateNewSponsoredListingAsync(invoice);
-            if (invoice.PaymentStatus == PaymentStatus.Paid)
-            {
-                await this.TryCreateAffiliateCommissionAsync(invoice);
-            }
+            // Throws if a save fails, so the IPN answers 500 and NOWPayments retries.
+            await this.activator.SaveAndActivateAsync(invoice);
         }
 
         // =====================================================================
@@ -1465,6 +1460,15 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         private async Task ApplyBtcPayWebhookUpdateAsync(SponsoredListingInvoice invoice, BtcPayWebhookPayload payload)
         {
+            var proposed = SponsoredListingCheckoutHelper.MapBtcPayEventToInternalStatus(
+                payload.Type,
+                partiallyPaid: payload.PartiallyPaid);
+
+            if (!this.ShouldProcessPaymentEvent(invoice, proposed))
+            {
+                return;
+            }
+
             invoice.PaymentResponse = JsonConvert.SerializeObject(payload);
 
             // Surface overpayments to the log even though we now treat them as Paid.
@@ -1478,15 +1482,9 @@ namespace DirectoryManager.Web.Controllers
                     invoice.InvoiceId);
             }
 
-            var proposed = SponsoredListingCheckoutHelper.MapBtcPayEventToInternalStatus(
-                payload.Type,
-                partiallyPaid: payload.PartiallyPaid);
-
-            if (proposed != PaymentStatus.Unknown
-                && !SponsoredListingCheckoutHelper.IsTerminal(invoice.PaymentStatus)
-                && SponsoredListingCheckoutHelper.StatusRank[proposed] >
-                   SponsoredListingCheckoutHelper.StatusRank[invoice.PaymentStatus])
+            if (SponsoredListingCheckoutHelper.CanAdvanceStatus(invoice.PaymentStatus, proposed))
             {
+                this.LogLatePayment(invoice, proposed);
                 invoice.PaymentStatus = proposed;
             }
 
@@ -1520,37 +1518,40 @@ namespace DirectoryManager.Web.Controllers
             // NOTE: the slot hold is a FIXED 15-minute window and is deliberately NOT extended by
             // invoice creation or payment status — an unpaid (or slowly-paid) invoice must never keep a
             // slot held beyond that window. Only a settled payment permanently consumes the slot.
-            await this.CreateNewSponsoredListingAsync(invoice);
-            if (SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus))
+            // Throws if a save fails, so the webhook answers 500 and BTCPay redelivers it.
+            await this.activator.SaveAndActivateAsync(invoice);
+        }
+
+        // A payment event is applied when it moves the status forward, or when the invoice is
+        // already paid but its listing was never created (an earlier delivery failed part-way):
+        // the redelivery then finishes the activation. Anything else on a final invoice is ignored.
+        private bool ShouldProcessPaymentEvent(SponsoredListingInvoice invoice, PaymentStatus proposed)
+        {
+            if (!SponsoredListingCheckoutHelper.IsTerminal(invoice.PaymentStatus))
             {
-                await this.TryCreateAffiliateCommissionAsync(invoice);
+                return true;
+            }
+
+            return SponsoredListingCheckoutHelper.CanAdvanceStatus(invoice.PaymentStatus, proposed)
+                || this.activator.NeedsActivation(invoice);
+        }
+
+        private void LogLatePayment(SponsoredListingInvoice invoice, PaymentStatus proposed)
+        {
+            if (invoice.PaymentStatus is PaymentStatus.Canceled or PaymentStatus.Expired)
+            {
+                this.logger.LogWarning(
+                    "Invoice {InvoiceId} was {Status} locally but the processor reports {Proposed}; activating it because the buyer paid. Check the slot is not over capacity.",
+                    invoice.InvoiceId, invoice.PaymentStatus, proposed);
             }
         }
 
-        private async Task TryConfirmBtcPayInvoiceAsync(SponsoredListingInvoice invoice, string processorInvoiceId)
+        private IActionResult InvoiceSaveFailed(SponsoredListingInvoice invoice)
         {
-            try
-            {
-                var status = await this.btcPayServerService.GetInvoiceAsync(processorInvoiceId).ConfigureAwait(false);
-                if (status.Status is "Settled" or "Complete")
-                {
-                    // Don't clobber an existing OverPayment with Paid — the webhook is authoritative
-                    // for over/under detection. We only upgrade from non-settled states here.
-                    if (!SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus))
-                    {
-                        invoice.PaymentStatus = PaymentStatus.Paid;
-                    }
-
-                    invoice.PaymentResponse = JsonConvert.SerializeObject(status);
-                    await this.PopulateBtcPayPaymentAmountsAsync(invoice, processorInvoiceId);
-                    await this.CreateNewSponsoredListingAsync(invoice);
-                    await this.TryCreateAffiliateCommissionAsync(invoice);
-                }
-            }
-            catch (Exception ex)
-            {
-                this.logger.LogWarning(ex, "BTCPay status check failed for {InvoiceId}", processorInvoiceId);
-            }
+            this.logger.LogError("Could not save processor details for sponsorship invoice {InvoiceId}; checkout stopped before payment.", invoice.InvoiceId);
+            return this.StatusCode(
+                StatusCodes.Status500InternalServerError,
+                new { Error = "We could not save your order, so nothing was charged. Please go back and try again." });
         }
 
         /// <summary>
@@ -1796,6 +1797,18 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
+        private void MarkCheckoutVerified(int directoryEntryId) =>
+            this.HttpContext.Session.SetString(
+                CheckoutVerifiedSessionKeyPrefix + directoryEntryId,
+                DateTime.UtcNow.Ticks.ToString(System.Globalization.CultureInfo.InvariantCulture));
+
+        private bool IsCheckoutVerified(int directoryEntryId)
+        {
+            var raw = this.HttpContext.Session.GetString(CheckoutVerifiedSessionKeyPrefix + directoryEntryId);
+            return long.TryParse(raw, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out var ticks)
+                && DateTime.UtcNow - new DateTime(ticks, DateTimeKind.Utc) < CheckoutVerifiedLifetime;
+        }
+
         private string GetClientIpAddress()
         {
             var ip = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
@@ -2012,66 +2025,6 @@ namespace DirectoryManager.Web.Controllers
             offerModel.DiscountedUSDPrice = ApplyPercentDiscount(offerModel.USDPrice, percent);
         }
 
-        private async Task CreateNewSponsoredListingAsync(SponsoredListingInvoice invoice)
-        {
-            if (!await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice).ConfigureAwait(false))
-            {
-                return;
-            }
-
-            if (!SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus))
-            {
-                return;
-            }
-
-            if (await this.sponsoredListingRepository.GetByInvoiceIdAsync(invoice.SponsoredListingInvoiceId).ConfigureAwait(false) != null)
-            {
-                return;
-            }
-
-            var active = await this.sponsoredListingRepository.GetActiveSponsorAsync(invoice.DirectoryEntryId, invoice.SponsorshipType).ConfigureAwait(false);
-
-            if (active == null)
-            {
-                var created = await this.sponsoredListingRepository.CreateAsync(new SponsoredListing
-                {
-                    DirectoryEntryId = invoice.DirectoryEntryId,
-                    CampaignStartDate = invoice.CampaignStartDate,
-                    CampaignEndDate = invoice.CampaignEndDate,
-                    SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId,
-                    SponsorshipType = invoice.SponsorshipType,
-                    SubCategoryId = invoice.SubCategoryId,
-                    CategoryId = invoice.CategoryId,
-                }).ConfigureAwait(false);
-                invoice.SponsoredListingId = created.SponsoredListingId;
-                await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice).ConfigureAwait(false);
-                this.ClearCachedItems();
-                return;
-            }
-
-            var changed = false;
-            if (invoice.CampaignEndDate > active.CampaignEndDate)
-            {
-                active.CampaignEndDate = invoice.CampaignEndDate;
-                changed = true;
-            }
-
-            if (active.SponsoredListingInvoiceId != invoice.SponsoredListingInvoiceId)
-            {
-                active.SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId;
-                changed = true;
-            }
-
-            if (changed)
-            {
-                await this.sponsoredListingRepository.UpdateAsync(active).ConfigureAwait(false);
-            }
-
-            invoice.SponsoredListingId = active.SponsoredListingId;
-            await this.sponsoredListingInvoiceRepository.UpdateAsync(invoice).ConfigureAwait(false);
-            this.ClearCachedItems();
-        }
-
         private async Task<string> BuildReservationDetailsAsync(
             SponsorshipType type, DirectoryEntry entry, int? subCategoryId, int? categoryId)
         {
@@ -2238,42 +2191,6 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task<bool> CanPurchaseMainWithinSubcategoryAsync(int subCategoryId) =>
             await this.GetActiveMainCountForSubcategoryAsync(subCategoryId).ConfigureAwait(false) < Common.Constants.IntegerConstants.MaxMainSponsorsPerSubcategory;
-
-        private async Task TryCreateAffiliateCommissionAsync(SponsoredListingInvoice invoice, CancellationToken ct = default)
-        {
-            if (invoice == null
-                || !SponsoredListingCheckoutHelper.IsPaidOrOverpaid(invoice.PaymentStatus)
-                || string.IsNullOrWhiteSpace(invoice.ReferralCodeUsed))
-            {
-                return;
-            }
-
-            if (!ReferralCodeHelper.TryNormalize(invoice.ReferralCodeUsed, out var code, out _))
-            {
-                return;
-            }
-
-            var affiliate = await this.affiliateRepo.GetByReferralCodeAsync(code!, ct);
-            if (affiliate == null || await this.commissionRepo.ExistsForInvoiceAsync(invoice.SponsoredListingInvoiceId, ct))
-            {
-                return;
-            }
-
-            if (await this.sponsoredListingInvoiceRepository.HasAnyPaidInvoiceForDirectoryEntryAsync(invoice.DirectoryEntryId, invoice.SponsoredListingInvoiceId, ct))
-            {
-                return;
-            }
-
-            await this.commissionRepo.AddAsync(
-                new AffiliateCommission
-                {
-                    SponsoredListingInvoiceId = invoice.SponsoredListingInvoiceId,
-                    AffiliateAccountId = affiliate.AffiliateAccountId,
-                    AmountDue = Math.Round(invoice.OutcomeAmount * 0.50m, 8),
-                    PayoutCurrency = invoice.PaidInCurrency,
-                    PayoutStatus = CommissionPayoutStatus.Pending,
-                }, ct);
-        }
 
         // =====================================================================
         // CONFIRM VALIDATION RESULT

@@ -1516,31 +1516,38 @@ namespace DirectoryManager.Web.Controllers
             };
         }
 
+        // Re-renders the submit form with an error, reloading EVERY dropdown and the tag grid
+        // (not just subcategories), so the submitter's country, processor and tag picks survive.
+        private async Task<IActionResult> SubmitEditWithErrorAsync(SubmissionRequest model, string message)
+        {
+            this.ModelState.AddModelError(string.Empty, message);
+            await this.LoadDropDowns(model.Processor, CancellationToken.None);
+            await this.LoadAllTagsForCheckboxesAsync();
+            return this.View("SubmitEdit", model);
+        }
+
         private async Task<IActionResult> CreateSubmission(SubmissionRequest model)
         {
             if (!await this.HasChangesAsync(model) &&
                 string.IsNullOrWhiteSpace(model.NoteToAdmin))
             {
-                return this.RedirectToAction("Success", "Submission");
+                // Never show the success page when nothing was queued: say so, and keep the form.
+                return await this.SubmitEditWithErrorAsync(
+                    model,
+                    "No changes were detected compared with the current listing, so nothing was submitted. Change something, or add a note to the admin, and submit again.");
             }
 
             if ((model.SubCategoryId == null || model.SubCategoryId == 0) &&
                 string.IsNullOrWhiteSpace(model.SuggestedSubCategory))
             {
-                this.ModelState.AddModelError(string.Empty, "You must select a subcategory or supply a suggested one.");
-                await this.LoadSubCategories();
-
-                return this.View("SubmitEdit", model);
+                return await this.SubmitEditWithErrorAsync(model, "You must select a subcategory or supply a suggested one.");
             }
 
             var existingLinkSubmission = await this.submissionRepository.GetByLinkAndStatusAsync(model.Link ?? string.Empty);
 
             if (existingLinkSubmission != null)
             {
-                this.ModelState.AddModelError(string.Empty, "There is already a pending submission for this link.");
-                await this.LoadSubCategories();
-
-                return this.View("SubmitEdit", model);
+                return await this.SubmitEditWithErrorAsync(model, "There is already a pending submission for this link.");
             }
 
             var submissionModel = this.FormatSubmissionRequest(model);
@@ -1830,6 +1837,18 @@ namespace DirectoryManager.Web.Controllers
         {
             if (postedModel.DirectoryEntryId == null)
             {
+                // A previous approve may have created the listing and then failed before the
+                // submission was saved. The link is unique, so creating it again would fail on
+                // every retry: finish the approval against that listing instead.
+                var alreadyCreated = await this.directoryEntryRepository
+                    .GetByLinkAsync((postedModel.Link ?? string.Empty).Trim());
+                if (alreadyCreated != null)
+                {
+                    postedModel.DirectoryEntryId = alreadyCreated.DirectoryEntryId;
+                    await this.UpdateDirectoryEntry(postedModel);
+                    return alreadyCreated.DirectoryEntryId;
+                }
+
                 await this.CreateDirectoryEntry(postedModel);
 
                 var created = await this.directoryEntryRepository
@@ -1957,6 +1976,7 @@ namespace DirectoryManager.Web.Controllers
             existing.PgpKey = model.PgpKey?.Trim();
             existing.ProofLink = model.ProofLink?.Trim();
             existing.SourceCodeLink = model.SourceCodeLink?.Trim();
+            existing.VideoLink = model.VideoLink?.Trim();
             existing.FoundedDate = model.FoundedDate;
 
             if (model.DirectoryStatus != null)
@@ -2351,12 +2371,33 @@ namespace DirectoryManager.Web.Controllers
                 return true;
             }
 
-            if (!string.IsNullOrWhiteSpace(Norm(model.NoteToAdmin)))
+            // Free-text suggested tags are always new information for the reviewer.
+            if (!string.IsNullOrWhiteSpace(Norm(model.Tags)))
+            {
+                return true;
+            }
+
+            // Deposit guarantees, compared as a set of (link, amount, currency) after the same
+            // normalization the save applies (blank / zero-amount rows dropped).
+            var existingGuarantees = await this.guaranteeRepo.GetByDirectoryEntryIdAsync(existingEntry.DirectoryEntryId);
+            var existingGuaranteeKeys = existingGuarantees
+                .Select(g => GuaranteeKey(g.Link, g.Amount, g.Currency))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var incomingGuaranteeKeys = (model.Guarantees ?? new List<GuaranteeItem>())
+                .Where(g => g != null && !string.IsNullOrWhiteSpace(g.Link) && g.Amount > 0)
+                .Take(IntegerConstants.MaxGuarantees)
+                .Select(g => GuaranteeKey(g.Link, g.Amount.GetValueOrDefault(), g.Currency))
+                .ToHashSet(StringComparer.OrdinalIgnoreCase);
+
+            if (!incomingGuaranteeKeys.SetEquals(existingGuaranteeKeys))
             {
                 return true;
             }
 
             return false;
+
+            static string GuaranteeKey(string? link, decimal amount, Currency currency) =>
+                $"{(link ?? string.Empty).Trim()}|{amount.ToString("0.############", System.Globalization.CultureInfo.InvariantCulture)}|{currency}";
         }
     }
 }

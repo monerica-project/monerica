@@ -26,7 +26,6 @@
                     <th class="u-text-right">Paid</th>
                     <th class="u-text-right">USD</th>
                     <th class="u-text-right">Expires</th>
-                    <th class="u-text-right">USD/day</th>
                 </tr>
             </thead>
             <tbody>
@@ -52,7 +51,6 @@
                         </td>
                         <td class="u-text-right">@item.AmountUsd.ToString("C2", usd)</td>
                         <td class="u-text-right">@item.ExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
-                        <td class="u-text-right">@item.PricePerDayUsd.ToString("C2", usd)</td>
                     </tr>
                 }
             </tbody>

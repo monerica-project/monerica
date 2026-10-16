@@ -26,6 +26,9 @@
         public const int ReviewCountToShowOnHomepage = 25;
         public const int CommentCountToShowOnHomepage = 10;
         public const int SessinExpiresMinutes = 20;
+
+        // Verification-request and problem-report flows: long enough to write a careful message.
+        public const int ComposeFlowExpiresMinutes = 120;
         public const int ChallengeLength = 10;
         public const int MaxVerifyAttempts = 10;
     }

@@ -1,6 +1,5 @@
 ﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.TransferModels;
 
 namespace DirectoryManager.Data.Repositories.Interfaces

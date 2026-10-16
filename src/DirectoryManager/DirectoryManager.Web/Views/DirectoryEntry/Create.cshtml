@@ -18,6 +18,7 @@
 @await Html.PartialAsync("_AdminMenu")
 
 <form method="post" action="~/directoryentry/create">
+@Html.AntiForgeryToken()
 
 @if (!ViewData.ModelState.IsValid)
 {

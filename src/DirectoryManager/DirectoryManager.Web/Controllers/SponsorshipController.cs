@@ -26,6 +26,11 @@ namespace DirectoryManager.Web.Controllers
     {
         private const string CaptchaContextWaitlist = "sponsorship-waitlist";
 
+        // TempData keys read by Views/Sponsorship/Options.cshtml to show a waitlist error
+        // and re-fill the email the visitor typed.
+        private const string TempDataWaitlistError = "WaitlistError";
+        private const string TempDataWaitlistEmail = "WaitlistEmail";
+
         private const int SearchPageSize = 20;
         private const int WaitlistPreviewTake = 10;
         private const int WaitlistPageSize = 25;
@@ -509,17 +514,24 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            var email = (vm.Email ?? string.Empty).Trim();
+
+            // Keep what the visitor typed so a failed attempt doesn't wipe it.
+            if (email.Length > 0 && email.Length <= 200)
+            {
+                this.TempData[TempDataWaitlistEmail] = email;
+            }
+
             if (!CaptchaTools.Validate(this.HttpContext, CaptchaContextWaitlist, this.Request.Form["Captcha"].ToString(), consume: true))
             {
                 return this.Redirect($"/sponsorship/options/{entry.DirectoryEntryId}?captcha=0#join-waitlist");
             }
 
-            var email = (vm.Email ?? string.Empty).Trim();
             var (emailOk, normalizedEmail, _) = EmailValidationHelper.Validate(email);
             if (!emailOk || string.IsNullOrWhiteSpace(normalizedEmail) || normalizedEmail.Length > 100)
             {
-                return this.RedirectToOptions(
-                    vm.DirectoryEntryId);
+                this.TempData[TempDataWaitlistError] = "Please enter a valid email address.";
+                return this.Redirect($"/sponsorship/options/{entry.DirectoryEntryId}#join-waitlist");
             }
 
             email = normalizedEmail;
@@ -527,9 +539,11 @@ namespace DirectoryManager.Web.Controllers
             var scopes = CollectSubscriptionScopes(vm, entry);
             if (scopes.Count == 0)
             {
-                return this.RedirectToOptions(
-                    entry.DirectoryEntryId);
+                this.TempData[TempDataWaitlistError] = "Please select at least one sponsorship slot to be notified about.";
+                return this.Redirect($"/sponsorship/options/{entry.DirectoryEntryId}#join-waitlist");
             }
+
+            this.TempData.Remove(TempDataWaitlistEmail);
 
             await this.waitlistRepo.UpsertManyAsync(
                 email, entry.DirectoryEntryId, scopes);
@@ -754,13 +768,6 @@ namespace DirectoryManager.Web.Controllers
 
             return !string.IsNullOrWhiteSpace(subKey)
                 ? $"/{subKey}" : "/";
-        }
-
-        private IActionResult RedirectToOptions(
-            int directoryEntryId)
-        {
-            return this.RedirectToAction(
-                "Options", new { directoryEntryId });
         }
 
         private SponsorshipSearchItemVm ToSearchItem(

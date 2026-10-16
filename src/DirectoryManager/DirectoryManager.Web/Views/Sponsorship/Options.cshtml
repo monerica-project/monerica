@@ -242,6 +242,9 @@
         var disableMain = mainActive;
         var disableCat = catActive;
         var disableSub = subActive;
+
+        var waitlistError = TempData["WaitlistError"] as string;
+        var waitlistEmail = TempData["WaitlistEmail"] as string;
     }
 
     <form method="post"
@@ -261,6 +264,7 @@
  name="Email"
  class="form-control u-flex-1-1-260px-maxw-420px"
  placeholder="you@example.com"
+ value="@waitlistEmail"
  required="required" />
         </div>
         <div class="u-mt-6px-opacity-85-fs-9em">
@@ -339,6 +343,11 @@
         @if (Context.Request.Query["captcha"] == "0")
         {
             <div class="alert alert-danger u-mt-12px" role="alert">Incorrect CAPTCHA. Please try again.</div>
+        }
+
+        @if (!string.IsNullOrEmpty(waitlistError))
+        {
+            <div class="alert alert-danger u-mt-12px" role="alert">@waitlistError</div>
         }
 
         <div class="u-mt-12px">

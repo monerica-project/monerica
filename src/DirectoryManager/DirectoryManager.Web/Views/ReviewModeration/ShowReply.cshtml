@@ -9,12 +9,18 @@
 @{
     Layout = "_CenteredLayout";
     ViewData[StringConstants.TitleHeader] = $"Reply #{Model.DirectoryEntryReviewCommentId}";
+    var isEditMode = ViewData["EditMode"] as bool? == true;
 }
 
 @section PageContent {
     <h1>@ViewData[StringConstants.TitleHeader]</h1>
 
     @await Html.PartialAsync("_AdminMenu")
+
+    @if (TempData["SuccessMessage"] is string successMessage)
+    {
+        <div class="alert alert-success">@successMessage</div>
+    }
 
     @if (!ViewData.ModelState.IsValid)
     {
@@ -46,7 +52,27 @@
         <dd class="col-sm-9">@((Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)) ?? "-")</dd>
 
         <dt class="col-sm-3">Body</dt>
-        <dd class="col-sm-9"><pre class="u-ws-pre-wrap">@Html.Raw(StringHelpers.RenderBodyWithLinksHtml(Model.Body, cssClass: "multi-line-text", ugcContent: true, maskEmails: false))</pre></dd>
+        <dd class="col-sm-9">
+            @if (isEditMode)
+            {
+                <form asp-action="EditReply"
+                      asp-route-id="@Model.DirectoryEntryReviewCommentId"
+                      method="post">
+                    @Html.AntiForgeryToken()
+                    <textarea id="body" name="body" class="form-control" rows="10" maxlength="4000">@Model.Body</textarea>
+                    @Html.ValidationMessage("body", new { @class = "text-danger" })
+                    <div class="mt-2">
+                        <button type="submit">Save</button>
+                        <a asp-action="ShowReply" asp-route-id="@Model.DirectoryEntryReviewCommentId">Cancel</a>
+                    </div>
+                </form>
+            }
+            else
+            {
+                <pre class="u-ws-pre-wrap">@Html.Raw(StringHelpers.RenderBodyWithLinksHtml(Model.Body, cssClass: "multi-line-text", ugcContent: true, maskEmails: false))</pre>
+                <a asp-action="EditReply" asp-route-id="@Model.DirectoryEntryReviewCommentId">Edit</a>
+            }
+        </dd>
     </dl>
 
     <div class="mt-3">

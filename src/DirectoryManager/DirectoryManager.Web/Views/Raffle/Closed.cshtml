@@ -1,0 +1,30 @@
+@using DirectoryManager.Web.Constants
+@{
+    ViewData[StringConstants.TitleHeader] = "Raffle Closed";
+    Layout = "_CenteredLayout";
+
+    // The review's status notice (e.g. "held for moderation"), carried over from the review submit.
+    var reviewMessage = TempData["ReviewMessage"] as string;
+}
+
+@section PageContent {
+    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <hr />
+
+    @if (!string.IsNullOrWhiteSpace(reviewMessage))
+    {
+        <p><b>@reviewMessage</b></p>
+    }
+
+    <p>
+        Thanks for leaving a review! There's no raffle currently running,
+        so there's nothing to enter right now.
+    </p>
+
+    <p>
+        Your review has been saved. Check back later for the next raffle —
+        future verified reviews will be eligible to enter.
+    </p>
+
+    @await Html.PartialAsync("_BackToHome")
+}

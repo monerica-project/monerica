@@ -127,90 +127,6 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("AffiliateCommissionsEarned");
                 });
 
-            modelBuilder.Entity("DirectoryManager.Data.Models.Affiliates.AffiliateAccount", b =>
-                {
-                    b.Property<int>("AffiliateAccountId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AffiliateAccountId"));
-
-                    b.Property<DateTime>("CreateDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("Email")
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.Property<int>("PayoutCurrency")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("ReferralCode")
-                        .IsRequired()
-                        .HasMaxLength(12)
-                        .HasColumnType("character varying(12)");
-
-                    b.Property<DateTime?>("UpdateDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("WalletAddress")
-                        .IsRequired()
-                        .HasMaxLength(256)
-                        .HasColumnType("character varying(256)");
-
-                    b.HasKey("AffiliateAccountId");
-
-                    b.HasIndex("ReferralCode")
-                        .IsUnique()
-                        .HasDatabaseName("UX_AffiliateAccount_ReferralCode");
-
-                    b.ToTable("AffiliateAccounts");
-                });
-
-            modelBuilder.Entity("DirectoryManager.Data.Models.Affiliates.AffiliateCommission", b =>
-                {
-                    b.Property<int>("AffiliateCommissionId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("AffiliateCommissionId"));
-
-                    b.Property<int>("AffiliateAccountId")
-                        .HasColumnType("integer");
-
-                    b.Property<decimal>("AmountDue")
-                        .HasColumnType("decimal(18,8)");
-
-                    b.Property<DateTime>("CreateDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<int>("PayoutCurrency")
-                        .HasColumnType("integer");
-
-                    b.Property<int>("PayoutStatus")
-                        .HasColumnType("integer");
-
-                    b.Property<string>("PayoutTransactionId")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
-                    b.Property<int>("SponsoredListingInvoiceId")
-                        .HasColumnType("integer");
-
-                    b.Property<DateTime?>("UpdateDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.HasKey("AffiliateCommissionId");
-
-                    b.HasIndex("AffiliateAccountId");
-
-                    b.HasIndex("SponsoredListingInvoiceId")
-                        .IsUnique()
-                        .HasDatabaseName("UX_AffiliateCommission_Invoice");
-
-                    b.ToTable("AffiliateCommissions");
-                });
-
             modelBuilder.Entity("DirectoryManager.Data.Models.ApplicationUser", b =>
                 {
                     b.Property<string>("Id")
@@ -2037,10 +1953,6 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(255)
                         .HasColumnType("character varying(255)");
 
-                    b.Property<string>("ReferralCodeUsed")
-                        .HasMaxLength(12)
-                        .HasColumnType("character varying(12)");
-
                     b.Property<Guid>("ReservationGuid")
                         .HasColumnType("uuid");
 
@@ -3072,25 +2984,6 @@ namespace DirectoryManager.Data.Migrations
                     b.Navigation("DirectoryEntry");
                 });
 
-            modelBuilder.Entity("DirectoryManager.Data.Models.Affiliates.AffiliateCommission", b =>
-                {
-                    b.HasOne("DirectoryManager.Data.Models.Affiliates.AffiliateAccount", "AffiliateAccount")
-                        .WithMany("Commissions")
-                        .HasForeignKey("AffiliateAccountId")
-                        .OnDelete(DeleteBehavior.Cascade)
-                        .IsRequired();
-
-                    b.HasOne("DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice", "SponsoredListingInvoice")
-                        .WithMany()
-                        .HasForeignKey("SponsoredListingInvoiceId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("AffiliateAccount");
-
-                    b.Navigation("SponsoredListingInvoice");
-                });
-
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntriesAudit", b =>
                 {
                     b.HasOne("DirectoryManager.Data.Models.Subcategory", "SubCategory")
@@ -3465,11 +3358,6 @@ namespace DirectoryManager.Data.Migrations
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-                });
-
-            modelBuilder.Entity("DirectoryManager.Data.Models.Affiliates.AffiliateAccount", b =>
-                {
-                    b.Navigation("Commissions");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntry", b =>

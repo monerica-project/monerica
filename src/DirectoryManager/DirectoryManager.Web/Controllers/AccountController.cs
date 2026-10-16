@@ -22,7 +22,6 @@ namespace DirectoryManager.Web.Controllers
         private readonly IVideoSponsorshipRepository videoSponsorshipRepository;
         private readonly SignInManager<ApplicationUser> signInManager;
         private readonly UserManager<ApplicationUser> userManager;
-        private readonly IAffiliateCommissionRepository affiliateCommissionRepository;
         private readonly ICaptchaService captchaService;
         public readonly ISponsoredListingInvoiceRepository SponsoredListingInvoiceRepository;
 
@@ -38,7 +37,6 @@ namespace DirectoryManager.Web.Controllers
             IVideoSponsorshipRepository videoSponsorshipRepository,
             ITrafficLogRepository trafficLogRepository,
             IUserAgentCacheService userAgentCacheService,
-            IAffiliateCommissionRepository affiliateCommissionRepository,
             ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository,
             ICaptchaService captchaService,
             IMemoryCache cache)
@@ -53,7 +51,6 @@ namespace DirectoryManager.Web.Controllers
             this.problemReportRepository = problemReportRepository;
             this.videoSponsorshipRepository = videoSponsorshipRepository;
             this.directoryEntryReviewCommentRepository = directoryEntryReviewCommentRepository;
-            this.affiliateCommissionRepository = affiliateCommissionRepository;
             this.SponsoredListingInvoiceRepository = sponsoredListingInvoiceRepository;
             this.captchaService = captchaService;
         }
@@ -130,9 +127,6 @@ namespace DirectoryManager.Web.Controllers
             // Combined total for your dashboard badge
             var totalPendingReviewItems = pendingReviews + pendingReviewComments;
 
-            var pendingAffiliateCommissions =
-                await this.affiliateCommissionRepository.CountByStatusAsync(CommissionPayoutStatus.Pending);
-
             var pendingVerificationRequests =
                 await this.verificationRequestRepository.CountByStatusAsync(Data.Enums.VerificationRequestStatus.Pending);
 
@@ -142,7 +136,6 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.LastInvoicePendingUtc = this.SponsoredListingInvoiceRepository.GetLastPendingInvoiceCreateDate();
             this.ViewBag.TotalPendingReviewReviews = pendingReviews;
             this.ViewBag.TotalPendingReviewComments = pendingReviewComments;
-            this.ViewBag.PendingAffiliateCommissions = pendingAffiliateCommissions;
             this.ViewBag.TotalPendingVerificationRequests = pendingVerificationRequests;
             this.ViewBag.LastVerificationSubmissionUtc = await this.verificationRequestRepository.GetLastSubmissionUtcAsync();
             this.ViewBag.LastVerificationPaidUtc = await this.verificationRequestRepository.GetLastPaidUtcAsync();

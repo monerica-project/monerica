@@ -74,20 +74,6 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
-        protected void ClearCachedItems()
-        {
-            CachePrefixManager.ExpirePrefix(StringConstants.DirectoryFilterCachePrefix);
-            CachePrefixManager.ExpirePrefix(StringConstants.ActiveSubcategoriesByCategoryCachePrefix);
-            CachePrefixManager.ExpirePrefix(StringConstants.ActiveTagsByCategoryCachePrefix);
-            CachePrefixManager.ExpirePrefix(StringConstants.ActiveTagIdsByCategoryCachePrefix);
-            CachePrefixManager.ExpirePrefix(StringConstants.CacheKeyPrefixConversion);
-            CachePrefixManager.ExpirePrefix(StringConstants.PrefixActiveTagsByCat);
-            this.cache.Remove(StringConstants.CacheKeyAuthorPostCounts);
-            this.cache.Remove(StringConstants.CacheKeyEntries);
-            this.cache.Remove(StringConstants.CacheKeySponsoredListings);
-            this.cache.Remove(StringConstants.CacheKeyAllActiveSponsors);
-            this.cache.Remove(StringConstants.NavMenu);
-            this.cache.Remove(StringConstants.CacheKeySponsorTickerItems);
-        }
+        protected void ClearCachedItems() => SponsorCacheHelper.ClearSponsorCaches(this.cache);
     }
 }

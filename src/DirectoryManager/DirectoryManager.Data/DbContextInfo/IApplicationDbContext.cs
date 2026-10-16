@@ -1,5 +1,4 @@
 using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Models.SponsoredListings;
@@ -51,8 +50,6 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrderItem> VideoSponsorOrderItems { get; set; }
         DbSet<DirectoryEntryReviewComment> DirectoryEntryReviewComments { get; }
         DbSet<DirectoryManager.Data.Models.Reviews.ReviewNotification> ReviewNotifications { get; }
-        public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
-        public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
         public DbSet<AffiliateCommissionEarned> AffiliateCommissionsEarned { get; set; }
         public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
         public DbSet<DirectoryManager.Data.Models.Emails.MarketingEmailContact> MarketingEmailContacts { get; set; }

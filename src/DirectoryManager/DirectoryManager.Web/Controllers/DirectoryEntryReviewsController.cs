@@ -1,4 +1,3 @@
-using System.Collections.Concurrent;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
@@ -21,11 +20,11 @@ namespace DirectoryManager.Web.Controllers
     [Route("directory-entry-reviews")]
     public class DirectoryEntryReviewsController : BaseController
     {
-        private const string SesssionExpiredMessage = "Session expired, your reply message was not saved, please start over!";
+        private const string SesssionExpiredMessage = "Session expired, your review message was not saved, please start over!";
         private static readonly char[] CodeAlphabet = StringConstants.CodeAlphabet.ToCharArray();
 
         // Prevents double-POST without cookies or JS.
-        private static readonly ConcurrentDictionary<Guid, bool> SubmittedFlows = new ();
+        private static readonly FlowSubmitGuard SubmittedFlows = new ();
 
         private readonly IMemoryCache cache;
         private readonly ICaptchaService captcha;
@@ -286,20 +285,32 @@ namespace DirectoryManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ComposePost(Guid flowId, CreateDirectoryEntryReviewInputModel input, CancellationToken ct)
         {
-            if (!SubmittedFlows.TryAdd(flowId, true))
-            {
-                return this.RedirectToAction(nameof(this.Thanks));
-            }
+            // Blocks a double-submit of the same flow. The claim is released on EVERY path that
+            // doesn't save the review (validation errors, too-short text, etc.) so the reviewer can
+            // fix the form and resubmit; only a saved review keeps it. A duplicate POST that lands
+            // while the first is still running waits for it: Thanks only if the first actually
+            // saved; otherwise it is processed normally (or sent back to compose on timeout).
+            return await SubmittedFlows.RunAsync(
+                flowId,
+                markSaved => this.ComposeSubmitAsync(flowId, input, markSaved, ct),
+                onAlreadySaved: () => this.RedirectToAction(nameof(this.Thanks)),
+                onStillInFlight: () => this.RedirectToAction(nameof(this.Compose), new { flowId }),
+                ct);
+        }
 
+        private async Task<IActionResult> ComposeSubmitAsync(
+            Guid flowId,
+            CreateDirectoryEntryReviewInputModel input,
+            Action markSaved,
+            CancellationToken ct)
+        {
             if (!this.TryGetFlow(flowId, out var flow))
             {
-                SubmittedFlows.TryRemove(flowId, out _);
                 return this.BadRequest(SesssionExpiredMessage);
             }
 
             if (!flow.ChallengeSolved)
             {
-                SubmittedFlows.TryRemove(flowId, out _);
                 return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
             }
 
@@ -327,7 +338,6 @@ namespace DirectoryManager.Web.Controllers
             var gateEntry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
             if (gateEntry is null || gateEntry.ReviewsDisabled)
             {
-                SubmittedFlows.TryRemove(flowId, out _);
                 this.cache.Remove(CacheKey(flowId));
                 return this.NotFound();
             }
@@ -339,7 +349,6 @@ namespace DirectoryManager.Web.Controllers
 
             if (!this.ModelState.IsValid)
             {
-                SubmittedFlows.TryRemove(flowId, out _);
                 var entry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
                 this.ViewBag.DirectoryEntryName = entry?.Name ?? "Listing";
                 this.ViewBag.FlowId = flowId;
@@ -352,7 +361,6 @@ namespace DirectoryManager.Web.Controllers
             var normalizedBody = UnicodeSanitizer.CleanMultiLine(input.Body);
             if (await this.directoryEntryReviewRepository.ExistsByBodyAsync(normalizedBody, null, ct))
             {
-                SubmittedFlows.TryRemove(flowId, out _);
                 this.ModelState.AddModelError(
                     nameof(input.Body),
                     "A review with this exact message has already been submitted. Please write something original.");
@@ -367,7 +375,6 @@ namespace DirectoryManager.Web.Controllers
             // When the subcategory requires verification, the order-proof URL is mandatory.
             if (requireVerification && string.IsNullOrWhiteSpace(input.OrderProof))
             {
-                SubmittedFlows.TryRemove(flowId, out _);
                 this.ModelState.AddModelError(
                     nameof(input.OrderProof),
                     "An order proof URL is required for reviews in this category (for example https://shop.example.com/orders/123).");
@@ -382,7 +389,6 @@ namespace DirectoryManager.Web.Controllers
             // Order proof is optional, but if supplied it must be a URL.
             if (!TryNormalizeOrderProofUrl(input.OrderProof, out var normalizedProof))
             {
-                SubmittedFlows.TryRemove(flowId, out _);
                 this.ModelState.AddModelError(
                     nameof(input.OrderProof),
                     "Order proof must be a URL (for example https://shop.example.com/orders/123). Leave it blank if you don't have one.");
@@ -405,7 +411,6 @@ namespace DirectoryManager.Web.Controllers
 
                 if (!listingLinks.Any(l => UrlHelper.HostsRelated(normalizedProof, l)))
                 {
-                    SubmittedFlows.TryRemove(flowId, out _);
                     var listingHost = UrlHelper.TryGetHost(gateEntry.Link);
                     this.ModelState.AddModelError(
                         nameof(input.OrderProof),
@@ -474,6 +479,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             await this.directoryEntryReviewRepository.AddAsync(entity, ct);
+            markSaved();
 
             // Persist the reviewer's suggested tags. Filter to ENABLED, PUBLIC (ReviewerSelectable)
             // tags only so a crafted form can't attach a disabled or admin-only tag. They ride with

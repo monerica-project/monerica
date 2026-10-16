@@ -49,6 +49,10 @@ namespace DirectoryManager.Web.Extensions
                 // session (e.g. CAPTCHA). Clearnet is HTTPS-only (redirect + HSTS), so
                 // this still yields a Secure cookie on clearnet.
                 options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
+
+                // Default is 20 idle minutes, which expired submission drafts (bound to the
+                // session) while people were still writing them.
+                options.IdleTimeout = TimeSpan.FromHours(2);
             });
 
             services.AddResponseCaching();
@@ -166,6 +170,7 @@ namespace DirectoryManager.Web.Extensions
             // Separate BTCPay store for video sponsorships (null client until configured).
             services.AddScoped<IVideoSponsorPaymentGateway, VideoSponsorPaymentGateway>();
             services.AddScoped<IVideoSponsorOrderProcessor, VideoSponsorOrderProcessor>();
+            services.AddScoped<ISponsoredListingActivator, SponsoredListingActivator>();
 
             services.AddScoped<ISearchBlacklistRepository, SearchBlacklistRepository>();
             services.AddScoped<IMarketingEmailContactRepository, MarketingEmailContactRepository>();

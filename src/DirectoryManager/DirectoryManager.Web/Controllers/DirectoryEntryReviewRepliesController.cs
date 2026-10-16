@@ -1,5 +1,4 @@
-﻿using System.Collections.Concurrent;
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.Reviews;
@@ -17,13 +16,13 @@ namespace DirectoryManager.Web.Controllers
     public class DirectoryEntryReviewRepliesController : BaseController
     {
         private const string SesssionExpiredMessage =
-            "Session expired, your review message was not saved, please start over!";
+            "Session expired, your reply message was not saved, please start over!";
 
         private static readonly char[] CodeAlphabet = StringConstants.CodeAlphabet.ToCharArray();
 
         // Prevents double-POST without cookies or JS.
-        // ConcurrentDictionary.TryAdd is atomic; only the first caller for a flowId wins.
-        private static readonly ConcurrentDictionary<Guid, bool> SubmittedFlows = new ();
+        // Only one POST per flowId runs at a time; duplicates wait for its outcome.
+        private static readonly FlowSubmitGuard SubmittedFlows = new ();
 
         private readonly IMemoryCache cache;
         private readonly ICaptchaService captcha;
@@ -286,7 +285,7 @@ namespace DirectoryManager.Web.Controllers
             var gateEntry = await this.entryRepo.GetByIdAsync(state.DirectoryEntryId);
             if (gateEntry is null || gateEntry.ReviewsDisabled)
             {
-                SubmittedFlows.TryRemove(flowId, out _);
+                SubmittedFlows.Forget(flowId);
                 this.cache.Remove(CacheKey(flowId));
                 return this.NotFound();
             }
@@ -323,22 +322,32 @@ namespace DirectoryManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> ComposePost(Guid flowId, CreateDirectoryEntryReviewReplyInputModel input, CancellationToken ct)
         {
-            // ✅ Atomic double-submit guard: only the first POST for this flowId proceeds.
-            // A second simultaneous click is silently redirected to Thanks.
-            if (!SubmittedFlows.TryAdd(flowId, true))
-            {
-                return this.RedirectToAction(nameof(this.Thanks));
-            }
+            // ✅ Atomic double-submit guard: only one POST for this flowId runs at a time. The claim
+            // is released on every path that doesn't save the reply (in a finally, so no early
+            // return or exception can strand it). A second simultaneous click waits for the first:
+            // Thanks only if the first actually saved; otherwise it is processed normally (or sent
+            // back to compose on timeout).
+            return await SubmittedFlows.RunAsync(
+                flowId,
+                markSaved => this.ComposeSubmitAsync(flowId, input, markSaved, ct),
+                onAlreadySaved: () => this.RedirectToAction(nameof(this.Thanks)),
+                onStillInFlight: () => this.RedirectToAction(nameof(this.Compose), new { flowId }),
+                ct);
+        }
 
+        private async Task<IActionResult> ComposeSubmitAsync(
+            Guid flowId,
+            CreateDirectoryEntryReviewReplyInputModel input,
+            Action markSaved,
+            CancellationToken ct)
+        {
             if (!this.TryGetFlow(flowId, out var state))
             {
-                SubmittedFlows.TryRemove(flowId, out _);
                 return this.BadRequest(SesssionExpiredMessage);
             }
 
             if (!state.ChallengeSolved)
             {
-                SubmittedFlows.TryRemove(flowId, out _);
                 return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
             }
 
@@ -353,8 +362,6 @@ namespace DirectoryManager.Web.Controllers
 
             if (!mod.IsValid)
             {
-                // ✅ Release the claim so the user can fix their input and resubmit
-                SubmittedFlows.TryRemove(flowId, out _);
                 this.ModelState.AddModelError(nameof(input.Body), mod.ValidationErrorMessage ?? "Invalid reply.");
 
                 var entry = await this.entryRepo.GetByIdAsync(state.DirectoryEntryId);
@@ -410,6 +417,7 @@ namespace DirectoryManager.Web.Controllers
             };
 
             await this.commentRepo.AddAsync(entity, ct);
+            markSaved();
 
             this.ClearCachedItems();
             this.cache.Remove(CacheKey(flowId));

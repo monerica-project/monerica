@@ -1,7 +1,6 @@
 using System.Reflection;
 using System.Reflection.Emit;
 using DirectoryManager.Data.Models;
-using DirectoryManager.Data.Models.Affiliates;
 using DirectoryManager.Data.Models.BaseModels;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.Reviews;
@@ -58,8 +57,6 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrderItem> VideoSponsorOrderItems { get; set; }
         public DbSet<DirectoryEntryReviewComment> DirectoryEntryReviewComments { get; set; } = null!;
         public DbSet<DirectoryManager.Data.Models.Reviews.ReviewNotification> ReviewNotifications { get; set; } = null!;
-        public DbSet<AffiliateAccount> AffiliateAccounts { get; set; }
-        public DbSet<AffiliateCommission> AffiliateCommissions { get; set; }
         public DbSet<SearchBlacklistTerm> SearchBlacklistTerms { get; set; }
         public DbSet<DirectoryManager.Data.Models.Emails.MarketingEmailContact> MarketingEmailContacts { get; set; }
         public DbSet<AdditionalLink> AdditionalLinks { get; set; }
@@ -282,7 +279,6 @@ namespace DirectoryManager.Data.DbContextInfo
             ConfigureEmailIndexes(builder);
             ConfigureBlockedIpIndexes(builder);
 
-            ConfigureAffiliateIndexes(builder);
             ConfigureReviewerAndReviewIndexes(builder);
             ConfigureAdditionalLinkIndexes(builder);
 
@@ -555,19 +551,6 @@ namespace DirectoryManager.Data.DbContextInfo
                    .IsUnique();
         }
 
-        private static void ConfigureAffiliateIndexes(ModelBuilder builder)
-        {
-            builder.Entity<AffiliateAccount>()
-                   .HasIndex(x => x.ReferralCode)
-                   .IsUnique()
-                   .HasDatabaseName("UX_AffiliateAccount_ReferralCode");
-
-            builder.Entity<AffiliateCommission>()
-                   .HasIndex(x => x.SponsoredListingInvoiceId)
-                   .IsUnique()
-                   .HasDatabaseName("UX_AffiliateCommission_Invoice");
-        }
-
         private static void ConfigureReviewerAndReviewIndexes(ModelBuilder builder)
         {
             builder.Entity<ReviewerKey>()
@@ -727,19 +710,6 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasForeignKey<SponsoredListing>(sl => sl.SponsoredListingInvoiceId)
                    .OnDelete(DeleteBehavior.Restrict);
 
-            builder.Entity<AffiliateCommission>(ac =>
-            {
-                ac.HasOne(x => x.AffiliateAccount)
-                  .WithMany(a => a.Commissions)
-                  .HasForeignKey(x => x.AffiliateAccountId)
-                  .OnDelete(DeleteBehavior.Cascade);
-
-                ac.HasOne(x => x.SponsoredListingInvoice)
-                  .WithMany()
-                  .HasForeignKey(x => x.SponsoredListingInvoiceId)
-                  .OnDelete(DeleteBehavior.Restrict);
-            });
-
             builder.Entity<DirectoryEntryReviewComment>()
                    .HasOne(x => x.DirectoryEntryReview)
                    .WithMany(r => r.Comments)
@@ -833,24 +803,6 @@ namespace DirectoryManager.Data.DbContextInfo
             builder.Entity<SponsoredListingOffer>()
                    .Property(e => e.Price)
                    .HasColumnType("decimal(20, 12)");
-
-            builder.Entity<AffiliateCommission>()
-                   .Property(x => x.AmountDue)
-                   .HasColumnType("decimal(18,8)");
-
-            builder.Entity<AffiliateAccount>(aa =>
-            {
-                aa.Property(x => x.ReferralCode)
-                  .HasMaxLength(12)
-                  .IsRequired();
-
-                aa.Property(x => x.WalletAddress)
-                  .HasMaxLength(256)
-                  .IsRequired();
-
-                aa.Property(x => x.Email)
-                  .HasMaxLength(256);
-            });
 
             builder.Entity<ReviewerKey>(rk =>
             {

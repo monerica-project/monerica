@@ -167,14 +167,17 @@
 
                 <hr />
 
-                <div>
-                    @await Html.PartialAsync("_CaptchaBlock", "sponsoredlisting-confirmcheckout")
-                    <div class="text-danger u-mt-4px">
-                        @Html.ValidationMessage("Captcha")
+                @if (ViewBag.CaptchaRequired as bool? ?? true)
+                {
+                    <div>
+                        @await Html.PartialAsync("_CaptchaBlock", "sponsoredlisting-confirmcheckout")
+                        <div class="text-danger u-mt-4px">
+                            @Html.ValidationMessage("Captcha")
+                        </div>
                     </div>
-                </div>
 
-                <hr />
+                    <hr />
+                }
 
                 <input name="rsvId" type="hidden" value="@reservationGuid" />
                 <input type="hidden" name="directoryEntryId" value="@Model.SelectedDirectoryEntry.DirectoryEntryId" />

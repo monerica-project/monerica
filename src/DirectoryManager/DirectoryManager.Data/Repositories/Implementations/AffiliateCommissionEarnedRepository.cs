@@ -211,23 +211,23 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task DeleteAsync(int affiliateCommissionId)
         {
-            var entity = await this.context.AffiliateCommissions
-                .FirstOrDefaultAsync(c => c.AffiliateCommissionId == affiliateCommissionId);
+            var entity = await this.context.AffiliateCommissionsEarned
+                .FirstOrDefaultAsync(c => c.AffiliateCommissionEarnedId == affiliateCommissionId);
 
             if (entity == null)
             {
                 return;
             }
 
-            this.context.AffiliateCommissions.Remove(entity);
+            this.context.AffiliateCommissionsEarned.Remove(entity);
             await this.context.SaveChangesAsync();
         }
 
         public async Task<bool> ExistsAsync(int affiliateCommissionId)
         {
-            return await this.context.AffiliateCommissions
+            return await this.context.AffiliateCommissionsEarned
                 .AsNoTracking()
-                .AnyAsync(c => c.AffiliateCommissionId == affiliateCommissionId);
+                .AnyAsync(c => c.AffiliateCommissionEarnedId == affiliateCommissionId);
         }
 
         private async Task<IReadOnlyDictionary<Currency, decimal>> CurrencyTotalsAsync(

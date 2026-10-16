@@ -29,6 +29,9 @@ namespace DirectoryManager.Web.Controllers
 
         private const int SearchPageSize = 10;
         private const int MaxNotesLength = 4000;
+        private const string DraftNotesKey = "VideoCheckoutDraftNotes";
+        private const string DraftRefundAddressKey = "VideoCheckoutDraftRefundAddress";
+        private const string DraftEmailKey = "VideoCheckoutDraftEmail";
 
         // The videos are locked for this long while the BTCPay invoice is being created; the
         // lock is then re-set to the invoice's real expiry.
@@ -96,7 +99,7 @@ namespace DirectoryManager.Web.Controllers
                         OfferName = o.OfferName,
                         PaidUtc = o.PaidUtc,
                         AmountUsd = i.Price,
-                        VideoUrl = i.CompletedUtc.HasValue ? i.VideoUrl : null,
+                        VideoUrl = i.VideoUrl,
                     }))
                     .ToList(),
             };
@@ -290,7 +293,16 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var (vm, redirect) = await this.BuildDetailsVmAsync(directoryEntryId, offerId, ParseIds(v), 0m, ct);
-            return vm is null ? redirect! : this.View(vm);
+            if (vm is null)
+            {
+                return redirect!;
+            }
+
+            // Restore what the buyer typed before a selected video was taken (see Checkout).
+            vm.Notes = this.TempData[DraftNotesKey] as string ?? vm.Notes;
+            vm.RefundAddress = this.TempData[DraftRefundAddressKey] as string ?? vm.RefundAddress;
+            vm.Email = this.TempData[DraftEmailKey] as string ?? vm.Email;
+            return this.View(vm);
         }
 
         // =====================================================================
@@ -457,6 +469,11 @@ namespace DirectoryManager.Web.Controllers
                 order.PaymentStatus = PaymentStatus.Canceled;
                 order.AdminNote = "Canceled at checkout: a selected video was no longer available.";
                 await this.repository.UpdateOrderAsync(order, ct);
+
+                // Keep the buyer's typed details for when they come back to this step.
+                this.TempData[DraftNotesKey] = notes;
+                this.TempData[DraftRefundAddressKey] = refundAddress;
+                this.TempData[DraftEmailKey] = email;
                 return this.RedirectToAction(nameof(this.Videos), new { directoryEntryId, offerId, error = "taken" });
             }
 

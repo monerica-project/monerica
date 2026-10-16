@@ -580,32 +580,34 @@ namespace DirectoryManager.Web.Controllers
             [FromForm] int[]? selectedTagIds,
             CancellationToken ct = default)
         {
-            var review = await this.repo.GetByIdAsync(id, ct);
-            if (review is null)
+            if (!await this.SaveProofAndTagsAsync(id, orderProof, selectedTagIds, ct))
             {
                 return this.NotFound();
             }
 
-            ApplyOrderProof(review, orderProof);
-
-            // If proof is present and review was Approved, force back to Pending
-            var hasProof = !string.IsNullOrWhiteSpace(review.OrderId) || !string.IsNullOrWhiteSpace(review.OrderUrl);
-            if (hasProof && review.ModerationStatus == ReviewModerationStatus.Approved)
-            {
-                review.ModerationStatus = ReviewModerationStatus.Pending;
-            }
-
-            await this.repo.UpdateAsync(review, ct);
-
-            var tagIds = (selectedTagIds ?? Array.Empty<int>()).Distinct().ToArray();
-            await this.reviewTagLinkRepository.SetTagsForReviewAsync(
-                review.DirectoryEntryReviewId,
-                tagIds,
-                userId: this.User?.Identity?.Name ?? "admin",
-                ct);
-
             this.ClearCachedItems();
             return this.RedirectToAction(nameof(this.Show), new { id });
+        }
+
+        // POST /admin/reviews/123/update-and-approve
+        // Approve button inside the proof/tags form: saves any unsaved proof/tag
+        // edits first (same logic as Update), then approves.
+        [HttpPost("{id:int}/update-and-approve")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> UpdateAndApprove(
+            int id,
+            [FromForm] string? orderProof,
+            [FromForm] int[]? selectedTagIds,
+            CancellationToken ct = default)
+        {
+            if (!await this.SaveProofAndTagsAsync(id, orderProof, selectedTagIds, ct))
+            {
+                return this.NotFound();
+            }
+
+            await this.repo.ApproveAsync(id, ct);
+            this.ClearCachedItems();
+            return this.RedirectToAction(nameof(this.Pending));
         }
 
         // POST /admin/reviews/123/approve
@@ -659,6 +661,55 @@ namespace DirectoryManager.Web.Controllers
             return this.View("ShowReply", item);
         }
 
+        // GET /admin/reviews/reply/123/edit
+        [HttpGet("reply/{id:int}/edit")]
+        public async Task<IActionResult> EditReply(int id, CancellationToken ct = default)
+        {
+            var item = await this.commentRepo.GetByIdAsync(id, ct);
+            if (item is null)
+            {
+                return this.NotFound();
+            }
+
+            this.ViewData["EditMode"] = true;
+            return this.View("ShowReply", item);
+        }
+
+        // POST /admin/reviews/reply/123/edit
+        [HttpPost("reply/{id:int}/edit")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> EditReply(int id, [FromForm] string? body, CancellationToken ct = default)
+        {
+            var item = await this.commentRepo.GetByIdAsync(id, ct);
+            if (item is null)
+            {
+                return this.NotFound();
+            }
+
+            var newBody = (body ?? string.Empty).Trim();
+            if (newBody.Length == 0)
+            {
+                this.ModelState.AddModelError("body", "The reply text can't be empty.");
+            }
+            else if (newBody.Length > 4000)
+            {
+                this.ModelState.AddModelError("body", "The reply text can't be longer than 4000 characters.");
+            }
+
+            if (!this.ModelState.IsValid)
+            {
+                item.Body = newBody;
+                this.ViewData["EditMode"] = true;
+                return this.View("ShowReply", item);
+            }
+
+            item.Body = newBody;
+            await this.commentRepo.UpdateAsync(item, ct);
+            this.ClearCachedItems();
+            this.TempData["SuccessMessage"] = "Reply updated.";
+            return this.RedirectToAction(nameof(this.ShowReply), new { id });
+        }
+
         // POST /admin/reviews/reply/123/approve
         [HttpPost("reply/{id:int}/approve")]
         [ValidateAntiForgeryToken]
@@ -704,6 +755,51 @@ namespace DirectoryManager.Web.Controllers
         // -------------------------
         // Helpers
         // -------------------------
+        /// <summary>
+        /// Shared by Update and UpdateAndApprove: saves the order proof + tag set
+        /// posted from the Show page's proof/tags form.
+        /// </summary>
+        /// <returns>False when the review doesn't exist.</returns>
+        private async Task<bool> SaveProofAndTagsAsync(
+            int id,
+            string? orderProof,
+            int[]? selectedTagIds,
+            CancellationToken ct)
+        {
+            var review = await this.repo.GetByIdAsync(id, ct);
+            if (review is null)
+            {
+                return false;
+            }
+
+            var oldOrderId = review.OrderId;
+            var oldOrderUrl = review.OrderUrl;
+
+            ApplyOrderProof(review, orderProof);
+
+            // If a new/changed proof was supplied and the review was Approved, force it
+            // back to Pending so the proof gets re-checked. Tag-only saves (proof
+            // unchanged) and clearing the proof leave the status alone.
+            var proofChanged = !string.Equals(oldOrderId, review.OrderId, StringComparison.Ordinal)
+                || !string.Equals(oldOrderUrl, review.OrderUrl, StringComparison.Ordinal);
+            var hasProof = !string.IsNullOrWhiteSpace(review.OrderId) || !string.IsNullOrWhiteSpace(review.OrderUrl);
+            if (proofChanged && hasProof && review.ModerationStatus == ReviewModerationStatus.Approved)
+            {
+                review.ModerationStatus = ReviewModerationStatus.Pending;
+            }
+
+            await this.repo.UpdateAsync(review, ct);
+
+            var tagIds = (selectedTagIds ?? Array.Empty<int>()).Distinct().ToArray();
+            await this.reviewTagLinkRepository.SetTagsForReviewAsync(
+                review.DirectoryEntryReviewId,
+                tagIds,
+                userId: this.User?.Identity?.Name ?? "admin",
+                ct);
+
+            return true;
+        }
+
         private static void ApplyOrderProof(DirectoryEntryReview review, string? orderProof)
         {
             var s = (orderProof ?? string.Empty).Trim();

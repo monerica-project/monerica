@@ -161,6 +161,12 @@ namespace DirectoryManager.Web.Controllers
                     }
                 }
             }
+            else if (!emailDbModel.IsSubscribed)
+            {
+                // Previously unsubscribed: re-subscribing should actually re-enable the subscription.
+                emailDbModel.IsSubscribed = true;
+                this.emailSubscriptionRepository.Update(emailDbModel);
+            }
 
             return this.View("ConfirmSubscribed");
         }
