@@ -13,7 +13,6 @@
         DonationHtml = 9,
         NowPaymentsMessageHtml = 10,
         SubmissionGuidelinesHtml = 11,
-        AzureStorageConnectionString = 12,
         CdnPrefixWithProtocol = 13,
         BlobPrefix = 14,
         Link2Name = 15,

@@ -1,5 +1,4 @@
-﻿using Azure.Storage.Blobs;
-using BtcPayServer.API.Implementations;
+﻿using BtcPayServer.API.Implementations;
 using BtcPayServer.API.Interfaces;
 using BtcPayServer.API.Models;
 using DirectoryManager.Common.Interfaces;
@@ -175,25 +174,6 @@ namespace DirectoryManager.Web.Extensions
             services.AddScoped<IMarketingEmailContactRepository, MarketingEmailContactRepository>();
             services.AddScoped<IChurnService, ChurnService>();
             services.AddScoped<IUserContentModerationService, UserContentModerationService>();
-
-            // BlobService singleton — connection string comes from configuration
-            // (ConnectionStrings:AzureStorage in appsettings.json, or the
-            // ConnectionStrings__AzureStorage environment variable on the server).
-            services.AddSingleton<IBlobService>(provider =>
-            {
-                var azureStorageConnection = config.GetConnectionString("AzureStorage");
-
-                if (string.IsNullOrWhiteSpace(azureStorageConnection))
-                {
-                    throw new InvalidOperationException(
-                        "Missing connection string 'ConnectionStrings:AzureStorage'. " +
-                        "Set it in appsettings.json or the ConnectionStrings__AzureStorage environment variable.");
-                }
-
-                var blobServiceClient = new BlobServiceClient(azureStorageConnection);
-
-                return BlobService.CreateAsync(blobServiceClient).GetAwaiter().GetResult();
-            });
 
             services.Configure<RouteOptions>(options => options.LowercaseUrls = true);
 

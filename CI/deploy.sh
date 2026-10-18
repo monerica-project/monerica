@@ -468,7 +468,6 @@ task_set_configs() {
     local prod_settings="$WEB_PROJECT_DIR/appsettings.Production.json"
     jq -n \
         --arg conn     "$DB_CONNECTION_STRING" \
-        --arg blobconn "${AZURE_STORAGE_CONNECTION_STRING:-}" \
         --arg domain   "${CUSTOM_DOMAIN:-}" \
         --arg proto    "${REQUEST_PROTOCOL:-https://}" \
         --arg sgkey    "${SENDGRID_API_KEY:-}" \
@@ -497,7 +496,7 @@ task_set_configs() {
         --arg bpvkey   "${BTCPAY_VIDEO_SPONSOR_API_KEY:-}" \
         --arg bpvhook  "${BTCPAY_VIDEO_SPONSOR_WEBHOOK_SECRET:-}" \
         '{
-            ConnectionStrings: { DefaultConnection: $conn, AzureStorage: $blobconn },
+            ConnectionStrings: { DefaultConnection: $conn },
             Site:              { CustomDomain: $domain, RequestProtocol: $proto },
             SendGrid:          { ApiKey: $sgkey, SenderEmail: $sgemail, SenderName: $sgname },
             BunnyStorage:      { StorageZoneName: $bzone, AccessKey: $bkey, StorageHostname: $bhost },
