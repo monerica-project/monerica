@@ -59,8 +59,6 @@ namespace DirectoryManager.Web.Controllers
             ISubcategoryRepository subCategoryRepository,
             ICategoryRepository categoryRepository,
             IDirectoryEntriesAuditRepository auditRepository,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             ITagRepository tagRepo,
             IDirectoryEntryTagRepository entryTagRepo,
             ICacheService cacheService,
@@ -73,7 +71,7 @@ namespace DirectoryManager.Web.Controllers
             IAdditionalLinkRepository additionalLinkRepo,
             IDirectoryEntryGuaranteeRepository guaranteeRepo,
             IProcessorRepository processorRepository)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.userManager = userManager;
             this.directoryEntryRepository = entryRepository;

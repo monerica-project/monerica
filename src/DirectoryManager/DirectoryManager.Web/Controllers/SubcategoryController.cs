@@ -34,12 +34,10 @@ namespace DirectoryManager.Web.Controllers
             ISubcategoryRepository subcategoryRepository,
             ICategoryRepository categoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IContentSnippetRepository contentSnippetRepository,
             IMemoryCache cache,
             IDirectoryEntryReviewRepository reviewRepository)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.userManager = userManager;
             this.subcategoryRepository = subcategoryRepository;

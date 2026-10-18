@@ -31,14 +31,12 @@ namespace DirectoryManager.Web.Controllers
         public CategoryController(
             UserManager<ApplicationUser> userManager,
             ICategoryRepository categoryRepository,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IDirectoryEntryRepository directoryEntryRepository,
             ISponsoredListingRepository sponsoredListingRepository,
             ICacheService cacheService,
             IMemoryCache cache,
             IDirectoryEntryReviewRepository entryReviewsRepo)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.userManager = userManager;
             this.categoryRepository = categoryRepository;

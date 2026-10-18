@@ -252,7 +252,6 @@ async Task<Submission> BuildRevisionAsync(
         RelatedLinks = relatedLinks,
         Guarantees = guaranteeItems,
         SuggestedSubCategory = null,
-        IpAddress = null,
     };
 
     // Carry forward EVERY shared content field from the live entry (name, links, description,

@@ -19,10 +19,8 @@ namespace DirectoryManager.Web.Controllers
 
         public ApiController(
             IDirectoryEntryRepository entryRepository,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.entryRepository = entryRepository;
         }

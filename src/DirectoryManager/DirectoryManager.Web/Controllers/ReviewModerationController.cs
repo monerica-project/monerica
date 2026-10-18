@@ -33,15 +33,13 @@ namespace DirectoryManager.Web.Controllers
         public ReviewModerationController(
              IDirectoryEntryReviewRepository repo,
              IDirectoryEntryReviewCommentRepository commentRepo,
-             ITrafficLogRepository trafficLogRepository,
-             IUserAgentCacheService userAgentCacheService,
              IReviewTagRepository reviewTagRepository,
              IDirectoryEntryReviewTagRepository reviewTagLinkRepository,
              IDirectoryEntryRepository directoryEntryRepository,
              ISiteFilesRepository siteFiles,
              ICacheService cacheService,
              IMemoryCache cache)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.repo = repo;
             this.commentRepo = commentRepo;

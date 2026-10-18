@@ -362,9 +362,7 @@ namespace DirectoryManager.Web.Tests.Sponsorship
                 var invoices = new SponsoredListingInvoiceRepository(this.Db);
                 this.Activator = new SponsoredListingActivator(invoices, this.SponsoredListings, this.cache, NullLogger<SponsoredListingActivator>.Instance);
 
-                this.services = new ServiceCollection()
-                    .AddSingleton<IOptions<AppSettings>>(Options.Create(new AppSettings { LogIpAddresses = false }))
-                    .BuildServiceProvider();
+                this.services = new ServiceCollection().BuildServiceProvider();
 
                 this.Controller = new SponsoredListingCheckoutController(
                     new SubcategoryRepository(this.Db),
@@ -372,14 +370,11 @@ namespace DirectoryManager.Web.Tests.Sponsorship
                     new DirectoryEntryRepository(this.Db, new DirectoryEntriesAuditRepository(this.Db)),
                     this.SponsoredListings,
                     invoices,
-                    null!, // traffic log: only used by the action filter, which these tests bypass
                     null!, // NOWPayments: not offered
                     this.BtcPay,
-                    null!, // user-agent cache: action filter only
                     this.cache,
                     new SponsoredListingOfferRepository(this.Db),
                     new SponsoredListingReservationRepository(this.Db),
-                    new BlockedIPRepository(this.Db),
                     null!, // cache service: only for confirm-page error re-renders
                     this.Activator,
                     NullLogger<SponsoredListingCheckoutController>.Instance);

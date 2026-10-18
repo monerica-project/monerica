@@ -1,4 +1,4 @@
-using BtcPayServer.API.Interfaces;
+﻿using BtcPayServer.API.Interfaces;
 using BtcPayServer.API.Models;
 using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Enums;
@@ -36,7 +36,6 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISubcategoryRepository subCategoryRepository;
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly IDirectoryEntriesAuditRepository auditRepository;
-        private readonly IBlockedIPRepository blockedIPRepository;
         private readonly IMemoryCache cache;
         private readonly ICacheService cacheHelper;
         private readonly ITagRepository tagRepo;
@@ -55,9 +54,6 @@ namespace DirectoryManager.Web.Controllers
             ISubcategoryRepository subCategoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
             IDirectoryEntriesAuditRepository auditRepository,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
-            IBlockedIPRepository blockedIPRepository,
             IMemoryCache cache,
             ICacheService cacheHelper,
             ITagRepository tagRepo,
@@ -69,7 +65,7 @@ namespace DirectoryManager.Web.Controllers
             ICaptchaService captcha,
             ISubmissionBlockedTermRepository blockedTermRepository,
             IBtcPayServerService btcPay)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.userManager = userManager;
             this.blockedTermRepository = blockedTermRepository;
@@ -77,7 +73,6 @@ namespace DirectoryManager.Web.Controllers
             this.subCategoryRepository = subCategoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
             this.auditRepository = auditRepository;
-            this.blockedIPRepository = blockedIPRepository;
             this.cache = cache;
             this.cacheHelper = cacheHelper;
             this.tagRepo = tagRepo;
@@ -111,6 +106,12 @@ namespace DirectoryManager.Web.Controllers
                 }
 
                 model = GetSubmissionCreateModel(submission);
+
+                if (submission.DirectoryEntryId is int draftEntryId)
+                {
+                    model.CurrentDirectoryStatus =
+                        (await this.directoryEntryRepository.GetByIdAsync(draftEntryId))?.DirectoryStatus;
+                }
 
                 // ✅ pre-check based on persisted CSV
                 model.SelectedTagIdsCsv = submission.SelectedTagIdsCsv;
@@ -235,14 +236,6 @@ namespace DirectoryManager.Web.Controllers
 
             // PGP Key validity is enforced by SubmissionRequest.Validate (IValidatableObject),
             // alongside the [AllowHtml] exemption, so it runs for both submit and edit.
-
-            // ---- Spam / block checks ----
-            var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
-
-            if (this.blockedIPRepository.IsBlockedIp(ipAddress))
-            {
-                return this.RedirectToAction("Success", "Submission");
-            }
 
             // ---- Persist checkbox selections into CSV (no JS required) ----
             model.SelectedTagIds = model.SelectedTagIds
@@ -372,6 +365,7 @@ namespace DirectoryManager.Web.Controllers
             var entryTags = await this.entryTagRepo.GetTagsForEntryAsync(id);
 
             var model = GetSubmissionRequestModel(directoryEntry);
+            model.CurrentDirectoryStatus = directoryEntry.DirectoryStatus;
 
             var entryGuarantees = await this.guaranteeRepo.GetByDirectoryEntryIdAsync(id, ct);
             model.Guarantees = entryGuarantees
@@ -681,6 +675,16 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
+            // Pre-select the status: the submitted one, else the listing's current one (never
+            // silently fall back to the first option, Admitted).
+            DirectoryStatus? reviewStatus = submission.DirectoryStatus;
+            if ((reviewStatus == null || reviewStatus == DirectoryStatus.Unknown) && submission.DirectoryEntryId is int reviewEntryId)
+            {
+                reviewStatus = (await this.directoryEntryRepository.GetByIdAsync(reviewEntryId))?.DirectoryStatus;
+            }
+
+            this.ViewBag.ReviewDirectoryStatus = reviewStatus;
+
             await this.LoadDropDowns(submission.Processor, ct);
             await this.SetSelectSubCategoryViewBag();
 
@@ -966,11 +970,17 @@ namespace DirectoryManager.Web.Controllers
                 decimal? amount = decimal.TryParse(invoice.Amount, out var a) && a > 0 ? a : null;
                 var currency = string.IsNullOrWhiteSpace(invoice.Currency) ? null : invoice.Currency;
 
-                // Top-up invoices report an invoice amount of 0, so record the actual XMR received.
+                // The XMR payment method carries the actual received time of each payment (so a
+                // donation found later still shows when it arrived) and, for top-up invoices that
+                // report an invoice amount of 0, the actual XMR received.
                 string? xmrRateUsd = null;
+                var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(storeId, item.BtcPayInvoiceId!);
+                var receivedUtc = xmr?.Payments
+                    .Where(p => p.ReceivedDate > 0)
+                    .Select(p => (DateTime?)p.ReceivedDateUtc)
+                    .Max();
                 if (amount is null)
                 {
-                    var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(storeId, item.BtcPayInvoiceId!);
                     if (xmr is not null && decimal.TryParse(xmr.TotalPaid, out var xmrPaid) && xmrPaid > 0)
                     {
                         amount = xmrPaid;
@@ -981,10 +991,12 @@ namespace DirectoryManager.Web.Controllers
 
                 var paidUsd = DonationUsdHelper.ToUsd(amount, currency, xmrRateUsd);
 
-                await this.submissionRepository.SetPaidAsync(item.SubmissionId, amount, currency, paidUsd);
+                var paidUtc = receivedUtc ?? DateTime.UtcNow;
+
+                await this.submissionRepository.SetPaidAsync(item.SubmissionId, amount, currency, paidUsd, paidUtc);
 
                 // reflect it in the object we're about to render
-                item.PaidUtc = DateTime.UtcNow;
+                item.PaidUtc = paidUtc;
                 item.PaidAmount = amount;
                 item.PaidCurrency = currency;
             }
@@ -1573,6 +1585,7 @@ namespace DirectoryManager.Web.Controllers
                 }
 
                 submissionModel.DirectoryEntryId = existingDirectoryEntryId;
+                await this.KeepCurrentStatusIfUnsetAsync(submissionModel);
                 var createdSub = await this.submissionRepository.CreateAsync(submissionModel);
                 submissionId = createdSub.SubmissionId;
                 this.RememberDraft(createdSub.SubmissionId);
@@ -1598,6 +1611,8 @@ namespace DirectoryManager.Web.Controllers
                     return this.BadRequest(DraftNotYoursMessage);
                 }
 
+                submissionModel.DirectoryEntryId ??= existingSubmission.DirectoryEntryId;
+                await this.KeepCurrentStatusIfUnsetAsync(submissionModel);
                 await this.UpdateSubmission(submissionModel, existingSubmission);
             }
 
@@ -1883,6 +1898,24 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
+        // A submitter who leaves "Keep current status" selected posts no status. For an edit of an
+        // existing listing that must mean "unchanged", so a Verified listing is never downgraded
+        // to Admitted unless the submitter explicitly picks Admitted.
+        private async Task KeepCurrentStatusIfUnsetAsync(Submission submissionModel)
+        {
+            if (submissionModel.DirectoryEntryId is not int entryId ||
+                (submissionModel.DirectoryStatus != null && submissionModel.DirectoryStatus != DirectoryStatus.Unknown))
+            {
+                return;
+            }
+
+            var entry = await this.directoryEntryRepository.GetByIdAsync(entryId);
+            if (entry != null)
+            {
+                submissionModel.DirectoryStatus = entry.DirectoryStatus;
+            }
+        }
+
         private async Task AssignExistingProperties(Submission submissionModel, int existingDirectoryEntryId)
         {
             var existingDirectoryEntry = await this.directoryEntryRepository.GetByIdAsync(existingDirectoryEntryId);
@@ -1999,7 +2032,6 @@ namespace DirectoryManager.Web.Controllers
         {
             TryParseFoundedDateParts(model.FoundedYear, model.FoundedMonth, model.FoundedDay, out var foundedDate, out _);
 
-            var ipAddress = this.HttpContext.GetRemoteIpIfEnabled();
             var relatedLinks = NormalizeLinks(
                new[] { model.RelatedLink1, model.RelatedLink2, model.RelatedLink3 },
                MaxLinks);
@@ -2023,7 +2055,6 @@ namespace DirectoryManager.Web.Controllers
                 Social = (model.Social ?? string.Empty).Trim(),
                 SuggestedSubCategory = (model.SuggestedSubCategory ?? string.Empty).Trim(),
                 SubCategoryId = (model.SubCategoryId == 0) ? null : model.SubCategoryId,
-                IpAddress = ipAddress,
                 DirectoryEntryId = (model.DirectoryEntryId == 0) ? null : model.DirectoryEntryId,
                 DirectoryStatus = model.DirectoryStatus ?? DirectoryStatus.Unknown,
                 NoteToAdmin = model.NoteToAdmin,
@@ -2101,7 +2132,6 @@ namespace DirectoryManager.Web.Controllers
             existingSubmission.Messenger = submissionModel.Messenger;
             existingSubmission.Social = submissionModel.Social;
             existingSubmission.Description = submissionModel.Description;
-            existingSubmission.IpAddress = submissionModel.IpAddress;
             existingSubmission.Link = submissionModel.Link;
             existingSubmission.Link2 = submissionModel.Link2;
             existingSubmission.Link3 = submissionModel.Link3;

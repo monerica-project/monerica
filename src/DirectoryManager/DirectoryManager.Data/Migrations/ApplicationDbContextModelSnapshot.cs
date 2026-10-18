@@ -198,30 +198,6 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("AspNetUsers", (string)null);
                 });
 
-            modelBuilder.Entity("DirectoryManager.Data.Models.BlockedIP", b =>
-                {
-                    b.Property<int>("BlockedIPId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("BlockedIPId"));
-
-                    b.Property<DateTime>("CreateDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("IpAddress")
-                        .IsRequired()
-                        .HasMaxLength(75)
-                        .HasColumnType("character varying(75)");
-
-                    b.HasKey("BlockedIPId");
-
-                    b.HasIndex("IpAddress")
-                        .IsUnique();
-
-                    b.ToTable("BlockedIPs");
-                });
-
             modelBuilder.Entity("DirectoryManager.Data.Models.Category", b =>
                 {
                     b.Property<int>("CategoryId")
@@ -945,10 +921,6 @@ namespace DirectoryManager.Data.Migrations
                         .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
-
-                    b.Property<string>("IpAddress")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
 
                     b.Property<bool>("IsSubscribed")
                         .HasColumnType("boolean");
@@ -1752,9 +1724,6 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<DateTime>("CreateDate")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<string>("IpAddress")
-                        .HasColumnType("text");
-
                     b.Property<string>("Term")
                         .IsRequired()
                         .HasColumnType("text");
@@ -1921,10 +1890,6 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("InvoiceResponse")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<string>("IpAddress")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
 
                     b.Property<bool>("IsReminderSent")
                         .HasColumnType("boolean");
@@ -2270,10 +2235,6 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("GuaranteesJson")
                         .HasColumnType("text");
 
-                    b.Property<string>("IpAddress")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
-
                     b.Property<int?>("KycPolicy")
                         .HasColumnType("integer");
 
@@ -2453,37 +2414,6 @@ namespace DirectoryManager.Data.Migrations
                         .IsUnique();
 
                     b.ToTable("Tags");
-                });
-
-            modelBuilder.Entity("DirectoryManager.Data.Models.TrafficLog", b =>
-                {
-                    b.Property<int>("TrafficLogId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("integer");
-
-                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("TrafficLogId"));
-
-                    b.Property<DateTime>("CreateDate")
-                        .HasColumnType("timestamp with time zone");
-
-                    b.Property<string>("IpAddress")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("Url")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.Property<string>("UserAgent")
-                        .IsRequired()
-                        .HasColumnType("text");
-
-                    b.HasKey("TrafficLogId");
-
-                    b.HasIndex("CreateDate")
-                        .HasDatabaseName("IX_TrafficLog_CreateDate");
-
-                    b.ToTable("TrafficLogs");
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.VerificationRequests.VerificationRequest", b =>
@@ -2704,10 +2634,6 @@ namespace DirectoryManager.Data.Migrations
                     b.Property<string>("InvoiceResponse")
                         .IsRequired()
                         .HasColumnType("text");
-
-                    b.Property<string>("IpAddress")
-                        .HasMaxLength(255)
-                        .HasColumnType("character varying(255)");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(4000)

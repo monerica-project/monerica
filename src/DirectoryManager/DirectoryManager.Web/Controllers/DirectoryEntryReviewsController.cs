@@ -1,4 +1,4 @@
-using System.Security.Cryptography;
+﻿using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Authorization;
 using DirectoryManager.Data.Enums;
@@ -40,8 +40,6 @@ namespace DirectoryManager.Web.Controllers
         public DirectoryEntryReviewsController(
             IDirectoryEntryReviewRepository repo,
             IMemoryCache cache,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             ICaptchaService captcha,
             IPgpService pgp,
             IDirectoryEntryRepository directoryEntryRepository,
@@ -50,7 +48,7 @@ namespace DirectoryManager.Web.Controllers
             ISubcategoryRepository subcategoryRepository,
             IReviewTagRepository reviewTagRepository,
             IDirectoryEntryReviewTagRepository reviewTagLinkRepository)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.directoryEntryReviewRepository = repo;
             this.cache = cache;

@@ -7,6 +7,5 @@ namespace DirectoryManager.Data.Models
     {
         public int Id { get; set; }
         public string Term { get; set; } = null!;
-        public string? IpAddress { get; set; }
     }
 }

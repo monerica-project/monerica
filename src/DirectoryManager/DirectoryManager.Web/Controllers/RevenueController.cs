@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Models.TransferModels;
@@ -34,10 +34,8 @@ namespace DirectoryManager.Web.Controllers
             IRevenueRepository revenueRepository,
             ICategoryRepository categoryRepository,
             ISubcategoryRepository subcategoryRepository,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.invoiceRepository = invoiceRepository;
             this.revenueRepository = revenueRepository;

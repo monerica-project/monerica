@@ -122,3 +122,8 @@ src/DirectoryManager/DirectoryManager.SiteChecker/appsettings.Production.json
 src/DirectoryManager/DirectoryManager.SponsoredListingOpening/appsettings.Production.json
 src/DirectoryManager/DirectoryManager.SponsoredListingReminder/appsettings.Production.json
 src/DirectoryManager/DirectoryManager.ReviewNotifier/appsettings.Production.json
+
+# Production configs and secrets: never commit (case-insensitive variants, any folder)
+**/[Aa]ppsettings.[Pp]roduction*.json
+**/[Aa]ppsettings.*.[Pp]roduction.json
+**/deploy-config.sh*

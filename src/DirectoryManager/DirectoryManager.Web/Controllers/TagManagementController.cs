@@ -16,10 +16,8 @@ namespace DirectoryManager.Web.Controllers.Management
 
         public TagManagementController(
             ITagRepository tagRepo,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
-             : base(trafficLogRepository, userAgentCacheService, cache)
+             : base(cache)
         {
             this.tagRepo = tagRepo;
         }

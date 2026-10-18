@@ -141,6 +141,10 @@ namespace DirectoryManager.Web.Models
         [Display(Name = "Suggested Status", Prompt = "Status")]
         public DirectoryStatus? DirectoryStatus { get; set; }
 
+        // The listing's status when the submitter opened the form. Display-only: it labels the
+        // default "Keep current status" option and is never written to a listing.
+        public DirectoryStatus? CurrentDirectoryStatus { get; set; }
+
         [Display(Name = "KYC Policy")]
         public KycPolicy? KycPolicy { get; set; }
 

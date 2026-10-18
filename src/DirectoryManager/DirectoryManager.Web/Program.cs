@@ -43,10 +43,6 @@ var logger = new LoggerConfiguration()
 builder.Logging.ClearProviders();
 builder.Logging.AddSerilog(logger);
 
-builder.Services.Configure<AppSettings>(
-    builder.Configuration
-           .GetSection("Logging:TrafficLogging"));
-
 // Trust X-Forwarded-* headers from nginx so Request.Scheme/Host/IP are correct.
 // Must be configured before Build() and applied as the FIRST middleware below.
 builder.Services.Configure<ForwardedHeadersOptions>(options =>

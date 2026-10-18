@@ -22,14 +22,12 @@ namespace DirectoryManager.Web.Controllers
 
         public HomeController(
             IDirectoryEntryRepository directoryEntryRepository,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IRssFeedService rssFeedService,
             IMemoryCache cache,
             ICacheService cacheService,
             IDirectoryEntryReviewRepository reviewRepository,
             IDirectoryEntryReviewCommentRepository commentRepository)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.directoryEntryRepository = directoryEntryRepository;
             this.rssFeedService = rssFeedService;

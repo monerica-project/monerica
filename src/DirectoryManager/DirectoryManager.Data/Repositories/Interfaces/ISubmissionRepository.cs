@@ -25,6 +25,6 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         // ---- Optional review-donation flow (mirrors the verification-request flow) ----
         Task<Submission?> GetByPaymentTokenAsync(Guid token);
         Task SetInvoiceIdAsync(int submissionId, string invoiceId);
-        Task SetPaidAsync(int submissionId, decimal? amount, string? currency, decimal? paidUsd);
+        Task SetPaidAsync(int submissionId, decimal? amount, string? currency, decimal? paidUsd, DateTime paidUtc);
     }
 }

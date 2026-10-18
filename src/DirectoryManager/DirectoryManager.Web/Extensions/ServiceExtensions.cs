@@ -97,7 +97,6 @@ namespace DirectoryManager.Web.Extensions
             // Lifetimes: CacheService should be Scoped (it uses a repo/DbContext)
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>()
                     .AddScoped<IUrlResolutionService, UrlResolutionService>();
-            services.AddSingleton<IUserAgentCacheService, UserAgentCacheService>();
             services.AddScoped<ICacheService, CacheService>();
 
             // Domain registration date lookup (RDAP -> WHOIS fallback)

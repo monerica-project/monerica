@@ -1,4 +1,4 @@
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
@@ -18,12 +18,10 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryReviewRaffleEntryRepository entryRepository;
 
         public RafflesController(
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache,
             IRaffleRepository raffleRepository,
             IDirectoryEntryReviewRaffleEntryRepository entryRepository)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.raffleRepository = raffleRepository;
             this.entryRepository = entryRepository;

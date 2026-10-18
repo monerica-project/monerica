@@ -18,10 +18,8 @@ namespace DirectoryManager.Web.Controllers
         public ContentSnippetManagementController(
             IContentSnippetRepository contentSnippetRepository,
             ICacheService contentSnippetHelper,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.contentSnippetRepository = contentSnippetRepository;
             this.contentSnippetHelper = contentSnippetHelper;

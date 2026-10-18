@@ -1,4 +1,4 @@
-using System.Text;
+﻿using System.Text;
 using BtcPayServer.API.Interfaces;
 using BtcPayServer.API.Models;
 using DirectoryManager.Common.Helpers;
@@ -46,7 +46,6 @@ namespace DirectoryManager.Web.Controllers
         private readonly IBtcPayServerService btcPayServerService;
         private readonly ISponsoredListingOfferRepository sponsoredListingOfferRepository;
         private readonly ISponsoredListingReservationRepository sponsoredListingReservationRepository;
-        private readonly IBlockedIPRepository blockedIPRepository;
         private readonly ICacheService cacheService;
         private readonly ISponsoredListingActivator activator;
         private readonly ILogger<SponsoredListingCheckoutController> logger;
@@ -57,18 +56,15 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryRepository directoryEntryRepository,
             ISponsoredListingRepository sponsoredListingRepository,
             ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository,
-            ITrafficLogRepository trafficLogRepository,
             INowPaymentsService paymentService,
             IBtcPayServerService btcPayServerService,
-            IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache,
             ISponsoredListingOfferRepository sponsoredListingOfferRepository,
             ISponsoredListingReservationRepository sponsoredListingReservationRepository,
-            IBlockedIPRepository blockedIPRepository,
             ICacheService cacheService,
             ISponsoredListingActivator activator,
             ILogger<SponsoredListingCheckoutController> logger)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.subCategoryRepository = subCategoryRepository;
             this.categoryRepository = categoryRepository;
@@ -79,7 +75,6 @@ namespace DirectoryManager.Web.Controllers
             this.btcPayServerService = btcPayServerService;
             this.sponsoredListingOfferRepository = sponsoredListingOfferRepository;
             this.sponsoredListingReservationRepository = sponsoredListingReservationRepository;
-            this.blockedIPRepository = blockedIPRepository;
             this.cacheService = cacheService;
             this.activator = activator;
             this.logger = logger;
@@ -509,12 +504,6 @@ namespace DirectoryManager.Web.Controllers
             Guid? rsvId = null,
             string? email = null)
         {
-            var ipAddress = this.GetClientIpAddress();
-            if (this.blockedIPRepository.IsBlockedIp(ipAddress))
-            {
-                return this.NotFound();
-            }
-
             // Buyers who solved the captcha on the previous step aren't asked again. Anyone who
             // reached this form another way (direct post, expired session) still gets a captcha.
             if (!this.IsCheckoutVerified(directoryEntryId)
@@ -553,7 +542,7 @@ namespace DirectoryManager.Web.Controllers
             // One invoice per solved captcha: going back to confirm again shows the captcha.
             this.HttpContext.Session.Remove(CheckoutVerifiedSessionKeyPrefix + directoryEntryId);
 
-            var invoice = await this.BuildBaseInvoiceAsync(entry, offer, ipAddress);
+            var invoice = await this.BuildBaseInvoiceAsync(entry, offer);
 
             if (string.Equals(selectedProcessor, "BTCPayServer", StringComparison.OrdinalIgnoreCase))
             {
@@ -1252,13 +1241,13 @@ namespace DirectoryManager.Web.Controllers
         }
 
         private async Task<SponsoredListingInvoice> BuildBaseInvoiceAsync(
-            DirectoryEntry entry, SponsoredListingOffer offer, string ipAddress)
+            DirectoryEntry entry, SponsoredListingOffer offer)
         {
             // An extension starts when the current campaign in the SAME (sub)category ends.
             var scopeId = SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(offer.SponsorshipType, entry, null, null);
             var existing = await this.sponsoredListingRepository.GetActiveSponsorInScopeAsync(entry.DirectoryEntryId, offer.SponsorshipType, scopeId);
             var startDate = existing?.CampaignEndDate ?? DateTime.UtcNow;
-            return await this.CreateInvoiceAsync(entry, offer, startDate, ipAddress);
+            return await this.CreateInvoiceAsync(entry, offer, startDate);
         }
 
         private async Task<IActionResult> ExecuteNowPaymentsCheckoutAsync(
@@ -1816,12 +1805,6 @@ namespace DirectoryManager.Web.Controllers
                 && DateTime.UtcNow - new DateTime(ticks, DateTimeKind.Utc) < CheckoutVerifiedLifetime;
         }
 
-        private string GetClientIpAddress()
-        {
-            var ip = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
-            return this.HttpContext.ShouldLogIp() ? ip : string.Empty;
-        }
-
         private async Task<string> ReadBodyAsync(bool leaveOpen = false)
         {
             using var reader = new StreamReader(this.Request.Body, Encoding.UTF8, leaveOpen: leaveOpen);
@@ -1983,13 +1966,8 @@ namespace DirectoryManager.Web.Controllers
         }
 
         private async Task<SponsoredListingInvoice> CreateInvoiceAsync(
-            DirectoryEntry entry, SponsoredListingOffer offer, DateTime startDate, string ipAddress)
+            DirectoryEntry entry, SponsoredListingOffer offer, DateTime startDate)
         {
-            if (!this.HttpContext.ShouldLogIp())
-            {
-                ipAddress = string.Empty;
-            }
-
             // The cross-tier existing-sponsor perk is recomputed server-side here so the charged amount is
             // authoritative — the buyer only ever submits an offer id, never a price.
             var (discountPercent, _) = await this.GetCrossTierDiscountAsync(entry.DirectoryEntryId, offer.SponsorshipType).ConfigureAwait(false);
@@ -2012,7 +1990,6 @@ namespace DirectoryManager.Web.Controllers
                 SponsorshipType = offer.SponsorshipType,
                 SubCategoryId = entry.SubCategoryId,
                 CategoryId = entry?.SubCategory?.CategoryId,
-                IpAddress = ipAddress,
             });
         }
 

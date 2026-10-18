@@ -38,11 +38,9 @@ namespace DirectoryManager.Web.Controllers
             ICacheService cacheService,
             ISponsoredListingRepository sponsoredListingRepository,
             IDirectoryEntryReviewRepository entryReviewsRepo,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IDirectoryEntrySelectionRepository directoryEntrySelectionRepository,
             IMemoryCache cache)
-              : base(trafficLogRepository, userAgentCacheService, cache)
+              : base(cache)
         {
             this.tagRepo = tagRepo ?? throw new ArgumentNullException(nameof(tagRepo));
             this.entryTagRepo = entryTagRepo ?? throw new ArgumentNullException(nameof(entryTagRepo));

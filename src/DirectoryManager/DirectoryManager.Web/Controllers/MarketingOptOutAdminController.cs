@@ -1,4 +1,4 @@
-using System.Net.Mail;
+﻿using System.Net.Mail;
 using DirectoryManager.Data.Models.Emails;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -17,10 +17,8 @@ namespace DirectoryManager.Web.Controllers
 
         public MarketingOptOutAdminController(
             IMarketingEmailContactRepository repo,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.repo = repo;
         }

@@ -35,12 +35,10 @@ namespace DirectoryManager.Web.Controllers
             IVerificationRequestRepository verificationRequestRepository,
             IProblemReportRepository problemReportRepository,
             IVideoSponsorshipRepository videoSponsorshipRepository,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository,
             ICaptchaService captchaService,
             IMemoryCache cache)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.signInManager = signInManager;
             this.userManager = userManager;

@@ -1,0 +1,119 @@
+@using DirectoryManager.Web.Helpers
+@using DirectoryManager.Utilities.Helpers
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@model (DirectoryManager.Data.Models.Reviews.DirectoryEntryReview Review, DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel Block)
+@* One official review card. Used for the latest official review (shown open) and for each
+   earlier one inside its collapsed history entry. *@
+@{
+    var o = Model.Review;
+    bool reviewsDisabled = Model.Block?.ReviewsDisabled ?? false;
+    var authorCounts = Model.Block?.AuthorPostCountsByFingerprint
+        ?? new Dictionary<string, int>(StringComparer.OrdinalIgnoreCase);
+}
+<div id="review-@o.DirectoryEntryReviewId"
+     class="official-review"
+     itemprop="review"
+     itemscope
+     itemtype="https://schema.org/Review">
+
+    <div class="official-badge" title="@o.AuthorFingerprint" style="cursor:help;">
+        <span class="official-badge-dot" aria-hidden="true"></span>
+        Official review
+    </div>
+
+    <span itemprop="author" itemscope itemtype="https://schema.org/Organization">
+        <meta itemprop="name" content="@(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName))" />
+    </span>
+
+    @if (o.Rating.HasValue)
+    {
+        <div class="d-flex align-items-center mt-2">
+            @EntryReviewHtmlHelper.RenderSingleReviewStars(o.Rating)
+            <small class="text-muted ms-2">@o.Rating/5</small>
+            <span itemprop="reviewRating" itemscope itemtype="https://schema.org/Rating">
+                <meta itemprop="ratingValue" content="@((o.Rating ?? 0))" />
+                <meta itemprop="bestRating" content="5" />
+                <meta itemprop="worstRating" content="1" />
+            </span>
+        </div>
+    }
+
+    @EntryReviewHtmlHelper.RenderReviewTags(o)
+
+    <div class="mt-2@(o.IsStruckThrough ? " review-struck" : string.Empty)" itemprop="reviewBody">
+        @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(o.Body, cssClass: "multi-line-text", ugcContent: false, maskEmails: false))
+    </div>
+
+    @if (!string.IsNullOrWhiteSpace(o.OrderUrl)
+         || !string.IsNullOrWhiteSpace(o.SendingTxUrl)
+         || !string.IsNullOrWhiteSpace(o.ReceivingTxUrl)
+         || !string.IsNullOrWhiteSpace(o.ImageUrl)
+         || !string.IsNullOrWhiteSpace(o.AmlScreenshotUrl))
+    {
+        <ul class="official-links mt-3 list-unstyled">
+            @if (!string.IsNullOrWhiteSpace(o.OrderUrl))
+            {
+                <li>
+                    <a href="@o.OrderUrl" target="_blank" rel="nofollow noopener noreferrer">Order URL ↗</a>
+                </li>
+            }
+            @if (!string.IsNullOrWhiteSpace(o.SendingTxUrl))
+            {
+                <li>
+                    <a href="@o.SendingTxUrl" target="_blank" rel="nofollow noopener noreferrer">Sending transaction ↗</a>
+                </li>
+            }
+            @if (!string.IsNullOrWhiteSpace(o.ReceivingTxUrl))
+            {
+                <li>
+                    <a href="@o.ReceivingTxUrl" target="_blank" rel="nofollow noopener noreferrer">Receiving transaction ↗</a>
+                </li>
+            }
+            @if (!string.IsNullOrWhiteSpace(o.ImageUrl))
+            {
+                <li>
+                    <a href="@o.ImageUrl" target="_blank" rel="nofollow noopener noreferrer">Screenshot ↗</a>
+                </li>
+            }
+            @if (!string.IsNullOrWhiteSpace(o.AmlScreenshotUrl))
+            {
+                <li>
+                    <a href="@o.AmlScreenshotUrl" target="_blank" rel="nofollow noopener noreferrer">AML check ↗</a>
+                </li>
+            }
+        </ul>
+    }
+
+    @if (!string.IsNullOrWhiteSpace(o.OrderProofContext))
+    {
+        <details class="official-verification mt-3">
+            <summary class="official-verification-summary">Verification details</summary>
+            <div class="official-verification-body mt-2" itemprop="description">
+                @Html.Raw(StringHelpers.RenderBodyWithLinksHtml(o.OrderProofContext, cssClass: "multi-line-text", ugcContent: false, maskEmails: false))
+            </div>
+        </details>
+    }
+
+    <div class="official-meta mt-2">
+        <small class="text-muted">
+            Official review by <span title="@o.AuthorFingerprint" style="cursor:help;">@(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName))</span>.
+            @if (o.TestedAt.HasValue)
+            {
+                <span class="ms-1">
+                    Tested
+                    <time datetime="@o.TestedAt.Value.ToString("yyyy-MM-dd")">
+                        @o.TestedAt.Value.ToString("yyyy-MM-dd")
+                    </time> 
+                </span>
+            }
+        </small>
+    </div>
+
+    @await Html.PartialAsync("_ReviewRepliesBlock", new DirectoryManager.Web.Models.Reviews.ReviewRepliesBlockViewModel
+    {
+        DirectoryEntryReviewId = o.DirectoryEntryReviewId,
+        ReviewsDisabled = reviewsDisabled,
+        Replies = EntryReviewHtmlHelper.GetReplies(Model.Block.RepliesByReviewId, o.DirectoryEntryReviewId),
+        AuthorPostCountsByFingerprint = authorCounts
+    })
+</div>

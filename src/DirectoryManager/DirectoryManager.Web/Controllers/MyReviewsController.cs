@@ -25,13 +25,11 @@ namespace DirectoryManager.Web.Controllers
 
         public MyReviewsController(
             IMemoryCache cache,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             ICaptchaService captcha,
             IPgpService pgp,
             IDirectoryEntryReviewRepository reviewRepo,
             IDirectoryEntryReviewCommentRepository commentRepo)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.cache = cache;
             this.captcha = captcha;

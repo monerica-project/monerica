@@ -125,8 +125,7 @@ public class SearchController : Controller
 
         await this.searchLogRepository.CreateAsync(new SearchLog
         {
-            Term = q.Trim(),
-            IpAddress = this.HttpContext.GetRemoteIpIfEnabled()
+            Term = q.Trim()
         });
 
         // Sponsor pinning

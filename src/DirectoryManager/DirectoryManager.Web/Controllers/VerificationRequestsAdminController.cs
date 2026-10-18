@@ -1,4 +1,4 @@
-using BtcPayServer.API.Interfaces;
+﻿using BtcPayServer.API.Interfaces;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.VerificationRequests;
 using DirectoryManager.Data.Repositories.Interfaces;
@@ -20,13 +20,11 @@ namespace DirectoryManager.Web.Controllers
         private readonly IBtcPayServerService btcPay;
 
         public VerificationRequestsAdminController(
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache,
             IVerificationRequestRepository requests,
             IDirectoryEntryRepository entryRepo,
             IBtcPayServerService btcPay)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.requests = requests;
             this.entryRepo = entryRepo;
@@ -63,11 +61,17 @@ namespace DirectoryManager.Web.Controllers
                 decimal? amount = decimal.TryParse(invoice.Amount, out var a) && a > 0 ? a : null;
                 var currency = string.IsNullOrWhiteSpace(invoice.Currency) ? null : invoice.Currency;
 
-                // Top-up invoices report an invoice amount of 0, so record the actual XMR received.
+                // The XMR payment method carries the actual received time of each payment (so a
+                // donation found later still shows when it arrived) and, for top-up invoices that
+                // report an invoice amount of 0, the actual XMR received.
                 string? xmrRateUsd = null;
+                var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(storeId, item.BtcPayInvoiceId!);
+                var receivedUtc = xmr?.Payments
+                    .Where(p => p.ReceivedDate > 0)
+                    .Select(p => (DateTime?)p.ReceivedDateUtc)
+                    .Max();
                 if (amount is null)
                 {
-                    var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(storeId, item.BtcPayInvoiceId!);
                     if (xmr is not null && decimal.TryParse(xmr.TotalPaid, out var xmrPaid) && xmrPaid > 0)
                     {
                         amount = xmrPaid;
@@ -78,7 +82,7 @@ namespace DirectoryManager.Web.Controllers
 
                 var paidUsd = DonationUsdHelper.ToUsd(amount, currency, xmrRateUsd);
 
-                var paidUtc = DateTime.UtcNow;
+                var paidUtc = receivedUtc ?? DateTime.UtcNow;
 
                 await this.requests.SetPaidAsync(item.VerificationRequestId, amount, currency, paidUsd, paidUtc, ct);
 

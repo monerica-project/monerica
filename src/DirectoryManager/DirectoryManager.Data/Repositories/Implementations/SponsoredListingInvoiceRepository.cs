@@ -737,7 +737,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             target.DirectoryEntryId = src.DirectoryEntryId;
 
             // misc
-            target.IpAddress = src.IpAddress;
             target.IsReminderSent = src.IsReminderSent;
         }
     }

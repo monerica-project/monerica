@@ -99,9 +99,6 @@ namespace DirectoryManager.Data.Models.SponsoredListings
 
         public int? CategoryId { get; set; }
 
-        [MaxLength(255)]
-        public string? IpAddress { get; set; }
-
         public Guid ReservationGuid { get; set; }
 
         [StringLength(100)]

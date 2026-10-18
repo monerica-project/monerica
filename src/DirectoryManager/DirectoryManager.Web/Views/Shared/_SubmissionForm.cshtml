@@ -15,15 +15,28 @@
 @if (Model.DirectoryEntryId != null)
 {
     <div class="form-group">
-        <label asp-for="DirectoryStatus">Directory Status</label>
-        <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control select-fit">
-            @foreach (var status in Enum.GetValues(typeof(DirectoryManager.Data.Enums.DirectoryStatus)))
+        @{
+            var currentStatus = Model.CurrentDirectoryStatus;
+            var keepCurrent = currentStatus != null &&
+                (Model.DirectoryStatus == null || Model.DirectoryStatus == DirectoryManager.Data.Enums.DirectoryStatus.Unknown || Model.DirectoryStatus == currentStatus);
+        }
+        <label for="DirectoryStatus">Directory Status</label>
+        @if (currentStatus != null)
+        {
+            <input type="hidden" name="CurrentDirectoryStatus" value="@((int)currentStatus.Value)" />
+        }
+        <select id="DirectoryStatus" name="DirectoryStatus" class="form-control select-fit">
+            @if (currentStatus != null)
             {
-                if ((DirectoryManager.Data.Enums.DirectoryStatus)status == DirectoryManager.Data.Enums.DirectoryStatus.Unknown)
+                <option value="" selected="@keepCurrent">Keep current status (@currentStatus)</option>
+            }
+            @foreach (var status in Enum.GetValues<DirectoryManager.Data.Enums.DirectoryStatus>())
+            {
+                if (status == DirectoryManager.Data.Enums.DirectoryStatus.Unknown || (keepCurrent && status == currentStatus))
                 {
                     continue;
                 }
-                <option value="@((int)status)">@status.ToString()</option>
+                <option value="@((int)status)" selected="@(!keepCurrent && Model.DirectoryStatus == status)">@status.ToString()</option>
             }
         </select>
     </div>

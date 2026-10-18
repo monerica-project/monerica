@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Net;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
@@ -30,15 +30,13 @@ namespace DirectoryManager.Web.Controllers
         private readonly ICacheService cacheService;
 
         public VideoSponsorshipAdminController(
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache,
             IVideoSponsorshipRepository repository,
             IContentSnippetRepository contentSnippetRepository,
             IVideoSponsorPaymentGateway gateway,
             IVideoSponsorOrderProcessor orderProcessor,
             ICacheService cacheService)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.repository = repository;
             this.contentSnippetRepository = contentSnippetRepository;

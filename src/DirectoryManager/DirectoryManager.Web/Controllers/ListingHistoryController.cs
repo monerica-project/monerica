@@ -1,4 +1,4 @@
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Services.Interfaces;
@@ -22,14 +22,12 @@ namespace DirectoryManager.Web.Controllers
         private readonly IUrlResolutionService urlResolver;
 
         public ListingHistoryController(
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache,
             IDirectoryEntriesAuditRepository auditRepository,
             IDirectoryEntryRepository directoryEntryRepository,
             ICacheService cacheHelper,
             IUrlResolutionService urlResolver)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.auditRepository = auditRepository;
             this.directoryEntryRepository = directoryEntryRepository;

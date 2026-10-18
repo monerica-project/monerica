@@ -1,4 +1,4 @@
-using BtcPayServer.API.Models;
+﻿using BtcPayServer.API.Models;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.VideoSponsorships;
@@ -41,30 +41,25 @@ namespace DirectoryManager.Web.Controllers
         private readonly IVideoSponsorshipRepository repository;
         private readonly IDirectoryEntryRepository entryRepository;
         private readonly ISponsoredListingRepository sponsoredListingRepository;
-        private readonly IBlockedIPRepository blockedIPRepository;
         private readonly IVideoSponsorPaymentGateway gateway;
         private readonly IVideoSponsorOrderProcessor orderProcessor;
         private readonly ICacheService cacheService;
         private readonly ILogger<VideoSponsorshipController> logger;
 
         public VideoSponsorshipController(
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache,
             IVideoSponsorshipRepository repository,
             IDirectoryEntryRepository entryRepository,
             ISponsoredListingRepository sponsoredListingRepository,
-            IBlockedIPRepository blockedIPRepository,
             IVideoSponsorPaymentGateway gateway,
             IVideoSponsorOrderProcessor orderProcessor,
             ICacheService cacheService,
             ILogger<VideoSponsorshipController> logger)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.repository = repository;
             this.entryRepository = entryRepository;
             this.sponsoredListingRepository = sponsoredListingRepository;
-            this.blockedIPRepository = blockedIPRepository;
             this.gateway = gateway;
             this.orderProcessor = orderProcessor;
             this.cacheService = cacheService;
@@ -327,12 +322,6 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var ipAddress = this.GetClientIpAddress();
-            if (this.blockedIPRepository.IsBlockedIp(ipAddress))
-            {
-                return this.NotFound();
-            }
-
             var ids = ParseIds(v);
 
             // Demo cost: more than $100 to demonstrate the product => the buyer pays it, in full.
@@ -434,7 +423,6 @@ namespace DirectoryManager.Web.Controllers
                 Email = email.Length > 0 ? InputHelper.SetEmail(email) : null,
                 Notes = notes.Length > 0 ? notes : null,
                 RefundAddress = refundAddress,
-                IpAddress = ipAddress,
             };
 
             var itemPrices = VideoSponsorPricing.SplitAcrossItems(vm.SponsorshipTotal, vm.Quantity);
@@ -746,12 +734,6 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task<string> GetChannelUrlAsync() =>
             ((await this.cacheService.GetSnippetAsync(SiteConfigSetting.VideoSponsorshipChannelUrl)) ?? string.Empty).Trim();
-
-        private string GetClientIpAddress()
-        {
-            var ip = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
-            return this.HttpContext.ShouldLogIp() ? ip : string.Empty;
-        }
 
         // The listing must exist and pass the video-sponsor rules; otherwise back to the search,
         // which explains what is missing.

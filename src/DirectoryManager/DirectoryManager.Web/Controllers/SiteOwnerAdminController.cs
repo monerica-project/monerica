@@ -42,14 +42,12 @@ namespace DirectoryManager.Web.Controllers
 
         public SiteOwnerAdminController(
             IMemoryCache cache,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IPgpService pgp,
             IDirectoryEntryRepository entryRepo,
             IDirectoryEntryReviewRepository reviewRepo,
             IDirectoryEntryReviewCommentRepository commentRepo,
             IUserContentModerationService moderation)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.cache = cache;
             this.pgp = pgp;

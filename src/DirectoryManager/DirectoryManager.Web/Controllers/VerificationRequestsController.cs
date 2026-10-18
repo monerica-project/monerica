@@ -1,4 +1,4 @@
-using BtcPayServer.API.Interfaces;
+﻿using BtcPayServer.API.Interfaces;
 using BtcPayServer.API.Models;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
@@ -27,14 +27,12 @@ namespace DirectoryManager.Web.Controllers
 
         public VerificationRequestsController(
             IMemoryCache cache,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             ICaptchaService captcha,
             IDirectoryEntryRepository entries,
             IVerificationRequestRepository requests,
             IBtcPayServerService btcPay,
             ICacheService cacheHelper)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.cache = cache;
             this.captcha = captcha;

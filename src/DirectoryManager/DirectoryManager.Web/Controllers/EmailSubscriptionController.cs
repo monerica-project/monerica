@@ -15,7 +15,6 @@ namespace DirectoryManager.Web.Controllers
         private const string CaptchaContextUnsubscribe = "newsletter-unsubscribe";
 
         private readonly IEmailSubscriptionRepository emailSubscriptionRepository;
-        private readonly IBlockedIPRepository blockedIPRepository;
         private readonly IEmailCampaignRepository emailCampaignRepository;
         private readonly IEmailCampaignMessageRepository emailCampaignMessageRepository;
         private readonly IEmailCampaignSubscriptionRepository emailCampaignSubscriptionRepository;
@@ -25,7 +24,6 @@ namespace DirectoryManager.Web.Controllers
 
         public EmailSubscriptionController(
             IEmailSubscriptionRepository emailSubscriptionRepository,
-            IBlockedIPRepository blockedIPRepository,
             IEmailCampaignRepository emailCampaignRepository,
             IEmailCampaignSubscriptionRepository emailCampaignSubscriptionRepository,
             IEmailCampaignMessageRepository emailCampaignMessageRepository,
@@ -34,7 +32,6 @@ namespace DirectoryManager.Web.Controllers
             ICacheService cacheService)
         {
             this.emailSubscriptionRepository = emailSubscriptionRepository;
-            this.blockedIPRepository = blockedIPRepository;
             this.emailCampaignRepository = emailCampaignRepository;
             this.emailCampaignSubscriptionRepository = emailCampaignSubscriptionRepository;
             this.emailCampaignMessageRepository = emailCampaignMessageRepository;
@@ -92,13 +89,6 @@ namespace DirectoryManager.Web.Controllers
                 model.Email = normalizedEmail!;
             }
 
-            // Blocked IP check
-            var ipAddress = this.HttpContext.Connection.RemoteIpAddress?.ToString() ?? string.Empty;
-            if (this.blockedIPRepository.IsBlockedIp(ipAddress))
-            {
-                this.ModelState.AddModelError(string.Empty, "Your IP is not allowed to subscribe.");
-            }
-
             if (!this.ModelState.IsValid)
             {
                 return this.View(model);
@@ -113,8 +103,7 @@ namespace DirectoryManager.Web.Controllers
                 var emailSubscription = this.emailSubscriptionRepository.Create(new EmailSubscription()
                 {
                     Email = email,
-                    IsSubscribed = true,
-                    IpAddress = this.HttpContext.GetRemoteIpIfEnabled()
+                    IsSubscribed = true
                 });
 
                 var campaigns = this.emailCampaignRepository.GetAll(0, int.MaxValue, out _);

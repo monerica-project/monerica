@@ -88,9 +88,6 @@ namespace DirectoryManager.Data.Models.VideoSponsorships
         [MaxLength(120)]
         public string RefundAddress { get; set; } = string.Empty;
 
-        [MaxLength(255)]
-        public string? IpAddress { get; set; }
-
         // Set when the order was paid but one of its videos had meanwhile been sold to someone else.
         public bool HasConflict { get; set; }
 

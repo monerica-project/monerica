@@ -1,4 +1,4 @@
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -40,8 +40,6 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryRepository directoryEntryRepository,
             ISponsoredListingRepository sponsoredListingRepository,
             ISponsoredListingInvoiceRepository sponsoredListingInvoiceRepository,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService,
             IMemoryCache cache,
             ISponsoredListingOfferRepository sponsoredListingOfferRepository,
             ISponsoredListingReservationRepository sponsoredListingReservationRepository,
@@ -49,7 +47,7 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryReviewRepository reviewRepository,
             IUrlResolutionService urlResolutionService,
             ILogger<SponsoredListingController> logger)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            : base(cache)
         {
             this.subCategoryRepository = subCategoryRepository;
             this.categoryRepository = categoryRepository;

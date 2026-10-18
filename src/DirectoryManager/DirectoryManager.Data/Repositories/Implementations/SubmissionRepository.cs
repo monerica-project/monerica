@@ -121,7 +121,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync();
         }
 
-        public async Task SetPaidAsync(int submissionId, decimal? amount, string? currency, decimal? paidUsd)
+        public async Task SetPaidAsync(int submissionId, decimal? amount, string? currency, decimal? paidUsd, DateTime paidUtc)
         {
             var submission = await this.GetByIdAsync(submissionId);
             if (submission == null || submission.PaidUtc != null)
@@ -129,7 +129,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return; // already recorded — don't overwrite
             }
 
-            submission.PaidUtc = DateTime.UtcNow;
+            submission.PaidUtc = paidUtc;
             submission.PaidAmount = amount;
             submission.PaidCurrency = currency;
             submission.PaidUsd = paidUsd;

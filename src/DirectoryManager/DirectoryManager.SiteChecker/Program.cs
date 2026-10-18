@@ -498,8 +498,7 @@ async Task CreateAutomatedSubmissionAsync(
         // approved offline submission does not blank the entry's deposit guarantees.
         Guarantees = guaranteeItems,
 
-        SuggestedSubCategory = null,
-        IpAddress = null
+        SuggestedSubCategory = null
     };
 
     // Carry forward EVERY shared content field from the live entry (name, links, description,

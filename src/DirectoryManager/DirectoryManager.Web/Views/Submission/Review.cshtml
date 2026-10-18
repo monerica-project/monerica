@@ -123,15 +123,16 @@ else
 
     <div class="form-group">
         <label asp-for="DirectoryStatus">Directory Status:</label>
-            <select asp-for="DirectoryStatus" name="DirectoryStatus" class="form-control select-fit">
-            @foreach (var status in Enum.GetValues(typeof(DirectoryStatus)))
+            @{ var reviewStatus = ViewBag.ReviewDirectoryStatus as DirectoryStatus?; }
+            <select id="DirectoryStatus" name="DirectoryStatus" class="form-control select-fit">
+            @foreach (var status in Enum.GetValues<DirectoryStatus>())
             {
-                if ((DirectoryStatus)status == DirectoryStatus.Unknown)
+                if (status == DirectoryStatus.Unknown)
                 {
                     continue;
                 }
-             
-                <option value="@((int)status)">@status.ToString()</option>
+
+                <option value="@((int)status)" selected="@(reviewStatus == status)">@status.ToString()</option>
             }
         </select>
     </div>
@@ -393,9 +394,6 @@ else
         <span asp-validation-for="NoteToAdmin" class="text-danger"></span>
     </div>
 
-    <span>IP Address:</span>
-    <span>@Model.IpAddress</span>
-    <br />
     <br />
 
 

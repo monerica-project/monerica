@@ -13,7 +13,5 @@ namespace DirectoryManager.Web.Models.Emails
         public DateTime CreateDate { get; set; }
 
         public bool IsSubscribed { get; set; }
-
-        public string? IpAddress { get; set; }
     }
 }

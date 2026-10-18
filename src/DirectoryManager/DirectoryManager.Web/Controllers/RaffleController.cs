@@ -1,4 +1,4 @@
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.Reviews;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Models.Reviews;
@@ -22,10 +22,8 @@ namespace DirectoryManager.Web.Controllers
             IMemoryCache cache,
             IDirectoryEntryReviewRaffleEntryRepository raffleEntryRepository,
             IDirectoryEntryReviewRepository reviewRepository,
-            IRaffleRepository raffleRepository,
-            ITrafficLogRepository trafficLogRepository,
-            IUserAgentCacheService userAgentCacheService)
-            : base(trafficLogRepository, userAgentCacheService, cache)
+            IRaffleRepository raffleRepository)
+            : base(cache)
         {
             this.cache = cache;
             this.raffleEntryRepository = raffleEntryRepository;

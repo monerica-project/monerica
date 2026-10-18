@@ -40,10 +40,8 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IDirectoryEntryRepository, DirectoryEntryRepository>();
             services.AddScoped<IDirectoryEntriesAuditRepository, DirectoryEntriesAuditRepository>();
             services.AddScoped<IDirectoryEntrySelectionRepository, DirectoryEntrySelectionRepository>();
-            services.AddScoped<ITrafficLogRepository, TrafficLogRepository>();
             services.AddScoped<IExcludeUserAgentRepository, ExcludeUserAgentRepository>();
             services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
-            services.AddScoped<IBlockedIPRepository, BlockedIPRepository>();
             services.AddScoped<ISubmissionBlockedTermRepository, SubmissionBlockedTermRepository>();
             services.AddScoped<ITagRepository, TagRepository>();
             services.AddScoped<IDirectoryEntryTagRepository, DirectoryEntryTagRepository>();

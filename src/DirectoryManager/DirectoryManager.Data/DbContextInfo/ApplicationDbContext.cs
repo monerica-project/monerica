@@ -18,7 +18,6 @@ namespace DirectoryManager.Data.DbContextInfo
 
         public DbSet<ApplicationUser> ApplicationUser { get; set; }
         public DbSet<ApplicationUserRole> ApplicationUserRole { get; set; }
-        public DbSet<BlockedIP> BlockedIPs { get; set; }
 
         public DbSet<SubmissionBlockedTerm> SubmissionBlockedTerms { get; set; }
         public DbSet<Category> Categories { get; set; }
@@ -42,7 +41,6 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<SponsoredListingReservation> SponsoredListingReservations { get; set; }
         public DbSet<Subcategory> Subcategories { get; set; }
         public DbSet<Submission> Submissions { get; set; }
-        public DbSet<TrafficLog> TrafficLogs { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<DirectoryEntryTag> DirectoryEntryTags { get; set; }
         public DbSet<SearchLog> SearchLogs { get; set; }
@@ -280,7 +278,6 @@ namespace DirectoryManager.Data.DbContextInfo
             ConfigureSponsoredListingReservationIndexes(builder);
 
             ConfigureEmailIndexes(builder);
-            ConfigureBlockedIpIndexes(builder);
 
             ConfigureReviewerAndReviewIndexes(builder);
             ConfigureAdditionalLinkIndexes(builder);
@@ -458,10 +455,6 @@ namespace DirectoryManager.Data.DbContextInfo
 
         private static void ConfigureTrafficAndUserAgentIndexes(ModelBuilder builder)
         {
-            builder.Entity<TrafficLog>()
-                   .HasIndex(t => t.CreateDate)
-                   .HasDatabaseName("IX_TrafficLog_CreateDate");
-
             builder.Entity<ExcludeUserAgent>()
                    .HasIndex(e => e.UserAgent)
                    .IsUnique();
@@ -544,13 +537,6 @@ namespace DirectoryManager.Data.DbContextInfo
 
             builder.Entity<EmailCampaign>()
                    .HasIndex(e => e.EmailCampaignKey)
-                   .IsUnique();
-        }
-
-        private static void ConfigureBlockedIpIndexes(ModelBuilder builder)
-        {
-            builder.Entity<BlockedIP>()
-                   .HasIndex(e => e.IpAddress)
                    .IsUnique();
         }
 
