@@ -43,6 +43,8 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<Submission> Submissions { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<DirectoryEntryTag> DirectoryEntryTags { get; set; }
+
+        public DbSet<DirectoryEntryAdditionalSubcategory> DirectoryEntryAdditionalSubcategories { get; set; }
         public DbSet<SearchLog> SearchLogs { get; set; }
         public DbSet<DirectoryFilterLog> DirectoryFilterLogs { get; set; }
         public DbSet<ReviewerKey> ReviewerKeys { get; set; }
@@ -686,6 +688,25 @@ namespace DirectoryManager.Data.DbContextInfo
                    .HasOne(et => et.Tag)
                    .WithMany(t => t.EntryTags)
                    .HasForeignKey(et => et.TagId);
+
+            builder.Entity<DirectoryEntryAdditionalSubcategory>()
+                   .HasOne(a => a.DirectoryEntry)
+                   .WithMany(de => de.AdditionalSubcategories)
+                   .HasForeignKey(a => a.DirectoryEntryId)
+                   .OnDelete(DeleteBehavior.Cascade);
+
+            builder.Entity<DirectoryEntryAdditionalSubcategory>()
+                   .HasOne(a => a.SubCategory)
+                   .WithMany()
+                   .HasForeignKey(a => a.SubCategoryId)
+                   .OnDelete(DeleteBehavior.Restrict);
+
+            builder.Entity<DirectoryEntryAdditionalSubcategory>()
+                   .HasIndex(a => new { a.DirectoryEntryId, a.SubCategoryId })
+                   .IsUnique();
+
+            builder.Entity<DirectoryEntryAdditionalSubcategory>()
+                   .HasIndex(a => a.SubCategoryId);
 
             builder.Entity<SponsoredListing>()
                    .HasOne(sl => sl.DirectoryEntry)

@@ -49,6 +49,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ICacheService cacheService;
         private readonly ISponsoredListingActivator activator;
         private readonly ILogger<SponsoredListingCheckoutController> logger;
+        private readonly IDirectoryEntryAdditionalSubcategoryRepository? additionalSubcategoryRepo;
 
         public SponsoredListingCheckoutController(
             ISubcategoryRepository subCategoryRepository,
@@ -63,7 +64,8 @@ namespace DirectoryManager.Web.Controllers
             ISponsoredListingReservationRepository sponsoredListingReservationRepository,
             ICacheService cacheService,
             ISponsoredListingActivator activator,
-            ILogger<SponsoredListingCheckoutController> logger)
+            ILogger<SponsoredListingCheckoutController> logger,
+            IDirectoryEntryAdditionalSubcategoryRepository? additionalSubcategoryRepo = null)
             : base(cache)
         {
             this.subCategoryRepository = subCategoryRepository;
@@ -78,6 +80,7 @@ namespace DirectoryManager.Web.Controllers
             this.cacheService = cacheService;
             this.activator = activator;
             this.logger = logger;
+            this.additionalSubcategoryRepo = additionalSubcategoryRepo;
         }
 
         // =====================================================================
@@ -99,6 +102,14 @@ namespace DirectoryManager.Web.Controllers
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
+
+            // A subcategory sponsorship can be for one of the listing's ADDITIONAL subcategories.
+            if (sponsorshipType == SponsorshipType.SubcategorySponsor)
+            {
+                entry = await this.ScopeEntryAsync(entry, subCategoryId).ConfigureAwait(false);
+            }
+
+            var scopeSubCategoryId = ScopeOf(entry);
 
             // Sponsorship can be disabled per subcategory (kill-switch for problem categories).
             var subcatBlocked = this.BlockedBySubcategorySponsorship(entry);
@@ -140,11 +151,11 @@ namespace DirectoryManager.Web.Controllers
                 var capacityError = await this.CheckListingCapacityAsync(sponsorshipType, typeIdForCap, group);
                 if (capacityError != null)
                 {
-                    return this.RedirectToCheckoutWaiting(directoryEntryId, sponsorshipType, null);
+                    return this.RedirectToCheckoutWaiting(directoryEntryId, sponsorshipType, null, scopeSubCategoryId);
                 }
             }
 
-            return this.RedirectToAction("SelectDuration", new { directoryEntryId, sponsorshipType, rsvId });
+            return this.RedirectToAction("SelectDuration", new { directoryEntryId, sponsorshipType, rsvId, scopeSubCategoryId });
         }
 
         [HttpGet]
@@ -227,7 +238,7 @@ namespace DirectoryManager.Web.Controllers
         [HttpGet]
         [AllowAnonymous]
         [Route("sponsoredlisting/selectduration")]
-        public async Task<IActionResult> SelectDurationAsync(int directoryEntryId, SponsorshipType sponsorshipType, Guid? rsvId = null)
+        public async Task<IActionResult> SelectDurationAsync(int directoryEntryId, SponsorshipType sponsorshipType, Guid? rsvId = null, int? scopeSubCategoryId = null)
         {
             if (sponsorshipType == SponsorshipType.Unknown)
             {
@@ -239,6 +250,13 @@ namespace DirectoryManager.Web.Controllers
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
+
+            if (sponsorshipType == SponsorshipType.SubcategorySponsor)
+            {
+                entry = await this.ScopeEntryAsync(entry, scopeSubCategoryId).ConfigureAwait(false);
+            }
+
+            this.ViewBag.ScopeSubCategoryId = ScopeOf(entry);
 
             // Sponsorship can be disabled per subcategory (kill-switch for problem categories).
             var subcatBlocked = this.BlockedBySubcategorySponsorship(entry);
@@ -393,10 +411,9 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [ValidateAntiForgeryToken]
         [Route("sponsoredlisting/selectduration")]
-        public async Task<IActionResult> SelectDurationAsync(int directoryEntryId, int selectedOfferId, Guid? rsvId = null)
+        public async Task<IActionResult> SelectDurationAsync(int directoryEntryId, int selectedOfferId, Guid? rsvId = null, int? scopeSubCategoryId = null)
         {
-            var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId).ConfigureAwait(false);
-            var offer = await this.GetOfferForEntryAsync(selectedOfferId, entry).ConfigureAwait(false);
+            var (entry, offer) = await this.LoadEntryAndOfferAsync(directoryEntryId, selectedOfferId, scopeSubCategoryId).ConfigureAwait(false);
             if (offer is null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
@@ -406,6 +423,9 @@ namespace DirectoryManager.Web.Controllers
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidListing });
             }
+
+            scopeSubCategoryId = ScopeOf(entry);
+            var scopeParam = scopeSubCategoryId.HasValue ? $"&scopeSubCategoryId={scopeSubCategoryId.Value}" : string.Empty;
 
             // Sponsorship can be disabled per subcategory (kill-switch for problem categories).
             var subcatBlocked = this.BlockedBySubcategorySponsorship(entry);
@@ -427,7 +447,7 @@ namespace DirectoryManager.Web.Controllers
                 && !CaptchaTools.Validate(this.HttpContext, CaptchaContextSelectDuration, this.Request.Form["Captcha"].ToString(), consume: true))
             {
                 return this.Redirect(
-                    $"/sponsoredlisting/selectduration?directoryEntryId={directoryEntryId}&sponsorshipType={offer.SponsorshipType}&captcha=0");
+                    $"/sponsoredlisting/selectduration?directoryEntryId={directoryEntryId}&sponsorshipType={offer.SponsorshipType}&captcha=0{scopeParam}");
             }
 
             if (!rsvId.HasValue)
@@ -448,14 +468,14 @@ namespace DirectoryManager.Web.Controllers
                     var rsvError = await this.CheckMainSubcategoryReservationAsync(entry.SubCategoryId);
                     if (rsvError != null)
                     {
-                        return this.RedirectToCheckoutWaiting(directoryEntryId, offer.SponsorshipType, selectedOfferId);
+                        return this.RedirectToCheckoutWaiting(directoryEntryId, offer.SponsorshipType, selectedOfferId, scopeSubCategoryId);
                     }
                 }
 
                 var capacityError = await this.CheckListingCapacityAsync(offer.SponsorshipType, typeIdForCap, reservationGroup);
                 if (capacityError != null)
                 {
-                    return this.RedirectToCheckoutWaiting(directoryEntryId, offer.SponsorshipType, selectedOfferId);
+                    return this.RedirectToCheckoutWaiting(directoryEntryId, offer.SponsorshipType, selectedOfferId, scopeSubCategoryId);
                 }
 
                 rsvId = await this.CreateReservationGuidAsync(offer.SponsorshipType, entry, entry.SubCategoryId, entry.SubCategory?.CategoryId);
@@ -466,7 +486,7 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            return this.RedirectToAction("ConfirmCheckout", new { directoryEntryId, selectedOfferId, rsvId });
+            return this.RedirectToAction("ConfirmCheckout", new { directoryEntryId, selectedOfferId, rsvId, scopeSubCategoryId });
         }
 
         // =====================================================================
@@ -478,15 +498,17 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> ConfirmCheckoutAsync(
             int directoryEntryId,
             int selectedOfferId,
-            Guid? rsvId = null)
+            Guid? rsvId = null,
+            int? scopeSubCategoryId = null)
         {
-            var v = await this.ValidateConfirmRequestAsync(directoryEntryId, selectedOfferId, rsvId);
+            var v = await this.ValidateConfirmRequestAsync(directoryEntryId, selectedOfferId, rsvId, scopeSubCategoryId);
             if (v.ErrorResult != null)
             {
                 return v.ErrorResult;
             }
 
             this.SetConfirmViewBag(v.Offer!, v.Entry!);
+            this.ViewBag.ScopeSubCategoryId = ScopeOf(v.Entry!);
             this.ViewBag.CaptchaRequired = !this.IsCheckoutVerified(directoryEntryId);
             var vm = BuildConfirmationViewModel(v.Offer!, v.Entry!, v.Link2Name!, v.Link3Name!, v.Current!);
             await this.ApplyExistingSponsorPerkToOfferModelAsync(vm.Offer, v.Entry!.DirectoryEntryId).ConfigureAwait(false);
@@ -502,18 +524,18 @@ namespace DirectoryManager.Web.Controllers
             int selectedOfferId,
             string selectedProcessor,
             Guid? rsvId = null,
-            string? email = null)
+            string? email = null,
+            int? scopeSubCategoryId = null)
         {
             // Buyers who solved the captcha on the previous step aren't asked again. Anyone who
             // reached this form another way (direct post, expired session) still gets a captcha.
             if (!this.IsCheckoutVerified(directoryEntryId)
                 && !CaptchaTools.Validate(this.HttpContext, CaptchaContextCheckout, this.Request.Form["Captcha"].ToString(), consume: true))
             {
-                return await this.RebuildConfirmViewWithErrorAsync(directoryEntryId, selectedOfferId, rsvId, email, "Captcha", "Incorrect CAPTCHA. Please try again.");
+                return await this.RebuildConfirmViewWithErrorAsync(directoryEntryId, selectedOfferId, rsvId, email, "Captcha", "Incorrect CAPTCHA. Please try again.", scopeSubCategoryId);
             }
 
-            var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
-            var offer = await this.GetOfferForEntryAsync(selectedOfferId, entry);
+            var (entry, offer) = await this.LoadEntryAndOfferAsync(directoryEntryId, selectedOfferId, scopeSubCategoryId);
             if (offer == null || entry == null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
@@ -521,13 +543,13 @@ namespace DirectoryManager.Web.Controllers
 
             var (group, typeIdForCap) = this.BuildGroupAndCapacity(offer.SponsorshipType, entry);
 
-            var reservationError = await this.HandleReservationForPostAsync(directoryEntryId, offer, rsvId, group, typeIdForCap);
+            var reservationError = await this.HandleReservationForPostAsync(directoryEntryId, offer, rsvId, group, typeIdForCap, ScopeOf(entry));
             if (reservationError != null)
             {
                 return reservationError;
             }
 
-            var (emailOk, normalizedEmail, emailView) = await this.ValidateEmailAsync(email, directoryEntryId, selectedOfferId, rsvId);
+            var (emailOk, normalizedEmail, emailView) = await this.ValidateEmailAsync(email, directoryEntryId, selectedOfferId, rsvId, ScopeOf(entry));
             if (!emailOk)
             {
                 return emailView!;
@@ -568,13 +590,21 @@ namespace DirectoryManager.Web.Controllers
         [AllowAnonymous]
         [Route("sponsoredlisting/checkout-waiting")]
         public async Task<IActionResult> CheckoutWaitingAsync(
-            int directoryEntryId, SponsorshipType sponsorshipType, int? selectedOfferId = null)
+            int directoryEntryId, SponsorshipType sponsorshipType, int? selectedOfferId = null, int? scopeSubCategoryId = null)
         {
             var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId).ConfigureAwait(false);
             if (entry == null || sponsorshipType == SponsorshipType.Unknown)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidSelection });
             }
+
+            if (sponsorshipType == SponsorshipType.SubcategorySponsor)
+            {
+                entry = await this.ScopeEntryAsync(entry, scopeSubCategoryId).ConfigureAwait(false);
+            }
+
+            scopeSubCategoryId = ScopeOf(entry);
+            var scopeParam = scopeSubCategoryId.HasValue ? $"&scopeSubCategoryId={scopeSubCategoryId.Value}" : string.Empty;
 
             var typeId = SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(sponsorshipType, entry, null, null);
             var group = ReservationGroupHelper.BuildReservationGroupName(sponsorshipType, typeId);
@@ -626,20 +656,21 @@ namespace DirectoryManager.Web.Controllers
                 MinutesLeft = status == CheckoutWaitingStatus.Reserved && expiry.HasValue
                     ? Math.Max(0, (int)Math.Ceiling((expiry.Value - DateTime.UtcNow).TotalMinutes))
                     : 0,
-                RefreshUrl = $"/sponsoredlisting/checkout-waiting?directoryEntryId={directoryEntryId}&sponsorshipType={sponsorshipType}{offerParam}",
+                RefreshUrl = $"/sponsoredlisting/checkout-waiting?directoryEntryId={directoryEntryId}&sponsorshipType={sponsorshipType}{offerParam}{scopeParam}",
                 ContinueUrl = selectedOfferId.HasValue
-                    ? $"/sponsoredlisting/confirmcheckout?directoryEntryId={directoryEntryId}&selectedOfferId={selectedOfferId.Value}"
-                    : $"/sponsoredlisting/selectduration?directoryEntryId={directoryEntryId}&sponsorshipType={sponsorshipType}",
+                    ? $"/sponsoredlisting/confirmcheckout?directoryEntryId={directoryEntryId}&selectedOfferId={selectedOfferId.Value}{scopeParam}"
+                    : $"/sponsoredlisting/selectduration?directoryEntryId={directoryEntryId}&sponsorshipType={sponsorshipType}{scopeParam}",
                 WaitlistUrl = $"/waitlist?type={sponsorshipType}" + (typeId > 0 ? $"&typeId={typeId}" : string.Empty),
             };
 
             return this.View("CheckoutWaiting", vm);
         }
 
-        private IActionResult RedirectToCheckoutWaiting(int directoryEntryId, SponsorshipType sponsorshipType, int? selectedOfferId)
+        private IActionResult RedirectToCheckoutWaiting(int directoryEntryId, SponsorshipType sponsorshipType, int? selectedOfferId, int? scopeSubCategoryId = null)
         {
             var offerParam = selectedOfferId.HasValue ? $"&selectedOfferId={selectedOfferId.Value}" : string.Empty;
-            return this.Redirect($"/sponsoredlisting/checkout-waiting?directoryEntryId={directoryEntryId}&sponsorshipType={sponsorshipType}{offerParam}");
+            var scopeParam = scopeSubCategoryId.HasValue ? $"&scopeSubCategoryId={scopeSubCategoryId.Value}" : string.Empty;
+            return this.Redirect($"/sponsoredlisting/checkout-waiting?directoryEntryId={directoryEntryId}&sponsorshipType={sponsorshipType}{offerParam}{scopeParam}");
         }
 
         // =====================================================================
@@ -1046,9 +1077,9 @@ namespace DirectoryManager.Web.Controllers
         // =====================================================================
         // CHECKOUT ORCHESTRATION HELPERS
         // =====================================================================
-        private async Task<ConfirmValidationResult> ValidateConfirmRequestAsync(int directoryEntryId, int selectedOfferId, Guid? rsvId)
+        private async Task<ConfirmValidationResult> ValidateConfirmRequestAsync(int directoryEntryId, int selectedOfferId, Guid? rsvId, int? scopeSubCategoryId = null)
         {
-            var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId).ConfigureAwait(false);
+            var (entry, scopedOffer) = await this.LoadEntryAndOfferAsync(directoryEntryId, selectedOfferId, scopeSubCategoryId).ConfigureAwait(false);
             if (entry == null)
             {
                 return ConfirmValidationResult.Fail(this.BadRequest(new { Error = StringConstants.InvalidSelection }));
@@ -1062,10 +1093,17 @@ namespace DirectoryManager.Web.Controllers
                 return ConfirmValidationResult.Fail(this.BadRequest(new { Error = $"To sponsor, a listing must be Verified and listed in the directory for at least {DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring} days." }));
             }
 
-            var offer = await this.GetOfferForEntryAsync(selectedOfferId, entry).ConfigureAwait(false);
+            var offer = scopedOffer;
             if (offer == null)
             {
                 return ConfirmValidationResult.Fail(this.BadRequest(new { Error = StringConstants.InvalidOfferSelection }));
+            }
+
+            // Subcategory sponsorships in an additional subcategory are checked against that subcategory.
+            var subcatBlocked = this.BlockedBySubcategorySponsorship(entry);
+            if (subcatBlocked != null)
+            {
+                return ConfirmValidationResult.Fail(subcatBlocked);
             }
 
             var (group, typeIdForCap) = this.BuildGroupAndCapacity(offer.SponsorshipType, entry);
@@ -1085,7 +1123,7 @@ namespace DirectoryManager.Web.Controllers
                 var capacityError = await this.CheckListingCapacityAsync(offer.SponsorshipType, typeIdForCap, group);
                 if (capacityError != null)
                 {
-                    return ConfirmValidationResult.Fail(this.RedirectToCheckoutWaiting(directoryEntryId, offer.SponsorshipType, offer.SponsoredListingOfferId));
+                    return ConfirmValidationResult.Fail(this.RedirectToCheckoutWaiting(directoryEntryId, offer.SponsorshipType, offer.SponsoredListingOfferId, ScopeOf(entry)));
                 }
             }
 
@@ -1116,10 +1154,9 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task<IActionResult> RebuildConfirmViewWithErrorAsync(
             int directoryEntryId, int selectedOfferId, Guid? rsvId,
-            string? prefillEmail, string key, string message)
+            string? prefillEmail, string key, string message, int? scopeSubCategoryId = null)
         {
-            var entry = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId);
-            var offer = await this.GetOfferForEntryAsync(selectedOfferId, entry);
+            var (entry, offer) = await this.LoadEntryAndOfferAsync(directoryEntryId, selectedOfferId, scopeSubCategoryId);
             if (offer == null || entry == null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
@@ -1146,12 +1183,13 @@ namespace DirectoryManager.Web.Controllers
             vm.CanCreateSponsoredListing = true;
             this.ModelState.AddModelError(key, message);
             this.ViewBag.PrefillEmail = prefillEmail;
+            this.ViewBag.ScopeSubCategoryId = ScopeOf(entry);
             this.ViewBag.CaptchaRequired = !this.IsCheckoutVerified(directoryEntryId);
             return this.View(ConfirmCheckoutView, vm);
         }
 
         private async Task<IActionResult?> HandleReservationForPostAsync(
-            int directoryEntryId, SponsoredListingOffer offer, Guid? rsvId, string group, int? typeIdForCap)
+            int directoryEntryId, SponsoredListingOffer offer, Guid? rsvId, string group, int? typeIdForCap, int? scopeSubCategoryId = null)
         {
             if (!await this.TryAttachReservationAsync(rsvId, group, directoryEntryId))
             {
@@ -1161,7 +1199,7 @@ namespace DirectoryManager.Web.Controllers
 
                 if (!SponsoredListingCheckoutHelper.CanPurchaseListing(totalActive, totalReserved, offer.SponsorshipType) && !isActive)
                 {
-                    return this.RedirectToCheckoutWaiting(directoryEntryId, offer.SponsorshipType, offer.SponsoredListingOfferId);
+                    return this.RedirectToCheckoutWaiting(directoryEntryId, offer.SponsorshipType, offer.SponsoredListingOfferId, scopeSubCategoryId);
                 }
             }
             else
@@ -1197,7 +1235,7 @@ namespace DirectoryManager.Web.Controllers
         }
 
         private async Task<(bool ok, string? normalized, IActionResult? errorView)> ValidateEmailAsync(
-            string? email, int directoryEntryId, int selectedOfferId, Guid? rsvId)
+            string? email, int directoryEntryId, int selectedOfferId, Guid? rsvId, int? scopeSubCategoryId = null)
         {
             if (string.IsNullOrWhiteSpace(email))
             {
@@ -1210,7 +1248,7 @@ namespace DirectoryManager.Web.Controllers
                 return (true, norm!, null);
             }
 
-            return (false, null, await this.RebuildConfirmViewWithErrorAsync(directoryEntryId, selectedOfferId, rsvId, email, "Email", emailError!));
+            return (false, null, await this.RebuildConfirmViewWithErrorAsync(directoryEntryId, selectedOfferId, rsvId, email, "Email", emailError!, scopeSubCategoryId));
         }
 
         private async Task<string?> CheckNewMainSponsorCapAsync(int directoryEntryId, SponsoredListingOffer offer)
@@ -1893,7 +1931,7 @@ namespace DirectoryManager.Web.Controllers
                 .Where(e => this.IsEligibleToSponsor(e) || activelySponsored.Contains(e.DirectoryEntryId));
             if (subCategoryId.HasValue)
             {
-                entries = entries.Where(e => e.SubCategoryId == subCategoryId.Value).ToList();
+                entries = await this.InSubcategoryIncludingAdditionalAsync(entries.ToList(), subCategoryId.Value).ConfigureAwait(false);
             }
             else if (categoryId.HasValue)
             {
@@ -1915,7 +1953,7 @@ namespace DirectoryManager.Web.Controllers
                 .Where(e => this.IsEligibleToSponsor(e) || activelySponsored.Contains(e.DirectoryEntryId));
             if (type == SponsorshipType.SubcategorySponsor)
             {
-                entries = entries.Where(e => e.SubCategoryId == typeId).ToList();
+                entries = await this.InSubcategoryIncludingAdditionalAsync(entries.ToList(), typeId).ConfigureAwait(false);
             }
             else if (type == SponsorshipType.CategorySponsor)
             {
@@ -1923,6 +1961,72 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return entries.OrderBy(e => e.Name).ToList();
+        }
+
+        // Listings in a subcategory for sponsorship: those whose main subcategory it is, plus those that
+        // have it as an ADDITIONAL subcategory (returned as shown there, so the picker shows that name).
+        private async Task<List<DirectoryEntry>> InSubcategoryIncludingAdditionalAsync(List<DirectoryEntry> eligible, int subCategoryId)
+        {
+            var result = eligible.Where(e => e.SubCategoryId == subCategoryId).ToList();
+            if (this.additionalSubcategoryRepo == null)
+            {
+                return result;
+            }
+
+            foreach (var e in eligible.Where(e => e.SubCategoryId != subCategoryId))
+            {
+                var scoped = await this.ScopeEntryAsync(e, subCategoryId).ConfigureAwait(false);
+                if (scoped != null && scoped.ShownViaAdditionalSubcategoryId.HasValue)
+                {
+                    result.Add(scoped);
+                }
+            }
+
+            return result;
+        }
+
+        // A SUBCATEGORY sponsorship may be bought for one of the listing's additional subcategories.
+        // Returns the listing as shown in that subcategory (SubCategory switched to it), so pricing,
+        // slot counts, reservations, the kill-switch and the invoice all use that subcategory.
+        // Anything else (no value, the main subcategory, a subcategory the listing isn't in) returns
+        // the listing unchanged, so a buyer can never pick a subcategory the listing isn't listed in.
+        private async Task<DirectoryEntry?> ScopeEntryAsync(DirectoryEntry? entry, int? scopeSubCategoryId)
+        {
+            if (entry == null || this.additionalSubcategoryRepo == null
+                || !scopeSubCategoryId.HasValue || scopeSubCategoryId.Value <= 0
+                || scopeSubCategoryId.Value == entry.SubCategoryId)
+            {
+                return entry;
+            }
+
+            var alt = (await this.additionalSubcategoryRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId).ConfigureAwait(false))
+                .FirstOrDefault(a => a.SubCategoryId == scopeSubCategoryId.Value);
+            return alt?.ApplyTo(entry) ?? entry;
+        }
+
+        // The additional subcategory a scoped entry is being sponsored in (null = main subcategory).
+        private static int? ScopeOf(DirectoryEntry? entry) =>
+            entry?.ShownViaAdditionalSubcategoryId.HasValue == true ? entry.SubCategoryId : null;
+
+        // Loads the listing and the chosen offer. The additional-subcategory scope only applies to a
+        // SUBCATEGORY offer; for main/category offers the plain listing (main subcategory) is used.
+        private async Task<(DirectoryEntry? Entry, SponsoredListingOffer? Offer)> LoadEntryAndOfferAsync(
+            int directoryEntryId, int selectedOfferId, int? scopeSubCategoryId)
+        {
+            var main = await this.directoryEntryRepository.GetByIdAsync(directoryEntryId).ConfigureAwait(false);
+            if (main == null)
+            {
+                return (null, null);
+            }
+
+            var scoped = await this.ScopeEntryAsync(main, scopeSubCategoryId).ConfigureAwait(false);
+            var offer = await this.GetOfferForEntryAsync(selectedOfferId, scoped).ConfigureAwait(false);
+            if (offer != null && offer.SponsorshipType != SponsorshipType.SubcategorySponsor)
+            {
+                return (main, offer);
+            }
+
+            return (scoped, offer);
         }
 
         // The offer id is the only thing a buyer submits, so it is checked against the offers
@@ -1935,10 +2039,17 @@ namespace DirectoryManager.Web.Controllers
                 return null;
             }
 
+            // For a listing scoped to an additional subcategory, only SUBCATEGORY offers use that
+            // subcategory's pricing; main/category offers are always priced by the main subcategory.
+            var mainSubCategoryId = entry.ShownViaAdditionalSubcategoryId.HasValue
+                ? (await this.directoryEntryRepository.GetByIdAsync(entry.DirectoryEntryId).ConfigureAwait(false))?.SubCategoryId ?? entry.SubCategoryId
+                : entry.SubCategoryId;
+
             foreach (var type in new[] { SponsorshipType.MainSponsor, SponsorshipType.CategorySponsor, SponsorshipType.SubcategorySponsor })
             {
+                var pricingSubId = type == SponsorshipType.SubcategorySponsor ? entry.SubCategoryId : mainSubCategoryId;
                 var offers = await this.sponsoredListingOfferRepository
-                    .GetByTypeAndSubCategoryAsync(type, entry.SubCategoryId).ConfigureAwait(false);
+                    .GetByTypeAndSubCategoryAsync(type, pricingSubId).ConfigureAwait(false);
                 var match = offers.FirstOrDefault(o => o.SponsoredListingOfferId == selectedOfferId);
                 if (match is not null)
                 {

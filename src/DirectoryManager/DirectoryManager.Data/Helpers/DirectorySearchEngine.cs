@@ -121,7 +121,7 @@ namespace DirectoryManager.Data.Helpers
                 return new List<DirectoryEntry>();
             }
 
-            var docs = entries.Select(e => new Doc(e)).ToList();
+            var docs = Expand(entries).Select(e => new Doc(e)).ToList();
 
             // Domain search ("xmr.cards"): if a listing is on that domain, show just those.
             if (q.Host != null)
@@ -226,8 +226,43 @@ namespace DirectoryManager.Data.Helpers
                 .ThenByDescending(h => h.Score)
                 .ThenBy(h => StatusOrder(h.Doc.Entry.DirectoryStatus))
                 .ThenBy(h => h.Doc.Entry.Name, StringComparer.OrdinalIgnoreCase)
-                .Select(h => h.Doc.Entry)
+                .Select(h => h.Doc)
+                .GroupBy(d => d.Entry.DirectoryEntryId) // one result per listing, ranked by its best version
+                .Select(g => PickVersion(g, q).Entry)
                 .ToList();
+        }
+
+        // Shows the main listing whenever the search names it ("privacygateway"), even if an
+        // additional subcategory happens to score a bit higher (its name repeats the listing's
+        // name). An additional subcategory's wording is shown only when the search is about it
+        // ("gift cards") and the main listing's name doesn't match.
+        private static Doc PickVersion(IEnumerable<Doc> versions, ParsedQuery q)
+        {
+            var list = versions.ToList();
+            var best = list[0];
+            if (best.Entry.ShownViaAdditionalSubcategoryId == null)
+            {
+                return best;
+            }
+
+            var main = list.FirstOrDefault(d => d.Entry.ShownViaAdditionalSubcategoryId == null);
+            return main != null && main.NameMatchesAll(q.Words) ? main : best;
+        }
+
+        /// <summary>
+        /// Each listing plus one display copy per additional subcategory (with that subcategory's
+        /// name/links/description), so a search can match and show the alternative's wording.
+        /// </summary>
+        private static IEnumerable<DirectoryEntry> Expand(IEnumerable<DirectoryEntry> entries)
+        {
+            foreach (var e in entries)
+            {
+                yield return e;
+                foreach (var a in e.AdditionalSubcategories ?? Enumerable.Empty<DirectoryEntryAdditionalSubcategory>())
+                {
+                    yield return a.ApplyTo(e);
+                }
+            }
         }
 
         private static double CountryNameScore(Doc d, ParsedQuery q)
@@ -249,7 +284,7 @@ namespace DirectoryManager.Data.Helpers
                 return null;
             }
 
-            var docs = entries.Select(e => new Doc(e)).ToList();
+            var docs = Expand(entries).Select(e => new Doc(e)).ToList();
 
             // Vocabulary: words that identify listings, weighted by how often they appear.
             var vocab = new Dictionary<string, int>(StringComparer.Ordinal);
@@ -578,6 +613,7 @@ namespace DirectoryManager.Data.Helpers
                 this.locationWords = Words(e.Location);
 
                 this.hosts = new[] { e.Link, e.Link2, e.Link3, e.ProofLink }
+                    .Concat(e.SearchAdditionalLinks ?? new List<string>())
                     .Select(ExtractHost)
                     .Where(h => !string.IsNullOrEmpty(h))
                     .Select(h => h!)
@@ -613,6 +649,11 @@ namespace DirectoryManager.Data.Helpers
             public string[] CategoryWords { get; }
 
             public string[] HostLabels { get; }
+
+            public bool NameMatchesAll(IReadOnlyList<string> words) =>
+                words.Count > 0 && words.All(w =>
+                    Match(this.NameWords, w, allowInside: true) > 0
+                    || (w.Length > ShortWordMaxLength && this.NameCompact.Contains(w, StringComparison.Ordinal)));
 
             public bool IsNoKyc => this.Entry.KycPolicy is KycPolicy.GuaranteedNoKyc or KycPolicy.RareKyc;
 

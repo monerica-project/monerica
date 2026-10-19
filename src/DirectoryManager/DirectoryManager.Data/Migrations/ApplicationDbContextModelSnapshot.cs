@@ -546,6 +546,67 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("DirectoryEntries");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryAdditionalSubcategory", b =>
+                {
+                    b.Property<int>("DirectoryEntryAdditionalSubcategoryId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("DirectoryEntryAdditionalSubcategoryId"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("text");
+
+                    b.Property<int>("DirectoryEntryId")
+                        .HasColumnType("integer");
+
+                    b.Property<string>("Link")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Link2")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Link2A")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Link3")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Link3A")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("LinkA")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<int>("SubCategoryId")
+                        .HasColumnType("integer");
+
+                    b.Property<DateTime?>("UpdateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.HasKey("DirectoryEntryAdditionalSubcategoryId");
+
+                    b.HasIndex("SubCategoryId");
+
+                    b.HasIndex("DirectoryEntryId", "SubCategoryId")
+                        .IsUnique();
+
+                    b.ToTable("DirectoryEntryAdditionalSubcategories");
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryGuarantee", b =>
                 {
                     b.Property<int>("DirectoryEntryGuaranteeId")
@@ -2942,6 +3003,25 @@ namespace DirectoryManager.Data.Migrations
                     b.Navigation("SubCategory");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryAdditionalSubcategory", b =>
+                {
+                    b.HasOne("DirectoryManager.Data.Models.DirectoryEntry", "DirectoryEntry")
+                        .WithMany("AdditionalSubcategories")
+                        .HasForeignKey("DirectoryEntryId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.HasOne("DirectoryManager.Data.Models.Subcategory", "SubCategory")
+                        .WithMany()
+                        .HasForeignKey("SubCategoryId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired();
+
+                    b.Navigation("DirectoryEntry");
+
+                    b.Navigation("SubCategory");
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntryGuarantee", b =>
                 {
                     b.HasOne("DirectoryManager.Data.Models.DirectoryEntry", "DirectoryEntry")
@@ -3300,6 +3380,8 @@ namespace DirectoryManager.Data.Migrations
 
             modelBuilder.Entity("DirectoryManager.Data.Models.DirectoryEntry", b =>
                 {
+                    b.Navigation("AdditionalSubcategories");
+
                     b.Navigation("EntryTags");
                 });
 

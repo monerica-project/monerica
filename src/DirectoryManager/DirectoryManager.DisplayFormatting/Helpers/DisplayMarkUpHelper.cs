@@ -18,7 +18,8 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             DirectoryEntryViewModel model,
             string? rootUrl = null,
             bool sponsorInlineHeader = false,
-            bool skipLinksBlock = false)
+            bool skipLinksBlock = false,
+            bool showProfileLink = false)
         {
             var sb = new StringBuilder();
 
@@ -81,6 +82,16 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 // default behavior unchanged
                 AppendOptionalDescriptionAndNote(sb, model, suppressLeadingBreak: false);
                 AppendInlineStarRating(sb, model, rootUrl);
+            }
+
+            // Quiet "See profile" link under the description (homepage category/subcategory sponsors).
+            if (showProfileLink)
+            {
+                string? profileUrl = BuildReviewsUrl(rootUrl, model.ItemPath)?.Replace("#reviews", string.Empty);
+                if (!string.IsNullOrWhiteSpace(profileUrl))
+                {
+                    sb.Append($"<br /><a class=\"sponsor-entry-profile-link no-app-link\" href=\"{profileUrl}\">See profile</a>");
+                }
             }
 
             sb.Append("</p>");

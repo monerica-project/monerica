@@ -386,8 +386,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             // pull all SubCategorySponsor entries, then filter by category
             var all = await this.GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor);
-            return all
-              .Where(s => s.DirectoryEntry?.SubCategory?.CategoryId == categoryId);
+
+            // Use the subcategory the sponsorship was bought for: it can be one of the listing's
+            // additional subcategories, in a different category than its main one.
+            var subToCat = await this.context.Subcategories
+                .AsNoTracking()
+                .Select(sc => new { sc.SubCategoryId, sc.CategoryId })
+                .ToDictionaryAsync(x => x.SubCategoryId, x => x.CategoryId);
+
+            return all.Where(s =>
+                (s.SubCategoryId.HasValue && subToCat.TryGetValue(s.SubCategoryId.Value, out var catId)
+                    ? catId
+                    : s.DirectoryEntry?.SubCategory?.CategoryId) == categoryId);
         }
 
         public async Task<DateTime?> GetLastSponsorExpirationDateAsync()

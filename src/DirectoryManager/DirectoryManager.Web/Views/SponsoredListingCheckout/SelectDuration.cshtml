@@ -125,6 +125,10 @@
         @Html.AntiForgeryToken()
 
         <input type="hidden" name="directoryEntryId" value="@ViewBag.DirectoryEntryId" />
+        @if (ViewBag.ScopeSubCategoryId != null)
+        {
+            <input type="hidden" name="scopeSubCategoryId" value="@ViewBag.ScopeSubCategoryId" />
+        }
         @if (reservationGuid.HasValue)
         {
             <input type="hidden" name="rsvId" value="@reservationGuid" />

@@ -35,6 +35,8 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<Subcategory> Subcategories { get; set; }
         public DbSet<Tag> Tags { get; set; }
         public DbSet<DirectoryEntryTag> DirectoryEntryTags { get; set; }
+
+        public DbSet<DirectoryEntryAdditionalSubcategory> DirectoryEntryAdditionalSubcategories { get; set; }
         public DbSet<SearchLog> SearchLogs { get; set; }
 
         public DbSet<DirectoryFilterLog> DirectoryFilterLogs { get; set; }

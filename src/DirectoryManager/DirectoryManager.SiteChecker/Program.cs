@@ -17,6 +17,7 @@ const string TorProxyHostKey = "TorProxy:Host";
 const string TorProxyPortKey = "TorProxy:Port";
 const string SiteOfflineMessage = "site offline";
 const string SslProblemPrefix = "SSL certificate problem";
+const string AdditionalSubcategoryLinkPrefix = "Additional subcategory link offline";
 
 // Keep this in sync with DirectoryManager.Web.Constants.IntegerConstants.MaxAdditionalLinks.
 // The edit form and the admin approval/sync path both cap related links at 3,
@@ -343,6 +344,29 @@ async Task CheckAndSubmitAsync(
             sslIssueToFlag);
     }
 
+    // ── 5. Links of the listing's ADDITIONAL subcategories ────────────────
+    // Only links an alternative sets itself (blank ones reuse the main links, checked above).
+    // A dead alternative link is a warning for the moderator, never a removal of the listing.
+    if (!clearnetShouldFlag && !onionShouldFlag)
+    {
+        var scopedAltRepo = scope.ServiceProvider.GetRequiredService<IDirectoryEntryAdditionalSubcategoryRepository>();
+        var dead = await CheckAdditionalSubcategoryLinksAsync(dirEntry, scopedAltRepo, checker, torChecker, torAvailable, torSem);
+        if (dead.Count > 0)
+        {
+            var problem = $"{AdditionalSubcategoryLinkPrefix}: {string.Join("; ", dead)}";
+            if (!await scopedSubmissionRepo.HasPendingWithNoteContainingAsync(dirEntry.DirectoryEntryId, dirEntry.Link, AdditionalSubcategoryLinkPrefix))
+            {
+                await CreateAutomatedSubmissionAsync(
+                    dirEntry, scopedSubmissionRepo, scopedEntryTagRepo, scopedAdditionalLinkRepo, scopedGuaranteeRepo,
+                    dirEntry.DirectoryStatus, dirEntry.Note, $"(automated submission) {problem}.", problem);
+            }
+            else
+            {
+                Console.WriteLine($"Skipping additional-subcategory warning for entry ID {dirEntry.DirectoryEntryId}: one is already pending.");
+            }
+        }
+    }
+
     if (clearnetShouldFlag || onionShouldFlag)
     {
         await CreateOfflineSubmissionIfNotExists(
@@ -354,6 +378,53 @@ async Task CheckAndSubmitAsync(
             clearnetShouldFlag,
             onionShouldFlag);
     }
+}
+
+// Checks the links an entry's additional subcategories set themselves. Returns
+// "Subcategory: url" for each one that is offline (onions only on a definitive Offline).
+async Task<List<string>> CheckAdditionalSubcategoryLinksAsync(
+    DirectoryEntry entry,
+    IDirectoryEntryAdditionalSubcategoryRepository altRepo,
+    WebPageChecker checker,
+    TorWebPageChecker torChecker,
+    bool torAvailable,
+    SemaphoreSlim torSem)
+{
+    var dead = new List<string>();
+    var rows = await altRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId);
+    foreach (var alt in rows)
+    {
+        var label = alt.SubCategory?.Name ?? $"subcategory {alt.SubCategoryId}";
+
+        var clearnet = new[] { alt.Link, alt.LinkA }
+            .Where(u => !string.IsNullOrWhiteSpace(u))
+            .Select(u => u!.Trim())
+            .Where(u => !u.Contains(".onion", StringComparison.OrdinalIgnoreCase) &&
+                        !u.Contains(".i2p", StringComparison.OrdinalIgnoreCase))
+            .Where(u => !string.Equals(u, entry.Link, StringComparison.OrdinalIgnoreCase) &&
+                        !string.Equals(u, entry.LinkA, StringComparison.OrdinalIgnoreCase))
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+
+        if (clearnet.Count > 0 && await CheckClearnetUrlsAsync(clearnet, checker))
+        {
+            dead.Add($"{label}: {clearnet[0]}");
+        }
+
+        if (torAvailable &&
+            !string.IsNullOrWhiteSpace(alt.Link2) &&
+            alt.Link2.Contains(".onion", StringComparison.OrdinalIgnoreCase) &&
+            !string.Equals(alt.Link2.Trim(), entry.Link2, StringComparison.OrdinalIgnoreCase))
+        {
+            var outcome = await CheckOnionWithThrottleAsync(alt.Link2.Trim(), torChecker, torSem);
+            if (outcome == CheckOutcome.Offline)
+            {
+                dead.Add($"{label}: {alt.Link2.Trim()}");
+            }
+        }
+    }
+
+    return dead;
 }
 
 async Task CreateOfflineSubmissionIfNotExists(

@@ -36,20 +36,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync()
         {
-            // build a filtered entries set once
-            var activeEntries = this.context.DirectoryEntries
-                .Where(de =>
-                    de.DirectoryStatus != DirectoryStatus.Removed &&
-                    de.DirectoryStatus != DirectoryStatus.Unknown);
-
-            // join subcategories → entries, distinct, include Category
+            // Active = has a live listing whose main OR additional subcategory is this one.
             var q = this.context.Subcategories
-                .Join(
-                      activeEntries,
-                      sc => sc.SubCategoryId,
-                      de => de.SubCategoryId,
-                      (sc, de) => sc)
-                .Distinct()
+                .Where(sc =>
+                    this.ActiveDirectoryEntries().Any(e => e.SubCategoryId == sc.SubCategoryId) ||
+                    this.ActiveAdditionalSubcategories().Any(a => a.SubCategoryId == sc.SubCategoryId))
                 .Include(sc => sc.Category)
                 .AsNoTracking()
                 .OrderBy(sc => sc.Name);
@@ -97,7 +88,8 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .Where(subCategory =>
                     subCategory.CategoryId == categoryId &&
                     subCategory.SubCategoryKey == subCategoryKey &&
-                    this.ActiveDirectoryEntries().Any(entry => entry.SubCategoryId == subCategory.SubCategoryId))
+                    (this.ActiveDirectoryEntries().Any(entry => entry.SubCategoryId == subCategory.SubCategoryId) ||
+                     this.ActiveAdditionalSubcategories().Any(a => a.SubCategoryId == subCategory.SubCategoryId)))
                 .OrderBy(subCategory => subCategory.Name)
                 .FirstOrDefaultAsync();
         }
@@ -120,17 +112,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<Subcategory>> GetActiveSubcategoriesAsync(int categoryId)
         {
-            return await (
-                from sc in this.context.Subcategories.AsNoTracking()
-                join e in this.context.DirectoryEntries.AsNoTracking()
-                    on sc.SubCategoryId equals e.SubCategoryId
-                where sc.CategoryId == categoryId
-                   && e.DirectoryStatus != DirectoryStatus.Removed
-                   && e.DirectoryStatus != DirectoryStatus.Unknown
-                select sc)
-            .Distinct()
-            .OrderBy(sc => sc.Name)
-            .ToListAsync();
+            return await this.context.Subcategories.AsNoTracking()
+                .Where(sc => sc.CategoryId == categoryId &&
+                    (this.ActiveDirectoryEntries().Any(e => e.SubCategoryId == sc.SubCategoryId) ||
+                     this.ActiveAdditionalSubcategories().Any(a => a.SubCategoryId == sc.SubCategoryId)))
+                .OrderBy(sc => sc.Name)
+                .ToListAsync();
         }
 
         public async Task<Dictionary<int, DateTime>> GetAllSubCategoriesLastChangeDatesAsync()
@@ -162,16 +149,25 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var query = this.context.Subcategories
                 .Include(sc => sc.Category)
                 .Where(subCategory =>
-                    this.ActiveDirectoryEntries().Any(entry => entry.SubCategoryId == subCategory.SubCategoryId));
+                    this.ActiveDirectoryEntries().Any(entry => entry.SubCategoryId == subCategory.SubCategoryId) ||
+                    this.ActiveAdditionalSubcategories().Any(a => a.SubCategoryId == subCategory.SubCategoryId));
 
             if (minimumInSubcategory.HasValue)
             {
                 query = query.Where(subCategory =>
-                    this.ActiveDirectoryEntries().Count(entry => entry.SubCategoryId == subCategory.SubCategoryId) >= minimumInSubcategory.Value);
+                    this.ActiveDirectoryEntries().Count(entry => entry.SubCategoryId == subCategory.SubCategoryId)
+                    + this.ActiveAdditionalSubcategories().Count(a => a.SubCategoryId == subCategory.SubCategoryId)
+                    >= minimumInSubcategory.Value);
             }
 
             return await query.OrderBy(sc => sc.Name).ToListAsync();
         }
+
+        // Additional-subcategory rows whose listing is live (status is shared with the main listing).
+        private IQueryable<DirectoryEntryAdditionalSubcategory> ActiveAdditionalSubcategories() =>
+            this.context.DirectoryEntryAdditionalSubcategories
+                .Where(a => a.DirectoryEntry.DirectoryStatus != DirectoryStatus.Unknown &&
+                            a.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed);
 
         // Reusable status filter for directory entries
         private IQueryable<DirectoryEntry> ActiveDirectoryEntries() =>

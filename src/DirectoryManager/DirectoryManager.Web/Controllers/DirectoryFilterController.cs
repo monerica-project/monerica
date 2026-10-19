@@ -1,4 +1,4 @@
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
@@ -35,6 +35,7 @@ public class DirectoryFilterController : Controller
     private readonly IMemoryCache memoryCache;
     private readonly ITagRepository tagRepo;
     private readonly IDirectoryFilterLogRepository filterLogRepo;
+    private readonly IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepo;
 
     public DirectoryFilterController(
         IDirectoryEntryRepository entryRepo,
@@ -45,7 +46,8 @@ public class DirectoryFilterController : Controller
         ICacheService cacheService,
         ISponsoredListingRepository sponsoredListingRepository,
         IMemoryCache memoryCache,
-        IDirectoryFilterLogRepository filterLogRepo)
+        IDirectoryFilterLogRepository filterLogRepo,
+        IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepo)
     {
         this.entryRepo = entryRepo;
         this.entryReviewsRepo = entryReviewsRepo;
@@ -56,6 +58,7 @@ public class DirectoryFilterController : Controller
         this.sponsoredListingRepository = sponsoredListingRepository;
         this.memoryCache = memoryCache;
         this.filterLogRepo = filterLogRepo;
+        this.additionalSubcategoryRepo = additionalSubcategoryRepo;
     }
 
     [HttpGet("filter")]
@@ -369,6 +372,20 @@ public class DirectoryFilterController : Controller
     }
 
     // -------------------------
+    // A sponsor whose sponsorship is for one of its ADDITIONAL subcategories shows that
+    // subcategory's name/links/description.
+    private async Task<DirectoryEntry> AsShownInSubcategoryAsync(DirectoryEntry entry, int subCategoryId)
+    {
+        if (entry.SubCategoryId == subCategoryId)
+        {
+            return entry;
+        }
+
+        var altHere = (await this.additionalSubcategoryRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId))
+            .FirstOrDefault(a => a.SubCategoryId == subCategoryId);
+        return altHere?.ApplyTo(entry) ?? entry;
+    }
+
     // Sponsor models for filter page
     // -------------------------
     private async Task<(CategorySponsorModel? category, SubcategorySponsorModel? subcategory)> GetSponsorModelsAsync(
@@ -397,7 +414,7 @@ public class DirectoryFilterController : Controller
                 // Hide the "Advertise here" CTA when this subcategory can't buy sponsorship.
                 SponsorshipDisabled = subcategory?.SponsorshipDisabled == true,
                 DirectoryEntry = (subSponsor?.DirectoryEntry != null)
-                    ? BuildSponsorEntryVm(subSponsor.DirectoryEntry, link2Name, link3Name)
+                    ? BuildSponsorEntryVm(await this.AsShownInSubcategoryAsync(subSponsor.DirectoryEntry, subId), link2Name, link3Name)
                     : null
             };
         }

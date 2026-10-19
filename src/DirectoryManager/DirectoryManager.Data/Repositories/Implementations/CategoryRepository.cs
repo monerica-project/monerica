@@ -69,18 +69,17 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<Category>> GetActiveCategoriesAsync()
         {
-            return await (
-                from c in this.context.Categories.AsNoTracking()
-                join sc in this.context.Subcategories.AsNoTracking()
-                    on c.CategoryId equals sc.CategoryId
-                join e in this.context.DirectoryEntries.AsNoTracking()
-                    on sc.SubCategoryId equals e.SubCategoryId
-                where e.DirectoryStatus != DirectoryStatus.Removed
-                   && e.DirectoryStatus != DirectoryStatus.Unknown
-                select c)
-            .Distinct()
-            .OrderBy(c => c.Name)
-            .ToListAsync();
+            // Active = some subcategory in it has a live listing (main or additional subcategory).
+            return await this.context.Categories.AsNoTracking()
+                .Where(c => this.context.Subcategories.Any(sc => sc.CategoryId == c.CategoryId &&
+                    (this.context.DirectoryEntries.Any(e => e.SubCategoryId == sc.SubCategoryId
+                        && e.DirectoryStatus != DirectoryStatus.Removed
+                        && e.DirectoryStatus != DirectoryStatus.Unknown) ||
+                     this.context.DirectoryEntryAdditionalSubcategories.Any(a => a.SubCategoryId == sc.SubCategoryId
+                        && a.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed
+                        && a.DirectoryEntry.DirectoryStatus != DirectoryStatus.Unknown))))
+                .OrderBy(c => c.Name)
+                .ToListAsync();
         }
 
         public async Task<Dictionary<int, DateTime>> GetAllCategoriesLastChangeDatesAsync()

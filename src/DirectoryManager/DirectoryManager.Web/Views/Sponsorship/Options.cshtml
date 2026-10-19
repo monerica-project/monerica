@@ -268,7 +268,7 @@
  required="required" />
         </div>
         <div class="u-mt-6px-opacity-85-fs-9em">
-            We’ll email you the moment a slot opens — pick which slots below.
+            We’ll email you the moment a slot opens — pick which slots below. Your email is never displayed publicly.
         </div>
 
         <div class="ui-checks u-mt-12px">
@@ -399,6 +399,20 @@
                 CanAdvertise = Model.CanAdvertise,
                 CheckoutUrl = checkoutUrl,
                 DetailsHtml = subDetailsHtml
+            })
+        }
+
+        @foreach (var alt in Model.AdditionalSubcategories)
+        {
+            @await Html.PartialAsync("_TypeOptionCard", new TypeOptionCardVm
+            {
+                Option = alt.Option,
+                DirectoryEntryId = Model.DirectoryEntryId,
+                TypeId = alt.SubCategoryId,
+                CanAdvertise = Model.CanAdvertise,
+                CheckoutUrl = checkoutUrl,
+                DetailsHtml = subDetailsHtml,
+                ShownAsName = alt.ShownAsName
             })
         }
 

@@ -157,9 +157,25 @@ public class SearchController : Controller
         var allSponsors = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
         var sponsorIds = new HashSet<int>(allSponsors.Select(s => s.DirectoryEntryId));
 
+        // A result shown under one of the listing's ADDITIONAL subcategories only counts as
+        // sponsored if it paid for that exact subcategory (or holds the site-wide main slot);
+        // a sponsorship elsewhere doesn't carry over to the alternative.
+        var shownViaAlternative = result.Items
+            .Where(e => e.ShownViaAdditionalSubcategoryId.HasValue)
+            .ToDictionary(e => e.DirectoryEntryId, e => e.SubCategoryId);
+
         foreach (var item in vmList)
         {
-            item.IsSponsored = sponsorIds.Contains(item.DirectoryEntryId);
+            if (shownViaAlternative.TryGetValue(item.DirectoryEntryId, out var altSubId))
+            {
+                item.IsSponsored = allSponsors.Any(s => s.DirectoryEntryId == item.DirectoryEntryId &&
+                    (s.SponsorshipType == SponsorshipType.MainSponsor ||
+                     (s.SponsorshipType == SponsorshipType.SubcategorySponsor && s.SubCategoryId == altSubId)));
+            }
+            else
+            {
+                item.IsSponsored = sponsorIds.Contains(item.DirectoryEntryId);
+            }
         }
 
         // ✅ Ratings for the CURRENT PAGE (approved + has value) via repository

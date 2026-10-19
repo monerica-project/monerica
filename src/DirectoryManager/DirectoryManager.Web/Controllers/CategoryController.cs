@@ -129,14 +129,16 @@ namespace DirectoryManager.Web.Controllers
                             s.DirectoryEntry!.SubCategory?.CategoryId == category.CategoryId)
                 .Select(s => s.DirectoryEntry!.DirectoryEntryId);
 
-            var subCatIds = subCatSponsors
-                .Where(s => s.DirectoryEntry != null &&
-                            s.DirectoryEntry!.SubCategory?.CategoryId == category.CategoryId)
-                .Select(s => s.DirectoryEntry!.DirectoryEntryId);
+            // A subcategory sponsorship only highlights the row for the subcategory it was bought
+            // for (it may be one of the listing's additional subcategories), not the listing's
+            // other rows on this page.
+            var sponsoredSubcategoryRows = subCatSponsors
+                .Where(s => s.DirectoryEntry != null)
+                .Select(s => (s.DirectoryEntryId, s.SubCategoryId ?? s.DirectoryEntry!.SubCategoryId))
+                .ToHashSet();
 
             var sponsoredDirectoryEntryIds = mainIds
                 .Concat(categoryIds)
-                .Concat(subCatIds)
                 .Distinct()
                 .ToHashSet();
 
@@ -151,6 +153,7 @@ namespace DirectoryManager.Web.Controllers
                 MetaDescription = category.MetaDescription,
 
                 SponsoredDirectoryEntryIds = sponsoredDirectoryEntryIds,
+                SponsoredSubcategoryRows = sponsoredSubcategoryRows,
 
                 PagedEntries = new PagedResult<DirectoryEntryViewModel>
                 {

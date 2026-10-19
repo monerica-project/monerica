@@ -18,5 +18,8 @@ namespace DirectoryManager.Web.Models
         public int CurrentPage { get; set; }
         public int PageSize { get; set; }
         public HashSet<int> SponsoredDirectoryEntryIds { get; set; }
+
+        // (listing id, subcategory id) pairs with an active subcategory sponsorship.
+        public HashSet<(int DirectoryEntryId, int SubCategoryId)> SponsoredSubcategoryRows { get; set; } = new ();
     }
 }

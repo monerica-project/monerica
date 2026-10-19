@@ -4,6 +4,9 @@
     {
         public const int MaxMainSponsoredListings = 5;
 
+        // Extra subcategories a listing can also appear in, besides its main one.
+        public const int MaxAdditionalSubcategories = 3;
+
         public const int MinRequiredSubcategories = 2;
         public const int MaxSubcategorySponsoredListings = 1;
 

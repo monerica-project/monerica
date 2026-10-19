@@ -14,6 +14,7 @@
 @inject ISubcategoryRepository subCatRepo
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository directoryEntryReviewRepository
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepo
 
 @{
     ViewData[StringConstants.TitleHeader] = string.Format(
@@ -103,39 +104,52 @@
             }
         }
 
+        // A sponsorship bought for one of the listing's ADDITIONAL subcategories shows that
+        // subcategory's name/links/description here (only on this subcategory's page).
+        var sponsorEntry = subCategorySponsor?.DirectoryEntry;
+        if (sponsorEntry != null && sponsorEntry.SubCategoryId != Model.SubCategoryId)
+        {
+            var altRows = await additionalSubcategoryRepo.GetByDirectoryEntryIdAsync(sponsorEntry.DirectoryEntryId);
+            var altHere = altRows.FirstOrDefault(a => a.SubCategoryId == Model.SubCategoryId);
+            if (altHere != null)
+            {
+                sponsorEntry = altHere.ApplyTo(sponsorEntry);
+            }
+        }
+
         var subCategorySponsorModel = new DirectoryManager.Web.Models.SubcategorySponsorModel
         {
             SubCategoryId = Model.SubCategoryId,
             TotalActiveSubCategoryListings = activeEntries.Count(),
             SponsorshipDisabled = (ViewBag.SponsorshipDisabled as bool?) ?? false,
-            DirectoryEntry = (subCategorySponsor?.DirectoryEntry != null)
+            DirectoryEntry = (sponsorEntry != null)
                 ? new DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel
                 {
-                    CountryCode = subCategorySponsor.DirectoryEntry.CountryCode,
+                    CountryCode = sponsorEntry!.CountryCode,
 
                     DateOption = DirectoryManager.DisplayFormatting.Enums.DateDisplayOption.NotDisplayed,
 
-                    Link = subCategorySponsor.DirectoryEntry.Link,
-                    LinkA = subCategorySponsor.DirectoryEntry.LinkA,
+                    Link = sponsorEntry!.Link,
+                    LinkA = sponsorEntry!.LinkA,
 
-                    Name = subCategorySponsor.DirectoryEntry.Name,
-                    Description = subCategorySponsor.DirectoryEntry.Description,
-                    DirectoryEntryId = subCategorySponsor.DirectoryEntry.DirectoryEntryId,
-                    DirectoryEntryKey = subCategorySponsor.DirectoryEntry.DirectoryEntryKey,
-                    DirectoryStatus = subCategorySponsor.DirectoryEntry.DirectoryStatus,
+                    Name = sponsorEntry!.Name,
+                    Description = sponsorEntry!.Description,
+                    DirectoryEntryId = sponsorEntry!.DirectoryEntryId,
+                    DirectoryEntryKey = sponsorEntry!.DirectoryEntryKey,
+                    DirectoryStatus = sponsorEntry!.DirectoryStatus,
 
-                    Link2 = subCategorySponsor.DirectoryEntry.Link2,
-                    Link2A = subCategorySponsor.DirectoryEntry.Link2A,
-                    Link3 = subCategorySponsor.DirectoryEntry.Link3,
-                    Link3A = subCategorySponsor.DirectoryEntry.Link3A,
+                    Link2 = sponsorEntry!.Link2,
+                    Link2A = sponsorEntry!.Link2A,
+                    Link3 = sponsorEntry!.Link3,
+                    Link3A = sponsorEntry!.Link3A,
 
-                    Location = subCategorySponsor.DirectoryEntry.Location,
-                    Note = subCategorySponsor.DirectoryEntry.Note,
-                    Processor = subCategorySponsor.DirectoryEntry.Processor,
-                    SubCategoryId = subCategorySponsor.DirectoryEntry.SubCategoryId,
+                    Location = sponsorEntry!.Location,
+                    Note = sponsorEntry!.Note,
+                    Processor = sponsorEntry!.Processor,
+                    SubCategoryId = sponsorEntry!.SubCategoryId,
 
-                    CreateDate = subCategorySponsor.DirectoryEntry.CreateDate,
-                    UpdateDate = subCategorySponsor.DirectoryEntry.UpdateDate,
+                    CreateDate = sponsorEntry!.CreateDate,
+                    UpdateDate = sponsorEntry!.UpdateDate,
 
                     LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage,
                     IsSponsored = true,
@@ -145,7 +159,7 @@
                     Link3Name = link3Name,
 
                     // ✅ needed if rating count links to #reviews
-                    ItemPath = "/site/" + subCategorySponsor.DirectoryEntry.DirectoryEntryKey,
+                    ItemPath = "/site/" + sponsorEntry!.DirectoryEntryKey,
 
                     // ✅ ratings from RatingSummaryDto
                     AverageRating = (sponsorRating != null && sponsorRating.ReviewCount > 0)

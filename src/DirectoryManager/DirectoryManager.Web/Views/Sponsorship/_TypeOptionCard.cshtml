@@ -59,7 +59,8 @@
         Url.Action("SelectDuration", "SponsoredListing", new
         {
             directoryEntryId = Model.DirectoryEntryId,
-            sponsorshipType = opt.SponsorshipType
+            sponsorshipType = opt.SponsorshipType,
+            scopeSubCategoryId = subCategoryId
         }) ?? "/sponsoredlisting/selectduration";
 
     var hasWaitlist = opt.Waitlist != null && opt.Waitlist.Count > 0;
@@ -75,6 +76,10 @@
     <div class="u-flex-justify-space-between-items-flex-start-gap-12px">
         <div>
             <h3 class="u-m-0-0-6px-0">@title</h3>
+            @if (!string.IsNullOrWhiteSpace(Model.ShownAsName))
+            {
+                <div class="u-opacity-85">Additional subcategory &middot; listed here as <strong>@Model.ShownAsName</strong></div>
+            }
 
             <div class="u-opacity-9">
                 @if (!eligible)

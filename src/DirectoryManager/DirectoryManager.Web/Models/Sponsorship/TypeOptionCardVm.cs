@@ -13,6 +13,9 @@ namespace DirectoryManager.Web.Models.Sponsorship
 
         public bool CanAdvertise { get; set; }
 
+        // For an additional-subcategory option: the name the listing appears under there.
+        public string? ShownAsName { get; set; }
+
         // You can pass this in, but the partial can also compute Url.Action
         public string CheckoutUrl { get; set; } = "/sponsoredlisting/start";
 

@@ -135,6 +135,27 @@ namespace DirectoryManager.Data.Models
         public ICollection<DirectoryEntryTag> EntryTags { get; set; }
            = new List<DirectoryEntryTag>();
 
+        /// <summary>Extra subcategories this listing also appears in (admin-managed).</summary>
+        public ICollection<DirectoryEntryAdditionalSubcategory> AdditionalSubcategories { get; set; }
+           = new List<DirectoryEntryAdditionalSubcategory>();
+
+        /// <summary>
+        /// Display only: set on the copy made by <see cref="DirectoryEntryAdditionalSubcategory.ApplyTo"/>
+        /// when this listing is being shown in one of its additional subcategories.
+        /// </summary>
+        [NotMapped]
+        public int? ShownViaAdditionalSubcategoryId { get; set; }
+
+        /// <summary>
+        /// The listing's additional links (loaded for search only), so a search for a domain or
+        /// app name that's only in an additional link still finds the listing.
+        /// </summary>
+        [NotMapped]
+        public List<string> SearchAdditionalLinks { get; set; } = new ();
+
+        /// <summary>A display-only copy (same references for collections and navigations).</summary>
+        public DirectoryEntry ShallowCopy() => (DirectoryEntry)this.MemberwiseClone();
+
         public bool Equals(DirectoryEntry? other)
         {
             if (other == null)

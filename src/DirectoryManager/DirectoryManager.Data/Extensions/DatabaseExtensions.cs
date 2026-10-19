@@ -55,6 +55,7 @@ namespace DirectoryManager.Data.Extensions
 
             services.AddScoped<IDirectoryEntryReviewCommentRepository, DirectoryEntryReviewCommentRepository>();
             services.AddScoped<IAdditionalLinkRepository, AdditionalLinkRepository>();
+            services.AddScoped<IDirectoryEntryAdditionalSubcategoryRepository, DirectoryEntryAdditionalSubcategoryRepository>();
             services.AddScoped<IDirectoryEntryGuaranteeRepository, DirectoryEntryGuaranteeRepository>();
             services.AddScoped<ISiteCheckStatusRepository, SiteCheckStatusRepository>();
 

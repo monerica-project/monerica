@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Constants;
+﻿using System.Linq.Expressions;
+using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Helpers;
@@ -411,7 +412,29 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync()
                 .ConfigureAwait(false);
 
-            return list.ToDictionary(x => x.SubCategoryId, x => x.LastModified);
+            var result = list.ToDictionary(x => x.SubCategoryId, x => x.LastModified);
+
+            // A listing shown via an additional subcategory changes that page too.
+            var extra = await this.context.DirectoryEntryAdditionalSubcategories
+                .Select(a => new
+                {
+                    a.SubCategoryId,
+                    Row = a.UpdateDate ?? a.CreateDate,
+                    Entry = a.DirectoryEntry.UpdateDate ?? a.DirectoryEntry.CreateDate
+                })
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            foreach (var x in extra)
+            {
+                var last = x.Row > x.Entry ? x.Row : x.Entry;
+                if (!result.TryGetValue(x.SubCategoryId, out var cur) || last > cur)
+                {
+                    result[x.SubCategoryId] = last;
+                }
+            }
+
+            return result;
         }
 
         public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByStatusAsync(
@@ -468,11 +491,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             try
             {
-                return await this.ActiveQuery()
+                var mains = await this.ActiveQuery()
                     .Where(e => e.SubCategoryId == subCategoryId)
-                    .OrderBy(e => e.Name)
                     .ToListAsync()
                     .ConfigureAwait(false);
+
+                var extras = await this.LoadAdditionalSubcategoryCopiesAsync(a => a.SubCategoryId == subCategoryId, excludeUnknown: true)
+                    .ConfigureAwait(false);
+
+                return mains.Concat(extras).OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase).ToList();
             }
             catch (Exception ex)
             {
@@ -483,11 +510,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
         /// <inheritdoc/>
         public async Task<IEnumerable<DirectoryEntry>> GetActiveEntriesByCategoryAsync(int categoryId)
         {
-            return await this.ActiveQuery()
+            var mains = await this.ActiveQuery()
                 .Where(e => e.SubCategory!.CategoryId == categoryId)
-                .OrderBy(e => e.Name)
                 .ToListAsync()
                 .ConfigureAwait(false);
+
+            var extras = await this.LoadAdditionalSubcategoryCopiesAsync(a => a.SubCategory.CategoryId == categoryId, excludeUnknown: true)
+                .ConfigureAwait(false);
+
+            return mains.Concat(extras).OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase).ToList();
         }
 
         /// <inheritdoc/>
@@ -501,32 +532,34 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<PagedResult<DirectoryEntry>> ListEntriesByCategoryAsync(int categoryId, int page, int pageSize)
         {
-            var query = this.context.DirectoryEntries
+            var mains = await this.context.DirectoryEntries
                 .Include(e => e.SubCategory)
                 .ThenInclude(sc => sc.Category)
                 .Where(e =>
                     e.DirectoryStatus != DirectoryStatus.Removed &&
                     (e.SubCategory != null &&
                     e.SubCategory.CategoryId == categoryId))
-                .OrderBy(e => e.SubCategory!.Name)
-                .ThenBy(e => e.Name);
-
-            var total = await query.CountAsync();
-            var items = await query
-                .Skip(PagingHelper.Skip(page, pageSize))
-                .Take(PagingHelper.Take(pageSize))
                 .ToListAsync();
+
+            // Listings shown in this category through an additional subcategory, with that
+            // subcategory's name/links/description, grouped under that subcategory.
+            var extras = await this.LoadAdditionalSubcategoryCopiesAsync(a => a.SubCategory.CategoryId == categoryId, excludeUnknown: false);
+
+            var all = mains.Concat(extras)
+                .OrderBy(e => e.SubCategory?.Name, StringComparer.OrdinalIgnoreCase)
+                .ThenBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
             return new PagedResult<DirectoryEntry>
             {
-                TotalCount = total,
-                Items = items
+                TotalCount = all.Count,
+                Items = all.Skip(PagingHelper.Skip(page, pageSize)).Take(PagingHelper.Take(pageSize)).ToList()
             };
         }
 
         public async Task<Dictionary<int, int>> GetCategoryEntryCountsAsync()
         {
-            return await this.context.DirectoryEntries
+            var counts = await this.context.DirectoryEntries
                 .Where(e => e.DirectoryStatus != DirectoryStatus.Removed)
                 .GroupBy(e => e.SubCategory.CategoryId)
                 .Select(g => new
@@ -535,11 +568,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     Count = g.Count()
                 })
                 .ToDictionaryAsync(x => x.CategoryId, x => x.Count);
+
+            var extra = await this.context.DirectoryEntryAdditionalSubcategories
+                .Where(a => a.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed)
+                .GroupBy(a => a.SubCategory.CategoryId)
+                .Select(g => new { CategoryId = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            foreach (var x in extra)
+            {
+                counts[x.CategoryId] = counts.GetValueOrDefault(x.CategoryId) + x.Count;
+            }
+
+            return counts;
         }
 
         public async Task<Dictionary<int, int>> GetSubcategoryEntryCountsAsync()
         {
-            return await this.context.DirectoryEntries
+            var counts = await this.context.DirectoryEntries
                 .Where(de => de.DirectoryStatus != DirectoryStatus.Removed)
                 .GroupBy(de => de.SubCategoryId)
                 .Select(g => new
@@ -548,6 +594,19 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     Count = g.Count()
                 })
                 .ToDictionaryAsync(g => g.SubCategoryId, g => g.Count);
+
+            var extra = await this.context.DirectoryEntryAdditionalSubcategories
+                .Where(a => a.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed)
+                .GroupBy(a => a.SubCategoryId)
+                .Select(g => new { SubCategoryId = g.Key, Count = g.Count() })
+                .ToListAsync();
+
+            foreach (var x in extra)
+            {
+                counts[x.SubCategoryId] = counts.GetValueOrDefault(x.SubCategoryId) + x.Count;
+            }
+
+            return counts;
         }
 
         public async Task<PagedResult<DirectoryEntry>> GetActiveEntriesBySubcategoryPagedAsync(
@@ -555,21 +614,22 @@ namespace DirectoryManager.Data.Repositories.Implementations
             int page,
             int pageSize)
         {
-            var query = this.context.DirectoryEntries
+            var mains = await this.context.DirectoryEntries
                 .Where(e => e.SubCategoryId == subCategoryId
                             && e.DirectoryStatus != DirectoryStatus.Removed)
-                .OrderBy(e => e.Name);
-
-            var total = await query.CountAsync();
-            var items = await query
-                .Skip(PagingHelper.Skip(page, pageSize))
-                .Take(PagingHelper.Take(pageSize))
                 .ToListAsync();
+
+            // Listings shown here through an additional subcategory, with that row's overrides.
+            var extras = await this.LoadAdditionalSubcategoryCopiesAsync(a => a.SubCategoryId == subCategoryId, excludeUnknown: false);
+
+            var all = mains.Concat(extras)
+                .OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
 
             return new PagedResult<DirectoryEntry>
             {
-                TotalCount = total,
-                Items = items
+                TotalCount = all.Count,
+                Items = all.Skip(PagingHelper.Skip(page, pageSize)).Take(PagingHelper.Take(pageSize)).ToList()
             };
         }
 
@@ -594,6 +654,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             return await this.context.DirectoryEntries
                 .Where(de => de.SubCategory.CategoryId == categoryId && de.DirectoryStatus != DirectoryStatus.Removed)
+                .CountAsync()
+                + await this.context.DirectoryEntryAdditionalSubcategories
+                .Where(a => a.SubCategory.CategoryId == categoryId && a.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed)
                 .CountAsync();
         }
 
@@ -601,6 +664,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             return await this.context.DirectoryEntries
                 .Where(e => e.SubCategoryId == subCategoryId && e.DirectoryStatus != DirectoryStatus.Removed)
+                .CountAsync()
+                + await this.context.DirectoryEntryAdditionalSubcategories
+                .Where(a => a.SubCategoryId == subCategoryId && a.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed)
                 .CountAsync();
         }
 
@@ -889,6 +955,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
 
             var items = await this.LoadEntriesByIdsPreservingOrderAsync(orderedIds).ConfigureAwait(false);
+            items = await this.ShowAsInFilteredSubcategoryAsync(items, q).ConfigureAwait(false);
 
             return new PagedResult<DirectoryEntry>
             {
@@ -1219,12 +1286,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
             if (q.CategoryId is > 0)
             {
                 int catId = q.CategoryId.Value;
-                baseQ = baseQ.Where(e => e.SubCategory != null && e.SubCategory.CategoryId == catId);
+                baseQ = baseQ.Where(e =>
+                    (e.SubCategory != null && e.SubCategory.CategoryId == catId) ||
+                    e.AdditionalSubcategories.Any(a => a.SubCategory.CategoryId == catId));
 
                 if (q.SubCategoryId is > 0)
                 {
                     int subId = q.SubCategoryId.Value;
-                    baseQ = baseQ.Where(e => e.SubCategoryId == subId);
+                    baseQ = baseQ.Where(e =>
+                        e.SubCategoryId == subId ||
+                        e.AdditionalSubcategories.Any(a => a.SubCategoryId == subId));
                 }
             }
 
@@ -1517,13 +1588,92 @@ namespace DirectoryManager.Data.Repositories.Implementations
         }
 
         // Whole directory (a few thousand rows) with the fields search needs; ranking is in memory.
-        private Task<List<DirectoryEntry>> LoadSearchableEntriesAsync(bool includeRemoved)
+        private async Task<List<DirectoryEntry>> LoadSearchableEntriesAsync(bool includeRemoved)
         {
-            return this.BaseQuery()
+            var entries = await this.BaseQuery()
+                .Include(e => e.AdditionalSubcategories).ThenInclude(a => a.SubCategory).ThenInclude(sc => sc.Category)
                 .AsNoTracking()
                 .AsSplitQuery()
                 .Where(e => includeRemoved || e.DirectoryStatus != DirectoryStatus.Removed)
-                .ToListAsync();
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            var links = (await this.context.AdditionalLinks
+                    .AsNoTracking()
+                    .Select(l => new { l.DirectoryEntryId, l.Link })
+                    .ToListAsync()
+                    .ConfigureAwait(false))
+                .ToLookup(l => l.DirectoryEntryId, l => l.Link);
+
+            foreach (var e in entries)
+            {
+                e.SearchAdditionalLinks = links[e.DirectoryEntryId].ToList();
+            }
+
+            return entries;
+        }
+
+        /// <summary>
+        /// Display copies of listings shown in additional subcategories that match
+        /// <paramref name="filter"/>: each copy has that subcategory's name/links/description
+        /// overrides applied and its SubCategory set to the additional one. Never save them.
+        /// </summary>
+        private async Task<List<DirectoryEntry>> LoadAdditionalSubcategoryCopiesAsync(
+            Expression<Func<DirectoryEntryAdditionalSubcategory, bool>> filter,
+            bool excludeUnknown)
+        {
+            var rows = await this.context.DirectoryEntryAdditionalSubcategories
+                .AsNoTracking()
+                .Include(a => a.SubCategory).ThenInclude(sc => sc.Category)
+                .Include(a => a.DirectoryEntry).ThenInclude(e => e.SubCategory!).ThenInclude(sc => sc.Category)
+                .Include(a => a.DirectoryEntry).ThenInclude(e => e.EntryTags).ThenInclude(et => et.Tag)
+                .Where(a => a.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed &&
+                            (!excludeUnknown || a.DirectoryEntry.DirectoryStatus != DirectoryStatus.Unknown))
+                .Where(filter)
+                .AsSplitQuery()
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            return rows.Select(a => a.ApplyTo(a.DirectoryEntry)).ToList();
+        }
+
+        /// <summary>
+        /// Filter results limited to a subcategory (or category) that a listing only matched
+        /// through one of its ADDITIONAL subcategories are shown with that subcategory's wording.
+        /// </summary>
+        private async Task<List<DirectoryEntry>> ShowAsInFilteredSubcategoryAsync(List<DirectoryEntry> items, DirectoryFilterQuery q)
+        {
+            int? subId = q.SubCategoryId is > 0 ? q.SubCategoryId : null;
+            int? catId = q.CategoryId is > 0 ? q.CategoryId : null;
+            if (subId == null && catId == null)
+            {
+                return items;
+            }
+
+            var needs = items
+                .Where(e => subId != null ? e.SubCategoryId != subId : e.SubCategory?.CategoryId != catId)
+                .Select(e => e.DirectoryEntryId)
+                .ToList();
+            if (needs.Count == 0)
+            {
+                return items;
+            }
+
+            var rows = await this.context.DirectoryEntryAdditionalSubcategories
+                .AsNoTracking()
+                .Include(a => a.SubCategory).ThenInclude(sc => sc.Category)
+                .Where(a => needs.Contains(a.DirectoryEntryId) &&
+                            (subId != null ? a.SubCategoryId == subId : a.SubCategory.CategoryId == catId))
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            return items.Select(e =>
+            {
+                var alt = rows.Where(a => a.DirectoryEntryId == e.DirectoryEntryId)
+                    .OrderBy(a => a.DirectoryEntryAdditionalSubcategoryId)
+                    .FirstOrDefault();
+                return needs.Contains(e.DirectoryEntryId) && alt != null ? alt.ApplyTo(e) : e;
+            }).ToList();
         }
 
         private IQueryable<DirectoryEntry> BaseQuery()

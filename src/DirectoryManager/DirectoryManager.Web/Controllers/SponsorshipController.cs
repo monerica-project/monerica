@@ -53,6 +53,7 @@ namespace DirectoryManager.Web.Controllers
             waitlistRepo;
         private readonly ISponsoredListingInvoiceRepository invoiceRepo;
         private readonly IUrlResolutionService urlResolver;
+        private readonly IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepo;
 
         public SponsorshipController(
             IDirectoryEntryRepository entryRepo,
@@ -63,7 +64,8 @@ namespace DirectoryManager.Web.Controllers
             ISponsoredListingOfferRepository offerRepo,
             ISponsoredListingOpeningNotificationRepository waitlistRepo,
             ISponsoredListingInvoiceRepository invoiceRepo,
-            IUrlResolutionService urlResolver)
+            IUrlResolutionService urlResolver,
+            IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepo)
         {
             this.entryRepo = entryRepo;
             this.categoryRepo = categoryRepo;
@@ -74,6 +76,7 @@ namespace DirectoryManager.Web.Controllers
             this.waitlistRepo = waitlistRepo;
             this.invoiceRepo = invoiceRepo;
             this.urlResolver = urlResolver;
+            this.additionalSubcategoryRepo = additionalSubcategoryRepo;
         }
 
         [HttpGet("")]
@@ -940,8 +943,38 @@ namespace DirectoryManager.Web.Controllers
                     "Subcategory waitlist unavailable " +
                     "(missing subcategory).");
 
+            // One more subcategory-sponsor option per ADDITIONAL subcategory, each with that
+            // subcategory's own slots, prices and waitlist (skipping ones with sponsorship off).
+            var additional = new List<AdditionalSubcategoryOptionVm>();
+            foreach (var alt in await this.additionalSubcategoryRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId))
+            {
+                if (alt.SubCategory == null || alt.SubCategory.SponsorshipDisabled)
+                {
+                    continue;
+                }
+
+                var altOption = await this.BuildTypeOptionAsync(
+                    entry,
+                    SponsorshipType.SubcategorySponsor,
+                    typeIdForScope: alt.SubCategoryId,
+                    BuildScopeLabel(
+                        SponsorshipType.SubcategorySponsor,
+                        alt.SubCategory.Category?.Name, alt.SubCategory.Name));
+                altOption.Offers = await this.LoadOffersAsync(SponsorshipType.SubcategorySponsor, alt.SubCategoryId);
+                await this.ApplyExistingSponsorPerkToOptionAsync(entry.DirectoryEntryId, altOption);
+                altOption.Waitlist = await this.BuildWaitlistPanelAsync(SponsorshipType.SubcategorySponsor, typeId: alt.SubCategoryId);
+
+                additional.Add(new AdditionalSubcategoryOptionVm
+                {
+                    SubCategoryId = alt.SubCategoryId,
+                    ShownAsName = string.IsNullOrWhiteSpace(alt.Name) ? entry.Name : alt.Name,
+                    Option = altOption,
+                });
+            }
+
             return new SponsorshipOptionsVm
             {
+                AdditionalSubcategories = additional,
                 DirectoryEntryId = entry.DirectoryEntryId,
                 ListingName =
                     entry.Name ?? StringConstants.DefaultName,

@@ -181,6 +181,10 @@
 
                 <input name="rsvId" type="hidden" value="@reservationGuid" />
                 <input type="hidden" name="directoryEntryId" value="@Model.SelectedDirectoryEntry.DirectoryEntryId" />
+                @if (ViewBag.ScopeSubCategoryId != null)
+                {
+                    <input type="hidden" name="scopeSubCategoryId" value="@ViewBag.ScopeSubCategoryId" />
+                }
                 <input type="hidden" name="selectedOfferId" value="@Model.Offer.SponsoredListingOfferId" />
 
                 <button class="btn btn-cta" type="submit">Purchase Listing</button>

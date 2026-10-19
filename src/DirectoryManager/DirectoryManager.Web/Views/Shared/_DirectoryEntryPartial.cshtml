@@ -21,6 +21,7 @@
     // Read flags passed from Category/Subcategory sponsor partials
     var sponsorInlineHeader = (ViewData["SponsorInlineHeader"] as bool?) ?? false;
     var skipLinksBlock = (ViewData["SkipLinksBlock"] as bool?) ?? false;
+    var showProfileLink = (ViewData["ShowProfileLink"] as bool?) ?? false;
 }
 
 @Html.Raw(
@@ -28,6 +29,7 @@ DirectoryManager.DisplayFormatting.Helpers.DisplayMarkUpHelper.GenerateDirectory
     Model,
     rootUrlToUse,
     sponsorInlineHeader: sponsorInlineHeader,
-    skipLinksBlock: skipLinksBlock
+    skipLinksBlock: skipLinksBlock,
+    showProfileLink: showProfileLink
 )
 )

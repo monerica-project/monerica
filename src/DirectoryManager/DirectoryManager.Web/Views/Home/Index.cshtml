@@ -28,6 +28,7 @@
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 @inject IHttpContextAccessor httpContextAccessor
 @inject IUrlResolutionService urlResolver
+@inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepo
 
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 
@@ -140,10 +141,30 @@
     var subSponsors = await sponsoredListingRepository
         .GetActiveSponsorsByTypeAsync(SponsorshipType.SubcategorySponsor);
 
-    var sponsorsBySubcategory = subSponsors
-        .Where(s => s.DirectoryEntry?.SubCategoryId != null)
-        .GroupBy(s => s.DirectoryEntry.SubCategoryId)
-        .ToDictionary(g => g.Key, g => g.Select(s => s.DirectoryEntry!).ToList());
+    // Group by the subcategory the sponsorship was bought for (it may be one of the listing's
+    // additional subcategories, in which case that subcategory's wording is shown).
+    var sponsorsBySubcategory = new Dictionary<int, List<DirectoryManager.Data.Models.DirectoryEntry>>();
+    foreach (var s in subSponsors.Where(s => s.DirectoryEntry != null))
+    {
+        var entry = s.DirectoryEntry!;
+        var scopeSubId = s.SubCategoryId ?? entry.SubCategoryId;
+        if (scopeSubId != entry.SubCategoryId)
+        {
+            var altHere = (await additionalSubcategoryRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId))
+                .FirstOrDefault(a => a.SubCategoryId == scopeSubId);
+            if (altHere != null)
+            {
+                entry = altHere.ApplyTo(entry);
+            }
+        }
+
+        if (!sponsorsBySubcategory.TryGetValue(scopeSubId, out var list))
+        {
+            sponsorsBySubcategory[scopeSubId] = list = new List<DirectoryManager.Data.Models.DirectoryEntry>();
+        }
+
+        list.Add(entry);
+    }
 }
 
 @{
@@ -259,7 +280,7 @@
                                         vm.ReviewCount = rs.ReviewCount;
                                     }
 
-                                    @await Html.PartialAsync("_DirectoryEntryPartial", vm)
+                                    @await Html.PartialAsync("_DirectoryEntryPartial", vm, new ViewDataDictionary(ViewData) { ["ShowProfileLink"] = true })
                                 }
                             </ul>
                         }
@@ -359,7 +380,7 @@
                                         vm.ReviewCount = rs.ReviewCount;
                                     }
 
-                                    @await Html.PartialAsync("_DirectoryEntryPartial", vm)
+                                    @await Html.PartialAsync("_DirectoryEntryPartial", vm, new ViewDataDictionary(ViewData) { ["ShowProfileLink"] = true })
                                 }
                             </ul>
                         }

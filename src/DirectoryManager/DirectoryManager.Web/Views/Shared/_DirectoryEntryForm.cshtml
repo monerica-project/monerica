@@ -240,6 +240,79 @@
     </div>
 }
 
+@{
+    var maxAltSubcats = DirectoryManager.Common.Constants.IntegerConstants.MaxAdditionalSubcategories;
+    var altSubcats = (Model.AdditionalSubcategories ?? new List<DirectoryManager.Web.Models.AdditionalSubcategoryInput>()).ToList();
+    while (altSubcats.Count < maxAltSubcats)
+    {
+        altSubcats.Add(new DirectoryManager.Web.Models.AdditionalSubcategoryInput());
+    }
+}
+
+<hr />
+<h3>Additional Subcategories</h3>
+<p class="small-font">
+    <i>Optional, up to @maxAltSubcats. The listing also appears in these subcategories, using the name, links and
+    description below there. Leave a field blank to use the main listing's value. Status, country, KYC, tags and
+    reviews are always shared, and clicking it goes to the main profile.</i>
+</p>
+
+@for (int i = 0; i < maxAltSubcats; i++)
+{
+    var alt = altSubcats[i];
+    <details class="u-mb-5px" @(alt.SubCategoryId > 0 ? "open" : "")>
+        <summary><b>Additional subcategory @(i + 1)</b>@(alt.SubCategoryId > 0 ? "" : " (empty)")</summary>
+        <div class="form-group">
+            <label>Subcategory</label>
+            @Html.DropDownList(
+                $"AdditionalSubcategories[{i}].SubCategoryId",
+                new SelectList(ViewBag.SubCategories, "SubcategoryId", "DisplayName", alt.SubCategoryId),
+                new { @class = "form-control input-width" })
+            <span class="small-font"><i>"Select a category" = not used / remove.</i></span>
+        </div>
+        <div class="form-group">
+            <label>Name (blank = main name)</label>
+            <input autocomplete="off" class="form-control input-width" type="text" maxlength="255"
+                   name="AdditionalSubcategories[@i].Name" value="@alt.Name" />
+        </div>
+        <div class="form-group">
+            <label>Link (blank = main link)</label>
+            <input autocomplete="off" class="form-control input-width" type="text" maxlength="500"
+                   name="AdditionalSubcategories[@i].Link" value="@alt.Link" />
+        </div>
+        <div class="form-group">
+            <label>Affiliate Link</label>
+            <input autocomplete="off" class="form-control input-width" type="text" maxlength="500"
+                   name="AdditionalSubcategories[@i].LinkA" value="@alt.LinkA" />
+        </div>
+        <div class="form-group">
+            <label>Link 2 (Tor)</label>
+            <input autocomplete="off" class="form-control input-width" type="text" maxlength="500"
+                   name="AdditionalSubcategories[@i].Link2" value="@alt.Link2" />
+        </div>
+        <div class="form-group">
+            <label>Link 2 Affiliate</label>
+            <input autocomplete="off" class="form-control input-width" type="text" maxlength="500"
+                   name="AdditionalSubcategories[@i].Link2A" value="@alt.Link2A" />
+        </div>
+        <div class="form-group">
+            <label>Link 3 (I2P)</label>
+            <input autocomplete="off" class="form-control input-width" type="text" maxlength="500"
+                   name="AdditionalSubcategories[@i].Link3" value="@alt.Link3" />
+        </div>
+        <div class="form-group">
+            <label>Link 3 Affiliate</label>
+            <input autocomplete="off" class="form-control input-width" type="text" maxlength="500"
+                   name="AdditionalSubcategories[@i].Link3A" value="@alt.Link3A" />
+        </div>
+        <div class="form-group">
+            <label>Description (blank = main description)</label>
+            <textarea class="form-control input-width" rows="3"
+                      name="AdditionalSubcategories[@i].Description">@alt.Description</textarea>
+        </div>
+    </details>
+}
+
 
 <div class="form-group">
     <label><b>Tags (existing)</b></label>

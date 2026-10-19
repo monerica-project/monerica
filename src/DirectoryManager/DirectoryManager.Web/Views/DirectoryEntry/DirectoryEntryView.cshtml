@@ -503,6 +503,115 @@
             </div>
         }
 
+        @{
+            var additionalSubcats = ViewBag.AdditionalSubcategories as List<DirectoryManager.Data.Models.DirectoryEntryAdditionalSubcategory>
+                ?? new List<DirectoryManager.Data.Models.DirectoryEntryAdditionalSubcategory>();
+        }
+        @if (additionalSubcats.Count > 0)
+        {
+            <div class="entry-section entry-additional-subcategories">
+                <h3>Additional Subcategories</h3>
+                @foreach (var alt in additionalSubcats)
+                {
+                    // Blank fields fall back to the main listing; an alternative's own link never
+                    // inherits the main affiliate link.
+                    string? Eff(string? own, string? main) => string.IsNullOrWhiteSpace(own) ? main : own.Trim();
+                    string? EffA(string? own, string? ownA, string? mainA) =>
+                        !string.IsNullOrWhiteSpace(ownA) ? ownA.Trim() : (string.IsNullOrWhiteSpace(own) ? mainA : null);
+
+                    var altName = Eff(alt.Name, Model.Name);
+                    var altLink = Eff(alt.Link, Model.Link);
+                    var altLinkA = EffA(alt.Link, alt.LinkA, Model.LinkA);
+                    var altLink2 = Eff(alt.Link2, Model.Link2);
+                    var altLink2A = EffA(alt.Link2, alt.Link2A, Model.Link2A);
+                    var altLink3 = Eff(alt.Link3, Model.Link3);
+                    var altLink3A = EffA(alt.Link3, alt.Link3A, Model.Link3A);
+                    var altDesc = Eff(alt.Description, Model.Description);
+
+                    string Href(string? link, string? linkA) => (!string.IsNullOrEmpty(linkA) && !Model.IsSponsored) ? linkA! : link!;
+                    string Rel(string? linkA) => string.Join(" ", new[]
+                    {
+                        isQuestionable ? "nofollow" : "",
+                        (Model.IsSponsored || !string.IsNullOrEmpty(linkA)) ? "sponsored" : ""
+                    }.Where(x => x.Length > 0));
+
+                    var subName = alt.SubCategory?.Name;
+                    var catName = alt.SubCategory?.Category?.Name;
+                    var subUrl = alt.SubCategory?.Category != null
+                        ? UrlResolver.ResolveToRoot($"/{alt.SubCategory.Category.CategoryKey}/{alt.SubCategory.SubCategoryKey}")
+                        : null;
+
+                    <div class="additional-subcategory">
+                        <p class="mb-0">
+                            @if (subUrl != null)
+                            {
+                                <a class="no-app-link" href="@subUrl">@catName &rsaquo; @subName</a>
+                            }
+                            else
+                            {
+                                <span>@subName</span>
+                            }
+                            @if (!string.Equals(altName, Model.Name, StringComparison.Ordinal))
+                            {
+                                <span> &mdash; <b>@altName</b></span>
+                            }
+                        </p>
+                        <ul class="mb-0">
+                            @if (!string.IsNullOrWhiteSpace(altLink))
+                            {
+                                <li>
+                                    Website:
+                                    @if (isScam)
+                                    {
+                                        <span class="multi-line-text">@altLink</span>
+                                    }
+                                    else
+                                    {
+                                        var rel = Rel(altLinkA);
+                                        <a class="multi-line-text" href="@Href(altLink, altLinkA)" target="_blank" @(rel.Length == 0 ? "" : $" rel=\"{rel}\"")>@altLink</a>
+                                    }
+                                </li>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(altLink2))
+                            {
+                                <li>
+                                    @Model.Link2Name:
+                                    @if (isScam)
+                                    {
+                                        <span class="multi-line-text">@altLink2</span>
+                                    }
+                                    else
+                                    {
+                                        var rel2 = Rel(altLink2A);
+                                        <a class="multi-line-text" href="@Href(altLink2, altLink2A)" target="_blank" @(rel2.Length == 0 ? "" : $" rel=\"{rel2}\"")>@altLink2</a>
+                                    }
+                                </li>
+                            }
+                            @if (!string.IsNullOrWhiteSpace(altLink3))
+                            {
+                                <li>
+                                    @Model.Link3Name:
+                                    @if (isScam)
+                                    {
+                                        <span class="multi-line-text">@altLink3</span>
+                                    }
+                                    else
+                                    {
+                                        var rel3 = Rel(altLink3A);
+                                        <a class="multi-line-text" href="@Href(altLink3, altLink3A)" target="_blank" @(rel3.Length == 0 ? "" : $" rel=\"{rel3}\"")>@altLink3</a>
+                                    }
+                                </li>
+                            }
+                        </ul>
+                        @if (!string.IsNullOrWhiteSpace(altDesc))
+                        {
+                            <p class="mb-0">@altDesc</p>
+                        }
+                    </div>
+                }
+            </div>
+        }
+
         @* Verification request lives in its own section ABOVE Reviews so the two
            are visually distinct (verification ≠ reviews). *@
         @await Html.PartialAsync("_EntryVerificationRequest", (DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel)ViewBag.ReviewsVm)

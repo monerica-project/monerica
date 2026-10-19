@@ -47,6 +47,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IUrlResolutionService urlResolver;
         private readonly IDirectoryEntryReviewCommentRepository reviewCommentRepository;
         private readonly IAdditionalLinkRepository additionalLinkRepo;
+        private readonly IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepo;
         private readonly IDirectoryEntryGuaranteeRepository guaranteeRepo;
         private readonly IProcessorRepository processorRepository;
 
@@ -70,7 +71,8 @@ namespace DirectoryManager.Web.Controllers
             IDirectoryEntryReviewCommentRepository reviewCommentRepository,
             IAdditionalLinkRepository additionalLinkRepo,
             IDirectoryEntryGuaranteeRepository guaranteeRepo,
-            IProcessorRepository processorRepository)
+            IProcessorRepository processorRepository,
+            IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepo)
             : base(cache)
         {
             this.userManager = userManager;
@@ -90,6 +92,7 @@ namespace DirectoryManager.Web.Controllers
             this.additionalLinkRepo = additionalLinkRepo;
             this.guaranteeRepo = guaranteeRepo;
             this.processorRepository = processorRepository;
+            this.additionalSubcategoryRepo = additionalSubcategoryRepo;
         }
 
         // -------------------------------------------------------------------------
@@ -157,6 +160,8 @@ namespace DirectoryManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(DirectoryEntryEditViewModel vm)
         {
+            this.ValidateAdditionalSubcategories(vm);
+
             var normalizedAdditional = NormalizeAdditionalLinks(vm.AdditionalLinks, IntegerConstants.MaxAdditionalLinks);
 
             for (int i = 0; i < normalizedAdditional.Count; i++)
@@ -247,6 +252,7 @@ namespace DirectoryManager.Web.Controllers
             await this.SyncAdditionalLinksAsync(model.DirectoryEntryId, normalizedAdditional);
             await this.SyncGuaranteesAsync(model.DirectoryEntryId, vm.Guarantees);
             await this.AssignTagsAsync(model.DirectoryEntryId, NormalizeSelectedIds(vm.SelectedTagIds), vm.NewTagsCsv);
+            await this.SyncAdditionalSubcategoriesAsync(model.DirectoryEntryId, vm);
 
             this.ClearCachedItems();
             return this.RedirectToAction(nameof(this.Index));
@@ -331,6 +337,21 @@ namespace DirectoryManager.Web.Controllers
             var guaranteeRows = await this.guaranteeRepo.GetByDirectoryEntryIdAsync(id, CancellationToken.None);
             vm.Guarantees = BuildGuaranteeFormList(guaranteeRows);
 
+            vm.AdditionalSubcategories = (await this.additionalSubcategoryRepo.GetByDirectoryEntryIdAsync(id))
+                .Select(a => new AdditionalSubcategoryInput
+                {
+                    SubCategoryId = a.SubCategoryId,
+                    Name = a.Name,
+                    Link = a.Link,
+                    LinkA = a.LinkA,
+                    Link2 = a.Link2,
+                    Link2A = a.Link2A,
+                    Link3 = a.Link3,
+                    Link3A = a.Link3A,
+                    Description = a.Description,
+                })
+                .ToList();
+
             return this.View(vm);
         }
 
@@ -344,6 +365,8 @@ namespace DirectoryManager.Web.Controllers
             {
                 return this.NotFound();
             }
+
+            this.ValidateAdditionalSubcategories(vm);
 
             var normalizedAdditional = NormalizeAdditionalLinks(vm.AdditionalLinks, IntegerConstants.MaxAdditionalLinks);
 
@@ -404,6 +427,7 @@ namespace DirectoryManager.Web.Controllers
             await this.SyncAdditionalLinksAsync(id, normalizedAdditional);
             await this.SyncGuaranteesAsync(id, vm.Guarantees);
             await this.SyncTagsAsync(id, NormalizeSelectedIds(vm.SelectedTagIds), vm.NewTagsCsv);
+            await this.SyncAdditionalSubcategoriesAsync(id, vm);
 
             this.ClearCachedItems();
             return this.RedirectToAction(nameof(this.Index));
@@ -685,6 +709,7 @@ namespace DirectoryManager.Web.Controllers
                 entry, link2Name, link3Name, tagNames, tagDict, isSponsor, sponsorSince, additionalLinkUrls, guarantees);
 
             await this.SetCategoryContextViewBagAsync(entry.SubCategoryId);
+            this.ViewBag.AdditionalSubcategories = await this.additionalSubcategoryRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId);
 
             await this.SetProcessorLinksAsync(entry);
 
@@ -844,6 +869,64 @@ namespace DirectoryManager.Web.Controllers
         {
             await this.LoadSubCategories();
             await this.PopulateCountryDropDownList();
+        }
+
+        // Additional subcategories: links must be valid http(s) URLs; the main subcategory and
+        // duplicates are rejected so the admin sees why a slot didn't save.
+        private void ValidateAdditionalSubcategories(DirectoryEntryEditViewModel vm)
+        {
+            var rows = vm.AdditionalSubcategories ?? new List<AdditionalSubcategoryInput>();
+            var seen = new HashSet<int>();
+            for (int i = 0; i < rows.Count; i++)
+            {
+                var r = rows[i];
+                if (r.SubCategoryId <= 0)
+                {
+                    continue;
+                }
+
+                if (r.SubCategoryId == vm.SubCategoryId)
+                {
+                    this.ModelState.AddModelError(string.Empty, $"Additional subcategory {i + 1} is the same as the main subcategory.");
+                }
+                else if (!seen.Add(r.SubCategoryId))
+                {
+                    this.ModelState.AddModelError(string.Empty, $"Additional subcategory {i + 1} is listed twice.");
+                }
+
+                foreach (var link in r.Links().Where(l => !string.IsNullOrWhiteSpace(l)))
+                {
+                    if (!UrlHelper.IsValidUrl(link!.Trim()))
+                    {
+                        this.ModelState.AddModelError(string.Empty, $"Additional subcategory {i + 1}: \"{link}\" is not a valid URL.");
+                    }
+                }
+            }
+
+            if (rows.Count(r => r.SubCategoryId > 0) > DirectoryManager.Common.Constants.IntegerConstants.MaxAdditionalSubcategories)
+            {
+                this.ModelState.AddModelError(string.Empty, $"A listing can have at most {DirectoryManager.Common.Constants.IntegerConstants.MaxAdditionalSubcategories} additional subcategories.");
+            }
+        }
+
+        private Task SyncAdditionalSubcategoriesAsync(int entryId, DirectoryEntryEditViewModel vm)
+        {
+            var rows = (vm.AdditionalSubcategories ?? new List<AdditionalSubcategoryInput>())
+                .Where(r => r.SubCategoryId > 0)
+                .Select(r => new DirectoryEntryAdditionalSubcategory
+                {
+                    SubCategoryId = r.SubCategoryId,
+                    Name = r.Name,
+                    Link = r.Link,
+                    LinkA = r.LinkA,
+                    Link2 = r.Link2,
+                    Link2A = r.Link2A,
+                    Link3 = r.Link3,
+                    Link3A = r.Link3A,
+                    Description = r.Description,
+                });
+
+            return this.additionalSubcategoryRepo.SyncAsync(entryId, vm.SubCategoryId, rows);
         }
 
         private async Task LoadSubCategories()

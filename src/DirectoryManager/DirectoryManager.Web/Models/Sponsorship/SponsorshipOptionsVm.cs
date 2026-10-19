@@ -23,6 +23,9 @@ namespace DirectoryManager.Web.Models.Sponsorship
         public SponsorshipTypeOptionVm Category { get; set; } = new ();
         public SponsorshipTypeOptionVm Subcategory { get; set; } = new ();
 
+        // Subcategory-sponsor options for the listing's ADDITIONAL subcategories.
+        public List<AdditionalSubcategoryOptionVm> AdditionalSubcategories { get; set; } = new ();
+
         public WaitlistBoardVm WaitlistBoard { get; set; } = new ();
         public RecentPaidVm RecentPaid { get; set; } = new ();
     }

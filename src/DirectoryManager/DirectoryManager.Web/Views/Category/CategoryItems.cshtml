@@ -170,7 +170,8 @@
             {
                 entryVm.LinkType = DirectoryManager.DisplayFormatting.Enums.LinkType.ListingPage;
 
-                if (Model.SponsoredDirectoryEntryIds.Contains(entryVm.DirectoryEntryId))
+                if (Model.SponsoredDirectoryEntryIds.Contains(entryVm.DirectoryEntryId) ||
+                    Model.SponsoredSubcategoryRows.Contains((entryVm.DirectoryEntryId, entryVm.SubCategoryId ?? 0)))
                 {
                     entryVm.IsSponsored = true;
                     entryVm.DisplayAsSponsoredItem = true;

@@ -90,6 +90,10 @@ namespace DirectoryManager.Web.Models
         public string DirectoryEntryKey { get; set; } = string.Empty;
         public List<string> AdditionalLinks { get; set; } = new ();
 
+        // Extra subcategories this listing also appears in (admin-only). Blank fields fall back
+        // to the main listing's values.
+        public List<AdditionalSubcategoryInput> AdditionalSubcategories { get; set; } = new ();
+
         // Total number of reviews (any moderation status) for this entry.
         public int ReviewCount { get; set; }
 
