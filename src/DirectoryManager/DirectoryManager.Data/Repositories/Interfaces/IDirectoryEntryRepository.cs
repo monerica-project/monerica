@@ -60,6 +60,12 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<List<string>> ListActiveCountryCodesAsync(CancellationToken ct = default);
         Task<PagedResult<DirectoryEntry>> SearchNonRemovedAsync(string query, int page, int pageSize);
 
+        /// <summary>
+        /// For a search that found nothing: the query with misspelled words corrected
+        /// ("trocadr" → "trocador"), or null when there's no close match.
+        /// </summary>
+        Task<DirectoryManager.Data.Helpers.DirectorySearchEngine.Correction?> SuggestSearchCorrectionAsync(string query);
+
         Task<Dictionary<int, DirectoryEntry>> GetByIdsAsync(IEnumerable<int> ids);
 
         Task<List<DirectoryEntrySitemapRow>> GetSitemapEntriesAsync(CancellationToken ct = default);

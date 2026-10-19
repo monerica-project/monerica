@@ -249,31 +249,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 };
             }
 
-            var normalized = NormalizeSearchTerm(query);
+            var ranked = await this.RankSearchAsync(query, includeRemoved: true).ConfigureAwait(false);
 
-            var filtered = this.BuildSearchServerSideQuery(normalized, includeRemoved: true);
+            int total = ranked.Count;
 
-            var candidates = await filtered.ToListAsync().ConfigureAwait(false);
-
-            var scored = ScoreSearchCandidates(
-                    candidates,
-                    normalized.term,
-                    normalized.rootTerm,
-                    normalized.countryCode,
-                    normalized.isUrlTerm,
-                    normalized.noSlash,
-                    normalized.withSlash,
-                    normalized.hostOnly,
-                    normalized.hostNoWww,
-                    normalized.termCompact)
-                .ToList();
-
-            int total = scored.Count;
-
-            var items = scored
+            var items = ranked
                 .Skip(PagingHelper.Skip(page, pageSize))
                 .Take(PagingHelper.Take(pageSize))
-                .Select(x => x.Entry)
                 .ToList();
 
             return new PagedResult<DirectoryEntry>
@@ -782,31 +764,26 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 return new PagedResult<DirectoryEntry>();
             }
 
-            var normalized = NormalizeSearchTerm(term);
-            var filtered = this.BuildSearchServerSideQuery(normalized, false);
-            var candidates = await filtered.ToListAsync().ConfigureAwait(false);
+            var ranked = await this.RankSearchAsync(term, includeRemoved: false).ConfigureAwait(false);
 
-            var scored = ScoreSearchCandidates(
-                    candidates,
-                    normalized.term,
-                    normalized.rootTerm,
-                    normalized.countryCode,
-                    normalized.isUrlTerm,
-                    normalized.noSlash,
-                    normalized.withSlash,
-                    normalized.hostOnly,
-                    normalized.hostNoWww,
-                    normalized.termCompact)
-                .ToList();
-
-            int total = scored.Count;
-            var items = scored
+            int total = ranked.Count;
+            var items = ranked
                 .Skip(PagingHelper.Skip(page, pageSize))
                 .Take(PagingHelper.Take(pageSize))
-                .Select(x => x.Entry)
                 .ToList();
 
             return new PagedResult<DirectoryEntry> { TotalCount = total, Items = items };
+        }
+
+        public async Task<DirectorySearchEngine.Correction?> SuggestSearchCorrectionAsync(string query)
+        {
+            if (string.IsNullOrWhiteSpace(query))
+            {
+                return null;
+            }
+
+            var entries = await this.LoadSearchableEntriesAsync(includeRemoved: false).ConfigureAwait(false);
+            return DirectorySearchEngine.SuggestCorrection(entries, query);
         }
 
         public async Task<List<string>> ListActiveCountryCodesAsync(CancellationToken ct = default)
@@ -1125,110 +1102,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             };
         }
 
-        private IQueryable<DirectoryEntry> BuildSearchServerSideQuery(SearchTermInfo n, bool includeRemoved)
-        {
-            return this.BaseQuery()
-                .Where(e =>
-                    (includeRemoved || e.DirectoryStatus != DirectoryStatus.Removed) &&
-                    (
-                        (n.countryCode != null && e.CountryCode == n.countryCode)
-
-                        || EF.Functions.ILike(e.Name.ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.ILike(e.Name.ToLower(), n.rootPattern))
-                        || (n.compactPattern != null &&
-                            EF.Functions.ILike(
-                                e.Name.ToLower()
-                                      .Replace("-", "")
-                                      .Replace(".", "")
-                                      .Replace(" ", "")
-                                      .Replace("_", ""),
-                                n.compactPattern))
-
-                        || EF.Functions.ILike((e.Description ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.ILike((e.Description ?? "").ToLower(), n.rootPattern))
-
-                        || EF.Functions.ILike(e.SubCategory!.Name.ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.ILike(e.SubCategory.Name.ToLower(), n.rootPattern))
-                        || EF.Functions.ILike(e.SubCategory.Category!.Name.ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.ILike(e.SubCategory.Category.Name.ToLower(), n.rootPattern))
-
-                        || e.EntryTags.Any(et =>
-                            EF.Functions.ILike(et.Tag.Name.ToLower(), n.primaryPattern) ||
-                            (n.rootPattern != null && EF.Functions.ILike(et.Tag.Name.ToLower(), n.rootPattern)))
-
-                        || EF.Functions.ILike((e.Note ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.ILike((e.Note ?? "").ToLower(), n.rootPattern))
-                        || EF.Functions.ILike((e.Processor ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.ILike((e.Processor ?? "").ToLower(), n.rootPattern))
-                        || EF.Functions.ILike((e.Location ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.ILike((e.Location ?? "").ToLower(), n.rootPattern))
-
-                        || EF.Functions.ILike((e.Link ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.ILike((e.Link ?? "").ToLower(), n.rootPattern))
-                        || (n.compactPattern != null &&
-                            EF.Functions.ILike(
-                                (e.Link ?? "").ToLower()
-                                              .Replace("-", "")
-                                              .Replace(".", "")
-                                              .Replace(" ", "")
-                                              .Replace("_", ""),
-                                n.compactPattern))
-
-                        || EF.Functions.ILike((e.Link2 ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.ILike((e.Link2 ?? "").ToLower(), n.rootPattern))
-                        || (n.compactPattern != null &&
-                            EF.Functions.ILike(
-                                (e.Link2 ?? "").ToLower()
-                                               .Replace("-", "")
-                                               .Replace(".", "")
-                                               .Replace(" ", "")
-                                               .Replace("_", ""),
-                                n.compactPattern))
-
-                        || EF.Functions.ILike((e.Link3 ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.ILike((e.Link3 ?? "").ToLower(), n.rootPattern))
-                        || (n.compactPattern != null &&
-                            EF.Functions.ILike(
-                                (e.Link3 ?? "").ToLower()
-                                               .Replace("-", "")
-                                               .Replace(".", "")
-                                               .Replace(" ", "")
-                                               .Replace("_", ""),
-                                n.compactPattern))
-
-                        || EF.Functions.ILike((e.ProofLink ?? "").ToLower(), n.primaryPattern)
-                        || (n.rootPattern != null && EF.Functions.ILike((e.ProofLink ?? "").ToLower(), n.rootPattern))
-                        || (n.compactPattern != null &&
-                            EF.Functions.ILike(
-                                (e.ProofLink ?? "").ToLower()
-                                                  .Replace("-", "")
-                                                  .Replace(".", "")
-                                                  .Replace(" ", "")
-                                                  .Replace("_", ""),
-                                n.compactPattern))
-
-                        || (n.isUrlTerm && (
-                               EF.Functions.ILike((e.Link ?? "").ToLower(), n.pNoSlash) ||
-                               EF.Functions.ILike((e.Link ?? "").ToLower(), n.pWithSlash) ||
-                               (n.pHostOnly != "" && EF.Functions.ILike((e.Link ?? "").ToLower(), n.pHostOnly)) ||
-                               (n.pNoWww != "" && EF.Functions.ILike((e.Link ?? "").ToLower(), n.pNoWww)) ||
-
-                               EF.Functions.ILike((e.Link2 ?? "").ToLower(), n.pNoSlash) ||
-                               EF.Functions.ILike((e.Link2 ?? "").ToLower(), n.pWithSlash) ||
-                               (n.pHostOnly != "" && EF.Functions.ILike((e.Link2 ?? "").ToLower(), n.pHostOnly)) ||
-                               (n.pNoWww != "" && EF.Functions.ILike((e.Link2 ?? "").ToLower(), n.pNoWww)) ||
-
-                               EF.Functions.ILike((e.Link3 ?? "").ToLower(), n.pNoSlash) ||
-                               EF.Functions.ILike((e.Link3 ?? "").ToLower(), n.pWithSlash) ||
-                               (n.pHostOnly != "" && EF.Functions.ILike((e.Link3 ?? "").ToLower(), n.pHostOnly)) ||
-                               (n.pNoWww != "" && EF.Functions.ILike((e.Link3 ?? "").ToLower(), n.pNoWww)) ||
-
-                               EF.Functions.ILike((e.ProofLink ?? "").ToLower(), n.pNoSlash) ||
-                               EF.Functions.ILike((e.ProofLink ?? "").ToLower(), n.pWithSlash) ||
-                               (n.pHostOnly != "" && EF.Functions.ILike((e.ProofLink ?? "").ToLower(), n.pHostOnly)) ||
-                               (n.pNoWww != "" && EF.Functions.ILike((e.ProofLink ?? "").ToLower(), n.pNoWww))))));
-        }
-
         private sealed record AuthorSearchTerm(
             string term,
             string pattern,
@@ -1276,217 +1149,6 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }
 
             return false;
-        }
-
-        private sealed record SearchTermInfo(
-            string term,
-            string? countryCode,
-            string? rootTerm,
-            string primaryPattern,
-            string? rootPattern,
-            string termCompact,
-            string? compactPattern,
-            bool isUrlTerm,
-            string noSlash,
-            string withSlash,
-            string hostOnly,
-            string hostNoWww,
-            string pNoSlash,
-            string pWithSlash,
-            string pHostOnly,
-            string pNoWww);
-
-        private static SearchTermInfo NormalizeSearchTerm(string term)
-        {
-            term = term.Trim().ToLowerInvariant();
-
-            string? countryCode = Utilities.Helpers.CountryHelper.ExtractCountryCode(term);
-
-            var primaryPattern = $"%{EscapeLike(term)}%";
-            string? rootTerm = null;
-            string? rootPattern = null;
-            if (term.EndsWith("s") && term.Length > 3)
-            {
-                rootTerm = term[..^1];
-                rootPattern = $"%{EscapeLike(rootTerm)}%";
-            }
-
-            string termCompact = new string(term.Where(char.IsLetterOrDigit).ToArray());
-            string? compactPattern = string.IsNullOrEmpty(termCompact) ? null : $"%{EscapeLike(termCompact)}%";
-
-            static bool LooksLikeUrl(string s) =>
-                s.StartsWith("http://", StringComparison.OrdinalIgnoreCase) ||
-                s.StartsWith("https://", StringComparison.OrdinalIgnoreCase) ||
-                s.StartsWith("www.", StringComparison.OrdinalIgnoreCase);
-
-            static string TrimTrailingSlash(string s) => s.EndsWith("/") ? s[..^1] : s;
-
-            static string ExtractHost(string url)
-            {
-                try
-                {
-                    if (!url.Contains("://", StringComparison.Ordinal))
-                    {
-                        url = "https://" + url;
-                    }
-
-                    var u = new Uri(url, UriKind.Absolute);
-                    return (u.Host ?? "").ToLowerInvariant();
-                }
-                catch
-                {
-                    var s = url;
-                    s = s.Replace("https://", "", StringComparison.OrdinalIgnoreCase)
-                         .Replace("http://", "", StringComparison.OrdinalIgnoreCase);
-                    int slash = s.IndexOf('/');
-                    return (slash >= 0 ? s[..slash] : s).ToLowerInvariant();
-                }
-            }
-
-            static string StripWww(string host) =>
-                host.StartsWith("www.", StringComparison.OrdinalIgnoreCase) ? host[4..] : host;
-
-            bool isUrlTerm = LooksLikeUrl(term);
-            string noSlash = isUrlTerm ? TrimTrailingSlash(term) : term;
-            string withSlash = isUrlTerm ? (noSlash + "/") : term;
-
-            string hostOnly = isUrlTerm ? ExtractHost(term) : string.Empty;
-            string hostNoWww = isUrlTerm ? StripWww(hostOnly) : string.Empty;
-
-            string pNoSlash = $"%{EscapeLike(noSlash)}%";
-            string pWithSlash = $"%{EscapeLike(withSlash)}%";
-            string pHostOnly = string.IsNullOrEmpty(hostOnly) ? "" : $"%{EscapeLike(hostOnly)}%";
-            string pNoWww = string.IsNullOrEmpty(hostNoWww) ? "" : $"%{EscapeLike(hostNoWww)}%";
-
-            return new SearchTermInfo(
-                term: term,
-                countryCode: countryCode,
-                rootTerm: rootTerm,
-                primaryPattern: primaryPattern,
-                rootPattern: rootPattern,
-                termCompact: termCompact,
-                compactPattern: compactPattern,
-                isUrlTerm: isUrlTerm,
-                noSlash: noSlash,
-                withSlash: withSlash,
-                hostOnly: hostOnly,
-                hostNoWww: hostNoWww,
-                pNoSlash: pNoSlash,
-                pWithSlash: pWithSlash,
-                pHostOnly: pHostOnly,
-                pNoWww: pNoWww);
-        }
-
-        private static IEnumerable<(DirectoryEntry Entry, int Score, int Hits, int Weight, bool CountryMatch)> ScoreSearchCandidates(
-            List<DirectoryEntry> candidates,
-            string term,
-            string? rootTerm,
-            string? countryCode,
-            bool isUrlTerm,
-            string noSlash,
-            string withSlash,
-            string hostOnly,
-            string hostNoWww,
-            string termCompact)
-        {
-            static int CountOcc(string? field, string t)
-            {
-                if (string.IsNullOrEmpty(field) || string.IsNullOrEmpty(t))
-                {
-                    return 0;
-                }
-
-                var txt = field.ToLowerInvariant();
-                int count = 0, idx = 0;
-                while ((idx = txt.IndexOf(t, idx, StringComparison.Ordinal)) != -1)
-                {
-                    count++;
-                    idx += t.Length;
-                }
-
-                return count;
-            }
-
-            static string NormalizeToken(string? s)
-            {
-                if (string.IsNullOrEmpty(s))
-                {
-                    return string.Empty;
-                }
-
-                var chars = s.ToLowerInvariant()
-                             .Where(char.IsLetterOrDigit)
-                             .ToArray();
-                return new string(chars);
-            }
-
-            const int CountryBoost = 7;
-
-            string termCompactForScore = termCompact;
-
-            return candidates
-                .Select(e =>
-                {
-                    string nameNorm = NormalizeToken(e.Name);
-                    string linkNorm = NormalizeToken(e.Link);
-                    string link2Norm = NormalizeToken(e.Link2);
-                    string link3Norm = NormalizeToken(e.Link3);
-                    string proofNorm = NormalizeToken(e.ProofLink);
-
-                    int hits =
-                        CountOcc(e.Name, term) + (rootTerm != null ? CountOcc(e.Name, rootTerm) : 0) +
-                        CountOcc(e.Description, term) + (rootTerm != null ? CountOcc(e.Description, rootTerm) : 0) +
-                        CountOcc(e.SubCategory?.Name, term) + (rootTerm != null ? CountOcc(e.SubCategory?.Name, rootTerm) : 0) +
-                        CountOcc(e.SubCategory?.Category?.Name, term) + (rootTerm != null ? CountOcc(e.SubCategory?.Category?.Name, rootTerm) : 0) +
-                        e.EntryTags.Sum(et => CountOcc(et.Tag.Name, term) + (rootTerm != null ? CountOcc(et.Tag.Name, rootTerm) : 0)) +
-                        CountOcc(e.Note, term) + (rootTerm != null ? CountOcc(e.Note, rootTerm) : 0) +
-                        CountOcc(e.Processor, term) + (rootTerm != null ? CountOcc(e.Processor, rootTerm) : 0) +
-                        CountOcc(e.Location, term) + (rootTerm != null ? CountOcc(e.Location, rootTerm) : 0) +
-                        CountOcc(e.Link, term) + (rootTerm != null ? CountOcc(e.Link, rootTerm) : 0) +
-                        CountOcc(e.Link2, term) + (rootTerm != null ? CountOcc(e.Link2, rootTerm) : 0) +
-                        CountOcc(e.Link3, term) + (rootTerm != null ? CountOcc(e.Link3, rootTerm) : 0) +
-                        CountOcc(e.ProofLink, term) + (rootTerm != null ? CountOcc(e.ProofLink, rootTerm) : 0) +
-
-                        (!string.IsNullOrEmpty(termCompactForScore)
-                            ? CountOcc(nameNorm, termCompactForScore)
-                              + CountOcc(linkNorm, termCompactForScore)
-                              + CountOcc(link2Norm, termCompactForScore)
-                              + CountOcc(link3Norm, termCompactForScore)
-                              + CountOcc(proofNorm, termCompactForScore)
-                            : 0) +
-
-                        (isUrlTerm
-                            ? CountOcc(e.Link, noSlash) + CountOcc(e.Link, withSlash)
-                             + CountOcc(e.Link2, noSlash) + CountOcc(e.Link2, withSlash)
-                             + CountOcc(e.Link3, noSlash) + CountOcc(e.Link3, withSlash)
-                             + CountOcc(e.ProofLink, noSlash) + CountOcc(e.ProofLink, withSlash)
-                             + (string.IsNullOrEmpty(hostOnly) ? 0 :
-                                    CountOcc(e.Link, hostOnly) + CountOcc(e.Link2, hostOnly) +
-                                    CountOcc(e.Link3, hostOnly) + CountOcc(e.ProofLink, hostOnly))
-                             + (string.IsNullOrEmpty(hostNoWww) ? 0 :
-                                    CountOcc(e.Link, hostNoWww) + CountOcc(e.Link2, hostNoWww) +
-                                    CountOcc(e.Link3, hostNoWww) + CountOcc(e.ProofLink, hostNoWww))
-                            : 0);
-
-                    bool countryMatch = countryCode != null &&
-                                        string.Equals(e.CountryCode, countryCode, StringComparison.OrdinalIgnoreCase);
-
-                    int weight = e.DirectoryStatus switch
-                    {
-                        DirectoryStatus.Verified => 4,
-                        DirectoryStatus.Admitted => 3,
-                        DirectoryStatus.Questionable => 2,
-                        DirectoryStatus.Scam => 1,
-                        _ => 0,
-                    };
-
-                    int score = hits + (countryMatch ? CountryBoost : 0);
-
-                    return (Entry: e, Score: score, Hits: hits, Weight: weight, CountryMatch: countryMatch);
-                })
-                .Where(x => x.Hits > 0 || x.CountryMatch)
-                .OrderByDescending(x => x.Weight)
-                .ThenByDescending(x => x.Score);
         }
 
         private static List<DirectoryStatus> GetStatusesOrDefault(DirectoryFilterQuery q)
@@ -1848,6 +1510,22 @@ namespace DirectoryManager.Data.Repositories.Implementations
         /// <summary>
         /// Base query including SubCategory→Category and EntryTags→Tag.
         /// </summary>
+        private async Task<List<DirectoryEntry>> RankSearchAsync(string query, bool includeRemoved)
+        {
+            var entries = await this.LoadSearchableEntriesAsync(includeRemoved).ConfigureAwait(false);
+            return DirectorySearchEngine.Rank(entries, query);
+        }
+
+        // Whole directory (a few thousand rows) with the fields search needs; ranking is in memory.
+        private Task<List<DirectoryEntry>> LoadSearchableEntriesAsync(bool includeRemoved)
+        {
+            return this.BaseQuery()
+                .AsNoTracking()
+                .AsSplitQuery()
+                .Where(e => includeRemoved || e.DirectoryStatus != DirectoryStatus.Removed)
+                .ToListAsync();
+        }
+
         private IQueryable<DirectoryEntry> BaseQuery()
         {
             return this.context.DirectoryEntries

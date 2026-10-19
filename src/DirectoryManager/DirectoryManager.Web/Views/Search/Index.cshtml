@@ -43,9 +43,17 @@
         @if (!hasAnyContent)
         {
             <p>No results found.</p>
+            @if (!string.IsNullOrEmpty(Model.DidYouMean))
+            {
+                <p class="search-corrected">Did you mean <a href="?q=@System.Net.WebUtility.UrlEncode(Model.DidYouMean)&amp;page=1"><strong>@Model.DidYouMean</strong></a>?</p>
+            }
         }
         else
         {
+            @if (!string.IsNullOrEmpty(Model.CorrectedQuery))
+            {
+                <p class="search-corrected">No results for &ldquo;@q&rdquo;. Showing results for <strong>&ldquo;@Model.CorrectedQuery&rdquo;</strong>.</p>
+            }
             @if (Model.Entries.Any())
             {
                 <p><i>Showing @Model.Entries.Count of @Model.TotalCount results.</i></p>

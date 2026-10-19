@@ -104,10 +104,9 @@
             : await reviewRepository.GetRatingSummariesAsync(entryIds);
 
         // 4) Truncation limit
-        // Kept comfortably within the .sponsor-desc line-clamp so the server's
-        // word-boundary truncation (…) is what shows — the CSS clamp never re-cuts
-        // a word mid-way (e.g. "SOL" -> "SO…"). Short on purpose to keep cards compact.
-        const int descLimit = 125;
+        // More text than the card can show: the CSS line-clamp then fills the box down to
+        // the footer and ends it with "…", so short and long descriptions fill the same space.
+        const int descLimit = 220;
 
         // 5) Helper to get status icon
         Func<DirectoryStatus, IHtmlContent> statusIcon = status => status.ToHtmlIcon();
@@ -189,6 +188,19 @@
                         <p class="sponsor-desc">
                             @Html.TruncateHtml(htmlBlob, descLimit)
                         </p>
+
+                        @* Footer pinned to the bottom of the card: the listing's profile page, then
+                           its onion mirror (Link2) when it has one. *@
+                        <div class="sponsor-card-links">
+                            <a class="sponsor-profile-link" href="@UrlBuilder.ListingPath(vm.DirectoryEntryKey)">See profile</a>
+                            @if (!string.IsNullOrWhiteSpace(vm.Link2))
+                            {
+                                <a class="sponsor-tor-link"
+                                   rel="sponsored"
+                                   href="@vm.Link2.Trim()"
+                                   target="_blank">@(string.IsNullOrWhiteSpace(vm.Link2Name) ? "Tor" : vm.Link2Name)</a>
+                            }
+                        </div>
                     </div>
                 }
                 @* Fill every remaining slot with a distinct "Available" placeholder so the

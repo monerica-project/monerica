@@ -106,6 +106,31 @@ public class SearchController : Controller
 
         var result = await this.entryRepo.SearchNonRemovedAsync(q, page, pageSize);
 
+        // Nothing found: try a spelling correction. Clear typos ("trocadr" → "trocador") show
+        // the corrected results; a changed letter ("mixer" → "miner") is only a suggestion.
+        string? correctedQuery = null;
+        string? didYouMean = null;
+        if (result.TotalCount == 0)
+        {
+            var suggestion = await this.entryRepo.SuggestSearchCorrectionAsync(q);
+            if (suggestion != null)
+            {
+                var corrected = await this.entryRepo.SearchNonRemovedAsync(suggestion.Query, page, pageSize);
+                if (corrected.TotalCount > 0)
+                {
+                    if (suggestion.AutoApply)
+                    {
+                        result = corrected;
+                        correctedQuery = suggestion.Query;
+                    }
+                    else
+                    {
+                        didYouMean = suggestion.Query;
+                    }
+                }
+            }
+        }
+
         // Past the last page: back to page 1 of the same search (consistent with the other
         // paged pages) instead of an empty 200. Checked before logging so it isn't logged twice.
         if (page > PagingHelper.TotalPages(result.TotalCount, pageSize))
@@ -169,7 +194,9 @@ public class SearchController : Controller
             PageSize = pageSize,
             TotalCount = result.TotalCount,
             Entries = vmList,
-            ShowDonatePin = showDonatePin
+            ShowDonatePin = showDonatePin,
+            CorrectedQuery = correctedQuery,
+            DidYouMean = didYouMean
         };
 
         return this.View(vmOut);

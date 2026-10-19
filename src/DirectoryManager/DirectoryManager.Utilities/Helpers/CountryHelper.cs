@@ -296,6 +296,60 @@ namespace DirectoryManager.Utilities.Helpers
             return Countries.TryGetValue(isoCode, out string fullName) ? fullName : isoCode;
         }
 
+        /// <summary>
+        /// Exact lookup of a whole phrase as a country name or alias ("canada", "usa", "uk",
+        /// "united states"). Unlike <see cref="ExtractCountryCode"/> it never matches a country
+        /// name inside a longer word, so it is safe to call on single search words.
+        /// </summary>
+        public static bool TryGetExactCountryCode(string? phrase, out string code)
+        {
+            code = string.Empty;
+            if (string.IsNullOrWhiteSpace(phrase))
+            {
+                return false;
+            }
+
+            var t = phrase.Trim().ToLowerInvariant();
+            if (CountryAliases.TryGetValue(t, out var aliasCode))
+            {
+                code = aliasCode;
+                return true;
+            }
+
+            if (CountryNamesToCodes.TryGetValue(t, out var nameCode))
+            {
+                code = nameCode;
+                return true;
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// The lowercase name and aliases (3+ characters) for a country code, used to spot
+        /// mentions of the country in listing text.
+        /// </summary>
+        public static IReadOnlyList<string> GetCountryTerms(string isoCode)
+        {
+            if (string.IsNullOrWhiteSpace(isoCode))
+            {
+                return Array.Empty<string>();
+            }
+
+            var code = isoCode.Trim().ToUpperInvariant();
+            var terms = new List<string>();
+            if (Countries.TryGetValue(code, out var name))
+            {
+                terms.Add(name.ToLowerInvariant());
+            }
+
+            terms.AddRange(CountryAliases
+                .Where(kv => kv.Value == code && kv.Key.Length >= 3 && !kv.Key.Contains('.'))
+                .Select(kv => kv.Key.ToLowerInvariant()));
+
+            return terms.Distinct().ToList();
+        }
+
         public static string? ExtractCountryCode(string rawTerm)
         {
             if (string.IsNullOrWhiteSpace(rawTerm))

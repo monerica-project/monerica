@@ -448,6 +448,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             else
             {
                 AppendExternalLinkIcon(sb, model);
+                AppendTorLinkIcon(sb, model);
             }
         }
 
@@ -671,6 +672,44 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 @" <a target=""_blank""{0} class=""external-link"" title=""{1}"" href=""{1}""></a> ",
                 relAttr,
                 WebUtility.HtmlEncode(link));
+        }
+
+        /// <summary>
+        /// Purple box next to the orange external-link box, linking to the listing's onion
+        /// mirror (Link2). Same rules as the external box: never for scams, affiliate Link2A
+        /// when not a sponsor, nofollow for questionable listings.
+        /// </summary>
+        private static void AppendTorLinkIcon(StringBuilder sb, DirectoryEntryViewModel model)
+        {
+            if (model.DirectoryStatus == DirectoryStatus.Scam || string.IsNullOrWhiteSpace(model.Link2))
+            {
+                return;
+            }
+
+            bool usingAffiliate = !string.IsNullOrWhiteSpace(model.Link2A) && !model.IsSponsored;
+            var link = usingAffiliate ? model.Link2A!.Trim() : model.Link2.Trim();
+            var label = string.IsNullOrWhiteSpace(model.Link2Name) ? "Tor" : model.Link2Name;
+
+            var relParts = new List<string>();
+            if (model.DirectoryStatus == DirectoryStatus.Questionable)
+            {
+                relParts.Add("nofollow");
+            }
+
+            if (model.IsSponsored || model.IsSubCategorySponsor || usingAffiliate)
+            {
+                relParts.Add("sponsored");
+            }
+
+            string relAttr = relParts.Count > 0
+                ? $" rel=\"{string.Join(" ", relParts)}\""
+                : string.Empty;
+
+            sb.AppendFormat(
+                @"<a target=""_blank""{0} class=""external-link tor-link"" title=""{1}"" aria-label=""{2}"" href=""{1}""></a> ",
+                relAttr,
+                WebUtility.HtmlEncode(link),
+                WebUtility.HtmlEncode($"{label} link for {model.Name}"));
         }
 
         /// <summary>
