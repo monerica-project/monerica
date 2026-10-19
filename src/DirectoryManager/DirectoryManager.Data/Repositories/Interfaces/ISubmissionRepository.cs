@@ -26,5 +26,17 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<Submission?> GetByPaymentTokenAsync(Guid token);
         Task SetInvoiceIdAsync(int submissionId, string invoiceId);
         Task SetPaidAsync(int submissionId, decimal? amount, string? currency, decimal? paidUsd, DateTime paidUtc);
+
+        /// <summary>Id of the not-yet-paid record that owns this BTCPay donation invoice, or null.</summary>
+        Task<int?> GetUnpaidIdByInvoiceIdAsync(string invoiceId, CancellationToken ct = default);
+
+        /// <summary>Newest submission's create time (any status), or null.</summary>
+        Task<DateTime?> GetLastSubmissionUtcAsync(CancellationToken ct = default);
+
+        /// <summary>Create time of the newest submission still Pending, or null.</summary>
+        Task<DateTime?> GetNewestPendingUtcAsync(CancellationToken ct = default);
+
+        /// <summary>Most recent donation payment time, or null.</summary>
+        Task<DateTime?> GetLastPaidUtcAsync(CancellationToken ct = default);
     }
 }

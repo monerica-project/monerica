@@ -52,6 +52,7 @@ namespace DirectoryManager.Web.Helpers
                 CancelUrl = Value(section, "CancelUrl"),
                 DefaultCurrency = defaultCurrency.Length > 0 ? defaultCurrency : "USD",
                 ReviewDonationsStoreId = Value(section, "ReviewDonationsStoreId"),
+                ReviewDonationsWebhookSecret = Value(section, "ReviewDonationsWebhookSecret"),
                 VideoSponsorStoreId = Value(section, "VideoSponsorStoreId"),
                 VideoSponsorApiKey = Value(section, "VideoSponsorApiKey"),
                 VideoSponsorWebhookSecret = Value(section, "VideoSponsorWebhookSecret"),
@@ -81,6 +82,32 @@ namespace DirectoryManager.Web.Helpers
                 ApiKey = apiKey,
                 StoreId = main.VideoSponsorStoreId,
                 WebhookSecret = main.VideoSponsorWebhookSecret,
+                DefaultCurrency = main.DefaultCurrency,
+            };
+        }
+
+        /// <summary>
+        /// Settings for checking the donations store's webhook signatures, or null until its
+        /// store ID and webhook secret are set.
+        /// </summary>
+        public static BtcPayServerConfigs? GetReviewDonationsStore(IConfiguration config)
+        {
+            var main = GetBtcPayServer(config);
+            if (main.BaseUrl.Length == 0
+                || main.ReviewDonationsStoreId.Length == 0
+                || main.ReviewDonationsWebhookSecret.Length == 0
+                || main.ApiKey.Length == 0)
+            {
+                return null;
+            }
+
+            return new BtcPayServerConfigs
+            {
+                BaseUrl = main.BaseUrl,
+                ApiKey = main.ApiKey,
+                StoreId = main.ReviewDonationsStoreId,
+                ReviewDonationsStoreId = main.ReviewDonationsStoreId,
+                WebhookSecret = main.ReviewDonationsWebhookSecret,
                 DefaultCurrency = main.DefaultCurrency,
             };
         }

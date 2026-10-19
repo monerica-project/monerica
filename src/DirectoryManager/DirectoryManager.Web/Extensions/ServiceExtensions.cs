@@ -106,6 +106,7 @@ namespace DirectoryManager.Web.Extensions
             });
 
             services.AddScoped<ISponsorTickerService, SponsorTickerService>();
+            services.AddScoped<IDonationPaymentService, DonationPaymentService>();
             services.AddTransient<IPgpService, PgpService>();
             // Site file storage now lives on Bunny.net Edge Storage (was Azure Blob).
             // Files keep the same "directorycontent/<path>" layout, so cdn.monerica.com

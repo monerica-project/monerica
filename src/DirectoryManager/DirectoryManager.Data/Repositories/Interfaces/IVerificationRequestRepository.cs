@@ -15,11 +15,17 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         Task SetPaidAsync(int id, decimal? amount, string? currency, decimal? paidUsd, DateTime paidUtc, CancellationToken ct = default);
 
+        /// <summary>Id of the not-yet-paid record that owns this BTCPay donation invoice, or null.</summary>
+        Task<int?> GetUnpaidIdByInvoiceIdAsync(string invoiceId, CancellationToken ct = default);
+
         Task<List<VerificationRequest>> ListByStatusAsync(VerificationRequestStatus status, int page, int pageSize, CancellationToken ct = default);
 
         Task<int> CountByStatusAsync(VerificationRequestStatus status, CancellationToken ct = default);
 
         Task<DateTime?> GetLastSubmissionUtcAsync(CancellationToken ct = default);
+
+        /// <summary>Create time of the newest item still Pending (not yet handled), or null.</summary>
+        Task<DateTime?> GetNewestPendingUtcAsync(CancellationToken ct = default);
 
         Task<DateTime?> GetLastPaidUtcAsync(CancellationToken ct = default);
 

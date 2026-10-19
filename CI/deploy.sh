@@ -495,6 +495,7 @@ task_set_configs() {
         --arg bpvstore "${BTCPAY_VIDEO_SPONSOR_STORE_ID:-}" \
         --arg bpvkey   "${BTCPAY_VIDEO_SPONSOR_API_KEY:-}" \
         --arg bpvhook  "${BTCPAY_VIDEO_SPONSOR_WEBHOOK_SECRET:-}" \
+        --arg bprhook  "${BTCPAY_REVIEW_DONATIONS_WEBHOOK_SECRET:-}" \
         '{
             ConnectionStrings: { DefaultConnection: $conn },
             Site:              { CustomDomain: $domain, RequestProtocol: $proto },
@@ -508,7 +509,8 @@ task_set_configs() {
                 BTCPayServer: {
                     BaseUrl: $bpurl, ApiKey: $bpkey, StoreId: $bpstore, WebhookSecret: $bphook,
                     SuccessUrl: $bpok, CancelUrl: $bpcancel, DefaultCurrency: $bpcur,
-                    ReviewDonationsStoreId: $bpreview, VideoSponsorStoreId: $bpvstore,
+                    ReviewDonationsStoreId: $bpreview, ReviewDonationsWebhookSecret: $bprhook,
+                    VideoSponsorStoreId: $bpvstore,
                     VideoSponsorApiKey: $bpvkey, VideoSponsorWebhookSecret: $bpvhook
                 }
             }

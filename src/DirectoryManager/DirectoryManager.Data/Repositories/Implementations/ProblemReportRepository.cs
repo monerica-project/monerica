@@ -84,6 +84,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public Task<int> CountByStatusAsync(ProblemReportStatus status, CancellationToken ct = default) =>
             this.Set.AsNoTracking().Where(x => x.Status == status).CountAsync(ct);
 
+        public Task<DateTime?> GetNewestPendingUtcAsync(CancellationToken ct = default) =>
+            this.Set.AsNoTracking()
+                .Where(x => x.Status == ProblemReportStatus.Pending)
+                .OrderByDescending(x => x.CreateDate)
+                .Select(x => (DateTime?)x.CreateDate)
+                .FirstOrDefaultAsync(ct);
+
         public Task<DateTime?> GetLastSubmissionUtcAsync(CancellationToken ct = default) =>
             this.Set.AsNoTracking()
                 .OrderByDescending(x => x.CreateDate)
@@ -109,5 +116,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
             existing.UpdateDate = DateTime.UtcNow;
             await this.context.SaveChangesAsync(ct);
         }
+
+        public Task<int?> GetUnpaidIdByInvoiceIdAsync(string invoiceId, CancellationToken ct = default) =>
+            this.Set.AsNoTracking()
+                .Where(x => x.BtcPayInvoiceId == invoiceId && x.PaidUtc == null)
+                .Select(x => (int?)x.ProblemReportId)
+                .FirstOrDefaultAsync(ct);
     }
 }

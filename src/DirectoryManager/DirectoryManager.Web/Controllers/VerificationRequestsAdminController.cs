@@ -31,72 +31,6 @@ namespace DirectoryManager.Web.Controllers
             this.btcPay = btcPay;
         }
 
-        // Polls BTCPay for a request that has an invoice but isn't marked paid yet, and
-        // persists the paid state once a payment is seen. Best-effort: a BTCPay hiccup must
-        // never break the admin queue, so everything here is wrapped and swallowed.
-        private async Task SyncPaymentAsync(VerificationRequest item, CancellationToken ct)
-        {
-            if (item.PaidUtc is not null || string.IsNullOrWhiteSpace(item.BtcPayInvoiceId))
-            {
-                return;
-            }
-
-            var storeId = this.btcPay.ReviewDonationsStoreId;
-            if (string.IsNullOrWhiteSpace(storeId))
-            {
-                return;
-            }
-
-            try
-            {
-                var invoice = await this.btcPay.GetInvoiceOnStoreAsync(storeId, item.BtcPayInvoiceId!);
-
-                // Donations are pay-what-you-want, so count funds that arrived even if the
-                // invoice window had expired by the time the payment confirmed (PaidLate).
-                if (!invoice.IsPaidOrLate)
-                {
-                    return;
-                }
-
-                decimal? amount = decimal.TryParse(invoice.Amount, out var a) && a > 0 ? a : null;
-                var currency = string.IsNullOrWhiteSpace(invoice.Currency) ? null : invoice.Currency;
-
-                // The XMR payment method carries the actual received time of each payment (so a
-                // donation found later still shows when it arrived) and, for top-up invoices that
-                // report an invoice amount of 0, the actual XMR received.
-                string? xmrRateUsd = null;
-                var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(storeId, item.BtcPayInvoiceId!);
-                var receivedUtc = xmr?.Payments
-                    .Where(p => p.ReceivedDate > 0)
-                    .Select(p => (DateTime?)p.ReceivedDateUtc)
-                    .Max();
-                if (amount is null)
-                {
-                    if (xmr is not null && decimal.TryParse(xmr.TotalPaid, out var xmrPaid) && xmrPaid > 0)
-                    {
-                        amount = xmrPaid;
-                        currency = "XMR";
-                        xmrRateUsd = xmr.Rate;
-                    }
-                }
-
-                var paidUsd = DonationUsdHelper.ToUsd(amount, currency, xmrRateUsd);
-
-                var paidUtc = receivedUtc ?? DateTime.UtcNow;
-
-                await this.requests.SetPaidAsync(item.VerificationRequestId, amount, currency, paidUsd, paidUtc, ct);
-
-                // reflect it in the object we're about to render
-                item.PaidUtc = paidUtc;
-                item.PaidAmount = amount;
-                item.PaidCurrency = currency;
-            }
-            catch
-            {
-                // ignore — payment status just won't update this load
-            }
-        }
-
         [HttpGet("")]
         public async Task<IActionResult> Index(
             VerificationRequestStatus status = VerificationRequestStatus.Pending,
@@ -106,12 +40,6 @@ namespace DirectoryManager.Web.Controllers
         {
             var items = await this.requests.ListByStatusAsync(status, page, pageSize, ct);
             var total = await this.requests.CountByStatusAsync(status, ct);
-
-            // Refresh payment status for any request with an invoice that isn't paid yet.
-            foreach (var item in items)
-            {
-                await this.SyncPaymentAsync(item, ct);
-            }
 
             return this.View(new VerificationRequestQueueViewModel
             {
@@ -134,7 +62,6 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            await this.SyncPaymentAsync(request, ct);
 
             // If paid, surface the actual XMR amount received (USD is stored on the request).
             if (request.PaidUtc is not null && !string.IsNullOrWhiteSpace(request.BtcPayInvoiceId))

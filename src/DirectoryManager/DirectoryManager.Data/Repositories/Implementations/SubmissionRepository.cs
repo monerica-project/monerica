@@ -135,5 +135,31 @@ namespace DirectoryManager.Data.Repositories.Implementations
             submission.PaidUsd = paidUsd;
             await this.context.SaveChangesAsync();
         }
+
+        public Task<DateTime?> GetLastSubmissionUtcAsync(CancellationToken ct = default) =>
+            this.context.Submissions.AsNoTracking()
+                .OrderByDescending(s => s.CreateDate)
+                .Select(s => (DateTime?)s.CreateDate)
+                .FirstOrDefaultAsync(ct);
+
+        public Task<DateTime?> GetNewestPendingUtcAsync(CancellationToken ct = default) =>
+            this.context.Submissions.AsNoTracking()
+                .Where(s => s.SubmissionStatus == SubmissionStatus.Pending)
+                .OrderByDescending(s => s.CreateDate)
+                .Select(s => (DateTime?)s.CreateDate)
+                .FirstOrDefaultAsync(ct);
+
+        public Task<DateTime?> GetLastPaidUtcAsync(CancellationToken ct = default) =>
+            this.context.Submissions.AsNoTracking()
+                .Where(s => s.PaidUtc != null)
+                .OrderByDescending(s => s.PaidUtc)
+                .Select(s => s.PaidUtc)
+                .FirstOrDefaultAsync(ct);
+
+        public Task<int?> GetUnpaidIdByInvoiceIdAsync(string invoiceId, CancellationToken ct = default) =>
+            this.context.Submissions.AsNoTracking()
+                .Where(x => x.BtcPayInvoiceId == invoiceId && x.PaidUtc == null)
+                .Select(x => (int?)x.SubmissionId)
+                .FirstOrDefaultAsync(ct);
     }
 }

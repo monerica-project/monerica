@@ -518,12 +518,6 @@ namespace DirectoryManager.Web.Controllers
                 .Take(pageSize)
                 .ToList();
 
-            // Refresh donation status for any submission with an invoice that isn't paid yet.
-            foreach (var item in items)
-            {
-                await this.SyncSubmissionPaymentAsync(item);
-            }
-
             var viewModel = new SubmissionPagedList
             {
                 PageNumber = pageNumber,
@@ -545,9 +539,6 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            // Refresh donation status on view; if paid, surface the USD headline value + the XMR
-            // actually paid so the view can render "Amount: $X USD (Y XMR)".
-            await this.SyncSubmissionPaymentAsync(submission);
 
             // A fiat-denominated donation already stores its USD amount in PaidAmount. A
             // pay-what-you-want / top-up donation is recorded directly in XMR (PaidCurrency == "XMR",
@@ -938,72 +929,6 @@ namespace DirectoryManager.Web.Controllers
             using var png = new QRCoder.PngByteQRCode(data);
             var bytes = png.GetGraphic(6);
             return "data:image/png;base64," + Convert.ToBase64String(bytes);
-        }
-
-        // Polls BTCPay for a submission that has an invoice but isn't marked paid yet, and
-        // persists the paid state once a payment is seen. Best-effort: a BTCPay hiccup must
-        // never break the admin queue, so everything here is wrapped and swallowed.
-        private async Task SyncSubmissionPaymentAsync(Submission item)
-        {
-            if (item.PaidUtc is not null || string.IsNullOrWhiteSpace(item.BtcPayInvoiceId))
-            {
-                return;
-            }
-
-            var storeId = this.btcPay.ReviewDonationsStoreId;
-            if (string.IsNullOrWhiteSpace(storeId))
-            {
-                return;
-            }
-
-            try
-            {
-                var invoice = await this.btcPay.GetInvoiceOnStoreAsync(storeId, item.BtcPayInvoiceId!);
-
-                // Donations are pay-what-you-want, so count funds that arrived even if the
-                // invoice window had expired by the time the payment confirmed (PaidLate).
-                if (!invoice.IsPaidOrLate)
-                {
-                    return;
-                }
-
-                decimal? amount = decimal.TryParse(invoice.Amount, out var a) && a > 0 ? a : null;
-                var currency = string.IsNullOrWhiteSpace(invoice.Currency) ? null : invoice.Currency;
-
-                // The XMR payment method carries the actual received time of each payment (so a
-                // donation found later still shows when it arrived) and, for top-up invoices that
-                // report an invoice amount of 0, the actual XMR received.
-                string? xmrRateUsd = null;
-                var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(storeId, item.BtcPayInvoiceId!);
-                var receivedUtc = xmr?.Payments
-                    .Where(p => p.ReceivedDate > 0)
-                    .Select(p => (DateTime?)p.ReceivedDateUtc)
-                    .Max();
-                if (amount is null)
-                {
-                    if (xmr is not null && decimal.TryParse(xmr.TotalPaid, out var xmrPaid) && xmrPaid > 0)
-                    {
-                        amount = xmrPaid;
-                        currency = "XMR";
-                        xmrRateUsd = xmr.Rate;
-                    }
-                }
-
-                var paidUsd = DonationUsdHelper.ToUsd(amount, currency, xmrRateUsd);
-
-                var paidUtc = receivedUtc ?? DateTime.UtcNow;
-
-                await this.submissionRepository.SetPaidAsync(item.SubmissionId, amount, currency, paidUsd, paidUtc);
-
-                // reflect it in the object we're about to render
-                item.PaidUtc = paidUtc;
-                item.PaidAmount = amount;
-                item.PaidCurrency = currency;
-            }
-            catch
-            {
-                // ignore — payment status just won't update this load
-            }
         }
 
         [AllowAnonymous]

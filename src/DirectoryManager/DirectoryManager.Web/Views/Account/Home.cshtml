@@ -36,6 +36,20 @@
     }
 }
 
+@functions {
+    // Bold red count when something is waiting, grey dash when nothing is.
+    static Microsoft.AspNetCore.Html.IHtmlContent WaitingCell(int count) =>
+        new Microsoft.AspNetCore.Html.HtmlString(count > 0
+            ? $"<b class=\"u-color-c0392b\">{count}</b>"
+            : "<span class=\"u-color-888\">0</span>");
+
+    // "3h ago" with the exact UTC time on hover; a grey dash when there's none.
+    static Microsoft.AspNetCore.Html.IHtmlContent AgoCell(DateTime? utc) =>
+        new Microsoft.AspNetCore.Html.HtmlString(utc is DateTime t
+            ? $"<span title=\"{t:yyyy-MM-dd HH:mm} UTC\">{FormatAgoCompact(t)}</span>"
+            : "<span class=\"u-color-888\">—</span>");
+}
+
 @section PageContent {
 
     <h1>@ViewData[StringConstants.TitleHeader]</h1>
@@ -79,63 +93,109 @@
        DAILY TASKS — pinned at top.
        ============================================================= *@
     <h3>Daily Tasks</h3>
-    <ul>
-        <li>
-            <b>Moderation:</b>
-            <a href="~/admin/reviews">Reviews (@ViewBag.TotalPendingReviews)</a>
-            &middot;
-            <a href="~/submission/index">Submissions (@ViewBag.TotalPendingSubmissions)</a>
-        </li>
-        <li>
-            <b>Verifications:</b>
-            <a href="~/admin/verification-requests">Requests (@(ViewBag.TotalPendingVerificationRequests ?? 0))</a>
-            @if (ViewBag.LastVerificationSubmissionUtc is DateTime lastVerifSub)
-            {
-                <small class="u-color-888">&nbsp;&middot; last submission @FormatAgoCompact(lastVerifSub)</small>
-            }
-            @if (ViewBag.LastVerificationPaidUtc is DateTime lastVerifPaid)
-            {
-                <small class="u-color-888">&nbsp;&middot; last paid @FormatAgoCompact(lastVerifPaid)</small>
-            }
-        </li>
-        <li>
-            <b>Problems:</b>
-            <a href="~/admin/problem-reports">Reports (@(ViewBag.TotalPendingProblemReports ?? 0))</a>
-            @if (ViewBag.LastProblemReportSubmissionUtc is DateTime lastProbSub)
-            {
-                <small class="u-color-888">&nbsp;&middot; last report @FormatAgoCompact(lastProbSub)</small>
-            }
-            @if (ViewBag.LastProblemReportPaidUtc is DateTime lastProbPaid)
-            {
-                <small class="u-color-888">&nbsp;&middot; last paid @FormatAgoCompact(lastProbPaid)</small>
-            }
-        </li>
-        <li>
-            <b>Invoicing:</b>
-            <a href="~/sponsoredlistinginvoice">Site Sponsors</a>
-            @if (ViewBag.LastInvoicePaidUtc is DateTime lastPaid)
-            {
-                <small class="u-color-888">&nbsp;(last paid @FormatAgoCompact(lastPaid))</small>
-            }
-            @if (ViewBag.LastInvoicePendingUtc is DateTime lastPending)
-            {
-                <small class="u-color-c0392b">&nbsp;⚠ pending @FormatAgoCompact(lastPending)</small>
-            }
-        </li>
-        <li>
-            <b>Video sponsorship:</b>
-            <a href="~/admin/video-sponsorship/sponsors">Video Sponsors</a>
-            @if (ViewBag.LastVideoSponsorPaidUtc is DateTime lastVideoPaid)
-            {
-                <small class="u-color-888">&nbsp;(last paid @FormatAgoCompact(lastVideoPaid))</small>
-            }
-            &middot; <a href="~/admin/video-sponsorship/orders">Orders</a>
-        </li>
-        <li>
-            <b>Search logs:</b>
-            <a href="~/searchlog/report">Search logs report</a>
-        </li>
-    </ul>
+    @{
+        int pendingSubs = Convert.ToInt32(ViewBag.TotalPendingSubmissions ?? 0);
+        int pendingRevs = Convert.ToInt32(ViewBag.TotalPendingReviewReviews ?? 0);
+        int pendingComments = Convert.ToInt32(ViewBag.TotalPendingReviewComments ?? 0);
+        int pendingProblems = Convert.ToInt32(ViewBag.TotalPendingProblemReports ?? 0);
+        int pendingVerifs = Convert.ToInt32(ViewBag.TotalPendingVerificationRequests ?? 0);
+        var newestSub = ViewBag.NewestPendingSubmissionUtc as DateTime?;
+        var newestRev = ViewBag.NewestPendingReviewUtc as DateTime?;
+        var newestProb = ViewBag.NewestPendingProblemUtc as DateTime?;
+        var newestVerif = ViewBag.NewestPendingVerificationUtc as DateTime?;
+        var unpaidCheckout = ViewBag.LastInvoicePendingUtc as DateTime?;
+
+        // The single newest thing a user sent that still needs looking at.
+        var waiting = new List<(string Label, DateTime When, string Url)>();
+        if (newestSub is DateTime w1) { waiting.Add(("Submission", w1, "/submission/index")); }
+        if (newestRev is DateTime w2) { waiting.Add(("Review", w2, "/admin/reviews")); }
+        if (newestProb is DateTime w3) { waiting.Add(("Problem report", w3, "/admin/problem-reports")); }
+        if (newestVerif is DateTime w4) { waiting.Add(("Verification request", w4, "/admin/verification-requests")); }
+        var newestWaiting = waiting.OrderByDescending(x => x.When).FirstOrDefault();
+        int totalWaiting = pendingSubs + pendingRevs + pendingComments + pendingProblems + pendingVerifs;
+    }
+    <p class="admin-needs-attention">
+        @if (waiting.Count > 0)
+        {
+            <b class="u-color-c0392b">Needs attention:</b>
+            <span>@totalWaiting waiting &middot; newest is a</span>
+            <a href="@newestWaiting.Url"><b>@newestWaiting.Label.ToLowerInvariant()</b></a>
+            <span title="@newestWaiting.When.ToString("yyyy-MM-dd HH:mm") UTC">from @FormatAgoCompact(newestWaiting.When)</span>
+        }
+        else
+        {
+            <b>All caught up ✓</b> <span class="u-color-888">nothing is waiting for review.</span>
+        }
+    </p>
+    <div class="table-wrapper">
+        <table class="table table-sm admin-daily-tasks">
+            <thead>
+                <tr>
+                    <th>Task</th>
+                    <th>Waiting</th>
+                    <th>Newest waiting</th>
+                    <th>Last paid</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr>
+                    <td><a href="~/submission/index"><b>Submissions</b></a></td>
+                    <td>@WaitingCell(pendingSubs)</td>
+                    <td>@AgoCell(newestSub)</td>
+                    <td>@AgoCell(ViewBag.LastSubmissionPaidUtc as DateTime?)</td>
+                </tr>
+                <tr>
+                    <td><a href="~/admin/reviews"><b>Reviews</b></a></td>
+                    <td>
+                        @WaitingCell(pendingRevs + pendingComments)
+                        @if (pendingRevs + pendingComments > 0)
+                        {
+                            <small class="u-color-888">(@pendingRevs reviews, @pendingComments replies)</small>
+                        }
+                    </td>
+                    <td>@AgoCell(newestRev)</td>
+                    <td><span class="u-color-888">—</span></td>
+                </tr>
+                <tr>
+                    <td><a href="~/admin/problem-reports"><b>Problems</b></a></td>
+                    <td>@WaitingCell(pendingProblems)</td>
+                    <td>@AgoCell(newestProb)</td>
+                    <td>@AgoCell(ViewBag.LastProblemReportPaidUtc as DateTime?)</td>
+                </tr>
+                <tr>
+                    <td><a href="~/admin/verification-requests"><b>Verifications</b></a></td>
+                    <td>@WaitingCell(pendingVerifs)</td>
+                    <td>@AgoCell(newestVerif)</td>
+                    <td>@AgoCell(ViewBag.LastVerificationPaidUtc as DateTime?)</td>
+                </tr>
+                <tr>
+                    <td><a href="~/sponsoredlistinginvoice"><b>Site Sponsors</b></a></td>
+                    <td>
+                        @if (ViewBag.LastInvoicePendingUtc is DateTime lastPending)
+                        {
+                            <span class="u-color-c0392b" title="Newest unpaid checkout: @lastPending.ToString("yyyy-MM-dd HH:mm") UTC">⚠ unpaid checkout</span>
+                        }
+                        else
+                        {
+                            <span class="u-color-888">—</span>
+                        }
+                    </td>
+                    <td>@AgoCell(unpaidCheckout)</td>
+                    <td>@AgoCell(ViewBag.LastInvoicePaidUtc as DateTime?)</td>
+                </tr>
+                <tr>
+                    <td>
+                        <a href="~/admin/video-sponsorship/sponsors"><b>Video Sponsors</b></a>
+                        <small>&middot; <a href="~/admin/video-sponsorship/orders">orders</a></small>
+                    </td>
+                    <td><span class="u-color-888">—</span></td>
+                    <td><span class="u-color-888">—</span></td>
+                    <td>@AgoCell(ViewBag.LastVideoSponsorPaidUtc as DateTime?)</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <small class="u-color-888"><i>Newest waiting = the most recent item not yet handled (blank when nothing is waiting). Hover a time for the exact date (UTC). Paid = payment detected by BTCPay.</i></small>
 
     <hr />
 

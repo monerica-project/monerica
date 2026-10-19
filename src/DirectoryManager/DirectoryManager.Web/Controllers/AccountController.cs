@@ -129,6 +129,8 @@ namespace DirectoryManager.Web.Controllers
                 await this.verificationRequestRepository.CountByStatusAsync(Data.Enums.VerificationRequestStatus.Pending);
 
             this.ViewBag.TotalPendingSubmissions = totalPendingSubmissions;
+            this.ViewBag.LastSubmissionUtc = await this.submissionRepository.GetLastSubmissionUtcAsync();
+            this.ViewBag.LastSubmissionPaidUtc = await this.submissionRepository.GetLastPaidUtcAsync();
             this.ViewBag.TotalPendingReviews = totalPendingReviewItems;
             this.ViewBag.LastInvoicePaidUtc = this.SponsoredListingInvoiceRepository.GetLastPaidInvoiceCreateDate();
             this.ViewBag.LastInvoicePendingUtc = this.SponsoredListingInvoiceRepository.GetLastPendingInvoiceCreateDate();
@@ -144,6 +146,18 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.LastProblemReportPaidUtc = await this.problemReportRepository.GetLastPaidUtcAsync();
 
             this.ViewBag.LastVideoSponsorPaidUtc = await this.videoSponsorshipRepository.GetLastPaidUtcAsync();
+
+            // "Newest waiting" = create time of the newest item NOT yet handled (null when none).
+            this.ViewBag.NewestPendingSubmissionUtc = await this.submissionRepository.GetNewestPendingUtcAsync();
+            this.ViewBag.NewestPendingProblemUtc = await this.problemReportRepository.GetNewestPendingUtcAsync();
+            this.ViewBag.NewestPendingVerificationUtc = await this.verificationRequestRepository.GetNewestPendingUtcAsync();
+            var newestPendingReview = await this.directoryEntryReviewRepository.Query()
+                .Where(r => r.ModerationStatus == ReviewModerationStatus.Pending)
+                .MaxAsync(r => (DateTime?)r.CreateDate);
+            var newestPendingComment = await this.directoryEntryReviewCommentRepository.Query()
+                .Where(c => c.ModerationStatus == ReviewModerationStatus.Pending)
+                .MaxAsync(c => (DateTime?)c.CreateDate);
+            this.ViewBag.NewestPendingReviewUtc = new[] { newestPendingReview, newestPendingComment }.Max();
             // The Bunny syncer stamps two files: last-success.txt on every OK run
             // ("last checked"), and last-sync.txt only when it actually uploaded changed
             // files ("last files synced"). Both are written by the syncer's systemd unit.

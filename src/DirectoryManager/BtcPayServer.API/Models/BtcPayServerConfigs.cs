@@ -10,6 +10,9 @@ namespace BtcPayServer.API.Models
         // verification request). Same server + account-level ApiKey as StoreId above.
         public string ReviewDonationsStoreId { get; set; } = string.Empty;
 
+        /// <summary>Secret of the donations store's webhook (BTCPay signs each callback with it).</summary>
+        public string ReviewDonationsWebhookSecret { get; set; } = string.Empty;
+
         // Separate store for video sponsorships (its own wallet and webhook secret).
         // The store ID and webhook secret must be set for video-sponsor checkout to be available;
         // VideoSponsorApiKey is optional and falls back to the account-level ApiKey above.
