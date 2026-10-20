@@ -4,13 +4,13 @@
 
 @{
     var isEdit = Model.ReviewTagId != 0;
-    ViewData["Title"] = isEdit ? "Edit Tag" : "Create Tag";
+    PageMeta.Title = isEdit ? "Edit Tag" : "Create Tag";
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
     <div class="container py-4">
-        <h1>@ViewData["Title"]</h1>
+        <h1>@PageMeta.Title</h1>
         <hr />
         @await Html.PartialAsync("_AdminMenu")
 

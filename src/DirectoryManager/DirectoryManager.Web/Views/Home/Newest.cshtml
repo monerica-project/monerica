@@ -7,7 +7,7 @@
 @model IEnumerable<DirectoryManager.Data.Models.GroupedDirectoryEntry>
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Newest Additions";
+    PageMeta.Title = "Newest Additions";
     // Use the same wide layout (sidebar + full-width main) as the homepage so the
     // sponsor strip renders identically — the narrow centered column wrapped it 4+1.
     Layout = "_LayoutWithNav";
@@ -15,7 +15,7 @@
 
 @section PageContent {
     <div class="page-header-bar">
-        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        <h1 class="page-title">@PageMeta.Title</h1>
         @await Html.PartialAsync("_SiteLogo")
     </div>
 

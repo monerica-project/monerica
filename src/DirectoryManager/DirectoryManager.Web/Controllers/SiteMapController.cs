@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Web.Extensions;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -269,7 +270,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[Constants.StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "sitemap");
+            this.PageMeta().CanonicalUrl = UrlBuilder.CombineUrl(canonicalDomain, "sitemap");
             return this.View("Index", model);
         }
 

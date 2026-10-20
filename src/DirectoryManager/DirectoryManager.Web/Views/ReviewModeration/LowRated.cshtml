@@ -5,7 +5,7 @@
 
 @{
     Layout = "_CenteredLayout";
-    ViewData[StringConstants.TitleHeader] = $"Low-Rated Reviews ({Model.MaxRating}★ and below)";
+    PageMeta.Title = $"Low-Rated Reviews ({Model.MaxRating}★ and below)";
 
     int LastPage() => Math.Max(1, (int)Math.Ceiling(Model.Total / (double)Model.PageSize));
 
@@ -37,7 +37,7 @@
 
 @section PageContent {
 
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
 
     @await Html.PartialAsync("_AdminMenu")
 

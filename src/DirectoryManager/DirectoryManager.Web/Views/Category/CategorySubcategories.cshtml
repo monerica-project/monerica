@@ -17,13 +17,13 @@
 }
 
 @{
-    ViewData["CurrentCategoryKey"] = Model.CategoryKey;
-    ViewData["CurrentSubCategoryKey"] = null;
+    PageMeta.CurrentCategoryKey = Model.CategoryKey;
+    PageMeta.CurrentSubCategoryKey = null;
 }
 
 @{
-    ViewData[StringConstants.TitleHeader] = string.Format("{0}: {1}", await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName), Model.CategoryName);
-    ViewData[StringConstants.MetaDescription] = Model.MetaDescription;
+    PageMeta.Title = string.Format("{0}: {1}", await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName), Model.CategoryName);
+    PageMeta.MetaDescription = Model.MetaDescription;
     var domain = await cacheHelper.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
 
     // Build your breadcrumb list dynamically based on page context

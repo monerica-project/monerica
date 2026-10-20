@@ -4,8 +4,8 @@
 @model IEnumerable<DirectoryEntry>
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing by Subcategory";
-    ViewData[StringConstants.IsIndexable] = false;
+    PageMeta.Title = "Select Sponsored Listing by Subcategory";
+    PageMeta.IsIndexable = false;
 
     var subCategoryId = ViewBag.SubCategoryId is int sc ? sc : 0;
     Guid? reservationGuid =
@@ -24,7 +24,7 @@
 
 @section PageContent {
 
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 <hr />
 

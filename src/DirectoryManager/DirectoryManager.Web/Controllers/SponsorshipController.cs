@@ -164,14 +164,15 @@ namespace DirectoryManager.Web.Controllers
 
             var bytes = new InvoicePlotting().CreateDailyAvgPriceByTypeChart(
                 paid, Currency.USD, start, end, type, label,
-                currentMarketDailyByType: currentDaily);
+                currentMarketDailyByType: currentDaily,
+                darkTheme: true);
 
             if (bytes == null || bytes.Length == 0)
             {
                 const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
-  <rect width='100%' height='100%' fill='white'/>
+  <rect width='100%' height='100%' fill='#05070a'/>
   <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
-        font-family='sans-serif' font-size='18' fill='black'>Pricing data coming soon</text>
+        font-family='sans-serif' font-size='18' fill='#d0d6dc'>Pricing data coming soon</text>
 </svg>";
                 return this.File(System.Text.Encoding.UTF8.GetBytes(svg), "image/svg+xml");
             }
@@ -294,14 +295,14 @@ namespace DirectoryManager.Web.Controllers
             var label = $"{typeLabel} · {scopeLabel} · {start:MMM d, yyyy}–{end:MMM d, yyyy}";
 
             var bytes = new InvoicePlotting().CreateDailyAvgPriceByTypeChart(
-                paid, Currency.USD, start, end, type, label, width: 1100, height: 460);
+                paid, Currency.USD, start, end, type, label, width: 1100, height: 460, darkTheme: true);
 
             if (bytes == null || bytes.Length == 0)
             {
                 const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='600' height='120'>
-  <rect width='100%' height='100%' fill='white'/>
+  <rect width='100%' height='100%' fill='#05070a'/>
   <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
-        font-family='sans-serif' font-size='18' fill='#555'>No paid data for this selection</text>
+        font-family='sans-serif' font-size='18' fill='#d0d6dc'>No paid data for this selection</text>
 </svg>";
                 return this.File(System.Text.Encoding.UTF8.GetBytes(svg), "image/svg+xml");
             }

@@ -6,9 +6,9 @@
 @using DirectoryManager.Web.Models
 @{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
-    ViewData[StringConstants.TitleHeader] = "Edit Submission";
-    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
-    ViewData[StringConstants.IsIndexable] = false;
+    PageMeta.Title = "Edit Submission";
+    PageMeta.MetaContent = StringConstants.MetaTagNoIndex;
+    PageMeta.IsIndexable = false;
 }
 
 @{
@@ -17,7 +17,7 @@
 
  
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 
@@ -53,7 +53,7 @@ else
 
 <form asp-action="Review" asp-route-id="@Model.SubmissionId" method="post">
 
-    @if (!ViewData.ModelState.IsValid)
+    @if (!ViewContext.ModelState.IsValid)
     {
         <div class="text-danger u-m-12px-0-p-10px-border-1px-solid-c00" role="alert">
             <div asp-validation-summary="All"></div>

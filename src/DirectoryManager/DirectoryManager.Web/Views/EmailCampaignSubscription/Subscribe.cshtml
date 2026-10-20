@@ -1,6 +1,6 @@
 ﻿@using DirectoryManager.Web.Constants
 @{
-    ViewData[StringConstants.TitleHeader] = "Subscribe to Campaign";
+    PageMeta.Title = "Subscribe to Campaign";
 }
 
 @{
@@ -8,7 +8,7 @@
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

@@ -2,9 +2,9 @@
 @using DirectoryManager.Web.Constants
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Edit Snippet";
-    ViewData["Action"] = "Edit";
-    ViewData["ButtonLabel"] = "Update";
+    PageMeta.Title = "Edit Snippet";
+    Model.FormAction = "Edit";
+    Model.SubmitLabel = "Update";
     ViewBag.SnippetTypes = Html.GetEnumSelectList<DirectoryManager.Data.Enums.SiteConfigSetting>();
 }
 
@@ -14,7 +14,7 @@
 
 @section PageContent {
 
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

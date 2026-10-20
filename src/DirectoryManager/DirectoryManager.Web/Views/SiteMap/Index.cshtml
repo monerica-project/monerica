@@ -13,7 +13,7 @@
 
 @{
     Layout = "_CenteredLayout";
-    ViewData[StringConstants.TitleHeader] = $"{await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName)}: Sitemap";
+    PageMeta.Title = $"{await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName)}: Sitemap";
 
     // build breadcrumb JSON
     var breadcrumbs = new List<BreadcrumbItem> {

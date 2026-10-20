@@ -4,7 +4,7 @@
 @{
     var siteName = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
     if (string.IsNullOrWhiteSpace(siteName)) { siteName = "Monerica"; }
-    ViewData[StringConstants.TitleHeader] = $"The {siteName} Network";
+    PageMeta.Title = $"The {siteName} Network";
     Layout = "_CenteredLayout";
 }
 

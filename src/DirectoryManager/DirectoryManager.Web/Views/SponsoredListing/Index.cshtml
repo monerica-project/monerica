@@ -6,7 +6,7 @@
 @model DirectoryManager.Web.Models.SponsoredListing.SponsoredListingHomeModel
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Sponsored Listings";
+    PageMeta.Title = "Sponsored Listings";
     Layout = "_CenteredLayout";
 }
 
@@ -21,7 +21,7 @@
 @section PageContent {
 
     <div class="page-header-bar">
-        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        <h1 class="page-title">@PageMeta.Title</h1>
         @await Html.PartialAsync("_SiteLogo")
     </div>
 

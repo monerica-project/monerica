@@ -1,7 +1,7 @@
 @model DirectoryManager.Data.Models.Reviews.Raffle
 @using DirectoryManager.Web.Constants
 @{
-    ViewData[StringConstants.TitleHeader] = "Delete Raffle";
+    PageMeta.Title = "Delete Raffle";
     var entryTotal = (int)(ViewBag.EntryTotal ?? 0);
     Layout = "_CenteredLayout";
 }
@@ -9,7 +9,7 @@
 
 @section PageContent {
 
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 <hr />
     @await Html.PartialAsync("_AdminMenu")
 <div class="alert alert-warning">

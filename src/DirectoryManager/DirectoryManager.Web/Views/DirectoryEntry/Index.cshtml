@@ -3,14 +3,14 @@
 @using DirectoryManager.Data.Models.TransferModels
 @using DirectoryManager.Web.Constants;
 @{
-    ViewData[StringConstants.TitleHeader] = "Directory Entries";
+    PageMeta.Title = "Directory Entries";
 }
 @{
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

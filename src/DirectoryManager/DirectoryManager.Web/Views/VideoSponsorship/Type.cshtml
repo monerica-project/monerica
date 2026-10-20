@@ -1,7 +1,7 @@
 @using System.Globalization
 @model DirectoryManager.Web.Models.VideoSponsorship.VideoSponsorCheckoutVm
 @{
-    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Choose a Video Type";
+    PageMeta.Title = "Choose a Video Type";
     Layout = "_CenteredLayout";
     var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
     var hasPerk = Model.DiscountPercent > 0m;

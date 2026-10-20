@@ -3,7 +3,7 @@
 @model DirectoryManager.Web.Models.VideoSponsorship.VideoSponsorPublicVm
 @{
     var siteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
-    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Video Sponsorship";
+    PageMeta.Title = "Video Sponsorship";
     Layout = "_CenteredLayout";
     var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
 }

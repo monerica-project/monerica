@@ -2,7 +2,7 @@
 @using DirectoryManager.Data.Models
 @using DirectoryManager.Web.Constants;
 @{
-    ViewData[StringConstants.TitleHeader] = "Create Sponsored Listing Offer";
+    PageMeta.Title = "Create Sponsored Listing Offer";
     SelectList sponsorshipTypeSelectList = new SelectList(Enum.GetValues(typeof(DirectoryManager.Data.Enums.SponsorshipType)));
     var orderedSubCategories = new[]
     {
@@ -25,7 +25,7 @@
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

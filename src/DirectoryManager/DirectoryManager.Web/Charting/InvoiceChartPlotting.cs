@@ -184,9 +184,15 @@ namespace DirectoryManager.Web.Charting
             int height = 640,
             IEnumerable<SponsoredListingInvoice>? highlightInvoices = null,
             string? highlightLabel = null,
-            IReadOnlyDictionary<SponsorshipType, decimal>? currentMarketDailyByType = null)
+            IReadOnlyDictionary<SponsorshipType, decimal>? currentMarketDailyByType = null,
+            bool darkTheme = false)
         {
             var data = PricingTrendCalculator.Build(invoices, displayCurrency, rangeStart, rangeEnd);
+
+            // Dark theme (public sponsorship + checkout pages): black background, light text,
+            // neon series colours. The light theme keeps the original look (admin reports).
+            var ink = darkTheme ? Color.FromHex(DarkInkHex) : Colors.Black;               // overlay lines + labels
+            var nowInk = darkTheme ? Color.FromHex(DarkNowHex) : Colors.Black;            // "current market price"
             if (data.Days.Count == 0 || !data.HasAnyData)
             {
                 return Array.Empty<byte>();
@@ -246,7 +252,7 @@ namespace DirectoryManager.Web.Charting
                 // Single placement → daily bars.
                 var t = sponsorshipType.Value;
                 var series = data.DailyValues[t];
-                var fill = Color.FromHex(TypeBarColorHex(t));
+                var fill = Color.FromHex(darkTheme ? TypeNeonHex(t) : TypeBarColorHex(t));
                 var bars = new List<Bar>();
                 for (int i = 0; i < n; i++)
                 {
@@ -286,7 +292,7 @@ namespace DirectoryManager.Web.Charting
 
                         var subXs = Enumerable.Range(0, n).Select(i => (double)i).ToArray();
                         var subLine = plt.Add.Scatter(subXs, subSeries);
-                        subLine.Color = Colors.Black;
+                        subLine.Color = ink;
                         subLine.LineWidth = 2;
                         subLine.LinePattern = LinePattern.Dotted;
                         subLine.MarkerSize = 0;
@@ -343,7 +349,7 @@ namespace DirectoryManager.Web.Charting
                             }
 
                             var refLine = plt.Add.HorizontalLine(refVal);
-                            refLine.Color = Colors.Black;
+                            refLine.Color = ink;
                             refLine.LineWidth = 2;
                             refLine.LinePattern = LinePattern.Dotted;
                             refLine.LegendText =
@@ -378,7 +384,7 @@ namespace DirectoryManager.Web.Charting
                     }
 
                     var sc = plt.Add.Scatter(xs, series);
-                    sc.Color = Color.FromHex(TypeColorHex(t));
+                    sc.Color = Color.FromHex(darkTheme ? TypeNeonHex(t) : TypeColorHex(t));
                     sc.LineWidth = 2;
                     sc.MarkerSize = n <= 120 ? 5 : 0;
                     sc.LegendText = $"{FriendlyType(t)} (avg {DailyLabel(data.Stats[t].AvgPerDay)}/day)";
@@ -397,7 +403,7 @@ namespace DirectoryManager.Web.Charting
                 }
 
                 var nowLine = plt.Add.HorizontalLine(c.Value);
-                nowLine.Color = Colors.Black;
+                nowLine.Color = nowInk;
                 nowLine.LineWidth = 2;
 
                 // Long, clearly-spaced dashes (not ScottPlot's default short Dashed) so this line is
@@ -462,7 +468,7 @@ namespace DirectoryManager.Web.Charting
                     txt.Alignment = ScottPlot.Alignment.LowerRight;
                     txt.LabelFontSize = 13;
                     txt.LabelBold = true;
-                    txt.LabelFontColor = Colors.Black;
+                    txt.LabelFontColor = nowInk;
                 }
             }
 
@@ -472,10 +478,44 @@ namespace DirectoryManager.Web.Charting
             if (!string.IsNullOrWhiteSpace(filterLabel))
             {
                 var totalListingDays = typesToPlot.Sum(t => data.Stats[t].ActiveListingDays);
-                AddSubtitleBelowTitle(plt, $"{filterLabel} — {totalListingDays:n0} active listing-days in range");
+                AddSubtitleBelowTitle(plt, $"{filterLabel} — {totalListingDays:n0} active listing-days in range", darkTheme ? ink : null);
+            }
+
+            if (darkTheme)
+            {
+                ApplyDarkTheme(plt);
             }
 
             return plt.GetImageBytes(width, height, ImageFormat.Png);
+        }
+
+        // Dark-theme palette: near-black ground, light grey text, bright neon series.
+        private const string DarkBackgroundHex = "#05070a";
+        private const string DarkInkHex = "#f2f2f2";
+        private const string DarkMutedHex = "#9aa3ad";
+        private const string DarkGridHex = "#1f242b";
+        private const string DarkNowHex = "#ffe14d"; // bright yellow: today's price
+
+        private static string TypeNeonHex(SponsorshipType t) => t switch
+        {
+            SponsorshipType.MainSponsor => "#ff8c1a",        // neon orange
+            SponsorshipType.CategorySponsor => "#39ff7a",    // neon green
+            SponsorshipType.SubcategorySponsor => "#22d3ff", // neon cyan
+            _ => "#c8c8c8",
+        };
+
+        // Black background + light text/grid/legend for the public pages.
+        private static void ApplyDarkTheme(Plot plt)
+        {
+            var bg = Color.FromHex(DarkBackgroundHex);
+            plt.FigureBackground.Color = bg;
+            plt.DataBackground.Color = bg;
+            plt.Axes.Color(Color.FromHex(DarkMutedHex));
+            plt.Axes.Title.Label.ForeColor = Color.FromHex(DarkInkHex);
+            plt.Grid.MajorLineColor = Color.FromHex(DarkGridHex);
+            plt.Legend.BackgroundColor = Color.FromHex("#0d1117");
+            plt.Legend.FontColor = Color.FromHex(DarkInkHex);
+            plt.Legend.OutlineColor = Color.FromHex("#30363d");
         }
 
         // Saturated colours for the compare-mode LINES (need contrast on a white background).
@@ -1231,7 +1271,7 @@ namespace DirectoryManager.Web.Charting
             plt.Axes.SetLimitsX(left, right);
         }
 
-        private static void AddSubtitleBelowTitle(ScottPlot.Plot plt, string? subtitle)
+        private static void AddSubtitleBelowTitle(ScottPlot.Plot plt, string? subtitle, Color? color = null)
         {
             if (string.IsNullOrWhiteSpace(subtitle))
             {
@@ -1253,6 +1293,10 @@ namespace DirectoryManager.Web.Charting
             var t = plt.Add.Text(subtitle, xMid, y);
             t.Alignment = ScottPlot.Alignment.UpperCenter;
             t.LabelFontSize = 14;
+            if (color.HasValue)
+            {
+                t.LabelFontColor = color.Value;
+            }
         }
     }
 }

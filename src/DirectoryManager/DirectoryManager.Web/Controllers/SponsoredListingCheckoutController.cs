@@ -392,14 +392,15 @@ namespace DirectoryManager.Web.Controllers
             var bytes = new InvoicePlotting().CreateDailyAvgPriceByTypeChart(
                 paid, Currency.USD, start, end, sponsorshipType, filterLabel: null, width: 820, height: 340,
                 highlightInvoices: highlight, highlightLabel: highlightLabel,
-                currentMarketDailyByType: currentDaily);
+                currentMarketDailyByType: currentDaily,
+                darkTheme: true);
 
             if (bytes == null || bytes.Length == 0)
             {
                 const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='90'>
-  <rect width='100%' height='100%' fill='white'/>
+  <rect width='100%' height='100%' fill='#05070a'/>
   <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
-        font-family='sans-serif' font-size='15' fill='#555'>Pricing history coming soon</text>
+        font-family='sans-serif' font-size='15' fill='#d0d6dc'>Pricing history coming soon</text>
 </svg>";
                 return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
             }

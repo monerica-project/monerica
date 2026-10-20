@@ -1,7 +1,7 @@
 ﻿@model DirectoryManager.Data.Models.DirectoryEntrySelection
 @using DirectoryManager.Web.Constants;
 @{
-    ViewData[StringConstants.TitleHeader] = "Delete From List";
+    PageMeta.Title = "Delete From List";
 }
 
 @{
@@ -9,7 +9,7 @@
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

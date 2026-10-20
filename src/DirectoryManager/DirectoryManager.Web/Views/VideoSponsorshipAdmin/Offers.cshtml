@@ -1,7 +1,7 @@
 @using System.Globalization
 @model List<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOffer>
 @{
-    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Video Types & Prices";
+    PageMeta.Title = "Video Types & Prices";
     Layout = "_CenteredLayout";
     var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
 }

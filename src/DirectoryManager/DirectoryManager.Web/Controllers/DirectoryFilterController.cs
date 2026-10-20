@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Web.Extensions;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
@@ -121,7 +122,7 @@ public class DirectoryFilterController : Controller
             categorySponsorModel,
             subcategorySponsorModel);
 
-        this.ViewData[StringConstants.TitleHeader] = "Directory Filter";
+        this.PageMeta().Title = "Directory Filter";
         return this.View(vm);
     }
 

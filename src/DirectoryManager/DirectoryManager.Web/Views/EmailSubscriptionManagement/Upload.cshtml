@@ -1,6 +1,6 @@
 ﻿@using DirectoryManager.Web.Constants
 @{
-    ViewData[StringConstants.TitleHeader] = "Upload Bounce File";
+    PageMeta.Title = "Upload Bounce File";
 }
 
 @{
@@ -8,7 +8,7 @@
 }
 @section PageContent {
 
-<h1>@ViewData[StringConstants.TitleHeader] </h1>
+<h1>@PageMeta.Title </h1>
 
 @await Html.PartialAsync("_AdminMenu")
 
@@ -25,11 +25,11 @@
     <button type="submit" class="btn btn-primary">Upload</button>
 </form>
 
-@if (!ViewData.ModelState.IsValid)
+@if (!ViewContext.ModelState.IsValid)
 {
     <div class="alert alert-danger">
         <ul>
-            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            @foreach (var error in ViewContext.ModelState.Values.SelectMany(v => v.Errors))
             {
                 <li>@error.ErrorMessage</li>
             }

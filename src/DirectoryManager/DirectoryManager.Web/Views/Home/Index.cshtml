@@ -98,10 +98,10 @@
 }
 
 @{
-    ViewData[StringConstants.TitleHeader] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageTitle));
-    ViewData[StringConstants.MetaContent] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageMetaTags));
-    ViewData["CurrentCategoryKey"] = null;
-    ViewData["CurrentSubCategoryKey"] = null;
+    PageMeta.Title = await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageTitle);
+    PageMeta.MetaContent = await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageMetaTags);
+    PageMeta.CurrentCategoryKey = null;
+    PageMeta.CurrentSubCategoryKey = null;
     Layout = "_LayoutWithNav";
 }
 
@@ -280,7 +280,8 @@
                                         vm.ReviewCount = rs.ReviewCount;
                                     }
 
-                                    @await Html.PartialAsync("_DirectoryEntryPartial", vm, new ViewDataDictionary(ViewData) { ["ShowProfileLink"] = true })
+                                    vm.ShowProfileLink = true;
+                                    @await Html.PartialAsync("_DirectoryEntryPartial", vm)
                                 }
                             </ul>
                         }
@@ -380,7 +381,8 @@
                                         vm.ReviewCount = rs.ReviewCount;
                                     }
 
-                                    @await Html.PartialAsync("_DirectoryEntryPartial", vm, new ViewDataDictionary(ViewData) { ["ShowProfileLink"] = true })
+                                    vm.ShowProfileLink = true;
+                                    @await Html.PartialAsync("_DirectoryEntryPartial", vm)
                                 }
                             </ul>
                         }

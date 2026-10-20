@@ -4,7 +4,7 @@
 @using DirectoryManager.Data.Enums
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Sponsorship Pricing Trends";
+    PageMeta.Title = "Sponsorship Pricing Trends";
     Layout = "_CenteredLayout";
 
     var usd = Model.DisplayCurrency == Currency.USD;
@@ -19,7 +19,7 @@
 }
 
 @section PageContent {
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
 
     @await Html.PartialAsync("_AdminMenu")
     @await Html.PartialAsync("_ReportMenu")

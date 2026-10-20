@@ -1,6 +1,6 @@
 @using DirectoryManager.Web.Constants
 @{
-    ViewData[StringConstants.TitleHeader] = "Raffle Closed";
+    PageMeta.Title = "Raffle Closed";
     Layout = "_CenteredLayout";
 
     // The review's status notice (e.g. "held for moderation"), carried over from the review submit.
@@ -8,7 +8,7 @@
 }
 
 @section PageContent {
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
     <hr />
 
     @if (!string.IsNullOrWhiteSpace(reviewMessage))

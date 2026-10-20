@@ -3,7 +3,7 @@
 @using DirectoryManager.Data.Models.Reviews
 @using DirectoryManager.Web.Constants
 @{
-    ViewData[StringConstants.TitleHeader] = Model.Name;
+    PageMeta.Title = Model.Name;
     var entries = (List<DirectoryEntryReviewRaffleEntry>)ViewBag.Entries;
     var entryTotal = (int)(ViewBag.EntryTotal ?? 0);
     var page = (int)(ViewBag.Page ?? 1);

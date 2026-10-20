@@ -2,9 +2,9 @@
 @using DirectoryManager.Web.Constants
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Create Snippet";
-    ViewData["Action"] = "Create";
-    ViewData["ButtonLabel"] = "Create";
+    PageMeta.Title = "Create Snippet";
+    Model.FormAction = "Create";
+    Model.SubmitLabel = "Create";
     ViewBag.SnippetTypes = new SelectList(Model.UnusedSnippetTypes, "Value", "Text");
 }
 
@@ -14,7 +14,7 @@
 
 @section PageContent {
 
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

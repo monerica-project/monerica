@@ -1,7 +1,7 @@
 ﻿@using DirectoryManager.Web.Constants;
 
 @{
-    ViewData["Title"] = "Unsubscribe";
+    PageMeta.Title = "Unsubscribe";
 }
 
 @{
@@ -10,7 +10,7 @@
 
 @section PageContent {
     <div class="page-header-bar">
-        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        <h1 class="page-title">@PageMeta.Title</h1>
         @await Html.PartialAsync("_SiteLogo")
     </div>
 
@@ -18,7 +18,7 @@
 {
     <p>Please enter your email to unsubscribe</p>
 
-    @if (!ViewData.ModelState.IsValid)
+    @if (!ViewContext.ModelState.IsValid)
     {
         <div class="alert alert-danger">
             @Html.ValidationSummary()

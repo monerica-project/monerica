@@ -81,6 +81,15 @@ namespace DirectoryManager.DisplayFormatting.Models
 
         public bool IsSubCategorySponsor { get; set; } = false;
 
+        /// <summary>Render the compact sponsor header (Name | Tor | I2P + flag) used by the sponsor boxes.</summary>
+        public bool SponsorInlineHeader { get; set; }
+
+        /// <summary>Leave out the extra links block under the name.</summary>
+        public bool SkipLinksBlock { get; set; }
+
+        /// <summary>Add a quiet "See profile" link under the description (sponsor boxes).</summary>
+        public bool ShowProfileLink { get; set; }
+
         public bool DisplayAsSponsoredItem { get; set; } = false;
 
         public string Link2Name { get; set; } = "Link 2";

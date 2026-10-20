@@ -1,4 +1,5 @@
-﻿using System.Globalization;
+﻿using DirectoryManager.Web.Extensions;
+using System.Globalization;
 using System.Text;
 using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Enums;
@@ -1008,7 +1009,7 @@ namespace DirectoryManager.Web.Controllers
                 Churned = churnedRows,
             };
 
-            this.ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Churn Report";
+            this.PageMeta().Title = "Churn Report";
             return this.View("Churn", vm);
         }
 

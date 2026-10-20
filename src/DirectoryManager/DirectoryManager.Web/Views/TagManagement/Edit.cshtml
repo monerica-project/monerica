@@ -2,11 +2,11 @@
 @model TagEditViewModel
 
 @{
-    ViewData["Title"] = "Edit Tag";
+    PageMeta.Title = "Edit Tag";
     Layout = "_CenteredLayout";
 }
 @section PageContent {
-<h1>@ViewData["Title"]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 <form method="post" asp-action="Edit" asp-route-id="@Model.TagId">

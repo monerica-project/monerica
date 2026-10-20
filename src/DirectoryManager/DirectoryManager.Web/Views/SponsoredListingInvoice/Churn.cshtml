@@ -2,7 +2,7 @@
 @using DirectoryManager.Web.Constants
 
 @{
-    ViewData[StringConstants.TitleHeader] = ViewData[StringConstants.TitleHeader] ?? "Churn Report";
+    PageMeta.Title = PageMeta.Title ?? "Churn Report";
     Layout = "_CenteredLayout";
 
     // show inclusive end day in the date picker
@@ -23,7 +23,7 @@
 }
 
 @section PageContent {
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
 
     @await Html.PartialAsync("_AdminMenu")
     @await Html.PartialAsync("_ReportMenu")

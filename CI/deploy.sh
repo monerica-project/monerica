@@ -721,6 +721,19 @@ server {
         proxy_set_header   X-Forwarded-Proto \$scheme;
         proxy_cache_bypass \$http_upgrade;
     }
+
+    # If the app isn't answering (restarting, starting up, crashed), show the "Updating" page
+    # as a 503 (+ Retry-After, never cached) instead of a raw "502 Bad Gateway". Covers any
+    # restart, not just deploys. Only nginx's own 502 (can't reach the app) is replaced; the
+    # app's real error responses pass through untouched.
+    error_page 502 =503 /maintenance-$APP_NAME.html;
+    location = /maintenance-$APP_NAME.html {
+        alias /var/www/maintenance/$APP_NAME.html;
+        default_type text/html;
+        add_header Retry-After 15 always;
+        add_header Cache-Control "no-store" always;
+        internal;
+    }
 }
 EOF
         write_ok "Nginx: HTTPS proxy (Bunny origin — self-signed cert + origin gate)"
@@ -757,6 +770,19 @@ server {
         proxy_set_header   X-Forwarded-Proto \$scheme;
         proxy_cache_bypass \$http_upgrade;
     }
+
+    # If the app isn't answering (restarting, starting up, crashed), show the "Updating" page
+    # as a 503 (+ Retry-After, never cached) instead of a raw "502 Bad Gateway". Covers any
+    # restart, not just deploys. Only nginx's own 502 (can't reach the app) is replaced; the
+    # app's real error responses pass through untouched.
+    error_page 502 =503 /maintenance-$APP_NAME.html;
+    location = /maintenance-$APP_NAME.html {
+        alias /var/www/maintenance/$APP_NAME.html;
+        default_type text/html;
+        add_header Retry-After 15 always;
+        add_header Cache-Control "no-store" always;
+        internal;
+    }
 }
 EOF
         write_ok "Nginx: HTTPS proxy"
@@ -777,6 +803,19 @@ server {
         proxy_set_header   X-Forwarded-For \$proxy_add_x_forwarded_for;
         proxy_set_header   X-Forwarded-Proto \$scheme;
         proxy_cache_bypass \$http_upgrade;
+    }
+
+    # If the app isn't answering (restarting, starting up, crashed), show the "Updating" page
+    # as a 503 (+ Retry-After, never cached) instead of a raw "502 Bad Gateway". Covers any
+    # restart, not just deploys. Only nginx's own 502 (can't reach the app) is replaced; the
+    # app's real error responses pass through untouched.
+    error_page 502 =503 /maintenance-$APP_NAME.html;
+    location = /maintenance-$APP_NAME.html {
+        alias /var/www/maintenance/$APP_NAME.html;
+        default_type text/html;
+        add_header Retry-After 15 always;
+        add_header Cache-Control "no-store" always;
+        internal;
     }
 }
 EOF

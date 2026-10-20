@@ -60,6 +60,13 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 // Configure application services
 builder.Services.AddApplicationServices(builder.Configuration);
 
+// Write non-Latin text (Cyrillic, em dashes, arrows…) into pages as real characters instead of
+// &#x...; codes. Only the default "allowed characters" list changes: < > & " ' are still
+// always escaped, so this has no effect on XSS protection.
+// Only the HTML encoder is replaced; URL and JavaScript encoding are unchanged.
+builder.Services.AddSingleton<System.Text.Encodings.Web.HtmlEncoder>(
+    System.Text.Encodings.Web.HtmlEncoder.Create(System.Text.Unicode.UnicodeRanges.All));
+
 // Persist data protection keys outside the deploy dir so auth cookies survive deploys.
 if (!builder.Environment.IsDevelopment())
 {

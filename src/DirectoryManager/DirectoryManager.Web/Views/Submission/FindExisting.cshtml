@@ -3,8 +3,8 @@
 @using DirectoryManager.Data.Models.TransferModels
 @using DirectoryManager.Web.Constants;
 @{
-    ViewData[StringConstants.TitleHeader] = "Current Listings";
-    ViewData[StringConstants.IsIndexable] = false;
+    PageMeta.Title = "Current Listings";
+    PageMeta.IsIndexable = false;
 }
 
 @{
@@ -13,7 +13,7 @@
 
 @section PageContent {
     <div class="page-header-bar">
-        <h1 class="page-title">@ViewData[StringConstants.TitleHeader] </h1>
+        <h1 class="page-title">@PageMeta.Title </h1>
         @await Html.PartialAsync("_SiteLogo")
     </div>
 <hr />

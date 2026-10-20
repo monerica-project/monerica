@@ -2,13 +2,13 @@
 @model DirectoryManager.Data.Models.VideoSponsorships.VideoIdea
 @{
     var isNew = Model.VideoIdeaId == 0;
-    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = isNew ? "Add Video Idea" : "Edit Video Idea";
+    PageMeta.Title = isNew ? "Add Video Idea" : "Edit Video Idea";
     Layout = "_CenteredLayout";
     VideoIdeaStatus[] statuses = { VideoIdeaStatus.Queued, VideoIdeaStatus.Completed, VideoIdeaStatus.Retired };
 }
 
 @section PageContent {
-    <h1>@ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
     @await Html.PartialAsync("_Nav")
 
     <form method="post" action="~/admin/video-sponsorship/videos/edit">

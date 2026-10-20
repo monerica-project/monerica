@@ -16,12 +16,12 @@ namespace DirectoryManager.DisplayFormatting.Helpers
         // ----------------------------
         public static string GenerateDirectoryEntryHtml(
             DirectoryEntryViewModel model,
-            string? rootUrl = null,
-            bool sponsorInlineHeader = false,
-            bool skipLinksBlock = false,
-            bool showProfileLink = false)
+            string? rootUrl = null)
         {
             var sb = new StringBuilder();
+            bool sponsorInlineHeader = model.SponsorInlineHeader;
+            bool skipLinksBlock = model.SkipLinksBlock;
+            bool showProfileLink = model.ShowProfileLink;
 
             AppendDirectoryEntryOpenLi(sb, model);
             sb.Append("<p>");

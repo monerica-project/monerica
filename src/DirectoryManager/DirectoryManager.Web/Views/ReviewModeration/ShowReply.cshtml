@@ -4,16 +4,17 @@
 @using DirectoryManager.Data.Models
 @using DirectoryManager.Data.Enums
 
-@model DirectoryEntryReviewComment
+@model DirectoryManager.Web.Models.Reviews.ShowReplyViewModel
 
 @{
     Layout = "_CenteredLayout";
-    ViewData[StringConstants.TitleHeader] = $"Reply #{Model.DirectoryEntryReviewCommentId}";
-    var isEditMode = ViewData["EditMode"] as bool? == true;
+    var reply = Model.Comment;
+    var isEditMode = Model.IsEditMode;
+    PageMeta.Title = $"Reply #{reply.DirectoryEntryReviewCommentId}";
 }
 
 @section PageContent {
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
 
     @await Html.PartialAsync("_AdminMenu")
 
@@ -22,7 +23,7 @@
         <div class="alert alert-success">@successMessage</div>
     }
 
-    @if (!ViewData.ModelState.IsValid)
+    @if (!ViewContext.ModelState.IsValid)
     {
         <div class="alert alert-danger">
             @Html.ValidationSummary(excludePropertyErrors: true, message: "Please fix the errors below.")
@@ -31,46 +32,46 @@
 
     <dl class="row">
         <dt class="col-sm-3">Status</dt>
-        <dd class="col-sm-9">@Model.ModerationStatus</dd>
+        <dd class="col-sm-9">@reply.ModerationStatus</dd>
 
         <dt class="col-sm-3">Review Id</dt>
         <dd class="col-sm-9">
             <a asp-action="Show"
-               asp-route-id="@Model.DirectoryEntryReviewId">@Model.DirectoryEntryReviewId</a>
+               asp-route-id="@reply.DirectoryEntryReviewId">@reply.DirectoryEntryReviewId</a>
         </dd>
 
         <dt class="col-sm-3">Parent Comment Id</dt>
-        <dd class="col-sm-9">@(Model.ParentCommentId?.ToString() ?? "-")</dd>
+        <dd class="col-sm-9">@(reply.ParentCommentId?.ToString() ?? "-")</dd>
 
         <dt class="col-sm-3">Author Fingerprint</dt>
-        <dd class="col-sm-9"><code>@Model.AuthorFingerprint</code></dd>
+        <dd class="col-sm-9"><code>@reply.AuthorFingerprint</code></dd>
 
         <dt class="col-sm-3">Created (UTC)</dt>
-        <dd class="col-sm-9">@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</dd>
+        <dd class="col-sm-9">@reply.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</dd>
 
         <dt class="col-sm-3">Updated (UTC)</dt>
-        <dd class="col-sm-9">@((Model.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)) ?? "-")</dd>
+        <dd class="col-sm-9">@((reply.UpdateDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)) ?? "-")</dd>
 
         <dt class="col-sm-3">Body</dt>
         <dd class="col-sm-9">
             @if (isEditMode)
             {
                 <form asp-action="EditReply"
-                      asp-route-id="@Model.DirectoryEntryReviewCommentId"
+                      asp-route-id="@reply.DirectoryEntryReviewCommentId"
                       method="post">
                     @Html.AntiForgeryToken()
-                    <textarea id="body" name="body" class="form-control" rows="10" maxlength="4000">@Model.Body</textarea>
+                    <textarea id="body" name="body" class="form-control" rows="10" maxlength="4000">@reply.Body</textarea>
                     @Html.ValidationMessage("body", new { @class = "text-danger" })
                     <div class="mt-2">
                         <button type="submit">Save</button>
-                        <a asp-action="ShowReply" asp-route-id="@Model.DirectoryEntryReviewCommentId">Cancel</a>
+                        <a asp-action="ShowReply" asp-route-id="@reply.DirectoryEntryReviewCommentId">Cancel</a>
                     </div>
                 </form>
             }
             else
             {
-                <pre class="u-ws-pre-wrap">@Html.Raw(StringHelpers.RenderBodyWithLinksHtml(Model.Body, cssClass: "multi-line-text", ugcContent: true, maskEmails: false))</pre>
-                <a asp-action="EditReply" asp-route-id="@Model.DirectoryEntryReviewCommentId">Edit</a>
+                <pre class="u-ws-pre-wrap">@Html.Raw(StringHelpers.RenderBodyWithLinksHtml(reply.Body, cssClass: "multi-line-text", ugcContent: true, maskEmails: false))</pre>
+                <a asp-action="EditReply" asp-route-id="@reply.DirectoryEntryReviewCommentId">Edit</a>
             }
         </dd>
     </dl>
@@ -83,10 +84,10 @@
     <hr />
 
     <div class="mt-3">
-        @if (Model.ModerationStatus != ReviewModerationStatus.Approved)
+        @if (reply.ModerationStatus != ReviewModerationStatus.Approved)
         {
             <form asp-action="ApproveReply"
-                  asp-route-id="@Model.DirectoryEntryReviewCommentId"
+                  asp-route-id="@reply.DirectoryEntryReviewCommentId"
                   method="post"
                   class="d-inline">
                 @Html.AntiForgeryToken()
@@ -95,7 +96,7 @@
         }
 
         <form asp-action="RejectReply"
-              asp-route-id="@Model.DirectoryEntryReviewCommentId"
+              asp-route-id="@reply.DirectoryEntryReviewCommentId"
               method="post"
               class="mt-3">
             @Html.AntiForgeryToken()
@@ -103,7 +104,7 @@
             <div class="mb-2">
                 <label for="reason" class="form-label">Rejection reason (required to reject)</label>
                 <br />
-                <textarea id="reason" name="reason" class="form-control" rows="3">@Model.RejectionReason</textarea>
+                <textarea id="reason" name="reason" class="form-control" rows="3">@reply.RejectionReason</textarea>
                 @Html.ValidationMessage("reason", new { @class = "text-danger" })
             </div>
 
@@ -111,7 +112,7 @@
         </form>
 
         <form asp-action="DeleteReply"
-              asp-route-id="@Model.DirectoryEntryReviewCommentId"
+              asp-route-id="@reply.DirectoryEntryReviewCommentId"
               method="post"
               class="mt-3">
             @Html.AntiForgeryToken()

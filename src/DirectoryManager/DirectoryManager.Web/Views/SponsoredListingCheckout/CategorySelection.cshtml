@@ -4,8 +4,8 @@
 @model IEnumerable<DirectoryEntry>
 
 @{
-    ViewData[StringConstants.IsIndexable]  = false;
-    ViewData[StringConstants.TitleHeader]  = "Select Listing";
+    PageMeta.IsIndexable  = false;
+    PageMeta.Title  = "Select Listing";
     Layout = "_CenteredLayout";
 
     int categoryId = ViewBag.CategoryId ?? 0;
@@ -18,7 +18,7 @@
 }
 
 @section PageContent {
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
 
     <hr />
     <a href="~/sponsoredlisting">&lt; back</a>

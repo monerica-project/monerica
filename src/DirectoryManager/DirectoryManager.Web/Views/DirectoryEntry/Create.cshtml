@@ -9,22 +9,22 @@
 }
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Create Directory Entry";
+    PageMeta.Title = "Create Directory Entry";
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 
 <form method="post" action="~/directoryentry/create">
 @Html.AntiForgeryToken()
 
-@if (!ViewData.ModelState.IsValid)
+@if (!ViewContext.ModelState.IsValid)
 {
     <div class="alert alert-danger">
         <ul>
-            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            @foreach (var error in ViewContext.ModelState.Values.SelectMany(v => v.Errors))
             {
                 <li>@error.ErrorMessage</li>
             }

@@ -1,7 +1,7 @@
 @using System.Globalization
 @model DirectoryManager.Web.Models.VideoSponsorship.VideoSponsorSuccessVm
 @{
-    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = Model.IsPaid ? "Payment Received" : "Video Sponsorship Order";
+    PageMeta.Title = Model.IsPaid ? "Payment Received" : "Video Sponsorship Order";
     Layout = "_CenteredLayout";
     var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
     var order = Model.Order;
@@ -9,7 +9,7 @@
 }
 
 @section PageContent {
-    <h1>@ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
     <hr />
     @await Html.PartialAsync("_BackToHome")
     <hr />

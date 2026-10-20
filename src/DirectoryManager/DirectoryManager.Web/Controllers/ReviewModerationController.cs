@@ -656,7 +656,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            return this.View("ShowReply", item);
+            return this.View("ShowReply", new DirectoryManager.Web.Models.Reviews.ShowReplyViewModel { Comment = item });
         }
 
         // GET /admin/reviews/reply/123/edit
@@ -669,8 +669,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            this.ViewData["EditMode"] = true;
-            return this.View("ShowReply", item);
+            return this.View("ShowReply", new DirectoryManager.Web.Models.Reviews.ShowReplyViewModel { Comment = item, IsEditMode = true });
         }
 
         // POST /admin/reviews/reply/123/edit
@@ -697,8 +696,7 @@ namespace DirectoryManager.Web.Controllers
             if (!this.ModelState.IsValid)
             {
                 item.Body = newBody;
-                this.ViewData["EditMode"] = true;
-                return this.View("ShowReply", item);
+                return this.View("ShowReply", new DirectoryManager.Web.Models.Reviews.ShowReplyViewModel { Comment = item, IsEditMode = true });
             }
 
             item.Body = newBody;
@@ -732,7 +730,7 @@ namespace DirectoryManager.Web.Controllers
                 }
 
                 this.ModelState.AddModelError("reason", "A rejection reason is required.");
-                return this.View("ShowReply", item);
+                return this.View("ShowReply", new DirectoryManager.Web.Models.Reviews.ShowReplyViewModel { Comment = item });
             }
 
             await this.commentRepo.RejectAsync(id, reason.Trim(), ct);

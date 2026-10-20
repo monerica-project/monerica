@@ -13,17 +13,17 @@
         return;
     }
 
-    ViewData[StringConstants.TitleHeader] = string.Format("{0} - Audit: {1}", firstOrDefault.Name, @firstOrDefault.DirectoryEntryId);
+    PageMeta.Title = string.Format("{0} - Audit: {1}", firstOrDefault.Name, @firstOrDefault.DirectoryEntryId);
 
 }
 @{
     Layout = "_CenteredLayout";
-    ViewData[StringConstants.IsIndexable] = false;
+    PageMeta.IsIndexable = false;
 }
 
 @section PageContent {
     @await Html.PartialAsync("_SiteLogo")
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 <hr />
 @{

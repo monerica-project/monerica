@@ -2,7 +2,7 @@
 @using DirectoryManager.Web.Constants;
 @using DirectoryManager.Web.Models.Emails;
 @{
-    ViewData[StringConstants.TitleHeader] = "Edit Email";
+    PageMeta.Title = "Edit Email";
 }
 
 @{
@@ -10,7 +10,7 @@
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

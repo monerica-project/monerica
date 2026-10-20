@@ -11,8 +11,8 @@
 
 @{
     Layout = "_WideLayout";
-    ViewData[StringConstants.TitleHeader] = "Directory Filter";
-    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    PageMeta.Title = "Directory Filter";
+    PageMeta.MetaContent = StringConstants.MetaTagNoIndex;
 
     var selectedStatuses = new HashSet<DirectoryStatus>(Model.Query.Statuses ?? new List<DirectoryStatus>());
     // Default: when no KYC filter is explicitly applied, treat every policy (incl. Not Stated)

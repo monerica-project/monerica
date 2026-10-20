@@ -2,13 +2,13 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @{
     var siteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
-    ViewData[StringConstants.TitleHeader] = "Review Us";
+    PageMeta.Title = "Review Us";
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
     <div class="page-header-bar">
-        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        <h1 class="page-title">@PageMeta.Title</h1>
         @await Html.PartialAsync("_SiteLogo")
     </div>
     <hr />

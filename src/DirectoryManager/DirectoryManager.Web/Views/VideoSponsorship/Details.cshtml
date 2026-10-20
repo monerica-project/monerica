@@ -3,7 +3,7 @@
 @model DirectoryManager.Web.Models.VideoSponsorship.VideoSponsorCheckoutVm
 @{
     var siteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
-    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Review & Pay";
+    PageMeta.Title = "Review & Pay";
     Layout = "_CenteredLayout";
     var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
     var hasPerk = Model.DiscountPercent > 0m;

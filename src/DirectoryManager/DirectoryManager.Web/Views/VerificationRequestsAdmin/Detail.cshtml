@@ -2,7 +2,7 @@
 @inject BtcPayServer.API.Interfaces.IBtcPayServerService BtcPay
 @model DirectoryManager.Web.Models.VerificationRequests.VerificationRequestDetailViewModel
 @{
-    ViewData["Title"] = "Verification Request";
+    PageMeta.Title = "Verification Request";
     Layout = "_CenteredLayout";
     var r = Model.Request;
     var dateFormat = DirectoryManager.Common.Constants.StringConstants.DateFormat;

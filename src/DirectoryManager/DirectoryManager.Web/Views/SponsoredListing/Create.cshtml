@@ -5,7 +5,7 @@
 @model DirectoryManager.Web.Models.CreateListingViewModel
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Create Sponsored Listing";
+    PageMeta.Title = "Create Sponsored Listing";
     Layout = "_CenteredLayout";
 
     var entries = (List<DirectoryEntry>)ViewBag.DirectoryEntries;
@@ -14,7 +14,7 @@
 }
 
 @section PageContent {
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
 
     @await Html.PartialAsync("_AdminMenu")
 
@@ -25,10 +25,10 @@
 
     <hr />
 
-    @if (!ViewData.ModelState.IsValid)
+    @if (!ViewContext.ModelState.IsValid)
     {
         <div class="error">
-            @foreach (var err in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+            @foreach (var err in ViewContext.ModelState.Values.SelectMany(v => v.Errors))
             {
                 <p>@err.ErrorMessage</p>
             }

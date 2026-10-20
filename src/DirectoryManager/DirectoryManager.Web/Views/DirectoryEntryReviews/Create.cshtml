@@ -1,7 +1,7 @@
 ﻿@using DirectoryManager.Web.Models
 @model CreateDirectoryEntryReviewInputModel
 @{
-    ViewData["Title"] = "Create Review";
+    PageMeta.Title = "Create Review";
     Layout = "_CenteredLayout";
 }
 
@@ -16,12 +16,12 @@
               method="post">
             @Html.AntiForgeryToken()
 
-            @if (!ViewData.ModelState.IsValid)
+            @if (!ViewContext.ModelState.IsValid)
             {
                 <div class="alert alert-danger">
                     <strong>Please fix the following errors:</strong>
                     <ul class="mb-0">
-                        @foreach (var entry in ViewData.ModelState)
+                        @foreach (var entry in ViewContext.ModelState)
                         {
                             foreach (var error in entry.Value!.Errors)
                             {

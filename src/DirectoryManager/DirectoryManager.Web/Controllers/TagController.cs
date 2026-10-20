@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Web.Extensions;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Implementations;
@@ -66,7 +67,7 @@ namespace DirectoryManager.Web.Controllers
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
             var path = page > 1 ? $"tagged/page/{page}" : "tagged";
 
-            this.ViewData[StringConstants.CanonicalUrl] =
+            this.PageMeta().CanonicalUrl =
                 UrlBuilder.CombineUrl(canonicalDomain, path);
 
             var pageSize = Constants.IntegerConstants.MaxPageSize;
@@ -176,7 +177,7 @@ namespace DirectoryManager.Web.Controllers
             var basePath = $"tagged/{tagSlug}";
             var path = page > 1 ? $"{basePath}/page/{page}" : basePath;
 
-            this.ViewData[StringConstants.CanonicalUrl] =
+            this.PageMeta().CanonicalUrl =
                 UrlBuilder.CombineUrl(canonicalDomain, path);
         }
 

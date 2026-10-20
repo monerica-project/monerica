@@ -10,11 +10,11 @@
 
 @{
     Layout = "_CenteredLayout";
-    ViewData[StringConstants.TitleHeader] = "Edit Directory Entry";
+    PageMeta.Title = "Edit Directory Entry";
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

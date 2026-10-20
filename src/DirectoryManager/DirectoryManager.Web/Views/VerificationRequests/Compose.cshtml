@@ -3,13 +3,13 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @{
     var siteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
-    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
-    ViewData[StringConstants.TitleHeader] = "Request Verification";
+    PageMeta.MetaContent = StringConstants.MetaTagNoIndex;
+    PageMeta.Title = "Request Verification";
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
     @if (ViewBag.EntryName != null)
     {
         <p class="text-muted">Listing: <strong>@ViewBag.EntryName</strong></p>

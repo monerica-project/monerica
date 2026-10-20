@@ -2,7 +2,7 @@
 @model TagEditViewModel
 
 @{
-    ViewData["Title"] = "Create Tag";
+    PageMeta.Title = "Create Tag";
     Layout = "_CenteredLayout";
 }
 
@@ -10,7 +10,7 @@
 
 @section PageContent {
 
-<h1>@ViewData["Title"]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 <form method="post" asp-action="Create">

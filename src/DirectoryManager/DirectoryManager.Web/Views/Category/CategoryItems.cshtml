@@ -14,18 +14,18 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryReviewRepository directoryEntryReviewRepository
 
 @{
-    ViewData["CurrentCategoryKey"] = Model.CategoryKey;
-    ViewData["CurrentSubCategoryKey"] = null;
+    PageMeta.CurrentCategoryKey = Model.CategoryKey;
+    PageMeta.CurrentSubCategoryKey = null;
 }
 
 @{
   Layout = "_LayoutWithNav";
-  ViewData[StringConstants.TitleHeader] = string.Format(
+  PageMeta.Title = string.Format(
       "{0}: {1}{2}",
       await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName),
       Model.CategoryName,
       Model.CurrentPage > 1 ? $" (Page {Model.CurrentPage})" : "");
-  ViewData[StringConstants.MetaDescription] = Model.MetaDescription;
+  PageMeta.MetaDescription = Model.MetaDescription;
 }
  
 @{

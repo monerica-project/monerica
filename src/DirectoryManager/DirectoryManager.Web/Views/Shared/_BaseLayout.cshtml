@@ -5,17 +5,15 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>@ViewData[StringConstants.TitleHeader]</title>
-    @if (ViewData[StringConstants.MetaDescription] != null &&
-             !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.MetaDescription])))
+    <title>@PageMeta.Title</title>
+    @if (!string.IsNullOrWhiteSpace(PageMeta.MetaDescription))
     {
-        <meta name="description" content="@ViewData[StringConstants.MetaDescription]" />
-        <meta name="twitter:description" content="@ViewData[StringConstants.MetaDescription]" />
+        <meta name="description" content="@PageMeta.MetaDescription" />
+        <meta name="twitter:description" content="@PageMeta.MetaDescription" />
     }
-    @if (ViewData[StringConstants.MetaContent] != null &&
-             !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.MetaContent])))
+    @if (!string.IsNullOrWhiteSpace(PageMeta.MetaContent))
     {
-        @Html.Raw(ViewData[StringConstants.MetaContent])
+        @Html.Raw(PageMeta.MetaContent)
     }
     @{
         var torUrl = await cacheHelper.GetSnippetAsync(SiteConfigSetting.FullRootTorUrl);
@@ -37,13 +35,11 @@
     <meta http-equiv="Pragma" content="no-cache" />
     <meta http-equiv="Expires" content="0" />
     <meta name="referrer" content="no-referrer">
-    @if (ViewData[StringConstants.CanonicalUrl] != null &&
-             !string.IsNullOrWhiteSpace(Convert.ToString(ViewData[StringConstants.CanonicalUrl])))
+    @if (!string.IsNullOrWhiteSpace(PageMeta.CanonicalUrl))
     {
-        <link rel="canonical" href="@ViewData[StringConstants.CanonicalUrl]" />
+        <link rel="canonical" href="@PageMeta.CanonicalUrl" />
     }
-    @if (ViewData[StringConstants.IsIndexable] != null &&
-             bool.TryParse(ViewData[StringConstants.IsIndexable]?.ToString(), out bool isIndexable) && !isIndexable)
+    @if (PageMeta.IsIndexable == false)
     {
         <meta name="robots" content="noindex" />
     }

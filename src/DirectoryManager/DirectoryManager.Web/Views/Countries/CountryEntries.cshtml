@@ -6,7 +6,7 @@
     Layout = "_LayoutWithNav";
     int totalPages = (int)Math.Ceiling(Model.PagedEntries.TotalCount / (double)Model.PageSize);
     string pageSuffix = Model.CurrentPage > 1 ? $" – Page {Model.CurrentPage}" : "";
-    ViewData["Title"] = $"Country: {Model.CountryName}{pageSuffix}";
+    PageMeta.Title = $"Country: {Model.CountryName}{pageSuffix}";
 }
 
 @section PageContent {

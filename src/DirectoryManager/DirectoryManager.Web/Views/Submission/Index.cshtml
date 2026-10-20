@@ -1,13 +1,13 @@
 ﻿@model DirectoryManager.Web.Models.SubmissionPagedList
 @using DirectoryManager.Web.Constants;
 @{
-    ViewData[StringConstants.TitleHeader] = "Submission Requests";
+    PageMeta.Title = "Submission Requests";
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
 
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 <div class="u-m-12px-0-18px-0">
     <a asp-action="Index" asp-controller="Submission"><b>All</b></a>
     <span class="u-p-0-8px">|</span>

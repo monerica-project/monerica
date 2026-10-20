@@ -8,7 +8,7 @@
 @model SponsorshipOptionsVm
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Sponsorship Options: " + Model.ListingName;
+    PageMeta.Title = "Sponsorship Options: " + Model.ListingName;
 
     var siteUrl = !string.IsNullOrWhiteSpace(Model.DirectoryEntryKey)
         ? UrlBuilder.ListingPath(Model.DirectoryEntryKey)
@@ -67,7 +67,7 @@
 @section PageContent {
 
     <div class="page-header-bar">
-        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        <h1 class="page-title">@PageMeta.Title</h1>
         @await Html.PartialAsync("_SiteLogo")
     </div>
 

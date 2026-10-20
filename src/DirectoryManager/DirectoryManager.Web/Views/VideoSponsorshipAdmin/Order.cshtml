@@ -2,7 +2,7 @@
 @using DirectoryManager.Data.Enums
 @model DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrder
 @{
-    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = $"Video Sponsor Order #{Model.VideoSponsorOrderId}";
+    PageMeta.Title = $"Video Sponsor Order #{Model.VideoSponsorOrderId}";
     Layout = "_CenteredLayout";
     var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
     var now = DateTime.UtcNow;
@@ -16,7 +16,7 @@
 }
 
 @section PageContent {
-    <h1>@ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
     @await Html.PartialAsync("_Nav")
 
     @if (Model.HasConflict)

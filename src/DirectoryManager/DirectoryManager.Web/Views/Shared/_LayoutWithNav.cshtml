@@ -3,10 +3,10 @@
 @inject ISponsorTickerService sponsorTickerService
 @{
     Layout = "_BaseLayout";
-    var nav = ViewData["NavModel"] as DirectoryManager.Web.Models.NavigationViewModel;
 }
 @section ChromeBeforeMain {
-    @await Html.PartialAsync("_SidebarNav", nav)
+    @* The sidebar builds its own navigation; it takes no model from the layout. *@
+    @await Html.PartialAsync("_SidebarNav", (NavigationViewModel?)null)
 }
 <div id="main-content">
     @{

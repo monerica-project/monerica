@@ -4,6 +4,46 @@ namespace DirectoryManager.Web.Helpers
 {
     public class UrlHelper
     {
+        /// <summary>
+        /// Human-readable form of a URL for link TEXT: percent-escapes are decoded so
+        /// "%D0%BA%D1%80" shows as "кр". The href itself should keep the original (encoded)
+        /// URL. Returns the input unchanged if it isn't valid escaped UTF-8 or if decoding would
+        /// reveal control, invisible or text-direction characters (which can disguise a link).
+        /// </summary>
+        public static string ToDisplayUrl(string? url)
+        {
+            if (string.IsNullOrEmpty(url) || !url.Contains('%'))
+            {
+                return url ?? string.Empty;
+            }
+
+            string decoded;
+            try
+            {
+                decoded = Uri.UnescapeDataString(url);
+            }
+            catch (UriFormatException)
+            {
+                return url;
+            }
+
+            foreach (var ch in decoded)
+            {
+                var cat = char.GetUnicodeCategory(ch);
+                if (char.IsControl(ch)
+                    || char.IsWhiteSpace(ch)
+                    || ch == '\uFFFD' // invalid UTF-8 became a replacement char
+                    || cat == System.Globalization.UnicodeCategory.Format // bidi overrides, zero-width chars
+                    || cat == System.Globalization.UnicodeCategory.LineSeparator
+                    || cat == System.Globalization.UnicodeCategory.ParagraphSeparator)
+                {
+                    return url;
+                }
+            }
+
+            return decoded;
+        }
+
         private static readonly Regex TorRegex =
             new Regex(
                 @"^http[s]?://[a-z2-7]{16}\.onion(/.*)?$",

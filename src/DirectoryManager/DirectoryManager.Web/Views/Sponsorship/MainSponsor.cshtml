@@ -10,7 +10,7 @@
     // Site-specific perks (partner network, social account, blog interview) come from config so
     // forks of this codebase don't advertise this site's network. Empty = no extra bullets.
     var extraBenefitsHtml = await cacheHelper.GetSnippetAsync(SiteConfigSetting.MainSponsorExtraBenefitsHtml);
-    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Buy the Main Sponsor Slot";
+    PageMeta.Title = "Buy the Main Sponsor Slot";
     Layout = "_CenteredLayout";
 
     var usd = CultureInfo.GetCultureInfo(DirectoryManager.Web.Constants.StringConstants.EnglishUS);
@@ -50,7 +50,7 @@
         <div class="u-callout-center u-border-orange-50">
             <p class="u-heading-sm orange-text u-m-0">
                 A Main Sponsor spot is open right now
-                <span class="u-opacity-85">(@Model.MainSponsorActiveCount of @Model.MainSponsorMaxSlots filled)</span>
+                <span class="u-dim-85">(@Model.MainSponsorActiveCount of @Model.MainSponsorMaxSlots filled)</span>
             </p>
             <p class="u-opacity-85 u-m-6px-0-0">Claim it below before someone else does.</p>
         </div>
@@ -192,7 +192,7 @@
             <li>Your listing is <strong>Verified</strong> (the green checkmark &#9989;).</li>
             <li>Your listing has been in the directory for at least <strong>@DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring days</strong>.</li>
         </ol>
-        <span class="u-opacity-85">Searching your listing above tells you exactly if it qualifies. Already a current sponsor? You can always renew.</span>
+        <span class="u-dim-85">Searching your listing above tells you exactly if it qualifies. Already a current sponsor? You can always renew.</span>
     </div>
 
     <hr />

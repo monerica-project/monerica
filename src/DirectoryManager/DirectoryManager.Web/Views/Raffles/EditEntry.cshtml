@@ -2,7 +2,7 @@
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.Web.Constants
 @{
-    ViewData[StringConstants.TitleHeader] = $"Edit Entry #{Model.DirectoryEntryReviewRaffleEntryId}";
+    PageMeta.Title = $"Edit Entry #{Model.DirectoryEntryReviewRaffleEntryId}";
     Layout = "_CenteredLayout";
 
     var statusOptions = Enum.GetValues<RaffleEntryStatus>()
@@ -18,7 +18,7 @@
 
 @section PageContent {
 
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 <hr />
     @await Html.PartialAsync("_AdminMenu")
 <div asp-validation-summary="All" class="text-danger"></div>

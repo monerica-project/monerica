@@ -18,7 +18,7 @@
     // SiteName is the configured site name snippet ("Monerica"); fall back to just the listing
     // name if the snippet is ever empty so the title is never a bare " — Profile".
     var siteNameForTitle = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
-    ViewData[StringConstants.TitleHeader] = string.IsNullOrWhiteSpace(siteNameForTitle)
+    PageMeta.Title = string.IsNullOrWhiteSpace(siteNameForTitle)
         ? Model.Name
         : $"{Model.Name} — {siteNameForTitle} Profile";
     var categoryKey = ViewBag.CategoryKey as string;
@@ -26,8 +26,8 @@
     var categoryName = ViewBag.CategoryName as string;
     var subCategoryName = ViewBag.SubCategoryName as string;
 
-    ViewData["CurrentCategoryKey"] = categoryKey;
-    ViewData["CurrentSubCategoryKey"] = subCategoryKey;
+    PageMeta.CurrentCategoryKey = categoryKey;
+    PageMeta.CurrentSubCategoryKey = subCategoryKey;
 
     // ✅ scam flag
     var isScam = Model.DirectoryStatus == DirectoryStatus.Scam;
@@ -496,7 +496,7 @@
                     @foreach (var link in Model.AdditionalLinks)
                     {
                         <li>
-                            <a class="multi-line-text" href="@link" target="_blank" rel="nofollow noopener">@link</a>
+                            <a class="multi-line-text" href="@link" target="_blank" rel="nofollow noopener">@DirectoryManager.Web.Helpers.UrlHelper.ToDisplayUrl(link)</a>
                         </li>
                     }
                 </ul>

@@ -9,20 +9,20 @@
 
 @{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
-    ViewData[StringConstants.TitleHeader] = "Edit Listing";
-    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    PageMeta.Title = "Edit Listing";
+    PageMeta.MetaContent = StringConstants.MetaTagNoIndex;
 }
 
 @section PageContent {
     <div class="page-header-bar">
-        <h1 class="page-title">@ViewData[StringConstants.TitleHeader] </h1>
+        <h1 class="page-title">@PageMeta.Title </h1>
         @await Html.PartialAsync("_SiteLogo")
     </div>
 <hr />
     <a href="~/submission/findinglisting">&lt; find listing to edit</a>
 <hr />
 
-    @if (!ViewData.ModelState.IsValid)
+    @if (!ViewContext.ModelState.IsValid)
     {
         <div class="alert alert-danger">
             <strong>There were errors with your submission</strong>

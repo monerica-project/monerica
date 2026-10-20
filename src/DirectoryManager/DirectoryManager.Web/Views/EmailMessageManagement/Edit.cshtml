@@ -2,7 +2,7 @@
 @model DirectoryManager.Web.Models.Emails.EmailMessageModel
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Edit Email Message";
+    PageMeta.Title = "Edit Email Message";
 }
 
 @{
@@ -10,7 +10,7 @@
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

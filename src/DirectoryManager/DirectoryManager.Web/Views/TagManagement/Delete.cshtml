@@ -1,11 +1,11 @@
 ﻿@model DirectoryManager.Data.Models.Tag
 
 @{
-    ViewData["Title"] = "Delete Tag";
+    PageMeta.Title = "Delete Tag";
     Layout = "_CenteredLayout";
 }
 @section PageContent {
-<h1>@ViewData["Title"]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 <p>Are you sure you want to delete this tag?</p>

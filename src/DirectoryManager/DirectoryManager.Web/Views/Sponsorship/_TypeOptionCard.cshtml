@@ -91,7 +91,7 @@
                     <span><strong>Active</strong> — you can extend anytime.</span>
                     @if (opt.YourActiveUntilUtc.HasValue)
                     {
-                        <text>(</text><span class="u-opacity-85">until <strong>@FormatUtcFull(opt.YourActiveUntilUtc.Value)</strong></span><text>)</text>
+                        <text>(</text><span class="u-dim-85">until <strong>@FormatUtcFull(opt.YourActiveUntilUtc.Value)</strong></span><text>)</text>
                     }
                 }
                 else if (availableNow)
@@ -308,7 +308,7 @@
                             <span class="u-ml-6px-opacity-9"><strong>(you)</strong></span>
                         }
 
-                        <span class="u-opacity-85">
+                        <span class="u-dim-85">
                             — expires <strong>@FormatUtcFull(s.CampaignEndUtc)</strong>
                             @if (s.CampaignEndUtc > nowUtc)
                             {
@@ -335,7 +335,7 @@
         <div class="u-mt-14px">
             <div class="u-fw-600">
                 Waitlist: <strong>@opt.Waitlist!.Count</strong> waiting
-                <span class="u-opacity-85">— you’d join at position <strong>#@joinRank</strong></span>
+                <span class="u-dim-85">— you’d join at position <strong>#@joinRank</strong></span>
             </div>
 
             @if (opt.Waitlist!.Preview != null && opt.Waitlist.Preview.Any())
@@ -352,7 +352,7 @@
                             {
                                 @w.ListingName
                             }
-                            <span class="u-opacity-85">
+                            <span class="u-dim-85">
                                 — joined @FormatUtcFull(w.JoinedUtc)
                             </span>
                         </li>

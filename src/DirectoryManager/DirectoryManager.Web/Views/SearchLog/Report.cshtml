@@ -2,7 +2,7 @@
 @model DirectoryManager.Web.Models.SearchLogReportViewModel
 
 @{
-    ViewData["Title"] = "Search Report";
+    PageMeta.Title = "Search Report";
     Layout = "_CenteredLayout";
 
     // helpers for ISO formatting
@@ -10,7 +10,7 @@
 }
 
 @section PageContent {
-    <h1>@ViewData["Title"]</h1>
+    <h1>@PageMeta.Title</h1>
     @await Html.PartialAsync("_AdminMenu")
 
     <p>

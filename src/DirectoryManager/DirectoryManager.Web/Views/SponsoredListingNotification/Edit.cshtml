@@ -4,7 +4,7 @@
 @model DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Edit Notification";
+    PageMeta.Title = "Edit Notification";
     Layout = "_CenteredLayout";
 
     // --- Build admin edit links (only show when relevant) ---
@@ -38,7 +38,7 @@
 
 @section PageContent {
 
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
 
     @await Html.PartialAsync("_AdminMenu")
 

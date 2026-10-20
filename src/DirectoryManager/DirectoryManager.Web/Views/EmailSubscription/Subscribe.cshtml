@@ -2,13 +2,13 @@
 @using DirectoryManager.Web.Constants;
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Join Email Newsletter";
+    PageMeta.Title = "Join Email Newsletter";
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
     <div class="page-header-bar">
-        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        <h1 class="page-title">@PageMeta.Title</h1>
         @await Html.PartialAsync("_SiteLogo")
     </div>
 

@@ -1,7 +1,7 @@
 @model List<DirectoryManager.Data.Models.TransferModels.RaffleSummaryDto>
 @using DirectoryManager.Web.Constants
 @{
-    ViewData[StringConstants.TitleHeader] = "Raffles";
+    PageMeta.Title = "Raffles";
     var page = (int)(ViewBag.Page ?? 1);
     var pageSize = (int)(ViewBag.PageSize ?? 50);
     var total = (int)(ViewBag.Total ?? 0);
@@ -11,7 +11,7 @@
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 <hr />
     @await Html.PartialAsync("_AdminMenu")
 @if (TempData["SuccessMessage"] != null)

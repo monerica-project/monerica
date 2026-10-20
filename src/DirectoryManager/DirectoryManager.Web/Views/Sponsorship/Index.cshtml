@@ -10,8 +10,9 @@
 @inject Microsoft.AspNetCore.Http.IHttpContextAccessor httpContextAccessor
 @inject DirectoryManager.Common.Interfaces.IRateConversionService rateConversionService
 @inject Microsoft.Extensions.Caching.Memory.IMemoryCache memoryCache
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 @{
-    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Join the Sponsor Waitlist";
+    PageMeta.Title = "Join the Sponsor Waitlist";
     Layout = "_CenteredLayout";
 
     var q = (Model.Query ?? string.Empty).Trim();
@@ -21,7 +22,7 @@
 @section PageContent {
 
     <div class="page-header-bar">
-        <h1 class="page-title">@ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader]</h1>
+        <h1 class="page-title">@PageMeta.Title</h1>
         @await Html.PartialAsync("_SiteLogo")
     </div>
 
@@ -99,13 +100,13 @@
 
         <p class="u-m-6px-0-10px-0">
             Main Sponsor waitlist: <strong>@total</strong> waiting
-            <span class="u-opacity-85">— newest signups shown first.</span>
+            <span class="u-dim-85">— newest signups shown first.</span>
         </p>
 
         @if (shown > 0)
         {
             <p class="u-mb-6px">
-                Preview: <span class="u-opacity-85">showing @shown of @total</span>
+                Preview: <span class="u-dim-85">showing @shown of @total</span>
             </p>
             <ul class="u-mt-0">
                 @foreach (var row in preview)
@@ -185,12 +186,13 @@
                     if (!string.IsNullOrWhiteSpace(r.Subcategory)) { meta += $" » {r.Subcategory}"; }
                     meta += $" · listed {r.AgeDays} days";
 
-                    <div class="result-row u-flex-flexwrap-wrap-items-center-gap-8px-16px-p-12px-0">
+                    <div class="result-row sponsor-search-row u-flex-flexwrap-wrap-items-center-gap-8px-16px-p-12px-0">
                         <div class="u-flex-1-1-240px-minw-0">
                             <div class="u-fs-105em-fw-600">
-                                @if (!string.IsNullOrWhiteSpace(r.Link))
+                                @* Name links to the listing's profile on this directory, not its own website. *@
+                                @if (!string.IsNullOrWhiteSpace(r.DirectoryEntryKey))
                                 {
-                                    <a href="@r.Link" target="_blank" rel="noopener">@r.Name</a>
+                                    <a class="no-app-link" href="@UrlResolver.ResolveToRoot(DirectoryManager.Utilities.Helpers.UrlBuilder.ListingPath(r.DirectoryEntryKey))">@r.Name</a>
                                 }
                                 else
                                 {
@@ -213,8 +215,9 @@
                         <form class="u-flex-0-0-auto-m-0" method="post" action="@Url.Action("Select", "Sponsorship")">
                             @Html.AntiForgeryToken()
                             <input type="hidden" name="directoryEntryId" value="@r.DirectoryEntryId" />
-                            <button type="submit" class="btn @(r.CanAdvertise ? "btn-info" : "btn-secondary")">
-                                See available spots
+                            @* Orange action button that names the listing, so it's clearly clickable and clearly for this row. *@
+                            <button type="submit" class="btn @(r.CanAdvertise ? "btn-primary btn-cta" : "btn-secondary") sponsor-search-spots-btn">
+                                See spots for @r.Name &rarr;
                             </button>
                         </form>
                     </div>
@@ -279,7 +282,7 @@
             <p class="u-mt-10px"><strong>How to join the waitlist — 3 steps:</strong></p>
             <ol class="u-m-0-0-12px-0-pl-22px">
                 <li>Search your listing in the <a href="#find-listing">Find your listing</a> box above.</li>
-                <li>Click <strong>See available spots</strong> next to it.</li>
+                <li>Click the orange <strong>See spots for …</strong> button next to it.</li>
                 <li>Enter your email, tick <strong>@EnumHelper.GetDescription(SponsorshipType.MainSponsor)</strong>, and submit.</li>
             </ol>
             <p class="u-m-0-0-10px-0">

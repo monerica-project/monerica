@@ -3,7 +3,7 @@
 @model IEnumerable<DirectoryManager.Data.Models.Emails.EmailSendLog>
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Email Send Log";
+    PageMeta.Title = "Email Send Log";
     int currentPage = ViewBag.CurrentPage;
     int totalPages = ViewBag.TotalPages;
     int totalRecords = ViewBag.TotalRecords;
@@ -21,7 +21,7 @@
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

@@ -12,16 +12,16 @@
     Layout = "_CenteredLayout";
 
     var r = Model.Review;
-    ViewData[StringConstants.TitleHeader] = $"Review #{r.DirectoryEntryReviewId}";
+    PageMeta.Title = $"Review #{r.DirectoryEntryReviewId}";
 }
 
 @section PageContent {
 
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
 
     @await Html.PartialAsync("_AdminMenu")
 
-    @if (!ViewData.ModelState.IsValid)
+    @if (!ViewContext.ModelState.IsValid)
     {
         <div class="alert alert-danger">
             @Html.ValidationSummary(excludePropertyErrors: true, message: "Please fix the errors below.")

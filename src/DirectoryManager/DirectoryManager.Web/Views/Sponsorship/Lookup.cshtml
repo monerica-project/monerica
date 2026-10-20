@@ -1,6 +1,6 @@
 @model DirectoryManager.Web.Models.Sponsorship.SponsorshipIndexVm
 @{
-    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Find Your Sponsorship Options";
+    PageMeta.Title = "Find Your Sponsorship Options";
     Layout = "_CenteredLayout";
 
     var q = (Model.Query ?? string.Empty).Trim();

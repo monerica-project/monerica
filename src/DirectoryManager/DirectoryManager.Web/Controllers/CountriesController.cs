@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Web.Extensions;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Enums;
@@ -46,7 +47,7 @@ public class CountriesController : Controller
     {
         var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
         var path = page > 1 ? $"countries/page/{page}" : "countries";
-        this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, path);
+        this.PageMeta().CanonicalUrl = UrlBuilder.CombineUrl(canonicalDomain, path);
 
         var paged = await this.entryRepo.ListActiveCountriesWithCountsPagedAsync(page, PageSize);
         paged.Items = paged.Items.OrderBy(x => x.Name).ToList();
@@ -87,7 +88,7 @@ public class CountriesController : Controller
         var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
         var basePath = $"countries/{key}";
         var path = page > 1 ? $"{basePath}/page/{page}" : basePath;
-        this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, path);
+        this.PageMeta().CanonicalUrl = UrlBuilder.CombineUrl(canonicalDomain, path);
 
         var pagedRaw = await this.entryRepo.ListActiveEntriesByCountryPagedAsync(info.Code, page, PageSize);
 

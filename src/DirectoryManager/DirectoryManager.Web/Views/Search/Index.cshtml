@@ -9,11 +9,11 @@
         bool hasAnyContent = Model.Entries.Any() || Model.ShowDonatePin;
         if (!hasAnyContent)
         {
-            ViewData[StringConstants.TitleHeader] = "No results found.";
+            PageMeta.Title = "No results found.";
         }
         else
         {
-            ViewData[StringConstants.TitleHeader] = $"Search results for \"{Model.Query}\"";
+            PageMeta.Title = $"Search results for \"{Model.Query}\"";
         }
         Layout = "_CenteredLayout";
         var q = Model.Query ?? string.Empty;
@@ -21,7 +21,7 @@
     }
     @section PageContent {
         <div class="page-header-bar">
-            <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+            <h1 class="page-title">@PageMeta.Title</h1>
             @await Html.PartialAsync("_SiteLogo")
         </div>
         <hr />

@@ -2,8 +2,8 @@
 @using DirectoryManager.Web.Constants;
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Find Listing To Edit";
-    ViewData[StringConstants.IsIndexable] = false;
+    PageMeta.Title = "Find Listing To Edit";
+    PageMeta.IsIndexable = false;
     Layout = "_CenteredLayout";
 
     var q = (Model.Query ?? string.Empty).Trim();
@@ -12,7 +12,7 @@
 @section PageContent {
 
     <div class="page-header-bar">
-        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        <h1 class="page-title">@PageMeta.Title</h1>
         @await Html.PartialAsync("_SiteLogo")
     </div>
 

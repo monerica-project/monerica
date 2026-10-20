@@ -7,12 +7,12 @@
     Layout = "_LayoutWithNav";
     int totalPages = (int)Math.Ceiling(Model.PagedCountries.TotalCount / (double)Model.PageSize);
     string pageSuffix = Model.CurrentPage > 1 ? $" – Page {Model.CurrentPage}" : "";
-    ViewData[StringConstants.TitleHeader] = $"Countries{pageSuffix}";
+    PageMeta.Title = $"Countries{pageSuffix}";
 }
 
 @section PageContent {
     <div class="page-header-bar">
-        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        <h1 class="page-title">@PageMeta.Title</h1>
         @await Html.PartialAsync("_SiteLogo")
     </div>
 

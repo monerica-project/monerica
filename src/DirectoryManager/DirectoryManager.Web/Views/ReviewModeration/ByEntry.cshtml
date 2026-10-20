@@ -11,12 +11,12 @@
     var heading = string.IsNullOrWhiteSpace(Model.DirectoryEntryName)
         ? $"Reviews for Entry #{Model.DirectoryEntryId}"
         : $"Reviews for {Model.DirectoryEntryName}";
-    ViewData[StringConstants.TitleHeader] = heading;
+    PageMeta.Title = heading;
 }
 
 @section PageContent {
 
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
 
     @await Html.PartialAsync("_AdminMenu")
 

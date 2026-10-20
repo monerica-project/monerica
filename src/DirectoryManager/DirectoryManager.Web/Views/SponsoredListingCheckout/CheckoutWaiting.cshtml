@@ -3,8 +3,8 @@
 @model CheckoutWaitingViewModel
 @{
     Layout = "_CenteredLayout";
-    ViewData[StringConstants.TitleHeader] = "Checkout In Progress";
-    ViewData[StringConstants.IsIndexable] = false;
+    PageMeta.Title = "Checkout In Progress";
+    PageMeta.IsIndexable = false;
 }
 
 @section PageContent {
@@ -14,7 +14,7 @@
         <meta http-equiv="refresh" content="60" />
     }
 
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
     <hr />
 
     @if (Model.Status == CheckoutWaitingStatus.Reserved)

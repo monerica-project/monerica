@@ -7,7 +7,7 @@
 
     int totalPages = (int)Math.Ceiling(Model.PagedTags.TotalCount / (double)Model.PageSize);
     string pageSuffix = Model.CurrentPage > 1 ? $" – Page {Model.CurrentPage}" : "";
-    ViewData["Title"] = $"All Tags: {pageSuffix}";
+    PageMeta.Title = $"All Tags: {pageSuffix}";
 }
 
 @section PageContent {

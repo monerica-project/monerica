@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Web.Extensions;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
@@ -41,7 +42,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> IndexAsync()
         {
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, string.Empty);
+            this.PageMeta().CanonicalUrl = UrlBuilder.CombineUrl(canonicalDomain, string.Empty);
 
             // ✅ Load homepage “Latest Reviews” + “Latest Comments”
             var latestReviews = await this.reviewRepository.ListLatestApprovedAsync(IntegerConstants.ReviewCountToShowOnHomepage);
@@ -59,7 +60,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> ContactAsync()
         {
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "contact");
+            this.PageMeta().CanonicalUrl = UrlBuilder.CombineUrl(canonicalDomain, "contact");
             return this.View();
         }
 
@@ -67,7 +68,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> FAQAsync()
         {
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "faq");
+            this.PageMeta().CanonicalUrl = UrlBuilder.CombineUrl(canonicalDomain, "faq");
             return this.View();
         }
 
@@ -75,7 +76,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> DonateAsync()
         {
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "donate");
+            this.PageMeta().CanonicalUrl = UrlBuilder.CombineUrl(canonicalDomain, "donate");
             return this.View();
         }
 
@@ -83,7 +84,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> AboutAsync()
         {
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "about");
+            this.PageMeta().CanonicalUrl = UrlBuilder.CombineUrl(canonicalDomain, "about");
             return this.View();
         }
 
@@ -91,7 +92,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> TermsAsync()
         {
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "terms");
+            this.PageMeta().CanonicalUrl = UrlBuilder.CombineUrl(canonicalDomain, "terms");
             return this.View();
         }
 
@@ -99,7 +100,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> NetworkAsync()
         {
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "network");
+            this.PageMeta().CanonicalUrl = UrlBuilder.CombineUrl(canonicalDomain, "network");
             return this.View();
         }
 
@@ -107,7 +108,7 @@ namespace DirectoryManager.Web.Controllers
         public async Task<IActionResult> ReviewUsAsync()
         {
             var canonicalDomain = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, "review-us");
+            this.PageMeta().CanonicalUrl = UrlBuilder.CombineUrl(canonicalDomain, "review-us");
             return this.View();
         }
 
@@ -142,7 +143,7 @@ namespace DirectoryManager.Web.Controllers
             var path = pageNumber > 1
                 ? $"{basePath}/page/{pageNumber}"
                 : basePath;
-            this.ViewData[StringConstants.CanonicalUrl] =
+            this.PageMeta().CanonicalUrl =
                 UrlBuilder.CombineUrl(canonicalDomain, path);
 
             var groupedNewestAdditions = await this.directoryEntryRepository.GetNewestAdditionsGrouped(PageSize, pageNumber);

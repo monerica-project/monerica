@@ -2,13 +2,13 @@
 @using DirectoryManager.Web.Constants
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Advertiser Breakdown";
+    PageMeta.Title = "Advertiser Breakdown";
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
 
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 @await Html.PartialAsync("_ReportMenu")

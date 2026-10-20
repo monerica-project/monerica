@@ -3,13 +3,13 @@
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.Web.Constants;
 @{
-    ViewData[StringConstants.TitleHeader] = "Create Submission";
+    PageMeta.Title = "Create Submission";
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
     <div class="page-header-bar">
-        <h1 class="page-title">@ViewData[StringConstants.TitleHeader] </h1>
+        <h1 class="page-title">@PageMeta.Title </h1>
         @await Html.PartialAsync("_SiteLogo")
     </div>
 <hr />
@@ -24,7 +24,7 @@
 <hr />
 <br />
 
-    @if (!ViewData.ModelState.IsValid)
+    @if (!ViewContext.ModelState.IsValid)
     {
         <div class="alert alert-danger">
             <strong>There were errors with your submission</strong>

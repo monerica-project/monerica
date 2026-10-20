@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Web.Extensions;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
@@ -302,13 +303,13 @@ namespace DirectoryManager.Web.Controllers
                 // Normalize the canonical domain by ensuring it doesn't end with a '/'
                 canonicalDomainValue = canonicalDomainValue.TrimEnd('/');
 
-                this.ViewData[StringConstants.CanonicalUrl] = UrlHelper.NormalizeUrl($"{canonicalDomainValue}{path}");
+                this.PageMeta().CanonicalUrl = UrlHelper.NormalizeUrl($"{canonicalDomainValue}{path}");
             }
             else
             {
                 // Fallback to the request host if no canonical domain is set
                 var originalUrl = $"{this.Request.Scheme}://{this.Request.Host}{path}";
-                this.ViewData[StringConstants.CanonicalUrl] = UrlHelper.NormalizeUrl(originalUrl);
+                this.PageMeta().CanonicalUrl = UrlHelper.NormalizeUrl(originalUrl);
             }
         }
     }

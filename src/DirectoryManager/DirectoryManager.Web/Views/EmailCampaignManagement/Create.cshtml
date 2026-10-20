@@ -2,7 +2,7 @@
 @model DirectoryManager.Web.Models.Emails.EmailCampaignModel
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Create Email Campaign";
+    PageMeta.Title = "Create Email Campaign";
 }
 
 @{
@@ -12,12 +12,12 @@
 
 @section PageContent {
 
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 
 <!-- Display Validation Summary -->
-@if (!ViewData.ModelState.IsValid)
+@if (!ViewContext.ModelState.IsValid)
 {
     <div class="alert alert-danger">
         @Html.ValidationSummary(false, "", new { @class = "text-danger" })

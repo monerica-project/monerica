@@ -2,12 +2,12 @@
 @model DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOffer
 @{
     var isNew = Model.VideoSponsorOfferId == 0;
-    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = isNew ? "Add Video Type" : "Edit Video Type";
+    PageMeta.Title = isNew ? "Add Video Type" : "Edit Video Type";
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
-    <h1>@ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
     @await Html.PartialAsync("_Nav")
 
     <form method="post" action="~/admin/video-sponsorship/offers/edit">

@@ -1,4 +1,5 @@
-﻿using System.Net;
+﻿using DirectoryManager.Web.Extensions;
+using System.Net;
 using System.Text.RegularExpressions;
 using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Enums;
@@ -1210,7 +1211,7 @@ namespace DirectoryManager.Web.Controllers
 
         private void SetMetaDescription(DirectoryEntry entry)
         {
-            this.ViewData[StringConstants.MetaDescription] = entry.Description;
+            this.PageMeta().MetaDescription = entry.Description;
         }
 
         private async Task SetCanonicalAsync(string directoryEntryKey, int page)
@@ -1221,7 +1222,7 @@ namespace DirectoryManager.Web.Controllers
                 ? UrlBuilder.ListingPath(directoryEntryKey)
                 : $"{UrlBuilder.ListingPath(directoryEntryKey)}/page/{page}";
 
-            this.ViewData[StringConstants.CanonicalUrl] = UrlBuilder.CombineUrl(canonicalDomain, path);
+            this.PageMeta().CanonicalUrl = UrlBuilder.CombineUrl(canonicalDomain, path);
         }
 
         private async Task SetCategoryContextViewBagAsync(int subCategoryId)

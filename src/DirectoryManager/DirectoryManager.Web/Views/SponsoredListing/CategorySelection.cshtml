@@ -4,8 +4,8 @@
 @model IEnumerable<DirectoryEntry>
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing by Category";
-    ViewData[StringConstants.IsIndexable] = false;
+    PageMeta.Title = "Select Sponsored Listing by Category";
+    PageMeta.IsIndexable = false;
 
     // values set by controller (CategorySelection)
     var categoryId = ViewBag.CategoryId is int c ? c : 0;
@@ -22,7 +22,7 @@
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 <hr />
 
 @if (reservationGuid.HasValue && reservationExpiresUtc.HasValue)

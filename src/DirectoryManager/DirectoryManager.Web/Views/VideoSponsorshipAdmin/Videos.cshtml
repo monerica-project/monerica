@@ -2,7 +2,7 @@
 @using DirectoryManager.Data.Models.VideoSponsorships
 @model List<VideoIdea>
 @{
-    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Video Ideas";
+    PageMeta.Title = "Video Ideas";
     Layout = "_CenteredLayout";
     var ordersById = ViewBag.OrdersById as Dictionary<int, VideoSponsorOrder> ?? new Dictionary<int, VideoSponsorOrder>();
     var now = DateTime.UtcNow;

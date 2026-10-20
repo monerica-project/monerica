@@ -2,7 +2,7 @@
 @inject BtcPayServer.API.Interfaces.IBtcPayServerService BtcPay
 @model DirectoryManager.Web.Models.ProblemReports.ProblemReportDetailViewModel
 @{
-    ViewData["Title"] = "Problem Report";
+    PageMeta.Title = "Problem Report";
     Layout = "_CenteredLayout";
     var r = Model.Request;
     var dateFormat = DirectoryManager.Common.Constants.StringConstants.DateFormat;

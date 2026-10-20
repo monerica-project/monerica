@@ -12,8 +12,8 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @addTagHelper *, Microsoft.AspNetCore.Mvc.TagHelpers
 @{
-    ViewData[StringConstants.TitleHeader] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageTitle));
-    ViewData[StringConstants.MetaContent] = Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageMetaTags));
+    PageMeta.Title = await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageTitle);
+    PageMeta.MetaContent = await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageMetaTags);
 }
 @{
     // 1) grab your data once

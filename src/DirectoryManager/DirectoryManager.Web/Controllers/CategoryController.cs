@@ -1,4 +1,5 @@
-﻿using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Web.Extensions;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
@@ -85,7 +86,7 @@ namespace DirectoryManager.Web.Controllers
 
             // 2) canonical URL — the page's own URL (page 1 has no /page/N suffix)
             var cd = await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
-            this.ViewData[Constants.StringConstants.CanonicalUrl] = page > 1
+            this.PageMeta().CanonicalUrl = page > 1
                 ? UrlBuilder.CombineUrl(cd, $"{category.CategoryKey}/page/{page}")
                 : UrlBuilder.CombineUrl(cd, category.CategoryKey);
 

@@ -1,7 +1,7 @@
 @model DirectoryManager.Web.Models.Reviews.RaffleEnterInputModel
 @using DirectoryManager.Web.Constants
 @{
-    ViewData[StringConstants.TitleHeader] = "Enter the Raffle";
+    PageMeta.Title = "Enter the Raffle";
     Layout = "_CenteredLayout";
 
     // The review's status notice (e.g. "held for moderation") set by the review submit.
@@ -11,7 +11,7 @@
 }
 
 @section PageContent {
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
     <hr />
 
     @if (!string.IsNullOrWhiteSpace(reviewMessage))

@@ -1,15 +1,15 @@
 @using DirectoryManager.Web.Constants
 @{
     Layout = "_CenteredLayout";
-    ViewData[StringConstants.TitleHeader] = "Sponsorship Not Available";
-    ViewData[StringConstants.IsIndexable] = false;
+    PageMeta.Title = "Sponsorship Not Available";
+    PageMeta.IsIndexable = false;
 
     var scope = ViewBag.ScopeLabel as string;
     var listingName = ViewBag.ListingName as string;
 }
 
 @section PageContent {
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
     <hr />
 
     <div class="alert alert-warning" role="alert">

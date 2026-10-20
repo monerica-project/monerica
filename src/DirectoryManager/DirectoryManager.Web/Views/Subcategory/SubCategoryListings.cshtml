@@ -17,13 +17,13 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepo
 
 @{
-    ViewData[StringConstants.TitleHeader] = string.Format(
+    PageMeta.Title = string.Format(
         "{0}: {1}{2}",
         await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName),
         Model.PageTitle,
         Model.CurrentPage > 1 ? $" (Page {Model.CurrentPage})" : ""
     );
-    ViewData[StringConstants.MetaDescription] = Model.MetaDescription;
+    PageMeta.MetaDescription = Model.MetaDescription;
     var categoryKey = ViewBag.CategoryKey as string;
     var subCategoryKey = ViewBag.SubCategoryKey as string;
     var categoryName = ViewBag.CategoryName as string;
@@ -40,8 +40,8 @@
 }
 
 @{
-    ViewData["CurrentCategoryKey"] = Model.Category.CategoryKey;
-    ViewData["CurrentSubCategoryKey"] = Model.SubCategoryKey;
+    PageMeta.CurrentCategoryKey = Model.Category.CategoryKey;
+    PageMeta.CurrentSubCategoryKey = Model.SubCategoryKey;
     Layout = "_LayoutWithNav";
 }
 

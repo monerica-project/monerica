@@ -3,8 +3,8 @@
 @using DirectoryManager.Data.Enums
 @using System.Globalization
 @{
-    ViewData[StringConstants.TitleHeader] = "Revenue Forecast";
-    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
+    PageMeta.Title = "Revenue Forecast";
+    PageMeta.MetaContent = StringConstants.MetaTagNoIndex;
     Layout = "_CenteredLayout";
 
     var usd = CultureInfo.GetCultureInfo("en-US");
@@ -27,7 +27,7 @@
 }
 
 @section PageContent {
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
     @await Html.PartialAsync("_AdminMenu")
 
     <p>

@@ -7,7 +7,7 @@
     bool all = (bool)(ViewBag.All ?? false);
     string linkBase = (string)ViewBag.LinkBase;
     int totalPages = (int)Math.Ceiling(Model.TotalCount / (double)pageSize);
-    ViewData["Title"] = "Marketing email opt-outs";
+    PageMeta.Title = "Marketing email opt-outs";
 }
 @section PageContent {
     <h1>Marketing Email Opt-Outs</h1>

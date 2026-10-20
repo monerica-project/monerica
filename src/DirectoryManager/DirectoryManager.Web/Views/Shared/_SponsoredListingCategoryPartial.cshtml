@@ -33,15 +33,18 @@
 
     // Tell DisplayMarkUpHelper (via _DirectoryEntryPartial) to render:
     // Name | Tor | I2P Flag
-    ViewData["SponsorInlineHeader"] = true;
+    vm.SponsorInlineHeader = true;
 
     // Not strictly required in this mode, but safe if other paths would have rendered links elsewhere.
-    ViewData["SkipLinksBlock"] = true;
+    vm.SkipLinksBlock = true;
+
+    // Quiet "See profile" link on its own line under the description.
+    vm.ShowProfileLink = true;
 
     <div class="sponsored-section u-mb-5px">
         <p><b>Sponsored</b></p>
         <ul class="blank_list_item">
-            @await Html.PartialAsync("_DirectoryEntryPartial", vm, ViewData)
+            @await Html.PartialAsync("_DirectoryEntryPartial", vm)
         </ul>
     </div>
 }

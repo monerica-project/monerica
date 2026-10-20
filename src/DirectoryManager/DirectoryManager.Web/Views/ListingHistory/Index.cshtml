@@ -2,9 +2,9 @@
 @using DirectoryManager.Web.Constants
 @{
     Layout = "_CenteredLayout";
-    ViewData[StringConstants.TitleHeader] = string.Format("{0} - Change history", Model.Name);
-    ViewData[StringConstants.MetaContent] = StringConstants.MetaTagNoIndex;
-    ViewData[StringConstants.IsIndexable] = false;
+    PageMeta.Title = string.Format("{0} - Change history", Model.Name);
+    PageMeta.MetaContent = StringConstants.MetaTagNoIndex;
+    PageMeta.IsIndexable = false;
 }
 
 @section PageContent {

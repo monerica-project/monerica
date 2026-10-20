@@ -14,8 +14,8 @@
 @inject IUrlResolutionService Urls
 @model SearchFormViewModel
 @{
-    var currentCat = (string?)ViewData["CurrentCategoryKey"] ?? "";
-    var currentSub = (string?)ViewData["CurrentSubCategoryKey"] ?? "";
+    var currentCat = PageMeta.CurrentCategoryKey ?? "";
+    var currentSub = PageMeta.CurrentSubCategoryKey ?? "";
 
     // Cache ONLY static data (cats + subs)
     var cached = await MemoryCache.GetOrCreateAsync<
@@ -43,9 +43,8 @@
     };
 
     var logoUrl = await cacheService.GetSnippetAsync(SiteConfigSetting.SiteLogoUrl);
-    ViewData["NavModel"] = navModel;
 
-    // ✅ Infer CategoryId/SubCategoryId from current page keys (ViewData)
+    // ✅ Infer CategoryId/SubCategoryId from current page keys (PageMeta)
     int? inferredCategoryId = null;
     int? inferredSubCategoryId = null;
 

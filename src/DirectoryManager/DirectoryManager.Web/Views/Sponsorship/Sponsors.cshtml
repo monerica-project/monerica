@@ -3,7 +3,7 @@
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @{
     var siteName = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
-    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Sponsors";
+    PageMeta.Title = "Sponsors";
     Layout = "_CenteredLayout";
 
     var sponsors = Model.CurrentSponsors ?? new List<DirectoryManager.Web.Models.Sponsorship.CurrentSponsorItemVm>();

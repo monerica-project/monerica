@@ -4,7 +4,7 @@
 
 @{
     Layout = "_CenteredLayout";
-    ViewData[StringConstants.TitleHeader] = "Sponsorship Pricing History";
+    PageMeta.Title = "Sponsorship Pricing History";
     var chartV = $"{Model.RangeDays}-{DateTime.UtcNow:yyyyMMdd}-{(Model.SponsorshipType?.ToString() ?? "all")}-{(Model.SubCategoryId?.ToString() ?? "all")}";
 }
 

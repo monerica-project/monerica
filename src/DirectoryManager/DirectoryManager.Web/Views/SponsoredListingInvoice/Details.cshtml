@@ -19,7 +19,7 @@
 }
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Invoice Details";
+    PageMeta.Title = "Invoice Details";
     Layout = "_CenteredLayout";
 }
  
@@ -38,7 +38,7 @@
 }
 
 @section PageContent {
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 

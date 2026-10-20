@@ -2,7 +2,7 @@
 @using DirectoryManager.Data.Enums
 @model List<DirectoryManager.Data.Models.VideoSponsorships.VideoSponsorOrder>
 @{
-    ViewData[DirectoryManager.Web.Constants.StringConstants.TitleHeader] = "Video Sponsor Orders";
+    PageMeta.Title = "Video Sponsor Orders";
     Layout = "_CenteredLayout";
     var usd = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
     var filter = ViewBag.Filter as string ?? "paid";

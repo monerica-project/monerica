@@ -12,7 +12,7 @@
 @inject IMemoryCache memoryCache
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Confirm Selection";
+    PageMeta.Title = "Confirm Selection";
     Layout = "_CenteredLayout";
 
     Guid? reservationGuid = ViewBag.ReservationGuid is Guid g ? g : (Guid?)null;
@@ -33,7 +33,7 @@
 }
 
 @section PageContent {
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
     <hr />
 
     @if (reservationGuid.HasValue && reservationExpiresUtc.HasValue)

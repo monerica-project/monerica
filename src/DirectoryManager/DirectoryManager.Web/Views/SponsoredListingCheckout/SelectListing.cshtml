@@ -4,8 +4,8 @@
 @model IEnumerable<DirectoryEntry>
 
 @{
-    ViewData[StringConstants.IsIndexable] = false;
-    ViewData[StringConstants.TitleHeader] = "Select Sponsored Listing";
+    PageMeta.IsIndexable = false;
+    PageMeta.Title = "Select Sponsored Listing";
 
     // Reservation context (optional – if you arrived with an rsvId already)
     Guid? reservationGuid =
@@ -24,7 +24,7 @@
 
 @section PageContent {
 
-    <h1>@ViewData[StringConstants.TitleHeader]</h1>
+    <h1>@PageMeta.Title</h1>
 
     <hr />
     <a href="~/sponsoredlisting">&lt; back</a>

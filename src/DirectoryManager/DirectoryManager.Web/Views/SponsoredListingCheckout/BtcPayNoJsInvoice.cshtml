@@ -1,7 +1,7 @@
 @using DirectoryManager.Web.Models.Sponsorship
 @model BtcPayNoJsInvoiceViewModel
 @{
-    ViewData["Title"] = "Pay with Monero";
+    PageMeta.Title = "Pay with Monero";
     bool shouldRefresh = !Model.IsPaid && !Model.IsExpired;
     var qrUrl = Model.QrUrlOverride ?? Url.Action("BtcPayNoJsQr", "SponsoredListingCheckout", new { processorInvoiceId = Model.ProcessorInvoiceId });
     var refreshUrl = Model.RefreshUrlOverride ?? Url.Action("BtcPayNoJsInvoice", "SponsoredListingCheckout", new { processorInvoiceId = Model.ProcessorInvoiceId, orderId = Model.OrderId });

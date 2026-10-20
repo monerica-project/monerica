@@ -3,7 +3,7 @@
 @model IEnumerable<DirectoryManager.Data.Models.SponsoredListings.SponsoredListingInvoice>
 
 @{
-    ViewData[StringConstants.TitleHeader] = "Invoices";
+    PageMeta.Title = "Invoices";
     int currentPage = ViewBag.CurrentPage ?? 1;
     int pageSize = ViewBag.PageSize ?? IntegerConstants.DefaultPageSize;
     int totalItems = ViewBag.TotalItems ?? 0;

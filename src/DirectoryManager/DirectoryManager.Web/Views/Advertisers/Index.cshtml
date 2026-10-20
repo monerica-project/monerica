@@ -1,13 +1,13 @@
 ﻿@model List<DirectoryManager.Web.Controllers.AdvertisersController.AdvertisedEntryVm>
 @using DirectoryManager.Web.Constants
 @{
-    ViewData[StringConstants.TitleHeader] = "Advertisers";
+    PageMeta.Title = "Advertisers";
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
     <div class="page-header-bar">
-        <h1 class="page-title">@ViewData[StringConstants.TitleHeader]</h1>
+        <h1 class="page-title">@PageMeta.Title</h1>
         @await Html.PartialAsync("_SiteLogo")
     </div>
     <hr />

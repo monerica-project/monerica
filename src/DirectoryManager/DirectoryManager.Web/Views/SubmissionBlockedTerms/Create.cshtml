@@ -1,13 +1,13 @@
 @model DirectoryManager.Data.Models.SubmissionBlockedTerm
 @using DirectoryManager.Web.Constants;
 @{
-    ViewData[StringConstants.TitleHeader] = "Add Blocked Term";
+    PageMeta.Title = "Add Blocked Term";
     Layout = "_CenteredLayout";
 }
 
 @section PageContent {
 
-<h1>@ViewData[StringConstants.TitleHeader]</h1>
+<h1>@PageMeta.Title</h1>
 
 @await Html.PartialAsync("_AdminMenu")
 <hr />
