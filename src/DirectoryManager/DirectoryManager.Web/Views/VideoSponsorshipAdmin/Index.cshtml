@@ -58,6 +58,11 @@
             <input class="form-control" id="channelUrl" name="channelUrl" type="text" value="@Model.ChannelUrl" maxlength="300" />
             <div class="form-text">Shown to buyers before checkout.</div>
         </div>
+        <div class="form-group">
+            <label for="videoSiteUrl"><b>Video site URL</b></label>
+            <input class="form-control" id="videoSiteUrl" name="videoSiteUrl" type="text" value="@Model.VideoSiteUrl" maxlength="300" />
+            <div class="form-text">Our own site where the same videos are also published. Shown on the sponsorship page; leave empty to hide.</div>
+        </div>
         <br />
         <button class="btn btn-primary" type="submit">Save settings</button>
     </form>

@@ -79,14 +79,35 @@ namespace DirectoryManager.Utilities.Helpers
 
             var t = text.ToLowerInvariant();
 
-            return t.Contains("http://")
+            if (t.Contains("http://")
                 || t.Contains("https://")
                 || t.Contains("www.")
                 || t.Contains(".com")
                 || t.Contains(".net")
                 || t.Contains(".org")
-                || t.Contains(".onion");
+                || t.Contains(".onion"))
+            {
+                return true;
+            }
+
+            // Any other bare domain ("scam-shop.io/x", "foo.i2p", "bar.xyz"). Errs on the side of
+            // flagging: a false match only sends the text to manual review.
+            try
+            {
+                return BareDomainRegex.IsMatch(t);
+            }
+            catch (RegexMatchTimeoutException)
+            {
+                return true;
+            }
         }
+
+        // name(.name)*.tld — labels of letters/digits/hyphens, a 2–24 letter TLD, not part of an
+        // email address (no '@' / word char right before it) and not followed by more word chars.
+        private static readonly Regex BareDomainRegex = new (
+            @"(?<![\w@.-])[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?)*\.[a-z][a-z0-9]{1,23}(?![\w-])",
+            RegexOptions.Compiled | RegexOptions.CultureInvariant,
+            TimeSpan.FromMilliseconds(250));
 
         // =========================
         // Regexes

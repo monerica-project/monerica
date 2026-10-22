@@ -100,6 +100,20 @@
                 <td><span class="u-opacity-6">&mdash;</span></td>
                 <td><span class="u-opacity-6">&mdash;</span></td>
             </tr>
+            @{
+                var videoSiteUrl = ((await cacheHelper.GetSnippetAsync(SiteConfigSetting.VideoSponsorshipVideoSiteUrl)) ?? string.Empty).Trim();
+            }
+            @if (!string.IsNullOrWhiteSpace(videoSiteUrl))
+            {
+                <tr>
+                    <td>
+                        <strong><a href="@videoSiteUrl" target="_blank" rel="noopener">@(Uri.TryCreate(videoSiteUrl, UriKind.Absolute, out var vsu) ? vsu.Host : videoSiteUrl)</a></strong>
+                    </td>
+                    <td>&#10003;</td>
+                    <td><span class="u-opacity-6">&mdash;</span></td>
+                    <td><span class="u-opacity-6">&mdash;</span></td>
+                </tr>
+            }
             <tr>
                 <td><strong>Pinned post on X</strong></td>
                 <td>&#10003;</td>

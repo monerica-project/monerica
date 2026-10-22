@@ -99,7 +99,7 @@ namespace DirectoryManager.Web.Charting
                 tMon.LabelFontSize = 9;                   // smaller month text
             }
 
-            return plt.GetImageBytes(width: 1200, height: 600, format: ImageFormat.Png);
+            return plt.GetDarkImageBytes(width: 1200, height: 600, format: ImageFormat.Png);
         }
     }
 }

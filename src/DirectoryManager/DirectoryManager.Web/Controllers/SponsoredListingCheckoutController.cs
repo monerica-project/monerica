@@ -428,11 +428,12 @@ namespace DirectoryManager.Web.Controllers
             scopeSubCategoryId = ScopeOf(entry);
             var scopeParam = scopeSubCategoryId.HasValue ? $"&scopeSubCategoryId={scopeSubCategoryId.Value}" : string.Empty;
 
-            // Sponsorship can be disabled per subcategory (kill-switch for problem categories).
-            var subcatBlocked = this.BlockedBySubcategorySponsorship(entry);
-            if (subcatBlocked != null)
+            // Kill-switch + eligibility are re-checked on every POST (the GET pages aren't a gate:
+            // a crafted POST could otherwise hold a slot for an ineligible listing).
+            var notAllowed = await this.CannotSponsorAsync(entry).ConfigureAwait(false);
+            if (notAllowed != null)
             {
-                return subcatBlocked;
+                return notAllowed;
             }
 
             var typeIdForGroup = SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(offer.SponsorshipType, entry, null, null);
@@ -540,6 +541,14 @@ namespace DirectoryManager.Web.Controllers
             if (offer == null || entry == null)
             {
                 return this.BadRequest(new { Error = StringConstants.InvalidOfferSelection });
+            }
+
+            // Re-check at the step that creates the invoice: the kill-switch may have been turned
+            // on, or the request may not have come through the earlier (checked) pages at all.
+            var notAllowed = await this.CannotSponsorAsync(entry).ConfigureAwait(false);
+            if (notAllowed != null)
+            {
+                return notAllowed;
             }
 
             var (group, typeIdForCap) = this.BuildGroupAndCapacity(offer.SponsorshipType, entry);
@@ -1735,7 +1744,7 @@ namespace DirectoryManager.Web.Controllers
 
         private async Task<string?> CheckMainSubcategoryReservationAsync(int subCategoryId)
         {
-            var subGroup = ReservationGroupHelper.BuildReservationGroupName(SponsorshipType.MainSponsor, subCategoryId);
+            var subGroup = ReservationGroupHelper.BuildMainSponsorSubcategoryGroupName(subCategoryId);
             var count = await this.sponsoredListingReservationRepository.GetActiveReservationsCountAsync(subGroup).ConfigureAwait(false);
             return count > 0 ? await this.BuildCheckoutInProcessMessageForMainSubcategoryAsync(subCategoryId).ConfigureAwait(false) : null;
         }
@@ -1757,7 +1766,7 @@ namespace DirectoryManager.Web.Controllers
                 return;
             }
 
-            var subGroup = ReservationGroupHelper.BuildReservationGroupName(SponsorshipType.MainSponsor, subCategoryId);
+            var subGroup = ReservationGroupHelper.BuildMainSponsorSubcategoryGroupName(subCategoryId);
             var details = await this.BuildReservationDetailsAsync(SponsorshipType.MainSponsor, entry, subCategoryId, null);
             await this.sponsoredListingReservationRepository.CreateReservationAsync(parent.ExpirationDateTime, subGroup, details).ConfigureAwait(false);
         }
@@ -1890,6 +1899,26 @@ namespace DirectoryManager.Web.Controllers
         // category/subcategory) when the listing's subcategory has SponsorshipDisabled set, or
         // null when sponsorship is allowed. Sponsorship is allowed by default — an admin turns
         // it off per subcategory on the subcategory edit page for ones that are a potential issue.
+        // Null when this listing may sponsor right now; otherwise the response to return.
+        // Kill-switch first, then the eligibility rule (Verified + listed long enough), with the
+        // grandfather clause for a CURRENTLY active sponsor.
+        private async Task<IActionResult?> CannotSponsorAsync(DirectoryEntry entry)
+        {
+            var subcatBlocked = this.BlockedBySubcategorySponsorship(entry);
+            if (subcatBlocked != null)
+            {
+                return subcatBlocked;
+            }
+
+            if (!this.IsEligibleToSponsor(entry)
+                && !await this.sponsoredListingRepository.HasActiveSponsorshipAsync(entry.DirectoryEntryId).ConfigureAwait(false))
+            {
+                return this.BadRequest(new { Error = $"To sponsor, a listing must be Verified and listed in the directory for at least {DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring} days." });
+            }
+
+            return null;
+        }
+
         private IActionResult? BlockedBySubcategorySponsorship(DirectoryEntry entry)
         {
             if (entry.SubCategory?.SponsorshipDisabled != true)
@@ -2242,7 +2271,7 @@ namespace DirectoryManager.Web.Controllers
                     : $"No ad space available right now for Main Sponsor in {scope}.";
             }
 
-            var subGroup = ReservationGroupHelper.BuildReservationGroupName(SponsorshipType.MainSponsor, subCategoryId);
+            var subGroup = ReservationGroupHelper.BuildMainSponsorSubcategoryGroupName(subCategoryId);
             var exp = await this.sponsoredListingReservationRepository.GetActiveReservationExpirationAsync(subGroup).ConfigureAwait(false);
             if (exp.HasValue)
             {

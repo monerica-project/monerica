@@ -165,7 +165,24 @@ namespace DirectoryManager.Web.Controllers
 
             var expectedNormalized = GenerateChallengeCodeNormalized(IntegerConstants.ChallengeLength);
             var plaintextForUser = FormatChallengeCodeForHumans(expectedNormalized);
-            var cipher = this.pgp.EncryptTo(pgpArmored, plaintextForUser);
+            string cipher;
+            try
+            {
+                cipher = this.pgp.EncryptTo(pgpArmored, plaintextForUser);
+            }
+            catch (Exception)
+            {
+                // Sign-only keys (or keys whose encryption subkey expired/was revoked) can't receive
+                // the one-time code — show a clear error instead of a 500.
+                this.ModelState.AddModelError(
+                    string.Empty,
+                    "This PGP key can't be used: it has no usable encryption key (it is sign-only, or its encryption " +
+                    "subkey has expired or been revoked). We verify you by encrypting a one-time code to your key, so " +
+                    "please use a key with a current encryption subkey.");
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.DirectoryEntryId = state.DirectoryEntryId;
+                return this.View("SubmitKey");
+            }
 
             state.PgpArmored = pgpArmored;
             state.PgpFingerprint = fp;
@@ -442,6 +459,18 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
+            // Rating is optional in the model (it's shared with the admin form) but required here;
+            // a crafted POST without it must get a form error, not a crash.
+            if (input.Rating is null)
+            {
+                this.ModelState.AddModelError(nameof(input.Rating), "Please choose a rating from 1 to 5.");
+                var ratingEntry = await this.directoryEntryRepository.GetByIdAsync(flow.DirectoryEntryId);
+                this.ViewBag.DirectoryEntryName = ratingEntry?.Name ?? "Listing";
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.PgpFingerprint = flow.PgpFingerprint;
+                return this.View("Compose", input);
+            }
+
             var mod = await this.moderation.EvaluateReviewAsync(input.Body, ct);
 
             var entity = new DirectoryEntryReview
@@ -484,7 +513,11 @@ namespace DirectoryManager.Web.Controllers
             // approve or modify the tag selection before it (and the review) go live. This never
             // auto-publishes a self-applied tag.
             var hasSuggestedTags = input.SelectedReviewTagIds is { Count: > 0 };
-            if (requireVerification || requireDetails || mod.NeedsManualReview || hasSuggestedTags)
+
+            // Reviews carrying an order URL are ALWAYS manually reviewed (the order proof must be
+            // checked by a person), whatever the listing's verification settings are.
+            var hasOrderUrl = !string.IsNullOrWhiteSpace(entity.OrderUrl);
+            if (requireVerification || requireDetails || mod.NeedsManualReview || hasSuggestedTags || hasOrderUrl)
             {
                 entity.ModerationStatus = ReviewModerationStatus.Pending;
             }
@@ -554,11 +587,19 @@ namespace DirectoryManager.Web.Controllers
         [Authorize]
         public async Task<IActionResult> Index(int page = 1, int pageSize = 50, CancellationToken ct = default)
         {
+            pageSize = Math.Clamp(pageSize, 10, 200);
+            var total = await this.directoryEntryReviewRepository.CountAsync(ct);
+            var totalPages = Math.Max(1, (int)Math.Ceiling(total / (double)pageSize));
+            page = Math.Clamp(page, 1, totalPages);
+
             var items = await this.directoryEntryReviewRepository.ListAsync(page, pageSize, ct);
-            this.ViewBag.Total = await this.directoryEntryReviewRepository.CountAsync(ct);
-            this.ViewBag.Page = page;
-            this.ViewBag.PageSize = pageSize;
-            return this.View(items);
+            return this.View(new DirectoryManager.Web.Models.Reviews.ReviewListViewModel
+            {
+                Items = items,
+                Page = page,
+                PageSize = pageSize,
+                Total = total,
+            });
         }
 
         [HttpGet("{id:int}")]

@@ -100,8 +100,13 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .AsNoTracking()
                 .Where(et =>
                     et.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed &&
-                    et.DirectoryEntry.SubCategory != null &&
-                    et.DirectoryEntry.SubCategory.CategoryId == categoryId)
+                    ((et.DirectoryEntry.SubCategory != null &&
+                      et.DirectoryEntry.SubCategory.CategoryId == categoryId) ||
+
+                     // also listings that appear in this category via an additional subcategory
+                     // (the filter results include them, so their tags must be offered too)
+                     et.DirectoryEntry.AdditionalSubcategories.Any(a =>
+                         a.SubCategory != null && a.SubCategory.CategoryId == categoryId)))
                 .GroupBy(et => new { et.TagId, et.Tag.Name, et.Tag.Key })
                 .Select(g => new TagCount
                 {

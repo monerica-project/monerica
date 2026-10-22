@@ -62,6 +62,10 @@
 
         // What the directory's listings accept/relate to, e.g. "Monero (XMR)". Used in llms.txt;
         // the part before " (" is the short form ("Monero"). Empty = generic wording.
-        DirectoryCurrencyName = 52
+        DirectoryCurrencyName = 52,
+
+        // Our own video site where the same videos are also published (e.g. a no-JS mirror of the
+        // channel). Shown on the video sponsorship page. Empty = not shown.
+        VideoSponsorshipVideoSiteUrl = 53
     }
 }

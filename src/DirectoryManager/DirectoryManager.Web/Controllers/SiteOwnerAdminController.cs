@@ -374,6 +374,15 @@ namespace DirectoryManager.Web.Controllers
                 return this.Redirect(AdminPageUrl(directoryEntryKey, returnPage) + $"#review-{directoryEntryReviewId}");
             }
 
+            // The Body column holds 4,000 characters: reject longer replies (keeping the draft)
+            // instead of letting the insert fail with a 500.
+            if (body.Trim().Length > 4000)
+            {
+                this.TempData["AdminError"] = "Your reply is too long. Please keep it under 4,000 characters.";
+                this.SaveReplyDraft(directoryEntryReviewId, typedBody);
+                return this.Redirect(AdminPageUrl(directoryEntryKey, returnPage) + $"#review-{directoryEntryReviewId}");
+            }
+
             var entity = new DirectoryEntryReviewComment
             {
                 DirectoryEntryReviewId = directoryEntryReviewId,

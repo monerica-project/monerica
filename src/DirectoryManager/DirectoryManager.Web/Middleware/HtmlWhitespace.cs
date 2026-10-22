@@ -11,9 +11,12 @@ namespace DirectoryManager.Web.Middleware
     /// </summary>
     public static partial class HtmlWhitespace
     {
-        // Blocks whose internal whitespace is significant — copied through byte-for-byte.
+        // Blocks whose internal whitespace is significant — copied through byte-for-byte:
+        // pre/textarea/script/style, and any element styled with a "keep whitespace" utility
+        // class (u-prewrap*, u-ws-pre*), e.g. PGP ciphertext and multi-paragraph review text.
         [GeneratedRegex(
-            @"<(pre|textarea|script|style)\b[^>]*>[\s\S]*?</\1\s*>",
+            @"<(pre|textarea|script|style)\b[^>]*>[\s\S]*?</\1\s*>" +
+            @"|<(div|span|p|td|li|blockquote)\b[^>]*\bclass\s*=\s*""[^""]*\bu-(?:prewrap|ws-pre)[^""]*""[^>]*>[\s\S]*?</\2\s*>",
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant)]
         private static partial Regex ProtectedBlocks();
 

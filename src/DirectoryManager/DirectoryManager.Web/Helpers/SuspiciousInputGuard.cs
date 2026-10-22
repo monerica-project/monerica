@@ -23,7 +23,9 @@ namespace DirectoryManager.Web.Helpers
             ("sql-union-select", Build(@"\bunion\b[\s(]+(all[\s(]+)?select\b")),
             ("sql-select-from", Build(@"\bselect\b\s+(\*|distinct\b|top\s+\d|null\b|\w+\s*\(|[\w.""`]+\s*,).{0,200}?\bfrom\b")),
             ("sql-stacked-statement", Build(@";\s*(drop|select|insert|update|delete|exec|execute|declare|shutdown|truncate|alter|create)\b")),
-            ("sql-quote-boolean", Build(@"['""`]\s*\)*\s*(or|and|xor|\|\||&&)\s*[('""`\d]")),
+            // quote, boolean, then a comparison soon after (' or '1'='1) — not plain quoted
+            // search terms like "monero" or "tor".
+            ("sql-quote-boolean", Build(@"['""`]\s*\)*\s*(or|and|xor|\|\||&&)\s*[('""`\d][^=<>]{0,40}(=|<>|!=|<|>|\blike\b)")),
             ("sql-tautology", Build(@"\b(or|and|xor)\b\s*\(?\s*['""`]?\w{1,20}['""`]?\s*(=|<>|!=|\blike\b)\s*['""`]?\w{1,20}['""`]?\s*(--|#|/\*|$|\))")),
             ("sql-numeric-tautology", Build(@"\b(or|and)\s+\d+(\s*[*+\-/]\s*\d+)*\s*=\s*\d+")),
             ("sql-quote-terminator", Build(@"['""`]\s*\)+|['""`]\s*(--|#|;)|\)\s*--")),
@@ -41,7 +43,9 @@ namespace DirectoryManager.Web.Helpers
             ("sql-subquery", Build(@"\(\s*select\b|\bcase\s+when\b.{0,120}?\bthen\b|\b(rlike|regexp)\s*\(|\bfrom\s+dual\b|\bprocedure\s+analyse\b")),
             ("script-attribute", Build(@"['""]\s*[\w-]+\s*=\s*[\w.]+\s*\(|\\u00(22|27|3c|3e)|\bexpression\s*\(")),
             ("code-injection", Build(@"\b(response\.write|phpinfo|passthru|shell_exec|system|exec|eval|assert|print|md5|base64_decode|file_get_contents)\s*\(")),
-            ("command-injection", Build(@"[|&;`]\s*\(?\s*(nslookup|curl|wget|ping|echo|cat|whoami|id|uname|sleep|powershell|cmd|bash|sh|nc|ncat|python\d?|perl|php|env|set|dir|type)\b|\$\(|\$\{?ifs\b")),
+            // | ; ` and && followed by any of these commands; a lone & only before clearly hostile
+            // commands (so "Dog & Cat", "Web & PHP" and "...&type=..." in a ReturnUrl are allowed).
+            ("command-injection", Build(@"([|;`]|&&)\s*\(?\s*(nslookup|curl|wget|ping|echo|cat|whoami|id|uname|sleep|powershell|cmd|bash|sh|nc|ncat|python\d?|perl|php|env|set|dir|type)\b|&\s*\(?\s*(nslookup|curl|wget|ping|whoami|uname|powershell|bash|ncat)\b|\$\(|\$\{?ifs\b")),
             ("out-of-band-probe", Build(@"\b(bxss\.me|oastify\.com|burpcollaborator\.net|interact\.sh|interactsh\.com|dnslog\.cn|ceye\.io|oast\.(fun|pro|live|site|online|me))\b")),
             ("overlong-encoding", Build(@"%c0%[0-9a-f]{2}|%c1%[0-9a-f]{2}|%e0%80%|%f0%80%80%")),
             ("template-injection", Build(@"\$\{.{0,80}\}|\{\{.{0,80}\}\}|<%|%>")),

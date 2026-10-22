@@ -12,6 +12,9 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         /// listing's main subcategory, duplicates and anything over the limit are ignored.
         /// Existing rows for the same subcategory are updated in place (keeping their id).
         /// </summary>
+        /// <summary>Deletes the listing's additional-subcategory row for this subcategory, if any (e.g. when it became the main one).</summary>
+        Task RemoveAsync(int directoryEntryId, int subCategoryId, CancellationToken ct = default);
+
         Task SyncAsync(int directoryEntryId, int mainSubCategoryId, IEnumerable<DirectoryEntryAdditionalSubcategory> rows, CancellationToken ct = default);
     }
 }

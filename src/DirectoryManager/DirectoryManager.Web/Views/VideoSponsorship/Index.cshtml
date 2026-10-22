@@ -25,6 +25,15 @@
                 <a href="@Model.ChannelUrl" target="_blank" rel="noopener">@Model.ChannelUrl</a>
             </p>
         }
+        @if (!string.IsNullOrWhiteSpace(Model.VideoSiteUrl))
+        {
+            var videoSiteHost = Uri.TryCreate(Model.VideoSiteUrl, UriKind.Absolute, out var vsu) ? vsu.Host : Model.VideoSiteUrl;
+            <p>
+                <strong>Also published on:</strong>
+                <a href="@Model.VideoSiteUrl" target="_blank" rel="noopener">@videoSiteHost</a>, our own video site,
+                so your sponsored video also reaches viewers who avoid YouTube (no JavaScript, works over Tor).
+            </p>
+        }
     </div>
 
     <p>

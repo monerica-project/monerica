@@ -42,7 +42,7 @@ namespace DirectoryManager.Web.Charting
                 plt.Title("No revenue in this period");
                 plt.Axes.Frameless();
                 plt.HideGrid();
-                return plt.GetImageBytes(900, 520, ImageFormat.Png);
+                return plt.GetDarkImageBytes(900, 520, ImageFormat.Png);
             }
 
             var pie = plt.Add.Pie(slices);
@@ -53,7 +53,7 @@ namespace DirectoryManager.Web.Charting
             plt.Axes.Frameless();
             plt.HideGrid();
             plt.ShowLegend(Edge.Right);
-            return plt.GetImageBytes(900, 520, ImageFormat.Png);
+            return plt.GetDarkImageBytes(900, 520, ImageFormat.Png);
         }
 
         // Stacked monthly bars, one color per source.
@@ -63,7 +63,7 @@ namespace DirectoryManager.Web.Charting
             if (months.Count == 0)
             {
                 plt.Title("No data");
-                return plt.GetImageBytes(1400, 600, ImageFormat.Png);
+                return plt.GetDarkImageBytes(1400, 600, ImageFormat.Png);
             }
 
             foreach (var source in RevenueReportBuilder.Sources)
@@ -100,7 +100,7 @@ namespace DirectoryManager.Web.Charting
             plt.Title(basis == RevenueBasis.Earned ? "Revenue earned per month (USD)" : "Cash collected per month (USD)");
             plt.YLabel("USD");
             plt.ShowLegend(Edge.Right);
-            return plt.GetImageBytes(1400, 600, ImageFormat.Png);
+            return plt.GetDarkImageBytes(1400, 600, ImageFormat.Png);
         }
 
         // History (earned, grey bars) + forecast: expected line, confidence band, and the
@@ -160,7 +160,7 @@ namespace DirectoryManager.Web.Charting
             plt.Title("Revenue earned per month: history and forecast (USD)");
             plt.YLabel("USD");
             plt.ShowLegend(Edge.Right);
-            return plt.GetImageBytes(1400, 650, ImageFormat.Png);
+            return plt.GetDarkImageBytes(1400, 650, ImageFormat.Png);
         }
 
         // Backtest: what the model predicted (line + band) vs what was earned (bars).
@@ -200,7 +200,7 @@ namespace DirectoryManager.Web.Charting
             plt.Title($"Backtest from {bt.AsOfUtc:MMM yyyy}");
             plt.YLabel("USD");
             plt.ShowLegend(Edge.Right);
-            return plt.GetImageBytes(1100, 450, ImageFormat.Png);
+            return plt.GetDarkImageBytes(1100, 450, ImageFormat.Png);
         }
 
         private static void MonthTicks(Plot plt, IReadOnlyList<DateTime> months)

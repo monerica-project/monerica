@@ -163,7 +163,7 @@ namespace DirectoryManager.Web.Charting
                 AddSubtitleBelowTitle(plt, subtitle);
             }
 
-            return plt.GetImageBytes(1200, 600, ImageFormat.Png);
+            return plt.GetDarkImageBytes(1200, 600, ImageFormat.Png);
         }
 
         /// <summary>
@@ -486,7 +486,7 @@ namespace DirectoryManager.Web.Charting
                 ApplyDarkTheme(plt);
             }
 
-            return plt.GetImageBytes(width, height, ImageFormat.Png);
+            return plt.GetDarkImageBytes(width, height, ImageFormat.Png);
         }
 
         // Dark-theme palette: near-black ground, light grey text, bright neon series.
@@ -657,7 +657,7 @@ namespace DirectoryManager.Web.Charting
 
             AddSubtitleBelowTitle(plt, filterLabel);
 
-            return plt.GetImageBytes(1200, 800, ImageFormat.Png);
+            return plt.GetDarkImageBytes(1200, 800, ImageFormat.Png);
         }
 
         public byte[] CreateMonthlyAvgDailyRevenueChart(
@@ -794,7 +794,7 @@ namespace DirectoryManager.Web.Charting
 
             AddSubtitleBelowTitle(plt, filterLabel);
 
-            return plt.GetImageBytes(1200, 600, ImageFormat.Png);
+            return plt.GetDarkImageBytes(1200, 600, ImageFormat.Png);
         }
 
         /// <summary>
@@ -942,7 +942,7 @@ namespace DirectoryManager.Web.Charting
 
             AddSubtitleBelowTitle(plt, filterLabel);
 
-            return plt.GetImageBytes(1200, 600, ImageFormat.Png);
+            return plt.GetDarkImageBytes(1200, 600, ImageFormat.Png);
         }
 
         public byte[] CreateMonthlyIncomeBarChart(
@@ -1055,7 +1055,7 @@ namespace DirectoryManager.Web.Charting
 
             AddSubtitleBelowTitle(plt, filterLabel);
 
-            return plt.GetImageBytes(1200, 800, ImageFormat.Png);
+            return plt.GetDarkImageBytes(1200, 800, ImageFormat.Png);
         }
 
         public byte[] CreateSubcategoryRevenuePieChart(
@@ -1129,7 +1129,7 @@ namespace DirectoryManager.Web.Charting
             plt.Title($"Revenue by Subcategory ({AxisUnitLabel(displayCurrency)})");
             plt.ShowLegend(Edge.Right);
 
-            return plt.GetImageBytes(800, 600, ImageFormat.Png);
+            return plt.GetDarkImageBytes(800, 600, ImageFormat.Png);
         }
 
         public byte[] CreateCountryRevenuePieChart(
@@ -1192,7 +1192,7 @@ namespace DirectoryManager.Web.Charting
             plt.Title($"Revenue by Country ({AxisUnitLabel(displayCurrency)})");
             plt.ShowLegend(Edge.Right);
 
-            return plt.GetImageBytes(800, 600, ImageFormat.Png);
+            return plt.GetDarkImageBytes(800, 600, ImageFormat.Png);
         }
 
         private static string CountryLabel(string code)

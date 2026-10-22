@@ -4,6 +4,12 @@ namespace DirectoryManager.Web.Helpers
 {
     public class UrlHelper
     {
+        // %XX escapes for ASCII characters that carry URL meaning (or are % / \\ themselves).
+        private static readonly Regex EscapedStructureRegex = new (
+            @"%(?:2[0-9A-Fa-f]|3[A-Fa-f]|40|5[BbCcDd]|7[CcEe])",
+            RegexOptions.Compiled,
+            TimeSpan.FromMilliseconds(250));
+
         /// <summary>
         /// Human-readable form of a URL for link TEXT: percent-escapes are decoded so
         /// "%D0%BA%D1%80" shows as "кр". The href itself should keep the original (encoded)
@@ -15,6 +21,13 @@ namespace DirectoryManager.Web.Helpers
             if (string.IsNullOrEmpty(url) || !url.Contains('%'))
             {
                 return url ?? string.Empty;
+            }
+
+            // Never decode an escape that hides URL structure (/ ? # @ : etc.): decoded text like
+            // "paypal.com%2Flogin@evil.com" would DISPLAY one host while linking to another.
+            if (EscapedStructureRegex.IsMatch(url))
+            {
+                return url;
             }
 
             string decoded;

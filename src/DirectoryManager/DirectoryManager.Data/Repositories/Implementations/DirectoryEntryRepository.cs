@@ -518,7 +518,15 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var extras = await this.LoadAdditionalSubcategoryCopiesAsync(a => a.SubCategory.CategoryId == categoryId, excludeUnknown: true)
                 .ConfigureAwait(false);
 
-            return mains.Concat(extras).OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase).ToList();
+            // One row per business: used for "at least N listings" thresholds, so a listing that
+            // is in several subcategories of this category must not count more than once.
+            var mainIds = mains.Select(e => e.DirectoryEntryId).ToHashSet();
+            var extrasNotInMain = extras
+                .Where(e => !mainIds.Contains(e.DirectoryEntryId))
+                .GroupBy(e => e.DirectoryEntryId)
+                .Select(g => g.First());
+
+            return mains.Concat(extrasNotInMain).OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase).ToList();
         }
 
         /// <inheritdoc/>
@@ -652,11 +660,12 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<int> CountByCategoryAsync(int categoryId)
         {
+            // Distinct listings in the category, whether there by their main subcategory or by one
+            // (or several) additional subcategories — each business counts once.
             return await this.context.DirectoryEntries
-                .Where(de => de.SubCategory.CategoryId == categoryId && de.DirectoryStatus != DirectoryStatus.Removed)
-                .CountAsync()
-                + await this.context.DirectoryEntryAdditionalSubcategories
-                .Where(a => a.SubCategory.CategoryId == categoryId && a.DirectoryEntry.DirectoryStatus != DirectoryStatus.Removed)
+                .Where(de => de.DirectoryStatus != DirectoryStatus.Removed &&
+                    (de.SubCategory.CategoryId == categoryId ||
+                     de.AdditionalSubcategories.Any(a => a.SubCategory.CategoryId == categoryId)))
                 .CountAsync();
         }
 

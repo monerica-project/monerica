@@ -50,6 +50,13 @@ public class CountriesController : Controller
         this.PageMeta().CanonicalUrl = UrlBuilder.CombineUrl(canonicalDomain, path);
 
         var paged = await this.entryRepo.ListActiveCountriesWithCountsPagedAsync(page, PageSize);
+
+        // A page past the end is "not found", like every other paged listing page.
+        if (page > 1 && !paged.Items.Any())
+        {
+            return this.NotFound();
+        }
+
         paged.Items = paged.Items.OrderBy(x => x.Name).ToList();
 
         var vm = new CountryListViewModel

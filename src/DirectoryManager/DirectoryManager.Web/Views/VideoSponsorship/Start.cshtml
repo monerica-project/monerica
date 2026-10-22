@@ -1,4 +1,5 @@
 @model DirectoryManager.Web.Models.VideoSponsorship.VideoSponsorStartVm
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 @{
     PageMeta.Title = "Sponsor a Video";
     Layout = "_CenteredLayout";
@@ -21,8 +22,8 @@
         </ol>
     </div>
 
-    <form method="get" action="@Url.Action("Start", "VideoSponsorship")" class="search-form u-m-16px-0">
-        <input type="search" name="q" value="@Model.Query" placeholder="Search listings…" class="form-control u-maxw-340px" />
+    <form method="get" action="@Url.Action("Start", "VideoSponsorship")" class="search-form search-form-compact u-m-16px-0">
+        <input type="search" name="q" value="@Model.Query" placeholder="Search listings…" class="form-control" />
         <button type="submit" class="btn btn-primary btn-cta">Find my listing</button>
     </form>
 
@@ -40,9 +41,19 @@
         <div class="search-results">
             @foreach (var r in Model.Results)
             {
-                <div class="result-row u-flex-flexwrap-wrap-items-center-gap-8px-16px-p-12px-0">
+                <div class="result-row sponsor-search-row u-flex-flexwrap-wrap-items-center-gap-8px-16px-p-12px-0">
                     <div class="u-flex-1-1-240px-minw-0">
-                        <div class="u-fs-105em-fw-600">@r.Name</div>
+                        <div class="u-fs-105em-fw-600">
+                            @* Name links to the listing's profile on this directory. *@
+                            @if (!string.IsNullOrWhiteSpace(r.DirectoryEntryKey))
+                            {
+                                <a class="no-app-link" href="@UrlResolver.ResolveToRoot(DirectoryManager.Utilities.Helpers.UrlBuilder.ListingPath(r.DirectoryEntryKey))">@r.Name</a>
+                            }
+                            else
+                            {
+                                @r.Name
+                            }
+                        </div>
                         <div class="u-opacity-8-fs-9em-mt-2px">@r.Category</div>
                         @if (!r.CanSponsor && r.Reasons.Any())
                         {
@@ -57,7 +68,8 @@
                     <div class="u-flex-0-0-auto-m-0">
                         @if (r.CanSponsor)
                         {
-                            <a class="btn btn-info" href="@Url.Action("Type", "VideoSponsorship", new { directoryEntryId = r.DirectoryEntryId })">Select this listing</a>
+                            @* Orange action button that names the listing, like the site-sponsor search. *@
+                            <a class="btn btn-primary btn-cta sponsor-search-spots-btn" href="@Url.Action("Type", "VideoSponsorship", new { directoryEntryId = r.DirectoryEntryId })">Sponsor a video as @r.Name &rarr;</a>
                         }
                         else
                         {

@@ -182,7 +182,7 @@
                                 }
                                 else
                                 {
-                                    <a class="multi-line-text" href="@finalLink" target="_blank" @(string.IsNullOrEmpty(finalLinkRel) ? "" : $" rel=\"{finalLinkRel}\"")>@Model.Link</a>
+                                    <a class="multi-line-text" href="@finalLink" target="_blank" rel="@(string.IsNullOrEmpty(finalLinkRel) ? null : finalLinkRel)">@Model.Link</a>
                                 }
                             </td>
                         </tr>
@@ -203,7 +203,7 @@
                                 }
                                 else
                                 {
-                                    <a class="multi-line-text" href="@finalLink2" target="_blank" @(string.IsNullOrEmpty(finalLink2Rel) ? "" : $" rel=\"{finalLink2Rel}\"")>@Model.Link2</a>
+                                    <a class="multi-line-text" href="@finalLink2" target="_blank" rel="@(string.IsNullOrEmpty(finalLink2Rel) ? null : finalLink2Rel)">@Model.Link2</a>
                                 }
                             </td>
                         </tr>
@@ -222,7 +222,7 @@
                                 }
                                 else
                                 {
-                                    <a class="multi-line-text" href="@finalLink3" target="_blank" @(string.IsNullOrEmpty(finalLink3Rel) ? "" : $" rel=\"{finalLink3Rel}\"")>@Model.Link3</a>
+                                    <a class="multi-line-text" href="@finalLink3" target="_blank" rel="@(string.IsNullOrEmpty(finalLink3Rel) ? null : finalLink3Rel)">@Model.Link3</a>
                                 }
                             </td>
                         </tr>
@@ -382,7 +382,7 @@
         @if (!isScam && !string.IsNullOrWhiteSpace(finalLink))
         {
             <div class="entry-cta">
-                <a href="@finalLink" class="btn btn-primary btn-cta entry-cta-btn" target="_blank" @(string.IsNullOrEmpty(finalLinkRel) ? "" : $" rel=\"{finalLinkRel}\"")>Visit Website</a>
+                <a href="@finalLink" class="btn btn-primary btn-cta entry-cta-btn" target="_blank" rel="@(string.IsNullOrEmpty(finalLinkRel) ? null : finalLinkRel)">Visit Website</a>
             </div>
         }
 
@@ -568,7 +568,7 @@
                                     else
                                     {
                                         var rel = Rel(altLinkA);
-                                        <a class="multi-line-text" href="@Href(altLink, altLinkA)" target="_blank" @(rel.Length == 0 ? "" : $" rel=\"{rel}\"")>@altLink</a>
+                                        <a class="multi-line-text" href="@Href(altLink, altLinkA)" target="_blank" rel="@(rel.Length == 0 ? null : rel)">@altLink</a>
                                     }
                                 </li>
                             }
@@ -583,7 +583,7 @@
                                     else
                                     {
                                         var rel2 = Rel(altLink2A);
-                                        <a class="multi-line-text" href="@Href(altLink2, altLink2A)" target="_blank" @(rel2.Length == 0 ? "" : $" rel=\"{rel2}\"")>@altLink2</a>
+                                        <a class="multi-line-text" href="@Href(altLink2, altLink2A)" target="_blank" rel="@(rel2.Length == 0 ? null : rel2)">@altLink2</a>
                                     }
                                 </li>
                             }
@@ -598,7 +598,7 @@
                                     else
                                     {
                                         var rel3 = Rel(altLink3A);
-                                        <a class="multi-line-text" href="@Href(altLink3, altLink3A)" target="_blank" @(rel3.Length == 0 ? "" : $" rel=\"{rel3}\"")>@altLink3</a>
+                                        <a class="multi-line-text" href="@Href(altLink3, altLink3A)" target="_blank" rel="@(rel3.Length == 0 ? null : rel3)">@altLink3</a>
                                     }
                                 </li>
                             }

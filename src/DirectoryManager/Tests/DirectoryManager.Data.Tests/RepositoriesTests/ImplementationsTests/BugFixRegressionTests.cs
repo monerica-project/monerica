@@ -214,6 +214,27 @@ namespace DirectoryManager.Data.Tests.RepositoriesTests.ImplementationsTests
             Assert.True(await repo.HasPendingWithNoteContainingAsync(0, "https://c.example", "site offline"));
         }
 
+        [Fact]
+        public async Task HasPendingWithNoteContaining_AlsoMatchesTheAdminNote()
+        {
+            // The weekly checker's additional-subcategory warning puts its reason in NoteToAdmin;
+            // the duplicate check must see it or a new warning is filed every week.
+            using var context = NewContext();
+            context.Submissions.Add(new Submission
+            {
+                SubmissionStatus = SubmissionStatus.Pending,
+                DirectoryEntryId = 8,
+                Link = "https://d.example",
+                Note = "copied listing note",
+                NoteToAdmin = "(automated submission) Additional subcategory link offline: https://d.example/cards",
+            });
+            await context.SaveChangesAsync();
+
+            var repo = new SubmissionRepository(context);
+
+            Assert.True(await repo.HasPendingWithNoteContainingAsync(8, "https://d.example", "Additional subcategory link offline"));
+        }
+
         private static ApplicationDbContext NewContext()
         {
             var options = new DbContextOptionsBuilder<ApplicationDbContext>()

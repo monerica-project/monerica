@@ -418,17 +418,23 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<Dictionary<int, int>> GetActiveSponsorCountByCategoryAsync(SponsorshipType type)
         {
             return await this.context.SponsoredListings
-              .Where(s => s.SponsorshipType == type && s.CampaignEndDate > DateTime.UtcNow)
-              .GroupBy(s => s.CategoryId)
-              .ToDictionaryAsync(g => g.Key.Value, g => g.Count());
+              .Where(s => s.SponsorshipType == type
+                          && s.CampaignStartDate <= DateTime.UtcNow
+                          && s.CampaignEndDate > DateTime.UtcNow
+                          && s.CategoryId != null)
+              .GroupBy(s => s.CategoryId!.Value)
+              .ToDictionaryAsync(g => g.Key, g => g.Count());
         }
 
         public async Task<Dictionary<int, int>> GetActiveSponsorCountBySubcategoryAsync(SponsorshipType type)
         {
             return await this.context.SponsoredListings
-              .Where(s => s.SponsorshipType == type && s.CampaignEndDate > DateTime.UtcNow)
-              .GroupBy(s => s.SubCategoryId)
-              .ToDictionaryAsync(g => g.Key.Value, g => g.Count());
+              .Where(s => s.SponsorshipType == type
+                          && s.CampaignStartDate <= DateTime.UtcNow
+                          && s.CampaignEndDate > DateTime.UtcNow
+                          && s.SubCategoryId != null)
+              .GroupBy(s => s.SubCategoryId!.Value)
+              .ToDictionaryAsync(g => g.Key, g => g.Count());
         }
 
         public async Task<List<SponsorTickerItemVm>> GetSponsorTickerItemsAsync()

@@ -25,6 +25,20 @@ namespace DirectoryManager.Data.Repositories.Implementations
                 .ToListAsync(ct);
         }
 
+        public async Task RemoveAsync(int directoryEntryId, int subCategoryId, CancellationToken ct = default)
+        {
+            var rows = await this.db.DirectoryEntryAdditionalSubcategories
+                .Where(a => a.DirectoryEntryId == directoryEntryId && a.SubCategoryId == subCategoryId)
+                .ToListAsync(ct);
+            if (rows.Count == 0)
+            {
+                return;
+            }
+
+            this.db.DirectoryEntryAdditionalSubcategories.RemoveRange(rows);
+            await this.db.SaveChangesAsync(ct);
+        }
+
         public async Task SyncAsync(int directoryEntryId, int mainSubCategoryId, IEnumerable<DirectoryEntryAdditionalSubcategory> rows, CancellationToken ct = default)
         {
             var wanted = (rows ?? Enumerable.Empty<DirectoryEntryAdditionalSubcategory>())

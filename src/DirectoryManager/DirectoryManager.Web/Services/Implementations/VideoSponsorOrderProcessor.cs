@@ -69,7 +69,10 @@ namespace DirectoryManager.Web.Services.Implementations
             var current = order.PaymentStatus;
             var isStepForward = proposed != PaymentStatus.Unknown
                 && !SponsoredListingCheckoutHelper.IsTerminal(current)
-                && SponsoredListingCheckoutHelper.StatusRank[proposed] > SponsoredListingCheckoutHelper.StatusRank[current];
+                && (SponsoredListingCheckoutHelper.StatusRank[proposed] > SponsoredListingCheckoutHelper.StatusRank[current]
+
+                    // partly paid when the window closed: record it (see CanAdvanceStatus)
+                    || (current == PaymentStatus.Pending && proposed == PaymentStatus.UnderPayment));
 
             if (!isStepForward && !(force && proposed != current))
             {

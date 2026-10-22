@@ -16,7 +16,7 @@ namespace DirectoryManager.Web.Models
         public byte? Rating { get; set; }
 
         [Required]
-        [StringLength(8000, MinimumLength = 1)]
+        [StringLength(10000, MinimumLength = 1)] // same limit as the public review form
         public string Body { get; set; } = string.Empty;
 
         [StringLength(2048)]

@@ -2,7 +2,7 @@
 @using DirectoryManager.Data.Models
 @using DirectoryManager.Data.Models.Reviews
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
-@model IEnumerable<DirectoryEntryReview>
+@model DirectoryManager.Web.Models.Reviews.ReviewListViewModel
 
 @{
     PageMeta.Title = "Directory Entry Reviews";
@@ -20,6 +20,11 @@
             <a class="btn btn-primary" asp-action="Create">New Review</a>
         </p>
 
+        <p class="text-muted">
+            Showing @Model.FirstItem–@Model.LastItem of @Model.Total.ToString("N0") reviews
+            (page @Model.Page of @Model.TotalPages), newest first.
+        </p>
+
         <div class="card">
             <div class="card-body p-0">
                 <div class="table-wrapper">
@@ -35,7 +40,7 @@
                         </tr>
                     </thead>
                     <tbody>
-                        @foreach (var r in Model)
+                        @foreach (var r in Model.Items)
                         {
                             <tr>
                                 <td>@r.DirectoryEntryReviewId</td>
@@ -54,6 +59,48 @@
 </div>
             </div>
         </div>
+
+        @if (Model.TotalPages > 1)
+        {
+            // Windowed pager: first / prev / nearby pages / next / last.
+            int windowStart = Math.Max(1, Model.Page - 3);
+            int windowEnd = Math.Min(Model.TotalPages, Model.Page + 3);
+            string PageUrl(int p) => Url.Action("Index", new { page = p, pageSize = Model.PageSize == 50 ? (int?)null : Model.PageSize })!;
+
+            <nav aria-label="Reviews pages" class="mt-3">
+                <ul class="pagination">
+                    @if (Model.Page > 1)
+                    {
+                        <li class="page-item"><a class="page-link" href="@PageUrl(1)">&laquo; First</a></li>
+                        <li class="page-item"><a class="page-link" href="@PageUrl(Model.Page - 1)" rel="prev">&lsaquo; Prev</a></li>
+                    }
+                    @if (windowStart > 1)
+                    {
+                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                    }
+                    @for (int p = windowStart; p <= windowEnd; p++)
+                    {
+                        if (p == Model.Page)
+                        {
+                            <li class="page-item active"><span class="page-link" aria-current="page">@p</span></li>
+                        }
+                        else
+                        {
+                            <li class="page-item"><a class="page-link" href="@PageUrl(p)">@p</a></li>
+                        }
+                    }
+                    @if (windowEnd < Model.TotalPages)
+                    {
+                        <li class="page-item disabled"><span class="page-link">…</span></li>
+                    }
+                    @if (Model.Page < Model.TotalPages)
+                    {
+                        <li class="page-item"><a class="page-link" href="@PageUrl(Model.Page + 1)" rel="next">Next &rsaquo;</a></li>
+                        <li class="page-item"><a class="page-link" href="@PageUrl(Model.TotalPages)">Last &raquo;</a></li>
+                    }
+                </ul>
+            </nav>
+        }
 
         <hr />
         @await Html.PartialAsync("_SponsoredListingPartial")

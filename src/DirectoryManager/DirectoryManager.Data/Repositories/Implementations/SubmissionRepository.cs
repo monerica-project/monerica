@@ -55,8 +55,10 @@ namespace DirectoryManager.Data.Repositories.Implementations
                                  x.SubmissionStatus == SubmissionStatus.Pending &&
                                  ((directoryEntryId > 0 && x.DirectoryEntryId == directoryEntryId) ||
                                   (hasLink && x.Link == link)) &&
-                                 x.Note != null &&
-                                 x.Note.Contains(noteFragment));
+                                 // Automated proposals put their reason in NoteToAdmin (the public
+                                 // Note is copied from the listing), so look in both.
+                                 ((x.Note != null && x.Note.Contains(noteFragment)) ||
+                                  (x.NoteToAdmin != null && x.NoteToAdmin.Contains(noteFragment))));
         }
 
         public async Task<List<Submission>> ListByDirectoryEntryAndStatusAsync(int directoryEntryId, SubmissionStatus submissionStatus)

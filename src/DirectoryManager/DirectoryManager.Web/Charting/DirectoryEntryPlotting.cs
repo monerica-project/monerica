@@ -150,7 +150,7 @@ namespace DirectoryManager.Web.Charting
             plt.Title("Active Entries by Country");
             plt.ShowLegend(Edge.Right);
 
-            return plt.GetImageBytes(width: 900, height: 700, format: ImageFormat.Png);
+            return plt.GetDarkImageBytes(width: 900, height: 700, format: ImageFormat.Png);
         }
 
         /// <summary>
@@ -324,7 +324,7 @@ namespace DirectoryManager.Web.Charting
             int width = 1100;
             int height = Math.Max(420, 110 + (rows * 30));
 
-            return plt.GetImageBytes(width: width, height: height, format: ImageFormat.Png);
+            return plt.GetDarkImageBytes(width: width, height: height, format: ImageFormat.Png);
         }
 
         public byte[] CreateMonthlyActivePlot(List<DirectoryEntriesAudit> audits)
@@ -397,7 +397,7 @@ namespace DirectoryManager.Web.Charting
             plt.Title("Active Directory Entries by Month");
             plt.YLabel("Active Entries");
 
-            return plt.GetImageBytes(width: 1200, height: 600, format: ImageFormat.Png);
+            return plt.GetDarkImageBytes(width: 1200, height: 600, format: ImageFormat.Png);
         }
 
         public byte[] CreateCategoryPieChartImage(
@@ -523,7 +523,7 @@ namespace DirectoryManager.Web.Charting
             plt.Title("Active Entries by Category");
             plt.ShowLegend(ScottPlot.Edge.Right);
 
-            return plt.GetImageBytes(width: 900, height: 700, format: ScottPlot.ImageFormat.Png);
+            return plt.GetDarkImageBytes(width: 900, height: 700, format: ScottPlot.ImageFormat.Png);
         }
 
         // adjust to match your “active” statuses

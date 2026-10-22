@@ -24,6 +24,9 @@ namespace DirectoryManager.Utilities.Tests.Helpers
         [InlineData("https://example.com/a%0Ab")]              // newline
         [InlineData("https://example.com/a%20b")]              // space
         [InlineData("https://example.com/%FF%FE")]             // not valid UTF-8
+        [InlineData("https://paypal.com%2Flogin@evil.com/")]  // encoded slash would fake the host
+        [InlineData("https://example.com/a%40b%3Fc")]         // encoded @ and ?
+        [InlineData("https://example.com/x%23frag")]          // encoded #
         public void KeepsEncodedWhenDecodingWouldHideOrBreakSomething(string url) =>
             Assert.Equal(url, UrlHelper.ToDisplayUrl(url));
     }

@@ -18,6 +18,13 @@ namespace DirectoryManager.Web.Controllers
         private const string SesssionExpiredMessage =
             "Session expired, your reply message was not saved, please start over!";
 
+        private const int MaxReplyLength = 4000;
+
+        private const string NoEncryptionKeyMessage =
+            "This PGP key can't be used: it has no usable encryption key (it is sign-only, or its encryption " +
+            "subkey has expired or been revoked). We verify you by encrypting a one-time code to your key, so " +
+            "please use a key with a current encryption subkey.";
+
         private static readonly char[] CodeAlphabet = StringConstants.CodeAlphabet.ToCharArray();
 
         // Prevents double-POST without cookies or JS.
@@ -182,7 +189,20 @@ namespace DirectoryManager.Web.Controllers
             // Store normalized (no dash) and encrypt a friendly formatted version (ABCDE-FGHIJ).
             var expectedNormalized = GenerateChallengeCodeNormalized(IntegerConstants.ChallengeLength);
             var plaintextForUser = FormatChallengeCodeForHumans(expectedNormalized);
-            var cipher = this.pgp.EncryptTo(pgpArmored, plaintextForUser);
+            string cipher;
+            try
+            {
+                cipher = this.pgp.EncryptTo(pgpArmored, plaintextForUser);
+            }
+            catch (Exception)
+            {
+                // Sign-only keys (or keys whose encryption subkey expired/was revoked) can't receive
+                // the one-time code — show a clear error instead of a 500.
+                this.ModelState.AddModelError(string.Empty, NoEncryptionKeyMessage);
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.DirectoryEntryReviewId = state.DirectoryEntryReviewId;
+                return this.View("SubmitKey");
+            }
 
             state.PgpArmored = pgpArmored;
             state.PgpFingerprint = fp;
@@ -352,6 +372,30 @@ namespace DirectoryManager.Web.Controllers
             // Always trust the flow for the review id
             input.DirectoryEntryReviewId = state.DirectoryEntryReviewId;
 
+            // Re-check at submit time (not just when the flow started): replies are only accepted
+            // while reviews are enabled for the listing and the review itself is still approved.
+            var replyGateEntry = await this.entryRepo.GetByIdAsync(state.DirectoryEntryId);
+            var threadReview = await this.reviewRepo.GetByIdAsync(state.DirectoryEntryReviewId, ct);
+            if (replyGateEntry is null || replyGateEntry.ReviewsDisabled
+                || threadReview is null || threadReview.ModerationStatus != ReviewModerationStatus.Approved)
+            {
+                this.cache.Remove(CacheKey(flowId));
+                return this.NotFound();
+            }
+
+            // The posted parent id is untrusted: a nested reply must point at an existing,
+            // non-rejected reply on THIS review (same rule as the owner admin page).
+            if (input.ParentCommentId.HasValue)
+            {
+                var parent = input.ParentCommentId.Value > 0
+                    ? await this.commentRepo.GetByIdAsync(input.ParentCommentId.Value, ct)
+                    : null;
+                if (!SiteOwnerAdminController.IsValidParentComment(parent, state.DirectoryEntryReviewId))
+                {
+                    input.ParentCommentId = null;
+                }
+            }
+
             // Emojis are not allowed in replies/comments — strip any out before moderation and saving.
             input.Body = DirectoryManager.Utilities.Validation.UnicodeSanitizer.StripEmoji(input.Body);
 
@@ -372,13 +416,24 @@ namespace DirectoryManager.Web.Controllers
 
             var bodyTrimmed = (input.Body ?? string.Empty).Trim();
 
+            // The Body column holds 4,000 characters; reject longer replies with a clear message
+            // instead of letting the database insert fail.
+            if (bodyTrimmed.Length > MaxReplyLength)
+            {
+                this.ModelState.AddModelError(nameof(input.Body), $"Your reply is too long. Please keep it under {MaxReplyLength:N0} characters.");
+                this.ViewBag.FlowId = flowId;
+                this.ViewBag.DirectoryEntryName = replyGateEntry.Name ?? "Listing";
+                this.ViewBag.PgpFingerprint = state.PgpFingerprint;
+                return this.View("Compose", input);
+            }
+
             // Trusted authors can skip moderation for a LINK-FREE reply:
             //   (1) the author of the thread they are replying in (this review), or
             //   (2) the listing's verified owner (fingerprint matches the entry's PGP key).
             // A reply that contains any hyperlink always goes to manual moderation.
             var replierFp = PgpFingerprintTools.Normalize(state.PgpFingerprint ?? string.Empty);
 
-            var thread = await this.reviewRepo.GetByIdAsync(state.DirectoryEntryReviewId, ct);
+            var thread = threadReview;
             bool ownThread = thread != null
                 && !string.IsNullOrWhiteSpace(replierFp)
                 && PgpFingerprintTools.Matches(replierFp, PgpFingerprintTools.Normalize(thread.AuthorFingerprint));

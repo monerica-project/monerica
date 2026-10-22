@@ -113,13 +113,13 @@ namespace DirectoryManager.Web.Controllers
             // Pending reviews
             var pendingReviews = await this.directoryEntryReviewRepository
                 .Query()
-                .Where(r => r.ModerationStatus == ReviewModerationStatus.Pending)
+                .Where(r => (r.ModerationStatus == ReviewModerationStatus.Pending || r.ModerationStatus == ReviewModerationStatus.Flagged))
                 .CountAsync();
 
             // Pending replies/comments
             var pendingReviewComments = await this.directoryEntryReviewCommentRepository
                 .Query()
-                .Where(c => c.ModerationStatus == ReviewModerationStatus.Pending)
+                .Where(c => (c.ModerationStatus == ReviewModerationStatus.Pending || c.ModerationStatus == ReviewModerationStatus.Flagged))
                 .CountAsync();
 
             // Combined total for your dashboard badge
@@ -152,10 +152,10 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.NewestPendingProblemUtc = await this.problemReportRepository.GetNewestPendingUtcAsync();
             this.ViewBag.NewestPendingVerificationUtc = await this.verificationRequestRepository.GetNewestPendingUtcAsync();
             var newestPendingReview = await this.directoryEntryReviewRepository.Query()
-                .Where(r => r.ModerationStatus == ReviewModerationStatus.Pending)
+                .Where(r => (r.ModerationStatus == ReviewModerationStatus.Pending || r.ModerationStatus == ReviewModerationStatus.Flagged))
                 .MaxAsync(r => (DateTime?)r.CreateDate);
             var newestPendingComment = await this.directoryEntryReviewCommentRepository.Query()
-                .Where(c => c.ModerationStatus == ReviewModerationStatus.Pending)
+                .Where(c => (c.ModerationStatus == ReviewModerationStatus.Pending || c.ModerationStatus == ReviewModerationStatus.Flagged))
                 .MaxAsync(c => (DateTime?)c.CreateDate);
             this.ViewBag.NewestPendingReviewUtc = new[] { newestPendingReview, newestPendingComment }.Max();
             // The Bunny syncer stamps two files: last-success.txt on every OK run

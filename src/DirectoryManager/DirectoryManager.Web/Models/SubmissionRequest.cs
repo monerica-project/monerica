@@ -132,7 +132,7 @@ namespace DirectoryManager.Web.Models
         public int? SubCategoryId { get; set; }
 
         [MaxLength(100)]
-        [Display(Name = "Suggested Category", Prompt = "New Category > New Subcategory")]
+        [Display(Name = "Additional or Suggested Category", Prompt = "Category > Subcategory")]
         [CleanSingleLine]
         public string? SuggestedSubCategory { get; set; }
 

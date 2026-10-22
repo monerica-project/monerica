@@ -72,6 +72,15 @@ namespace DirectoryManager.Web.Helpers
                 return false;
             }
 
+            // A payment was seen (Pending), then the window closed with only part of it paid
+            // (BTCPay "InvoiceExpired" + partiallyPaid). That outcome must be recorded even though
+            // UnderPayment ranks below Pending, or the invoice shows "pending" forever. A later
+            // top-up can still move it on to Paid.
+            if (current == PaymentStatus.Pending && proposed == PaymentStatus.UnderPayment)
+            {
+                return true;
+            }
+
             return StatusRank[proposed] > StatusRank[current];
         }
 

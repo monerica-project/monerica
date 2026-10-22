@@ -61,6 +61,7 @@ namespace DirectoryManager.Web.Controllers
                 IsEnabled = IsTrue(this.contentSnippetRepository.GetValue(SiteConfigSetting.VideoSponsorshipEnabled)),
                 IsPaymentConfigured = this.gateway.IsConfigured,
                 ChannelUrl = (this.contentSnippetRepository.GetValue(SiteConfigSetting.VideoSponsorshipChannelUrl) ?? string.Empty).Trim(),
+                VideoSiteUrl = (this.contentSnippetRepository.GetValue(SiteConfigSetting.VideoSponsorshipVideoSiteUrl) ?? string.Empty).Trim(),
                 WebhookUrl = this.Url.Action("BtcPayCallback", "VideoSponsorship", null, this.Request.Scheme) ?? string.Empty,
                 QueuedVideos = queued.Count,
                 OpenToSponsor = (await this.repository.GetAvailableIdeasAsync(now, ct)).Count,
@@ -72,17 +73,19 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpPost("settings")]
         [ValidateAntiForgeryToken]
-        public IActionResult SaveSettings(bool isEnabled, string? channelUrl)
+        public IActionResult SaveSettings(bool isEnabled, string? channelUrl, string? videoSiteUrl)
         {
             channelUrl = (channelUrl ?? string.Empty).Trim();
-            if (channelUrl.Length > 0 && !IsHttpUrl(channelUrl))
+            videoSiteUrl = (videoSiteUrl ?? string.Empty).Trim();
+            if ((channelUrl.Length > 0 && !IsHttpUrl(channelUrl)) || (videoSiteUrl.Length > 0 && !IsHttpUrl(videoSiteUrl)))
             {
-                this.TempData[StringConstants.ErrorMessage] = "The channel URL must start with http:// or https://.";
+                this.TempData[StringConstants.ErrorMessage] = "The channel and video site URLs must start with http:// or https://.";
                 return this.RedirectToAction(nameof(this.Index));
             }
 
             this.SaveSnippet(SiteConfigSetting.VideoSponsorshipEnabled, isEnabled ? "true" : "false");
             this.SaveSnippet(SiteConfigSetting.VideoSponsorshipChannelUrl, channelUrl);
+            this.SaveSnippet(SiteConfigSetting.VideoSponsorshipVideoSiteUrl, videoSiteUrl);
 
             this.TempData[StringConstants.SuccessMessage] = isEnabled
                 ? "Saved. Video sponsorship is ON."

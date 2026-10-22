@@ -8,5 +8,7 @@ public class VideoSponsorPublicVm
 
     public string ChannelUrl { get; set; } = string.Empty;
 
+    public string VideoSiteUrl { get; set; } = string.Empty;
+
     public int DeliveryDays { get; set; }
 }

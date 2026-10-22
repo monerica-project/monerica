@@ -337,6 +337,9 @@ namespace DirectoryManager.Web.Tests.Sponsorship
         [InlineData(PaymentStatus.Failed, PaymentStatus.Paid, false)]
         [InlineData(PaymentStatus.Refunded, PaymentStatus.Paid, false)]
         [InlineData(PaymentStatus.Pending, PaymentStatus.Unknown, false)]
+        [InlineData(PaymentStatus.Pending, PaymentStatus.UnderPayment, true)]   // expired with a partial payment
+        [InlineData(PaymentStatus.UnderPayment, PaymentStatus.Paid, true)]      // topped up afterwards
+        [InlineData(PaymentStatus.Paid, PaymentStatus.UnderPayment, false)]
         public void CanAdvanceStatus_OnlyForwardExceptPaymentAfterLocalCancel(PaymentStatus current, PaymentStatus proposed, bool expected)
         {
             Assert.Equal(expected, SponsoredListingCheckoutHelper.CanAdvanceStatus(current, proposed));
@@ -485,6 +488,9 @@ namespace DirectoryManager.Web.Tests.Sponsorship
                     SubCategory = sub,
                     SubCategoryId = SubCategoryId,
                     DirectoryStatus = DirectoryStatus.Verified,
+
+                    // Eligible to sponsor: Verified AND listed long enough (checkout re-checks this on every POST).
+                    CreateDate = DateTime.UtcNow.AddDays(-365),
                 });
                 this.Db.SponsoredListingOffers.Add(new SponsoredListingOffer
                 {

@@ -297,8 +297,12 @@
 </div>
 
 <div class="form-group">
-    <label asp-for="SuggestedSubCategory">Suggested Category (if choice not provided)</label>
-    <input autocomplete="off" asp-for="SuggestedSubCategory" class="form-control input-width" />
+    <label asp-for="SuggestedSubCategory">Additional or Suggested Category (optional)</label>
+    <input autocomplete="off" asp-for="SuggestedSubCategory" class="form-control input-width" aria-describedby="suggestedCategoryHint" />
+    <small id="suggestedCategoryHint" class="form-text text-muted">
+        Does this listing also belong in a second category we already have? Name it here
+        (e.g. <em>Web Hosting &gt; Domain Registration</em>). Or suggest a new category we don't have yet.
+    </small>
     <span asp-validation-for="SuggestedSubCategory" class="text-danger"></span>
 </div>
 

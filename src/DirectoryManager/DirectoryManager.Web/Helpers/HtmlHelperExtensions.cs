@@ -43,7 +43,9 @@ namespace DirectoryManager.Web.Helpers
             bool hasElements = doc.DocumentNode.Descendants().Any(n => n.NodeType == HtmlNodeType.Element);
             if (!hasElements)
             {
-                string truncated = StringHelpers.TruncateAtWord(sourceHtml, maxLength);
+                // Decode entities first ("&amp;" → "&") so the text isn't encoded twice
+                // ("&amp;amp;") and a cut can't land in the middle of an entity.
+                string truncated = StringHelpers.TruncateAtWord(HtmlEntity.DeEntitize(sourceHtml), maxLength);
 
                 // Encode because this branch is plain text
                 return new HtmlString(HtmlEncoder.Default.Encode(truncated));

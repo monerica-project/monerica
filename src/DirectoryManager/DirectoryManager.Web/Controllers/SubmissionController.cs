@@ -46,6 +46,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IProcessorRepository processorRepo;
         private readonly ICaptchaService captcha;
         private readonly IBtcPayServerService btcPay;
+        private readonly IDirectoryEntryAdditionalSubcategoryRepository? additionalSubcategoryRepo;
         private readonly ISubmissionBlockedTermRepository blockedTermRepository;
 
         public SubmissionController(
@@ -64,9 +65,11 @@ namespace DirectoryManager.Web.Controllers
             IProcessorRepository processorRepo,
             ICaptchaService captcha,
             ISubmissionBlockedTermRepository blockedTermRepository,
-            IBtcPayServerService btcPay)
+            IBtcPayServerService btcPay,
+            IDirectoryEntryAdditionalSubcategoryRepository? additionalSubcategoryRepo = null)
             : base(cache)
         {
+            this.additionalSubcategoryRepo = additionalSubcategoryRepo;
             this.userManager = userManager;
             this.blockedTermRepository = blockedTermRepository;
             this.submissionRepository = submissionRepository;
@@ -734,6 +737,21 @@ namespace DirectoryManager.Web.Controllers
             bool isApproving =
                 submission.SubmissionStatus == SubmissionStatus.Pending &&
                 model.SubmissionStatus == SubmissionStatus.Approved;
+
+            // Only a Pending submission can be approved (approval is what creates/updates the
+            // listing). Marking a Rejected/draft submission "Approved" would publish nothing.
+            if (model.SubmissionStatus == SubmissionStatus.Approved
+                && submission.SubmissionStatus != SubmissionStatus.Pending
+                && submission.SubmissionStatus != SubmissionStatus.Approved)
+            {
+                this.ModelState.AddModelError(
+                    nameof(model.SubmissionStatus),
+                    $"This submission is {submission.SubmissionStatus}. Set it back to Pending and save first, then approve it.");
+                return await this.ReturnInvalidReviewAsync(model, selectedTagIds, normalizedRelated);
+            }
+
+            // Which listing an edit-submission targets comes from the stored submission, not the form.
+            model.DirectoryEntryId = submission.DirectoryEntryId;
 
             if (isApproving && (model.SubCategoryId == null || model.SubCategoryId == 0))
             {
@@ -1740,6 +1758,29 @@ namespace DirectoryManager.Web.Controllers
             submission.RelatedLinks = normalizedRelated;
 
             submission.FoundedDate = foundedDate;
+
+            // Keep the admin's edits on the submission too (every field below is on the review
+            // form), so saving without approving doesn't lose them and an approved submission
+            // records exactly what was published.
+            submission.Name = postedModel.Name;
+            submission.Link = postedModel.Link;
+            submission.Link2 = postedModel.Link2;
+            submission.Link3 = postedModel.Link3;
+            submission.ProofLink = postedModel.ProofLink;
+            submission.VideoLink = postedModel.VideoLink;
+            submission.SourceCodeLink = postedModel.SourceCodeLink;
+            submission.Description = postedModel.Description;
+            submission.Location = postedModel.Location;
+            submission.Processor = postedModel.Processor;
+            submission.Note = postedModel.Note;
+            submission.PgpKey = postedModel.PgpKey;
+            submission.NoteToAdmin = postedModel.NoteToAdmin;
+            submission.Email = postedModel.Email;
+            submission.Messenger = postedModel.Messenger;
+            submission.Social = postedModel.Social;
+            submission.SubCategoryId = postedModel.SubCategoryId;
+            submission.SuggestedSubCategory = postedModel.SuggestedSubCategory;
+            submission.DirectoryStatus = postedModel.DirectoryStatus;
         }
 
         private async Task ApproveIfNeededAsync(
@@ -1767,6 +1808,9 @@ namespace DirectoryManager.Web.Controllers
             }
 
             int entryId = await this.UpsertDirectoryEntryForApprovalAsync(postedModel);
+
+            // Link the submission to the listing it created/updated.
+            submission.DirectoryEntryId = entryId;
 
             // ✅ SYNC ADDITIONAL LINKS ON LISTING (from submission)
             await this.SyncAdditionalLinksAsync(entryId, normalizedRelated, ct);
@@ -1951,6 +1995,13 @@ namespace DirectoryManager.Web.Controllers
 
             await this.directoryEntryRepository.UpdateAsync(existing);
             await this.SyncGuaranteesAsync(existing.DirectoryEntryId, model.Guarantees);
+
+            // An additional subcategory can never equal the main one (the listing would show twice):
+            // if this edit moved the main subcategory onto one of them, drop that additional row.
+            if (this.additionalSubcategoryRepo != null)
+            {
+                await this.additionalSubcategoryRepo.RemoveAsync(existing.DirectoryEntryId, existing.SubCategoryId);
+            }
         }
 
         private Submission FormatSubmissionRequest(SubmissionRequest model)
