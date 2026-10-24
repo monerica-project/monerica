@@ -84,6 +84,13 @@ namespace DirectoryManager.DisplayFormatting.Models
         /// <summary>Render the compact sponsor header (Name | Tor | I2P + flag) used by the sponsor boxes.</summary>
         public bool SponsorInlineHeader { get; set; }
 
+        /// <summary>
+        /// Admin-picked "Featured" listing shown in an unsold category/subcategory sponsor spot.
+        /// Renders like a sponsor box (stars, description, See profile) but is NOT paid, so it keeps
+        /// its affiliate link (rel="sponsored" only when that link is an affiliate one).
+        /// </summary>
+        public bool IsFeatured { get; set; }
+
         /// <summary>Leave out the extra links block under the name.</summary>
         public bool SkipLinksBlock { get; set; }
 

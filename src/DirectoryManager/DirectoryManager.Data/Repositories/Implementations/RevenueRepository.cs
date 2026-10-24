@@ -22,13 +22,14 @@ namespace DirectoryManager.Data.Repositories.Implementations
             var video = await this.context.VideoSponsorOrders.AsNoTracking()
                 .Where(o => (o.PaymentStatus == PaymentStatus.Paid || o.PaymentStatus == PaymentStatus.OverPayment)
                             && o.Currency == Currency.USD)
-                .Select(o => new { Paid = o.PaidUtc ?? o.CreateDate, o.Amount })
+                .Select(o => new { Paid = o.PaidUtc ?? o.CreateDate, o.Amount, o.PaidAmount, o.PaidInCurrency })
                 .ToListAsync(ct);
             items.AddRange(video.Select(o => new RevenueItem
             {
                 Source = RevenueSource.VideoSponsorships,
                 PaidUtc = o.Paid,
                 AmountUsd = o.Amount,
+                AmountXmr = o.PaidInCurrency == Currency.XMR && o.PaidAmount > 0 ? o.PaidAmount : null,
             }));
 
             var affiliate = await this.context.AffiliateCommissionsEarned.AsNoTracking()
@@ -43,31 +44,33 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
             var submissions = await this.context.Submissions.AsNoTracking()
                 .Where(s => s.PaidUtc != null)
-                .Select(s => new { Paid = s.PaidUtc!.Value, s.PaidUsd })
+                .Select(s => new { Paid = s.PaidUtc!.Value, s.PaidUsd, s.PaidAmount, s.PaidCurrency, s.PaidXmr })
                 .ToListAsync(ct);
-            items.AddRange(submissions.Select(s => Donation(RevenueSource.SubmissionReviews, s.Paid, s.PaidUsd)));
+            items.AddRange(submissions.Select(s => Donation(RevenueSource.SubmissionReviews, s.Paid, s.PaidUsd, s.PaidAmount, s.PaidCurrency, s.PaidXmr)));
 
             var verifications = await this.context.VerificationRequests.AsNoTracking()
                 .Where(v => v.PaidUtc != null)
-                .Select(v => new { Paid = v.PaidUtc!.Value, v.PaidUsd })
+                .Select(v => new { Paid = v.PaidUtc!.Value, v.PaidUsd, v.PaidAmount, v.PaidCurrency, v.PaidXmr })
                 .ToListAsync(ct);
-            items.AddRange(verifications.Select(v => Donation(RevenueSource.VerificationReviews, v.Paid, v.PaidUsd)));
+            items.AddRange(verifications.Select(v => Donation(RevenueSource.VerificationReviews, v.Paid, v.PaidUsd, v.PaidAmount, v.PaidCurrency, v.PaidXmr)));
 
             var problems = await this.context.ProblemReports.AsNoTracking()
                 .Where(p => p.PaidUtc != null)
-                .Select(p => new { Paid = p.PaidUtc!.Value, p.PaidUsd })
+                .Select(p => new { Paid = p.PaidUtc!.Value, p.PaidUsd, p.PaidAmount, p.PaidCurrency, p.PaidXmr })
                 .ToListAsync(ct);
-            items.AddRange(problems.Select(p => Donation(RevenueSource.ProblemReportReviews, p.Paid, p.PaidUsd)));
+            items.AddRange(problems.Select(p => Donation(RevenueSource.ProblemReportReviews, p.Paid, p.PaidUsd, p.PaidAmount, p.PaidCurrency, p.PaidXmr)));
 
             return items;
         }
 
-        private static RevenueItem Donation(RevenueSource source, DateTime paidUtc, decimal? usd) => new ()
+        private static RevenueItem Donation(RevenueSource source, DateTime paidUtc, decimal? usd, decimal? paidAmount, string? paidCurrency, decimal? paidXmr) => new ()
         {
             Source = source,
             PaidUtc = paidUtc,
             AmountUsd = usd ?? 0m,
             MissingUsd = usd is null,
+            AmountXmr = paidXmr is > 0 ? paidXmr
+                : string.Equals(paidCurrency, "XMR", StringComparison.OrdinalIgnoreCase) && paidAmount > 0 ? paidAmount : null,
         };
     }
 }

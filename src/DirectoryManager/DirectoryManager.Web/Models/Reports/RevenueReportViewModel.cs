@@ -24,6 +24,18 @@ namespace DirectoryManager.Web.Models.Reports
         public string ChartQuery { get; init; } = string.Empty;
 
         public int MissingUsdCount { get; init; }
+
+        /// <summary>True when every amount on the page (and its charts) is in XMR.</summary>
+        public bool InXmr { get; init; }
+
+        /// <summary>The period's grand total in the other unit (XMR when showing USD, and vice versa).</summary>
+        public decimal OtherUnitTotal { get; init; }
+
+        /// <summary>Payments in the period with no XMR amount recorded (left out of the XMR view).</summary>
+        public int NotPaidInXmrCount { get; init; }
+
+        /// <summary>USD total of those payments.</summary>
+        public decimal NotPaidInXmrUsd { get; init; }
     }
 
 }

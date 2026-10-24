@@ -55,6 +55,18 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.auditRepo = auditRepo ?? throw new ArgumentNullException(nameof(auditRepo));
         }
 
+        public Task<List<IdNameOption>> GetFeaturableForSubcategoryAsync(int subCategoryId) =>
+            this.FeaturableOptionsAsync(e =>
+                e.SubCategoryId == subCategoryId ||
+                this.context.DirectoryEntryAdditionalSubcategories.Any(a =>
+                    a.DirectoryEntryId == e.DirectoryEntryId && a.SubCategoryId == subCategoryId));
+
+        public Task<List<IdNameOption>> GetFeaturableForCategoryAsync(int categoryId) =>
+            this.FeaturableOptionsAsync(e =>
+                (e.SubCategory != null && e.SubCategory.CategoryId == categoryId) ||
+                this.context.DirectoryEntryAdditionalSubcategories.Any(a =>
+                    a.DirectoryEntryId == e.DirectoryEntryId && a.SubCategory!.CategoryId == categoryId));
+
         public async Task<DirectoryEntry?> GetByIdAsync(int directoryEntryId)
         {
             return await this.BaseQuery()
@@ -811,6 +823,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     DirectoryEntryId = d.DirectoryEntryId,
                     Name = d.Name,
                     Link = d.Link,
+                    DirectoryStatus = d.DirectoryStatus,
                     SubCategoryId = d.SubCategoryId,
                     SubCategory = d.SubCategory == null ? null : new Subcategory
                     {
@@ -1683,6 +1696,27 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     .FirstOrDefault();
                 return needs.Contains(e.DirectoryEntryId) && alt != null ? alt.ApplyTo(e) : e;
             }).ToList();
+        }
+
+        private async Task<List<IdNameOption>> FeaturableOptionsAsync(
+            System.Linq.Expressions.Expression<Func<DirectoryEntry, bool>> scope)
+        {
+            var rows = await this.context.DirectoryEntries
+                .AsNoTracking()
+                .Where(e => e.DirectoryStatus == DirectoryStatus.Admitted || e.DirectoryStatus == DirectoryStatus.Verified)
+                .Where(scope)
+                .OrderBy(e => e.Name)
+                .Select(e => new { e.DirectoryEntryId, e.Name, e.DirectoryStatus })
+                .ToListAsync()
+                .ConfigureAwait(false);
+
+            return rows
+                .Select(r => new IdNameOption
+                {
+                    Id = r.DirectoryEntryId,
+                    Name = r.DirectoryStatus == DirectoryStatus.Verified ? $"{r.Name} (Verified)" : r.Name,
+                })
+                .ToList();
         }
 
         private IQueryable<DirectoryEntry> BaseQuery()

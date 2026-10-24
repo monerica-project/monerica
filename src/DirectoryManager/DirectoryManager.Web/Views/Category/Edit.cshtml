@@ -20,6 +20,8 @@
     <div asp-validation-summary="All" class="text-danger"></div>
     @await Html.PartialAsync("_CategoryForm", Model)
 
+    @await Html.PartialAsync("_FeaturedListingPicker", Model.FeaturedDirectoryEntryId)
+
     <button type="submit" class="btn btn-primary">Update</button>
 </form>
 }

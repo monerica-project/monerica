@@ -1,0 +1,100 @@
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Web.Constants
+@model DirectoryManager.Web.Models.SponsorsAndFeaturedViewModel
+@inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
+
+@{
+    PageMeta.Title = "Sponsored & Featured Listings";
+    PageMeta.MetaDescription = $"Every paid sponsor and every unpaid featured pick on {Model.SiteName}, in one place, clearly marked.";
+    Layout = "_LayoutWithNav";
+
+    // Links to static pages stay on the root (and relative on Tor); buying is on the app.
+    string Root(string path) => UrlResolver.ResolveToRoot(path);
+}
+
+@functions {
+    private static string StatusIcon(DirectoryStatus status) =>
+        status == DirectoryStatus.Verified ? "&#9989; " : string.Empty;
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">@PageMeta.Title</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+
+    <hr />
+    @await Html.PartialAsync("_BackToHome")
+    <hr />
+
+    <div class="spots-intro">
+        <p>
+            <span class="spot-badge spot-badge--sponsored">Sponsored</span>
+            listings are <strong>paid placements</strong>. They are not endorsements.
+        </p>
+        <p>
+            <span class="spot-badge spot-badge--featured">Featured</span>
+            listings are <strong>not paid for</strong>. They are our own curated picks, shown in a
+            category or subcategory spot that no one has bought. Some featured picks use affiliate links
+            that may earn @Model.SiteName a commission, and some don&rsquo;t.
+        </p>
+        <p>A paid sponsor always replaces the featured pick in its spot.</p>
+        <p class="u-mt-10px">
+            <a class="app-link btn btn-primary btn-cta" href="@UrlResolver.ResolveToApp("/sponsor-options")">Become a Sponsor</a>
+        </p>
+    </div>
+
+    <hr />
+    <h2>Main Sponsors</h2>
+    <p class="spots-note">Paid placements shown on the homepage and across the site.</p>
+    @if (Model.MainSponsors.Count == 0)
+    {
+        <p>No main sponsors right now.</p>
+    }
+    else
+    {
+        <ul class="spot-list">
+            @foreach (var l in Model.MainSponsors)
+            {
+                <li>
+                    <span class="spot-badge spot-badge--sponsored">Sponsored</span>
+                    @Html.Raw(StatusIcon(l.DirectoryStatus))<a class="no-app-link" href="@Root(l.ProfilePath)">@l.Name</a>
+                </li>
+            }
+        </ul>
+    }
+
+    <hr />
+    <h2>Category &amp; Subcategory Spots</h2>
+    <p class="spots-note">
+        @Model.SponsoredSpotCount sponsored and @Model.FeaturedSpotCount featured.
+        Spots with neither aren&rsquo;t listed.
+    </p>
+
+    @foreach (var group in Model.Categories)
+    {
+        <h3 class="spots-category"><a class="no-app-link" href="@Root(group.CategoryPath)">@group.CategoryName</a></h3>
+        <ul class="spot-list">
+            @foreach (var row in group.Rows)
+            {
+                <li>
+                    @if (row.IsSponsored)
+                    {
+                        <span class="spot-badge spot-badge--sponsored">Sponsored</span>
+                    }
+                    else
+                    {
+                        <span class="spot-badge spot-badge--featured">Featured</span>
+                    }
+                    <a class="no-app-link spot-name@(row.IsCategorySpot ? " spot-name--category" : string.Empty)" href="@Root(row.SpotPath)">@row.SpotName</a>
+                    <span class="spot-arrow">&rarr;</span>
+                    @for (int i = 0; i < row.Listings.Count; i++)
+                    {
+                        var l = row.Listings[i];
+                        @Html.Raw(StatusIcon(l.DirectoryStatus))<a class="no-app-link" href="@Root(l.ProfilePath)">@l.Name</a>@(i < row.Listings.Count - 1 ? ", " : string.Empty)
+                    }
+                </li>
+            }
+        </ul>
+    }
+}

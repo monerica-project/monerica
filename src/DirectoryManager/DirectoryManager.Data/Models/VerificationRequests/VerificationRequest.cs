@@ -46,5 +46,10 @@ namespace DirectoryManager.Data.Models.VerificationRequests
         // The donation's value in USD when it was paid (USD invoices: the amount; XMR top-ups:
         // XMR received x BTCPay's locked rate). Used by the revenue report.
         public decimal? PaidUsd { get; set; }
+
+        // XMR actually received for this donation (from BTCPay), whatever currency it was priced in.
+        // Shown when the admin revenue page is switched to XMR. Null = not recorded.
+        [System.ComponentModel.DataAnnotations.Schema.Column(TypeName = "numeric(20,12)")]
+        public decimal? PaidXmr { get; set; }
     }
 }

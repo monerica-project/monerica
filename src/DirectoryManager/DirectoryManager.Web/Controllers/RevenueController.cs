@@ -45,13 +45,18 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("")]
-        public async Task<IActionResult> Index(string? period, DateTime? from, DateTime? to, RevenueBasis basis = RevenueBasis.Earned, CancellationToken ct = default)
+        public async Task<IActionResult> Index(string? period, DateTime? from, DateTime? to, RevenueBasis basis = RevenueBasis.Earned, string? currency = null, CancellationToken ct = default)
         {
             var now = DateTime.UtcNow;
             var range = RevenuePeriods.Resolve(period, from, to, now);
+            var inXmr = IsXmr(currency);
             var (invoices, oneTime) = await this.LoadAsync(ct);
+            var (xmrInvoices, xmrOneTime) = ToXmr(invoices, oneTime);
+            var (notXmrCount, notXmrUsd) = XmrRevenueConverter.NotPaidInXmr(invoices, oneTime, range.From, range.To);
 
-            var report = RevenueReportBuilder.Build(invoices, oneTime, range.From, range.To, basis, now);
+            var usdReport = RevenueReportBuilder.Build(invoices, oneTime, range.From, range.To, basis, now);
+            var xmrReport = RevenueReportBuilder.Build(xmrInvoices, xmrOneTime, range.From, range.To, basis, now, decimals: 8);
+            var report = inXmr ? xmrReport : usdReport;
 
             return this.View(new RevenueReportViewModel
             {
@@ -64,26 +69,32 @@ namespace DirectoryManager.Web.Controllers
                 PeriodOptions = RevenuePeriods.Options,
                 ChartQuery = this.Request.QueryString.Value ?? string.Empty,
                 MissingUsdCount = report.Totals.Sum(t => t.MissingUsdCount),
+                InXmr = inXmr,
+                OtherUnitTotal = inXmr ? usdReport.GrandTotal : xmrReport.GrandTotal,
+                NotPaidInXmrCount = notXmrCount,
+                NotPaidInXmrUsd = notXmrUsd,
             });
         }
 
         [HttpGet("pie.png")]
-        public async Task<IActionResult> Pie(string? period, DateTime? from, DateTime? to, RevenueBasis basis = RevenueBasis.Earned, CancellationToken ct = default)
+        public async Task<IActionResult> Pie(string? period, DateTime? from, DateTime? to, RevenueBasis basis = RevenueBasis.Earned, string? currency = null, CancellationToken ct = default)
         {
             var now = DateTime.UtcNow;
             var range = RevenuePeriods.Resolve(period, from, to, now);
-            var (invoices, oneTime) = await this.LoadAsync(ct);
-            var report = RevenueReportBuilder.Build(invoices, oneTime, range.From, range.To, basis, now);
-            return this.Png(RevenuePlotting.Pie(report));
+            var inXmr = IsXmr(currency);
+            var (invoices, oneTime) = await this.LoadInAsync(inXmr, ct);
+            var report = RevenueReportBuilder.Build(invoices, oneTime, range.From, range.To, basis, now, decimals: inXmr ? 8 : 2);
+            return this.Png(RevenuePlotting.Pie(report, inXmr));
         }
 
         // Monthly chart: the selected period when it spans 3+ months, otherwise the last 24 months.
         [HttpGet("monthly.png")]
-        public async Task<IActionResult> Monthly(string? period, DateTime? from, DateTime? to, RevenueBasis basis = RevenueBasis.Earned, CancellationToken ct = default)
+        public async Task<IActionResult> Monthly(string? period, DateTime? from, DateTime? to, RevenueBasis basis = RevenueBasis.Earned, string? currency = null, CancellationToken ct = default)
         {
             var now = DateTime.UtcNow;
             var range = RevenuePeriods.Resolve(period, from, to, now);
-            var (invoices, oneTime) = await this.LoadAsync(ct);
+            var inXmr = IsXmr(currency);
+            var (invoices, oneTime) = await this.LoadInAsync(inXmr, ct);
 
             var start = range.From;
             if ((range.To - range.From).TotalDays < 85)
@@ -93,7 +104,7 @@ namespace DirectoryManager.Web.Controllers
 
             var end = range.To > now ? now.Date.AddDays(1) : range.To;
             var months = RevenueReportBuilder.BuildMonths(invoices, oneTime, start, end, basis, now);
-            return this.Png(RevenuePlotting.MonthlyStacked(months, basis));
+            return this.Png(RevenuePlotting.MonthlyStacked(months, basis, inXmr));
         }
 
         [HttpGet("forecast")]
@@ -171,6 +182,20 @@ namespace DirectoryManager.Web.Controllers
             var value = new ForecastBundle(result, history, RevenueAdvice.Build(result, analysis));
             this.cache.Set(key, value, ForecastCacheFor);
             return value;
+        }
+
+        private static bool IsXmr(string? currency) =>
+            string.Equals(currency, "xmr", StringComparison.OrdinalIgnoreCase);
+
+        private static (List<SponsoredListingInvoice> Invoices, List<RevenueItem> OneTime) ToXmr(
+            List<SponsoredListingInvoice> invoices, List<RevenueItem> oneTime) =>
+            (XmrRevenueConverter.ConvertInvoices(invoices), XmrRevenueConverter.ConvertItems(oneTime));
+
+        // Revenue inputs in the selected unit (XMR amounts replace the USD ones when inXmr).
+        private async Task<(List<SponsoredListingInvoice> Invoices, List<RevenueItem> OneTime)> LoadInAsync(bool inXmr, CancellationToken ct)
+        {
+            var (invoices, oneTime) = await this.LoadAsync(ct);
+            return inXmr ? ToXmr(invoices, oneTime) : (invoices, oneTime);
         }
 
         private async Task<(List<SponsoredListingInvoice> Invoices, List<RevenueItem> OneTime)> LoadAsync(CancellationToken ct)

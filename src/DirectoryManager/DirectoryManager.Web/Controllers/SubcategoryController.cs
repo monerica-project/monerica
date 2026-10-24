@@ -127,6 +127,7 @@ namespace DirectoryManager.Web.Controllers
             }
 
             this.ViewBag.Categories = await this.categoryRepository.GetAllAsync();
+            await this.SetFeaturableEntriesAsync(id);
 
             // Return the view with the subcategory model
             return this.View(subCategory);
@@ -148,6 +149,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 this.ModelState.AddModelError(string.Empty, DuplicateKeyMessage(newKey));
                 this.ViewBag.Categories = await this.categoryRepository.GetAllAsync();
+                await this.SetFeaturableEntriesAsync(existingSubCategory.SubCategoryId);
                 return this.View(subCategory);
             }
 
@@ -162,6 +164,13 @@ namespace DirectoryManager.Web.Controllers
             existingSubCategory.IsEnabled = subCategory.IsEnabled;
             existingSubCategory.RequireReviewVerification = subCategory.RequireReviewVerification;
             existingSubCategory.SponsorshipDisabled = subCategory.SponsorshipDisabled;
+
+            // Featured pick must be an Admitted/Verified listing in this subcategory (else cleared).
+            var featurable = await this.directoryEntryRepository.GetFeaturableForSubcategoryAsync(existingSubCategory.SubCategoryId);
+            existingSubCategory.FeaturedDirectoryEntryId =
+                subCategory.FeaturedDirectoryEntryId.HasValue && featurable.Any(o => o.Id == subCategory.FeaturedDirectoryEntryId.Value)
+                    ? subCategory.FeaturedDirectoryEntryId
+                    : null;
 
             await this.subcategoryRepository.UpdateAsync(existingSubCategory);
 
@@ -178,13 +187,13 @@ namespace DirectoryManager.Web.Controllers
             const int PageSize = IntegerConstants.MediumPageSize;
 
             var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
-            if (category == null)
+            if (category == null || !category.IsEnabled)
             {
                 return this.NotFound();
             }
 
             var subCategory = await this.subcategoryRepository.GetByCategoryIdAndKeyAsync(category.CategoryId, subCategoryKey);
-            if (subCategory == null)
+            if (subCategory == null || !subCategory.IsEnabled) // retired subcategories 404
             {
                 return this.NotFound();
             }
@@ -261,6 +270,12 @@ namespace DirectoryManager.Web.Controllers
         {
             var path = $"/{categoryKey}/{subCategoryKey}";
             return page > 1 ? $"{path}/page/{page}" : path;
+        }
+
+        private async Task SetFeaturableEntriesAsync(int subCategoryId)
+        {
+            this.ViewBag.FeaturableEntries = await this.directoryEntryRepository.GetFeaturableForSubcategoryAsync(subCategoryId);
+            this.ViewBag.FeaturedScope = "subcategory";
         }
 
         private static string DuplicateKeyMessage(string key) =>

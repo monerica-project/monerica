@@ -4,6 +4,7 @@ using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.FileStorage.Constants;
 using DirectoryManager.FileStorage.Repositories.Interfaces;
 using DirectoryManager.Utilities.Helpers;
+using DirectoryManager.Web.Helpers;
 using DirectoryManager.Web.Models;
 using DirectoryManager.Web.Models.Reviews;
 using DirectoryManager.Web.Services.Interfaces;
@@ -419,6 +420,7 @@ namespace DirectoryManager.Web.Controllers
                 OrderProof = item.OrderUrl ?? item.OrderId,
                 OrderProofContext = item.OrderProofContext,
                 SelectedTagIds = item.ReviewTags.Select(x => x.ReviewTagId).ToList(),
+                MoveTargets = await this.MoveTargetsAsync(item, ct),
                 AllTags = allTags.Select(t => new ReviewModerationReviewViewModel.TagOption
                 {
                     Id = t.ReviewTagId,
@@ -634,6 +636,36 @@ namespace DirectoryManager.Web.Controllers
             return this.RedirectToAction(nameof(this.Pending));
         }
 
+        // POST /admin/reviews/123/move-to-reply
+        // A review that should have been a reply: copy it as a (pending) reply under another review
+        // of the same listing, reject the original, then open the new reply so it can be approved.
+        [HttpPost("{id:int}/move-to-reply")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> MoveToReply(int id, [FromForm] int targetReviewId, CancellationToken ct = default)
+        {
+            var source = await this.repo.GetByIdAsync(id, ct);
+            if (source is null)
+            {
+                return this.NotFound();
+            }
+
+            var target = targetReviewId > 0 ? await this.repo.GetByIdAsync(targetReviewId, ct) : null;
+            var error = ReviewToReplyConverter.Validate(source, target);
+            if (error is not null)
+            {
+                this.ModelState.AddModelError("targetReviewId", error);
+                return await this.Show(id, ct);
+            }
+
+            var reply = ReviewToReplyConverter.Build(source, target!.DirectoryEntryReviewId, this.User?.Identity?.Name ?? "admin");
+            await this.commentRepo.AddAsync(reply, ct);
+            await this.repo.RejectAsync(id, ReviewToReplyConverter.RejectionReason(target.DirectoryEntryReviewId), ct);
+            this.ClearCachedItems();
+
+            this.TempData["SuccessMessage"] = $"Review #{id} was moved to a reply under review #{target.DirectoryEntryReviewId} and rejected. Approve the reply below.";
+            return this.RedirectToAction(nameof(this.ShowReply), new { id = reply.DirectoryEntryReviewCommentId });
+        }
+
         // POST /admin/reviews/123/delete
         [HttpPost("{id:int}/delete")]
         [ValidateAntiForgeryToken]
@@ -642,6 +674,36 @@ namespace DirectoryManager.Web.Controllers
             await this.repo.DeleteAsync(id, ct);
             this.ClearCachedItems();
             return this.RedirectToAction(nameof(this.Pending));
+        }
+
+        private async Task<List<ReviewModerationReviewViewModel.MoveTarget>> MoveTargetsAsync(DirectoryEntryReview review, CancellationToken ct)
+        {
+            var others = await this.repo.Query()
+                .AsNoTracking()
+                .Where(r => r.DirectoryEntryId == review.DirectoryEntryId && r.DirectoryEntryReviewId != review.DirectoryEntryReviewId)
+                .OrderByDescending(r => r.CreateDate)
+                .Select(r => new { r.DirectoryEntryReviewId, r.CreateDate, r.ModerationStatus, r.Rating, r.Title, r.Body, r.AuthorFingerprint })
+                .Take(300)
+                .ToListAsync(ct);
+
+            return others.Select(r =>
+            {
+                var text = string.IsNullOrWhiteSpace(r.Title) ? r.Body : r.Title;
+                text = System.Text.RegularExpressions.Regex.Replace(text ?? string.Empty, @"\s+", " ").Trim();
+                if (text.Length > 70)
+                {
+                    text = text[..70] + "…";
+                }
+
+                var fp = r.AuthorFingerprint ?? string.Empty;
+                var who = fp.Length > 8 ? fp[^8..] : fp;
+                var stars = r.Rating is byte b ? $"{b}★" : "no rating";
+                return new ReviewModerationReviewViewModel.MoveTarget
+                {
+                    Id = r.DirectoryEntryReviewId,
+                    Label = $"#{r.DirectoryEntryReviewId} · {r.CreateDate:yyyy-MM-dd} · {r.ModerationStatus} · {stars} · …{who} · {text}",
+                };
+            }).ToList();
         }
 
         // -------- Comments / Replies --------

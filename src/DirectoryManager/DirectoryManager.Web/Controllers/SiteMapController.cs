@@ -601,6 +601,21 @@ namespace DirectoryManager.Web.Controllers
                 ChangeFrequency.Weekly,
                 0.3);
 
+            // Every paid sponsor + unpaid featured pick on one page (static, so the mirror picks it up).
+            // Featured picks are saved on categories/subcategories, so their change dates count too.
+            var spotsLastModified = new[]
+            {
+                date,
+                (await this.categoryRepository.GetAllCategoriesLastChangeDatesAsync()).Values.DefaultIfEmpty(date).Max(),
+                (await this.subCategoryRepository.GetAllSubCategoriesLastChangeDatesAsync()).Values.DefaultIfEmpty(date).Max(),
+            }.Max();
+
+            siteMapHelper.AddUrl(
+                string.Format("{0}/{1}", WebRequestHelper.GetCurrentDomain(this.HttpContext), SponsorsAndFeaturedController.PagePath),
+                spotsLastModified,
+                ChangeFrequency.Daily,
+                0.4);
+
             siteMapHelper.AddUrl(
                 string.Format("{0}/network", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
                 date,

@@ -48,7 +48,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             }
 
             // Category/Subcategory sponsor block (not the normal sponsored list item)
-            bool isSponsorBlock = model.IsSponsored && !model.DisplayAsSponsoredItem;
+            bool isSponsorBlock = (model.IsSponsored && !model.DisplayAsSponsoredItem) || model.IsFeatured;
 
             if (isSponsorBlock)
             {
@@ -212,7 +212,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             {
                 sb.Append(" | ");
                 var label = string.IsNullOrWhiteSpace(model.Link2Name) ? "Tor" : model.Link2Name;
-                sb.Append("<a rel=\"sponsored\" aria-label=\"");
+                sb.Append(model.IsFeatured && !model.IsSponsored ? "<a rel=\"noopener\" aria-label=\"" : "<a rel=\"sponsored\" aria-label=\"");
                 sb.Append(WebUtility.HtmlEncode($"{label} link for {model.Name}"));
                 sb.Append("\" href=\"");
                 sb.Append(WebUtility.HtmlEncode(model.Link2.Trim()));
@@ -226,7 +226,7 @@ namespace DirectoryManager.DisplayFormatting.Helpers
             {
                 sb.Append(" | ");
                 var label = string.IsNullOrWhiteSpace(model.Link3Name) ? "I2P" : model.Link3Name;
-                sb.Append("<a rel=\"sponsored\" aria-label=\"");
+                sb.Append(model.IsFeatured && !model.IsSponsored ? "<a rel=\"noopener\" aria-label=\"" : "<a rel=\"sponsored\" aria-label=\"");
                 sb.Append(WebUtility.HtmlEncode($"{label} link for {model.Name}"));
                 sb.Append("\" href=\"");
                 sb.Append(WebUtility.HtmlEncode(model.Link3.Trim()));
@@ -259,7 +259,8 @@ namespace DirectoryManager.DisplayFormatting.Helpers
 
             if (!string.IsNullOrWhiteSpace(model.Description))
             {
-                if (!model.IsSponsored)
+                // Sponsor and featured boxes put the description on its own line: no "·" separator.
+                if (!model.IsSponsored && !model.IsFeatured)
                 {
                     sb.Append(" · ");
                 }
@@ -323,6 +324,19 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 WebUtility.HtmlEncode(href),
                 WebUtility.HtmlEncode(entry.Link),
                 entryRelAttr);
+
+            // Tor (onion) link, if the listing has one: same link style, spaced out to the right.
+            if (!string.IsNullOrWhiteSpace(entry.Link2) &&
+                entry.Link2.Contains(".onion", StringComparison.OrdinalIgnoreCase))
+            {
+                var torHref = !string.IsNullOrWhiteSpace(entry.Link2A) ? entry.Link2A : entry.Link2;
+                string torRelAttr = !string.IsNullOrWhiteSpace(entry.Link2A) ? " rel=\"sponsored\"" : string.Empty;
+
+                sb.AppendFormat(
+                    "<a target=\"_blank\"{1} class=\"multi-line-text small-font u-ml-16px\" href=\"{0}\">Tor</a>",
+                    WebUtility.HtmlEncode(torHref.Trim()),
+                    torRelAttr);
+            }
 
             if (!string.IsNullOrWhiteSpace(entry.Description))
             {

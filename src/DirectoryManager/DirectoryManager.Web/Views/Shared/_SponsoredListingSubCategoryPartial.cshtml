@@ -2,6 +2,8 @@
 @using DirectoryManager.Data.Enums
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService _cacheHelper
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService Urls
+@inject DirectoryManager.Web.Services.Interfaces.IFeaturedListingBuilder FeaturedBuilder
+@inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository SubcategoryRepo
 @model DirectoryManager.Web.Models.SubcategorySponsorModel
 
 @{
@@ -9,6 +11,17 @@
     var link3Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link3Name);
 
     var vm = Model?.DirectoryEntry; // DisplayFormatting.Models.DirectoryEntryViewModel
+
+    bool canAdvertise = Model != null && !Model.SponsorshipDisabled
+        && Model.TotalActiveSubCategoryListings >= DirectoryManager.Common.Constants.IntegerConstants.MinRequiredSubcategories;
+
+    // Unpaid admin-picked "Featured" listing — only when no paid subcategory sponsor is showing.
+    DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel? featured = null;
+    if (Model != null && vm == null)
+    {
+        var sub = await SubcategoryRepo.GetByIdAsync(Model.SubCategoryId);
+        featured = await FeaturedBuilder.BuildAsync(sub?.FeaturedDirectoryEntryId, Model.SubCategoryId);
+    }
 }
 
 @if (Model != null && vm != null)
@@ -39,7 +52,31 @@
         </ul>
     </div>
 }
-else if (Model != null && !Model.SponsorshipDisabled && Model.TotalActiveSubCategoryListings >= DirectoryManager.Common.Constants.IntegerConstants.MinRequiredSubcategories)
+else if (featured != null)
+{
+    <div class="sponsored-section featured-section">
+        <div class="featured-head">
+            <span class="featured-label">Featured</span>
+            @if (canAdvertise)
+            {
+                @* Smaller CTA while a featured pick fills the spot; buying the slot replaces it. *@
+                <form method="get" action="@Urls.ResolveToApp("/sponsoredlisting/selectlisting")" class="advertise-here-form">
+                    <input type="hidden" name="subCategoryId" value="@Model!.SubCategoryId" />
+                    <input type="hidden" name="sponsorshipType" value="@SponsorshipType.SubcategorySponsor" />
+                    <button type="submit" class="advertise-here-btn advertise-here-btn--small">Advertise here</button>
+                </form>
+            }
+        </div>
+        <ul class="blank_list_item">
+            @await Html.PartialAsync("_DirectoryEntryPartial", featured)
+        </ul>
+        @if (!string.IsNullOrWhiteSpace(featured.LinkA))
+        {
+            <p class="featured-disclosure">Affiliate link: we may earn a commission.</p>
+        }
+    </div>
+}
+else if (canAdvertise)
 {
     <p class="sub-category-sponsored-listing">
         @* Submit button (not a link) so crawlers/prefetch don't hit it and skew analytics — lands on the same Select Listing page. *@

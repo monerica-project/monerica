@@ -1,0 +1,33 @@
+@* Admin picker for the unpaid "Featured" listing of a category or subcategory.
+   Model = the currently saved FeaturedDirectoryEntryId; ViewBag.FeaturableEntries = eligible options;
+   ViewBag.FeaturedScope = "category" or "subcategory" (wording only). *@
+@model int?
+@{
+    var options = ViewBag.FeaturableEntries as List<DirectoryManager.Data.Models.TransferModels.IdNameOption>
+        ?? new List<DirectoryManager.Data.Models.TransferModels.IdNameOption>();
+    var scope = ViewBag.FeaturedScope as string ?? "category";
+    bool savedButIneligible = Model.HasValue && !options.Any(o => o.Id == Model.Value);
+}
+
+<hr />
+<div class="form-group">
+    <label for="FeaturedDirectoryEntryId">Featured listing (unpaid)</label>
+    <select id="FeaturedDirectoryEntryId" name="FeaturedDirectoryEntryId" class="form-control input-width">
+        <option value="">None</option>
+        @foreach (var o in options)
+        {
+            <option value="@o.Id" selected="@(Model == o.Id)">@o.Name</option>
+        }
+    </select>
+    <div class="form-text">
+        Shown in this @scope's sponsor spot only while no paid @scope sponsor is active; buying the
+        spot replaces it. Only Admitted or Verified listings in this @scope are listed (@options.Count).
+    </div>
+    @if (savedButIneligible)
+    {
+        <div class="text-danger">
+            The saved featured listing (#@Model) is no longer Admitted/Verified here, so it is hidden.
+            Saving this form clears it.
+        </div>
+    }
+</div>

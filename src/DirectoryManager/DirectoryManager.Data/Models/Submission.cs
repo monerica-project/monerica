@@ -116,6 +116,11 @@ namespace DirectoryManager.Data.Models
         // XMR received x BTCPay's locked rate). Used by the revenue report.
         public decimal? PaidUsd { get; set; }
 
+        // XMR actually received for this donation (from BTCPay), whatever currency it was priced in.
+        // Shown when the admin revenue page is switched to XMR. Null = not recorded.
+        [System.ComponentModel.DataAnnotations.Schema.Column(TypeName = "numeric(20,12)")]
+        public decimal? PaidXmr { get; set; }
+
         [NotMapped]
         public List<string> RelatedLinks
         {

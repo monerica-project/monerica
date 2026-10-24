@@ -26,5 +26,11 @@ namespace DirectoryManager.Data.Models
         public string? Note { get; set; }
 
         public bool IsEnabled { get; set; }
+
+        /// <summary>
+        /// Admin-picked unpaid "Featured" listing shown in this category's sponsor spot when no
+        /// category sponsor is active. Only shown while that listing is Admitted or Verified.
+        /// </summary>
+        public int? FeaturedDirectoryEntryId { get; set; }
     }
 }

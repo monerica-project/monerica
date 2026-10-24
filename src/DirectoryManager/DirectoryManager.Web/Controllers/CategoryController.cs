@@ -71,7 +71,7 @@ namespace DirectoryManager.Web.Controllers
 
             // 1) find category
             var category = await this.categoryRepository.GetByKeyAsync(categoryKey);
-            if (category == null)
+            if (category == null || !category.IsEnabled) // retired categories 404
             {
                 return this.NotFound();
             }
@@ -204,10 +204,18 @@ namespace DirectoryManager.Web.Controllers
             if (await this.categoryRepository.KeyExistsAsync(newKey, id))
             {
                 this.ModelState.AddModelError(string.Empty, DuplicateKeyMessage(newKey));
+                await this.SetFeaturableEntriesAsync(id);
                 return this.View(category);
             }
 
             this.UpdateExistingCategory(existingCategory, category);
+
+            // Featured pick must be an Admitted/Verified listing in this category (else cleared).
+            var featurable = await this.directoryEntryRepository.GetFeaturableForCategoryAsync(id);
+            existingCategory.FeaturedDirectoryEntryId =
+                category.FeaturedDirectoryEntryId.HasValue && featurable.Any(o => o.Id == category.FeaturedDirectoryEntryId.Value)
+                    ? category.FeaturedDirectoryEntryId
+                    : null;
             existingCategory.UpdatedByUserId = this.userManager.GetUserId(this.User);
 
             await this.categoryRepository.UpdateAsync(existingCategory);
@@ -226,6 +234,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            await this.SetFeaturableEntriesAsync(id);
             return this.View(category);
         }
 
@@ -233,6 +242,12 @@ namespace DirectoryManager.Web.Controllers
         // (FK) or cascaded into entries/invoices/sponsorships/reviews; disable it instead.
         private static string DuplicateKeyMessage(string key) =>
             $"Another category already uses the URL key \"{key}\". Choose a different name.";
+
+        private async Task SetFeaturableEntriesAsync(int categoryId)
+        {
+            this.ViewBag.FeaturableEntries = await this.directoryEntryRepository.GetFeaturableForCategoryAsync(categoryId);
+            this.ViewBag.FeaturedScope = "category";
+        }
 
         private void PrepareCategory(Category category)
         {

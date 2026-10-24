@@ -23,7 +23,7 @@ namespace DirectoryManager.Web.Charting
 
         public static string HexFor(RevenueSource s) => SourceColors[s];
 
-        public static byte[] Pie(RevenueReport report)
+        public static byte[] Pie(RevenueReport report, bool xmr = false)
         {
             var plt = new Plot();
             var slices = report.Totals
@@ -33,7 +33,7 @@ namespace DirectoryManager.Web.Charting
                     Value = (double)t.AmountUsd,
                     FillColor = ColorFor(t.Source),
                     Label = t.SharePct >= 4m ? $"{t.SharePct.ToString("0.#", CultureInfo.InvariantCulture)}%" : string.Empty,
-                    LegendText = $"{RevenueReportBuilder.Label(t.Source)} ({t.AmountUsd.ToString("C0", CultureInfo.GetCultureInfo("en-US"))})",
+                    LegendText = $"{RevenueReportBuilder.Label(t.Source)} ({RevenueMoney.Format(t.AmountUsd, xmr)})",
                 })
                 .ToList();
 
@@ -57,7 +57,7 @@ namespace DirectoryManager.Web.Charting
         }
 
         // Stacked monthly bars, one color per source.
-        public static byte[] MonthlyStacked(IReadOnlyList<RevenueMonth> months, RevenueBasis basis)
+        public static byte[] MonthlyStacked(IReadOnlyList<RevenueMonth> months, RevenueBasis basis, bool xmr = false)
         {
             var plt = new Plot();
             if (months.Count == 0)
@@ -97,8 +97,9 @@ namespace DirectoryManager.Web.Charting
 
             MonthTicks(plt, months.Select(m => m.Month).ToList());
             plt.Axes.Margins(bottom: 0, top: 0.1);
-            plt.Title(basis == RevenueBasis.Earned ? "Revenue earned per month (USD)" : "Cash collected per month (USD)");
-            plt.YLabel("USD");
+            var unit = RevenueMoney.Unit(xmr);
+            plt.Title(basis == RevenueBasis.Earned ? $"Revenue earned per month ({unit})" : $"Cash collected per month ({unit})");
+            plt.YLabel(unit);
             plt.ShowLegend(Edge.Right);
             return plt.GetDarkImageBytes(1400, 600, ImageFormat.Png);
         }

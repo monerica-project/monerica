@@ -193,6 +193,38 @@
             <button type="submit" class="btn btn-warning">Reject</button>
         </form>
 
+        <details class="mt-3" @(ViewData.ModelState.ContainsKey("targetReviewId") ? "open" : "")>
+            <summary class="btn btn-secondary">Move to a reply under another review</summary>
+            @if (Model.MoveTargets.Count == 0)
+            {
+                <p class="mt-2">This listing has no other reviews to reply under.</p>
+            }
+            else
+            {
+                <form asp-action="MoveToReply" asp-route-id="@r.DirectoryEntryReviewId" method="post" class="mt-2">
+                    @Html.AntiForgeryToken()
+                    <label for="targetReviewId" class="form-label">Reply under (this listing's reviews, newest first)</label>
+                    <select id="targetReviewId" name="targetReviewId" class="form-control" required>
+                        <option value="">— choose a review —</option>
+                        @foreach (var t in Model.MoveTargets)
+                        {
+                            <option value="@t.Id">@t.Label</option>
+                        }
+                    </select>
+                    @Html.ValidationMessage("targetReviewId", new { @class = "text-danger" })
+                    <p class="small-font mt-2">
+                        Copies this review's text (title as the first line) and author fingerprint into a new <strong>pending</strong> reply
+                        under the chosen review, then <strong>rejects this review</strong>. Its star rating, images and order proof are not carried over.
+                        You'll be taken to the new reply to approve it.
+                    </p>
+                    <button type="submit" class="btn btn-primary"
+                            onclick="return confirm('Move this review to a reply under the selected review and reject it?');">
+                        Move to reply
+                    </button>
+                </form>
+            }
+        </details>
+
         <form asp-action="Delete"
               asp-route-id="@r.DirectoryEntryReviewId"
               method="post"

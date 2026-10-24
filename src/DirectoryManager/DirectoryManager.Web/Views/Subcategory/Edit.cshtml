@@ -22,6 +22,8 @@
 
     @await Html.PartialAsync("_SubcategoryForm", Model)
 
+    @await Html.PartialAsync("_FeaturedListingPicker", Model.FeaturedDirectoryEntryId)
+
     <button type="submit" class="btn btn-primary">Update</button>
 </form>
 }

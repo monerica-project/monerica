@@ -223,6 +223,9 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<int?>("FeaturedDirectoryEntryId")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
 
@@ -1166,6 +1169,9 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<DateTime?>("PaidUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("PaidXmr")
+                        .HasColumnType("numeric(20,12)");
 
                     b.Property<Guid>("PaymentToken")
                         .ValueGeneratedOnAdd()
@@ -2208,6 +2214,9 @@ namespace DirectoryManager.Data.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<int?>("FeaturedDirectoryEntryId")
+                        .HasColumnType("integer");
+
                     b.Property<bool>("IsEnabled")
                         .HasColumnType("boolean");
 
@@ -2348,6 +2357,9 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<DateTime?>("PaidUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("PaidXmr")
+                        .HasColumnType("numeric(20,12)");
 
                     b.Property<Guid>("PaymentToken")
                         .ValueGeneratedOnAdd()
@@ -2511,6 +2523,9 @@ namespace DirectoryManager.Data.Migrations
 
                     b.Property<DateTime?>("PaidUtc")
                         .HasColumnType("timestamp with time zone");
+
+                    b.Property<decimal?>("PaidXmr")
+                        .HasColumnType("numeric(20,12)");
 
                     b.Property<Guid>("PaymentToken")
                         .ValueGeneratedOnAdd()

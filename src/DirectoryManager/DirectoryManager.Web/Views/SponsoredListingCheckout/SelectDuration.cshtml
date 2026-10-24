@@ -87,17 +87,23 @@
         var chartTypeDesc = DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(chartType);
         var listingSubcat = ViewBag.ListingSubcategory as string;
         var hasSubHistory = ViewBag.HasSubcategoryPricingHistory is bool b && b;
+
+        // Same colours the chart draws with (ChartColors), so the words match the lines/bars.
+        var barHex = DirectoryManager.Web.Charting.ChartColors.TypeNeonHex(chartType);
+        var barName = DirectoryManager.Web.Charting.ChartColors.TypeNeonName(chartType);
+        var nowHex = DirectoryManager.Web.Charting.ChartColors.DarkNowHex;
+        var subHex = DirectoryManager.Web.Charting.ChartColors.DarkInkHex;
     }
     <div class="u-mt-10px u-mb-8px" style="max-width:640px;">
         <p class="u-m-6px-0-12px-0">
-            <strong>Why this price?</strong> The <strong>bars</strong> are the average paid per day across
+            <strong>Why this price?</strong> The <strong style="color:@barHex;">@barName bars</strong> are the average paid per day across
             <strong>all @chartTypeDesc</strong> slots over the last 180&nbsp;days.
-            The <strong>black dashed line labelled &ldquo;Current market price&rdquo;</strong> shows
+            The <strong style="color:@nowHex;">yellow dashed line labeled &ldquo;Current market price&rdquo;</strong> shows
             <strong>today&rsquo;s going rate</strong> for this placement &mdash; that is the price reflected
             in the duration options below.
             @if (hasSubHistory)
             {
-                <text>The <strong>black dotted line</strong> is
+                <text>The <strong style="color:@subHex;">white dotted line</strong> is
                 <strong>your subcategory@(string.IsNullOrWhiteSpace(listingSubcat) ? "" : $" — {listingSubcat}")</strong>,
                 which is how pricing is set &mdash; so you can see where your niche sits versus the overall
                 @chartTypeDesc average.</text>

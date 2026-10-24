@@ -117,6 +117,33 @@ namespace DirectoryManager.Data.Repositories.Implementations
             await this.context.SaveChangesAsync(ct);
         }
 
+        public Task<List<string>> GetPaidInvoiceIdsMissingXmrAsync(CancellationToken ct = default) =>
+            this.Set.AsNoTracking()
+                .Where(x => x.BtcPayInvoiceId != null && x.BtcPayInvoiceId != string.Empty && x.PaidUtc != null && x.PaidXmr == null)
+                .Select(x => x.BtcPayInvoiceId!)
+                .ToListAsync(ct);
+
+        public async Task<bool> SetPaidXmrByInvoiceIdAsync(string invoiceId, decimal paidXmr, CancellationToken ct = default)
+        {
+            var row = await this.Set.FirstOrDefaultAsync(x => x.BtcPayInvoiceId == invoiceId && x.PaidUtc != null, ct);
+            if (row is null || paidXmr <= 0 || row.PaidXmr == paidXmr)
+            {
+                return false;
+            }
+
+            row.PaidXmr = paidXmr;
+            await this.context.SaveChangesAsync(ct);
+            return true;
+        }
+
+        public Task<List<string>> GetUnpaidInvoiceIdsAsync(DateTime? createdSinceUtc, CancellationToken ct = default) =>
+            this.Set.AsNoTracking()
+                .Where(x => x.BtcPayInvoiceId != null && x.BtcPayInvoiceId != string.Empty && x.PaidUtc == null)
+                .Where(x => createdSinceUtc == null || x.CreateDate >= createdSinceUtc)
+                .OrderByDescending(x => x.CreateDate)
+                .Select(x => x.BtcPayInvoiceId!)
+                .ToListAsync(ct);
+
         public Task<int?> GetUnpaidIdByInvoiceIdAsync(string invoiceId, CancellationToken ct = default) =>
             this.Set.AsNoTracking()
                 .Where(x => x.BtcPayInvoiceId == invoiceId && x.PaidUtc == null)

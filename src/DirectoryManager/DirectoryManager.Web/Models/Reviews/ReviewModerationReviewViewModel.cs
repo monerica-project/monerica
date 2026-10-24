@@ -18,6 +18,16 @@ namespace DirectoryManager.Web.Models.Reviews
 
         public List<TagOption> AllTags { get; set; } = new ();
 
+        /// <summary>Gets or sets the listing's other reviews (newest first) this review can be moved under as a reply.</summary>
+        public List<MoveTarget> MoveTargets { get; set; } = new ();
+
+        public class MoveTarget
+        {
+            public int Id { get; set; }
+
+            public string Label { get; set; } = "";
+        }
+
         public ReviewModerationStatus ModerationStatus => this.Review.ModerationStatus;
 
         public class TagOption

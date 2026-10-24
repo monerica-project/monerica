@@ -394,7 +394,7 @@ namespace DirectoryManager.Web.Charting
                 plt.Title($"Avg Daily Slot Price by Placement ({unit}/day)");
             }
 
-            // Current market price line(s), in orange, so today's asking price stands out against history.
+            // Current market price line(s), in bright yellow (dark theme), so today's asking price stands out against history.
             foreach (var c in currentDaily)
             {
                 if (c.Value > maxVal)
@@ -490,19 +490,14 @@ namespace DirectoryManager.Web.Charting
         }
 
         // Dark-theme palette: near-black ground, light grey text, bright neon series.
-        private const string DarkBackgroundHex = "#05070a";
-        private const string DarkInkHex = "#f2f2f2";
-        private const string DarkMutedHex = "#9aa3ad";
-        private const string DarkGridHex = "#1f242b";
-        private const string DarkNowHex = "#ffe14d"; // bright yellow: today's price
+        // Defined in ChartColors so the page text describing the charts uses the same colours.
+        private const string DarkBackgroundHex = ChartColors.DarkBackgroundHex;
+        private const string DarkInkHex = ChartColors.DarkInkHex;
+        private const string DarkMutedHex = ChartColors.DarkMutedHex;
+        private const string DarkGridHex = ChartColors.DarkGridHex;
+        private const string DarkNowHex = ChartColors.DarkNowHex;
 
-        private static string TypeNeonHex(SponsorshipType t) => t switch
-        {
-            SponsorshipType.MainSponsor => "#ff8c1a",        // neon orange
-            SponsorshipType.CategorySponsor => "#39ff7a",    // neon green
-            SponsorshipType.SubcategorySponsor => "#22d3ff", // neon cyan
-            _ => "#c8c8c8",
-        };
+        private static string TypeNeonHex(SponsorshipType t) => ChartColors.TypeNeonHex(t);
 
         // Black background + light text/grid/legend for the public pages.
         private static void ApplyDarkTheme(Plot plt)

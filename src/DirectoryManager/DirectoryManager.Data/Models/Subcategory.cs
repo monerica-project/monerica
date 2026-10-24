@@ -45,6 +45,12 @@ namespace DirectoryManager.Data.Models
         // potential issue. Enforced in the sponsorship checkout flow (SelectDuration).
         public bool SponsorshipDisabled { get; set; }
 
+        /// <summary>
+        /// Admin-picked unpaid "Featured" listing shown in this subcategory's sponsor spot when no
+        /// subcategory sponsor is active. Only shown while that listing is Admitted or Verified.
+        /// </summary>
+        public int? FeaturedDirectoryEntryId { get; set; }
+
         // Navigation Property for the parent Category
         [ForeignKey("CategoryId")]
         public virtual Category Category { get; set; } = null!;

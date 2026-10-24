@@ -35,7 +35,8 @@ namespace DirectoryManager.Web.Revenue
             DateTime fromUtc,
             DateTime toUtc,
             RevenueBasis basis,
-            DateTime nowUtc)
+            DateTime nowUtc,
+            int decimals = 2)
         {
             var from = fromUtc.Date;
             var to = toUtc.Date;
@@ -73,7 +74,7 @@ namespace DirectoryManager.Web.Revenue
             var totals = Sources.Select(s => new RevenueSourceTotal
             {
                 Source = s,
-                AmountUsd = Math.Round(amounts[s], 2),
+                AmountUsd = Math.Round(amounts[s], decimals), // in XMR when the report was built from XMR amounts
                 Count = counts[s],
                 MissingUsdCount = missing[s],
                 SharePct = grand > 0m ? Math.Round(100m * amounts[s] / grand, 1) : 0m,

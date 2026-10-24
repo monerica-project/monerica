@@ -317,7 +317,10 @@
         var trendFmt = DirectoryManager.Common.Constants.StringConstants.DateFormat;
         <h2 class="u-mt-22px">Sponsorship Price Trends &mdash; Last 180 Days</h2>
         <p class="u-m-6px-0-12px-0">
-            Average price paid per day for a sponsorship slot, by placement (Main, Category &amp; Subcategory),
+            Average price paid per day for a sponsorship slot, by placement
+            (<strong style="color:@DirectoryManager.Web.Charting.ChartColors.TypeNeonHex(DirectoryManager.Data.Enums.SponsorshipType.MainSponsor);">Main</strong>,
+            <strong style="color:@DirectoryManager.Web.Charting.ChartColors.TypeNeonHex(DirectoryManager.Data.Enums.SponsorshipType.CategorySponsor);">Category</strong> &amp;
+            <strong style="color:@DirectoryManager.Web.Charting.ChartColors.TypeNeonHex(DirectoryManager.Data.Enums.SponsorshipType.SubcategorySponsor);">Subcategory</strong>),
             over the last 180 days (@trendStart.ToString(trendFmt) &ndash; @trendEnd.ToString(trendFmt)).
         </p>
         <div class="table-wrapper">

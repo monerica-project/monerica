@@ -97,6 +97,7 @@ namespace DirectoryManager.Web.Extensions
             services.AddSingleton<IHttpContextAccessor, HttpContextAccessor>()
                     .AddScoped<IUrlResolutionService, UrlResolutionService>();
             services.AddScoped<ICacheService, CacheService>();
+            services.AddScoped<IFeaturedListingBuilder, DirectoryManager.Web.Services.Implementations.FeaturedListingBuilder>();
 
             // Domain registration date lookup (RDAP -> WHOIS fallback)
             services.AddHttpClient<IDomainRegistrationDateService, DomainRegistrationDateService>(client =>
@@ -107,6 +108,9 @@ namespace DirectoryManager.Web.Extensions
 
             services.AddScoped<ISponsorTickerService, SponsorTickerService>();
             services.AddScoped<IDonationPaymentService, DonationPaymentService>();
+
+            // Safety net: records paid donations even when the BTCPay webhook never arrives.
+            services.AddHostedService<DonationPaymentReconciler>();
             services.AddScoped(sp => DirectoryManager.Web.Models.PageMetadata.For(
                 sp.GetRequiredService<IHttpContextAccessor>().HttpContext));
             services.AddTransient<IPgpService, PgpService>();

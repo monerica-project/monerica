@@ -50,7 +50,7 @@ namespace DirectoryManager.Web.Services.Implementations
                 return false;
             }
 
-            var (amount, currency, paidUsd, paidUtc) = paid.Value;
+            var (amount, currency, paidUsd, paidUtc, paidXmr) = paid.Value;
             if (submissionId is int s)
             {
                 await this.submissions.SetPaidAsync(s, amount, currency, paidUsd, paidUtc);
@@ -64,12 +64,39 @@ namespace DirectoryManager.Web.Services.Implementations
                 await this.problems.SetPaidAsync(p, amount, currency, paidUsd, paidUtc, ct);
             }
 
+            if (paidXmr is decimal xmr)
+            {
+                await this.SetPaidXmrAsync(invoiceId, xmr, ct);
+            }
+
             return true;
         }
 
+        public async Task<bool> RecordPaidXmrAsync(string invoiceId, CancellationToken ct = default)
+        {
+            var storeId = this.btcPay.ReviewDonationsStoreId;
+            if (string.IsNullOrWhiteSpace(invoiceId) || string.IsNullOrWhiteSpace(storeId))
+            {
+                return false;
+            }
+
+            var xmr = await this.btcPay.GetXmrPaymentMethodOnStoreAsync(storeId, invoiceId);
+            var paidXmr = ParseXmr(xmr?.TotalPaid);
+            return paidXmr is decimal x && await this.SetPaidXmrAsync(invoiceId, x, ct);
+        }
+
+        private static decimal? ParseXmr(string? totalPaid) =>
+            decimal.TryParse(totalPaid, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var v) && v > 0 ? v : null;
+
+        // The invoice belongs to exactly one of the three tables; set it wherever it is.
+        private async Task<bool> SetPaidXmrAsync(string invoiceId, decimal paidXmr, CancellationToken ct) =>
+            await this.submissions.SetPaidXmrByInvoiceIdAsync(invoiceId, paidXmr, ct)
+            || await this.verifications.SetPaidXmrByInvoiceIdAsync(invoiceId, paidXmr, ct)
+            || await this.problems.SetPaidXmrByInvoiceIdAsync(invoiceId, paidXmr, ct);
+
         // Amount, currency, USD value and received time of a paid donation invoice, or null if
         // BTCPay hasn't seen a payment for it yet.
-        private async Task<(decimal? Amount, string? Currency, decimal? PaidUsd, DateTime PaidUtc)?> ReadPaymentAsync(string invoiceId)
+        private async Task<(decimal? Amount, string? Currency, decimal? PaidUsd, DateTime PaidUtc, decimal? PaidXmr)?> ReadPaymentAsync(string invoiceId)
         {
             var storeId = this.btcPay.ReviewDonationsStoreId;
             if (string.IsNullOrWhiteSpace(storeId))
@@ -105,7 +132,7 @@ namespace DirectoryManager.Web.Services.Implementations
             }
 
             var paidUsd = DonationUsdHelper.ToUsd(amount, currency, xmrRateUsd);
-            return (amount, currency, paidUsd, receivedUtc ?? DateTime.UtcNow);
+            return (amount, currency, paidUsd, receivedUtc ?? DateTime.UtcNow, ParseXmr(xmr?.TotalPaid));
         }
     }
 }

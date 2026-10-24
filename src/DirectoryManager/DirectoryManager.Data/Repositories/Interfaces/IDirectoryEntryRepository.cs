@@ -79,5 +79,11 @@ namespace DirectoryManager.Data.Repositories.Interfaces
             int pageSize,
             bool includeRemoved = false,
             CancellationToken ct = default);
+
+        /// <summary>Admitted/Verified listings whose main OR additional subcategory is this one (Featured picker).</summary>
+        Task<List<IdNameOption>> GetFeaturableForSubcategoryAsync(int subCategoryId);
+
+        /// <summary>Admitted/Verified listings with a main OR additional subcategory in this category (Featured picker).</summary>
+        Task<List<IdNameOption>> GetFeaturableForCategoryAsync(int categoryId);
     }
 }

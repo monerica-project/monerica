@@ -4,6 +4,8 @@
 @using DirectoryManager.Web.Services.Interfaces
 @inject ICacheService _cacheHelper
 @inject IUrlResolutionService Urls
+@inject IFeaturedListingBuilder FeaturedBuilder
+@inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository CategoryRepo
 
 @{
     var link2Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
@@ -13,6 +15,14 @@
     var advertiseHref = Url.Action("SelectListing", "SponsoredListing", new { categoryId, sponsorshipType = SponsorshipType.CategorySponsor });
 
     var vm = Model?.DirectoryEntry; // DisplayFormatting.Models.DirectoryEntryViewModel
+
+    // Unpaid admin-picked "Featured" listing — only when no paid category sponsor is showing.
+    DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel? featured = null;
+    if (vm is null && categoryId > 0)
+    {
+        var cat = await CategoryRepo.GetByIdAsync(categoryId);
+        featured = await FeaturedBuilder.BuildAsync(cat?.FeaturedDirectoryEntryId);
+    }
 }
 
 @if (vm is not null)
@@ -46,6 +56,27 @@
         <ul class="blank_list_item">
             @await Html.PartialAsync("_DirectoryEntryPartial", vm)
         </ul>
+    </div>
+}
+else if (featured != null)
+{
+    <div class="sponsored-section featured-section u-mb-5px">
+        <div class="featured-head">
+            <span class="featured-label">Featured</span>
+            @* Smaller CTA while a featured pick fills the spot; buying the slot replaces it. *@
+            <form method="get" action="@Urls.ResolveToApp("/sponsoredlisting/selectlisting")" class="advertise-here-form">
+                <input type="hidden" name="categoryId" value="@categoryId" />
+                <input type="hidden" name="sponsorshipType" value="@SponsorshipType.CategorySponsor" />
+                <button type="submit" class="advertise-here-btn advertise-here-btn--small">Advertise here</button>
+            </form>
+        </div>
+        <ul class="blank_list_item">
+            @await Html.PartialAsync("_DirectoryEntryPartial", featured)
+        </ul>
+        @if (!string.IsNullOrWhiteSpace(featured.LinkA))
+        {
+            <p class="featured-disclosure">Affiliate link: we may earn a commission.</p>
+        }
     </div>
 }
 else
