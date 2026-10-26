@@ -1,4 +1,4 @@
-using DirectoryManager.Data.Enums;
+﻿using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Models.TransferModels;
@@ -30,6 +30,7 @@ namespace DirectoryManager.Web.Controllers
         // and re-fill the email the visitor typed.
         private const string TempDataWaitlistError = "WaitlistError";
         private const string TempDataWaitlistEmail = "WaitlistEmail";
+        private const string TempDataWaitlistListing = "WaitlistListing";
 
         private const int SearchPageSize = 20;
         private const int SearchResultsPageSize = 10;
@@ -612,7 +613,8 @@ namespace DirectoryManager.Web.Controllers
             [FromQuery] SponsorshipType type =
                 SponsorshipType.MainSponsor,
             [FromQuery] int? typeId = null,
-            [FromQuery] int page = 1)
+            [FromQuery] int page = 1,
+            [FromQuery] int joined = 0)
         {
             if (this.Request.Query.Count == 0)
             {
@@ -624,7 +626,67 @@ namespace DirectoryManager.Web.Controllers
             var vm = await this.BuildScopedWaitlistVmAsync(
                 type, typeId, page);
 
+            vm.Joined = joined == 1;
+            vm.JoinListings = (await this.JoinableListingsAsync(vm.SponsorshipType, vm.TypeId))
+                .Select(e => new KeyValuePair<int, string>(e.DirectoryEntryId, e.Name))
+                .ToList();
+
             return this.View("Waitlist", vm);
+        }
+
+        /// <summary>
+        /// Join a category or subcategory waitlist straight from its waitlist page: pick the
+        /// listing (any listing in that placement, including ones shown there as an additional
+        /// subcategory), enter an email, solve the captcha.
+        /// </summary>
+        [HttpPost("waitlist/join")]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> JoinWaitlist(
+            [FromForm] SponsorshipType type,
+            [FromForm] int? typeId,
+            [FromForm] int directoryEntryId,
+            [FromForm] string? email)
+        {
+            if (type is not (SponsorshipType.CategorySponsor or SponsorshipType.SubcategorySponsor) || typeId is not > 0)
+            {
+                return this.BadRequest();
+            }
+
+            var back = $"/sponsorship/waitlist?type={type}&typeId={typeId}";
+            var typed = (email ?? string.Empty).Trim();
+            if (typed.Length > 0 && typed.Length <= 200)
+            {
+                this.TempData[TempDataWaitlistEmail] = typed;
+            }
+
+            this.TempData[TempDataWaitlistListing] = directoryEntryId;
+
+            if (!CaptchaTools.Validate(this.HttpContext, CaptchaContextWaitlist, this.Request.Form["Captcha"].ToString(), consume: true))
+            {
+                return this.Redirect($"{back}&captcha=0#join-waitlist");
+            }
+
+            var (emailOk, normalizedEmail, _) = EmailValidationHelper.Validate(typed);
+            if (!emailOk || string.IsNullOrWhiteSpace(normalizedEmail) || normalizedEmail.Length > 100)
+            {
+                this.TempData[TempDataWaitlistError] = "Please enter a valid email address.";
+                return this.Redirect($"{back}#join-waitlist");
+            }
+
+            var joinable = await this.JoinableListingsAsync(type, typeId);
+            if (!joinable.Any(e => e.DirectoryEntryId == directoryEntryId))
+            {
+                this.TempData[TempDataWaitlistError] = "Please pick your listing.";
+                return this.Redirect($"{back}#join-waitlist");
+            }
+
+            this.TempData.Remove(TempDataWaitlistEmail);
+            this.TempData.Remove(TempDataWaitlistListing);
+
+            await this.waitlistRepo.UpsertManyAsync(
+                normalizedEmail, directoryEntryId, new[] { (type, typeId) });
+
+            return this.Redirect($"{back}&joined=1#join-waitlist");
         }
 
         [HttpPost("subscribe")]
@@ -1344,6 +1406,30 @@ namespace DirectoryManager.Web.Controllers
                 BrowseWaitlistUrl =
                     this.Url.Action("Waitlist", "Sponsorship")
             };
+        }
+
+        // Listings allowed to wait for this placement: active listings in it (main or additional
+        // subcategory), one row per business, skipping subcategories where sponsorship is off.
+        private async Task<List<DirectoryEntry>> JoinableListingsAsync(SponsorshipType type, int? typeId)
+        {
+            if (typeId is not > 0)
+            {
+                return new List<DirectoryEntry>();
+            }
+
+            var entries = type switch
+            {
+                SponsorshipType.SubcategorySponsor => await this.entryRepo.GetActiveEntriesBySubcategoryAsync(typeId.Value),
+                SponsorshipType.CategorySponsor => await this.entryRepo.GetActiveEntriesByCategoryAsync(typeId.Value),
+                _ => Enumerable.Empty<DirectoryEntry>(),
+            };
+
+            return entries
+                .Where(e => e.SubCategory?.SponsorshipDisabled != true)
+                .GroupBy(e => e.DirectoryEntryId)
+                .Select(g => g.First())
+                .OrderBy(e => e.Name, StringComparer.OrdinalIgnoreCase)
+                .ToList();
         }
 
         private async Task<SponsorshipWaitlistVm>

@@ -43,6 +43,7 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IExcludeUserAgentRepository, ExcludeUserAgentRepository>();
             services.AddScoped<IContentSnippetRepository, ContentSnippetRepository>();
             services.AddScoped<ISubmissionBlockedTermRepository, SubmissionBlockedTermRepository>();
+            services.AddScoped<ISubmissionBlockedDomainRepository, SubmissionBlockedDomainRepository>();
             services.AddScoped<ITagRepository, TagRepository>();
             services.AddScoped<IDirectoryEntryTagRepository, DirectoryEntryTagRepository>();
             services.AddScoped<ISearchLogRepository, SearchLogRepository>();

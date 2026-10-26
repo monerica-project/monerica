@@ -57,6 +57,9 @@ namespace DirectoryManager.Data.Repositories.Interfaces
 
         Task<DateTime?> GetLastPaidUtcAsync(CancellationToken ct = default);
 
+        /// <summary>Orders that need a look: Pending, UnderPaid, and OverPaid in the last 30 days; NewestUtc = newest Pending/UnderPaid.</summary>
+        Task<(int Pending, int UnderPaid, int OverPaid30d, DateTime? NewestUtc)> GetPaymentAttentionAsync(CancellationToken ct = default);
+
         // Assigns each video on a just-paid order to it. A dedicated order gets its own queue
         // entry created here. Returns false when one of the videos was already sold to another
         // order (the caller flags the conflict for the admin).

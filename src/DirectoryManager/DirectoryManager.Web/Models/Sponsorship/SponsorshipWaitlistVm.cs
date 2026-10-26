@@ -14,5 +14,12 @@ namespace DirectoryManager.Web.Models.Sponsorship
         public int TotalPages { get; set; }
 
         public List<WaitlistPublicItemVm> Items { get; set; } = new ();
+
+        /// <summary>Listings that can join this waitlist (category and subcategory waitlists only).</summary>
+        public List<KeyValuePair<int, string>> JoinListings { get; set; } = new ();
+
+        public bool CanJoin => this.JoinListings.Count > 0;
+
+        public bool Joined { get; set; }
     }
 }

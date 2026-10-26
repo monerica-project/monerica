@@ -1,0 +1,65 @@
+@model IEnumerable<DirectoryManager.Data.Models.SubmissionBlockedDomain>
+@using DirectoryManager.Web.Constants;
+@{
+    PageMeta.Title = "Blocked Domains";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+
+<h1>@PageMeta.Title</h1>
+
+@await Html.PartialAsync("_AdminMenu")
+
+<p class="u-m-6px-0-12px-0">
+    Websites that no link in a submission may go to, for new listings and edits. The submitter
+    sees an error before the captcha. Blocking a domain also blocks its subdomains, so
+    <b>muse.ai</b> also blocks <b>files.muse.ai</b>.
+</p>
+
+<a href="~/submissionblockeddomains/create">Add domain</a>
+<hr />
+
+@if (!Model.Any())
+{
+    <p class="u-opacity-85">No blocked domains yet.</p>
+}
+else
+{
+<div class="table-wrapper">
+    <table class="table u-w-100pct">
+    <tr>
+        <th>Domain</th>
+        <th>Custom message</th>
+        <th>Added (UTC)</th>
+        <th>Status</th>
+        <th>Actions</th>
+    </tr>
+    @foreach (var item in Model)
+    {
+        <tr>
+            <td><b>@item.Domain</b></td>
+            <td>@(string.IsNullOrWhiteSpace(item.Message) ? "—" : item.Message)</td>
+            <td>@item.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+            <td>@(item.IsEnabled ? "Enabled" : "Disabled")</td>
+            <td>
+                <form method="post" action="~/submissionblockeddomains/toggle" class="u-inline">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@item.SubmissionBlockedDomainId" />
+                    <button type="submit" class="btn btn-secondary btn-sm">
+                        @(item.IsEnabled ? "Disable" : "Enable")
+                    </button>
+                </form>
+                <form method="post" action="~/submissionblockeddomains/delete" class="u-inline"
+                      onsubmit="return confirm('Delete this domain?');">
+                    @Html.AntiForgeryToken()
+                    <input type="hidden" name="id" value="@item.SubmissionBlockedDomainId" />
+                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                </form>
+            </td>
+        </tr>
+    }
+    </table>
+</div>
+}
+}

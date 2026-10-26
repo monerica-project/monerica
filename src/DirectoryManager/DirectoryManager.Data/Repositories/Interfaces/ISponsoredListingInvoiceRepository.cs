@@ -56,5 +56,11 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         DateTime? GetLastPaidInvoiceCreateDate();
 
         DateTime? GetLastPendingInvoiceCreateDate();
+
+        /// <summary>
+        /// Checkouts that need a look: payment seen but not confirmed (Pending), too little sent
+        /// (UnderPaid), and too much sent in the last 30 days (OverPaid30d, already activated).
+        /// </summary>
+        (int Pending, int UnderPaid, int OverPaid30d) GetPaymentAttentionCounts();
     }
 }

@@ -12,6 +12,7 @@ namespace DirectoryManager.Data.DbContextInfo
         public DbSet<ApplicationUserRole> ApplicationUserRole { get; set; }
 
         public DbSet<SubmissionBlockedTerm> SubmissionBlockedTerms { get; set; }
+        public DbSet<SubmissionBlockedDomain> SubmissionBlockedDomains { get; set; }
         public DbSet<Category> Categories { get; set; }
         public DbSet<ContentSnippet> ContentSnippets { get; set; }
         public DbSet<DirectoryEntriesAudit> DirectoryEntriesAudit { get; set; }

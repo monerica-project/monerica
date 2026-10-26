@@ -43,6 +43,76 @@
     <a class="btn btn-info" href="@Url.Action("Index", "Sponsorship")">Back to sponsorship search</a>
 </div>
 
+@{
+    var joinError = TempData["WaitlistError"] as string;
+    var joinEmail = TempData["WaitlistEmail"] as string;
+    var joinListing = TempData["WaitlistListing"] as int?;
+}
+
+@if (Model.Joined)
+{
+    <div id="join-waitlist" class="alert alert-success u-mt-12px" role="status">
+        &#10003; You're on the waitlist for <strong>@Model.ScopeLabel</strong>. We'll email you when a slot opens.
+    </div>
+}
+else if (Model.CanJoin)
+{
+    <form method="post"
+          action="@Url.Action("JoinWaitlist", "Sponsorship")"
+          id="join-waitlist"
+          class="card u-p-16px-16px-14px-rounded-12px-mt-10px">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="type" value="@Model.SponsorshipType" />
+        <input type="hidden" name="typeId" value="@Model.TypeId" />
+
+        <h2 class="u-mt-0">Join this waitlist</h2>
+        <p class="u-opacity-9">
+            Everyone on the waitlist is emailed when a slot opens. First come, first served.
+            Your email is never shown publicly.
+        </p>
+
+        <label class="u-block-fw-600-mb-6px-fs-105rem" for="waitlist-listing">Your listing</label>
+        <select id="waitlist-listing" name="directoryEntryId" class="form-control u-flex-1-1-260px-maxw-420px" required="required">
+            <option value="">Choose your listing…</option>
+            @foreach (var l in Model.JoinListings)
+            {
+                <option value="@l.Key" selected="@(joinListing == l.Key)">@l.Value</option>
+            }
+        </select>
+
+        <label class="u-block-fw-600-mb-6px-fs-105rem u-mt-12px" for="waitlist-email">Your email</label>
+        <input type="email"
+               id="waitlist-email"
+               name="email"
+               class="form-control u-flex-1-1-260px-maxw-420px"
+               placeholder="you@example.com"
+               value="@joinEmail"
+               required="required" />
+
+        @if (Context.Request.Query["captcha"] == "0")
+        {
+            <div class="alert alert-danger u-mt-12px" role="alert">Incorrect CAPTCHA. Please try again.</div>
+        }
+
+        @if (!string.IsNullOrEmpty(joinError))
+        {
+            <div class="alert alert-danger u-mt-12px" role="alert">@joinError</div>
+        }
+
+        <div class="u-mt-12px">
+            @await Html.PartialAsync("_CaptchaBlock", "sponsorship-waitlist")
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-cta u-mt-12px">Join the waitlist &rarr;</button>
+    </form>
+}
+else if (Model.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.MainSponsor)
+{
+    <p class="u-mt-12px">
+        To join this waitlist, <a href="/sponsor-options">find your listing</a> and use “Join the waitlist” on its sponsorship page.
+    </p>
+}
+
 @if (Model.Items == null || Model.Items.Count == 0)
 {
     <p>No waitlist signups yet.</p>

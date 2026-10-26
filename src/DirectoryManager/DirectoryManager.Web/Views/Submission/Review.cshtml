@@ -20,6 +20,13 @@
 @section PageContent {
 <h1>@PageMeta.Title</h1>
 
+<p><b>Submitted:</b> @Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC
+@if (Model.UpdateDate is DateTime updated && updated > Model.CreateDate.AddMinutes(1))
+{
+    <span class="u-color-888">&middot; last updated @updated.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC</span>
+}
+</p>
+
 @await Html.PartialAsync("_AdminMenu")
 
 @if (Model.PaidUtc != null)

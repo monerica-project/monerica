@@ -175,6 +175,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     && (x.PaymentStatus == PaymentStatus.Paid || x.PaymentStatus == PaymentStatus.OverPayment))
                 .MaxAsync(x => x.PaidUtc, ct);
 
+        public async Task<(int Pending, int UnderPaid, int OverPaid30d, DateTime? NewestUtc)> GetPaymentAttentionAsync(CancellationToken ct = default)
+        {
+            var since = DateTime.UtcNow.AddDays(-30);
+            var rows = await this.context.VideoSponsorOrders.AsNoTracking()
+                .Where(x => x.PaymentStatus == PaymentStatus.Pending
+                    || x.PaymentStatus == PaymentStatus.UnderPayment
+                    || (x.PaymentStatus == PaymentStatus.OverPayment && x.CreateDate >= since))
+                .Select(x => new { x.PaymentStatus, x.CreateDate })
+                .ToListAsync(ct);
+
+            var stuck = rows.Where(r => r.PaymentStatus != PaymentStatus.OverPayment).ToList();
+            return (
+                stuck.Count(r => r.PaymentStatus == PaymentStatus.Pending),
+                stuck.Count(r => r.PaymentStatus == PaymentStatus.UnderPayment),
+                rows.Count(r => r.PaymentStatus == PaymentStatus.OverPayment),
+                stuck.Count > 0 ? stuck.Max(r => r.CreateDate) : null);
+        }
+
         public async Task<bool> AssignVideosToPaidOrderAsync(int orderId, string dedicatedTitle, CancellationToken ct = default)
         {
             var items = await this.context.VideoSponsorOrderItems

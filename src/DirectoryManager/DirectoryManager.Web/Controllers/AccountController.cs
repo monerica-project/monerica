@@ -134,6 +134,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.TotalPendingReviews = totalPendingReviewItems;
             this.ViewBag.LastInvoicePaidUtc = this.SponsoredListingInvoiceRepository.GetLastPaidInvoiceCreateDate();
             this.ViewBag.LastInvoicePendingUtc = this.SponsoredListingInvoiceRepository.GetLastPendingInvoiceCreateDate();
+            this.ViewBag.InvoiceAttention = this.SponsoredListingInvoiceRepository.GetPaymentAttentionCounts();
             this.ViewBag.TotalPendingReviewReviews = pendingReviews;
             this.ViewBag.TotalPendingReviewComments = pendingReviewComments;
             this.ViewBag.TotalPendingVerificationRequests = pendingVerificationRequests;
@@ -146,6 +147,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.LastProblemReportPaidUtc = await this.problemReportRepository.GetLastPaidUtcAsync();
 
             this.ViewBag.LastVideoSponsorPaidUtc = await this.videoSponsorshipRepository.GetLastPaidUtcAsync();
+            this.ViewBag.VideoAttention = await this.videoSponsorshipRepository.GetPaymentAttentionAsync();
 
             // "Newest waiting" = create time of the newest item NOT yet handled (null when none).
             this.ViewBag.NewestPendingSubmissionUtc = await this.submissionRepository.GetNewestPendingUtcAsync();

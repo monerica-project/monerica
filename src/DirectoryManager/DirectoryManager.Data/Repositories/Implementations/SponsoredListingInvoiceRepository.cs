@@ -174,7 +174,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             return this.context.SponsoredListingInvoices
                 .AsNoTracking()
-                .Where(e => e.PaymentStatus == Enums.PaymentStatus.Paid)
+                .Where(e => e.PaymentStatus == Enums.PaymentStatus.Paid || e.PaymentStatus == Enums.PaymentStatus.OverPayment)
                 .Max(e => (DateTime?)e.CreateDate);
         }
 
@@ -182,8 +182,24 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             return this.context.SponsoredListingInvoices
                 .AsNoTracking()
-                .Where(e => e.PaymentStatus == Enums.PaymentStatus.Pending)
+                .Where(e => e.PaymentStatus == Enums.PaymentStatus.Pending || e.PaymentStatus == Enums.PaymentStatus.UnderPayment)
                 .Max(e => (DateTime?)e.CreateDate);
+        }
+
+        public (int Pending, int UnderPaid, int OverPaid30d) GetPaymentAttentionCounts()
+        {
+            var since = DateTime.UtcNow.AddDays(-30);
+            var rows = this.context.SponsoredListingInvoices
+                .AsNoTracking()
+                .Where(e => e.PaymentStatus == Enums.PaymentStatus.Pending
+                    || e.PaymentStatus == Enums.PaymentStatus.UnderPayment
+                    || (e.PaymentStatus == Enums.PaymentStatus.OverPayment && e.CreateDate >= since))
+                .GroupBy(e => e.PaymentStatus)
+                .Select(g => new { g.Key, Count = g.Count() })
+                .ToList();
+
+            int Count(Enums.PaymentStatus s) => rows.FirstOrDefault(r => r.Key == s)?.Count ?? 0;
+            return (Count(Enums.PaymentStatus.Pending), Count(Enums.PaymentStatus.UnderPayment), Count(Enums.PaymentStatus.OverPayment));
         }
 
         public DateTime? GetLastPaidInvoiceUpdateDate()

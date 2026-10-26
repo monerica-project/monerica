@@ -48,6 +48,31 @@
         new Microsoft.AspNetCore.Html.HtmlString(utc is DateTime t
             ? $"<span title=\"{t.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)} UTC\">{FormatAgoCompact(t)}</span>"
             : "<span class=\"u-color-888\">—</span>");
+
+    // Payments stuck in between: seen but unconfirmed (pending) or too little sent (underpaid).
+    static Microsoft.AspNetCore.Html.IHtmlContent PaymentAttention(int pending, int underPaid)
+    {
+        var parts = new List<string>();
+        if (underPaid > 0)
+        {
+            parts.Add($"{underPaid} underpaid");
+        }
+
+        if (pending > 0)
+        {
+            parts.Add($"{pending} pending");
+        }
+
+        return new Microsoft.AspNetCore.Html.HtmlString(parts.Count > 0
+            ? $"<b class=\"u-color-c0392b\">⚠ {string.Join(", ", parts)}</b>"
+            : "<span class=\"u-color-888\">—</span>");
+    }
+
+    // Too much sent recently: the sponsorship is live, but the excess may need refunding.
+    static Microsoft.AspNetCore.Html.IHtmlContent OverpaidNote(int overPaid) =>
+        new Microsoft.AspNetCore.Html.HtmlString(overPaid > 0
+            ? $"<small class=\"u-color-c0392b\" title=\"Overpaid in the last 30 days\">({overPaid} overpaid)</small>"
+            : string.Empty);
 }
 
 @section PageContent {
@@ -106,6 +131,8 @@
         var newestProb = ViewBag.NewestPendingProblemUtc as DateTime?;
         var newestVerif = ViewBag.NewestPendingVerificationUtc as DateTime?;
         var unpaidCheckout = ViewBag.LastInvoicePendingUtc as DateTime?;
+        var invAttn = ViewBag.InvoiceAttention is ValueTuple<int, int, int> ia ? ia : (0, 0, 0);
+        var vidAttn = ViewBag.VideoAttention is ValueTuple<int, int, int, DateTime?> va ? va : (0, 0, 0, (DateTime?)null);
 
         // The single newest thing a user sent that still needs looking at.
         var waiting = new List<(string Label, DateTime When, string Url)>();
@@ -173,31 +200,24 @@
                 <tr>
                     <td><a href="~/sponsoredlistinginvoice"><b>Site Sponsors</b></a></td>
                     <td>
-                        @if (ViewBag.LastInvoicePendingUtc is DateTime lastPending)
-                        {
-                            <span class="u-color-c0392b" title="Newest unpaid checkout: @lastPending.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC">⚠ unpaid checkout</span>
-                        }
-                        else
-                        {
-                            <span class="u-color-888">—</span>
-                        }
+                        @PaymentAttention(invAttn.Item1, invAttn.Item2)
                     </td>
                     <td>@AgoCell(unpaidCheckout)</td>
-                    <td>@AgoCell(ViewBag.LastInvoicePaidUtc as DateTime?)</td>
+                    <td>@AgoCell(ViewBag.LastInvoicePaidUtc as DateTime?) @OverpaidNote(invAttn.Item3)</td>
                 </tr>
                 <tr>
                     <td>
                         <a href="~/admin/video-sponsorship/sponsors"><b>Video Sponsors</b></a>
                         <small>&middot; <a href="~/admin/video-sponsorship/orders">orders</a></small>
                     </td>
-                    <td><span class="u-color-888">—</span></td>
-                    <td><span class="u-color-888">—</span></td>
-                    <td>@AgoCell(ViewBag.LastVideoSponsorPaidUtc as DateTime?)</td>
+                    <td>@PaymentAttention(vidAttn.Item1, vidAttn.Item2)</td>
+                    <td>@AgoCell(vidAttn.Item4)</td>
+                    <td>@AgoCell(ViewBag.LastVideoSponsorPaidUtc as DateTime?) @OverpaidNote(vidAttn.Item3)</td>
                 </tr>
             </tbody>
         </table>
     </div>
-    <small class="u-color-888"><i>Newest waiting = the most recent item not yet handled (blank when nothing is waiting). Hover a time for the exact date (UTC). Paid = payment detected by BTCPay.</i></small>
+    <small class="u-color-888"><i>Newest waiting = the most recent item not yet handled (blank when nothing is waiting). Hover a time for the exact date (UTC). Paid = payment detected by BTCPay. For sponsors, "pending" = payment seen but not confirmed, "underpaid" = too little sent (not activated), "overpaid" = too much sent in the last 30 days (activated; excess may need refunding).</i></small>
 
     <hr />
 
@@ -247,7 +267,7 @@
             }
             @if (ViewBag.LastInvoicePendingUtc is DateTime lastPending2)
             {
-                <small class="u-color-c0392b">&nbsp;⚠ pending @FormatAgoCompact(lastPending2)</small>
+                <small class="u-color-c0392b">&nbsp;⚠ @(invAttn.Item2 > 0 ? "underpaid or pending" : "pending") @FormatAgoCompact(lastPending2)</small>
             }
         </li>
         <li><a href="~/sponsoredlisting/list">Active listings</a></li>
@@ -348,6 +368,7 @@
         <li><a href="~/contentsnippetmanagement">Content snippets</a></li>
         <li><a href="~/sitefilesmanagement">Site file management</a></li>
         <li><a href="~/submissionblockedterms">Submission Blacklist</a></li>
+        <li><a href="~/submissionblockeddomains">Blocked Domains</a></li>
         <li>
             Payment processors
             <ul>

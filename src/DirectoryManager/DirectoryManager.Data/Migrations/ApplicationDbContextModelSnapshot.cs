@@ -2430,6 +2430,37 @@ namespace DirectoryManager.Data.Migrations
                     b.ToTable("Submissions");
                 });
 
+            modelBuilder.Entity("DirectoryManager.Data.Models.SubmissionBlockedDomain", b =>
+                {
+                    b.Property<int>("SubmissionBlockedDomainId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("SubmissionBlockedDomainId"));
+
+                    b.Property<DateTime>("CreateDate")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Domain")
+                        .IsRequired()
+                        .HasMaxLength(253)
+                        .HasColumnType("character varying(253)");
+
+                    b.Property<bool>("IsEnabled")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.HasKey("SubmissionBlockedDomainId");
+
+                    b.HasIndex("Domain")
+                        .IsUnique();
+
+                    b.ToTable("SubmissionBlockedDomains");
+                });
+
             modelBuilder.Entity("DirectoryManager.Data.Models.SubmissionBlockedTerm", b =>
                 {
                     b.Property<int>("SubmissionBlockedTermId")

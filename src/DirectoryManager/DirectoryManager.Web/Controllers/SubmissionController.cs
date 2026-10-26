@@ -48,6 +48,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly IBtcPayServerService btcPay;
         private readonly IDirectoryEntryAdditionalSubcategoryRepository? additionalSubcategoryRepo;
         private readonly ISubmissionBlockedTermRepository blockedTermRepository;
+        private readonly ISubmissionBlockedDomainRepository? blockedDomainRepository;
 
         public SubmissionController(
             UserManager<ApplicationUser> userManager,
@@ -66,9 +67,11 @@ namespace DirectoryManager.Web.Controllers
             ICaptchaService captcha,
             ISubmissionBlockedTermRepository blockedTermRepository,
             IBtcPayServerService btcPay,
-            IDirectoryEntryAdditionalSubcategoryRepository? additionalSubcategoryRepo = null)
+            IDirectoryEntryAdditionalSubcategoryRepository? additionalSubcategoryRepo = null,
+            ISubmissionBlockedDomainRepository? blockedDomainRepository = null)
             : base(cache)
         {
+            this.blockedDomainRepository = blockedDomainRepository;
             this.additionalSubcategoryRepo = additionalSubcategoryRepo;
             this.userManager = userManager;
             this.blockedTermRepository = blockedTermRepository;
@@ -195,6 +198,7 @@ namespace DirectoryManager.Web.Controllers
 
             // ---- No links straight to programs, installers or archives (new listings and edits) ----
             this.ValidateNoFileDownloadLinks(model);
+            await this.ValidateNoBlockedDomainsAsync(model);
 
             // Links belong in the dedicated Link fields, not in free-text. Reject URLs
             // pasted into the Description or Note so submitters stop putting them there.
@@ -1059,6 +1063,17 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("Preview", previewModel);
             }
 
+            // ---- A domain blocked after this draft was made is still refused. ----
+            var confirmBlocked = await this.BlockedDomainInAsync(
+                submission.Link, submission.Link2, submission.Link3, submission.ProofLink, submission.VideoLink, submission.SourceCodeLink);
+
+            if (confirmBlocked != null)
+            {
+                this.ModelState.AddModelError(string.Empty, BlockedDomainMessage("link", confirmBlocked));
+                var previewModel = await this.GetSubmissionPreviewAsync(submission);
+                return this.View("Preview", previewModel);
+            }
+
             // ✅ If user didn't provide FoundedDate during preview creation,
             // set it now (final submission), using:
             // 1) existing directory entry founded date if present, else
@@ -1232,11 +1247,6 @@ namespace DirectoryManager.Web.Controllers
                 .ToList();
         }
 
-        /// <summary>
-        /// Checks the submitter's free-text fields against the admin-managed blocked-term
-        /// list and adds a model error per offending field. Fail-open: if the list can't be
-        /// read, a submission is never blocked by an infrastructure problem.
-        /// </summary>
         // Message for the submitter when the same link, or an edit of the same listing, is already
         // waiting for review; null when this submission may go ahead.
         private async Task<string?> PendingDuplicateMessageAsync(string? link, int? directoryEntryId, int? excludeSubmissionId)
@@ -1259,6 +1269,20 @@ namespace DirectoryManager.Web.Controllers
         // archive. Runs on the form step, so the submitter sees it before the captcha.
         private void ValidateNoFileDownloadLinks(SubmissionRequest model)
         {
+            foreach (var (key, label, value) in LinkFields(model))
+            {
+                var ext = UrlHelper.BlockedFileExtension(value);
+
+                if (ext != null)
+                {
+                    this.ModelState.AddModelError(key, FileDownloadLinkMessage(label, ext));
+                }
+            }
+        }
+
+        // Every link field a submitter can fill in, with its form key and a readable label.
+        private static List<(string Key, string Label, string? Value)> LinkFields(SubmissionRequest model)
+        {
             var fields = new List<(string Key, string Label, string? Value)>
             {
                 (nameof(model.Link), "Link", model.Link),
@@ -1277,21 +1301,79 @@ namespace DirectoryManager.Web.Controllers
                 fields.Add(($"Guarantees[{i}].Link", $"Guarantee {i + 1} proof link", model.Guarantees![i].Link));
             }
 
-            foreach (var (key, label, value) in fields)
-            {
-                var ext = UrlHelper.BlockedFileExtension(value);
+            return fields;
+        }
 
-                if (ext != null)
+        // Links to websites on the admin-managed blocked-domains list are refused on the form.
+        private async Task ValidateNoBlockedDomainsAsync(SubmissionRequest model)
+        {
+            if (this.blockedDomainRepository == null)
+            {
+                return;
+            }
+
+            IReadOnlyList<DirectoryManager.Data.Models.SubmissionBlockedDomain> blocked;
+            try
+            {
+                blocked = await this.blockedDomainRepository.GetEnabledAsync();
+            }
+            catch
+            {
+                return;
+            }
+
+            if (blocked.Count == 0)
+            {
+                return;
+            }
+
+            foreach (var (key, label, value) in LinkFields(model))
+            {
+                var hit = UrlHelper.MatchBlockedDomain(value, blocked.Select(b => b.Domain));
+                if (hit == null)
                 {
-                    this.ModelState.AddModelError(key, FileDownloadLinkMessage(label, ext));
+                    continue;
                 }
+
+                var custom = blocked.FirstOrDefault(b => b.Domain == hit)?.Message;
+                this.ModelState.AddModelError(
+                    key,
+                    string.IsNullOrWhiteSpace(custom) ? BlockedDomainMessage(label, hit) : custom!);
             }
         }
+
+        // The first blocked domain any of these links is on, or null (also null if the list can't be read).
+        private async Task<string?> BlockedDomainInAsync(params string?[] links)
+        {
+            if (this.blockedDomainRepository == null)
+            {
+                return null;
+            }
+
+            try
+            {
+                var blocked = (await this.blockedDomainRepository.GetEnabledAsync()).Select(b => b.Domain).ToList();
+                return links.Select(l => UrlHelper.MatchBlockedDomain(l, blocked)).FirstOrDefault(h => h != null);
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        internal static string BlockedDomainMessage(string label, string domain) =>
+            $"The {label} goes to {domain}, which is not accepted on this directory. " +
+            "Please link to the business's own website instead.";
 
         internal static string FileDownloadLinkMessage(string label, string ext) =>
             $"The {label} points to a .{ext} file. Links must go to a web page, not to a file to download " +
             "(programs, installers and archives are not allowed). Please link to the site's page instead.";
 
+        /// <summary>
+        /// Checks the submitter's free-text fields against the admin-managed blocked-term
+        /// list and adds a model error per offending field. Fail-open: if the list can't be
+        /// read, a submission is never blocked by an infrastructure problem.
+        /// </summary>
         private async Task ValidateAgainstBlockedTermsAsync(SubmissionRequest model)
         {
             IReadOnlyList<DirectoryManager.Data.Models.SubmissionBlockedTerm> terms;

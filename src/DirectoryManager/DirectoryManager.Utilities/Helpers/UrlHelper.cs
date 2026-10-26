@@ -316,6 +316,68 @@ namespace DirectoryManager.Web.Helpers
             return host + (uri.IsDefaultPort ? string.Empty : ":" + uri.Port) + path + query;
         }
 
+        /// <summary>
+        /// A domain as stored in the blocked-domains list: lower case, no scheme, path, port,
+        /// trailing dot or leading "www." ("https://www.Muse.ai/files/x" → "muse.ai").
+        /// Null when blank or not a host name with at least one dot.
+        /// </summary>
+        public static string? NormalizeDomain(string? value)
+        {
+            if (string.IsNullOrWhiteSpace(value))
+            {
+                return null;
+            }
+
+            var candidate = value.Trim();
+            if (candidate.StartsWith("*.", StringComparison.Ordinal))
+            {
+                candidate = candidate[2..];
+            }
+
+            if (!candidate.Contains("://", StringComparison.Ordinal))
+            {
+                candidate = "https://" + candidate;
+            }
+
+            if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri) || string.IsNullOrEmpty(uri.Host))
+            {
+                return null;
+            }
+
+            var host = uri.IdnHost.ToLowerInvariant().TrimEnd('.');
+            if (host.StartsWith("www.", StringComparison.Ordinal))
+            {
+                host = host[4..];
+            }
+
+            return host.Contains('.', StringComparison.Ordinal) ? host : null;
+        }
+
+        /// <summary>
+        /// The blocked domain that <paramref name="url"/> is on, or null. A blocked domain also
+        /// covers all of its subdomains ("muse.ai" blocks "files.muse.ai" but not "notmuse.ai").
+        /// </summary>
+        public static string? MatchBlockedDomain(string? url, IEnumerable<string> blockedDomains)
+        {
+            var host = NormalizeDomain(url);
+            if (host == null)
+            {
+                return null;
+            }
+
+            foreach (var raw in blockedDomains)
+            {
+                var blocked = NormalizeDomain(raw);
+                if (blocked != null
+                    && (host == blocked || host.EndsWith("." + blocked, StringComparison.Ordinal)))
+                {
+                    return blocked;
+                }
+            }
+
+            return null;
+        }
+
         /// <summary>True when both URLs are the same link (see <see cref="LinkKey"/>).</summary>
         public static bool SameLink(string? a, string? b)
         {
