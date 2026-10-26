@@ -28,6 +28,14 @@
         if (diff <= TimeSpan.Zero) return "expired";
         return $"{diff.Days}d {diff.Hours}h {diff.Minutes}m";
     }
+
+    // "Nov 23, 2026 (28 days left)" — plain-language end date for the slot this listing holds.
+    internal static string FormatUntil(DateTime utc, DateTime nowUtc)
+    {
+        var daysLeft = (int)Math.Ceiling((utc - nowUtc).TotalDays);
+        var left = daysLeft <= 0 ? "ends today" : daysLeft == 1 ? "1 day left" : $"{daysLeft} days left";
+        return $"{utc.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)} ({left})";
+    }
 }
 
 @{
@@ -63,6 +71,14 @@
             scopeSubCategoryId = subCategoryId
         }) ?? "/sponsoredlisting/selectduration";
 
+    // This listing already holds this slot: highlight the whole card so it's obvious at a glance.
+    var isYours = opt.IsExtension;
+    var typeName = DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(opt.SponsorshipType);
+    var anchorId = $"slot-{(int)opt.SponsorshipType}-{Model.TypeId ?? 0}";
+    var yoursCardStyle = isYours
+        ? "border:2px solid var(--green, #18ff6d);background:rgba(24,255,109,.07);"
+        : null;
+
     var hasWaitlist = opt.Waitlist != null && opt.Waitlist.Count > 0;
 
     var waitlistUrl =
@@ -72,7 +88,13 @@
 
 }
 
-<div class="card u-p-14px-rounded-12px">
+<div class="card u-p-14px-rounded-12px" id="@anchorId" style="@yoursCardStyle">
+    @if (isYours)
+    {
+        <div style="display:inline-block;background:var(--green, #18ff6d);color:#000;font-weight:700;padding:3px 10px;border-radius:999px;font-size:.85em;margin-bottom:8px;">
+            &#10003; You have this slot
+        </div>
+    }
     <div class="u-flex-justify-space-between-items-flex-start-gap-12px">
         <div>
             <h3 class="u-m-0-0-6px-0">@title</h3>
@@ -82,17 +104,20 @@
             }
 
             <div class="u-opacity-9">
-                @if (!eligible)
+                @if (isYours)
+                {
+                    <span>
+                        <strong>This listing is the current @typeName here.</strong>
+                        @if (opt.YourActiveUntilUtc.HasValue)
+                        {
+                            <text>Active until <strong>@FormatUntil(opt.YourActiveUntilUtc.Value, nowUtc)</strong>.</text>
+                        }
+                        You can extend anytime.
+                    </span>
+                }
+                else if (!eligible)
                 {
                     <span><strong>Not eligible yet</strong> — you can still subscribe above.</span>
-                }
-                else if (opt.IsExtension)
-                {
-                    <span><strong>Active</strong> — you can extend anytime.</span>
-                    @if (opt.YourActiveUntilUtc.HasValue)
-                    {
-                        <text>(</text><span class="u-dim-85">until <strong>@FormatUtcFull(opt.YourActiveUntilUtc.Value)</strong></span><text>)</text>
-                    }
                 }
                 else if (availableNow)
                 {

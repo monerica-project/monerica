@@ -21,13 +21,7 @@
     <hr />
     @await Html.PartialAsync("_Steps", 3)
 
-    <div class="alert alert-info" role="alert">
-        This is a <strong>video sponsorship</strong> on the @siteName YouTube channel@(string.IsNullOrWhiteSpace(Model.ChannelUrl) ? "." : ":")
-        @if (!string.IsNullOrWhiteSpace(Model.ChannelUrl))
-        {
-            <a href="@Model.ChannelUrl" target="_blank" rel="noopener">@Model.ChannelUrl</a>
-        }
-    </div>
+    @await Html.PartialAsync("_VideoSponsorIncludes")
 
     @if (!string.IsNullOrWhiteSpace(Model.Notice))
     {

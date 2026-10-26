@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+using DirectoryManager.Web.Extensions;
+using Microsoft.AspNetCore.Mvc;
 
 namespace DirectoryManager.Web.Controllers
 {
@@ -8,11 +9,21 @@ namespace DirectoryManager.Web.Controllers
         {
         }
 
-        [Route("errors/404")]
-        [HttpGet]
-        public IActionResult Page404()
+        /// <summary>
+        /// The error page. Reached by re-execution from UseStatusCodePagesWithReExecute (the
+        /// browser stays on the URL it asked for and gets the real status), or directly. Any HTTP
+        /// method is accepted, because a re-executed request keeps its original method (a POST to
+        /// a missing URL must still get the page, not a 405).
+        /// </summary>
+        [Route("errors/{code:int}")]
+        public IActionResult Error(int code)
         {
-            return this.View("404");
+            var status = code is >= 400 and <= 599 ? code : 404;
+            this.Response.StatusCode = status;
+
+            this.PageMeta().Clear();
+
+            return this.View(status == 404 ? "404" : "Status", status);
         }
     }
 }

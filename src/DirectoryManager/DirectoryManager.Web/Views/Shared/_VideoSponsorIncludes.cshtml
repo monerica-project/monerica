@@ -1,0 +1,36 @@
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
+@{
+    // What every sponsored video includes, shown during checkout. Each part only shows
+    // when its URL is set on the video sponsorship admin page.
+    var siteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
+    var channelUrl = ((await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.VideoSponsorshipChannelUrl)) ?? string.Empty).Trim();
+    var videoSiteUrl = ((await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.VideoSponsorshipVideoSiteUrl)) ?? string.Empty).Trim();
+    var blogUrl = ((await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.VideoSponsorshipBlogUrl)) ?? string.Empty).Trim();
+    string HostOf(string url) => Uri.TryCreate(url, UriKind.Absolute, out var u) ? u.Host : url;
+}
+<div class="alert alert-info" role="alert">
+    <p><strong>Every sponsored video includes:</strong></p>
+    <ul>
+        <li>
+            The video on the @siteName YouTube channel@(string.IsNullOrWhiteSpace(channelUrl) ? "" : ":")
+            @if (!string.IsNullOrWhiteSpace(channelUrl))
+            {
+                <a href="@channelUrl" target="_blank" rel="noopener">@channelUrl</a>
+            }
+        </li>
+        @if (!string.IsNullOrWhiteSpace(videoSiteUrl))
+        {
+            <li>
+                The same video on <a href="@videoSiteUrl" target="_blank" rel="noopener">@HostOf(videoSiteUrl)</a>,
+                our own video site, for viewers who avoid YouTube (no JavaScript, works over Tor).
+            </li>
+        }
+        @if (!string.IsNullOrWhiteSpace(blogUrl))
+        {
+            <li>
+                A blog article about the video on <a href="@blogUrl" target="_blank" rel="noopener">@HostOf(blogUrl)</a>,
+                with the video embedded and a link to your product.
+            </li>
+        }
+    </ul>
+</div>

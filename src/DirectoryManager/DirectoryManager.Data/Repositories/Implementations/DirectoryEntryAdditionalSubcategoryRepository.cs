@@ -15,6 +15,16 @@ namespace DirectoryManager.Data.Repositories.Implementations
             this.db = db;
         }
 
+        public async Task<List<(int DirectoryEntryId, int SubCategoryId)>> GetAllPairsAsync(CancellationToken ct = default)
+        {
+            var rows = await this.db.DirectoryEntryAdditionalSubcategories
+                .AsNoTracking()
+                .Select(a => new { a.DirectoryEntryId, a.SubCategoryId })
+                .ToListAsync(ct)
+                .ConfigureAwait(false);
+            return rows.Select(r => (r.DirectoryEntryId, r.SubCategoryId)).ToList();
+        }
+
         public async Task<List<DirectoryEntryAdditionalSubcategory>> GetByDirectoryEntryIdAsync(int directoryEntryId, CancellationToken ct = default)
         {
             return await this.db.DirectoryEntryAdditionalSubcategories

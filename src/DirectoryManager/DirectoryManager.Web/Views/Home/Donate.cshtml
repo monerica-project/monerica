@@ -1,7 +1,14 @@
 ﻿@using DirectoryManager.Web.Constants;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService seoCache
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @{
     PageMeta.Title = "Donate";
+    var seoSite = await seoCache.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
+    var seoCurrency = await seoCache.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.DirectoryCurrencyName);
+    var seoAbout = string.IsNullOrWhiteSpace(seoCurrency) ? string.Empty : $" that accept or relate to {seoCurrency}";
+    var seoListings = string.IsNullOrWhiteSpace(seoCurrency) ? "Listings" : $"{seoCurrency} Listings";
+    PageMeta.SeoTitle = DirectoryManager.Web.Helpers.SeoTitleBuilder.WithBrand($"Donate to {seoSite}", seoSite);
+    PageMeta.MetaDescription = DirectoryManager.Web.Helpers.SeoDescriptionBuilder.Shorten($"Support {seoSite}, the directory of websites and services{seoAbout}, with a donation.");
 }
 @{
     Layout = "_CenteredLayout";

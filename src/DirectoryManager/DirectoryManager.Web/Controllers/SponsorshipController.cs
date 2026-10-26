@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Models.TransferModels;
@@ -32,6 +32,7 @@ namespace DirectoryManager.Web.Controllers
         private const string TempDataWaitlistEmail = "WaitlistEmail";
 
         private const int SearchPageSize = 20;
+        private const int SearchResultsPageSize = 10;
         private const int WaitlistPreviewTake = 10;
         private const int WaitlistPageSize = 25;
         private const int RecentPaidTake = 10;
@@ -87,6 +88,12 @@ namespace DirectoryManager.Web.Controllers
             page = Math.Max(1, page);
             q = (q ?? string.Empty).Trim();
 
+            // Searches have their own results page (old /sponsorship?q=… links land there too).
+            if (q.Length > 0)
+            {
+                return this.RedirectToAction(nameof(this.Search), new { q, page = page > 1 ? page : (int?)null });
+            }
+
             var vm = new SponsorshipIndexVm
             {
                 Query = q,
@@ -117,6 +124,42 @@ namespace DirectoryManager.Web.Controllers
             vm.CurrentSponsors = await this.BuildCurrentSponsorsAsync();
 
             return this.View("Index", vm);
+        }
+
+        /// <summary>
+        /// Sponsorship listing search: its own page, 10 results per page, with the search box on top
+        /// so the visitor can clearly see what they searched and search again.
+        /// </summary>
+        [HttpGet("search")]
+        public async Task<IActionResult> Search(string? q, int page = 1)
+        {
+            q = (q ?? string.Empty).Trim();
+            page = Math.Max(1, page);
+
+            var vm = new SponsorshipIndexVm
+            {
+                Query = q,
+                Page = page,
+                PageSize = SearchResultsPageSize,
+                HasSearched = q.Length > 0,
+            };
+
+            if (vm.HasSearched)
+            {
+                var result = await this.entryRepo.SearchAsync(q, page, SearchResultsPageSize);
+                vm.TotalCount = result.TotalCount;
+                vm.TotalPages = ComputePageCount(result.TotalCount, SearchResultsPageSize);
+
+                if (page > 1 && page > vm.TotalPages)
+                {
+                    return this.RedirectToAction(nameof(this.Search), new { q });
+                }
+
+                var activelySponsored = await this.sponsoredListingRepo.GetActivelySponsoredDirectoryEntryIdsAsync();
+                vm.Results = result.Items.Select(e => this.ToSearchItem(e, activelySponsored)).ToList();
+            }
+
+            return this.View("Search", vm);
         }
 
         // Public pricing-trends chart for the sponsorship pages: the average per-day price paid for a
@@ -150,7 +193,8 @@ namespace DirectoryManager.Web.Controllers
                     : new[] { SponsorshipType.MainSponsor, SponsorshipType.CategorySponsor, SponsorshipType.SubcategorySponsor };
                 foreach (var t in typesForCurrent)
                 {
-                    var offers = await this.offerRepo.GetByTypeAndSubCategoryAsync(t, null).ConfigureAwait(false);
+                    // No placement = the standard price for the type (the main slot has only one price).
+                    var offers = await this.offerRepo.GetOffersForPlacementAsync(t, null).ConfigureAwait(false);
                     var baseOffer = offers?
                         .OrderBy(o => o.Days)
                         .FirstOrDefault(o => o.Days >= 30)
@@ -182,17 +226,20 @@ namespace DirectoryManager.Web.Controllers
 
         // ---- Public pricing-history explorer -------------------------------------------------
         // A public (non-authenticated) page to explore what advertisers have paid: pick a placement
-        // type + subcategory and a date range, capped to the last 180 days. Mirrors the admin report
-        // but never looks back further than the public window.
+        // (all, main, every category page, one category page, every subcategory page or one
+        // subcategory page) and a date range, capped to the last 180 days. History is matched by the
+        // placement saved on each invoice, i.e. where the advertiser actually appeared.
+        // Old links with ?sponsorshipType=&subCategoryId= still work.
         [HttpGet("pricing")]
         public async Task<IActionResult> PricingHistory(
-            int? rangeDays, SponsorshipType? sponsorshipType, int? subCategoryId)
+            int? rangeDays, string? placement, SponsorshipType? sponsorshipType, int? subCategoryId)
         {
             var range = NormalizeRangeDays(rangeDays);
             var end = DateTime.UtcNow.Date;
             var start = end.AddDays(-range);
 
-            var type = sponsorshipType == SponsorshipType.Unknown ? null : sponsorshipType;
+            var (type, placementId) = await this.ResolvePricingPlacementAsync(placement, sponsorshipType, subCategoryId).ConfigureAwait(false);
+            var selected = PricingPlacementValue(type, placementId);
 
             var model = new PublicPricingViewModel
             {
@@ -201,97 +248,116 @@ namespace DirectoryManager.Web.Controllers
                 RangeDays = range,
                 WindowDays = PublicPricingWindowDays,
                 SponsorshipType = type,
-                SubCategoryId = subCategoryId,
+                PlacementId = placementId,
+                Placement = selected,
                 RangeOptions = BuildRangeOptions(range),
             };
 
-            model.SponsorshipTypeOptions = new[]
-                {
-                    SponsorshipType.MainSponsor, SponsorshipType.CategorySponsor, SponsorshipType.SubcategorySponsor,
-                }
-                .Select(st => new SelectListItem
-                {
-                    Value = st.ToString(),
-                    Text = EnumHelper.GetDescription(st),
-                    Selected = type.HasValue && type.Value == st,
-                })
-                .Prepend(new SelectListItem { Value = string.Empty, Text = "All (compare)", Selected = !type.HasValue })
-                .ToList();
-
-            // Subcategory dropdown: only subcategories that have any paid history (by the listing's subcategory).
+            // Only pages that have paid history for that placement type and can still be bought.
             var paid = (await this.invoiceRepo.GetAllAsync().ConfigureAwait(false))
                 .Where(i => i.PaymentStatus == PaymentStatus.Paid).ToList();
-            var entryIds = paid.Select(i => i.DirectoryEntryId).Distinct().ToList();
-            var entryLookup = await this.entryRepo.GetByIdsAsync(entryIds).ConfigureAwait(false);
-            var payingSubIds = paid
-                .Where(i => entryLookup.TryGetValue(i.DirectoryEntryId, out var e) && e != null)
-                .Select(i => entryLookup[i.DirectoryEntryId].SubCategoryId)
-                .Distinct().ToHashSet();
+            var paidCategoryIds = paid
+                .Where(i => i.SponsorshipType == SponsorshipType.CategorySponsor && i.CategoryId.HasValue)
+                .Select(i => i.CategoryId!.Value).ToHashSet();
+            var paidSubIds = paid
+                .Where(i => i.SponsorshipType == SponsorshipType.SubcategorySponsor && i.SubCategoryId.HasValue)
+                .Select(i => i.SubCategoryId!.Value).ToHashSet();
 
-            var allSubs = await this.subcategoryRepo.GetAllAsync().ConfigureAwait(false);
             var allCats = (await this.categoryRepo.GetAllAsync().ConfigureAwait(false)).ToList();
             var catNames = allCats.ToDictionary(c => c.CategoryId, c => c.Name);
             var enabledCatIds = allCats.Where(c => c.IsEnabled).Select(c => c.CategoryId).ToHashSet();
+            var allSubs = await this.subcategoryRepo.GetAllAsync().ConfigureAwait(false);
 
-            // Only offer subcategories that have paid history AND are still enabled (skip hidden /
-            // disabled subcategories, and any whose parent category is disabled — their prices no
-            // longer matter).
-            var payingSubs = allSubs
-                .Where(s => payingSubIds.Contains(s.SubCategoryId) && s.IsEnabled && enabledCatIds.Contains(s.CategoryId))
-                .Select(s => new
-                {
-                    s.SubCategoryId,
-                    Label = DirectoryManager.Common.Helpers.CategoryFormatter.Format(
-                        s.Category?.Name ?? (catNames.TryGetValue(s.CategoryId, out var cn) ? cn : "Unknown"),
-                        s.Name),
-                })
-                .OrderBy(s => s.Label)
+            var categoryOptions = allCats
+                .Where(c => c.IsEnabled && paidCategoryIds.Contains(c.CategoryId))
+                .OrderBy(c => c.Name)
+                .Select(c => (Value: PricingPlacementValue(SponsorshipType.CategorySponsor, c.CategoryId), Text: c.Name))
+                .ToList();
+            var subOptions = allSubs
+                .Where(s => s.IsEnabled && enabledCatIds.Contains(s.CategoryId) && paidSubIds.Contains(s.SubCategoryId))
+                .Select(s => (
+                    Value: PricingPlacementValue(SponsorshipType.SubcategorySponsor, s.SubCategoryId),
+                    Text: DirectoryManager.Common.Helpers.CategoryFormatter.Format(
+                        s.Category?.Name ?? (catNames.TryGetValue(s.CategoryId, out var cn) ? cn : "Unknown"), s.Name)))
+                .OrderBy(x => x.Text)
                 .ToList();
 
-            model.SubCategoryOptions = payingSubs
-                .Select(s => new SelectListItem
-                {
-                    Value = s.SubCategoryId.ToString(),
-                    Text = s.Label,
-                    Selected = subCategoryId.HasValue && subCategoryId.Value == s.SubCategoryId,
-                })
-                .Prepend(new SelectListItem { Value = string.Empty, Text = "All subcategories", Selected = !subCategoryId.HasValue })
-                .ToList();
-
-            if (subCategoryId.HasValue)
+            var catGroup = new SelectListGroup { Name = "One category page" };
+            var subGroup = new SelectListGroup { Name = "One subcategory page" };
+            var options = new List<SelectListItem>
             {
-                model.SubCategoryLabel = payingSubs.FirstOrDefault(s => s.SubCategoryId == subCategoryId.Value)?.Label;
+                new () { Value = string.Empty, Text = "All placements (compare)" },
+                new () { Value = "main", Text = "Main sponsor (sitewide)" },
+                new () { Value = "category", Text = "Every category page" },
+                new () { Value = "subcategory", Text = "Every subcategory page" },
+            };
+            options.AddRange(categoryOptions.Select(o => new SelectListItem { Value = o.Value, Text = o.Text, Group = catGroup }));
+            options.AddRange(subOptions.Select(o => new SelectListItem { Value = o.Value, Text = o.Text, Group = subGroup }));
+            // A page with no paid history yet (linked from the price list) still shows as selected.
+            if (type.HasValue && placementId.HasValue && !options.Any(o => o.Value == selected))
+            {
+                var name = type == SponsorshipType.CategorySponsor
+                    ? (catNames.TryGetValue(placementId.Value, out var n) ? n : null)
+                    : allSubs.Where(x => x.SubCategoryId == placementId.Value)
+                        .Select(x => DirectoryManager.Common.Helpers.CategoryFormatter.Format(
+                            x.Category?.Name ?? (catNames.TryGetValue(x.CategoryId, out var cn2) ? cn2 : "Unknown"), x.Name))
+                        .FirstOrDefault();
+                if (name != null)
+                {
+                    options.Add(new SelectListItem
+                    {
+                        Value = selected,
+                        Text = name,
+                        Group = type == SponsorshipType.CategorySponsor ? catGroup : subGroup,
+                    });
+                }
             }
+
+            foreach (var o in options)
+            {
+                o.Selected = o.Value == selected;
+            }
+
+            model.PlacementOptions = options;
+            model.PlacementLabel = options.FirstOrDefault(o => o.Selected && !string.IsNullOrEmpty(o.Value))?.Text;
 
             return this.View(model);
         }
 
         [HttpGet("pricing-history-chart")]
         public async Task<IActionResult> PricingHistoryChart(
-            int? rangeDays, SponsorshipType? sponsorshipType, int? subCategoryId)
+            int? rangeDays, string? placement, SponsorshipType? sponsorshipType, int? subCategoryId)
         {
             var range = NormalizeRangeDays(rangeDays);
             var end = DateTime.UtcNow.Date;
             var start = end.AddDays(-range);
 
-            var type = sponsorshipType == SponsorshipType.Unknown ? null : sponsorshipType;
+            var (type, placementId) = await this.ResolvePricingPlacementAsync(placement, sponsorshipType, subCategoryId).ConfigureAwait(false);
 
             var paid = (await this.invoiceRepo.GetAllAsync().ConfigureAwait(false))
                 .Where(i => i.PaymentStatus == PaymentStatus.Paid).ToList();
 
-            var scopeLabel = "all subcategories";
-            if (subCategoryId.HasValue)
+            var typeLabel = type.HasValue ? EnumHelper.GetDescription(type.Value) : "All placements";
+            var scopeLabel = type switch
             {
-                var entryIds = paid.Select(i => i.DirectoryEntryId).Distinct().ToList();
-                var entryLookup = await this.entryRepo.GetByIdsAsync(entryIds).ConfigureAwait(false);
+                SponsorshipType.CategorySponsor => "every category page",
+                SponsorshipType.SubcategorySponsor => "every subcategory page",
+                SponsorshipType.MainSponsor => "sitewide",
+                _ => "all pages",
+            };
+
+            if (type.HasValue && placementId.HasValue)
+            {
+                var id = placementId.Value;
                 paid = paid
-                    .Where(i => entryLookup.TryGetValue(i.DirectoryEntryId, out var e) && e != null && e.SubCategoryId == subCategoryId.Value)
+                    .Where(i => i.SponsorshipType == type.Value
+                                && (type.Value == SponsorshipType.CategorySponsor ? i.CategoryId == id : i.SubCategoryId == id))
                     .ToList();
-                scopeLabel = (await this.subcategoryRepo.GetByIdAsync(subCategoryId.Value).ConfigureAwait(false))?.Name
-                    ?? $"subcategory {subCategoryId.Value}";
+                scopeLabel = type.Value == SponsorshipType.CategorySponsor
+                    ? (await this.categoryRepo.GetByIdAsync(id).ConfigureAwait(false))?.Name ?? $"category {id}"
+                    : (await this.subcategoryRepo.GetByIdAsync(id).ConfigureAwait(false))?.Name ?? $"subcategory {id}";
             }
 
-            var typeLabel = type.HasValue ? EnumHelper.GetDescription(type.Value) : "All placements";
             var label = $"{typeLabel} · {scopeLabel} · {start:MMM d, yyyy}–{end:MMM d, yyyy}";
 
             var bytes = new InvoicePlotting().CreateDailyAvgPriceByTypeChart(
@@ -308,6 +374,65 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return this.File(bytes, StringConstants.PngImage);
+        }
+
+        // Picker value for a placement: "", "main", "category", "subcategory", "category-8", "subcategory-73".
+        internal static string PricingPlacementValue(SponsorshipType? type, int? placementId) => type switch
+        {
+            SponsorshipType.MainSponsor => "main",
+            SponsorshipType.CategorySponsor => placementId.HasValue ? $"category-{placementId}" : "category",
+            SponsorshipType.SubcategorySponsor => placementId.HasValue ? $"subcategory-{placementId}" : "subcategory",
+            _ => string.Empty,
+        };
+
+        // Parses the picker value. Returns (null, null) for "all".
+        internal static (SponsorshipType? Type, int? PlacementId) ParsePricingPlacement(string? placement)
+        {
+            var value = (placement ?? string.Empty).Trim().ToLowerInvariant();
+            if (value == "main")
+            {
+                return (SponsorshipType.MainSponsor, null);
+            }
+
+            foreach (var (prefix, type) in new[] { ("category", SponsorshipType.CategorySponsor), ("subcategory", SponsorshipType.SubcategorySponsor) })
+            {
+                if (value == prefix)
+                {
+                    return (type, null);
+                }
+
+                if (value.StartsWith(prefix + "-", StringComparison.Ordinal)
+                    && int.TryParse(value.AsSpan(prefix.Length + 1), out var id) && id > 0)
+                {
+                    return (type, id);
+                }
+            }
+
+            return (null, null);
+        }
+
+        // New ?placement= wins; otherwise map the old ?sponsorshipType=&subCategoryId= links.
+        private async Task<(SponsorshipType? Type, int? PlacementId)> ResolvePricingPlacementAsync(
+            string? placement, SponsorshipType? sponsorshipType, int? subCategoryId)
+        {
+            if (!string.IsNullOrWhiteSpace(placement))
+            {
+                return ParsePricingPlacement(placement);
+            }
+
+            var type = sponsorshipType == SponsorshipType.Unknown ? null : sponsorshipType;
+            if (!type.HasValue || !subCategoryId.HasValue || type == SponsorshipType.MainSponsor)
+            {
+                return (type, null);
+            }
+
+            if (type == SponsorshipType.CategorySponsor)
+            {
+                var sub = await this.subcategoryRepo.GetByIdAsync(subCategoryId.Value).ConfigureAwait(false);
+                return (type, sub?.CategoryId);
+            }
+
+            return (type, subCategoryId);
         }
 
         // The only look-back windows the public view offers. Never exceeds the 180-day cap.
@@ -337,26 +462,13 @@ namespace DirectoryManager.Web.Controllers
             page = Math.Max(1, page);
             q = (q ?? string.Empty).Trim();
 
-            var vm = new SponsorshipIndexVm
+            // Searches have their own results page; old search links land there too.
+            if (q.Length > 0)
             {
-                Query = q,
-                Page = page,
-                PageSize = SearchPageSize,
-                HasSearched = !string.IsNullOrWhiteSpace(q),
-            };
-
-            if (vm.HasSearched)
-            {
-                var result = await this.entryRepo
-                    .SearchAsync(q, page, SearchPageSize);
-
-                vm.TotalCount = result.TotalCount;
-                vm.TotalPages = ComputePageCount(
-                    result.TotalCount, SearchPageSize);
-                var activelySponsored = await this.sponsoredListingRepo.GetActivelySponsoredDirectoryEntryIdsAsync();
-                vm.Results = result.Items
-                    .Select(e => this.ToSearchItem(e, activelySponsored)).ToList();
+                return this.RedirectToAction(nameof(this.Search), new { q, page = page > 1 ? page : (int?)null });
             }
+
+            var vm = new SponsorshipIndexVm();
 
             // Latest payments only (last 10).
             vm.RecentPaid = await this.BuildRecentPaidAsync(RecentPaidTake);
@@ -909,16 +1021,14 @@ namespace DirectoryManager.Web.Controllers
                     SponsorshipType.SubcategorySponsor,
                     catName, subName));
 
-            int? pricingSubId =
-                entry.SubCategoryId > 0
-                    ? entry.SubCategoryId : null;
-
+            // Each placement has its own price list: the main slot, this listing's category page
+            // and its subcategory page (each falls back to the standard price when it has none).
             main.Offers = await this.LoadOffersAsync(
-                SponsorshipType.MainSponsor, pricingSubId);
+                SponsorshipType.MainSponsor, null);
             cat.Offers = await this.LoadOffersAsync(
-                SponsorshipType.CategorySponsor, pricingSubId);
+                SponsorshipType.CategorySponsor, catId > 0 ? catId : null);
             sub.Offers = await this.LoadOffersAsync(
-                SponsorshipType.SubcategorySponsor, pricingSubId);
+                SponsorshipType.SubcategorySponsor, subId > 0 ? subId : null);
 
             // Apply the cross-tier existing-sponsor perk to each placement this listing could buy, so the
             // options page shows the same discounted pricing the buyer will get at checkout.
@@ -991,6 +1101,7 @@ namespace DirectoryManager.Web.Controllers
                 SubcategoryName = subName ?? string.Empty,
 
                 CanAdvertise = canAdvertise,
+                CanSponsorVideo = VideoSponsorEligibility.Check(entry, DateTime.UtcNow).CanSponsor,
                 IneligibilityReasons = reasons,
                 ShowSubscribedBanner = subscribed == 1,
 
@@ -1006,16 +1117,10 @@ namespace DirectoryManager.Web.Controllers
         }
 
         private async Task<List<SponsorshipOfferVm>> LoadOffersAsync(
-            SponsorshipType type, int? subcategoryId)
+            SponsorshipType type, int? placementId)
         {
             var offers = await this.offerRepo
-                .GetByTypeAndSubCategoryAsync(type, subcategoryId);
-
-            if (offers == null || !offers.Any())
-            {
-                offers = await this.offerRepo
-                    .GetByTypeAndSubCategoryAsync(type, null);
-            }
+                .GetOffersForPlacementAsync(type, placementId);
 
             return offers
                 .OrderBy(x => x.Days)
@@ -1610,7 +1715,11 @@ namespace DirectoryManager.Web.Controllers
                     continue;
                 }
 
-                var validOffers = offers.Where(o => o.Days > 0).ToList();
+                // Every placement that can be bought today: the standard price plus each category /
+                // subcategory page's own price (retired pages excluded), so "from $X" is the true minimum.
+                var validOffers = offers
+                    .Where(o => o.Days > 0 && DirectoryManager.Data.Helpers.SponsoredListingOfferPlacement.IsLivePlacement(o))
+                    .ToList();
                 if (!validOffers.Any())
                 {
                     continue;

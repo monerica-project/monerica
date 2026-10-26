@@ -1,4 +1,4 @@
-﻿using BtcPayServer.API.Models;
+using BtcPayServer.API.Models;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.VideoSponsorships;
@@ -85,6 +85,7 @@ namespace DirectoryManager.Web.Controllers
                 Offers = (await this.repository.GetOffersAsync(enabledOnly: true, ct)).Select(o => ToOfferRow(o, 0m)).ToList(),
                 ChannelUrl = await this.GetChannelUrlAsync(),
                 VideoSiteUrl = ((await this.cacheService.GetSnippetAsync(SiteConfigSetting.VideoSponsorshipVideoSiteUrl)) ?? string.Empty).Trim(),
+                BlogUrl = ((await this.cacheService.GetSnippetAsync(SiteConfigSetting.VideoSponsorshipBlogUrl)) ?? string.Empty).Trim(),
                 DeliveryDays = Common.Constants.IntegerConstants.VideoSponsorDeliveryDays,
                 Sponsorships = paidOrders
                     .SelectMany(o => o.Items.Select(i => new VideoSponsorPublicRow
@@ -96,6 +97,7 @@ namespace DirectoryManager.Web.Controllers
                         PaidUtc = o.PaidUtc,
                         AmountUsd = i.Price,
                         VideoUrl = i.VideoUrl,
+                        BlogArticleUrl = i.BlogArticleUrl,
                     }))
                     .ToList(),
             };
@@ -105,6 +107,45 @@ namespace DirectoryManager.Web.Controllers
 
         // The queue of videos that are still open for a sponsor. A video that has
         // been paid for is no longer purchasable, so it drops off this list.
+        // Finished sponsored videos, newest first, so buyers can see what they get.
+        [HttpGet("examples")]
+        public async Task<IActionResult> Examples(int page = 1, CancellationToken ct = default)
+        {
+            if (!await this.IsFeatureEnabledAsync())
+            {
+                return this.NotFound();
+            }
+
+            const int PageSize = 10;
+            var paidOrders = await this.repository.ListPaidOrdersAsync(ct);
+            var done = paidOrders
+                .SelectMany(o => o.Items
+                    .Where(i => i.CompletedUtc != null && !string.IsNullOrWhiteSpace(i.VideoUrl))
+                    .Select(i => new VideoSponsorPublicRow
+                    {
+                        ListingName = o.DirectoryEntry?.Name ?? string.Empty,
+                        DirectoryEntryKey = o.DirectoryEntry?.DirectoryEntryKey ?? string.Empty,
+                        VideoTitle = i.VideoIdea?.Title ?? i.Title,
+                        OfferName = o.OfferName,
+                        VideoUrl = i.VideoUrl,
+                        BlogArticleUrl = i.BlogArticleUrl,
+                        CompletedUtc = i.CompletedUtc,
+                    }))
+                .OrderByDescending(r => r.CompletedUtc)
+                .ToList();
+
+            var totalPages = Math.Max(1, (int)Math.Ceiling(done.Count / (double)PageSize));
+            page = Math.Clamp(page, 1, totalPages);
+
+            return this.View(new VideoSponsorExamplesVm
+            {
+                Rows = done.Skip((page - 1) * PageSize).Take(PageSize).ToList(),
+                Page = page,
+                TotalPages = totalPages,
+                TotalCount = done.Count,
+            });
+        }
+
         [HttpGet("upcoming")]
         public async Task<IActionResult> Upcoming(CancellationToken ct)
         {

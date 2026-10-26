@@ -81,6 +81,7 @@ namespace DirectoryManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(SponsoredListingOffer sponsoredListingOffer)
         {
+            this.ValidatePlacement(sponsoredListingOffer);
             if (this.ModelState.IsValid)
             {
                 try
@@ -92,7 +93,9 @@ namespace DirectoryManager.Web.Controllers
                 }
                 catch
                 {
-                    return this.BadRequest("Check if the same days and type have been created");
+                    this.ModelState.AddModelError(string.Empty, "A price for this placement and number of days already exists. Edit that one instead.");
+                    await this.SetFormViewBagsAsync(sponsoredListingOffer.SponsorshipType).ConfigureAwait(false);
+                    return this.View(sponsoredListingOffer);
                 }
 
                 return this.RedirectToAction(nameof(this.Index));
@@ -141,6 +144,7 @@ namespace DirectoryManager.Web.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, SponsoredListingOffer sponsoredListingOffer)
         {
+            this.ValidatePlacement(sponsoredListingOffer);
             if (this.ModelState.IsValid)
             {
                 // The form posts the id as SponsoredListingOfferId (the route has no {id}).
@@ -160,9 +164,9 @@ namespace DirectoryManager.Web.Controllers
                     return this.NotFound();
                 }
 
-                // Copy only the fields the Edit form posts, so CreateDate / CreatedByUserId /
-                // CategoryId (not on the form) are preserved.
+                // Copy only the fields the Edit form posts, so CreateDate / CreatedByUserId are preserved.
                 existing.SponsorshipType = sponsoredListingOffer.SponsorshipType;
+                existing.CategoryId = sponsoredListingOffer.CategoryId;
                 existing.SubcategoryId = sponsoredListingOffer.SubcategoryId;
                 existing.Description = sponsoredListingOffer.Description;
                 existing.Days = sponsoredListingOffer.Days;
@@ -170,9 +174,19 @@ namespace DirectoryManager.Web.Controllers
                 existing.PriceCurrency = sponsoredListingOffer.PriceCurrency;
                 existing.IsEnabled = sponsoredListingOffer.IsEnabled;
 
-                await this.sponsoredListingOfferRepository
-                         .UpdateAsync(existing)
-                         .ConfigureAwait(false);
+                try
+                {
+                    await this.sponsoredListingOfferRepository
+                             .UpdateAsync(existing)
+                             .ConfigureAwait(false);
+                }
+                catch
+                {
+                    this.ModelState.AddModelError(string.Empty, "A price for this placement and number of days already exists. Edit that one instead.");
+                    await this.SetFormViewBagsAsync(sponsoredListingOffer.SponsorshipType).ConfigureAwait(false);
+                    return this.View(sponsoredListingOffer);
+                }
+
                 return this.RedirectToAction(nameof(this.Index));
             }
 
@@ -200,6 +214,17 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return this.RedirectToAction(nameof(this.Index));
+        }
+
+        // Main = sitewide; category prices need a category (or none = standard); subcategory prices
+        // need a subcategory (or none = standard). Same rule the database enforces.
+        private void ValidatePlacement(SponsoredListingOffer offer)
+        {
+            var error = DirectoryManager.Data.Helpers.SponsoredListingOfferPlacement.Normalize(offer);
+            if (error != null)
+            {
+                this.ModelState.AddModelError(string.Empty, error);
+            }
         }
 
         private async Task SetFormViewBagsAsync(Data.Enums.SponsorshipType? selectedType = null)

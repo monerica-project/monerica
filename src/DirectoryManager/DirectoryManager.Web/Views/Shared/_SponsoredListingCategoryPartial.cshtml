@@ -6,6 +6,7 @@
 @inject IUrlResolutionService Urls
 @inject IFeaturedListingBuilder FeaturedBuilder
 @inject DirectoryManager.Data.Repositories.Interfaces.ICategoryRepository CategoryRepo
+@inject ISponsorableScopeService SponsorableScopes
 
 @{
     var link2Name = await _cacheHelper.GetSnippetAsync(SiteConfigSetting.Link2Name);
@@ -15,6 +16,10 @@
     var advertiseHref = Url.Action("SelectListing", "SponsoredListing", new { categoryId, sponsorshipType = SponsorshipType.CategorySponsor });
 
     var vm = Model?.DirectoryEntry; // DisplayFormatting.Models.DirectoryEntryViewModel
+
+    // Only offer "Advertise here" when at least one listing in this category could actually buy
+    // the slot (same rule as checkout: Verified + listed long enough, or a current sponsor).
+    var canAdvertise = await SponsorableScopes.CategoryHasBuyerAsync(categoryId);
 
     // Unpaid admin-picked "Featured" listing — only when no paid category sponsor is showing.
     DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel? featured = null;
@@ -63,12 +68,15 @@ else if (featured != null)
     <div class="sponsored-section featured-section u-mb-5px">
         <div class="featured-head">
             <span class="featured-label">Featured</span>
+            @if (canAdvertise)
+            {
             @* Smaller CTA while a featured pick fills the spot; buying the slot replaces it. *@
             <form method="get" action="@Urls.ResolveToApp("/sponsoredlisting/selectlisting")" class="advertise-here-form">
                 <input type="hidden" name="categoryId" value="@categoryId" />
                 <input type="hidden" name="sponsorshipType" value="@SponsorshipType.CategorySponsor" />
                 <button type="submit" class="advertise-here-btn advertise-here-btn--small">Advertise here</button>
             </form>
+            }
         </div>
         <ul class="blank_list_item">
             @await Html.PartialAsync("_DirectoryEntryPartial", featured)
@@ -79,7 +87,7 @@ else if (featured != null)
         }
     </div>
 }
-else
+else if (canAdvertise)
 {
     <p class="category-sponsored-listing">
         @* Submit button (not a link) so crawlers/prefetch don't hit it and skew analytics — lands on the same Select Listing page. *@

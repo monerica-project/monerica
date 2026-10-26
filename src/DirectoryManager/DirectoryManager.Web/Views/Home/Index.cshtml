@@ -101,6 +101,43 @@
     PageMeta.Title = await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageTitle);
     PageMeta.MetaContent = await cacheHelper.GetSnippetAsync(SiteConfigSetting.HomePageMetaTags);
     PageMeta.CurrentCategoryKey = null;
+
+    // WebSite + Organization JSON-LD. Everything comes from config (forks have their own).
+    // Search lives on the app host only (the static mirror cannot run it), so the SearchAction
+    // points there. sameAs lists only official profiles found in config, nothing invented.
+    {
+        var homeSiteName = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
+        var homeUrl = UrlHelper.MakeFullUrl(await cacheHelper.GetSnippetAsync(SiteConfigSetting.CanonicalDomain), "/");
+        var appDomain = await cacheHelper.GetSnippetAsync(SiteConfigSetting.AppDomain);
+        var searchTemplate = string.IsNullOrWhiteSpace(appDomain)
+            ? null
+            : appDomain.TrimEnd('/') + "/search?q={search_term_string}";
+        var homeMeta = SocialMetaTags.Parse(PageMeta.MetaContent);
+        homeMeta.TryGetValue("description", out var homeDescription);
+
+        var sameAs = new List<string>();
+        if (homeMeta.TryGetValue("twitter:site", out var twitterHandle) && !string.IsNullOrWhiteSpace(twitterHandle))
+        {
+            sameAs.Add("https://x.com/" + twitterHandle.Trim().TrimStart('@'));
+        }
+
+        var channelUrl = await cacheHelper.GetSnippetAsync(SiteConfigSetting.VideoSponsorshipChannelUrl);
+        if (!string.IsNullOrWhiteSpace(channelUrl))
+        {
+            sameAs.Add(channelUrl.Trim());
+        }
+
+        if (!string.IsNullOrWhiteSpace(homeSiteName))
+        {
+            PageMeta.CanonicalUrl ??= homeUrl;
+            PageMeta.StructuredData.Add(JsonLdBuilder.WebSite(homeSiteName, homeUrl, homeDescription, searchTemplate));
+            PageMeta.StructuredData.Add(JsonLdBuilder.Organization(
+                homeSiteName,
+                homeUrl,
+                await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteLogoUrl),
+                sameAs));
+        }
+    }
     PageMeta.CurrentSubCategoryKey = null;
     Layout = "_LayoutWithNav";
 }

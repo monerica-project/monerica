@@ -1,4 +1,5 @@
 ﻿@using System.Globalization;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService seoCache
 @using DirectoryManager.DisplayFormatting.Helpers
 @using DirectoryManager.Web.Constants;
 @using DirectoryManager.Web.Helpers
@@ -8,6 +9,20 @@
 
 @{
     PageMeta.Title = "Newest Additions";
+    var seoSite = await seoCache.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
+    var seoCurrency = await seoCache.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.DirectoryCurrencyName);
+    var seoAbout = string.IsNullOrWhiteSpace(seoCurrency) ? string.Empty : $" that accept or relate to {seoCurrency}";
+    var seoListings = string.IsNullOrWhiteSpace(seoCurrency) ? "Listings" : $"{seoCurrency} Listings";
+    PageMeta.SeoTitle = DirectoryManager.Web.Helpers.SeoTitleBuilder.ForSubject($"Newest {seoListings}", null, seoSite, (int)(ViewBag.PageNumber ?? 1));
+    PageMeta.MetaDescription = DirectoryManager.Web.Helpers.SeoDescriptionBuilder.Shorten($"The newest websites and services{seoAbout} added to {seoSite}, grouped by the date they were listed.");
+
+    // Only page 1 is indexed and in the sitemap; deeper pages are a rolling window that shifts
+    // with every new listing. They stay crawlable (follow) and are served by the app.
+    if ((int)(ViewBag.PageNumber ?? 1) > 1)
+    {
+        PageMeta.IsIndexable = false;
+        PageMeta.CanonicalUrl = null;
+    }
     // Use the same wide layout (sidebar + full-width main) as the homepage so the
     // sponsor strip renders identically — the narrow centered column wrapped it 4+1.
     Layout = "_LayoutWithNav";
@@ -45,12 +60,13 @@
                     // Use /newest for page 1, and /newest/page/2+ for others
                     string rawPath = i == 1 ? "/newest" : $"/newest/page/{i}";
 
-                    // Use app link for pages 2+, root for page 1
+                    // Page 1 is on the static mirror (no-app-link). Pages 2+ are not mirrored
+                    // (kept out of the sitemap, noindex), so they link to the app (app-link).
                     string href = i == 1
                     ? UrlResolver.BaseUrl.TrimEnd('/') + rawPath
                     : UrlResolver.ResolveToApp(rawPath);
 
-                    string linkClass = i == 1 ? "no-app-link" : "no-app-link";
+                    string linkClass = i == 1 ? "no-app-link" : "app-link";
 
                     <li class="page-item @(i == currentPage ? "active" : "")">
                         <a class="page-link @linkClass" href="@href">@i</a>

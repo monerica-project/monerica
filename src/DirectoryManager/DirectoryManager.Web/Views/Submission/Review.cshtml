@@ -64,8 +64,8 @@ else
     {
         @Html.HiddenFor(m => m.DirectoryEntryId)
         
-        <p><b>Existing:</b>
-        <a href="~/directoryentry/edit/@Model.DirectoryEntryId">Edit</a>
+        <p><b>Listing ID: @Model.DirectoryEntryId</b>
+        &middot; <a href="~/directoryentry/edit/@Model.DirectoryEntryId">Edit listing #@Model.DirectoryEntryId &rarr;</a>
         </p>
         <p><i>Differences:</i></p>
         @Html.Raw(ViewBag.Differences)

@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
@@ -36,11 +36,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<Subcategory>> GetAllActiveSubCategoriesAsync()
         {
-            // Active = has a live listing whose main OR additional subcategory is this one.
+            // Active = enabled, and has a live listing whose main OR additional subcategory is this one.
             var q = this.context.Subcategories
-                .Where(sc =>
+                .Where(sc => sc.IsEnabled && (
                     this.ActiveDirectoryEntries().Any(e => e.SubCategoryId == sc.SubCategoryId) ||
-                    this.ActiveAdditionalSubcategories().Any(a => a.SubCategoryId == sc.SubCategoryId))
+                    this.ActiveAdditionalSubcategories().Any(a => a.SubCategoryId == sc.SubCategoryId)))
                 .Include(sc => sc.Category)
                 .AsNoTracking()
                 .OrderBy(sc => sc.Name);
@@ -113,7 +113,7 @@ namespace DirectoryManager.Data.Repositories.Implementations
         public async Task<IEnumerable<Subcategory>> GetActiveSubcategoriesAsync(int categoryId)
         {
             return await this.context.Subcategories.AsNoTracking()
-                .Where(sc => sc.CategoryId == categoryId &&
+                .Where(sc => sc.CategoryId == categoryId && sc.IsEnabled &&
                     (this.ActiveDirectoryEntries().Any(e => e.SubCategoryId == sc.SubCategoryId) ||
                      this.ActiveAdditionalSubcategories().Any(a => a.SubCategoryId == sc.SubCategoryId)))
                 .OrderBy(sc => sc.Name)
@@ -148,9 +148,9 @@ namespace DirectoryManager.Data.Repositories.Implementations
         {
             var query = this.context.Subcategories
                 .Include(sc => sc.Category)
-                .Where(subCategory =>
+                .Where(subCategory => subCategory.IsEnabled && (
                     this.ActiveDirectoryEntries().Any(entry => entry.SubCategoryId == subCategory.SubCategoryId) ||
-                    this.ActiveAdditionalSubcategories().Any(a => a.SubCategoryId == subCategory.SubCategoryId));
+                    this.ActiveAdditionalSubcategories().Any(a => a.SubCategoryId == subCategory.SubCategoryId)));
 
             if (minimumInSubcategory.HasValue)
             {

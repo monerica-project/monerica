@@ -5,8 +5,12 @@
 @using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Models.Sponsorship
 @*
-    Price matrix for one sponsorship type: one ROW per scope (the default price, then any
-    subcategory that overrides it) and one COLUMN per duration.
+    Price matrix for one sponsorship type: one ROW per placement and one COLUMN per duration.
+     - Main: the one sitewide slot.
+     - Category: every category page, each with the price it actually costs (its own price, or
+       the standard category price, marked as such).
+     - Subcategory: the standard price (every subcategory page not listed), then each
+       subcategory page with its own price.
 
     Replaces a flat one-row-per-offer table that repeated the scope name and the duration
     on every line — 55 rows per type became 11. Same information, a fifth of the page,
@@ -21,7 +25,14 @@
         .OrderBy(d => d)
         .ToList();
 
-    // Default scope first, then subcategory overrides alphabetically.
+    var scopeHeader = Model.SponsorshipType switch
+    {
+        SponsorshipType.CategorySponsor => "Category page",
+        SponsorshipType.SubcategorySponsor => "Subcategory page",
+        _ => "Placement",
+    };
+
+    // Standard price first, then placements alphabetically.
     var scopes = Model.Offers
         .GroupBy(o => o.CategorySubcategory)
         .OrderBy(g => string.Equals(g.Key, defaultLabel, StringComparison.OrdinalIgnoreCase) ? 0 : 1)
@@ -50,7 +61,7 @@
         <table id="@tableId" class="table u-w-100pct">
             <thead>
                 <tr>
-                    <th>@FormattingHelper.SubcategoryFormatting("Category", "Subcategory")</th>
+                    <th>@scopeHeader</th>
                     @foreach (var d in days)
                     {
                         <th>@d days</th>
@@ -62,23 +73,23 @@
                 {
                     var isDefault = string.Equals(scope.Key, defaultLabel, StringComparison.OrdinalIgnoreCase);
                     var byDays = scope.ToDictionary(o => o.Days, o => o);
-                    var scopeSubId = scope.Select(o => o.ScopeSubCategoryId).FirstOrDefault();
-                    var historyUrl = Url.Action("PricingHistory", "Sponsorship", new
-                    {
-                        sponsorshipType = Model.SponsorshipType,
-                        subCategoryId = (isDefault || scopeSubId <= 0) ? (int?)null : scopeSubId,
-                    });
+                    var first = scope.First();
+                    var historyUrl = Url.Action("PricingHistory", "Sponsorship", new { placement = first.HistoryPlacement });
 
                     <tr>
                         <td>
                             @if (isDefault)
                             {
-                                <strong>Default</strong>
-                                <span class="offer-perday">applies unless the subcategory is listed below</span>
+                                <strong>Standard price</strong>
+                                <span class="offer-perday">every subcategory page not listed below</span>
                             }
                             else
                             {
                                 @scope.Key
+                                @if (first.IsStandardPrice)
+                                {
+                                    <span class="offer-perday">standard price</span>
+                                }
                             }
                             <span class="offer-perday">
                                 <a href="@historyUrl">180-day price history &rarr;</a>

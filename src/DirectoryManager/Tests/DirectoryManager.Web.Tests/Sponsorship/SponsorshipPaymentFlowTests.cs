@@ -104,6 +104,29 @@ namespace DirectoryManager.Web.Tests.Sponsorship
         }
 
         [Fact]
+        public async Task CategoryCheckout_ChargesTheCategoryPagePrice_AndRejectsTheStandardPrice()
+        {
+            using var h = new Harness();
+            h.Db.SponsoredListingOffers.AddRange(
+                new SponsoredListingOffer { SponsoredListingOfferId = 20, Description = "standard", Days = 30, Price = 100m, PriceCurrency = Currency.USD, IsEnabled = true, SponsorshipType = SponsorshipType.CategorySponsor },
+                new SponsoredListingOffer { SponsoredListingOfferId = 21, Description = "exchanges page", Days = 30, Price = 600m, PriceCurrency = Currency.USD, IsEnabled = true, SponsorshipType = SponsorshipType.CategorySponsor, CategoryId = 1 });
+            await h.Db.SaveChangesAsync();
+
+            // The cheaper standard price is not offered for a category page that has its own price.
+            var cheap = await h.ConfirmCheckoutAsync(email: "buyer@example.com", offerId: 20);
+            Assert.False(cheap is RedirectToActionResult r && r.ActionName == "BtcPayNoJsInvoice");
+            Assert.Empty(h.Db.SponsoredListingInvoices);
+
+            var confirm = await h.ConfirmCheckoutAsync(email: "buyer@example.com", offerId: 21);
+            Assert.Equal("BtcPayNoJsInvoice", Assert.IsType<RedirectToActionResult>(confirm).ActionName);
+
+            var invoice = await h.Db.SponsoredListingInvoices.AsNoTracking().SingleAsync();
+            Assert.Equal(600m, invoice.Amount);
+            Assert.Equal(SponsorshipType.CategorySponsor, invoice.SponsorshipType);
+            Assert.Equal(1, invoice.CategoryId);
+        }
+
+        [Fact]
         public async Task SuccessPage_BeforeWebhook_ShowsPending()
         {
             using var h = new Harness();
@@ -394,7 +417,7 @@ namespace DirectoryManager.Web.Tests.Sponsorship
 
             public SponsoredListingCheckoutController Controller { get; }
 
-            public async Task<IActionResult> ConfirmCheckoutAsync(string? email = null, Guid? rsvId = null, bool solveCaptcha = true, bool verifiedEarlier = false, bool keepSession = false)
+            public async Task<IActionResult> ConfirmCheckoutAsync(string? email = null, Guid? rsvId = null, bool solveCaptcha = true, bool verifiedEarlier = false, bool keepSession = false, int offerId = OfferId)
             {
                 var session = keepSession ? this.Controller.HttpContext.Session : null;
                 this.NewRequest();
@@ -421,7 +444,7 @@ namespace DirectoryManager.Web.Tests.Sponsorship
                     ["Captcha"] = "ABCDE",
                 });
 
-                return await this.Controller.ConfirmedCheckoutAsync(EntryId, OfferId, "BTCPayServerNoJs", rsvId, email);
+                return await this.Controller.ConfirmedCheckoutAsync(EntryId, offerId, "BTCPayServerNoJs", rsvId, email);
             }
 
             public async Task<Guid> ReserveAsync()

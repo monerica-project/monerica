@@ -1,4 +1,4 @@
-﻿using System.Globalization;
+using System.Globalization;
 using System.Net;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
@@ -62,6 +62,7 @@ namespace DirectoryManager.Web.Controllers
                 IsPaymentConfigured = this.gateway.IsConfigured,
                 ChannelUrl = (this.contentSnippetRepository.GetValue(SiteConfigSetting.VideoSponsorshipChannelUrl) ?? string.Empty).Trim(),
                 VideoSiteUrl = (this.contentSnippetRepository.GetValue(SiteConfigSetting.VideoSponsorshipVideoSiteUrl) ?? string.Empty).Trim(),
+                BlogUrl = (this.contentSnippetRepository.GetValue(SiteConfigSetting.VideoSponsorshipBlogUrl) ?? string.Empty).Trim(),
                 WebhookUrl = this.Url.Action("BtcPayCallback", "VideoSponsorship", null, this.Request.Scheme) ?? string.Empty,
                 QueuedVideos = queued.Count,
                 OpenToSponsor = (await this.repository.GetAvailableIdeasAsync(now, ct)).Count,
@@ -73,19 +74,22 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpPost("settings")]
         [ValidateAntiForgeryToken]
-        public IActionResult SaveSettings(bool isEnabled, string? channelUrl, string? videoSiteUrl)
+        public IActionResult SaveSettings(bool isEnabled, string? channelUrl, string? videoSiteUrl, string? blogUrl)
         {
             channelUrl = (channelUrl ?? string.Empty).Trim();
             videoSiteUrl = (videoSiteUrl ?? string.Empty).Trim();
-            if ((channelUrl.Length > 0 && !IsHttpUrl(channelUrl)) || (videoSiteUrl.Length > 0 && !IsHttpUrl(videoSiteUrl)))
+            blogUrl = (blogUrl ?? string.Empty).Trim();
+            if ((channelUrl.Length > 0 && !IsHttpUrl(channelUrl)) || (videoSiteUrl.Length > 0 && !IsHttpUrl(videoSiteUrl))
+                || (blogUrl.Length > 0 && !IsHttpUrl(blogUrl)))
             {
-                this.TempData[StringConstants.ErrorMessage] = "The channel and video site URLs must start with http:// or https://.";
+                this.TempData[StringConstants.ErrorMessage] = "The channel, video site and blog URLs must start with http:// or https://.";
                 return this.RedirectToAction(nameof(this.Index));
             }
 
             this.SaveSnippet(SiteConfigSetting.VideoSponsorshipEnabled, isEnabled ? "true" : "false");
             this.SaveSnippet(SiteConfigSetting.VideoSponsorshipChannelUrl, channelUrl);
             this.SaveSnippet(SiteConfigSetting.VideoSponsorshipVideoSiteUrl, videoSiteUrl);
+            this.SaveSnippet(SiteConfigSetting.VideoSponsorshipBlogUrl, blogUrl);
 
             this.TempData[StringConstants.SuccessMessage] = isEnabled
                 ? "Saved. Video sponsorship is ON."
@@ -373,7 +377,7 @@ namespace DirectoryManager.Web.Controllers
         // records delivery and sends the buyer's one-time email.
         [HttpPost("orders/{id:int}/save-urls")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SaveItemUrls(int id, Dictionary<int, string?> videoUrls, string? adminNote, CancellationToken ct)
+        public async Task<IActionResult> SaveItemUrls(int id, Dictionary<int, string?> videoUrls, Dictionary<int, string?>? blogUrls, string? adminNote, CancellationToken ct)
         {
             var order = await this.repository.GetOrderAsync(id, ct);
             if (order is null)
@@ -381,7 +385,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var (saved, errors) = await this.ApplyPostedEditsAsync(order, videoUrls, adminNote, ct);
+            var (saved, errors) = await this.ApplyPostedEditsAsync(order, videoUrls, blogUrls, adminNote, ct);
 
             if (errors.Count > 0)
             {
@@ -405,13 +409,32 @@ namespace DirectoryManager.Web.Controllers
         // Complete and Retry buttons, which submit the same form, never lose unsaved edits.
         // Returns how many values changed and any per-video errors.
         private async Task<(int Saved, List<string> Errors)> ApplyPostedEditsAsync(
-            VideoSponsorOrder order, Dictionary<int, string?>? videoUrls, string? adminNote, CancellationToken ct)
+            VideoSponsorOrder order, Dictionary<int, string?>? videoUrls, Dictionary<int, string?>? blogUrls, string? adminNote, CancellationToken ct)
         {
             videoUrls ??= new Dictionary<int, string?>();
+            blogUrls ??= new Dictionary<int, string?>();
             var errors = new List<string>();
             var saved = 0;
             foreach (var item in order.Items)
             {
+                if (blogUrls.TryGetValue(item.VideoSponsorOrderItemId, out var rawBlog))
+                {
+                    var blogUrl = (rawBlog ?? string.Empty).Trim();
+                    if (blogUrl.Length > 0 && (blogUrl.Length > 500 || !IsHttpUrl(blogUrl)))
+                    {
+                        errors.Add($"\"{item.VideoIdea?.Title ?? item.Title}\": the blog article URL must start with http:// or https://.");
+                    }
+                    else
+                    {
+                        var newBlog = blogUrl.Length > 0 ? blogUrl : null;
+                        if (newBlog != item.BlogArticleUrl)
+                        {
+                            item.BlogArticleUrl = newBlog;
+                            saved++;
+                        }
+                    }
+                }
+
                 if (!videoUrls.TryGetValue(item.VideoSponsorOrderItemId, out var raw))
                 {
                     continue;
@@ -468,7 +491,7 @@ namespace DirectoryManager.Web.Controllers
 
         [HttpPost("items/{itemId:int}/complete")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> CompleteItem(int itemId, Dictionary<int, string?> videoUrls, string? adminNote, CancellationToken ct)
+        public async Task<IActionResult> CompleteItem(int itemId, Dictionary<int, string?> videoUrls, Dictionary<int, string?>? blogUrls, string? adminNote, CancellationToken ct)
         {
             var item = await this.repository.GetItemAsync(itemId, ct);
             if (item is null)
@@ -485,7 +508,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            var (_, editErrors) = await this.ApplyPostedEditsAsync(order, videoUrls, adminNote, ct);
+            var (_, editErrors) = await this.ApplyPostedEditsAsync(order, videoUrls, blogUrls, adminNote, ct);
             if (editErrors.Count > 0)
             {
                 this.TempData[StringConstants.ErrorMessage] = "Nothing was completed. " + string.Join(" ", editErrors);
@@ -529,7 +552,7 @@ namespace DirectoryManager.Web.Controllers
         // Only offered when a video is complete but its email never went out (send failed).
         [HttpPost("items/{itemId:int}/send-email")]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> SendItemEmail(int itemId, Dictionary<int, string?> videoUrls, string? adminNote, CancellationToken ct)
+        public async Task<IActionResult> SendItemEmail(int itemId, Dictionary<int, string?> videoUrls, Dictionary<int, string?>? blogUrls, string? adminNote, CancellationToken ct)
         {
             var item = await this.repository.GetItemAsync(itemId, ct);
             if (item is null)
@@ -540,7 +563,7 @@ namespace DirectoryManager.Web.Controllers
             var order = await this.repository.GetOrderAsync(item.VideoSponsorOrderId, ct);
             if (order is not null)
             {
-                var (_, editErrors) = await this.ApplyPostedEditsAsync(order, videoUrls, adminNote, ct);
+                var (_, editErrors) = await this.ApplyPostedEditsAsync(order, videoUrls, blogUrls, adminNote, ct);
                 if (editErrors.Count > 0)
                 {
                     this.TempData[StringConstants.ErrorMessage] = "The email was not sent. " + string.Join(" ", editErrors);
@@ -694,16 +717,21 @@ namespace DirectoryManager.Web.Controllers
                 var title = item.VideoIdea?.Title ?? item.Title;
                 var listing = order.DirectoryEntry?.Name ?? "your listing";
                 var subject = $"{siteName}: your sponsored video is live";
+                var hasArticle = !string.IsNullOrWhiteSpace(item.BlogArticleUrl);
 
                 var text =
                     $"Hello,\n\nThe video you sponsored for {listing} is now published.\n\n" +
-                    $"Video: {title}\nWatch: {item.VideoUrl}\n\nOrder ID: {order.InvoiceId}\n\n" +
+                    $"Video: {title}\nWatch: {item.VideoUrl}\n" +
+                    (hasArticle ? $"Blog article: {item.BlogArticleUrl}\n" : string.Empty) +
+                    $"\nOrder ID: {order.InvoiceId}\n\n" +
                     $"Thank you for sponsoring {siteName}.";
 
                 var html =
                     $"<p>Hello,</p><p>The video you sponsored for <strong>{WebUtility.HtmlEncode(listing)}</strong> is now published.</p>" +
                     $"<p><strong>Video:</strong> {WebUtility.HtmlEncode(title)}<br />" +
-                    $"<strong>Watch:</strong> <a href=\"{WebUtility.HtmlEncode(item.VideoUrl)}\">{WebUtility.HtmlEncode(item.VideoUrl)}</a></p>" +
+                    $"<strong>Watch:</strong> <a href=\"{WebUtility.HtmlEncode(item.VideoUrl)}\">{WebUtility.HtmlEncode(item.VideoUrl)}</a>" +
+                    (hasArticle ? $"<br /><strong>Blog article:</strong> <a href=\"{WebUtility.HtmlEncode(item.BlogArticleUrl)}\">{WebUtility.HtmlEncode(item.BlogArticleUrl)}</a>" : string.Empty) +
+                    "</p>" +
                     $"<p>Order ID: {order.InvoiceId}</p><p>Thank you for sponsoring {WebUtility.HtmlEncode(siteName)}.</p>";
 
                 try

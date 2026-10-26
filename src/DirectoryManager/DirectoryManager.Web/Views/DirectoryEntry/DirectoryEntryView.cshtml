@@ -14,17 +14,24 @@
 @inject IUrlResolutionService Urls
 
 @{
-    // SEO title: "<Listing> — <SiteName> Profile" (e.g. "Ava Hosting — Monerica Profile").
-    // SiteName is the configured site name snippet ("Monerica"); fall back to just the listing
-    // name if the snippet is ever empty so the title is never a bare " — Profile".
-    var siteNameForTitle = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
-    PageMeta.Title = string.IsNullOrWhiteSpace(siteNameForTitle)
-        ? Model.Name
-        : $"{Model.Name} — {siteNameForTitle} Profile";
     var categoryKey = ViewBag.CategoryKey as string;
     var subCategoryKey = ViewBag.SubCategoryKey as string;
     var categoryName = ViewBag.CategoryName as string;
     var subCategoryName = ViewBag.SubCategoryName as string;
+
+    // SEO title, keyword first and at most 60 characters, built from the subcategory:
+    // "Trocador: Monero Aggregator Reviews | Monerica" (brand, then "Reviews", dropped to fit).
+    // Site and currency names come from config (the codebase is forked).
+    var siteNameForTitle = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
+    var currencyNameForTitle = await cacheHelper.GetSnippetAsync(SiteConfigSetting.DirectoryCurrencyName);
+    var reviewsVmForTitle = ViewBag.ReviewsVm as DirectoryManager.Web.Models.Reviews.EntryReviewsBlockViewModel;
+    PageMeta.Title = Model.Name;
+    PageMeta.SeoTitle = SeoTitleBuilder.ForListing(
+        Model.Name,
+        subCategoryName,
+        currencyNameForTitle,
+        siteNameForTitle,
+        reviewsVmForTitle?.CurrentPage ?? 1);
 
     PageMeta.CurrentCategoryKey = categoryKey;
     PageMeta.CurrentSubCategoryKey = subCategoryKey;
@@ -74,6 +81,10 @@
         new BreadcrumbItem { Position = 3, Name = @subCategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}")  },
         new BreadcrumbItem { Position = 4, Name = Model.Name, Url = UrlHelper.MakeFullUrl(domain, UrlBuilder.ListingPath(@Model.DirectoryEntryKey))  }
     };
+
+    // BreadcrumbList JSON-LD in the head (the visible breadcrumb is below the H1). The listing's
+    // Organization/AggregateRating/Review microdata in the body is separate and unchanged.
+    PageMeta.StructuredData.Add(JsonLdBuilder.BreadcrumbList(breadcrumbs));
 
     var processorParts = ViewBag.ProcessorParts as List<DirectoryManager.Web.Models.ProcessorPart>;
 

@@ -10,5 +10,7 @@ public class VideoSponsorPublicVm
 
     public string VideoSiteUrl { get; set; } = string.Empty;
 
+    public string BlogUrl { get; set; } = string.Empty;
+
     public int DeliveryDays { get; set; }
 }

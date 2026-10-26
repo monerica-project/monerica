@@ -5,15 +5,47 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>@PageMeta.Title</title>
-    @if (!string.IsNullOrWhiteSpace(PageMeta.MetaDescription))
-    {
-        <meta name="description" content="@PageMeta.MetaDescription" />
-        <meta name="twitter:description" content="@PageMeta.MetaDescription" />
+    @{
+        // <title>: an explicit SeoTitle wins; otherwise the page Title plus " | SiteName" when it
+        // still fits in 60 characters (SeoTitleBuilder). Social tags (og:*, twitter:*) are built for
+        // every page from the same values; raw MetaContent (the homepage meta-tags snippet) only
+        // supplies fallbacks, and its copies of generated tags are dropped so none appear twice.
+        var layoutSiteName = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
+        var documentTitle = !string.IsNullOrWhiteSpace(PageMeta.SeoTitle)
+            ? PageMeta.SeoTitle
+            : DirectoryManager.Web.Helpers.SeoTitleBuilder.WithBrand(PageMeta.Title, layoutSiteName);
+        var socialImage = PageMeta.ImageUrl;
+        if (string.IsNullOrWhiteSpace(socialImage)
+            && !DirectoryManager.Web.Helpers.SocialMetaTags.Parse(PageMeta.MetaContent).ContainsKey("og:image"))
+        {
+            socialImage = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteLogoUrl);
+        }
+
+        var socialTags = DirectoryManager.Web.Helpers.SocialMetaTags.Build(
+            documentTitle,
+            PageMeta.MetaDescription,
+            PageMeta.CanonicalUrl,
+            PageMeta.OgType,
+            layoutSiteName,
+            socialImage,
+            PageMeta.MetaContent);
+        var remainingMetaContent = DirectoryManager.Web.Helpers.SocialMetaTags.RemoveGenerated(PageMeta.MetaContent);
     }
-    @if (!string.IsNullOrWhiteSpace(PageMeta.MetaContent))
+    <title>@documentTitle</title>
+    @foreach (var tag in socialTags)
     {
-        @Html.Raw(PageMeta.MetaContent)
+        if (tag.Attribute == "property")
+        {
+            <meta property="@tag.Key" content="@tag.Value" />
+        }
+        else
+        {
+            <meta name="@tag.Key" content="@tag.Value" />
+        }
+    }
+    @if (!string.IsNullOrWhiteSpace(remainingMetaContent))
+    {
+        @Html.Raw(remainingMetaContent)
     }
     @{
         var torUrl = await cacheHelper.GetSnippetAsync(SiteConfigSetting.FullRootTorUrl);
@@ -42,6 +74,12 @@
     @if (PageMeta.IsIndexable == false)
     {
         <meta name="robots" content="noindex" />
+    }
+    @foreach (var jsonLd in PageMeta.StructuredData)
+    {
+        @* Serialized by JsonLdBuilder (System.Text.Json escapes <, > and &), so it is script-safe.
+           Written raw: the script tag helper would otherwise encode the "+" in the type attribute. *@
+        @Html.Raw("<script type=\"application/ld+json\">" + jsonLd + "</script>")
     }
     @Html.Raw(await cacheHelper.GetSnippetAsync(SiteConfigSetting.HeaderHtml))
 </head>

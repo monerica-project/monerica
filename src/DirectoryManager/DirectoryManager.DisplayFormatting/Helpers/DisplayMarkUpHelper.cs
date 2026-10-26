@@ -207,33 +207,10 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 AppendPrimaryLinkForDirectoryEntry(sb, model, primary, rootUrl, isScam: false, effectiveLinkType);
             }
 
-            // Tor
-            if (!string.IsNullOrWhiteSpace(model.Link2))
-            {
-                sb.Append(" | ");
-                var label = string.IsNullOrWhiteSpace(model.Link2Name) ? "Tor" : model.Link2Name;
-                sb.Append(model.IsFeatured && !model.IsSponsored ? "<a rel=\"noopener\" aria-label=\"" : "<a rel=\"sponsored\" aria-label=\"");
-                sb.Append(WebUtility.HtmlEncode($"{label} link for {model.Name}"));
-                sb.Append("\" href=\"");
-                sb.Append(WebUtility.HtmlEncode(model.Link2.Trim()));
-                sb.Append("\" target=\"_blank\">");
-                sb.Append(WebUtility.HtmlEncode(label));
-                sb.Append("</a>");
-            }
-
-            // I2P
-            if (!string.IsNullOrWhiteSpace(model.Link3))
-            {
-                sb.Append(" | ");
-                var label = string.IsNullOrWhiteSpace(model.Link3Name) ? "I2P" : model.Link3Name;
-                sb.Append(model.IsFeatured && !model.IsSponsored ? "<a rel=\"noopener\" aria-label=\"" : "<a rel=\"sponsored\" aria-label=\"");
-                sb.Append(WebUtility.HtmlEncode($"{label} link for {model.Name}"));
-                sb.Append("\" href=\"");
-                sb.Append(WebUtility.HtmlEncode(model.Link3.Trim()));
-                sb.Append("\" target=\"_blank\">");
-                sb.Append(WebUtility.HtmlEncode(label));
-                sb.Append("</a>");
-            }
+            // Tor / I2P: featured (unpaid) picks use the affiliate version when there is one;
+            // paid sponsors keep the plain link, like their main link.
+            AppendInlineNetworkLink(sb, model, model.Link2, model.Link2A, model.Link2Name, "Tor");
+            AppendInlineNetworkLink(sb, model, model.Link3, model.Link3A, model.Link3Name, "I2P");
 
             // Flag last
             if (model.ItemDisplayType != ItemDisplayType.Email)
@@ -325,15 +302,16 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 WebUtility.HtmlEncode(entry.Link),
                 entryRelAttr);
 
-            // Tor (onion) link, if the listing has one: same link style, spaced out to the right.
+            // Tor (onion) link, if the listing has one: same link style, after a middle-dot separator.
             if (!string.IsNullOrWhiteSpace(entry.Link2) &&
                 entry.Link2.Contains(".onion", StringComparison.OrdinalIgnoreCase))
             {
                 var torHref = !string.IsNullOrWhiteSpace(entry.Link2A) ? entry.Link2A : entry.Link2;
                 string torRelAttr = !string.IsNullOrWhiteSpace(entry.Link2A) ? " rel=\"sponsored\"" : string.Empty;
 
+                sb.Append(" &middot; ");
                 sb.AppendFormat(
-                    "<a target=\"_blank\"{1} class=\"multi-line-text small-font u-ml-16px\" href=\"{0}\">Tor</a>",
+                    "<a target=\"_blank\"{1} class=\"multi-line-text small-font\" href=\"{0}\">Tor</a>",
                     WebUtility.HtmlEncode(torHref.Trim()),
                     torRelAttr);
             }
@@ -419,6 +397,35 @@ namespace DirectoryManager.DisplayFormatting.Helpers
                 // of emitting nothing.
                 AppendPrimaryLinkForDirectoryEntry(sb, model, primary, rootUrl, isScam: false, effectiveLinkType);
             }
+        }
+
+        private static void AppendInlineNetworkLink(
+            StringBuilder sb,
+            DirectoryEntryViewModel model,
+            string? link,
+            string? affiliateLink,
+            string? linkName,
+            string defaultLabel)
+        {
+            if (string.IsNullOrWhiteSpace(link))
+            {
+                return;
+            }
+
+            bool featuredOnly = model.IsFeatured && !model.IsSponsored;
+            bool useAffiliate = featuredOnly && !string.IsNullOrWhiteSpace(affiliateLink);
+            var href = (useAffiliate ? affiliateLink! : link).Trim();
+            var rel = featuredOnly && !useAffiliate ? "noopener" : "sponsored";
+            var label = string.IsNullOrWhiteSpace(linkName) ? defaultLabel : linkName;
+
+            sb.Append(" | ");
+            sb.Append("<a rel=\"").Append(rel).Append("\" aria-label=\"");
+            sb.Append(WebUtility.HtmlEncode($"{label} link for {model.Name}"));
+            sb.Append("\" href=\"");
+            sb.Append(WebUtility.HtmlEncode(href));
+            sb.Append("\" target=\"_blank\">");
+            sb.Append(WebUtility.HtmlEncode(label));
+            sb.Append("</a>");
         }
 
         private static void AppendPrimaryLinkForDirectoryEntry(

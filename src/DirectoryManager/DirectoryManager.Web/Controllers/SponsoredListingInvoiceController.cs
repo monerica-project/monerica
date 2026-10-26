@@ -1046,11 +1046,63 @@ namespace DirectoryManager.Web.Controllers
             var catsList = await this.categoryRepository.GetAllAsync().ConfigureAwait(false);
             var cats = catsList.ToDictionary(c => c.CategoryId, c => c.Name);
 
-            var subsList = await this.subCategoryRepository.GetAllActiveSubCategoriesAsync().ConfigureAwait(false);
+            // All subcategories, not just ones with live listings, so retired ones still get their name.
+            var subsList = await this.subCategoryRepository.GetAllAsync().ConfigureAwait(false);
             var subs = subsList.ToDictionary(s => s.SubCategoryId, s => s.Name);
             var subToCat = subsList.ToDictionary(s => s.SubCategoryId, s => s.CategoryId);
 
             var chartBytes = new InvoicePlotting().CreateSubcategoryRevenuePieChart(matches, cats, subs, subToCat, currency);
+
+            if (chartBytes == null || chartBytes.Length == 0)
+            {
+                const string svg = @"<svg xmlns='http://www.w3.org/2000/svg' width='400' height='100'>
+  <rect width='100%' height='100%' fill='white'/>
+  <text x='50%' y='50%' dominant-baseline='middle' text-anchor='middle'
+        font-family='sans-serif' font-size='20' fill='black'>No results</text>
+</svg>";
+                return this.File(Encoding.UTF8.GetBytes(svg), "image/svg+xml");
+            }
+
+            return this.File(chartBytes, StringConstants.PngImage);
+        }
+
+        // --- Category Revenue Pie ---
+        [HttpGet("sponsoredlistinginvoice/category-revenue-pie")]
+        public async Task<IActionResult> CategoryRevenuePieChart(
+            DateTime? startDate,
+            DateTime? endDate,
+            SponsorshipType? sponsorshipType,
+            Currency? displayCurrency)
+        {
+            var currency = displayCurrency ?? Currency.USD;
+
+            const int defaultYears = 1;
+            var now = DateTime.UtcNow;
+            var from = (startDate ?? now.AddYears(-defaultYears)).Date;
+            var to = (endDate ?? now).Date;
+
+            var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
+            var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
+
+            var allPaid = (await this.invoiceRepository.GetAllAsync().ConfigureAwait(false))
+                .Where(inv => inv.CreateDate >= startUtc
+                           && inv.CreateDate <= endUtc
+                           && inv.PaymentStatus == PaymentStatus.Paid);
+
+            if (sponsorshipType.HasValue)
+            {
+                allPaid = allPaid.Where(inv => inv.SponsorshipType == sponsorshipType.Value);
+            }
+
+            var matches = allPaid.Where(inv => inv.MatchesCurrency(currency)).ToList();
+
+            var catsList = await this.categoryRepository.GetAllAsync().ConfigureAwait(false);
+            var cats = catsList.ToDictionary(c => c.CategoryId, c => c.Name);
+
+            var subsList = await this.subCategoryRepository.GetAllAsync().ConfigureAwait(false);
+            var subToCat = subsList.ToDictionary(s => s.SubCategoryId, s => s.CategoryId);
+
+            var chartBytes = new InvoicePlotting().CreateCategoryRevenuePieChart(matches, cats, subToCat, currency);
 
             if (chartBytes == null || chartBytes.Length == 0)
             {

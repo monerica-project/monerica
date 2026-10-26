@@ -98,6 +98,7 @@ namespace DirectoryManager.Web.Extensions
                     .AddScoped<IUrlResolutionService, UrlResolutionService>();
             services.AddScoped<ICacheService, CacheService>();
             services.AddScoped<IFeaturedListingBuilder, DirectoryManager.Web.Services.Implementations.FeaturedListingBuilder>();
+            services.AddScoped<ISponsorableScopeService, DirectoryManager.Web.Services.Implementations.SponsorableScopeService>();
 
             // Domain registration date lookup (RDAP -> WHOIS fallback)
             services.AddHttpClient<IDomainRegistrationDateService, DomainRegistrationDateService>(client =>

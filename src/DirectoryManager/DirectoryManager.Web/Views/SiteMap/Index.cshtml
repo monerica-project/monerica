@@ -14,17 +14,15 @@
 @{
     Layout = "_CenteredLayout";
     PageMeta.Title = $"{await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName)}: Sitemap";
+    PageMeta.SeoTitle = SeoTitleBuilder.WithBrand("Sitemap: All Categories", await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName));
 
-    // build breadcrumb JSON
-    var breadcrumbs = new List<BreadcrumbItem> {
-        new BreadcrumbItem {
-            Position = 1,
-            Name     = "Home",
-            Url      = urlResolver.ResolveToApp("/")          // <-- use Resolve
-        }
-    };
+    var sitemapDomain = await cacheHelper.GetSnippetAsync(SiteConfigSetting.CanonicalDomain);
+    PageMeta.StructuredData.Add(JsonLdBuilder.BreadcrumbList(new List<BreadcrumbItem>
+    {
+        new BreadcrumbItem { Position = 1, Name = "Home", Url = UrlHelper.MakeFullUrl(sitemapDomain, "/") },
+        new BreadcrumbItem { Position = 2, Name = "Sitemap", Url = UrlHelper.MakeFullUrl(sitemapDomain, "/sitemap") },
+    }));
 }
-@BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
 
 @section PageContent {
     @await Html.PartialAsync("_SiteLogo")

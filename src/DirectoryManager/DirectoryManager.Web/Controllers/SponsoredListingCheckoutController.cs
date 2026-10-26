@@ -298,16 +298,23 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.DirectoryEntryId = entry.DirectoryEntryId;
             this.ViewBag.SponsorshipType = sponsorshipType;
 
-            // The listing's subcategory drives the pricing comparison line on every placement type.
-            this.ViewBag.ListingSubCategoryId = entry.SubCategoryId;
-            this.ViewBag.ListingSubcategory = FormattingHelper.SubcategoryFormatting(
-                entry.SubCategory?.Category?.Name, entry.SubCategory?.Name);
+            // The placement being bought (main slot, this category page or this subcategory page)
+            // sets the price and the "this placement" line on the pricing chart.
+            int? placementId = typeIdForGroup > 0 ? typeIdForGroup : null;
+            this.ViewBag.PlacementId = placementId;
+            this.ViewBag.PlacementLabel = sponsorshipType switch
+            {
+                SponsorshipType.CategorySponsor => entry.SubCategory?.Category?.Name,
+                SponsorshipType.SubcategorySponsor => FormattingHelper.SubcategoryFormatting(
+                    entry.SubCategory?.Category?.Name, entry.SubCategory?.Name),
+                _ => null,
+            };
 
-            // Whether the chart will actually draw the subcategory dotted line (it only does when the
-            // subcategory has its own paid history for this placement type). Drives the caption copy.
-            this.ViewBag.HasSubcategoryPricingHistory = entry.SubCategoryId > 0
+            // Whether the chart will draw the dotted "this placement" line (only when this exact
+            // category / subcategory page has its own paid history). Drives the caption copy.
+            this.ViewBag.HasPlacementPricingHistory = placementId.HasValue
                 && await this.sponsoredListingInvoiceRepository
-                    .HasPaidPurchasesForSubcategoryAsync(sponsorshipType, entry.SubCategoryId)
+                    .HasPaidPurchasesForPlacementAsync(sponsorshipType, placementId.Value)
                     .ConfigureAwait(false);
             this.ViewBag.RequiresReservationStart = !isExtension && this.ViewBag.ReservationGuid == null;
 
@@ -317,21 +324,27 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.ExistingSponsorPerkPercent = perkPercent;
             this.ViewBag.ExistingSponsorPerkBasisTier = perkBasisTier;
 
-            return this.View(await this.GetListingDurationsAsync(sponsorshipType, entry.SubCategoryId, perkPercent));
+            return this.View(await this.GetListingDurationsAsync(sponsorshipType, placementId, perkPercent));
         }
 
         // Small "why this price" chart for the checkout page: the average per-day price advertisers
-        // paid for THIS specific placement type over the last 6 months. Public + compact by design.
+        // paid for this placement TYPE over the last 6 months, plus a dotted line for this exact
+        // placement (one category page or one subcategory page) and today's price for it.
         [HttpGet]
         [AllowAnonymous]
         [Route("sponsoredlisting/pricing-trends-chart")]
         public async Task<IActionResult> PricingTrendsChartAsync(
             SponsorshipType sponsorshipType,
-            int? listingSubCategoryId = null)
+            int? placementId = null)
         {
             if (sponsorshipType == SponsorshipType.Unknown)
             {
                 return this.NotFound();
+            }
+
+            if (sponsorshipType == SponsorshipType.MainSponsor || placementId <= 0)
+            {
+                placementId = null;
             }
 
             var end = DateTime.UtcNow.Date;
@@ -340,50 +353,40 @@ namespace DirectoryManager.Web.Controllers
             var invoices = await this.sponsoredListingInvoiceRepository.GetAllAsync().ConfigureAwait(false);
             var paid = invoices.Where(i => i.PaymentStatus == PaymentStatus.Paid).ToList();
 
-            // Overlay the buyer's SUBCATEGORY as a black dotted line vs the overall placement average.
-            // Pricing is set per subcategory, so — for whatever placement they're buying — we compare
-            // the same placement type as bought by listings that are IN the buyer's subcategory (e.g.
-            // Exchanges > Instant Swaps). Only drawn when that subcategory has its own paid history.
+            // Dotted line: what was paid for THIS placement, using the placement saved on each invoice
+            // (so a listing that later changed subcategory still counts where it actually advertised).
             List<SponsoredListingInvoice>? highlight = null;
             string? highlightLabel = null;
 
-            if (listingSubCategoryId.HasValue)
+            if (placementId.HasValue)
             {
-                var entryIds = paid.Select(i => i.DirectoryEntryId).Distinct().ToList();
-                var entryLookup = await this.directoryEntryRepository.GetByIdsAsync(entryIds).ConfigureAwait(false);
-
+                var id = placementId.Value;
                 highlight = paid
                     .Where(i => i.SponsorshipType == sponsorshipType
-                                && entryLookup.TryGetValue(i.DirectoryEntryId, out var e)
-                                && e != null
-                                && e.SubCategoryId == listingSubCategoryId.Value)
+                                && (sponsorshipType == SponsorshipType.CategorySponsor
+                                    ? i.CategoryId == id
+                                    : i.SubCategoryId == id))
                     .ToList();
 
-                var name = (await this.subCategoryRepository.GetByIdAsync(listingSubCategoryId.Value).ConfigureAwait(false))?.Name;
+                string? name = sponsorshipType == SponsorshipType.CategorySponsor
+                    ? (await this.categoryRepository.GetByIdAsync(id).ConfigureAwait(false))?.Name
+                    : (await this.subCategoryRepository.GetByIdAsync(id).ConfigureAwait(false))?.Name;
                 if (!string.IsNullOrWhiteSpace(name))
                 {
                     highlightLabel = name.Length > 18 ? name.Substring(0, 17).TrimEnd() + "…" : name;
                 }
             }
 
-            // Current market price per day for THIS placement — the same "Now:" reference line the
-            // public /sponsorship/main chart draws, so the buyer sees today's asking price against the
-            // historical average. It renders as a black dashed line; the subcategory overlay above is a
-            // black dotted line, so the two read apart by pattern rather than colour.
+            // Today's price per day for THIS placement (its own price, or the standard price when it
+            // has none) — the same price list the duration options on the page come from.
             var currentDaily = new Dictionary<SponsorshipType, decimal>();
-
-            // Resolve the buyer's ACTUAL offers exactly the way the duration page does
-            // (GetListingDurationsAsync) — always keyed by the listing's subcategory id, for every
-            // placement type. Category/subcategory pricing is stored per-subcategory, so passing null
-            // here would fall back to the base offer and understate the price (e.g. $3.33/day instead
-            // of the category's real $10/day).
             var priceOffers = await this.sponsoredListingOfferRepository
-                .GetByTypeAndSubCategoryAsync(sponsorshipType, listingSubCategoryId)
+                .GetOffersForPlacementAsync(sponsorshipType, placementId)
                 .ConfigureAwait(false);
-            var baseOffer = priceOffers?
+            var baseOffer = priceOffers
                 .OrderBy(o => o.Days)
                 .FirstOrDefault(o => o.Days >= 30)
-                ?? priceOffers?.OrderBy(o => o.Days).FirstOrDefault();
+                ?? priceOffers.OrderBy(o => o.Days).FirstOrDefault();
             if (baseOffer != null && baseOffer.Days > 0)
             {
                 currentDaily[sponsorshipType] = Math.Round(baseOffer.Price / baseOffer.Days, 2);
@@ -1935,21 +1938,14 @@ namespace DirectoryManager.Web.Controllers
 
         // Sponsorship eligibility: a listing must be Verified AND have been in the directory for
         // at least the required number of months. Both conditions are required.
-        private bool IsEligibleToSponsor(DirectoryEntry entry)
-        {
-            if (entry.CreateDate == DateTime.MinValue)
-            {
-                return false;
-            }
-
-            if (entry.DirectoryStatus != DirectoryStatus.Verified)
-            {
-                return false;
-            }
-
-            return (DateTime.UtcNow - entry.CreateDate).TotalDays
-                >= DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring;
-        }
+        // Verified + listed long enough (current sponsors are allowed separately by each caller).
+        private bool IsEligibleToSponsor(DirectoryEntry entry) =>
+            SponsorshipEligibilityHelper.CanBuy(
+                entry.DirectoryStatus,
+                entry.CreateDate,
+                isActiveSponsor: false,
+                DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring,
+                DateTime.UtcNow);
 
         private async Task<IEnumerable<DirectoryEntry>> FilterEntriesForSelectionAsync(int? subCategoryId, int? categoryId)
         {
@@ -2059,9 +2055,9 @@ namespace DirectoryManager.Web.Controllers
             return (scoped, offer);
         }
 
-        // The offer id is the only thing a buyer submits, so it is checked against the offers
-        // actually shown for this listing (enabled, right tier, right subcategory pricing).
-        // Returns null for an unknown, disabled or mismatched offer.
+        // The offer id is the only thing a buyer submits, so it is checked against the price list
+        // actually shown for this listing's placement (enabled, right tier, right category or
+        // subcategory page). Returns null for an unknown, disabled or mismatched offer.
         private async Task<SponsoredListingOffer?> GetOfferForEntryAsync(int selectedOfferId, DirectoryEntry? entry)
         {
             if (entry is null || selectedOfferId <= 0)
@@ -2069,17 +2065,17 @@ namespace DirectoryManager.Web.Controllers
                 return null;
             }
 
-            // For a listing scoped to an additional subcategory, only SUBCATEGORY offers use that
-            // subcategory's pricing; main/category offers are always priced by the main subcategory.
-            var mainSubCategoryId = entry.ShownViaAdditionalSubcategoryId.HasValue
-                ? (await this.directoryEntryRepository.GetByIdAsync(entry.DirectoryEntryId).ConfigureAwait(false))?.SubCategoryId ?? entry.SubCategoryId
-                : entry.SubCategoryId;
+            // A listing scoped to an additional subcategory only changes the SUBCATEGORY placement;
+            // the category placement is always the main subcategory's category.
+            var main = entry.ShownViaAdditionalSubcategoryId.HasValue
+                ? await this.directoryEntryRepository.GetByIdAsync(entry.DirectoryEntryId).ConfigureAwait(false) ?? entry
+                : entry;
 
             foreach (var type in new[] { SponsorshipType.MainSponsor, SponsorshipType.CategorySponsor, SponsorshipType.SubcategorySponsor })
             {
-                var pricingSubId = type == SponsorshipType.SubcategorySponsor ? entry.SubCategoryId : mainSubCategoryId;
+                var placementEntry = type == SponsorshipType.SubcategorySponsor ? entry : main;
                 var offers = await this.sponsoredListingOfferRepository
-                    .GetByTypeAndSubCategoryAsync(type, pricingSubId).ConfigureAwait(false);
+                    .GetOffersForPlacementAsync(type, PlacementIdFor(type, placementEntry)).ConfigureAwait(false);
                 var match = offers.FirstOrDefault(o => o.SponsoredListingOfferId == selectedOfferId);
                 if (match is not null)
                 {
@@ -2090,10 +2086,18 @@ namespace DirectoryManager.Web.Controllers
             return null;
         }
 
-        private async Task<List<SponsoredListingOfferModel>> GetListingDurationsAsync(
-            SponsorshipType type, int? subcategoryId, decimal loyaltyDiscountPercent)
+        // The placement a listing buys for a type: null for main, its category page for a category
+        // sponsor, its (possibly additional) subcategory page for a subcategory sponsor.
+        private static int? PlacementIdFor(SponsorshipType type, DirectoryEntry entry)
         {
-            var offers = await this.sponsoredListingOfferRepository.GetByTypeAndSubCategoryAsync(type, subcategoryId);
+            var id = SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(type, entry, null, null);
+            return id > 0 ? id : null;
+        }
+
+        private async Task<List<SponsoredListingOfferModel>> GetListingDurationsAsync(
+            SponsorshipType type, int? placementId, decimal loyaltyDiscountPercent)
+        {
+            var offers = await this.sponsoredListingOfferRepository.GetOffersForPlacementAsync(type, placementId);
             return offers.OrderBy(x => x.Days).Select(o => new SponsoredListingOfferModel
             {
                 SponsoredListingOfferId = o.SponsoredListingOfferId,

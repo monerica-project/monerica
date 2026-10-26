@@ -296,7 +296,7 @@ namespace DirectoryManager.Web.Charting
                         subLine.LineWidth = 2;
                         subLine.LinePattern = LinePattern.Dotted;
                         subLine.MarkerSize = 0;
-                        subLine.LegendText = string.IsNullOrWhiteSpace(highlightLabel) ? "Your subcategory" : highlightLabel;
+                        subLine.LegendText = string.IsNullOrWhiteSpace(highlightLabel) ? "This placement" : highlightLabel;
 
                         barPlot.LegendText = $"All {FriendlyType(t)} sponsors";
                         showLegend = true;
@@ -353,7 +353,7 @@ namespace DirectoryManager.Web.Charting
                             refLine.LineWidth = 2;
                             refLine.LinePattern = LinePattern.Dotted;
                             refLine.LegendText =
-                                $"{(string.IsNullOrWhiteSpace(highlightLabel) ? "Your subcategory" : highlightLabel)} (past avg)";
+                                $"{(string.IsNullOrWhiteSpace(highlightLabel) ? "This placement" : highlightLabel)} (past avg)";
 
                             barPlot.LegendText = $"All {FriendlyType(t)} sponsors";
                             showLegend = true;
@@ -1122,6 +1122,81 @@ namespace DirectoryManager.Web.Charting
             pie.Rotation = Angle.FromDegrees(-90);
 
             plt.Title($"Revenue by Subcategory ({AxisUnitLabel(displayCurrency)})");
+            plt.ShowLegend(Edge.Right);
+
+            return plt.GetDarkImageBytes(800, 600, ImageFormat.Png);
+        }
+
+        /// <summary>
+        /// Revenue by top-level category. An invoice's category comes from its subcategory's current
+        /// category (so moved subcategories land where they live now), falling back to the invoice's
+        /// own CategoryId when it has no subcategory.
+        /// </summary>
+        public byte[] CreateCategoryRevenuePieChart(
+            IEnumerable<SponsoredListingInvoice> invoices,
+            IDictionary<int, string> categoryNames,
+            IDictionary<int, int> subcategoryToCategory,
+            Currency displayCurrency)
+        {
+            var list = (invoices ?? Enumerable.Empty<SponsoredListingInvoice>()).ToList();
+
+            int? CategoryOf(SponsoredListingInvoice i)
+            {
+                if (i.SubCategoryId.HasValue && subcategoryToCategory.TryGetValue(i.SubCategoryId.Value, out var c))
+                {
+                    return c;
+                }
+
+                return i.CategoryId;
+            }
+
+            var breakdown = list
+                .GroupBy(CategoryOf)
+                .Select(g =>
+                {
+                    string label = g.Key is int catId
+                        ? (categoryNames.TryGetValue(catId, out var name) ? name : $"(Unknown Cat {catId})")
+                        : "(No category)";
+                    return (label, total: g.Sum(i => i.AmountIn(displayCurrency)));
+                })
+                .Where(x => x.total > 0m)
+                .OrderByDescending(x => x.total)
+                .ToArray();
+
+            if (breakdown.Length == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            double grand = (double)breakdown.Sum(x => x.total);
+
+            var hexPalette = new[]
+            {
+                "#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd",
+                "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf",
+                "#393b79", "#637939", "#8c6d31", "#843c39", "#7b4173",
+                "#3182bd", "#31a354", "#756bb1", "#636363", "#e6550d"
+            };
+            var palette = hexPalette.Select(Color.FromHex).ToArray();
+
+            var slices = breakdown.Select((row, idx) =>
+            {
+                double val = (double)row.total;
+                double pct = grand > 0 ? Math.Round(val * 100.0 / grand, 1) : 0;
+                var slice = new PieSlice(val, palette[idx % palette.Length], $"{pct}%");
+                slice.LegendText = $"{row.label} — {FormatValue((decimal)val, displayCurrency)}";
+                return slice;
+            }).ToArray();
+
+            var plt = new Plot();
+            plt.HideAxesAndGrid();
+
+            var pie = plt.Add.Pie(slices);
+            pie.DonutFraction = 0;
+            pie.SliceLabelDistance = 1.2;
+            pie.Rotation = Angle.FromDegrees(-90);
+
+            plt.Title($"Revenue by Category ({AxisUnitLabel(displayCurrency)})");
             plt.ShowLegend(Edge.Right);
 
             return plt.GetDarkImageBytes(800, 600, ImageFormat.Png);

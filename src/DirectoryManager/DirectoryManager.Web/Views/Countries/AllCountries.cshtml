@@ -1,4 +1,5 @@
 ﻿@using DirectoryManager.Utilities
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService seoCache
 @using DirectoryManager.Web.Constants
 @model DirectoryManager.Web.Models.CountryListViewModel
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
@@ -8,6 +9,12 @@
     int totalPages = (int)Math.Ceiling(Model.PagedCountries.TotalCount / (double)Model.PageSize);
     string pageSuffix = Model.CurrentPage > 1 ? $" – Page {Model.CurrentPage}" : "";
     PageMeta.Title = $"Countries{pageSuffix}";
+    var seoSite = await seoCache.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
+    var seoCurrency = await seoCache.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.DirectoryCurrencyName);
+    var seoAbout = string.IsNullOrWhiteSpace(seoCurrency) ? string.Empty : $" that accept or relate to {seoCurrency}";
+    var seoListings = string.IsNullOrWhiteSpace(seoCurrency) ? "Listings" : $"{seoCurrency} Listings";
+    PageMeta.SeoTitle = DirectoryManager.Web.Helpers.SeoTitleBuilder.ForSubject($"{seoListings} by Country", null, seoSite, Model.CurrentPage);
+    PageMeta.MetaDescription = DirectoryManager.Web.Helpers.SeoDescriptionBuilder.Shorten($"{(Model.CurrentPage > 1 ? $"Page {Model.CurrentPage}. " : string.Empty)}Browse {seoSite} by country: {Model.PagedCountries.TotalCount} countries with businesses and services{seoAbout}.");
 }
 
 @section PageContent {

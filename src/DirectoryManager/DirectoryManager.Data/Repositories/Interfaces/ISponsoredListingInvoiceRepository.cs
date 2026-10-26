@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Models.TransferModels;
 
@@ -47,7 +47,11 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<List<RecentPaidPurchaseDto>> GetRecentPaidByTypeAsync(
             SponsorshipType sponsorshipType, int take, IReadOnlyCollection<DirectoryStatus> allowedStatuses);
 
-        Task<bool> HasPaidPurchasesForSubcategoryAsync(SponsorshipType sponsorshipType, int subCategoryId);
+        /// <summary>
+        /// True when this exact placement (a category page for a category sponsor, a subcategory
+        /// page for a subcategory sponsor) has paid history, using the placement saved on each invoice.
+        /// </summary>
+        Task<bool> HasPaidPurchasesForPlacementAsync(SponsorshipType sponsorshipType, int placementId);
 
         DateTime? GetLastPaidInvoiceCreateDate();
 

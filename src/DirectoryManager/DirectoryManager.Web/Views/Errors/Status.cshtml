@@ -1,0 +1,13 @@
+@using DirectoryManager.Web.Constants
+@model int
+@{
+    Layout = "_CenteredLayout";
+    PageMeta.Title = $"Error {Model}";
+    PageMeta.MetaContent = StringConstants.MetaTagNoIndex;
+}
+@section PageContent {
+    <h1 class="page-title">Error @Model</h1>
+    <hr />
+    <p>Something went wrong with this request.</p>
+    <p><a class="no-app-link" href="~/">Back to the homepage</a></p>
+}

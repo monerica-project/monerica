@@ -1,4 +1,5 @@
 ﻿@using DirectoryManager.Utilities
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService seoCache
 @model DirectoryManager.Web.Models.CountryEntriesViewModel
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService UrlResolver
 
@@ -7,6 +8,12 @@
     int totalPages = (int)Math.Ceiling(Model.PagedEntries.TotalCount / (double)Model.PageSize);
     string pageSuffix = Model.CurrentPage > 1 ? $" – Page {Model.CurrentPage}" : "";
     PageMeta.Title = $"Country: {Model.CountryName}{pageSuffix}";
+    var seoSite = await seoCache.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
+    var seoCurrency = await seoCache.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.DirectoryCurrencyName);
+    var seoAbout = string.IsNullOrWhiteSpace(seoCurrency) ? string.Empty : $" that accept or relate to {seoCurrency}";
+    var seoListings = string.IsNullOrWhiteSpace(seoCurrency) ? "Listings" : $"{seoCurrency} Listings";
+    PageMeta.SeoTitle = DirectoryManager.Web.Helpers.SeoTitleBuilder.ForSubject(Model.CountryName, seoListings, seoSite, Model.CurrentPage);
+    PageMeta.MetaDescription = DirectoryManager.Web.Helpers.SeoDescriptionBuilder.Shorten($"{(Model.CurrentPage > 1 ? $"Page {Model.CurrentPage}. " : string.Empty)}{Model.PagedEntries.TotalCount} businesses and services in {Model.CountryName}{seoAbout}, listed on {seoSite} with KYC policies, ratings and reviews.");
 }
 
 @section PageContent {

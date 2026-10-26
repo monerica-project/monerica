@@ -49,6 +49,35 @@ namespace DirectoryManager.Web.Tests.Helpers
         }
 
         [Fact]
+        public void Featured_TorAndI2P_UseAffiliateLinks_WhenSet()
+        {
+            var vm = Model(null, Onion);
+            vm.Link2A = Onion + "?ref=monerica";
+            vm.Link3 = "http://exampleabc.b32.i2p/";
+            vm.Link3A = "http://exampleabc.b32.i2p/?ref=monerica";
+            vm.Link3Name = "I2P";
+
+            var html = DisplayMarkUpHelper.GenerateDirectoryEntryHtml(vm);
+
+            Assert.Contains($"href=\"{Onion}?ref=monerica\"", html);
+            Assert.Contains("href=\"http://exampleabc.b32.i2p/?ref=monerica\"", html);
+            Assert.DoesNotContain($"href=\"{Onion}\"", html);
+        }
+
+        [Fact]
+        public void PaidSponsor_TorLink_StaysPlain()
+        {
+            var vm = Model(null, Onion);
+            vm.Link2A = Onion + "?ref=monerica";
+            vm.IsFeatured = false;
+            vm.IsSponsored = true;
+
+            var html = DisplayMarkUpHelper.GenerateDirectoryEntryHtml(vm);
+
+            Assert.Contains($"href=\"{Onion}\"", html);
+        }
+
+        [Fact]
         public void Featured_RendersLikeSponsorBox_WithProfileLink()
         {
             var html = DisplayMarkUpHelper.GenerateDirectoryEntryHtml(Model(null, null));

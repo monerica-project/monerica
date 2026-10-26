@@ -10,6 +10,8 @@ public class VideoSponsorAdminHomeVm
 
     public string VideoSiteUrl { get; set; } = string.Empty;
 
+    public string BlogUrl { get; set; } = string.Empty;
+
     public string WebhookUrl { get; set; } = string.Empty;
 
     public int QueuedVideos { get; set; }

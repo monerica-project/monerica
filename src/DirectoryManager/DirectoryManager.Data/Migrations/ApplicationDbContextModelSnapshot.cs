@@ -2074,19 +2074,23 @@ namespace DirectoryManager.Data.Migrations
 
                     b.HasIndex("SponsorshipType", "Days")
                         .IsUnique()
-                        .HasFilter("\"SubcategoryId\" IS NULL");
+                        .HasDatabaseName("UX_Offer_Standard")
+                        .HasFilter("\"CategoryId\" IS NULL AND \"SubcategoryId\" IS NULL");
 
                     b.HasIndex("SponsorshipType", "Days", "CategoryId")
                         .IsUnique()
-                        .HasDatabaseName("UX_Offer_Type_Days_Cat_NoSubcat")
-                        .HasFilter("\"SubcategoryId\" IS NULL");
+                        .HasDatabaseName("UX_Offer_Category")
+                        .HasFilter("\"CategoryId\" IS NOT NULL");
 
-                    b.HasIndex("SponsorshipType", "Days", "CategoryId", "SubcategoryId")
+                    b.HasIndex("SponsorshipType", "Days", "SubcategoryId")
                         .IsUnique()
-                        .HasDatabaseName("UX_Offer_Type_Days_Cat_Subcat")
+                        .HasDatabaseName("UX_Offer_Subcategory")
                         .HasFilter("\"SubcategoryId\" IS NOT NULL");
 
-                    b.ToTable("SponsoredListingOffers");
+                    b.ToTable("SponsoredListingOffers", t =>
+                        {
+                            t.HasCheckConstraint("CK_Offer_Placement", "(\"SponsorshipType\" = 1 AND \"CategoryId\" IS NULL AND \"SubcategoryId\" IS NULL) OR (\"SponsorshipType\" = 3 AND \"SubcategoryId\" IS NULL) OR (\"SponsorshipType\" = 2 AND \"CategoryId\" IS NULL)");
+                        });
                 });
 
             modelBuilder.Entity("DirectoryManager.Data.Models.SponsoredListings.SponsoredListingOpeningNotification", b =>
@@ -2790,6 +2794,10 @@ namespace DirectoryManager.Data.Migrations
                         .HasColumnType("integer");
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("VideoSponsorOrderItemId"));
+
+                    b.Property<string>("BlogArticleUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
 
                     b.Property<DateTime?>("CompletedUtc")
                         .HasColumnType("timestamp with time zone");

@@ -1,4 +1,4 @@
-﻿@using DirectoryManager.Data.Enums
+@using DirectoryManager.Data.Enums
 @using DirectoryManager.DisplayFormatting.Helpers
 @using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Constants
@@ -24,6 +24,7 @@
     var mainDetailsHtml = await cacheHelper.GetSnippetAsync(SiteConfigSetting.MainSponsoredListingDetails);
     var catDetailsHtml = await cacheHelper.GetSnippetAsync(SiteConfigSetting.CategorySponsoredListingDetails);
     var subDetailsHtml = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SubcategorySponsoredListingDetails);
+    var videoSponsorshipOn = string.Equals((await cacheHelper.GetSnippetAsync(SiteConfigSetting.VideoSponsorshipEnabled) ?? string.Empty).Trim(), "true", StringComparison.OrdinalIgnoreCase);
 
     // -----------------------------
     // EXTEND MODE (like activelistings.cshtml)
@@ -73,6 +74,10 @@
 
     <hr />
     @await Html.PartialAsync("_BackToHome")
+    @if (Model.CanSponsorVideo && videoSponsorshipOn)
+    {
+        <p class="u-note-sm"><a href="#video-sponsorship">&#9654; Also available: video sponsorship &darr;</a></p>
+    }
     <hr />
 
     <div class="card u-p-14px-rounded-12px-mt-10px">
@@ -200,6 +205,48 @@
     {
         <div class="alert alert-success u-mt-14px-rounded-10px">
             <strong>Eligible to advertise.</strong> If a slot is available, you can proceed to checkout.
+        </div>
+    }
+
+    @{
+        // Every slot this listing currently holds (main, category, subcategory, additional subcategories).
+        var held = new List<(string Label, DateTime? Until, string Anchor)>();
+        void AddHeld(DirectoryManager.Web.Models.Sponsorship.SponsorshipTypeOptionVm? o, int? typeId)
+        {
+            if (o?.IsExtension == true)
+            {
+                var label = !string.IsNullOrWhiteSpace(o.ScopeLabel) ? o.ScopeLabel : o.SponsorshipType.ToString();
+                held.Add((label, o.YourActiveUntilUtc, $"slot-{(int)o.SponsorshipType}-{typeId ?? 0}"));
+            }
+        }
+
+        AddHeld(Model.Main, mainTypeId);
+        AddHeld(Model.Category, categoryTypeId);
+        AddHeld(Model.Subcategory, subcategoryTypeId);
+        foreach (var alt in Model.AdditionalSubcategories)
+        {
+            AddHeld(alt.Option, alt.SubCategoryId);
+        }
+    }
+
+    @if (held.Count > 0)
+    {
+        <div class="u-mt-14px-rounded-10px" style="border:2px solid var(--green, #18ff6d);background:rgba(24,255,109,.07);padding:12px 14px;">
+            <strong>&#10003; @Model.ListingName currently has @(held.Count == 1 ? "this sponsorship" : "these sponsorships"):</strong>
+            <ul class="u-m-0-pl-18px u-mt-6px">
+                @foreach (var h in held)
+                {
+                    <li>
+                        <a href="#@h.Anchor"><strong>@h.Label</strong></a>
+                        @if (h.Until.HasValue)
+                        {
+                            var daysLeft = (int)Math.Ceiling((h.Until.Value - DateTime.UtcNow).TotalDays);
+                            <text> &mdash; until @h.Until.Value.ToString("MMM d, yyyy", System.Globalization.CultureInfo.InvariantCulture)
+                            (@(daysLeft <= 0 ? "ends today" : daysLeft == 1 ? "1 day left" : $"{daysLeft} days left"))</text>
+                        }
+                    </li>
+                }
+            </ul>
         </div>
     }
 
@@ -417,6 +464,23 @@
         }
 
     </div>
+
+    @if (Model.CanSponsorVideo && videoSponsorshipOn)
+    {
+        <hr class="u-m-18px-0" />
+        <h2 id="video-sponsorship">Or sponsor a video</h2>
+        <div class="u-callout">
+            <p>
+                Separate from the slots above: feature @Model.ListingName in a video on our YouTube channel,
+                as a 1-minute segment in an upcoming video or a dedicated video. Paid in Monero.
+            </p>
+            @await Html.PartialAsync("_VideoSponsorIncludes")
+            <p>
+                <a class="btn btn-primary btn-cta" href="@Url.Action("Type", "VideoSponsorship", new { directoryEntryId = Model.DirectoryEntryId })">Sponsor a video for this listing &rarr;</a>
+                <a class="u-ml-8px u-ws-nowrap" href="@Url.Action("Examples", "VideoSponsorship")">See examples &rarr;</a>
+            </p>
+        </div>
+    }
 
     <hr class="u-m-18px-0" />
 

@@ -232,7 +232,10 @@ app.Use(async (ctx, next) =>
 app.UseMiddleware<OnionLocationMiddleware>();
 
 app.UseResponseCaching();
-app.UseStatusCodePagesWithRedirects("/errors/{0}");
+// Re-execute (not redirect) so a missing page answers with a real 404 status and the error page
+// body, at the URL that was asked for. The old redirect turned every 404 into a 302 to
+// /errors/404, which answered 200 (a "soft 404" to search engines).
+app.UseStatusCodePagesWithReExecute("/errors/{0}");
 // Fonts and the dated stylesheets never change in place (a new version gets a new file name),
 // so browsers and the CDN may keep them for a year. Without this every refresh re-checked the
 // fonts and the text briefly rendered in a fallback font before switching.

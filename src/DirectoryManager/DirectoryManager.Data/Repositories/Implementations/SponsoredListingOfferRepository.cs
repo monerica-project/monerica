@@ -1,6 +1,7 @@
-﻿using DirectoryManager.Data.Constants;
+using DirectoryManager.Data.Constants;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using Microsoft.EntityFrameworkCore;
@@ -18,45 +19,63 @@ namespace DirectoryManager.Data.Repositories.Implementations
 
         public async Task<IEnumerable<SponsoredListingOffer>> GetAllAsync()
         {
-            return await this.context.SponsoredListingOffers
+            var offers = await this.context.SponsoredListingOffers
+                .Include(slo => slo.Category)
                 .Include(slo => slo.Subcategory!)
                     .ThenInclude(sub => sub.Category)
-                .OrderBy(slo => slo.SponsorshipType.ToString())
-                .ThenBy(slo => slo.Subcategory != null)
-                .ThenBy(slo => slo.Subcategory != null
-                     ? slo.Subcategory.Category.Name + " " + slo.Subcategory.Name
-                     : string.Empty)
-                .ThenBy(slo => slo.Days)
                 .ToListAsync();
+
+            return offers
+                .OrderBy(o => o.SponsorshipType.ToString())
+                .ThenBy(o => SponsoredListingOfferPlacement.SortKey(o))
+                .ThenBy(o => o.Days)
+                .ToList();
         }
 
         public async Task<IEnumerable<SponsoredListingOffer>> GetAllByTypeAsync(SponsorshipType sponsorshipType)
         {
-            var offers = await this.context
-                                   .SponsoredListingOffers
-                                   .Include(slo => slo.Subcategory!)
-                                   .ThenInclude(sub => sub.Category) // Include the Category associated with the Subcategory
-                                   .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true)
-                                   .ToListAsync();
+            var offers = await this.context.SponsoredListingOffers
+                .Include(slo => slo.Category)
+                .Include(slo => slo.Subcategory!)
+                    .ThenInclude(sub => sub.Category)
+                .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled)
+                .ToListAsync();
 
-            // Sort the list to put entries without Subcategory at the top
-            return offers.OrderByDescending(o => o.Subcategory == null).ToList();
+            // Standard prices first, then each category / subcategory price list.
+            return offers
+                .OrderBy(o => SponsoredListingOfferPlacement.SortKey(o))
+                .ThenBy(o => o.Days)
+                .ToList();
         }
 
-        public async Task<IEnumerable<SponsoredListingOffer>> GetByTypeAndSubCategoryAsync(SponsorshipType sponsorshipType, int? subcategoryId)
+        public async Task<IEnumerable<SponsoredListingOffer>> GetOffersForPlacementAsync(SponsorshipType sponsorshipType, int? placementId)
         {
-            var results = await this.context
-                             .SponsoredListingOffers
-                             .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true && x.SubcategoryId == subcategoryId).ToListAsync();
+            var enabled = this.context.SponsoredListingOffers
+                .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled);
 
-            if (results == null || results.Count == 0)
+            if (placementId is int id && id > 0)
             {
-                results = await this.context
-                                    .SponsoredListingOffers
-                                    .Where(x => x.SponsorshipType == sponsorshipType && x.IsEnabled == true && x.SubcategoryId == null).ToListAsync();
+                List<SponsoredListingOffer> own = sponsorshipType switch
+                {
+                    SponsorshipType.CategorySponsor => await enabled
+                        .Where(x => x.CategoryId == id && x.SubcategoryId == null)
+                        .ToListAsync(),
+                    SponsorshipType.SubcategorySponsor => await enabled
+                        .Where(x => x.SubcategoryId == id && x.CategoryId == null)
+                        .ToListAsync(),
+                    _ => new List<SponsoredListingOffer>(),
+                };
+
+                if (own.Count > 0)
+                {
+                    return own.OrderBy(o => o.Days).ToList();
+                }
             }
 
-            return results;
+            return await enabled
+                .Where(x => x.CategoryId == null && x.SubcategoryId == null)
+                .OrderBy(o => o.Days)
+                .ToListAsync();
         }
 
         public async Task<SponsoredListingOffer> GetByIdAsync(int sponsoredListingOfferId)

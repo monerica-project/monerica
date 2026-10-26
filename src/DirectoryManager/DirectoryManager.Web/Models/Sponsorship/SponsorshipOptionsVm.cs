@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Web.Controllers;
+using DirectoryManager.Web.Controllers;
 
 namespace DirectoryManager.Web.Models.Sponsorship
 {
@@ -16,6 +16,9 @@ namespace DirectoryManager.Web.Models.Sponsorship
         public string SubcategoryName { get; set; } = "";
 
         public bool CanAdvertise { get; set; }
+
+        // Meets the video sponsorship rules (Verified + minimum days, strict).
+        public bool CanSponsorVideo { get; set; }
         public List<string> IneligibilityReasons { get; set; } = new ();
         public bool ShowSubscribedBanner { get; set; }
 

@@ -475,27 +475,35 @@ namespace DirectoryManager.Data.DbContextInfo
 
         private static void ConfigureSponsoredListingOfferIndexes(ModelBuilder builder)
         {
-            builder.Entity<SponsoredListingOffer>()
-                   .HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId, e.SubcategoryId })
-                   .IsUnique();
-
+            // One price per placement and length:
+            //  - the standard price list for a type (no category, no subcategory),
+            //  - a category page's own prices (category sponsor),
+            //  - a subcategory page's own prices (subcategory sponsor).
             builder.Entity<SponsoredListingOffer>(eb =>
             {
+                eb.HasIndex(e => new { e.SponsorshipType, e.Days })
+                  .IsUnique()
+                  .HasFilter("\"CategoryId\" IS NULL AND \"SubcategoryId\" IS NULL")
+                  .HasDatabaseName("UX_Offer_Standard");
+
                 eb.HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId })
                   .IsUnique()
-                  .HasFilter("\"SubcategoryId\" IS NULL")
-                  .HasDatabaseName("UX_Offer_Type_Days_Cat_NoSubcat");
+                  .HasFilter("\"CategoryId\" IS NOT NULL")
+                  .HasDatabaseName("UX_Offer_Category");
 
-                eb.HasIndex(e => new { e.SponsorshipType, e.Days, e.CategoryId, e.SubcategoryId })
+                eb.HasIndex(e => new { e.SponsorshipType, e.Days, e.SubcategoryId })
                   .IsUnique()
                   .HasFilter("\"SubcategoryId\" IS NOT NULL")
-                  .HasDatabaseName("UX_Offer_Type_Days_Cat_Subcat");
-            });
+                  .HasDatabaseName("UX_Offer_Subcategory");
 
-            builder.Entity<SponsoredListingOffer>()
-                   .HasIndex(e => new { e.SponsorshipType, e.Days })
-                   .IsUnique()
-                   .HasFilter("\"SubcategoryId\" IS NULL");
+                // Main = sitewide only; category prices belong to a category; subcategory prices
+                // belong to a subcategory. Blocks the old "category price stored per subcategory".
+                eb.ToTable(t => t.HasCheckConstraint(
+                    "CK_Offer_Placement",
+                    "(\"SponsorshipType\" = 1 AND \"CategoryId\" IS NULL AND \"SubcategoryId\" IS NULL)"
+                    + " OR (\"SponsorshipType\" = 3 AND \"SubcategoryId\" IS NULL)"
+                    + " OR (\"SponsorshipType\" = 2 AND \"CategoryId\" IS NULL)"));
+            });
         }
 
         private static void ConfigureSponsoredListingReservationIndexes(ModelBuilder builder)

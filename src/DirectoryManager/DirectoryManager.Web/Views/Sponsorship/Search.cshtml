@@ -1,0 +1,60 @@
+@model DirectoryManager.Web.Models.Sponsorship.SponsorshipIndexVm
+@using DirectoryManager.Web.Constants
+@{
+    var q = (Model.Query ?? string.Empty).Trim();
+    PageMeta.Title = Model.HasSearched ? $"Sponsorship search: {q}" : "Find your listing to sponsor";
+    PageMeta.MetaContent = StringConstants.MetaTagNoIndex;
+    Layout = "_CenteredLayout";
+    int first = Model.TotalCount == 0 ? 0 : ((Model.Page - 1) * Model.PageSize) + 1;
+    int last = Math.Min(Model.Page * Model.PageSize, Model.TotalCount);
+}
+
+@section PageContent {
+    <div class="page-header-bar">
+        <h1 class="page-title">Find your listing</h1>
+        @await Html.PartialAsync("_SiteLogo")
+    </div>
+
+    <hr />
+    <p><a href="@Url.Action("Index", "Sponsorship")">&larr; Back to sponsorship</a></p>
+
+    <div id="find-listing" class="u-callout-center">
+        <form method="get" action="@Url.Action("Search", "Sponsorship")" class="search-form u-m-0">
+            <input type="search" name="q" value="@q"
+                   placeholder="Your listing name or website…"
+                   class="form-control u-search-input" autofocus />
+            <button type="submit" class="btn btn-primary btn-cta">Find my listing →</button>
+        </form>
+        <p class="u-note-sm">Pick your listing to see every placement, live prices and open spots, or join the waitlist.</p>
+    </div>
+
+    @if (!Model.HasSearched)
+    {
+        <p class="u-mt-18px">Type your listing&#39;s name or website above to find it.</p>
+    }
+    else if (Model.TotalCount == 0)
+    {
+        <h2 class="u-mt-18px">No results for &ldquo;@q&rdquo;</h2>
+        <p class="u-mt-8px">
+            No directory listing matches <strong>@q</strong>. Try a shorter name or the site&#39;s domain.
+            A site has to be listed in the directory before it can be sponsored &mdash;
+            <a href="~/submit">submit it here</a>, then come back and search again.
+            Questions? <a href="~/contact">Contact us</a>.
+        </p>
+    }
+    else
+    {
+        <h2 class="u-mt-18px">Results for &ldquo;@q&rdquo;</h2>
+        <p class="u-m-6px-0-12px-0">
+            Showing @first&ndash;@last of @Model.TotalCount listing@(Model.TotalCount == 1 ? "" : "s")
+            @if (Model.TotalPages > 1)
+            {
+                <span>&middot; page @Model.Page of @Model.TotalPages</span>
+            }
+        </p>
+
+        @await Html.PartialAsync("_SponsorshipSearchResults", Model)
+
+        <p class="u-note-sm">Not the right listing? Search again above, or <a href="~/submit">submit your site</a> if it isn&#39;t listed yet.</p>
+    }
+}

@@ -6,6 +6,7 @@
 @using DirectoryManager.Web.Enums
 @using DirectoryManager.Web.Helpers
 @using DirectoryManager.Web.Models
+@using DirectoryManager.Utilities.Helpers
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @inject DirectoryManager.Data.Repositories.Interfaces.ISponsoredListingRepository sponsoredListingRepository
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryRepository directoryEntryRepository
@@ -17,13 +18,22 @@
 @inject DirectoryManager.Data.Repositories.Interfaces.IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepo
 
 @{
-    PageMeta.Title = string.Format(
-        "{0}: {1}{2}",
-        await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName),
-        Model.PageTitle,
-        Model.CurrentPage > 1 ? $" (Page {Model.CurrentPage})" : ""
-    );
-    PageMeta.MetaDescription = Model.MetaDescription;
+    var siteNameForSeo = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
+    var currencyNameForSeo = await cacheHelper.GetSnippetAsync(SiteConfigSetting.DirectoryCurrencyName);
+    PageMeta.Title = Model.PageTitle;
+
+    // Keyword first, at most 60 characters: "Instant Swaps: Monero (XMR) Exchanges | Monerica".
+    PageMeta.SeoTitle = SeoTitleBuilder.ForSubcategory(
+        Model.SubcategoryName,
+        Model.CategoryName,
+        currencyNameForSeo,
+        siteNameForSeo,
+        Model.CurrentPage);
+    var baseDescription = string.IsNullOrWhiteSpace(Model.MetaDescription)
+        ? SeoDescriptionBuilder.ForListPage($"{Model.SubcategoryName} ({Model.CategoryName})", Model.PagedEntries?.TotalCount ?? 0, currencyNameForSeo, siteNameForSeo)
+        : Model.MetaDescription;
+    PageMeta.MetaDescription = SeoDescriptionBuilder.Shorten(
+        Model.CurrentPage > 1 ? $"Page {Model.CurrentPage}. {baseDescription}" : baseDescription);
     var categoryKey = ViewBag.CategoryKey as string;
     var subCategoryKey = ViewBag.SubCategoryKey as string;
     var categoryName = ViewBag.CategoryName as string;
@@ -37,6 +47,15 @@
         new BreadcrumbItem { Position = 2, Name = @categoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}") },
         new BreadcrumbItem { Position = 3, Name = @subCategoryName, Url = UrlHelper.MakeFullUrl(domain,$"/{@categoryKey}/{@subCategoryKey}")  }
     };
+    PageMeta.StructuredData.Add(JsonLdBuilder.BreadcrumbList(breadcrumbs));
+
+    // ItemList of the listings on this page (positions continue across pages).
+    var itemListStart = ((Math.Max(1, Model.CurrentPage) - 1) * Math.Max(1, Model.PageSize)) + 1;
+    PageMeta.StructuredData.Add(JsonLdBuilder.ItemList(
+        Model.SubcategoryName,
+        PageMeta.CanonicalUrl,
+        Model.EntryViewModels.Select(e => (e.Name, UrlHelper.MakeFullUrl(domain, UrlBuilder.ListingPath(e.DirectoryEntryKey)))),
+        itemListStart));
 }
 
 @{
@@ -47,7 +66,6 @@
 
   @section PageContent {
 
-@BreadcrumbJsonHelper.GenerateBreadcrumbJson(breadcrumbs)
 
     
 <h1>@Model.PageHeader</h1>

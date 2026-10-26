@@ -1,10 +1,16 @@
 @using DirectoryManager.Web.Constants;
+@inject DirectoryManager.Web.Services.Interfaces.ICacheService seoCache
 @using DirectoryManager.Data.Enums;
 @inject DirectoryManager.Web.Services.Interfaces.ICacheService cacheHelper
 @{
     var siteName = await cacheHelper.GetSnippetAsync(SiteConfigSetting.SiteName);
     if (string.IsNullOrWhiteSpace(siteName)) { siteName = "Monerica"; }
     PageMeta.Title = $"The {siteName} Network";
+    var seoSite = await seoCache.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
+    var seoCurrency = await seoCache.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.DirectoryCurrencyName);
+    var seoAbout = string.IsNullOrWhiteSpace(seoCurrency) ? string.Empty : $" that accept or relate to {seoCurrency}";
+    var seoListings = string.IsNullOrWhiteSpace(seoCurrency) ? "Listings" : $"{seoCurrency} Listings";
+    PageMeta.MetaDescription = DirectoryManager.Web.Helpers.SeoDescriptionBuilder.Shorten($"The sites in the {seoSite} network{seoAbout}.");
     Layout = "_CenteredLayout";
 }
 

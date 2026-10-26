@@ -679,8 +679,6 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
-            this.SetMetaDescription(entry);
-
             var (link2Name, link3Name) = await this.GetLinkLabelsAsync();
             var (tagNames, tagDict) = await this.GetTagsAsync(entry.DirectoryEntryId);
             var additionalLinkUrls = await this.GetAdditionalLinkUrlsAsync(entry.DirectoryEntryId, ct);
@@ -712,6 +710,7 @@ namespace DirectoryManager.Web.Controllers
             await this.SetCategoryContextViewBagAsync(entry.SubCategoryId);
             this.ViewBag.AdditionalSubcategories = await this.additionalSubcategoryRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId);
 
+            await this.SetMetaDescriptionAsync(entry, reviewsVm, link2Name, link3Name);
             await this.SetProcessorLinksAsync(entry);
 
             return this.View("DirectoryEntryView", model);
@@ -1209,9 +1208,31 @@ namespace DirectoryManager.Web.Controllers
             return (tagNames, tagDictionary);
         }
 
-        private void SetMetaDescription(DirectoryEntry entry)
+        private async Task SetMetaDescriptionAsync(
+            DirectoryEntry entry,
+            EntryReviewsBlockViewModel reviewsVm,
+            string link2Name,
+            string link3Name)
         {
-            this.PageMeta().MetaDescription = entry.Description;
+            var subcategoryName = this.ViewBag.SubCategoryName as string;
+            var currency = await this.cacheService.GetSnippetAsync(SiteConfigSetting.DirectoryCurrencyName);
+
+            this.PageMeta().MetaDescription = SeoDescriptionBuilder.ForListing(new ListingDescriptionFacts
+            {
+                Name = entry.Name,
+                SubcategoryName = subcategoryName,
+                CurrencyName = currency,
+                Status = entry.DirectoryStatus,
+                KycPolicy = entry.KycPolicy,
+                Liquidity = entry.Liquidity,
+                AverageRating = reviewsVm.AverageRating,
+                ReviewCount = reviewsVm.ReviewCount,
+                HasLink2 = !string.IsNullOrWhiteSpace(entry.Link2),
+                HasLink3 = !string.IsNullOrWhiteSpace(entry.Link3),
+                Link2Name = link2Name,
+                Link3Name = link3Name,
+                Description = entry.Description,
+            });
         }
 
         private async Task SetCanonicalAsync(string directoryEntryKey, int page)

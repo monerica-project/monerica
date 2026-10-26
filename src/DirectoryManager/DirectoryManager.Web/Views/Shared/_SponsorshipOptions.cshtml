@@ -23,7 +23,7 @@
         <table class="table">
             <thead>
                 <tr>
-                    <th>Subcategory</th>
+                    <th>Placement</th>
                     <th>Days</th>
                     <th>Price USD</th>
                     @if (showConverted)
@@ -40,13 +40,10 @@
                 {
                     <tr>
                         <td>
-                            @if (string.IsNullOrEmpty(item.Subcategory?.Name))
+                            @DirectoryManager.Data.Helpers.SponsoredListingOfferPlacement.Label(item)
+                            @if (!DirectoryManager.Data.Helpers.SponsoredListingOfferPlacement.IsLivePlacement(item))
                             {
-                                @StringConstants.Default
-                            }
-                            else
-                            {
-                                @FormattingHelper.SubcategoryFormatting(item.Subcategory.Category?.Name, @item.Subcategory?.Name)
+                                <span class="u-opacity-6">(page retired)</span>
                             }
                         </td>
                         <td>@item.Days</td>

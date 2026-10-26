@@ -73,7 +73,7 @@
     <!-- PROMINENT SEARCH -->
     <div id="find-listing" class="u-callout-center">
         <p class="u-heading-sm">Find your listing</p>
-        <form method="get" action="@Url.Action("Index", "Sponsorship")" class="search-form u-m-0">
+        <form method="get" action="@Url.Action("Search", "Sponsorship")" class="search-form u-m-0">
             <input type="search" name="q" value="@q"
                    placeholder="Your listing name or website…"
                    class="form-control u-search-input" />
@@ -163,94 +163,6 @@
             </p>
         </div>
     </details>
-
-    @if (Model.HasSearched)
-    {
-        <h2 class="u-mt-18px">Search results</h2>
-
-        <p class="u-m-6px-0-12px-0">
-            @Model.TotalCount result@(Model.TotalCount == 1 ? "" : "s")
-            @if (Model.TotalPages > 1)
-            {
-                <span> — page @Model.Page of @Model.TotalPages</span>
-            }
-        </p>
-
-        @if (Model.Results != null && Model.Results.Any())
-        {
-            <div class="search-results">
-                @foreach (var r in Model.Results)
-                {
-                    var meta = r.Status;
-                    if (!string.IsNullOrWhiteSpace(r.Category)) { meta += $" · {r.Category}"; }
-                    if (!string.IsNullOrWhiteSpace(r.Subcategory)) { meta += $" » {r.Subcategory}"; }
-                    meta += $" · listed {r.AgeDays} days";
-
-                    <div class="result-row sponsor-search-row u-flex-flexwrap-wrap-items-center-gap-8px-16px-p-12px-0">
-                        <div class="u-flex-1-1-240px-minw-0">
-                            <div class="u-fs-105em-fw-600">
-                                @* Name links to the listing's profile on this directory, not its own website. *@
-                                @if (!string.IsNullOrWhiteSpace(r.DirectoryEntryKey))
-                                {
-                                    <a class="no-app-link" href="@UrlResolver.ResolveToRoot(DirectoryManager.Utilities.Helpers.UrlBuilder.ListingPath(r.DirectoryEntryKey))">@r.Name</a>
-                                }
-                                else
-                                {
-                                    @r.Name
-                                }
-                            </div>
-                            <div class="u-opacity-8-fs-9em-mt-2px">@meta</div>
-
-                            @if (!r.CanAdvertise && r.Reasons != null && r.Reasons.Any())
-                            {
-                                <ul class="u-m-6px-0-0-18px-opacity-85-fs-9em">
-                                    @foreach (var reason in r.Reasons)
-                                    {
-                                        <li>@reason</li>
-                                    }
-                                </ul>
-                            }
-                        </div>
-
-                        <form class="u-flex-0-0-auto-m-0" method="post" action="@Url.Action("Select", "Sponsorship")">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="directoryEntryId" value="@r.DirectoryEntryId" />
-                            @* Orange action button that names the listing, so it's clearly clickable and clearly for this row. *@
-                            <button type="submit" class="btn @(r.CanAdvertise ? "btn-primary btn-cta" : "btn-secondary") sponsor-search-spots-btn">
-                                See spots for @r.Name &rarr;
-                            </button>
-                        </form>
-                    </div>
-                }
-            </div>
-
-            @if (Model.TotalPages > 1)
-            {
-                <div class="u-m-12px-0-22px-0">
-                    @{
-                        var prev = Model.Page > 1 ? Model.Page - 1 : (int?)null;
-                        var next = Model.Page < Model.TotalPages ? Model.Page + 1 : (int?)null;
-                    }
-                    @if (prev.HasValue)
-                    {
-                        <a class="btn btn-secondary" href="@Url.Action("Index", "Sponsorship", new { q = q, page = prev.Value })">← Prev</a>
-                    }
-                    @if (next.HasValue)
-                    {
-                        <a class="btn btn-secondary u-ml-8px" href="@Url.Action("Index", "Sponsorship", new { q = q, page = next.Value })">Next →</a>
-                    }
-                </div>
-            }
-        }
-        else
-        {
-            <p class="u-mt-8px">
-                No directory listing found for <strong>@q</strong>. A site has to be listed in the
-                directory before it can be sponsored — <a href="~/submit">submit it here</a>, then
-                come back and search again. Questions? <a href="~/contact">Contact us</a>.
-            </p>
-        }
-    }
 
     <!-- PACKAGE DETAILS -->
     <hr />

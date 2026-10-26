@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Enums;
 
 namespace DirectoryManager.Web.Models.SponsoredListing
 {
@@ -24,10 +24,13 @@ namespace DirectoryManager.Web.Models.SponsoredListing
         public int SlotId { get; set; }
 
         /// <summary>
-        /// The subcategory this offer row is scoped to (0 for the Default row / Main). Used to
-        /// deep-link the row to the public pricing-history explorer for that subcategory.
+        /// Value for the public pricing-history picker ("main", "category-8", "subcategory",
+        /// "subcategory-73"), so each row links to the history for exactly that placement.
         /// </summary>
-        public int ScopeSubCategoryId { get; set; }
+        public string HistoryPlacement { get; set; } = string.Empty;
+
+        /// <summary>True when this placement has no price of its own and uses the standard price.</summary>
+        public bool IsStandardPrice { get; set; }
 
         /// <summary>
         /// true if that slot still has space.

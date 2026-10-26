@@ -8,6 +8,8 @@
         "true",
         StringComparison.OrdinalIgnoreCase);
     var siteName = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.SiteName);
+    var blogUrl = ((await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.VideoSponsorshipBlogUrl)) ?? string.Empty).Trim();
+    var blogHost = Uri.TryCreate(blogUrl, UriKind.Absolute, out var promoBlogUri) ? promoBlogUri.Host : blogUrl;
 }
 @if (videoSponsorshipEnabled)
 {
@@ -19,14 +21,18 @@
             Your listing is featured on the @siteName website itself: site-wide (Main), in its Category,
             or in its Subcategory.
         </p>
-        <p><a href="#site-sponsorship">Continue below &darr;</a></p>
+        <p>
+            <a href="#site-sponsorship">Continue below &darr;</a>
+            <span class="u-ml-8px">&middot;</span>
+            <a class="app-link u-ml-8px u-ws-nowrap" href="~/sponsoredlisting/offers">See prices &rarr;</a>
+        </p>
     </div>
 
     <div class="u-callout">
         <p><strong>2. Video sponsorship</strong> &mdash; a separate checkout</p>
         <p>
             Your product is featured in a video on the @siteName YouTube channel: a 1-minute segment
-            in an upcoming video, or a dedicated video. Paid in Monero.
+            in an upcoming video, or a dedicated video@(string.IsNullOrWhiteSpace(blogUrl) ? "" : $", plus a blog article about it on {blogHost}"). Paid in Monero.
         </p>
         <p>
             <a class="btn btn-primary btn-cta app-link" href="~/video-sponsorship/start">Sponsor a video &rarr;</a>
@@ -37,3 +43,8 @@
     <hr />
 }
 <h2 id="site-sponsorship">Site sponsorship</h2>
+<p class="u-m-6px-0-12px-0">
+    <a href="#packages">What&rsquo;s included &amp; prices &darr;</a>
+    <span class="u-ml-8px">&middot;</span>
+    <a class="app-link u-ml-8px u-ws-nowrap" href="~/sponsoredlisting/offers">Full price list &rarr;</a>
+</p>

@@ -57,12 +57,18 @@ namespace DirectoryManager.Web.Helpers
             });
         }
 
+        /// <summary>The urlset namespace (see the note in <see cref="GenerateXml"/>).</summary>
+        public const string Namespace = "http://www.sitemaps.org/schemas/sitemap/0.9";
+
         public string GenerateXml()
         {
             var sb = new StringBuilder();
             sb.Append(@"<?xml version=""1.0"" encoding=""UTF-8""?>");
             sb.AppendLine();
-            sb.AppendLine(@"<urlset xmlns=""https://www.sitemaps.org/schemas/sitemap/0.9"" xmlns:image=""https://www.google.com/schemas/sitemap-image/1.1"">");
+
+            // The protocol's namespace (http://, not https://). GitSiteSyncer reads whatever
+            // namespace the <urlset> declares. No image namespace: the sitemap has no image entries.
+            sb.AppendLine($@"<urlset xmlns=""{Namespace}"">");
 
             foreach (var siteMapItem in this.items.Take(MaxPageSizeForSiteMap))
             {
@@ -71,9 +77,12 @@ namespace DirectoryManager.Web.Helpers
                 sb.AppendLine();
                 sb.AppendFormat(@"    <lastmod>{0}</lastmod>", siteMapItem.LastMod.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormatSiteMapXml));
                 sb.AppendLine();
-                sb.AppendFormat(@"    <changefreq>{0}</changefreq>", siteMapItem.ChangeFrequency.ToString());
+                sb.AppendFormat(@"    <changefreq>{0}</changefreq>", ChangeFrequencyValue(siteMapItem.ChangeFrequency));
                 sb.AppendLine();
-                sb.AppendFormat(@"    <priority>{0}</priority>", Math.Round(siteMapItem.Priority, 2));
+                sb.AppendFormat(
+                    System.Globalization.CultureInfo.InvariantCulture,
+                    @"    <priority>{0}</priority>",
+                    Math.Round(siteMapItem.Priority, 2));
                 sb.AppendLine();
                 sb.AppendLine(@"  </url>");
             }
@@ -81,6 +90,10 @@ namespace DirectoryManager.Web.Helpers
             sb.AppendLine(@"</urlset>");
             return sb.ToString();
         }
+
+        /// <summary>The protocol's changefreq values are lowercase ("daily", not "Daily").</summary>
+        internal static string ChangeFrequencyValue(ChangeFrequency changeFrequency) =>
+            changeFrequency.ToString().ToLowerInvariant();
 
         private static string NormalizeUrlKey(string url)
         {

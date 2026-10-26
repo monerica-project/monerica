@@ -34,6 +34,15 @@
                 so your sponsored video also reaches viewers who avoid YouTube (no JavaScript, works over Tor).
             </p>
         }
+        @if (!string.IsNullOrWhiteSpace(Model.BlogUrl))
+        {
+            var blogHost = Uri.TryCreate(Model.BlogUrl, UriKind.Absolute, out var bu) ? bu.Host : Model.BlogUrl;
+            <p>
+                <strong>Plus a blog article:</strong> each sponsored video also gets its own article on
+                <a href="@Model.BlogUrl" target="_blank" rel="noopener">@blogHost</a>, with the video embedded
+                and a link to your product, so it keeps bringing in readers from search.
+            </p>
+        }
     </div>
 
     <p>
@@ -107,8 +116,12 @@
                         @s.VideoTitle <span class="text-muted">(upcoming)</span>
                     }
                 </p>
+                @if (!string.IsNullOrWhiteSpace(s.BlogArticleUrl))
+                {
+                    <p>Blog article: <a href="@s.BlogArticleUrl" target="_blank" rel="noopener">read it</a></p>
+                }
                 <p>
-                    @s.OfferName &middot; @s.AmountUsd.ToString("C2", usd) USD
+                    @s.OfferName
                     &middot; paid @(s.PaidUtc?.ToString("yyyy-MM-dd")) UTC
                 </p>
             </div>

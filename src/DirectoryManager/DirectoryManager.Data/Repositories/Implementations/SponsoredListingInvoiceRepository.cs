@@ -1,4 +1,4 @@
-﻿using System.Runtime.CompilerServices;
+using System.Runtime.CompilerServices;
 using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models.SponsoredListings;
@@ -619,17 +619,21 @@ namespace DirectoryManager.Data.Repositories.Implementations
             }).ToList();
         }
 
-        public async Task<bool> HasPaidPurchasesForSubcategoryAsync(SponsorshipType sponsorshipType, int subCategoryId)
+        public async Task<bool> HasPaidPurchasesForPlacementAsync(SponsorshipType sponsorshipType, int placementId)
         {
-            return await this.context.SponsoredListingInvoices
+            var paid = this.context.SponsoredListingInvoices
                 .AsNoTracking()
-                .AnyAsync(i =>
+                .Where(i =>
                     i.PaymentStatus == PaymentStatus.Paid &&
                     i.SponsorshipType == sponsorshipType &&
-                    i.Amount > 0m &&
-                    i.DirectoryEntry != null &&
-                    i.DirectoryEntry.SubCategoryId == subCategoryId)
-                .ConfigureAwait(false);
+                    i.Amount > 0m);
+
+            return sponsorshipType switch
+            {
+                SponsorshipType.CategorySponsor => await paid.AnyAsync(i => i.CategoryId == placementId).ConfigureAwait(false),
+                SponsorshipType.SubcategorySponsor => await paid.AnyAsync(i => i.SubCategoryId == placementId).ConfigureAwait(false),
+                _ => false,
+            };
         }
 
         public async Task<List<RecentPaidPurchaseDto>> GetRecentPaidByTypeAsync(

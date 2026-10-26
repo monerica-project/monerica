@@ -15,4 +15,8 @@ public class VideoSponsorPublicRow
     public decimal AmountUsd { get; set; }
 
     public string? VideoUrl { get; set; }
+
+    public string? BlogArticleUrl { get; set; }
+
+    public DateTime? CompletedUtc { get; set; }
 }

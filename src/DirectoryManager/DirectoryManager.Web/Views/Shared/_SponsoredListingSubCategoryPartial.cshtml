@@ -4,6 +4,7 @@
 @inject DirectoryManager.Web.Services.Interfaces.IUrlResolutionService Urls
 @inject DirectoryManager.Web.Services.Interfaces.IFeaturedListingBuilder FeaturedBuilder
 @inject DirectoryManager.Data.Repositories.Interfaces.ISubcategoryRepository SubcategoryRepo
+@inject DirectoryManager.Web.Services.Interfaces.ISponsorableScopeService SponsorableScopes
 @model DirectoryManager.Web.Models.SubcategorySponsorModel
 
 @{
@@ -12,8 +13,11 @@
 
     var vm = Model?.DirectoryEntry; // DisplayFormatting.Models.DirectoryEntryViewModel
 
+    // Only offer "Advertise here" when at least one listing in this subcategory could actually
+    // buy the slot (same rule as checkout: Verified + listed long enough, or a current sponsor).
     bool canAdvertise = Model != null && !Model.SponsorshipDisabled
-        && Model.TotalActiveSubCategoryListings >= DirectoryManager.Common.Constants.IntegerConstants.MinRequiredSubcategories;
+        && Model.TotalActiveSubCategoryListings >= DirectoryManager.Common.Constants.IntegerConstants.MinRequiredSubcategories
+        && await SponsorableScopes.SubcategoryHasBuyerAsync(Model.SubCategoryId);
 
     // Unpaid admin-picked "Featured" listing — only when no paid subcategory sponsor is showing.
     DirectoryManager.DisplayFormatting.Models.DirectoryEntryViewModel? featured = null;

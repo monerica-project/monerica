@@ -65,7 +65,6 @@ namespace DirectoryManager.Web.Controllers
             // -------------------------------------------------------
             // 1) Site-wide last modified (small, cheap queries)
             // -------------------------------------------------------
-            var lastFeaturedDate = await this.directoryEntrySelectionRepository.GetMostRecentModifiedDateAsync();
             var lastDirectoryEntryDate = this.directoryEntryRepository.GetLastRevisionDate();
             var lastContentSnippetUpdate = this.contentSnippetRepository.GetLastUpdateDate();
             var lastPaidInvoiceUpdate = this.sponsoredListingInvoiceRepository.GetLastPaidInvoiceUpdateDate();
@@ -78,6 +77,23 @@ namespace DirectoryManager.Web.Controllers
                 lastPaidInvoiceUpdate,
                 nextAdExpiration,
                 lastSponsorExpiration);
+
+            // Homepage selections only show on the homepage, but they count toward the site-wide
+            // date so a selection change still advances the sitemap max (and refreshes the mirror).
+            var lastFeaturedDate = await this.directoryEntrySelectionRepository.GetMostRecentModifiedDateAsync();
+            if (lastFeaturedDate > mostRecentUpdateDate && lastFeaturedDate <= DateTime.UtcNow)
+            {
+                mostRecentUpdateDate = lastFeaturedDate;
+            }
+
+            // A deploy changes the templates of every page, so the running build's time counts as a
+            // site-wide change: the sitemap max advances and the static mirror re-crawls all pages
+            // after each deploy (before, template-only deploys never reached the mirror).
+            var deployedUtc = DeployedAtUtc();
+            if (deployedUtc > mostRecentUpdateDate && deployedUtc <= DateTime.UtcNow)
+            {
+                mostRecentUpdateDate = deployedUtc;
+            }
 
             var lastSponsoredListingChange = await this.sponsoredListingRepository.GetLastChangeDateForMainSponsorAsync();
             if (lastSponsoredListingChange.HasValue && lastSponsoredListingChange.Value > mostRecentUpdateDate)
@@ -118,10 +134,18 @@ namespace DirectoryManager.Web.Controllers
             // -------------------------------------------------------
             // 3) Build sitemap
             // -------------------------------------------------------
+            // Each URL carries its OWN last-modified date (a listing's edit or newest review, a
+            // subcategory's newest listing change, ...). The homepage carries the site-wide
+            // newest change (it shows sponsors, newest listings and reviews), so the sitemap's
+            // MAX <lastmod> still advances on every change. The static mirror (GitSiteSyncer)
+            // relies on exactly that: when the max <lastmod> moves it re-crawls EVERY page, so
+            // shared chrome (sidebar counts, sponsor ticker) stays fresh on all pages.
             var siteMapHelper = new SiteMapHelper();
             var domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
+            var listingsLastMod = OrFallback(lastDirectoryEntryDate, mostRecentUpdateDate);
+            var snippetsLastMod = OrFallback(lastContentSnippetUpdate ?? DateTime.MinValue, mostRecentUpdateDate);
 
-            await this.AddTags(mostRecentUpdateDate, siteMapHelper, domain);
+            await this.AddTags(listingsLastMod, siteMapHelper, domain);
 
             // Root
             siteMapHelper.AddUrl(
@@ -130,13 +154,12 @@ namespace DirectoryManager.Web.Controllers
                 ChangeFrequency.Daily,
                 1.0);
 
-            await this.AddNewestPagesListAsync(mostRecentUpdateDate, siteMapHelper);
-            await this.AddPagesAsync(mostRecentUpdateDate, siteMapHelper);
-            await this.AddAllTagsPaginationAsync(mostRecentUpdateDate, siteMapHelper);
+            this.AddNewestPage(listingsLastMod, siteMapHelper, domain);
+            await this.AddPagesAsync(snippetsLastMod, listingsLastMod, mostRecentUpdateDate, siteMapHelper);
 
             var categories = await this.categoryRepository.GetActiveCategoriesAsync();
             var subcategoryEntryCounts = await this.directoryEntryRepository.GetSubcategoryEntryCountsAsync();
-            await this.AddCategoryPaginationAsync(mostRecentUpdateDate, siteMapHelper, categories, subcategoryEntryCounts, domain);
+            var categoryEntryCounts = await this.directoryEntryRepository.GetCategoryEntryCountsAsync();
 
             var allCategoriesLastModified = await this.categoryRepository.GetAllCategoriesLastChangeDatesAsync();
             var allSubcategoriesLastModified = await this.subCategoryRepository.GetAllSubCategoriesLastChangeDatesAsync();
@@ -147,7 +170,6 @@ namespace DirectoryManager.Web.Controllers
             foreach (var category in categories)
             {
                 await this.AddCategoryPages(
-                    lastFeaturedDate,
                     mostRecentUpdateDate,
                     siteMapHelper,
                     allCategoriesLastModified,
@@ -156,6 +178,7 @@ namespace DirectoryManager.Web.Controllers
                     allSubcategoryAds,
                     allCategoryAds,
                     subcategoryEntryCounts,
+                    categoryEntryCounts,
                     domain,
                     category);
             }
@@ -167,13 +190,11 @@ namespace DirectoryManager.Web.Controllers
 
             foreach (var entry in entries)
             {
-                // If you want per-entry lastmod to be truly per-entry, remove "mostRecentUpdateDate" from baseLastMod.
-                // Keeping it here preserves your prior behavior.
+                // Truly per listing: its own create/edit date, newest approved review or reply.
                 var baseLastMod = new[]
                 {
                     entry.CreateDate,
                     entry.UpdateDate ?? entry.CreateDate,
-                    mostRecentUpdateDate
                 }.Max();
 
                 var reviewLastMod = approvedReviewStatsByEntry.TryGetValue(entry.DirectoryEntryId, out var stats)
@@ -224,7 +245,7 @@ namespace DirectoryManager.Web.Controllers
                 siteMapHelper,
                 domain,
                 countryCounts,
-                mostRecentUpdateDate);
+                listingsLastMod);
 
             var xml = siteMapHelper.GenerateXml();
             return this.Content(xml, "text/xml");
@@ -292,9 +313,7 @@ namespace DirectoryManager.Web.Controllers
                         ? $"{domain}/tagged/{tag.Slug}"
                         : $"{domain}/tagged/{tag.Slug}/page/{i}";
 
-                    var lastMod = tag.LastModified > mostRecentUpdateDate
-                        ? tag.LastModified
-                        : mostRecentUpdateDate;
+                    var lastMod = OrFallback(tag.LastModified, mostRecentUpdateDate);
 
                     siteMapHelper.AddUrl(
                         url,
@@ -304,24 +323,18 @@ namespace DirectoryManager.Web.Controllers
                 }
             }
 
-            siteMapHelper.AddUrl(
-                string.Format("{0}/tagged", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                mostRecentUpdateDate,
-                ChangeFrequency.Monthly,
-                0.3);
-        }
-
-        private async Task AddAllTagsPaginationAsync(DateTime date, SiteMapHelper siteMapHelper)
-        {
-            var domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
+            // The /tagged index (and its pages) changes when any tag does.
+            var date = tagsWithInfo.Count > 0
+                ? OrFallback(tagsWithInfo.Max(t => t.LastModified), mostRecentUpdateDate)
+                : mostRecentUpdateDate;
             int pageSize = IntegerConstants.MaxPageSize;
 
             var pagedResult = await this.tagRepository.ListTagsWithCountsPagedAsync(1, int.MaxValue).ConfigureAwait(false);
 
             int totalTags = pagedResult.TotalCount;
-            int totalPages = (totalTags + pageSize - 1) / pageSize;
+            int tagIndexPages = (totalTags + pageSize - 1) / pageSize;
 
-            for (int page = 1; page <= totalPages; page++)
+            for (int page = 1; page <= tagIndexPages; page++)
             {
                 string url = page == 1
                     ? $"{domain}/tagged"
@@ -339,7 +352,6 @@ namespace DirectoryManager.Web.Controllers
         // CATEGORIES + SUBCATEGORIES
         // ==========================================================
         private async Task AddCategoryPages(
-            DateTime lastFeaturedDate,
             DateTime mostRecentUpdateDate,
             SiteMapHelper siteMapHelper,
             Dictionary<int, DateTime> allCategoriesLastModified,
@@ -348,16 +360,13 @@ namespace DirectoryManager.Web.Controllers
             Dictionary<int, DateTime> allSubCategoryAds,
             Dictionary<int, DateTime> allCategoryAds,
             Dictionary<int, int> subcategoryEntryCounts,
+            Dictionary<int, int> categoryEntryCounts,
             string domain,
             DirectoryManager.Data.Models.Category category)
         {
             var lastChangeToCategory = allCategoriesLastModified.TryGetValue(category.CategoryId, out var categoryMod)
                 ? categoryMod
                 : DateTime.MinValue;
-
-            lastChangeToCategory = mostRecentUpdateDate > lastChangeToCategory
-                ? mostRecentUpdateDate
-                : lastChangeToCategory;
 
             var subCategories = await this.subCategoryRepository.GetActiveSubcategoriesAsync(category.CategoryId);
 
@@ -375,13 +384,15 @@ namespace DirectoryManager.Web.Controllers
                 ? catAdMod
                 : DateTime.MinValue;
 
-            var lastChangeForCategoryOrSubcategory = new[]
-            {
-                lastChangeToCategory,
-                mostRecentSubcategoryDate,
-                mostRecentCategoryAdDate,
-                mostRecentUpdateDate
-            }.Max();
+            // A category page lists its subcategories' listings, so it changed when any of them did.
+            var lastChangeForCategoryOrSubcategory = OrFallback(
+                new[]
+                {
+                    lastChangeToCategory,
+                    mostRecentSubcategoryDate,
+                    mostRecentCategoryAdDate,
+                }.Max(),
+                mostRecentUpdateDate);
 
             siteMapHelper.AddUrl(
                 $"{domain}/{category.CategoryKey}",
@@ -389,10 +400,24 @@ namespace DirectoryManager.Web.Controllers
                 ChangeFrequency.Weekly,
                 0.6);
 
+            // Paginated category pages — MUST match CategoryController's page size (MediumPageSize)
+            // or the sitemap emits phantom /{category}/page/N URLs beyond the real page count.
+            if (categoryEntryCounts.TryGetValue(category.CategoryId, out int totalCount) && totalCount > 0)
+            {
+                int categoryPages = (int)Math.Ceiling((double)totalCount / IntegerConstants.MediumPageSize);
+                for (int i = 2; i <= categoryPages; i++)
+                {
+                    siteMapHelper.AddUrl(
+                        $"{domain}/{category.CategoryKey}/page/{i}",
+                        lastChangeForCategoryOrSubcategory,
+                        ChangeFrequency.Weekly,
+                        0.4);
+                }
+            }
+
             foreach (var subCategory in subCategories)
             {
                 this.AddSubcategoriesAsync(
-                    lastFeaturedDate,
                     mostRecentUpdateDate,
                     siteMapHelper,
                     allSubcategoriesLastModified,
@@ -407,7 +432,6 @@ namespace DirectoryManager.Web.Controllers
         }
 
         private void AddSubcategoriesAsync(
-            DateTime lastFeaturedDate,
             DateTime mostRecentUpdateDate,
             SiteMapHelper siteMapHelper,
             Dictionary<int, DateTime> allSubcategoriesLastModified,
@@ -433,14 +457,14 @@ namespace DirectoryManager.Web.Controllers
                 ? adMod
                 : lastChangeToSubcategoryItem;
 
-            DateTime lastModified = new[]
-            {
-                lastFeaturedDate,
-                lastChangeToSubcategory,
-                lastChangeToSubcategoryItem,
-                lastChangeToSubcategoryAd,
-                mostRecentUpdateDate
-            }.Max();
+            DateTime lastModified = OrFallback(
+                new[]
+                {
+                    lastChangeToSubcategory,
+                    lastChangeToSubcategoryItem,
+                    lastChangeToSubcategoryAd,
+                }.Max(),
+                mostRecentUpdateDate);
 
             // Base subcategory page
             siteMapHelper.AddUrl(
@@ -469,71 +493,27 @@ namespace DirectoryManager.Web.Controllers
             }
         }
 
-        private async Task AddCategoryPaginationAsync(
-            DateTime date,
-            SiteMapHelper siteMapHelper,
-            IEnumerable<Category> categories,
-            Dictionary<int, int> subcategoryEntryCounts,
-            string domain)
-        {
-            // MUST match CategoryController's page size (MediumPageSize) or the sitemap emits
-            // phantom /{category}/page/N URLs beyond the real page count (e.g. wallets with
-            // 26-50 entries is 1 real page at 50/page but was listed as 2 pages at 25/page).
-            int pageSize = IntegerConstants.MediumPageSize;
-
-            var categoryCounts = await this.directoryEntryRepository.GetCategoryEntryCountsAsync();
-
-            foreach (var category in categories)
-            {
-                if (!categoryCounts.TryGetValue(category.CategoryId, out int totalCount) || totalCount == 0)
-                {
-                    continue;
-                }
-
-                int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
-
-                for (int i = 1; i <= totalPages; i++)
-                {
-                    string url = i == 1
-                        ? $"{domain}/{category.CategoryKey}"
-                        : $"{domain}/{category.CategoryKey}/page/{i}";
-
-                    siteMapHelper.AddUrl(url, date, ChangeFrequency.Weekly, 0.4);
-                }
-            }
-        }
-
         // ==========================================================
         // NEWEST
         // ==========================================================
-        private async Task AddNewestPagesListAsync(DateTime date, SiteMapHelper siteMapHelper)
+        // Only page 1. Deeper /newest/page/N pages are a rolling window whose contents shift with
+        // every new listing (thin, duplicate content), so they are noindexed and kept out of the
+        // sitemap; their pagination links point at the app, which still serves them.
+        private void AddNewestPage(DateTime date, SiteMapHelper siteMapHelper, string domain)
         {
-            int totalEntries = await this.directoryEntryRepository.TotalActive();
-            int pageSize = IntegerConstants.MaxPageSize;
-            int totalPages = (int)Math.Ceiling((double)totalEntries / pageSize);
-
-            string domain = WebRequestHelper.GetCurrentDomain(this.HttpContext).TrimEnd('/');
-
-            for (int i = 1; i <= totalPages; i++)
-            {
-                string url = i == 1
-                    ? $"{domain}/newest"
-                    : $"{domain}/newest/page/{i}";
-
-                siteMapHelper.AddUrl(url, date, ChangeFrequency.Daily, 0.4);
-            }
+            siteMapHelper.AddUrl($"{domain}/newest", date, ChangeFrequency.Daily, 0.4);
         }
 
         // ==========================================================
         // STATIC PAGES
         // ==========================================================
-        private async Task AddPagesAsync(DateTime date, SiteMapHelper siteMapHelper)
+        private async Task AddPagesAsync(DateTime date, DateTime listingsDate, DateTime siteWideDate, SiteMapHelper siteMapHelper)
         {
             var contactHtmlConfig = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.ContactHtml);
 
             if (contactHtmlConfig != null && !string.IsNullOrWhiteSpace(contactHtmlConfig.Content))
             {
-                var contactHtmlLastModified = new[] { contactHtmlConfig?.UpdateDate, contactHtmlConfig?.CreateDate, date }
+                var contactHtmlLastModified = new[] { contactHtmlConfig?.UpdateDate, contactHtmlConfig?.CreateDate }
                     .Where(d => d.HasValue)
                     .Max() ?? date;
 
@@ -548,7 +528,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (aboutHtmlConfig != null && !string.IsNullOrWhiteSpace(aboutHtmlConfig.Content))
             {
-                var aboutHtmlLastModified = new[] { aboutHtmlConfig?.UpdateDate, aboutHtmlConfig?.CreateDate, date }
+                var aboutHtmlLastModified = new[] { aboutHtmlConfig?.UpdateDate, aboutHtmlConfig?.CreateDate }
                     .Where(d => d.HasValue)
                     .Max() ?? date;
 
@@ -563,7 +543,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (termsHtmlConfig != null && !string.IsNullOrWhiteSpace(termsHtmlConfig.Content))
             {
-                var termsHtmlLastModified = new[] { termsHtmlConfig?.UpdateDate, termsHtmlConfig?.CreateDate, date }
+                var termsHtmlLastModified = new[] { termsHtmlConfig?.UpdateDate, termsHtmlConfig?.CreateDate }
                     .Where(d => d.HasValue)
                     .Max() ?? date;
 
@@ -578,7 +558,7 @@ namespace DirectoryManager.Web.Controllers
 
             if (donationHtmlConfig != null && !string.IsNullOrWhiteSpace(donationHtmlConfig.Content))
             {
-                var donationHtmlLastModified = new[] { donationHtmlConfig?.UpdateDate, donationHtmlConfig?.CreateDate, date }
+                var donationHtmlLastModified = new[] { donationHtmlConfig?.UpdateDate, donationHtmlConfig?.CreateDate }
                     .Where(d => d != null)
                     .Max() ?? date;
 
@@ -589,25 +569,35 @@ namespace DirectoryManager.Web.Controllers
                     0.2);
             }
 
+            var categoryDates = (await this.categoryRepository.GetAllCategoriesLastChangeDatesAsync()).Values.DefaultIfEmpty(date).Max();
+            var subcategoryDates = (await this.subCategoryRepository.GetAllSubCategoriesLastChangeDatesAsync()).Values.DefaultIfEmpty(date).Max();
+
+            // The HTML sitemap lists categories and subcategories only.
             siteMapHelper.AddUrl(
                 string.Format("{0}/sitemap", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                date,
-                ChangeFrequency.Daily,
+                OrFallback(new[] { categoryDates, subcategoryDates }.Max(), date),
+                ChangeFrequency.Weekly,
                 0.3);
+
+            var faqHtmlConfig = await this.contentSnippetRepository.GetAsync(SiteConfigSetting.FAQHtml);
+            var faqLastModified = new[] { faqHtmlConfig?.UpdateDate, faqHtmlConfig?.CreateDate }
+                .Where(d => d.HasValue)
+                .Max() ?? date;
 
             siteMapHelper.AddUrl(
                 string.Format("{0}/faq", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                date,
+                faqLastModified,
                 ChangeFrequency.Weekly,
                 0.3);
 
             // Every paid sponsor + unpaid featured pick on one page (static, so the mirror picks it up).
             // Featured picks are saved on categories/subcategories, so their change dates count too.
+            // Sponsor changes (purchases, expirations) are part of the site-wide date.
             var spotsLastModified = new[]
             {
-                date,
-                (await this.categoryRepository.GetAllCategoriesLastChangeDatesAsync()).Values.DefaultIfEmpty(date).Max(),
-                (await this.subCategoryRepository.GetAllSubCategoriesLastChangeDatesAsync()).Values.DefaultIfEmpty(date).Max(),
+                siteWideDate,
+                categoryDates,
+                subcategoryDates,
             }.Max();
 
             siteMapHelper.AddUrl(
@@ -630,7 +620,7 @@ namespace DirectoryManager.Web.Controllers
 
             siteMapHelper.AddUrl(
                 string.Format("{0}/rss/feed.xml", WebRequestHelper.GetCurrentDomain(this.HttpContext)),
-                date,
+                listingsDate,
                 ChangeFrequency.Daily,
                 0.9);
         }
@@ -713,6 +703,36 @@ namespace DirectoryManager.Web.Controllers
         // ==========================================================
         // UTILS
         // ==========================================================
+
+        private static DateTime DeployedAtUtc()
+        {
+            try
+            {
+                var location = typeof(SiteMapController).Assembly.Location;
+                if (string.IsNullOrEmpty(location) || !System.IO.File.Exists(location))
+                {
+                    return DateTime.MinValue;
+                }
+
+                var t = System.IO.File.GetLastWriteTimeUtc(location);
+
+                // Whole seconds, so the value is stable between requests.
+                return new DateTime(t.Ticks - (t.Ticks % TimeSpan.TicksPerSecond), DateTimeKind.Utc);
+            }
+            catch (IOException)
+            {
+                return DateTime.MinValue;
+            }
+            catch (UnauthorizedAccessException)
+            {
+                return DateTime.MinValue;
+            }
+        }
+
+        /// <summary>A real date, or <paramref name="fallback"/> when the source had none.</summary>
+        private static DateTime OrFallback(DateTime value, DateTime fallback) =>
+            value <= DateTime.MinValue.AddDays(1) ? fallback : value;
+
         private DateTime GetLatestUpdateDate(
             DateTime? lastDirectoryEntryDate,
             DateTime? lastContentSnippetUpdate,

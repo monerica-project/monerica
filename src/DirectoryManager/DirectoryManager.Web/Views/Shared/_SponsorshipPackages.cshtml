@@ -31,6 +31,15 @@
         return p == null ? "—" : $"from {p.MinPriceUsd.ToString("C0", usd)}";
     }
 
+    // Each price links to that placement's table on the full price list (matrix ids are
+    // offers-matrix-{(int)SponsorshipType}).
+    string PriceListUrl(SponsorshipType type) =>
+        Url.Content($"~/sponsoredlisting/offers#offers-matrix-{(int)type}");
+
+    // Same blog the video-sponsorship pages name, shown as its host (e.g. blog.example.com).
+    var packagesBlogUrl = ((await cacheHelper.GetSnippetAsync(SiteConfigSetting.VideoSponsorshipBlogUrl)) ?? string.Empty).Trim();
+    var packagesBlogLabel = Uri.TryCreate(packagesBlogUrl, UriKind.Absolute, out var pbu) ? pbu.Host : "Blog";
+
     string DurationLabel(
         DirectoryManager.Web.Models.Sponsorship.SponsorshipPricingSummaryVm p)
     {
@@ -94,7 +103,16 @@
             </tr>
             <tr>
                 <td>
-                        <strong><a href="https://blog.monerica.com" target="_blank" rel="noopener">Monerica&#39;s Blog</a></strong>
+                        <strong>
+                            @if (string.IsNullOrWhiteSpace(packagesBlogUrl))
+                            {
+                                @packagesBlogLabel
+                            }
+                            else
+                            {
+                                <a href="@packagesBlogUrl" target="_blank" rel="noopener">@packagesBlogLabel</a>
+                            }
+                        </strong>
                     </td>
                 <td>&#10003;</td>
                 <td><span class="u-opacity-6">&mdash;</span></td>
@@ -128,11 +146,11 @@
             </tr>
             @if (anyPricing != null)
             {
-                <tr>
-                    <td><strong>Price (USD)</strong></td>
-                    <td>@PriceCell(mainPricing)</td>
-                    <td>@PriceCell(categoryPricing)</td>
-                    <td>@PriceCell(subcategoryPricing)</td>
+                <tr id="packages-prices">
+                    <td><strong><a class="app-link" href="~/sponsoredlisting/offers">Price (USD)</a></strong></td>
+                    <td><a class="app-link" href="@PriceListUrl(SponsorshipType.MainSponsor)">@PriceCell(mainPricing) &rarr;</a></td>
+                    <td><a class="app-link" href="@PriceListUrl(SponsorshipType.CategorySponsor)">@PriceCell(categoryPricing) &rarr;</a></td>
+                    <td><a class="app-link" href="@PriceListUrl(SponsorshipType.SubcategorySponsor)">@PriceCell(subcategoryPricing) &rarr;</a></td>
                 </tr>
             }
         </tbody>
@@ -161,6 +179,6 @@
 
 <p class="u-m-0-0-14px-0-opacity-9">
     Exact price depends on the placement and the length you pick.
-    <a href="~/sponsoredlisting/offers">View the full price list &rarr;</a>
+    <a class="app-link" href="~/sponsoredlisting/offers"><strong>View the full price list &rarr;</strong></a>
     · <a href="~/faq#sponsorship-requirements">Sponsorship requirements</a>
 </p>

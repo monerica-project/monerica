@@ -1,0 +1,69 @@
+@model DirectoryManager.Web.Models.VideoSponsorship.VideoSponsorExamplesVm
+@{
+    PageMeta.Title = "Sponsored Video Examples";
+    Layout = "_CenteredLayout";
+}
+
+@section PageContent {
+    <h1>Sponsored Video Examples</h1>
+    <p><a href="@Url.Action("Start", "VideoSponsorship")">&larr; Sponsor a video</a></p>
+    <hr />
+
+    @await Html.PartialAsync("_VideoSponsorIncludes")
+
+    @if (!Model.Rows.Any())
+    {
+        <p class="text-muted">No sponsored videos have been published yet.</p>
+    }
+    else
+    {
+        <p>
+            @Model.TotalCount finished sponsored video@(Model.TotalCount == 1 ? "" : "s"), newest first
+            @if (Model.TotalPages > 1)
+            {
+                <span>&middot; page @Model.Page of @Model.TotalPages</span>
+            }
+        </p>
+
+        @foreach (var r in Model.Rows)
+        {
+            <div class="u-callout">
+                <p><strong><a href="@r.VideoUrl" target="_blank" rel="noopener">@r.VideoTitle</a></strong></p>
+                <p>
+                    Sponsor:
+                    @if (!string.IsNullOrWhiteSpace(r.DirectoryEntryKey))
+                    {
+                        <a href="/site/@r.DirectoryEntryKey">@r.ListingName</a>
+                    }
+                    else
+                    {
+                        @r.ListingName
+                    }
+                    &middot; @r.OfferName
+                    &middot; published @(r.CompletedUtc?.ToString("yyyy-MM-dd"))
+                </p>
+                <p>
+                    <a href="@r.VideoUrl" target="_blank" rel="noopener">Watch the video</a>
+                    @if (!string.IsNullOrWhiteSpace(r.BlogArticleUrl))
+                    {
+                        <span>&middot; <a href="@r.BlogArticleUrl" target="_blank" rel="noopener">Read the blog article</a></span>
+                    }
+                </p>
+            </div>
+        }
+
+        @if (Model.TotalPages > 1)
+        {
+            <p>
+                @if (Model.Page > 1)
+                {
+                    <a href="@Url.Action("Examples", "VideoSponsorship", new { page = Model.Page - 1 })">&larr; Newer</a>
+                }
+                @if (Model.Page < Model.TotalPages)
+                {
+                    <a class="u-ml-8px" href="@Url.Action("Examples", "VideoSponsorship", new { page = Model.Page + 1 })">Older &rarr;</a>
+                }
+            </p>
+        }
+    }
+}

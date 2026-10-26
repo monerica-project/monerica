@@ -6,7 +6,7 @@
     SelectList sponsorshipTypeSelectList = new SelectList(Enum.GetValues(typeof(DirectoryManager.Data.Enums.SponsorshipType)));
     var orderedSubCategories = new[]
     {
-        new { SubCategoryId = (int?)null, DisplayName = DirectoryManager.Common.Constants.StringConstants.AllOptions }
+        new { SubCategoryId = (int?)null, DisplayName = "(none)" }
     }
     .Concat(
         ((IEnumerable<Subcategory>)ViewBag.SubCategories)
@@ -22,6 +22,11 @@
 
 @{
     Layout = "_CenteredLayout";
+    var orderedCategories = new[] { new { CategoryId = (int?)null, DisplayName = "(none)" } }
+        .Concat(((IEnumerable<Category>)ViewBag.Categories)
+            .Where(c => c.IsEnabled || c.CategoryId == Model?.CategoryId)
+            .OrderBy(c => c.Name)
+            .Select(c => new { CategoryId = (int?)c.CategoryId, DisplayName = c.Name }));
 }
 
 @section PageContent {
@@ -37,8 +42,19 @@
         @Html.DropDownListFor(model => model.SponsorshipType, sponsorshipTypeSelectList, new { @class = "form-control" })
         <span asp-validation-for="SponsorshipType" class="text-danger"></span>
     </div>
+    <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+    <p class="u-opacity-9">
+        Which page this price is for. <strong>Main sponsor</strong>: leave both empty.
+        <strong>Category sponsor</strong>: pick a category for that category page's own price, or leave both empty for the
+        standard price every other category page uses. <strong>Subcategory sponsor</strong>: pick a subcategory, or leave
+        both empty for the standard subcategory price.
+    </p>
     <div class="form-group">
-        <label asp-for="SubcategoryId">Subcategory</label>
+        <label asp-for="CategoryId">Category page (category sponsor only)</label>
+        <select asp-for="CategoryId" asp-items="@(new SelectList(orderedCategories, "CategoryId", "DisplayName"))"></select>
+    </div>
+    <div class="form-group">
+        <label asp-for="SubcategoryId">Subcategory page (subcategory sponsor only)</label>
         <select asp-for="SubcategoryId" asp-items="@(new SelectList(orderedSubCategories, "SubCategoryId", "DisplayName"))"></select>
     </div>
     <div class="form-group">

@@ -14,6 +14,8 @@
 
     <p>Listing: <strong>@Model.ListingName</strong> &middot; <a href="@Url.Action("Start", "VideoSponsorship")">change</a></p>
 
+    @await Html.PartialAsync("_VideoSponsorIncludes")
+
     @if (hasPerk)
     {
         <div class="alert alert-info" role="alert">

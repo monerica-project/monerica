@@ -835,16 +835,16 @@ EOF
     # never silently go missing. See memory: monerica-vps-nginx-default-server.
     ssh_run "test -f /etc/nginx/sites-available/000-default-maintenance.conf && ln -sf /etc/nginx/sites-available/000-default-maintenance.conf /etc/nginx/sites-enabled/000-default-maintenance.conf || true"
 
-    # RESTART, not reload, when restoring the live proxy. This path runs at the end of every
-    # deploy (and as the standalone `maintenance-off` task) to replace the 503 maintenance
-    # vhost with the real proxy. A graceful `reload` keeps OLD worker processes serving
-    # already-open connections on the OLD (503) config until those connections close — and
-    # BunnyCDN holds long-lived HTTP/2 keep-alive connections to this origin, so a reload
-    # leaves the CDN pinned to the maintenance page and the site appears "stuck Updating"
-    # externally even though maintenance is off. A hard restart drops those pinned
-    # connections so Bunny reconnects and immediately picks up the live config.
-    ssh_run "nginx -t && systemctl restart nginx"
-    write_ok "Nginx restarted (live proxy restored; drops CDN keep-alives pinned to maintenance)"
+    # Graceful RELOAD with worker_shutdown_timeout when restoring the live proxy. A plain reload
+    # keeps OLD workers serving already-open connections on the OLD (503) config until they
+    # close, and BunnyCDN holds long-lived keep-alive connections, which used to leave the CDN
+    # pinned to the maintenance page. worker_shutdown_timeout makes old workers drop those
+    # connections within 10s. A hard restart was used before, but for a moment nothing listens
+    # and Bunny shows visitors its own "502 Bad Gateway", so restart is avoided.
+    # (ssh_run wraps the command in single quotes, so none may appear inside it.)
+    ssh_run "grep -q ^worker_shutdown_timeout /etc/nginx/nginx.conf || sed -i \"/^worker_processes/a worker_shutdown_timeout 10s;\" /etc/nginx/nginx.conf"
+    ssh_run "nginx -t && systemctl reload nginx"
+    write_ok "Nginx reloaded (live proxy restored; old CDN connections close within 10s)"
     # Live proxy is back — maintenance is no longer active, so the EXIT trap must not restore.
     MAINT_ACTIVE=0
 }

@@ -5,7 +5,8 @@ namespace DirectoryManager.Web.Models.Sponsorship
 {
     /// <summary>
     /// Backing model for the PUBLIC sponsorship pricing-history explorer. Non-authenticated visitors
-    /// can pick a placement type + subcategory and a date range (capped to the last 180 days) and see
+    /// can pick a placement (all, main, every category page, one category page, every subcategory page
+    /// or one subcategory page) and a date range (capped to the last 180 days) and see
     /// what advertisers have actually paid.
     /// </summary>
     public class PublicPricingViewModel
@@ -22,13 +23,15 @@ namespace DirectoryManager.Web.Models.Sponsorship
         /// <summary>null = compare all placement types in one chart; otherwise a single type.</summary>
         public SponsorshipType? SponsorshipType { get; set; }
 
-        public int? SubCategoryId { get; set; }
+        /// <summary>One category page (category sponsor) or subcategory page (subcategory sponsor).</summary>
+        public int? PlacementId { get; set; }
 
-        public string? SubCategoryLabel { get; set; }
+        /// <summary>Picker value: "", "main", "category", "subcategory", "category-8", "subcategory-73".</summary>
+        public string Placement { get; set; } = string.Empty;
 
-        public List<SelectListItem> SponsorshipTypeOptions { get; set; } = new ();
+        public string? PlacementLabel { get; set; }
 
-        public List<SelectListItem> SubCategoryOptions { get; set; } = new ();
+        public List<SelectListItem> PlacementOptions { get; set; } = new ();
 
         public int WindowDays { get; set; } = 180;
     }

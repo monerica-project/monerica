@@ -1,4 +1,4 @@
-﻿namespace DirectoryManager.Data.Enums
+namespace DirectoryManager.Data.Enums
 {
     public enum SiteConfigSetting
     {
@@ -66,6 +66,10 @@
 
         // Our own video site where the same videos are also published (e.g. a no-JS mirror of the
         // channel). Shown on the video sponsorship page. Empty = not shown.
-        VideoSponsorshipVideoSiteUrl = 53
+        VideoSponsorshipVideoSiteUrl = 53,
+
+        // Our blog, where each sponsored video also gets its own article. Shown on the video
+        // sponsorship pages. Empty = not shown.
+        VideoSponsorshipBlogUrl = 54
     }
 }

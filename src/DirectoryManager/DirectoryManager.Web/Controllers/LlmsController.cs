@@ -1,5 +1,8 @@
+using System.Globalization;
 using System.Text;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Models;
+using DirectoryManager.Utilities.Helpers;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Services.Interfaces;
@@ -15,14 +18,17 @@ namespace DirectoryManager.Web.Controllers
         private readonly IDirectoryEntryRepository directoryEntryRepository;
         private readonly ICacheService cacheService;
         private readonly IMemoryCache cache;
+        private readonly IDirectoryEntryReviewRepository reviewRepository;
 
         public LlmsController(
             ICategoryRepository categoryRepository,
             ISubcategoryRepository subCategoryRepository,
             IDirectoryEntryRepository directoryEntryRepository,
             ICacheService cacheService,
-            IMemoryCache cache)
+            IMemoryCache cache,
+            IDirectoryEntryReviewRepository reviewRepository)
         {
+            this.reviewRepository = reviewRepository;
             this.categoryRepository = categoryRepository;
             this.subCategoryRepository = subCategoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
@@ -92,11 +98,16 @@ namespace DirectoryManager.Web.Controllers
             var subcategoryDates = await this.subCategoryRepository.GetAllSubCategoriesLastChangeDatesAsync();
             var totalActive = await this.directoryEntryRepository.TotalActive();
 
+            // llms-full.txt shows ratings, so an approved review changes it too (reviews also
+            // advance the sitemap max, so the lockstep with the mirror is kept).
+            var reviewDates = await this.reviewRepository.GetApprovedReviewLastModifiedByEntryAsync();
+
             var latest = new[]
             {
                 lastEntryRevision,
                 categoryDates.Values.DefaultIfEmpty(DateTime.MinValue).Max(),
                 subcategoryDates.Values.DefaultIfEmpty(DateTime.MinValue).Max(),
+                reviewDates.Values.DefaultIfEmpty(DateTime.MinValue).Max(),
             }.Max();
 
             return $"{latest.Ticks}-{totalActive}";
@@ -139,6 +150,54 @@ namespace DirectoryManager.Web.Controllers
             return $" that accept {name}";
         }
 
+        /// <summary>
+        /// The facts line for one listing in llms-full.txt, e.g.
+        /// "KYC: Guaranteed No KYC; Liquidity: Own; Tor: yes; Rating: 4.7/5 (31 reviews)".
+        /// Unknown values are left out rather than guessed.
+        /// </summary>
+        internal static string ListingFacts(
+            DirectoryEntry entry,
+            string? link2Name,
+            string? link3Name,
+            double? averageRating,
+            int ratedReviewCount)
+        {
+            var facts = new List<string>();
+
+            if (entry.KycPolicy is { } kyc && kyc != KycPolicy.Unknown)
+            {
+                facts.Add($"KYC: {EnumHelper.GetDescription(kyc)}");
+            }
+
+            if (entry.Liquidity is Liquidity.Own or Liquidity.Mixed or Liquidity.ThirdParty
+                or Liquidity.OwnAndThirdParty or Liquidity.VariesByProvider)
+            {
+                facts.Add($"Liquidity: {EnumHelper.GetDescription(entry.Liquidity)}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(link2Name))
+            {
+                facts.Add($"{link2Name.Trim()}: {(string.IsNullOrWhiteSpace(entry.Link2) ? "no" : "yes")}");
+            }
+
+            if (!string.IsNullOrWhiteSpace(link3Name))
+            {
+                facts.Add($"{link3Name.Trim()}: {(string.IsNullOrWhiteSpace(entry.Link3) ? "no" : "yes")}");
+            }
+
+            if (ratedReviewCount > 0 && averageRating.HasValue)
+            {
+                var avg = Math.Round(averageRating.Value, 1).ToString("0.0", CultureInfo.InvariantCulture);
+                facts.Add($"Rating: {avg}/5 ({ratedReviewCount} review{(ratedReviewCount == 1 ? string.Empty : "s")})");
+            }
+            else
+            {
+                facts.Add("Rating: no reviews yet");
+            }
+
+            return string.Join("; ", facts);
+        }
+
         private async Task<string> BuildLlmsFullTxtAsync()
         {
             var domain = (await this.cacheService.GetSnippetAsync(SiteConfigSetting.CanonicalDomain))
@@ -154,6 +213,10 @@ namespace DirectoryManager.Web.Controllers
 
             var siteName = await this.cacheService.GetSnippetAsync(SiteConfigSetting.SiteName);
             var currency = await this.cacheService.GetSnippetAsync(SiteConfigSetting.DirectoryCurrencyName);
+            var link2Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link2Name);
+            var link3Name = await this.cacheService.GetSnippetAsync(SiteConfigSetting.Link3Name);
+            var ratings = await this.reviewRepository.GetRatingSummariesAsync(
+                entries.Select(e => e.DirectoryEntryId).Distinct().ToList());
 
             var sb = new StringBuilder();
 
@@ -193,6 +256,9 @@ namespace DirectoryManager.Web.Controllers
                         {
                             line += $" (site: {e.Link})";
                         }
+
+                        ratings.TryGetValue(e.DirectoryEntryId, out var rating);
+                        line += $" [{ListingFacts(e, link2Name, link3Name, rating?.AvgRating, rating?.ReviewCount ?? 0)}]";
 
                         sb.AppendLine(line);
                     }
@@ -235,7 +301,11 @@ namespace DirectoryManager.Web.Controllers
 
                 foreach (var sub in subcategories)
                 {
-                    sb.AppendLine($"- [{sub.Name}]({domain}/{category.CategoryKey}/{sub.SubCategoryKey}): {category.Name} — {sub.Name}{acceptShort}.");
+                    // The subcategory's own meta description when it has one; boilerplate otherwise.
+                    var summary = string.IsNullOrWhiteSpace(sub.MetaDescription)
+                        ? $"{category.Name} — {sub.Name}{acceptShort}."
+                        : System.Text.RegularExpressions.Regex.Replace(sub.MetaDescription.Trim(), "\\s+", " ");
+                    sb.AppendLine($"- [{sub.Name}]({domain}/{category.CategoryKey}/{sub.SubCategoryKey}): {summary}");
                 }
 
                 sb.AppendLine();

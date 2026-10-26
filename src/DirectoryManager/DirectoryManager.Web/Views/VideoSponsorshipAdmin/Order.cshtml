@@ -138,7 +138,7 @@
     <form method="post" action="@basePath/orders/@Model.VideoSponsorOrderId/save-urls">
     @Html.AntiForgeryToken()
     <p>
-        <button class="btn btn-primary" type="submit">Save video URLs and note</button>
+        <button class="btn btn-primary" type="submit">Save video URLs, blog articles and note</button>
         <span class="text-muted">A saved URL shows on the public video sponsorship page right away.</span>
     </p>
     @foreach (var item in Model.Items)
@@ -162,6 +162,11 @@
             <div class="form-group">
                 <label for="videoUrl_@item.VideoSponsorOrderItemId"><b>Video URL</b></label>
                 <input class="form-control" id="videoUrl_@item.VideoSponsorOrderItemId" name="videoUrls[@item.VideoSponsorOrderItemId]" type="text" value="@item.VideoUrl" maxlength="500" placeholder="https://www.youtube.com/watch?v=..." />
+            </div>
+            <div class="form-group">
+                <label for="blogUrl_@item.VideoSponsorOrderItemId"><b>Blog article URL</b> <span class="text-muted">(optional)</span></label>
+                <input class="form-control" id="blogUrl_@item.VideoSponsorOrderItemId" name="blogUrls[@item.VideoSponsorOrderItemId]" type="text" value="@item.BlogArticleUrl" maxlength="500" placeholder="https://blog.example.com/articles/..." />
+                <div class="form-text">Shown next to the video on the public page and included in the "video is live" email.</div>
             </div>
 
             @if (isPaid && !done && !string.IsNullOrWhiteSpace(item.VideoUrl))

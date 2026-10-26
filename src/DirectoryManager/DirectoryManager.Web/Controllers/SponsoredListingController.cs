@@ -1,4 +1,6 @@
 ﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
+using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.SponsoredListings;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -296,7 +298,7 @@ namespace DirectoryManager.Web.Controllers
             var model = new SponsoredListingOffersViewModel
             {
                 MainSponsorshipOffers = this.BuildMainOfferModels(mainOffers, mainActiveCount),
-                CategorySponsorshipOffers = this.BuildCategoryOfferModels(categoryOffers, freeCategories),
+                CategorySponsorshipOffers = this.BuildCategoryOfferModels(categoryOffers, allCats, freeCategories),
                 SubCategorySponsorshipOffers = this.BuildSubcategoryOfferModels(subcategoryOffers, freeSubcategories),
                 ConversionRate = 0,
                 SelectedCurrency = "XMR",
@@ -576,72 +578,104 @@ namespace DirectoryManager.Web.Controllers
             return result;
         }
 
-        private List<SponsoredListingOfferDisplayModel> BuildMainOfferModels(IEnumerable<SponsoredListingOffer> offers, int mainActiveCount) =>
-            offers.Select(o =>
-            {
-                var available = mainActiveCount < Common.Constants.IntegerConstants.MaxMainSponsoredListings;
-                return new SponsoredListingOfferDisplayModel
+        private List<SponsoredListingOfferDisplayModel> BuildMainOfferModels(IEnumerable<SponsoredListingOffer> offers, int mainActiveCount)
+        {
+            var available = mainActiveCount < Common.Constants.IntegerConstants.MaxMainSponsoredListings;
+            return offers
+                .Where(SponsoredListingOfferPlacement.IsStandard)
+                .Select(o => new SponsoredListingOfferDisplayModel
                 {
                     Description = o.Description,
                     Days = o.Days,
                     Price = o.Price,
                     PriceCurrency = o.PriceCurrency,
                     SponsorshipType = o.SponsorshipType,
-                    CategorySubcategory = o.Subcategory != null ? FormattingHelper.SubcategoryFormatting(o.Subcategory.Category!.Name, o.Subcategory.Name) : StringConstants.Default,
+                    CategorySubcategory = "Main sponsor (sitewide)",
+                    HistoryPlacement = "main",
                     IsAvailable = available,
                     ActionLink = available
                         ? this.Url.Action("SelectListing", "SponsoredListingCheckout", new { sponsorshipType = SponsorshipType.MainSponsor })
                         : this.Url.Action("Subscribe", "SponsoredListingNotification", new { sponsorshipType = SponsorshipType.MainSponsor }),
-                };
-            }).OrderBy(o => o.CategorySubcategory).ThenBy(o => o.Days).ToList();
+                })
+                .OrderBy(o => o.Days)
+                .ToList();
+        }
 
-        private List<SponsoredListingOfferDisplayModel> BuildCategoryOfferModels(IEnumerable<SponsoredListingOffer> offers, HashSet<int> freeCategories) =>
-            offers.Select(o =>
+        // One row per category page that can be bought, each with the price it actually costs:
+        // its own price, or the standard category price (marked as such) when it has none.
+        private List<SponsoredListingOfferDisplayModel> BuildCategoryOfferModels(
+            IEnumerable<SponsoredListingOffer> offers, IEnumerable<Category> categories, HashSet<int> freeCategories)
+        {
+            var list = offers.ToList();
+            var standard = list.Where(SponsoredListingOfferPlacement.IsStandard).ToList();
+            var own = list
+                .Where(o => o.CategoryId.HasValue && o.SubcategoryId == null)
+                .GroupBy(o => o.CategoryId!.Value)
+                .ToDictionary(g => g.Key, g => g.ToList());
+
+            var rows = new List<SponsoredListingOfferDisplayModel>();
+            foreach (var cat in categories.Where(c => c.IsEnabled).OrderBy(c => c.Name))
             {
-                var isDefault = o.Subcategory == null;
-                var catId = o.Subcategory?.CategoryId ?? 0;
-                var available = isDefault || freeCategories.Contains(catId);
-                return new SponsoredListingOfferDisplayModel
+                var hasOwn = own.TryGetValue(cat.CategoryId, out var catOffers);
+                var available = freeCategories.Contains(cat.CategoryId);
+                foreach (var o in hasOwn ? catOffers! : standard)
                 {
-                    Description = o.Description,
-                    Days = o.Days,
-                    Price = o.Price,
-                    PriceCurrency = o.PriceCurrency,
-                    SponsorshipType = o.SponsorshipType,
-                    CategorySubcategory = isDefault ? StringConstants.Default : FormattingHelper.SubcategoryFormatting(o.Subcategory!.Category.Name, o.Subcategory.Name),
-                    ScopeSubCategoryId = o.Subcategory?.SubCategoryId ?? 0,
-                    IsAvailable = available,
-                    ActionLink = available
-                        ? (isDefault
-                            ? this.Url.Action("SelectListing", "SponsoredListingCheckout", new { sponsorshipType = SponsorshipType.CategorySponsor })
-                            : this.Url.Action("SelectListing", "SponsoredListingCheckout", new { sponsorshipType = SponsorshipType.CategorySponsor, categoryId = catId }))
-                        : this.Url.Action("Subscribe", "SponsoredListingNotification", new { sponsorshipType = SponsorshipType.CategorySponsor, typeId = isDefault ? (int?)null : catId }),
-                };
-            }).OrderBy(o => o.CategorySubcategory).ThenBy(o => o.Days).ToList();
+                    rows.Add(new SponsoredListingOfferDisplayModel
+                    {
+                        Description = o.Description,
+                        Days = o.Days,
+                        Price = o.Price,
+                        PriceCurrency = o.PriceCurrency,
+                        SponsorshipType = SponsorshipType.CategorySponsor,
+                        CategorySubcategory = cat.Name,
+                        IsStandardPrice = !hasOwn,
+                        SlotId = cat.CategoryId,
+                        HistoryPlacement = $"category-{cat.CategoryId}",
+                        IsAvailable = available,
+                        ActionLink = available
+                            ? this.Url.Action("SelectListing", "SponsoredListingCheckout", new { sponsorshipType = SponsorshipType.CategorySponsor, categoryId = cat.CategoryId })
+                            : this.Url.Action("Subscribe", "SponsoredListingNotification", new { sponsorshipType = SponsorshipType.CategorySponsor, typeId = cat.CategoryId }),
+                    });
+                }
+            }
 
+            return rows;
+        }
+
+        // The standard subcategory price (every subcategory page without its own price) first, then
+        // each subcategory page that has its own price. Retired pages are left out.
         private List<SponsoredListingOfferDisplayModel> BuildSubcategoryOfferModels(IEnumerable<SponsoredListingOffer> offers, HashSet<int> freeSubcategories) =>
-            offers.Select(o =>
-            {
-                var isDefault = o.Subcategory == null;
-                var subId = o.Subcategory?.SubCategoryId ?? 0;
-                var available = isDefault || freeSubcategories.Contains(subId);
-                return new SponsoredListingOfferDisplayModel
+            offers
+                .Where(SponsoredListingOfferPlacement.IsLivePlacement)
+                .Select(o =>
                 {
-                    Description = o.Description,
-                    Days = o.Days,
-                    Price = o.Price,
-                    PriceCurrency = o.PriceCurrency,
-                    SponsorshipType = o.SponsorshipType,
-                    CategorySubcategory = isDefault ? StringConstants.Default : FormattingHelper.SubcategoryFormatting(o.Subcategory!.Category.Name, o.Subcategory.Name),
-                    ScopeSubCategoryId = o.Subcategory?.SubCategoryId ?? 0,
-                    IsAvailable = available,
-                    ActionLink = available
-                        ? (isDefault
-                            ? this.Url.Action("SelectListing", "SponsoredListingCheckout", new { sponsorshipType = SponsorshipType.SubcategorySponsor })
-                            : this.Url.Action("SelectListing", "SponsoredListingCheckout", new { sponsorshipType = SponsorshipType.SubcategorySponsor, subCategoryId = subId }))
-                        : this.Url.Action("Subscribe", "SponsoredListingNotification", new { sponsorshipType = SponsorshipType.SubcategorySponsor, typeId = isDefault ? (int?)null : subId }),
-                };
-            }).OrderBy(o => o.CategorySubcategory).ThenBy(o => o.Days).ToList();
+                    var isStandard = SponsoredListingOfferPlacement.IsStandard(o);
+                    var subId = o.SubcategoryId ?? 0;
+                    var available = isStandard || freeSubcategories.Contains(subId);
+                    return new SponsoredListingOfferDisplayModel
+                    {
+                        Description = o.Description,
+                        Days = o.Days,
+                        Price = o.Price,
+                        PriceCurrency = o.PriceCurrency,
+                        SponsorshipType = o.SponsorshipType,
+                        CategorySubcategory = isStandard
+                            ? StringConstants.Default
+                            : FormattingHelper.SubcategoryFormatting(o.Subcategory!.Category?.Name, o.Subcategory.Name),
+                        IsStandardPrice = isStandard,
+                        SlotId = subId,
+                        HistoryPlacement = isStandard ? "subcategory" : $"subcategory-{subId}",
+                        IsAvailable = available,
+                        ActionLink = available
+                            ? (isStandard
+                                ? this.Url.Action("SelectListing", "SponsoredListingCheckout", new { sponsorshipType = SponsorshipType.SubcategorySponsor })
+                                : this.Url.Action("SelectListing", "SponsoredListingCheckout", new { sponsorshipType = SponsorshipType.SubcategorySponsor, subCategoryId = subId }))
+                            : this.Url.Action("Subscribe", "SponsoredListingNotification", new { sponsorshipType = SponsorshipType.SubcategorySponsor, typeId = isStandard ? (int?)null : subId }),
+                    };
+                })
+                .OrderBy(o => o.CategorySubcategory)
+                .ThenBy(o => o.Days)
+                .ToList();
 
         private ActiveSponsoredListingModel ToActiveModel(
             SponsoredListing l,

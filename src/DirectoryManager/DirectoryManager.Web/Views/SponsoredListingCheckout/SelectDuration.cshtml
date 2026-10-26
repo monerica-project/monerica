@@ -85,8 +85,9 @@
     @{
         var chartType = (SponsorshipType)ViewBag.SponsorshipType;
         var chartTypeDesc = DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(chartType);
-        var listingSubcat = ViewBag.ListingSubcategory as string;
-        var hasSubHistory = ViewBag.HasSubcategoryPricingHistory is bool b && b;
+        var placementLabel = ViewBag.PlacementLabel as string;
+        var hasPlacementHistory = ViewBag.HasPlacementPricingHistory is bool b && b;
+        var placementNoun = chartType == SponsorshipType.CategorySponsor ? "category page" : "subcategory page";
 
         // Same colours the chart draws with (ChartColors), so the words match the lines/bars.
         var barHex = DirectoryManager.Web.Charting.ChartColors.TypeNeonHex(chartType);
@@ -99,20 +100,23 @@
             <strong>Why this price?</strong> The <strong style="color:@barHex;">@barName bars</strong> are the average paid per day across
             <strong>all @chartTypeDesc</strong> slots over the last 180&nbsp;days.
             The <strong style="color:@nowHex;">yellow dashed line labeled &ldquo;Current market price&rdquo;</strong> shows
-            <strong>today&rsquo;s going rate</strong> for this placement &mdash; that is the price reflected
-            in the duration options below.
-            @if (hasSubHistory)
+            <strong>today&rsquo;s price for this placement</strong>@(string.IsNullOrWhiteSpace(placementLabel) ? "" : $" ({placementLabel})")
+            &mdash; the price reflected in the duration options below.
+            @if (chartType != SponsorshipType.MainSponsor)
             {
-                <text>The <strong style="color:@subHex;">white dotted line</strong> is
-                <strong>your subcategory@(string.IsNullOrWhiteSpace(listingSubcat) ? "" : $" — {listingSubcat}")</strong>,
-                which is how pricing is set &mdash; so you can see where your niche sits versus the overall
-                @chartTypeDesc average.</text>
+                <text>Prices are set per @placementNoun; a page without its own price uses the standard price.&#32;</text>
+            }
+            @if (hasPlacementHistory)
+            {
+                <text>The <strong style="color:@subHex;">white dotted line</strong> is what advertisers paid for
+                <strong>this @placementNoun@(string.IsNullOrWhiteSpace(placementLabel) ? "" : $" — {placementLabel}")</strong>,
+                so you can see where it sits versus the overall @chartTypeDesc average.</text>
             }
         </p>
         <img class="u-w-100pct"
              style="max-width:640px;height:auto;border:1px solid #ddd;border-radius:4px;"
-             src="@Url.Action("PricingTrendsChart", "SponsoredListingCheckout", new { sponsorshipType = ViewBag.SponsorshipType, listingSubCategoryId = ViewBag.ListingSubCategoryId, v = DateTime.UtcNow.ToString("yyyyMMdd") })"
-             alt="Average daily price for this placement over the last 180 days, with the current market price shown as a dashed line and your subcategory highlighted" />
+             src="@Url.Action("PricingTrendsChart", "SponsoredListingCheckout", new { sponsorshipType = ViewBag.SponsorshipType, placementId = ViewBag.PlacementId, v = DateTime.UtcNow.ToString("yyyyMMdd") })"
+             alt="Average daily price for this placement over the last 180 days, with today's price for this placement shown as a dashed line" />
     </div>
 
     <br />

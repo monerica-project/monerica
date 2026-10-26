@@ -27,6 +27,10 @@ namespace DirectoryManager.Data.Models.VideoSponsorships
         [MaxLength(500)]
         public string? VideoUrl { get; set; }
 
+        // The blog article written about this video (part of what the sponsor gets).
+        [MaxLength(500)]
+        public string? BlogArticleUrl { get; set; }
+
         public DateTime? CompletedUtc { get; set; }
 
         // The one-time "your video is live" email.

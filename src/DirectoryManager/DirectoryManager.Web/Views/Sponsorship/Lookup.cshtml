@@ -51,7 +51,7 @@
     </div>
 
     <!-- SEARCH -->
-    <form method="get" action="@Url.Action("Lookup", "Sponsorship")" class="search-form u-m-16px-0">
+    <form method="get" action="@Url.Action("Search", "Sponsorship")" class="search-form u-m-16px-0">
         <input type="search"
  name="q"
  value="@q"
@@ -60,91 +60,6 @@
         <button type="submit" class="btn btn-primary btn-cta">Find my listing</button>
     </form>
 
-    @if (Model.HasSearched)
-    {
-        <h2 class="u-mt-18px">Search results</h2>
-
-        <p class="u-m-6px-0-12px-0">
-            @Model.TotalCount result@(Model.TotalCount == 1 ? "" : "s")
-            @if (Model.TotalPages > 1)
-            {
-                <span> — page @Model.Page of @Model.TotalPages</span>
-            }
-        </p>
-
-        @if (Model.Results != null && Model.Results.Any())
-        {
-            <div class="search-results">
-                @foreach (var r in Model.Results)
-                {
-                    var meta = r.Status;
-                    if (!string.IsNullOrWhiteSpace(r.Category)) { meta += $" · {r.Category}"; }
-                    if (!string.IsNullOrWhiteSpace(r.Subcategory)) { meta += $" » {r.Subcategory}"; }
-                    meta += $" · listed {r.AgeDays} days";
-
-                    <div class="result-row u-flex-flexwrap-wrap-items-center-gap-8px-16px-p-12px-0">
-                        <div class="u-flex-1-1-240px-minw-0">
-                            <div class="u-fs-105em-fw-600">
-                                @if (!string.IsNullOrWhiteSpace(r.Link))
-                                {
-                                    <a href="@r.Link" target="_blank" rel="noopener">@r.Name</a>
-                                }
-                                else
-                                {
-                                    @r.Name
-                                }
-                            </div>
-                            <div class="u-opacity-8-fs-9em-mt-2px">@meta</div>
-
-                            @if (!r.CanAdvertise && r.Reasons != null && r.Reasons.Any())
-                            {
-                                <ul class="u-m-6px-0-0-18px-opacity-85-fs-9em">
-                                    @foreach (var reason in r.Reasons)
-                                    {
-                                        <li>@reason</li>
-                                    }
-                                </ul>
-                            }
-                        </div>
-
-                        <form class="u-flex-0-0-auto-m-0" method="post" action="@Url.Action("Select", "Sponsorship")">
-                            @Html.AntiForgeryToken()
-                            <input type="hidden" name="directoryEntryId" value="@r.DirectoryEntryId" />
-                            <button type="submit" class="btn @(r.CanAdvertise ? "btn-info" : "btn-secondary")">
-                                See options &amp; prices
-                            </button>
-                        </form>
-                    </div>
-                }
-            </div>
-
-            @if (Model.TotalPages > 1)
-            {
-                <div class="u-m-12px-0-22px-0">
-                    @{
-                        var prev = Model.Page > 1 ? Model.Page - 1 : (int?)null;
-                        var next = Model.Page < Model.TotalPages ? Model.Page + 1 : (int?)null;
-                    }
-                    @if (prev.HasValue)
-                    {
-                        <a class="btn btn-secondary" href="@Url.Action("Lookup", "Sponsorship", new { q = q, page = prev.Value })">← Prev</a>
-                    }
-                    @if (next.HasValue)
-                    {
-                        <a class="btn btn-secondary u-ml-8px" href="@Url.Action("Lookup", "Sponsorship", new { q = q, page = next.Value })">Next →</a>
-                    }
-                </div>
-            }
-        }
-        else
-        {
-            <p class="u-mt-8px">
-                No directory listing found for <strong>@q</strong>. A site has to be listed in the
-                directory before it can be sponsored — <a href="~/submit">submit it here</a>, then
-                come back and search again. Questions? <a href="~/contact">Contact us</a>.
-            </p>
-        }
-    }
 
     <hr />
     @await Html.PartialAsync("_SponsorshipPackages", Model.PricingSummaries)

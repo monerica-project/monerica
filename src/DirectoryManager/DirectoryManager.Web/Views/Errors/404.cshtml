@@ -1,7 +1,12 @@
-﻿@using DirectoryManager.Web.Constants;
+@using DirectoryManager.Web.Constants
 @{
-    PageMeta.Title = "404";
+    Layout = "_CenteredLayout";
+    PageMeta.Title = "Page Not Found";
+    PageMeta.MetaContent = StringConstants.MetaTagNoIndex;
 }
-<h1>@PageMeta.Title</h1>
-<hr />
-<a href="~/">Back to home</a>
+@section PageContent {
+    <h1 class="page-title">Page not found</h1>
+    <hr />
+    <p>The page you asked for does not exist. It may have moved or been removed.</p>
+    <p><a class="no-app-link" href="~/">Back to the homepage</a> &middot; <a class="no-app-link" href="~/sitemap">Browse all categories</a></p>
+}

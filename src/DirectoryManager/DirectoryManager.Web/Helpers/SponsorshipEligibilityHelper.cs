@@ -23,6 +23,23 @@ namespace DirectoryManager.Web.Helpers
         }
 
         /// <summary>
+        /// The one rule for "can this listing buy a sponsorship right now": Verified and listed at
+        /// least <paramref name="minimumDaysListed"/> days, or a current sponsor (who may always
+        /// extend). Used by checkout and by the "Advertise here" buttons, so they never disagree.
+        /// </summary>
+        public static bool CanBuy(DirectoryStatus status, DateTime createDateUtc, bool isActiveSponsor, int minimumDaysListed, DateTime nowUtc)
+        {
+            if (isActiveSponsor)
+            {
+                return true;
+            }
+
+            return status == DirectoryStatus.Verified
+                && createDateUtc != DateTime.MinValue
+                && (nowUtc - createDateUtc).TotalDays >= minimumDaysListed;
+        }
+
+        /// <summary>
         /// Returns whether the listing may advertise, plus the human-readable reasons it can't.
         /// Reasons are ordered: status first, then age.
         /// </summary>

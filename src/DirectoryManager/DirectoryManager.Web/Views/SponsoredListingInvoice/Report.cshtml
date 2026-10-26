@@ -237,6 +237,18 @@
 
     <br />
 
+    <img class="u-w-100pct"
+ src="@Url.Action("CategoryRevenuePieChart", "SponsoredListingInvoice", new {
+ startDate = Model.StartDate,
+ endDate = Model.EndDate,
+ sponsorshipType = Model.SponsorshipType,
+ displayCurrency = Model.DisplayCurrency,
+ v = chartV
+ })"
+ alt="Category Revenue Pie Chart (@Model.DisplayCurrency)" />
+
+    <br />
+
     <!-- ========= Income by Country Code ========= -->
     <h2>Income by Country Code</h2>
     <p class="text-muted">

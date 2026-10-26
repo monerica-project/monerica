@@ -33,7 +33,9 @@
         campaign length; a day's value is the average of every paid campaign active on that day. Days
         with no paid campaign are gaps (they never dilute the average). Pick a single placement to see
         it as a daily bar chart; leave it on <em>All (compare)</em> to overlay the three trends. Filter
-        further by any subcategory that has paid — only those are selectable.
+        further by the advertiser&rsquo;s subcategory (the one saved on the invoice) — only paying ones are selectable.
+        To see what one specific category or subcategory <em>page</em> sold for, use the
+        <a href="~/sponsorship/pricing">pricing history by placement</a>.
     </p>
 
     <form method="get" asp-controller="SponsoredListingInvoice" asp-action="PricingTrends">
@@ -65,7 +67,7 @@
 
         <div class="form-row">
             <div class="form-group col-md-6">
-                <label for="SubCategoryId">Subcategory (paying only — @Model.PayingSubcategoryCount available)</label>
+                <label for="SubCategoryId">Advertiser&rsquo;s subcategory (paying only — @Model.PayingSubcategoryCount available)</label>
                 <select id="SubCategoryId" name="subCategoryId" class="form-control"
                         asp-items="Model.SubCategoryOptions"></select>
             </div>
