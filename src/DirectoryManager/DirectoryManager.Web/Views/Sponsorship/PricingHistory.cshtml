@@ -5,7 +5,7 @@
 @{
     Layout = "_CenteredLayout";
     PageMeta.Title = "Sponsorship Pricing History";
-    var chartV = $"{Model.RangeDays}-{DateTime.UtcNow:yyyyMMdd}-{(string.IsNullOrEmpty(Model.Placement) ? "all" : Model.Placement)}";
+    var chartV = $"{Model.RangeDays}-{DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateFormat)}-{(string.IsNullOrEmpty(Model.Placement) ? "all" : Model.Placement)}";
 }
 
 @section PageContent {
@@ -40,7 +40,7 @@
     </form>
 
     <p class="u-opacity-85 u-mt-8px">
-        Showing @Model.StartDate.ToString("MMM d, yyyy") &ndash; @Model.EndDate.ToString("MMM d, yyyy")
+        Showing @Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.FriendlyDateFormat) &ndash; @Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.FriendlyDateFormat)
         @if (!string.IsNullOrEmpty(Model.PlacementLabel))
         {
             <text>&nbsp;·&nbsp; <strong>@Model.PlacementLabel</strong></text>

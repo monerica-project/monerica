@@ -75,7 +75,7 @@
                                     <strong class="text-danger">&#9888; conflict</strong>
                                 }
                             </td>
-                            <td>@(o.PaidUtc?.ToString("yyyy-MM-dd"))</td>
+                            <td>@(o.PaidUtc?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))</td>
                             <td>
                                 @if (isPaid && done < o.Items.Count)
                                 {

@@ -241,7 +241,7 @@
                         @if (h.Until.HasValue)
                         {
                             var daysLeft = (int)Math.Ceiling((h.Until.Value - DateTime.UtcNow).TotalDays);
-                            <text> &mdash; until @h.Until.Value.ToString("MMM d, yyyy", System.Globalization.CultureInfo.InvariantCulture)
+                            <text> &mdash; until @h.Until.Value.ToString(DirectoryManager.Common.Constants.StringConstants.FriendlyDateFormat, System.Globalization.CultureInfo.InvariantCulture)
                             (@(daysLeft <= 0 ? "ends today" : daysLeft == 1 ? "1 day left" : $"{daysLeft} days left"))</text>
                         }
                     </li>

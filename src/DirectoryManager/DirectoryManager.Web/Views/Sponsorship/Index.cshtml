@@ -237,7 +237,7 @@
         </p>
         <div class="table-wrapper">
             <img class="u-w-100pct"
-                 src="@Url.Action("PricingTrendsChart", "Sponsorship", new { showCurrentMarket = false, v = trendEnd.ToString("yyyyMMdd") })"
+                 src="@Url.Action("PricingTrendsChart", "Sponsorship", new { showCurrentMarket = false, v = trendEnd.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateFormat) })"
                  alt="Sponsorship price trends over the last 180 days" />
         </div>
 

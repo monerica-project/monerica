@@ -38,7 +38,7 @@
         <span class="badge bg-success">Enabled</span>
         @if (Model.ReviewEmailNotificationsEnabledUtc.HasValue)
         {
-            <span class="text-muted"> since @Model.ReviewEmailNotificationsEnabledUtc.Value.ToString("yyyy-MM-dd HH:mm") UTC</span>
+            <span class="text-muted"> since @Model.ReviewEmailNotificationsEnabledUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC</span>
         }
         <span class="text-muted"> &rarr; @(string.IsNullOrWhiteSpace(Model.Email) ? "(no email!)" : Model.Email)</span>
     }

@@ -1,4 +1,4 @@
-﻿using System.Text.RegularExpressions;
+using System.Text.RegularExpressions;
 
 namespace DirectoryManager.Web.Helpers
 {
@@ -233,6 +233,94 @@ namespace DirectoryManager.Web.Helpers
             return a == b
                 || a.EndsWith("." + b, StringComparison.Ordinal)
                 || b.EndsWith("." + a, StringComparison.Ordinal);
+        }
+            // File types a listing link must never point at: programs, scripts, installers, disk
+        // images and archives. A business links to its website, not to a file to download.
+        // Plain web pages (.html/.php/...) stay allowed: plenty of real sites use them.
+        private static readonly HashSet<string> BlockedFileExtensions = new (StringComparer.OrdinalIgnoreCase)
+        {
+            "exe", "msi", "msix", "msixbundle", "appx", "appxbundle", "scr", "pif", "cpl", "dll", "sys",
+            "bat", "cmd", "ps1", "psm1", "vbs", "vbe", "js", "jse", "mjs", "wsf", "wsh", "hta", "lnk", "reg", "inf",
+            "jar", "apk", "xapk", "apks", "apkm", "aab", "ipa", "dmg", "pkg", "mpkg", "app", "deb", "rpm", "appimage",
+            "snap", "flatpakref", "run", "bin", "sh", "command", "iso", "img", "vhd", "vhdx",
+            "zip", "rar", "7z", "tar", "gz", "tgz", "bz2", "tbz2", "xz", "txz", "zst", "cab", "arj", "lz", "lzh",
+            "docm", "xlsm", "pptm", "dotm", "xlam", "svg", "svgz",
+        };
+
+        /// <summary>
+        /// The file extension (lower case, no dot) when <paramref name="url"/> points straight at a
+        /// program, script, installer, disk image or archive (e.g. ".../setup.exe", ".../app.apk",
+        /// ".../files.zip"); otherwise null. Only the last path segment counts, so the domain
+        /// itself (".com") and query strings never trigger it.
+        /// </summary>
+        public static string? BlockedFileExtension(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                return null;
+            }
+
+            var candidate = url.Trim();
+            if (!candidate.Contains("://", StringComparison.Ordinal))
+            {
+                candidate = "https://" + candidate;
+            }
+
+            if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri))
+            {
+                return null;
+            }
+
+            var path = Uri.UnescapeDataString(uri.AbsolutePath).TrimEnd('/');
+            var lastSegment = path[(path.LastIndexOf('/') + 1)..];
+            var dot = lastSegment.LastIndexOf('.');
+            if (dot <= 0 || dot == lastSegment.Length - 1)
+            {
+                return null;
+            }
+
+            var ext = lastSegment[(dot + 1)..].Trim().ToLowerInvariant();
+            return BlockedFileExtensions.Contains(ext) ? ext : null;
+        }
+
+        /// <summary>
+        /// A comparison key for "is this the same link?": ignores http vs https, a leading
+        /// "www.", letter case, a trailing slash and any #fragment. Null when blank or unparsable.
+        /// </summary>
+        public static string? LinkKey(string? url)
+        {
+            if (string.IsNullOrWhiteSpace(url))
+            {
+                return null;
+            }
+
+            var candidate = url.Trim();
+            if (!candidate.Contains("://", StringComparison.Ordinal))
+            {
+                candidate = "https://" + candidate;
+            }
+
+            if (!Uri.TryCreate(candidate, UriKind.Absolute, out var uri) || string.IsNullOrEmpty(uri.Host))
+            {
+                return null;
+            }
+
+            var host = uri.Host.ToLowerInvariant();
+            if (host.StartsWith("www.", StringComparison.Ordinal))
+            {
+                host = host[4..];
+            }
+
+            var path = uri.AbsolutePath.TrimEnd('/').ToLowerInvariant();
+            var query = uri.Query.ToLowerInvariant();
+            return host + (uri.IsDefaultPort ? string.Empty : ":" + uri.Port) + path + query;
+        }
+
+        /// <summary>True when both URLs are the same link (see <see cref="LinkKey"/>).</summary>
+        public static bool SameLink(string? a, string? b)
+        {
+            var ka = LinkKey(a);
+            return ka is not null && ka == LinkKey(b);
         }
     }
 }

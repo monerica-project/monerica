@@ -189,7 +189,7 @@ async Task<ProcessResult> ProcessAsync(
 string BuildNote(DetailDecision decision)
 {
     var sb = new System.Text.StringBuilder();
-    sb.Append(NoteMarker).Append(' ').Append(DateTime.UtcNow.ToString("yyyy-MM-dd")).Append(']');
+    sb.Append(NoteMarker).Append(' ').Append(DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)).Append(']');
     if (decision.Changes.Count > 0)
     {
         sb.Append("\nProposed: ").Append(string.Join(

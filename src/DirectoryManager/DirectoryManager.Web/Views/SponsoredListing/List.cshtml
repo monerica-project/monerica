@@ -25,6 +25,7 @@
                     <th>End Date</th>
                     <th>Days Left</th>
                     <th>Active</th>
+                    <th>Waitlist</th>
                     <th>Actions</th>
                 </tr>
             </thead>
@@ -36,9 +37,9 @@
                     <tr>
                         <td>@listing.DirectoryEntryName</td>
                         <td>@listing.SponsorshipType</td>
-                        <td>@listing.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
+                        <td>@listing.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                         <td> - </td>
-                        <td>@listing.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat4)</td>
+                        <td>@listing.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                         <td>@daysLeft</td>
                         <td>
                             @if (listing.IsActive)
@@ -48,6 +49,16 @@
                             else
                             {
                                 <text>&#128308;</text>
+                            }
+                        </td>
+                        <td>
+                            @if (listing.WaitlistCount > 0)
+                            {
+                                <a href="@Url.Action("List", "SponsoredListingNotification", new { type = listing.SponsorshipType, typeId = listing.WaitlistTypeId })" title="See who is waiting">@listing.WaitlistCount waiting</a>
+                            }
+                            else
+                            {
+                                <span class="u-opacity-5">0</span>
                             }
                         </td>
                         <td>

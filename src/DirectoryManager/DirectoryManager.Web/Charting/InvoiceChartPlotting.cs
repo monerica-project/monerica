@@ -556,7 +556,7 @@ namespace DirectoryManager.Web.Charting
             void AddTick(int i)
             {
                 ticks.Add(i);
-                labels.Add($"{days[i]:MMM d}\n{days[i]:yyyy}");
+                labels.Add($"{days[i].ToString(DirectoryManager.Common.Constants.StringConstants.MonthDayFormat)}\n{days[i].ToString(DirectoryManager.Common.Constants.StringConstants.YearFormat)}");
             }
 
             for (int i = 0; i < count; i += stride)
@@ -1326,7 +1326,7 @@ namespace DirectoryManager.Web.Charting
         private static void ApplyMonthCategoryTicks(ScottPlot.Plot plt, IReadOnlyList<DateTime> months)
         {
             double[] ticks = Enumerable.Range(0, months.Count).Select(i => (double)i).ToArray();
-            string[] labels = months.Select(m => $"{m:MMM}\n{m:yyyy}").ToArray(); // two-line labels
+            string[] labels = months.Select(m => $"{m.ToString(DirectoryManager.Common.Constants.StringConstants.MonthAbbrFormat)}\n{m.ToString(DirectoryManager.Common.Constants.StringConstants.YearFormat)}").ToArray(); // two-line labels
 
             plt.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual(ticks, labels);
 

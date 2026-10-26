@@ -29,8 +29,7 @@
 <br />
 @foreach (var subCategory in Model)
 {
-    <div>@subCategory.Name - Parent Category: @subCategory.CategoryName</div>
-    <a href="@Url.Action("Edit", new { id = subCategory.SubcategoryId })">Edit</a>
+    <div>@subCategory.Name &middot; <a href="@Url.Action("Edit", new { id = subCategory.SubcategoryId })">Edit</a> - Parent Category: @subCategory.CategoryName</div>
 }
 <br />
 

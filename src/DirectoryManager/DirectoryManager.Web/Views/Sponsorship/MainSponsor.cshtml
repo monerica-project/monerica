@@ -205,7 +205,7 @@
     </p>
     <div class="table-wrapper">
         <img class="u-w-100pct"
-             src="@Url.Action("PricingTrendsChart", "Sponsorship", new { sponsorshipType = SponsorshipType.MainSponsor, v = DateTime.UtcNow.ToString("yyyyMMdd") })"
+             src="@Url.Action("PricingTrendsChart", "Sponsorship", new { sponsorshipType = SponsorshipType.MainSponsor, v = DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateFormat) })"
              alt="Main sponsor average daily price over the last 180 days" />
     </div>
 

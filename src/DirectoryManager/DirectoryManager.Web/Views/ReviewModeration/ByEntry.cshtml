@@ -89,7 +89,7 @@
                                 }
                             </td>
 
-                            <td>@r.CreateDate.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</td>
                             <td><code>@r.AuthorFingerprint</code></td>
                             <td>@(string.IsNullOrWhiteSpace(r.Body) ? "-" : (r.Body.Length > 80 ? r.Body[..80] + "…" : r.Body))</td>
                             <td>

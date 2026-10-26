@@ -1,4 +1,4 @@
-﻿using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 
 namespace DirectoryManager.Data.Repositories.Interfaces
@@ -8,6 +8,15 @@ namespace DirectoryManager.Data.Repositories.Interfaces
         Task<IEnumerable<Submission>> GetAllAsync();
         Task<Submission?> GetByIdAsync(int submissionId);
         Task<Submission?> GetByLinkAndStatusAsync(string link1, SubmissionStatus submissionStatus = SubmissionStatus.Pending);
+
+        /// <summary>
+        /// A PENDING submission that is the same link, or (for an edit) the same listing, other
+        /// than <paramref name="excludeSubmissionId"/>; null when there is none.
+        /// </summary>
+        Task<Submission?> FindPendingDuplicateAsync(string? link, int? directoryEntryId, int? excludeSubmissionId);
+
+        /// <summary>Other sent submissions (any status but draft) for the same link, newest first.</summary>
+        Task<List<Submission>> ListOthersWithSameLinkAsync(int submissionId, string? link);
 
         /// <summary>
         /// True when a PENDING submission for this entry (by entry id or link) already has a note

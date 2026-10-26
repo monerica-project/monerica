@@ -115,7 +115,7 @@
         </p>
         <img class="u-w-100pct"
              style="max-width:640px;height:auto;border:1px solid #ddd;border-radius:4px;"
-             src="@Url.Action("PricingTrendsChart", "SponsoredListingCheckout", new { sponsorshipType = ViewBag.SponsorshipType, placementId = ViewBag.PlacementId, v = DateTime.UtcNow.ToString("yyyyMMdd") })"
+             src="@Url.Action("PricingTrendsChart", "SponsoredListingCheckout", new { sponsorshipType = ViewBag.SponsorshipType, placementId = ViewBag.PlacementId, v = DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateFormat) })"
              alt="Average daily price for this placement over the last 180 days, with today's price for this placement shown as a dashed line" />
     </div>
 

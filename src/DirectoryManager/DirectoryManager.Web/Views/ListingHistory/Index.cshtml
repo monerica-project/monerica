@@ -33,7 +33,7 @@
             {
                 var revClass = rev.IsCreation ? "history-rev history-rev--created" : "history-rev";
                 <li class="@revClass">
-                    <div class="history-rev-date">@rev.TimestampUtc.ToString("yyyy-MM-dd HH:mm") UTC</div>
+                    <div class="history-rev-date">@rev.TimestampUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC</div>
 
                     @if (rev.IsCreation)
                     {

@@ -50,7 +50,7 @@ else
                 <strong>Rating:</strong> @(r.Rating?.ToString() ?? "N/A")
                 <span class="text-muted"> • </span>
                 <span class="text-muted">
-                    @( (r.UpdateDate ?? r.CreateDate).ToString("yyyy-MM-dd") )
+                    @( (r.UpdateDate ?? r.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) )
                 </span>
             </div>
 
@@ -72,7 +72,7 @@ else
                 {
                     <div class="card p-2 mb-2">
                         <div class="text-muted mb-1">
-                            @( (c.UpdateDate ?? c.CreateDate).ToString("yyyy-MM-dd HH:mm") )
+                            @( (c.UpdateDate ?? c.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) )
                             @if (!string.IsNullOrWhiteSpace(c.AuthorFingerprint) && c.AuthorFingerprint == Model.Fingerprint)
                             {
                                 <span class="text-muted"> • </span>

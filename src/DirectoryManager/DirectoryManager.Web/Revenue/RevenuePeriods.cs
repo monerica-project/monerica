@@ -53,7 +53,7 @@ namespace DirectoryManager.Web.Revenue
             }
 
             var label = key == "custom"
-                ? $"{f.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)} to {t.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture)}"
+                ? $"{f.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat, CultureInfo.InvariantCulture)} to {t.AddDays(-1).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat, CultureInfo.InvariantCulture)}"
                 : Options.First(o => o.Key == key).Label;
             return (key, label, f, t);
         }

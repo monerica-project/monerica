@@ -28,6 +28,7 @@ namespace DirectoryManager.Web.Charting
             var plt = new Plot();
             var slices = report.Totals
                 .Where(t => t.AmountUsd > 0m)
+                .OrderByDescending(t => t.AmountUsd)
                 .Select(t => new PieSlice
                 {
                     Value = (double)t.AmountUsd,
@@ -66,7 +67,12 @@ namespace DirectoryManager.Web.Charting
                 return plt.GetDarkImageBytes(1400, 600, ImageFormat.Png);
             }
 
-            foreach (var source in RevenueReportBuilder.Sources)
+            // Largest source over the whole chart first: bottom of each bar and top of the legend.
+            var order = RevenueReportBuilder.Sources
+                .OrderByDescending(s => months.Sum(m => m.BySource[s]))
+                .ToList();
+
+            foreach (var source in order)
             {
                 if (!months.Any(m => m.BySource[source] > 0m))
                 {
@@ -77,7 +83,7 @@ namespace DirectoryManager.Web.Charting
                 for (int i = 0; i < months.Count; i++)
                 {
                     // Base = everything stacked below this source.
-                    double below = RevenueReportBuilder.Sources
+                    double below = order
                         .TakeWhile(s => s != source)
                         .Sum(s => (double)months[i].BySource[s]);
                     double v = (double)months[i].BySource[source];
@@ -198,7 +204,7 @@ namespace DirectoryManager.Web.Charting
 
             MonthTicks(plt, bt.Months.Select(m => m.MonthStart).ToList());
             plt.Axes.Margins(bottom: 0, top: 0.1);
-            plt.Title($"Backtest from {bt.AsOfUtc:MMM yyyy}");
+            plt.Title($"Backtest from {bt.AsOfUtc.ToString(DirectoryManager.Common.Constants.StringConstants.MonthYearFormat)}");
             plt.YLabel("USD");
             plt.ShowLegend(Edge.Right);
             return plt.GetDarkImageBytes(1100, 450, ImageFormat.Png);
@@ -211,7 +217,7 @@ namespace DirectoryManager.Web.Charting
             for (int i = 0; i < months.Count; i += stride)
             {
                 // Two-line horizontal labels (same style as the invoice charts): never clipped.
-                ticks.Add(new Tick(i, months[i].ToString("MMM", CultureInfo.InvariantCulture) + "\n" + months[i].ToString("yyyy", CultureInfo.InvariantCulture)));
+                ticks.Add(new Tick(i, months[i].ToString(DirectoryManager.Common.Constants.StringConstants.MonthAbbrFormat, CultureInfo.InvariantCulture) + "\n" + months[i].ToString(DirectoryManager.Common.Constants.StringConstants.YearFormat, CultureInfo.InvariantCulture)));
             }
 
             plt.Axes.Bottom.TickGenerator = new ScottPlot.TickGenerators.NumericManual(ticks.ToArray());

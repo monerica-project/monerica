@@ -40,7 +40,7 @@
                         @r.ListingName
                     }
                     &middot; @r.OfferName
-                    &middot; published @(r.CompletedUtc?.ToString("yyyy-MM-dd"))
+                    &middot; published @(r.CompletedUtc?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))
                 </p>
                 <p>
                     <a href="@r.VideoUrl" target="_blank" rel="noopener">Watch the video</a>

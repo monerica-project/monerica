@@ -274,7 +274,7 @@
                         <tr>
                             <td>@c.DirectoryEntryReviewCommentId</td>
                             <td>@c.ModerationStatus</td>
-                            <td>@(c.CreateDate.ToString("yyyy-MM-dd HH:mm"))</td>
+                            <td>@(c.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat))</td>
                             <td><code>@c.AuthorFingerprint</code></td>
                             <td>
                                 @(string.IsNullOrWhiteSpace(c.Body)

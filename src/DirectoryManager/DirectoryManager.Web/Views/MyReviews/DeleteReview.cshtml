@@ -15,7 +15,7 @@
 <div class="card p-3">
     <div class="mb-2 text-muted">
         Rating: @(Model.Review.Rating?.ToString() ?? "N/A")
-        • @( (Model.Review.UpdateDate ?? Model.Review.CreateDate).ToString("yyyy-MM-dd") )
+        • @( (Model.Review.UpdateDate ?? Model.Review.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) )
     </div>
     <div class="u-ws-pre-wrap">@Model.Review.Body</div>
 </div>

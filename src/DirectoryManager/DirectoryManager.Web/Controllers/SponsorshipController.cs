@@ -358,7 +358,7 @@ namespace DirectoryManager.Web.Controllers
                     : (await this.subcategoryRepo.GetByIdAsync(id).ConfigureAwait(false))?.Name ?? $"subcategory {id}";
             }
 
-            var label = $"{typeLabel} · {scopeLabel} · {start:MMM d, yyyy}–{end:MMM d, yyyy}";
+            var label = $"{typeLabel} · {scopeLabel} · {start.ToString(DirectoryManager.Common.Constants.StringConstants.FriendlyDateFormat)}–{end.ToString(DirectoryManager.Common.Constants.StringConstants.FriendlyDateFormat)}";
 
             var bytes = new InvoicePlotting().CreateDailyAvgPriceByTypeChart(
                 paid, Currency.USD, start, end, type, label, width: 1100, height: 460, darkTheme: true);

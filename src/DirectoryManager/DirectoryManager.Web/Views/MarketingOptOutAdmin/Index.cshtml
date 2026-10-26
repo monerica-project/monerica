@@ -68,7 +68,7 @@
                     <strong>@c.Email</strong>
                     @if (c.OptedOutUtc != null)
                     {
-                        <span>&middot; opted out @c.OptedOutUtc.Value.ToString("yyyy-MM-dd HH:mm") UTC (by @c.OptOutSource)</span>
+                        <span>&middot; opted out @c.OptedOutUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC (by @c.OptOutSource)</span>
                     }
                     else
                     {

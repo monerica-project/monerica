@@ -34,6 +34,7 @@ namespace DirectoryManager.Web.Controllers
         private readonly ICacheService cacheService;
         private readonly IDirectoryEntryReviewRepository reviewRepository;
         private readonly IUrlResolutionService urlResolutionService;
+        private readonly ISponsoredListingOpeningNotificationRepository waitlistRepository;
         private readonly ILogger<SponsoredListingController> logger;
 
         public SponsoredListingController(
@@ -48,9 +49,11 @@ namespace DirectoryManager.Web.Controllers
             ICacheService cacheService,
             IDirectoryEntryReviewRepository reviewRepository,
             IUrlResolutionService urlResolutionService,
+            ISponsoredListingOpeningNotificationRepository waitlistRepository,
             ILogger<SponsoredListingController> logger)
             : base(cache)
         {
+            this.waitlistRepository = waitlistRepository;
             this.subCategoryRepository = subCategoryRepository;
             this.categoryRepository = categoryRepository;
             this.directoryEntryRepository = directoryEntryRepository;
@@ -393,8 +396,28 @@ namespace DirectoryManager.Web.Controllers
                     SponsorshipType = l.SponsorshipType,
                     StartDate = l.CampaignStartDate,
                     EndDate = l.CampaignEndDate,
+                    WaitlistTypeId = l.SponsorshipType switch
+                    {
+                        SponsorshipType.CategorySponsor => l.CategoryId,
+                        SponsorshipType.SubcategorySponsor => l.SubCategoryId,
+                        _ => null,
+                    },
                 }).ToList(),
             };
+
+            // Waitlist size per placement (one lookup per distinct placement on the page).
+            var counts = new Dictionary<(SponsorshipType, int?), int>();
+            foreach (var row in model.Listings)
+            {
+                var key = (row.SponsorshipType, row.WaitlistTypeId);
+                if (!counts.TryGetValue(key, out var n))
+                {
+                    n = await this.waitlistRepository.GetWaitlistCountAsync(key.Item1, key.Item2);
+                    counts[key] = n;
+                }
+
+                row.WaitlistCount = n;
+            }
 
             return this.View(model);
         }
@@ -468,7 +491,7 @@ namespace DirectoryManager.Web.Controllers
                         .FirstOrDefault());
 
                 return next.HasValue
-                    ? $"All {max} main sponsor spots are currently taken. Next opening expected around {next.Value:yyyy-MM-dd HH:mm} UTC."
+                    ? $"All {max} main sponsor spots are currently taken. Next opening expected around {next.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)} UTC."
                     : $"All {max} main sponsor spots are currently taken.";
             }
 
@@ -476,7 +499,7 @@ namespace DirectoryManager.Web.Controllers
             if (exp.HasValue)
             {
                 var mins = Math.Max(1, (int)Math.Ceiling((exp.Value - DateTime.UtcNow).TotalMinutes));
-                return $"A checkout is currently in progress and will expire at {exp.Value:yyyy-MM-dd HH:mm} UTC (in {mins} minutes).";
+                return $"A checkout is currently in progress and will expire at {exp.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)} UTC (in {mins} minutes).";
             }
 
             return "A checkout is currently in progress for a main sponsor spot.";
@@ -565,7 +588,7 @@ namespace DirectoryManager.Web.Controllers
                 {
                     name = e.Name ?? string.Empty,
                     link = e.Link ?? string.Empty,
-                    expirationDate = l.CampaignEndDate.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+                    expirationDate = l.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat),
                     reviewRating = reviewRating.HasValue ? Math.Round(reviewRating.Value, 1, MidpointRounding.AwayFromZero) : (double?)null,
                     reviewCount,
                     reviewLink = UrlBuilder.CombineUrl(canonicalDomain, UrlBuilder.ListingReviewsPath(e.DirectoryEntryKey)),

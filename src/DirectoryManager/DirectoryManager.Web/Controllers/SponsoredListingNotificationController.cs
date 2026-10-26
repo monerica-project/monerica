@@ -16,12 +16,21 @@ namespace DirectoryManager.Web.Controllers
         private readonly ISponsoredListingOpeningNotificationRepository notificationRepository;
         private readonly ICategoryRepository categoryRepository;
         private readonly ISubcategoryRepository subcategoryRepository;
+        private readonly IDirectoryEntryRepository directoryEntryRepository;
+        private readonly IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepository;
+        private readonly ISponsoredListingRepository sponsoredListingRepository;
 
         public SponsoredListingNotificationController(
             ISponsoredListingOpeningNotificationRepository notificationRepository,
             ICategoryRepository categoryRepository,
-            ISubcategoryRepository subcategoryRepository)
+            ISubcategoryRepository subcategoryRepository,
+            IDirectoryEntryRepository directoryEntryRepository,
+            IDirectoryEntryAdditionalSubcategoryRepository additionalSubcategoryRepository,
+            ISponsoredListingRepository sponsoredListingRepository)
         {
+            this.directoryEntryRepository = directoryEntryRepository;
+            this.additionalSubcategoryRepository = additionalSubcategoryRepository;
+            this.sponsoredListingRepository = sponsoredListingRepository;
             this.notificationRepository = notificationRepository;
             this.categoryRepository = categoryRepository;
             this.subcategoryRepository = subcategoryRepository;
@@ -30,7 +39,7 @@ namespace DirectoryManager.Web.Controllers
         [Authorize]
         [HttpGet]
         [Route("sponsoredlistingnotification/list")]
-        public async Task<IActionResult> List(int page = 1, int pageSize = 50)
+        public async Task<IActionResult> List(int page = 1, int pageSize = 50, SponsorshipType? type = null, int? typeId = null)
         {
             // hard guards
             if (page < 1)
@@ -53,9 +62,36 @@ namespace DirectoryManager.Web.Controllers
                                  .GetAllAsync()
                                  .ConfigureAwait(false);
 
-            var ordered = all
-                .OrderByDescending(x => x.CreateDate)
-                .ToList();
+            List<SponsoredListingOpeningNotification> ordered;
+
+            if (type is SponsorshipType filterType && filterType != SponsorshipType.Unknown)
+            {
+                // One placement's waitlist: only people still waiting, first in line at the top.
+                var filterId = filterType == SponsorshipType.MainSponsor || typeId is null or <= 0 ? null : typeId;
+                ordered = all
+                    .Where(x => x.IsActive && !x.IsReminderSent && x.SponsorshipType == filterType)
+                    .Where(x => filterId == null ? (x.TypeId == null || x.TypeId == 0) : x.TypeId == filterId)
+                    .OrderBy(x => x.SubscribedDate)
+                    .ToList();
+
+                this.ViewBag.FilterType = filterType;
+                this.ViewBag.FilterTypeId = filterId;
+                this.ViewBag.FilterLabel = filterType switch
+                {
+                    SponsorshipType.MainSponsor => "Main sponsor",
+                    SponsorshipType.CategorySponsor when filterId is int c =>
+                        "Category: " + ((await this.categoryRepository.GetByIdAsync(c))?.Name ?? $"#{c}"),
+                    SponsorshipType.SubcategorySponsor when filterId is int sc =>
+                        "Subcategory: " + ((await this.subcategoryRepository.GetByIdAsync(sc))?.Name ?? $"#{sc}"),
+                    _ => filterType.ToString(),
+                };
+            }
+            else
+            {
+                ordered = all
+                    .OrderByDescending(x => x.CreateDate)
+                    .ToList();
+            }
 
             var totalCount = ordered.Count;
 
@@ -70,6 +106,55 @@ namespace DirectoryManager.Web.Controllers
                 .Skip((page - 1) * pageSize)
                 .Take(pageSize)
                 .ToList();
+
+            // Listing names + whether each row's listing could buy that placement right now
+            // (same rules as checkout: SponsorshipEligibilityHelper.ForPlacement).
+            var listingNames = new Dictionary<int, string>();
+            var entries = new Dictionary<int, DirectoryManager.Data.Models.DirectoryEntry>();
+            foreach (var entryId in items.Where(x => x.DirectoryEntryId is > 0).Select(x => x.DirectoryEntryId!.Value).Distinct())
+            {
+                var entry = await this.directoryEntryRepository.GetByIdAsync(entryId);
+                if (entry != null)
+                {
+                    listingNames[entryId] = entry.Name;
+                    entries[entryId] = entry;
+                }
+            }
+
+            var subcategories = (await this.subcategoryRepository.GetAllAsync()).ToDictionary(s => s.SubCategoryId);
+            var activeSponsors = await this.sponsoredListingRepository.GetActivelySponsoredDirectoryEntryIdsAsync();
+            var eligibility = new Dictionary<int, (bool Eligible, string? Reason)>();
+            var now = DateTime.UtcNow;
+
+            foreach (var n in items)
+            {
+                if (n.DirectoryEntryId is not int eid || !entries.TryGetValue(eid, out var e))
+                {
+                    eligibility[n.SponsoredListingOpeningNotificationId] = (false, "No listing linked");
+                    continue;
+                }
+
+                subcategories.TryGetValue(e.SubCategoryId, out var mainSub);
+                var alts = (await this.additionalSubcategoryRepository.GetByDirectoryEntryIdAsync(eid))
+                    .Select(a => (a.SubCategoryId, subcategories.TryGetValue(a.SubCategoryId, out var s) && s.SponsorshipDisabled))
+                    .ToList();
+
+                eligibility[n.SponsoredListingOpeningNotificationId] = SponsorshipEligibilityHelper.ForPlacement(
+                    n.SponsorshipType,
+                    n.TypeId,
+                    e.DirectoryStatus,
+                    e.CreateDate,
+                    e.SubCategoryId,
+                    mainSub?.CategoryId,
+                    mainSub?.SponsorshipDisabled == true,
+                    alts,
+                    activeSponsors.Contains(eid),
+                    DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring,
+                    now);
+            }
+
+            this.ViewBag.ListingNames = listingNames;
+            this.ViewBag.Eligibility = eligibility;
 
             var vm = new PagedListViewModel<SponsoredListingOpeningNotification>
             {

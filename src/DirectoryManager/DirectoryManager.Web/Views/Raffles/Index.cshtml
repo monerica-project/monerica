@@ -63,9 +63,9 @@ else
                         <a asp-action="Details" asp-route-id="@r.RaffleId">@r.Name</a>
                     </td>
                     <td>
-                        @r.StartDate.ToString("yyyy-MM-dd HH:mm")
+                        @r.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)
                         &nbsp;→&nbsp;
-                        @r.EndDate.ToString("yyyy-MM-dd HH:mm")
+                        @r.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)
                     </td>
                     <td>
                         @if (!r.IsEnabled)

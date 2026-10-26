@@ -71,7 +71,7 @@
 
 <div class="card p-3 mt-3">
     <div><strong>Signed in as:</strong> <code>@Model.OwnerFingerprint</code></div>
-    <div class="mt-1"><strong>Session expires (UTC):</strong> @Model.SessionExpiresUtc.ToString("yyyy-MM-dd HH:mm")</div>
+    <div class="mt-1"><strong>Session expires (UTC):</strong> @Model.SessionExpiresUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</div>
 
     <form asp-action="Logout"
           asp-controller="SiteOwnerAdmin"
@@ -140,7 +140,7 @@ else
             <div class="u-flex-justify-space-between-gap-12px-flexwrap-wrap">
                 <div>
                     <strong>Review #@r.DirectoryEntryReviewId</strong>
-                    <span class="ms-2">@effectiveDate.ToString("yyyy-MM-dd HH:mm")</span>
+                    <span class="ms-2">@effectiveDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</span>
                 </div>
                 <div>
                     @if (rating.HasValue)
@@ -207,7 +207,7 @@ else
                         <div class="u-flex-justify-space-between-gap-12px-flexwrap-wrap">
                             <div>
                                 <strong>@(string.IsNullOrWhiteSpace(c.DisplayName) ? c.AuthorFingerprint : c.DisplayName)</strong>
-                                <span class="ms-2">@c.CreateDate.ToString("yyyy-MM-dd HH:mm")</span>
+                                <span class="ms-2">@c.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</span>
                             </div>
                             <div><strong>Status:</strong> @c.ModerationStatus</div>
                         </div>

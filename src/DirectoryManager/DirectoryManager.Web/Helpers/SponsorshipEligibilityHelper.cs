@@ -40,6 +40,87 @@ namespace DirectoryManager.Web.Helpers
         }
 
         /// <summary>
+        /// Can this listing buy this exact placement right now? Same rules as checkout and the
+        /// "Advertise here" buttons: <see cref="CanBuy"/>, sponsorship not switched off for the
+        /// subcategory it buys through, and the listing actually sits in that placement (main
+        /// sponsor: any listing; category: its main subcategory's category; subcategory: its main
+        /// or one of its additional subcategories). Returns a short reason when it can't.
+        /// </summary>
+        public static (bool Eligible, string? Reason) ForPlacement(
+            SponsorshipType type,
+            int? typeId,
+            DirectoryStatus status,
+            DateTime createDateUtc,
+            int mainSubCategoryId,
+            int? mainCategoryId,
+            bool mainSponsorshipDisabled,
+            IReadOnlyCollection<(int SubCategoryId, bool SponsorshipDisabled)> additionalSubcategories,
+            bool isActiveSponsor,
+            int minimumDaysListed,
+            DateTime nowUtc)
+        {
+            if (!CanBuy(status, createDateUtc, isActiveSponsor, minimumDaysListed, nowUtc))
+            {
+                // Short: the status when it isn't Verified, and how many days until it's old enough.
+                var parts = new List<string>();
+                if (status != DirectoryStatus.Verified)
+                {
+                    parts.Add(status.ToString());
+                }
+
+                var daysLeft = minimumDaysListed - ComputeAgeDays(createDateUtc, nowUtc);
+                if (createDateUtc == DateTime.MinValue)
+                {
+                    parts.Add("age unknown");
+                }
+                else if (daysLeft > 0)
+                {
+                    parts.Add($"{daysLeft} day{(daysLeft == 1 ? string.Empty : "s")} to go");
+                }
+
+                return (false, string.Join(" · ", parts));
+            }
+
+            switch (type)
+            {
+                case SponsorshipType.MainSponsor:
+                    return mainSponsorshipDisabled ? (false, "Sponsorship is off for its subcategory") : (true, null);
+
+                case SponsorshipType.CategorySponsor:
+                    if (mainSponsorshipDisabled)
+                    {
+                        return (false, "Sponsorship is off for its subcategory");
+                    }
+
+                    return typeId is int c && mainCategoryId == c ? (true, null) : (false, "Not in this category");
+
+                case SponsorshipType.SubcategorySponsor:
+                    if (typeId is not int sub)
+                    {
+                        return (false, "No subcategory given");
+                    }
+
+                    if (mainSubCategoryId == sub)
+                    {
+                        return mainSponsorshipDisabled ? (false, "Sponsorship is off for this subcategory") : (true, null);
+                    }
+
+                    foreach (var (altId, altDisabled) in additionalSubcategories)
+                    {
+                        if (altId == sub)
+                        {
+                            return altDisabled ? (false, "Sponsorship is off for this subcategory") : (true, null);
+                        }
+                    }
+
+                    return (false, "Not in this subcategory");
+
+                default:
+                    return (false, "Unknown placement");
+            }
+        }
+
+        /// <summary>
         /// Returns whether the listing may advertise, plus the human-readable reasons it can't.
         /// Reasons are ordered: status first, then age.
         /// </summary>

@@ -17,11 +17,11 @@
 
         <label>Start:</label>
         <input type="date" name="startDate"
-               value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
+               value="@(Model.StartDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))" />
 
         <label>End:</label>
         <input type="date" name="endDate"
-               value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
+               value="@(Model.EndDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))" />
 
         <button type="submit" class="btn btn-primary">Apply</button>
         <a asp-action="Totals" class="btn btn-secondary">Reset</a>
@@ -55,8 +55,8 @@
                 <td>@t.DirectoryEntryName</td>
                 <td class="u-text-right">@t.TotalUsdValue.ToString("C")</td>
                 <td class="u-text-right">@t.CommissionCount</td>
-                <td>@(t.FirstCommissionDate?.ToString("yyyy-MM-dd"))</td>
-                <td>@(t.LastCommissionDate?.ToString("yyyy-MM-dd"))</td>
+                <td>@(t.FirstCommissionDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))</td>
+                <td>@(t.LastCommissionDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))</td>
                 <td>
                     <a asp-action="Index" asp-route-directoryEntryId="@t.DirectoryEntryId">View &raquo;</a>
                 </td>

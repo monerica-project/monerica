@@ -92,7 +92,7 @@
                                     <div class="col-md-6">
                                         <label asp-for="TestedAt" class="form-label"></label>
                                         <input asp-for="TestedAt" type="date" class="form-control"
-                                               value="@(Model.TestedAt?.ToString("yyyy-MM-dd"))" />
+                                               value="@(Model.TestedAt?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))" />
                                         <div class="form-text">Year-month-day, interpreted as UTC.</div>
                                     </div>
                                     <div class="col-md-6">

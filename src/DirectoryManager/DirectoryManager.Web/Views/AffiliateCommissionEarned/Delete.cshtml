@@ -12,7 +12,7 @@
 
 <dl>
     <dt>Date</dt>
-    <dd>@Model.CommissionDate.ToString("yyyy-MM-dd HH:mm") UTC</dd>
+    <dd>@Model.CommissionDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC</dd>
 
     <dt>Directory Entry</dt>
     <dd>@(Model.DirectoryEntry?.Name ?? $"#{Model.DirectoryEntryId}")</dd>

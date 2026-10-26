@@ -19,7 +19,7 @@
         <p>&#9989; Thank you. Your video sponsorship payment has been received.</p>
         <p>
             Each video will be published within <strong>@Model.DeliveryDays days</strong>
-            (by @((order.PaidUtc ?? DateTime.UtcNow).AddDays(Model.DeliveryDays).ToString("yyyy-MM-dd")) UTC).
+            (by @((order.PaidUtc ?? DateTime.UtcNow).AddDays(Model.DeliveryDays).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)) UTC).
             @if (!string.IsNullOrWhiteSpace(order.Email))
             {
                 <span>We'll email you the link when each one is live.</span>

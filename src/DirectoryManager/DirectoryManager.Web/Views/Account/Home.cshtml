@@ -46,13 +46,15 @@
     // "3h ago" with the exact UTC time on hover; a grey dash when there's none.
     static Microsoft.AspNetCore.Html.IHtmlContent AgoCell(DateTime? utc) =>
         new Microsoft.AspNetCore.Html.HtmlString(utc is DateTime t
-            ? $"<span title=\"{t:yyyy-MM-dd HH:mm} UTC\">{FormatAgoCompact(t)}</span>"
+            ? $"<span title=\"{t.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)} UTC\">{FormatAgoCompact(t)}</span>"
             : "<span class=\"u-color-888\">—</span>");
 }
 
 @section PageContent {
 
     <h1>@PageMeta.Title</h1>
+
+    <p><b>Current UTC time:</b> @DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC <i class="u-opacity-5">(as of page load)</i></p>
 
     <hr />
 
@@ -64,7 +66,7 @@
         &nbsp;&nbsp;<b>Files last synced</b> (content actually uploaded):
         @if (ViewBag.LastBunnyFilesSyncedUtc is DateTime filesSynced)
         {
-            <span class="u-color-888">@filesSynced.ToString("yyyy-MM-dd HH:mm") UTC (@FormatAgoCompact(filesSynced))</span>
+            <span class="u-color-888">@filesSynced.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC (@FormatAgoCompact(filesSynced))</span>
         }
         else
         {
@@ -76,7 +78,7 @@
         {
             var stale = (DateTime.UtcNow - lastChecked) > TimeSpan.FromMinutes(15);
             <span class="@(stale ? "u-color-c0392b" : "u-color-888")">
-                @lastChecked.ToString("yyyy-MM-dd HH:mm") UTC (@FormatAgoCompact(lastChecked))@(stale ? " — ⚠ stale, the syncer may have stopped" : string.Empty)
+                @lastChecked.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC (@FormatAgoCompact(lastChecked))@(stale ? " — ⚠ stale, the syncer may have stopped" : string.Empty)
             </span>
         }
         else
@@ -120,7 +122,7 @@
             <b class="u-color-c0392b">Needs attention:</b>
             <span>@totalWaiting waiting &middot; newest is a</span>
             <a href="@newestWaiting.Url"><b>@newestWaiting.Label.ToLowerInvariant()</b></a>
-            <span title="@newestWaiting.When.ToString("yyyy-MM-dd HH:mm") UTC">from @FormatAgoCompact(newestWaiting.When)</span>
+            <span title="@newestWaiting.When.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC">from @FormatAgoCompact(newestWaiting.When)</span>
         }
         else
         {
@@ -173,7 +175,7 @@
                     <td>
                         @if (ViewBag.LastInvoicePendingUtc is DateTime lastPending)
                         {
-                            <span class="u-color-c0392b" title="Newest unpaid checkout: @lastPending.ToString("yyyy-MM-dd HH:mm") UTC">⚠ unpaid checkout</span>
+                            <span class="u-color-c0392b" title="Newest unpaid checkout: @lastPending.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC">⚠ unpaid checkout</span>
                         }
                         else
                         {

@@ -54,10 +54,10 @@
     </dd>
 
     <dt class="col-sm-3">Start (UTC)</dt>
-    <dd class="col-sm-9">@Model.StartDate.ToString("yyyy-MM-dd HH:mm")</dd>
+    <dd class="col-sm-9">@Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</dd>
 
     <dt class="col-sm-3">End (UTC)</dt>
-    <dd class="col-sm-9">@Model.EndDate.ToString("yyyy-MM-dd HH:mm")</dd>
+    <dd class="col-sm-9">@Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</dd>
 
     @if (!string.IsNullOrWhiteSpace(Model.Description))
     {
@@ -148,7 +148,7 @@ else
                             <span class="text-muted">—</span>
                         }
                     </td>
-                    <td>@e.CreateDate.ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>@e.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</td>
                     <td>
                         <a class="btn btn-sm btn-primary"
                            asp-action="EditEntry"

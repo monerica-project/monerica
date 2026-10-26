@@ -653,7 +653,7 @@ namespace DirectoryManager.Web.Controllers
                 VideosOutstanding = outstanding.Count,
                 VideosOverdue = outstanding.Count(paidUtc => paidUtc.AddDays(deliveryDays) < now),
                 ByMonth = paid
-                    .GroupBy(o => (o.PaidUtc ?? o.CreateDate).ToString("yyyy-MM", CultureInfo.InvariantCulture))
+                    .GroupBy(o => (o.PaidUtc ?? o.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.YearMonth, CultureInfo.InvariantCulture))
                     .OrderByDescending(g => g.Key)
                     .Select(g => ToRow(g.Key, g))
                     .ToList(),

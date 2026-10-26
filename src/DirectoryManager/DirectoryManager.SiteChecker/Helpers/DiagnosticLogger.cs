@@ -27,14 +27,14 @@ namespace DirectoryManager.SiteChecker.Helpers
         // Console only — noisy stuff like per-attempt status, headers, DNS results
         public void Log(string line)
         {
-            var stamped = $"[{DateTime.UtcNow:HH:mm:ss}] {line}";
+            var stamped = $"[{DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.TimeSecondsFormat)}] {line}";
             Console.WriteLine(stamped);
         }
 
         // Console + file — only used when we need to record a false-negative-worthy event
         public void LogImportant(string line)
         {
-            var stamped = $"[{DateTime.UtcNow:yyyy-MM-ddTHH:mm:ssZ}] {line}";
+            var stamped = $"[{DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)}] {line}";
             Console.WriteLine(stamped);
 
             if (this.writer != null)

@@ -2240,14 +2240,14 @@ namespace DirectoryManager.Web.Controllers
             {
                 var next = await this.GetNextOpeningUtcAsync(type, typeId).ConfigureAwait(false);
                 return next.HasValue
-                    ? $"No ad space available right now for {scope}. Next opening is expected around {next.Value:yyyy-MM-dd HH:mm} UTC."
+                    ? $"No ad space available right now for {scope}. Next opening is expected around {next.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)} UTC."
                     : $"No ad space available right now for {scope}.";
             }
 
             var exp = await this.sponsoredListingReservationRepository.GetActiveReservationExpirationAsync(group).ConfigureAwait(false);
             if (exp.HasValue)
             {
-                return $"Another checkout for {scope} is in process and will expire at {exp.Value:yyyy-MM-dd HH:mm} UTC (in {Math.Max(1, (int)Math.Ceiling((exp.Value - DateTime.UtcNow).TotalMinutes))} minutes).";
+                return $"Another checkout for {scope} is in process and will expire at {exp.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)} UTC (in {Math.Max(1, (int)Math.Ceiling((exp.Value - DateTime.UtcNow).TotalMinutes))} minutes).";
             }
 
             return $"Another checkout is currently in process for {scope}.";
@@ -2259,7 +2259,7 @@ namespace DirectoryManager.Web.Controllers
             var next = await this.GetNextOpeningUtcForMainSubcategoryAsync(subCategoryId).ConfigureAwait(false);
             return $"No ad space available right now for Main Sponsor in {scope}. " +
                    $"This subcategory is limited to {Common.Constants.IntegerConstants.MaxMainSponsorsPerSubcategory} Main Sponsors and it is full." +
-                   (next.HasValue ? $" Next opening is expected around {next.Value:yyyy-MM-dd HH:mm} UTC." : string.Empty);
+                   (next.HasValue ? $" Next opening is expected around {next.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)} UTC." : string.Empty);
         }
 
         private async Task<string> BuildCheckoutInProcessMessageForMainSubcategoryAsync(int subCategoryId)
@@ -2271,7 +2271,7 @@ namespace DirectoryManager.Web.Controllers
             {
                 var next = await this.GetNextOpeningUtcForMainSubcategoryAsync(subCategoryId).ConfigureAwait(false);
                 return next.HasValue
-                    ? $"No ad space available right now for Main Sponsor in {scope}. Next opening is expected around {next.Value:yyyy-MM-dd HH:mm} UTC."
+                    ? $"No ad space available right now for Main Sponsor in {scope}. Next opening is expected around {next.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)} UTC."
                     : $"No ad space available right now for Main Sponsor in {scope}.";
             }
 
@@ -2279,7 +2279,7 @@ namespace DirectoryManager.Web.Controllers
             var exp = await this.sponsoredListingReservationRepository.GetActiveReservationExpirationAsync(subGroup).ConfigureAwait(false);
             if (exp.HasValue)
             {
-                return $"Another checkout for Main Sponsor in {scope} is in process and will expire at {exp.Value:yyyy-MM-dd HH:mm} UTC (in {Math.Max(1, (int)Math.Ceiling((exp.Value - DateTime.UtcNow).TotalMinutes))} minutes).";
+                return $"Another checkout for Main Sponsor in {scope} is in process and will expire at {exp.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)} UTC (in {Math.Max(1, (int)Math.Ceiling((exp.Value - DateTime.UtcNow).TotalMinutes))} minutes).";
             }
 
             return $"Another checkout is currently in process for Main Sponsor in {scope}.";

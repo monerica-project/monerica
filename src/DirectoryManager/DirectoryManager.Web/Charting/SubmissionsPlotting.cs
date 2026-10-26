@@ -87,7 +87,7 @@ namespace DirectoryManager.Web.Charting
                 double x = bars[i].Position;
                 double y = bars[i].Value;
 
-                string month = countsByMonth[i].Month.ToString("MMM yyyy", CultureInfo.InvariantCulture);
+                string month = countsByMonth[i].Month.ToString(DirectoryManager.Common.Constants.StringConstants.MonthYearFormat, CultureInfo.InvariantCulture);
                 double baseY = y + (labelHeadroom * 0.6);
 
                 var tVal = plt.Add.Text($"{y:0}", x, baseY);

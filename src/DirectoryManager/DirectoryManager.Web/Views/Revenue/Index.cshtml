@@ -10,7 +10,7 @@
     var usd = CultureInfo.GetCultureInfo("en-US");
     var earned = Model.Basis == RevenueBasis.Earned;
     var chartQuery = string.IsNullOrEmpty(Model.ChartQuery) ? "?" : Model.ChartQuery + "&";
-    var cacheBust = DateTime.UtcNow.ToString("yyyyMMddHHmm", CultureInfo.InvariantCulture);
+    var cacheBust = DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateTimeFormat, CultureInfo.InvariantCulture);
     var xmr = Model.InXmr;
     string Money(decimal amount, bool precise = false) => RevenueMoney.Format(amount, xmr, precise);
 
@@ -20,8 +20,8 @@
         var q = new List<string> { "period=" + Uri.EscapeDataString(Model.Period), "basis=" + Model.Basis };
         if (Model.Period == "custom")
         {
-            q.Add("from=" + Model.From.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
-            q.Add("to=" + Model.To.AddDays(-1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture));
+            q.Add("from=" + Model.From.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat, CultureInfo.InvariantCulture));
+            q.Add("to=" + Model.To.AddDays(-1).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat, CultureInfo.InvariantCulture));
         }
 
         if (currency == "xmr")
@@ -72,11 +72,11 @@
             </div>
             <div class="form-group col-md-3">
                 <label for="from">From (custom)</label>
-                <input id="from" name="from" type="date" class="form-control" value="@(Model.Period == "custom" ? Model.From.ToString("yyyy-MM-dd") : "")" />
+                <input id="from" name="from" type="date" class="form-control" value="@(Model.Period == "custom" ? Model.From.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) : "")" />
             </div>
             <div class="form-group col-md-3">
                 <label for="to">To (custom, inclusive)</label>
-                <input id="to" name="to" type="date" class="form-control" value="@(Model.Period == "custom" ? Model.To.AddDays(-1).ToString("yyyy-MM-dd") : "")" />
+                <input id="to" name="to" type="date" class="form-control" value="@(Model.Period == "custom" ? Model.To.AddDays(-1).ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat) : "")" />
             </div>
             <div class="form-group col-md-3">
                 <label for="basis">Count revenue as</label>
@@ -186,7 +186,7 @@
                 @foreach (var m in Model.Report.Months)
                 {
                     <tr>
-                        <td>@m.Month.ToString("MMM yyyy", CultureInfo.InvariantCulture)</td>
+                        <td>@m.Month.ToString(DirectoryManager.Common.Constants.StringConstants.MonthYearFormat, CultureInfo.InvariantCulture)</td>
                         @foreach (var s in RevenueReportBuilder.Sources)
                         {
                             <td class="text-right">@Money(m.BySource[s])</td>

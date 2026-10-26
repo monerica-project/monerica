@@ -10,6 +10,12 @@ namespace DirectoryManager.Web.Models
         public DateTime StartDate { get; set; }
         public DateTime EndDate { get; set; }
 
+        /// <summary>The placement's id for the waitlist (category or subcategory id; null for main).</summary>
+        public int? WaitlistTypeId { get; set; }
+
+        /// <summary>How many listings are waiting for this placement to open.</summary>
+        public int WaitlistCount { get; set; }
+
         public bool IsActive
         {
             get

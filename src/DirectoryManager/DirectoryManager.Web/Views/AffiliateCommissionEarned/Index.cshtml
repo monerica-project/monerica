@@ -51,11 +51,11 @@
 
         <label>Start:</label>
         <input type="date" name="startDate" class="form-control"
-               value="@(Model.StartDate?.ToString("yyyy-MM-dd"))" />
+               value="@(Model.StartDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))" />
 
         <label>End:</label>
         <input type="date" name="endDate" class="form-control"
-               value="@(Model.EndDate?.ToString("yyyy-MM-dd"))" />
+               value="@(Model.EndDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))" />
 
         <label>Page size:</label>
         <input class="form-control u-w-6em" type="number" name="pageSize" value="@Model.PageSize" min="1" max="200" />
@@ -110,7 +110,7 @@
         @foreach (var c in Model.Items)
         {
             <tr>
-                <td>@c.CommissionDate.ToString("yyyy-MM-dd HH:mm")</td>
+                <td>@c.CommissionDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</td>
                 <td>@(c.DirectoryEntry?.Name ?? $"#{c.DirectoryEntryId}")</td>
                 <td class="u-text-right">@c.UsdValue.ToString("C")</td>
                 <td>@c.PaymentCurrency</td>
@@ -146,8 +146,8 @@
                    asp-route-page="@(Model.Page - 1)"
                    asp-route-pageSize="@Model.PageSize"
                    asp-route-directoryEntryId="@Model.DirectoryEntryId"
-                   asp-route-startDate="@(Model.StartDate?.ToString("yyyy-MM-dd"))"
-                   asp-route-endDate="@(Model.EndDate?.ToString("yyyy-MM-dd"))">
+                   asp-route-startDate="@(Model.StartDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))"
+                   asp-route-endDate="@(Model.EndDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))">
                     &laquo; Previous
                 </a>
             }
@@ -160,8 +160,8 @@
                    asp-route-page="@(Model.Page + 1)"
                    asp-route-pageSize="@Model.PageSize"
                    asp-route-directoryEntryId="@Model.DirectoryEntryId"
-                   asp-route-startDate="@(Model.StartDate?.ToString("yyyy-MM-dd"))"
-                   asp-route-endDate="@(Model.EndDate?.ToString("yyyy-MM-dd"))">
+                   asp-route-startDate="@(Model.StartDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))"
+                   asp-route-endDate="@(Model.EndDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))">
                     Next &raquo;
                 </a>
             }

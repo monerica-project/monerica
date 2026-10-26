@@ -43,8 +43,8 @@
                                     @s.ListingName
                                 }
                             </td>
-                            <td><strong>@(s.LastPaidUtc?.ToString("yyyy-MM-dd"))</strong></td>
-                            <td>@(s.FirstPaidUtc?.ToString("yyyy-MM-dd"))</td>
+                            <td><strong>@(s.LastPaidUtc?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))</strong></td>
+                            <td>@(s.FirstPaidUtc?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat))</td>
                             <td>@s.Orders</td>
                             <td>@s.VideosDelivered / @s.Videos delivered</td>
                             <td class="text-end">

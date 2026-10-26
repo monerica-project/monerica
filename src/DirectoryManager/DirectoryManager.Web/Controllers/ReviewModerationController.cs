@@ -701,7 +701,7 @@ namespace DirectoryManager.Web.Controllers
                 return new ReviewModerationReviewViewModel.MoveTarget
                 {
                     Id = r.DirectoryEntryReviewId,
-                    Label = $"#{r.DirectoryEntryReviewId} · {r.CreateDate:yyyy-MM-dd} · {r.ModerationStatus} · {stars} · …{who} · {text}",
+                    Label = $"#{r.DirectoryEntryReviewId} · {r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)} · {r.ModerationStatus} · {stars} · …{who} · {text}",
                 };
             }).ToList();
         }

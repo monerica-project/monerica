@@ -183,7 +183,9 @@ using (var scope = serviceProvider.CreateScope())
                     .Where(r => r.DirectoryEntryReviewId == n.DirectoryEntryReviewId)
                     .Select(r => (DateTime?)r.CreateDate).FirstOrDefaultAsync()
                 : null;
-        var leftStr = itemLeftUtc?.ToString("yyyy-MM-dd HH:mm 'UTC'") ?? "unknown date";
+        var leftStr = itemLeftUtc.HasValue
+            ? itemLeftUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) + " UTC"
+            : "unknown date";
 
         string subject;
         string plain;

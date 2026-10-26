@@ -12,7 +12,7 @@
     <p>
         <label asp-for="CommissionDate"></label><br />
         <input asp-for="CommissionDate" type="datetime-local" class="form-control"
-               value="@Model.CommissionDate.ToString("yyyy-MM-ddTHH:mm")" />
+               value="@Model.CommissionDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3)" />
         <span asp-validation-for="CommissionDate" class="text-danger"></span>
     </p>
 

@@ -12,7 +12,21 @@
 
     @await Html.PartialAsync("_AdminMenu")
 
-    <h2>Manage Notifications</h2>
+    @{
+        var listingNames = ViewBag.ListingNames as Dictionary<int, string> ?? new Dictionary<int, string>();
+        var eligibility = ViewBag.Eligibility as Dictionary<int, (bool Eligible, string? Reason)> ?? new Dictionary<int, (bool Eligible, string? Reason)>();
+        var filterLabel = ViewBag.FilterLabel as string;
+    }
+
+    @if (filterLabel != null)
+    {
+        <h2>Waiting for: @filterLabel</h2>
+        <p>Everyone here is emailed when this spot opens. Oldest first. <a href="@Url.Action("List")">Show all notifications</a></p>
+    }
+    else
+    {
+        <h2>Manage Notifications</h2>
+    }
 
     <div class="u-m-10px-0">
         <span>
@@ -29,6 +43,8 @@
         <table class="table">
             <thead>
                 <tr>
+                    <th>Listing</th>
+                    <th>Eligible now</th>
                     <th>Email</th>
                     <th>Create Date</th>
                     <th>Sponsorship Type</th>
@@ -42,7 +58,7 @@
                 @if (Model.TotalCount == 0)
                 {
                     <tr>
-                        <td colspan="7">No notifications found.</td>
+                        <td colspan="9">No notifications found.</td>
                     </tr>
                 }
                 else
@@ -50,6 +66,20 @@
                     foreach (var notification in Model.Items)
                     {
                         <tr>
+                            <td>@(notification.DirectoryEntryId is int eid && listingNames.TryGetValue(eid, out var lname) ? lname : "")</td>
+                            <td>
+                                @if (eligibility.TryGetValue(notification.SponsoredListingOpeningNotificationId, out var el))
+                                {
+                                    if (el.Eligible)
+                                    {
+                                        <span class="text-success">&#9989; Yes</span>
+                                    }
+                                    else
+                                    {
+                                        <span class="text-danger">&#10060; No</span> <span class="u-opacity-5">&middot; @el.Reason</span>
+                                    }
+                                }
+                            </td>
                             <td>@notification.Email</td>
                             <td>@notification.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat)</td>
                             <td>@notification.SponsorshipType</td>
@@ -72,7 +102,7 @@
             @* Previous *@
             @if (Model.HasPrevious)
             {
-                <a href="@Url.Action("List", new { page = Model.Page - 1, pageSize = Model.PageSize })">← Prev</a>
+                <a href="@Url.Action("List", new { type = (object?)ViewBag.FilterType, typeId = (object?)ViewBag.FilterTypeId, page = Model.Page - 1, pageSize = Model.PageSize })">← Prev</a>
             }
             else
             {
@@ -98,7 +128,7 @@
 
             @if (start > 1)
             {
-                <a href="@Url.Action("List", new { page = 1, pageSize = Model.PageSize })">1</a>
+                <a href="@Url.Action("List", new { type = (object?)ViewBag.FilterType, typeId = (object?)ViewBag.FilterTypeId, page = 1, pageSize = Model.PageSize })">1</a>
                 @if (start > 2)
                 {
                     <span>…</span>
@@ -113,7 +143,7 @@
                 }
                 else
                 {
-                    <a href="@Url.Action("List", new { page = i, pageSize = Model.PageSize })">@i</a>
+                    <a href="@Url.Action("List", new { type = (object?)ViewBag.FilterType, typeId = (object?)ViewBag.FilterTypeId, page = i, pageSize = Model.PageSize })">@i</a>
                 }
             }
 
@@ -123,13 +153,13 @@
                 {
                     <span>…</span>
                 }
-                <a href="@Url.Action("List", new { page = Model.TotalPages, pageSize = Model.PageSize })">@Model.TotalPages</a>
+                <a href="@Url.Action("List", new { type = (object?)ViewBag.FilterType, typeId = (object?)ViewBag.FilterTypeId, page = Model.TotalPages, pageSize = Model.PageSize })">@Model.TotalPages</a>
             }
 
             @* Next *@
             @if (Model.HasNext)
             {
-                <a href="@Url.Action("List", new { page = Model.Page + 1, pageSize = Model.PageSize })">Next →</a>
+                <a href="@Url.Action("List", new { type = (object?)ViewBag.FilterType, typeId = (object?)ViewBag.FilterTypeId, page = Model.Page + 1, pageSize = Model.PageSize })">Next →</a>
             }
             else
             {
@@ -149,7 +179,7 @@
                 }
                 else
                 {
-                    <a href="@Url.Action("List", new { page = 1, pageSize = s })">@s</a>
+                    <a href="@Url.Action("List", new { type = (object?)ViewBag.FilterType, typeId = (object?)ViewBag.FilterTypeId, page = 1, pageSize = s })">@s</a>
                 }
             }
         </nav>

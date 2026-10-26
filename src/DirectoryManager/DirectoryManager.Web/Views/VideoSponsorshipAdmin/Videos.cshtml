@@ -61,7 +61,7 @@
                                 {
                                     ordersById.TryGetValue(heldOrderId, out var heldOrder);
                                     <a href="~/admin/video-sponsorship/orders/@heldOrderId">@(heldOrder?.DirectoryEntry?.Name ?? $"Order {heldOrderId}")</a>
-                                    <span class="text-muted">(in checkout until @v.HeldUntilUtc.Value.ToString("HH:mm") UTC)</span>
+                                    <span class="text-muted">(in checkout until @v.HeldUntilUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.TimeFormat) UTC)</span>
                                 }
                                 else if (status == VideoIdeaStatus.Queued)
                                 {

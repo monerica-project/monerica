@@ -10,7 +10,7 @@
     var usd = CultureInfo.GetCultureInfo("en-US");
     var r = Model.Result;
     var q = $"horizonMonths={Model.HorizonMonths}&confidence={Model.ConfidencePercent}&priceGrowth={Model.PriceGrowthPercent.ToString(CultureInfo.InvariantCulture)}";
-    var v = r.AsOfUtc.ToString("yyyyMMdd", CultureInfo.InvariantCulture);
+    var v = r.AsOfUtc.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateFormat, CultureInfo.InvariantCulture);
     var lowPct = (100 - Model.ConfidencePercent) / 2;
     var highPct = 100 - lowPct;
     var nowMonth = new DateTime(DateTime.UtcNow.Year, DateTime.UtcNow.Month, 1);
@@ -119,7 +119,7 @@
             @foreach (var m in r.Months)
             {
                 <tr>
-                    <td>@m.MonthStart.ToString("MMM yyyy", CultureInfo.InvariantCulture)@(m.ActualSoFar > 0m ? " (so far: " + m.ActualSoFar.ToString("C0", usd) + ")" : "")</td>
+                    <td>@m.MonthStart.ToString(DirectoryManager.Common.Constants.StringConstants.MonthYearFormat, CultureInfo.InvariantCulture)@(m.ActualSoFar > 0m ? " (so far: " + m.ActualSoFar.ToString("C0", usd) + ")" : "")</td>
                     <td class="text-right">@m.Contracted.ToString("C0", usd)</td>
                     <td class="text-right"><strong>@m.Expected.ToString("C0", usd)</strong></td>
                     <td class="text-right">@m.Low.ToString("C0", usd) – @m.High.ToString("C0", usd)</td>
@@ -199,7 +199,7 @@
                 @foreach (var bt in r.Backtests)
                 {
                     <tr>
-                        <td>@bt.AsOfUtc.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</td>
+                        <td>@bt.AsOfUtc.ToString(DirectoryManager.Common.Constants.StringConstants.FriendlyDateFormat, CultureInfo.InvariantCulture)</td>
                         <td class="text-right">@bt.Months.Count</td>
                         <td class="text-right">@bt.TotalPredicted.ToString("C0", usd)</td>
                         <td class="text-right">@bt.TotalActual.ToString("C0", usd)</td>
@@ -215,7 +215,7 @@
         @foreach (var bt in r.Backtests)
         {
             var monthsBack = ((nowMonth.Year - bt.AsOfUtc.Year) * 12) + nowMonth.Month - bt.AsOfUtc.Month;
-            <img class="u-maxw-100pct-h-auto-block-m-0-auto-pb-10px" alt="Backtest from @bt.AsOfUtc.ToString("MMM yyyy", CultureInfo.InvariantCulture)" src="~/admin/revenue/backtest/@(monthsBack).png?@q&v=@v" width="1100" height="450" />
+            <img class="u-maxw-100pct-h-auto-block-m-0-auto-pb-10px" alt="Backtest from @bt.AsOfUtc.ToString(DirectoryManager.Common.Constants.StringConstants.MonthYearFormat, CultureInfo.InvariantCulture)" src="~/admin/revenue/backtest/@(monthsBack).png?@q&v=@v" width="1100" height="450" />
         }
     }
 }

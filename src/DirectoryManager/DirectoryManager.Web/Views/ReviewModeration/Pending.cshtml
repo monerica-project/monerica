@@ -79,7 +79,7 @@
                                 }
                             </td>
 
-                            <td>@r.CreateDate.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</td>
                             <td><code>@r.AuthorFingerprint</code></td>
                             <td>
                                 @(string.IsNullOrWhiteSpace(r.Body)
@@ -149,7 +149,7 @@
                                     @c.DirectoryEntryReviewId
                                 </a>
                             </td>
-                            <td>@c.CreateDate.ToString("yyyy-MM-dd HH:mm")</td>
+                            <td>@c.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</td>
                             <td><code>@c.AuthorFingerprint</code></td>
                             <td>
                                 @(string.IsNullOrWhiteSpace(c.Body)

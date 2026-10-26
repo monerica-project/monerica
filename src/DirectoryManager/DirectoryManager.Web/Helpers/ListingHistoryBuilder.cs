@@ -119,7 +119,7 @@ namespace DirectoryManager.Web.Helpers
                 ("Subcategory", a => SubcategoryDisplay(a)),
                 ("Location",    a => a.Location),
                 ("Country",     a => CountryDisplay(a.CountryCode)),
-                ("Founded",     a => a.FoundedDate?.ToString("yyyy-MM-dd")),
+                ("Founded",     a => a.FoundedDate?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)),
                 ("Processor",   a => a.Processor),
                 ("Description", a => a.Description),
                 ("Note",        a => a.Note),

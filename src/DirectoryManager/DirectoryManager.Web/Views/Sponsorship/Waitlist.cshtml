@@ -72,7 +72,7 @@ else
                                 @row.ListingName
                             }
                         </td>
-                        <td>@row.JoinedUtc.ToString("yyyy-MM-dd HH:mm")</td>
+                        <td>@row.JoinedUtc.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</td>
                     </tr>
                 }
             </tbody>

@@ -50,6 +50,39 @@ namespace DirectoryManager.Web.Tests.Revenue
 
         // ---------------- report ----------------
         [Fact]
+        public void Report_Totals_AreLargestFirst()
+        {
+            var oneTime = new List<RevenueItem>
+            {
+                new () { Source = RevenueSource.SubmissionReviews, PaidUtc = new DateTime(2026, 9, 12), AmountUsd = 50m },
+                new () { Source = RevenueSource.VideoSponsorships, PaidUtc = new DateTime(2026, 9, 10), AmountUsd = 1000m },
+                new () { Source = RevenueSource.AffiliateCommissions, PaidUtc = new DateTime(2026, 9, 11), AmountUsd = 200m },
+            };
+
+            var r = RevenueReportBuilder.Build(new List<SponsoredListingInvoice>(), oneTime, new DateTime(2026, 9, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 10, 1, 0, 0, 0, DateTimeKind.Utc), RevenueBasis.Cash, Now);
+
+            var amounts = r.Totals.Select(t => t.AmountUsd).ToList();
+            Assert.Equal(amounts.OrderByDescending(a => a).ToList(), amounts);
+            Assert.Equal(RevenueSource.VideoSponsorships, r.Totals[0].Source);
+        }
+
+        [Fact]
+        public void AllTime_StartsAtTheFirstPayment()
+        {
+            var oneTime = new List<RevenueItem>
+            {
+                new () { Source = RevenueSource.VideoSponsorships, PaidUtc = new DateTime(2025, 10, 5), AmountUsd = 10m },
+                new () { Source = RevenueSource.VideoSponsorships, PaidUtc = new DateTime(2026, 1, 5), AmountUsd = 10m },
+            };
+
+            var months = RevenueReportBuilder.BuildMonths(new List<SponsoredListingInvoice>(), oneTime, new DateTime(2020, 1, 1, 0, 0, 0, DateTimeKind.Utc), new DateTime(2026, 3, 1, 0, 0, 0, DateTimeKind.Utc), RevenueBasis.Cash, Now);
+            var trimmed = RevenueReportBuilder.TrimLeadingEmptyMonths(months);
+
+            Assert.Equal(new DateTime(2025, 10, 1, 0, 0, 0, DateTimeKind.Utc), trimmed[0].Month);
+            Assert.Equal(5, trimmed.Count); // Oct..Feb, empty months after the first payment are kept
+        }
+
+        [Fact]
         public void Report_SplitsBySource_CashVsEarned()
         {
             var invoices = new List<SponsoredListingInvoice>

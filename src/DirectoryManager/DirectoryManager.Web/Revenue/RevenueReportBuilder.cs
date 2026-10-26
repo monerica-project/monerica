@@ -78,7 +78,9 @@ namespace DirectoryManager.Web.Revenue
                 Count = counts[s],
                 MissingUsdCount = missing[s],
                 SharePct = grand > 0m ? Math.Round(100m * amounts[s] / grand, 1) : 0m,
-            }).ToList();
+            })
+            .OrderByDescending(t => t.AmountUsd) // largest share first (table, pie and legend)
+            .ToList();
 
             return new RevenueReport
             {
@@ -127,6 +129,10 @@ namespace DirectoryManager.Web.Revenue
 
             return months;
         }
+
+        /// <summary>Drops the empty months before the first payment (so "All time" starts there).</summary>
+        public static List<RevenueMonth> TrimLeadingEmptyMonths(IReadOnlyList<RevenueMonth> months) =>
+            months.SkipWhile(m => m.Total <= 0m).ToList();
 
         private static decimal SponsorAmount(SponsoredListingInvoice inv, DateTime from, DateTime to, RevenueBasis basis, DateTime nowUtc)
         {

@@ -58,6 +58,14 @@ namespace DirectoryManager.Web.Controllers
             var xmrReport = RevenueReportBuilder.Build(xmrInvoices, xmrOneTime, range.From, range.To, basis, now, decimals: 8);
             var report = inXmr ? xmrReport : usdReport;
 
+            if (range.Key == "all")
+            {
+                // "All time" starts at the first payment, not at the placeholder start date.
+                var trimmed = RevenueReportBuilder.TrimLeadingEmptyMonths(report.Months);
+                report.Months.Clear();
+                report.Months.AddRange(trimmed);
+            }
+
             return this.View(new RevenueReportViewModel
             {
                 Period = range.Key,
@@ -104,6 +112,11 @@ namespace DirectoryManager.Web.Controllers
 
             var end = range.To > now ? now.Date.AddDays(1) : range.To;
             var months = RevenueReportBuilder.BuildMonths(invoices, oneTime, start, end, basis, now);
+            if (string.Equals(period, "all", StringComparison.OrdinalIgnoreCase))
+            {
+                months = RevenueReportBuilder.TrimLeadingEmptyMonths(months);
+            }
+
             return this.Png(RevenuePlotting.MonthlyStacked(months, basis, inXmr));
         }
 
@@ -148,7 +161,7 @@ namespace DirectoryManager.Web.Controllers
         private async Task<ForecastBundle> GetForecastAsync(int horizon, int confidencePct, decimal priceGrowthPct, CancellationToken ct)
         {
             var now = DateTime.UtcNow;
-            var key = $"{ForecastCacheKeyPrefix}{horizon}:{confidencePct}:{priceGrowthPct.ToString(CultureInfo.InvariantCulture)}:{now:yyyyMMddHH}";
+            var key = $"{ForecastCacheKeyPrefix}{horizon}:{confidencePct}:{priceGrowthPct.ToString(CultureInfo.InvariantCulture)}:{now.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateHourFormat)}";
             if (this.cache.TryGetValue(key, out ForecastBundle? cached) && cached != null)
             {
                 return cached;

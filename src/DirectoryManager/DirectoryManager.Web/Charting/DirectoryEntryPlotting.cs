@@ -389,7 +389,7 @@ namespace DirectoryManager.Web.Charting
                 tVal.Alignment = Alignment.LowerCenter;
                 tVal.LabelFontSize = 12;
 
-                var tMon = plt.Add.Text(data[i].Month.ToString("MMM yyyy", CultureInfo.InvariantCulture), x, baseY);
+                var tMon = plt.Add.Text(data[i].Month.ToString(DirectoryManager.Common.Constants.StringConstants.MonthYearFormat, CultureInfo.InvariantCulture), x, baseY);
                 tMon.Alignment = Alignment.UpperCenter;
                 tMon.LabelFontSize = 9;
             }

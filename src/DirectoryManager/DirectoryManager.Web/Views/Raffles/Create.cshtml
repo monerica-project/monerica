@@ -31,13 +31,13 @@
         <div class="col-md-6 mb-3">
             <label asp-for="StartDate" class="form-label">Start date (UTC)</label>
             <input asp-for="StartDate" type="datetime-local" class="form-control"
-                   value="@Model.StartDate.ToString("yyyy-MM-ddTHH:mm")" />
+                   value="@Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3)" />
             <span asp-validation-for="StartDate" class="text-danger"></span>
         </div>
         <div class="col-md-6 mb-3">
             <label asp-for="EndDate" class="form-label">End date (UTC)</label>
             <input asp-for="EndDate" type="datetime-local" class="form-control"
-                   value="@Model.EndDate.ToString("yyyy-MM-ddTHH:mm")" />
+                   value="@Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3)" />
             <span asp-validation-for="EndDate" class="text-danger"></span>
         </div>
     </div>

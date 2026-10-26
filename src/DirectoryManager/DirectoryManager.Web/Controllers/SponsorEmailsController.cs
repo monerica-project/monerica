@@ -43,7 +43,7 @@ namespace DirectoryManager.Web.Controllers
         {
             var rows = await this.BuildRowsAsync(paidOnly).ConfigureAwait(false);
 
-            var fileName = $"SponsorEmails_{(paidOnly ? "PAID" : "ALL")}_{DateTime.UtcNow:yyyyMMdd}.csv";
+            var fileName = $"SponsorEmails_{(paidOnly ? "PAID" : "ALL")}_{DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateFormat)}.csv";
 
             this.Response.ContentType = "text/csv; charset=utf-8";
             this.Response.Headers[HeaderNames.ContentDisposition] = $"attachment; filename=\"{fileName}\"";
@@ -61,7 +61,7 @@ namespace DirectoryManager.Web.Controllers
             await using var writer = new StreamWriter(this.Response.Body, utf8, bufferSize: 64 * 1024, leaveOpen: true);
 
             static string Money(decimal v) => v.ToString("0.00", CultureInfo.InvariantCulture);
-            static string D(DateTime utc) => utc.ToUniversalTime().ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+            static string D(DateTime utc) => utc.ToUniversalTime().ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat, CultureInfo.InvariantCulture);
             static string Q(string? s) => "\"" + (s ?? string.Empty).Replace("\"", "\"\"") + "\"";
 
             try

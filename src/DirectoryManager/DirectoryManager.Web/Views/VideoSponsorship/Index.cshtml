@@ -122,7 +122,7 @@
                 }
                 <p>
                     @s.OfferName
-                    &middot; paid @(s.PaidUtc?.ToString("yyyy-MM-dd")) UTC
+                    &middot; paid @(s.PaidUtc?.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)) UTC
                 </p>
             </div>
         }

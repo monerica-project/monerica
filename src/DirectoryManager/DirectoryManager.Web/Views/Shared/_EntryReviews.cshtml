@@ -77,7 +77,7 @@
                         var when = older.TestedAt ?? older.CreateDate;
                         <details class="official-history-item">
                             <summary>
-                                <time datetime="@when.ToString("yyyy-MM-dd")">@when.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)</time>
+                                <time datetime="@when.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)">@when.ToString(DirectoryManager.Common.Constants.StringConstants.FriendlyDateFormat, CultureInfo.InvariantCulture)</time>
                                 @if (older.Rating.HasValue)
                                 {
                                     <span class="official-history-rating">@EntryReviewHtmlHelper.RenderSingleReviewStars(older.Rating)</span>

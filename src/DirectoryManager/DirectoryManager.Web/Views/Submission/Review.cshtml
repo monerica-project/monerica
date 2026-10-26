@@ -4,6 +4,7 @@
 @using DirectoryManager.Data.Enums
 @using DirectoryManager.Utilities.Helpers
 @using DirectoryManager.Web.Models
+@using DirectoryManager.Web.Helpers
 @{
     var submissionStatuses = Enum.GetValues(typeof(SubmissionStatus)).Cast<SubmissionStatus>();
     PageMeta.Title = "Edit Submission";
@@ -71,42 +72,89 @@ else
         @Html.Raw(ViewBag.Differences)
     }
  
-        @{
-            var darknetLinks = new[] { Model.Link2, Model.Link3 }
-                .Where(u => !string.IsNullOrWhiteSpace(u) &&
-                            (u.Contains(".onion", StringComparison.OrdinalIgnoreCase) ||
-                             u.Contains(".i2p", StringComparison.OrdinalIgnoreCase)))
-                .ToList();
-        }
-
-        <span>Link:</span> <a target="_blank" rel="noopener" href="@Model.Link">@Model.Link</a>
-        @foreach (var u in darknetLinks)
+    @{
+        // Every link in the submission, clickable, so nothing has to be copied by hand.
+        var allLinks = new List<(string Label, string? Url)>
         {
-            var label = u.Contains(".onion", StringComparison.OrdinalIgnoreCase) ? "Tor" : "I2P";
-            <text> | </text>
-            <a target="_blank" rel="nofollow noopener" href="@u">@label</a>
+            ("Link", Model.Link),
+            ("Link 2", Model.Link2),
+            ("Link 3", Model.Link3),
+            ("Proof link", Model.ProofLink),
+            ("Video link", Model.VideoLink),
+            ("Source code link", Model.SourceCodeLink),
+        };
+        var reviewRelated = Model.RelatedLinks ?? new List<string>();
+        for (int ri = 0; ri < reviewRelated.Count; ri++)
+        {
+            allLinks.Add(($"Related link {ri + 1}", reviewRelated[ri]));
         }
-
-    @if (!string.IsNullOrEmpty(Model.ProofLink))
-    {
-        <br />
-        <span>Proof Link:</span>
-        <a target="_blank" href="@Model.ProofLink">@Model.ProofLink</a>
-    }
-    
-    @if (!string.IsNullOrEmpty(Model.VideoLink))
-    {
-        <br />
-        <span>Video Link:</span>
-        <a target="_blank" href="@Model.VideoLink">@Model.VideoLink</a>
+        var reviewGuarantees = Model.Guarantees ?? new List<DirectoryManager.Data.Models.GuaranteeItem>();
+        for (int gi2 = 0; gi2 < reviewGuarantees.Count; gi2++)
+        {
+            allLinks.Add(($"Guarantee {gi2 + 1} proof", reviewGuarantees[gi2].Link));
+        }
+        allLinks = allLinks.Where(l => !string.IsNullOrWhiteSpace(l.Url)).ToList();
+        var sameLinkSubs = ViewBag.SameLinkSubmissions as List<DirectoryManager.Data.Models.Submission>;
     }
 
-    @if (!string.IsNullOrEmpty(Model.SourceCodeLink))
+    @if (sameLinkSubs != null && sameLinkSubs.Count > 0)
     {
-        <br />
-        <span>Source Code Link:</span>
-        <a target="_blank" href="@Model.SourceCodeLink">@Model.SourceCodeLink</a>
+        <div class="alert alert-warning">
+            <b>&#9888;&#65039; This link was also submitted @sameLinkSubs.Count other time@(sameLinkSubs.Count == 1 ? "" : "s"):</b>
+            <ul>
+                @foreach (var other in sameLinkSubs)
+                {
+                    <li>
+                        <a href="~/submission/@other.SubmissionId">#@other.SubmissionId</a>
+                        &middot; @other.SubmissionStatus
+                        &middot; @other.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
+                        @if (!string.Equals(other.Name, Model.Name, StringComparison.Ordinal))
+                        {
+                            <text> &middot; "@other.Name"</text>
+                        }
+                    </li>
+                }
+            </ul>
+        </div>
     }
+
+    <div>
+        <b>Links in this submission</b>
+        <i class="text-muted">(safest to open in Tor Browser or a separate browser, not the one you're logged in with)</i>
+        <ul>
+            @foreach (var (label, url) in allLinks)
+            {
+                var safeHref = UrlSchemeGuard.SafeHref(url);
+                var fileExt = UrlHelper.BlockedFileExtension(url);
+                var isOnion = url!.Contains(".onion", StringComparison.OrdinalIgnoreCase);
+                var isI2p = url.Contains(".i2p", StringComparison.OrdinalIgnoreCase);
+                <li>
+                    <span>@label:</span>
+                    @if (safeHref != null)
+                    {
+                        <a class="multi-line-text" target="_blank" rel="nofollow noopener noreferrer" href="@safeHref">@url</a>
+                    }
+                    else
+                    {
+                        <span class="multi-line-text">@url</span>
+                        <b class="text-danger"> (not a web link, so not clickable)</b>
+                    }
+                    @if (isOnion)
+                    {
+                        <text> (Tor)</text>
+                    }
+                    else if (isI2p)
+                    {
+                        <text> (I2P)</text>
+                    }
+                    @if (fileExt != null)
+                    {
+                        <b class="text-danger"> &#9888;&#65039; links to a .@fileExt file, do not open</b>
+                    }
+                </li>
+            }
+        </ul>
+    </div>
             
     <br />
     <br />

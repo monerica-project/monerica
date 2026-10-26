@@ -1,7 +1,8 @@
-﻿using DirectoryManager.Data.DbContextInfo;
+using DirectoryManager.Data.DbContextInfo;
 using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Helpers;
 using Microsoft.EntityFrameworkCore;
 
 namespace DirectoryManager.Data.Repositories.Implementations
@@ -38,6 +39,47 @@ namespace DirectoryManager.Data.Repositories.Implementations
                              .Submissions
                              .Where(x => x.Link == link1 && x.SubmissionStatus == submissionStatus)
                              .FirstOrDefaultAsync();
+        }
+
+        public async Task<Submission?> FindPendingDuplicateAsync(string? link, int? directoryEntryId, int? excludeSubmissionId)
+        {
+            var host = UrlHelper.TryGetHost(link);
+            if (host is null && directoryEntryId is null)
+            {
+                return null;
+            }
+
+            // Narrow in SQL by entry id or host, then compare links exactly in memory
+            // (https vs http, www., case and a trailing slash all count as the same link).
+            var candidates = await this.context.Submissions
+                .Where(x => x.SubmissionStatus == SubmissionStatus.Pending)
+                .Where(x => excludeSubmissionId == null || x.SubmissionId != excludeSubmissionId)
+                .Where(x => (directoryEntryId != null && x.DirectoryEntryId == directoryEntryId)
+                         || (host != null && x.Link.ToLower().Contains(host)))
+                .OrderBy(x => x.SubmissionId)
+                .ToListAsync();
+
+            return candidates.FirstOrDefault(x => directoryEntryId != null && x.DirectoryEntryId == directoryEntryId)
+                ?? candidates.FirstOrDefault(x => UrlHelper.SameLink(x.Link, link));
+        }
+
+        public async Task<List<Submission>> ListOthersWithSameLinkAsync(int submissionId, string? link)
+        {
+            var host = UrlHelper.TryGetHost(link);
+            if (host is null)
+            {
+                return new List<Submission>();
+            }
+
+            var candidates = await this.context.Submissions
+                .Where(x => x.SubmissionId != submissionId
+                         && x.SubmissionStatus != SubmissionStatus.Preview
+                         && x.Link.ToLower().Contains(host))
+                .OrderByDescending(x => x.SubmissionId)
+                .Take(200)
+                .ToListAsync();
+
+            return candidates.Where(x => UrlHelper.SameLink(x.Link, link)).Take(20).ToList();
         }
 
         public async Task<bool> HasPendingWithNoteContainingAsync(int directoryEntryId, string? link, string noteFragment)

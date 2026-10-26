@@ -1306,7 +1306,7 @@ namespace DirectoryManager.Web.Controllers
             var startUtc = new DateTime(from.Year, from.Month, from.Day, 0, 0, 0, DateTimeKind.Utc);
             var endUtc = new DateTime(to.Year, to.Month, to.Day, 23, 59, 59, DateTimeKind.Utc);
 
-            var fileName = $"Accountant_Crypto_PAID_{from:yyyyMMdd}_to_{to:yyyyMMdd}.csv";
+            var fileName = $"Accountant_Crypto_PAID_{from.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateFormat)}_to_{to.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateFormat)}.csv";
 
             this.Response.ContentType = "text/csv; charset=utf-8";
             this.Response.Headers[HeaderNames.ContentDisposition] = $"attachment; filename=\"{fileName}\"";
@@ -1323,7 +1323,7 @@ namespace DirectoryManager.Web.Controllers
 
             await using var writer = new StreamWriter(this.Response.Body, utf8, bufferSize: 64 * 1024, leaveOpen: true);
 
-            static string D(DateTime utc) => utc.ToUniversalTime().ToString("MM/dd/yy", CultureInfo.InvariantCulture);
+            static string D(DateTime utc) => utc.ToUniversalTime().ToString(DirectoryManager.Common.Constants.StringConstants.UsShortDateFormat, CultureInfo.InvariantCulture);
             static string N8(decimal v) => v.ToString("0.########", CultureInfo.InvariantCulture);
             static string Money(decimal v) => v.ToString("0.00", CultureInfo.InvariantCulture);
 

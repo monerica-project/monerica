@@ -60,8 +60,8 @@
                     <td>@row.InvoiceCount</td>
                     <td>@row.PaidInvoiceCount</td>
                     <td>@row.TotalPaid.ToString("0.00")</td>
-                    <td>@row.LastInvoiceDate.ToString("yyyy-MM-dd")</td>
-                    <td>@row.LastCampaignEndDate.ToString("yyyy-MM-dd")</td>
+                    <td>@row.LastInvoiceDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
+                    <td>@row.LastCampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                 </tr>
             }
             @if (Model.DistinctEmailCount == 0)

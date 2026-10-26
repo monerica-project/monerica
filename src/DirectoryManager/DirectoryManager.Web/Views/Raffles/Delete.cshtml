@@ -28,10 +28,10 @@
     <dd class="col-sm-9">@Model.Name</dd>
 
     <dt class="col-sm-3">Start (UTC)</dt>
-    <dd class="col-sm-9">@Model.StartDate.ToString("yyyy-MM-dd HH:mm")</dd>
+    <dd class="col-sm-9">@Model.StartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</dd>
 
     <dt class="col-sm-3">End (UTC)</dt>
-    <dd class="col-sm-9">@Model.EndDate.ToString("yyyy-MM-dd HH:mm")</dd>
+    <dd class="col-sm-9">@Model.EndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</dd>
 
     <dt class="col-sm-3">Enabled</dt>
     <dd class="col-sm-9">@(Model.IsEnabled ? "Yes" : "No")</dd>

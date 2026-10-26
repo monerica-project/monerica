@@ -32,7 +32,7 @@
     </dd>
 
     <dt class="col-sm-3">Created (UTC)</dt>
-    <dd class="col-sm-9">@Model.CreateDate.ToString("yyyy-MM-dd HH:mm")</dd>
+    <dd class="col-sm-9">@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</dd>
 </dl>
 
 <form asp-action="EditEntry"

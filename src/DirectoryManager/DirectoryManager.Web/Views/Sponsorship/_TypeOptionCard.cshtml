@@ -34,7 +34,7 @@
     {
         var daysLeft = (int)Math.Ceiling((utc - nowUtc).TotalDays);
         var left = daysLeft <= 0 ? "ends today" : daysLeft == 1 ? "1 day left" : $"{daysLeft} days left";
-        return $"{utc.ToString("MMM d, yyyy", CultureInfo.InvariantCulture)} ({left})";
+        return $"{utc.ToString(DirectoryManager.Common.Constants.StringConstants.FriendlyDateFormat, CultureInfo.InvariantCulture)} ({left})";
     }
 }
 

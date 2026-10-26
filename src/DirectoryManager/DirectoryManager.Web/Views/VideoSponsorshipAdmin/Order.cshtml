@@ -48,20 +48,20 @@
             </td>
         </tr>
         <tr><td><b>Video type:</b></td><td>@Model.OfferName</td></tr>
-        <tr><td><b>Created (UTC):</b></td><td>@Model.CreateDate.ToString("yyyy-MM-dd HH:mm")</td></tr>
+        <tr><td><b>Created (UTC):</b></td><td>@Model.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)</td></tr>
         <tr>
             <td><b>Payment status:</b></td>
             <td>
                 <strong class="@(isPaid ? "text-success" : "text-danger")">@DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(Model.PaymentStatus)</strong>
             </td>
         </tr>
-        <tr><td><b>Paid (UTC):</b></td><td>@(Model.PaidUtc?.ToString("yyyy-MM-dd HH:mm") ?? "not paid")</td></tr>
+        <tr><td><b>Paid (UTC):</b></td><td>@(Model.PaidUtc?.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) ?? "not paid")</td></tr>
         @if (isPaid && dueUtc.HasValue)
         {
             <tr>
                 <td><b>Due by (UTC):</b></td>
                 <td>
-                    @dueUtc.Value.ToString("yyyy-MM-dd")
+                    @dueUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)
                     @if (Model.Items.All(i => i.CompletedUtc != null))
                     {
                         <span class="text-success">&mdash; all delivered</span>
@@ -151,7 +151,7 @@
                 &middot;
                 @if (done)
                 {
-                    <span class="text-success">Completed @item.CompletedUtc!.Value.ToString("yyyy-MM-dd HH:mm") UTC</span>
+                    <span class="text-success">Completed @item.CompletedUtc!.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC</span>
                 }
                 else
                 {
@@ -190,7 +190,7 @@
                 <p class="u-mt-4px">
                     <b>Email:</b>
                     @(item.CompletionEmailSentUtc.HasValue
-                        ? $"{item.CompletionEmailResult} on {item.CompletionEmailSentUtc.Value:yyyy-MM-dd HH:mm} UTC"
+                        ? $"{item.CompletionEmailResult} on {item.CompletionEmailSentUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat)} UTC"
                         : item.CompletionEmailResult)
                 </p>
                 @if (!item.CompletionEmailSentUtc.HasValue && !string.IsNullOrWhiteSpace(Model.Email))

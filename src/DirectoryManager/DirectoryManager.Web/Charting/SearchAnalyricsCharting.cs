@@ -87,7 +87,7 @@ namespace DirectoryManager.Web.Charting
             for (int i = 0; i < weeks.Count; i += stride)
             {
                 tickPos.Add(i * GAP);
-                tickLab.Add(weeks[i].ToString("MMM d", CultureInfo.InvariantCulture));
+                tickLab.Add(weeks[i].ToString(DirectoryManager.Common.Constants.StringConstants.MonthDayFormat, CultureInfo.InvariantCulture));
             }
 
             // ensure last bar has a label
@@ -95,7 +95,7 @@ namespace DirectoryManager.Web.Charting
             if (tickPos.Count == 0 || Math.Abs(tickPos[^1] - lastPos) > 1e-6)
             {
                 tickPos.Add(lastPos);
-                tickLab.Add(weeks[^1].ToString("MMM d", CultureInfo.InvariantCulture));
+                tickLab.Add(weeks[^1].ToString(DirectoryManager.Common.Constants.StringConstants.MonthDayFormat, CultureInfo.InvariantCulture));
             }
 
             var bottom = plt.Axes.Bottom;

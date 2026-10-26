@@ -14,7 +14,7 @@
 
 <div class="card p-3">
     <div class="mb-2 text-muted">
-        @( (Model.Comment.UpdateDate ?? Model.Comment.CreateDate).ToString("yyyy-MM-dd HH:mm") )
+        @( (Model.Comment.UpdateDate ?? Model.Comment.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) )
     </div>
     <div class="u-ws-pre-wrap">@Model.Comment.Body</div>
 </div>

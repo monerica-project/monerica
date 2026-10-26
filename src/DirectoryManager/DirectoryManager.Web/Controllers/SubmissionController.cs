@@ -193,6 +193,9 @@ namespace DirectoryManager.Web.Controllers
 
             GuaranteeValidation.ValidateGuarantees(model.Guarantees, this.ModelState);
 
+            // ---- No links straight to programs, installers or archives (new listings and edits) ----
+            this.ValidateNoFileDownloadLinks(model);
+
             // Links belong in the dedicated Link fields, not in free-text. Reject URLs
             // pasted into the Description or Note so submitters stop putting them there.
             if (UrlHelper.ContainsUrl(model.Description))
@@ -679,6 +682,10 @@ namespace DirectoryManager.Web.Controllers
 
             this.ViewBag.ReviewDirectoryStatus = reviewStatus;
 
+            // Earlier (or parallel) submissions of the same link, so repeats are easy to spot.
+            this.ViewBag.SameLinkSubmissions = await this.submissionRepository
+                .ListOthersWithSameLinkAsync(submission.SubmissionId, submission.Link);
+
             await this.LoadDropDowns(submission.Processor, ct);
             await this.SetSelectSubCategoryViewBag();
 
@@ -1040,6 +1047,18 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("Preview", previewModel);
             }
 
+            // ---- Same link (or same listing) already waiting for review? Re-checked here because
+            // two drafts for one link can be open at once; only the first one sent is accepted. ----
+            var confirmDuplicate = await this.PendingDuplicateMessageAsync(
+                submission.Link, submission.DirectoryEntryId, submission.SubmissionId);
+
+            if (confirmDuplicate != null)
+            {
+                this.ModelState.AddModelError(string.Empty, confirmDuplicate);
+                var previewModel = await this.GetSubmissionPreviewAsync(submission);
+                return this.View("Preview", previewModel);
+            }
+
             // ✅ If user didn't provide FoundedDate during preview creation,
             // set it now (final submission), using:
             // 1) existing directory entry founded date if present, else
@@ -1191,8 +1210,8 @@ namespace DirectoryManager.Web.Controllers
             {
                 this.ModelState.AddModelError(
                     nameof(model.FoundedYear),
-                    $"The founded date ({foundedDate.Value:yyyy-MM-dd}) is before the domain was registered " +
-                    $"({registrationDate.Value:yyyy-MM-dd}). A listing can't be older than its domain — " +
+                    $"The founded date ({foundedDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)}) is before the domain was registered " +
+                    $"({registrationDate.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)}). A listing can't be older than its domain — " +
                     $"please correct the founded date, or leave the Year/Month/Day blank to omit it.");
             }
         }
@@ -1218,6 +1237,61 @@ namespace DirectoryManager.Web.Controllers
         /// list and adds a model error per offending field. Fail-open: if the list can't be
         /// read, a submission is never blocked by an infrastructure problem.
         /// </summary>
+        // Message for the submitter when the same link, or an edit of the same listing, is already
+        // waiting for review; null when this submission may go ahead.
+        private async Task<string?> PendingDuplicateMessageAsync(string? link, int? directoryEntryId, int? excludeSubmissionId)
+        {
+            var existing = await this.submissionRepository.FindPendingDuplicateAsync(link, directoryEntryId, excludeSubmissionId);
+
+            if (existing == null)
+            {
+                return null;
+            }
+
+            return directoryEntryId != null && existing.DirectoryEntryId == directoryEntryId
+                ? "Changes to this listing were already submitted and are waiting for review. " +
+                  "Please wait until they have been reviewed before submitting more."
+                : "This link was already submitted and is waiting for review. " +
+                  "There is no need to submit it again.";
+        }
+
+        // Rejects any link that points straight at a program, script, installer, disk image or
+        // archive. Runs on the form step, so the submitter sees it before the captcha.
+        private void ValidateNoFileDownloadLinks(SubmissionRequest model)
+        {
+            var fields = new List<(string Key, string Label, string? Value)>
+            {
+                (nameof(model.Link), "Link", model.Link),
+                (nameof(model.Link2), "Link 2", model.Link2),
+                (nameof(model.Link3), "Link 3", model.Link3),
+                (nameof(model.ProofLink), "Proof link", model.ProofLink),
+                (nameof(model.VideoLink), "Video link", model.VideoLink),
+                (nameof(model.SourceCodeLink), "Source code link", model.SourceCodeLink),
+                (nameof(model.RelatedLink1), "Related link 1", model.RelatedLink1),
+                (nameof(model.RelatedLink2), "Related link 2", model.RelatedLink2),
+                (nameof(model.RelatedLink3), "Related link 3", model.RelatedLink3),
+            };
+
+            for (int i = 0; i < (model.Guarantees?.Count ?? 0); i++)
+            {
+                fields.Add(($"Guarantees[{i}].Link", $"Guarantee {i + 1} proof link", model.Guarantees![i].Link));
+            }
+
+            foreach (var (key, label, value) in fields)
+            {
+                var ext = UrlHelper.BlockedFileExtension(value);
+
+                if (ext != null)
+                {
+                    this.ModelState.AddModelError(key, FileDownloadLinkMessage(label, ext));
+                }
+            }
+        }
+
+        internal static string FileDownloadLinkMessage(string label, string ext) =>
+            $"The {label} points to a .{ext} file. Links must go to a web page, not to a file to download " +
+            "(programs, installers and archives are not allowed). Please link to the site's page instead.";
+
         private async Task ValidateAgainstBlockedTermsAsync(SubmissionRequest model)
         {
             IReadOnlyList<DirectoryManager.Data.Models.SubmissionBlockedTerm> terms;
@@ -1502,11 +1576,11 @@ namespace DirectoryManager.Web.Controllers
                 return await this.SubmitEditWithErrorAsync(model, "You must select a subcategory or supply a suggested one.");
             }
 
-            var existingLinkSubmission = await this.submissionRepository.GetByLinkAndStatusAsync(model.Link ?? string.Empty);
+            var duplicateMessage = await this.PendingDuplicateMessageAsync(model.Link, model.DirectoryEntryId, model.SubmissionId);
 
-            if (existingLinkSubmission != null)
+            if (duplicateMessage != null)
             {
-                return await this.SubmitEditWithErrorAsync(model, "There is already a pending submission for this link.");
+                return await this.SubmitEditWithErrorAsync(model, duplicateMessage);
             }
 
             var submissionModel = this.FormatSubmissionRequest(model);

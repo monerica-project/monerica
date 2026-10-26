@@ -115,7 +115,7 @@
             <input type="datetime-local"
                    id="CampaignStartDate"
                    name="CampaignStartDate"
-                   value="@Model.CampaignStartDate.ToString("yyyy-MM-ddTHH:mm")"
+                   value="@Model.CampaignStartDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3)"
                    required />
         </div>
 
@@ -124,7 +124,7 @@
             <input type="datetime-local"
                    id="CampaignEndDate"
                    name="CampaignEndDate"
-                   value="@Model.CampaignEndDate.ToString("yyyy-MM-ddTHH:mm")"
+                   value="@Model.CampaignEndDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeFormat3)"
                    required />
         </div>
 

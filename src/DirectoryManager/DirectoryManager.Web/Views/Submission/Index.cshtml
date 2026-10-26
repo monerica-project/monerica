@@ -42,11 +42,11 @@
                         <b>@submission.SubmissionStatus</b>
                     }
                     </td>
-                <td class="u-ws-nowrap" title="Created @submission.CreateDate">@((submission.UpdateDate ?? submission.CreateDate).ToString("yyyy-MM-dd HH:mm"))</td>
+                <td class="u-ws-nowrap" title="Created @submission.CreateDate">@((submission.UpdateDate ?? submission.CreateDate).ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat))</td>
                 <td>
                     @if (submission?.PaidUtc != null)
                     {
-                        <span class="badge bg-success u-display-ib" title="Paid @submission.PaidUtc.Value.ToString("yyyy-MM-dd HH:mm") UTC">&#128176; Paid</span>
+                        <span class="badge bg-success u-display-ib" title="Paid @submission.PaidUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.DateTimeShortFormat) UTC">&#128176; Paid</span>
                         @if (submission.PaidUsd is decimal usd && usd > 0)
                         {
                             <div><b>$@usd.ToString("0.00")</b></div>

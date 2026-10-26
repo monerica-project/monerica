@@ -103,7 +103,7 @@
                                 </a>
                             </td>
                             <td><strong>@TimeAgo(r.CreateDate)</strong></td>
-                            <td>@r.CreateDate.ToString("yyyy-MM-dd")</td>
+                            <td>@r.CreateDate.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat)</td>
                             <td class="u-ws-normal">@(string.IsNullOrWhiteSpace(r.Title) ? "-" : r.Title)</td>
                             <td class="u-ws-normal-maxw-480px" title="@r.Body">
                                 @Excerpt(r.Body)
