@@ -8,7 +8,8 @@
 <h1>Commission Totals by Directory Entry</h1>
     @await Html.PartialAsync("_AdminMenu")
 <p>
-    <a asp-action="Index">&laquo; Back to list</a>
+    <a asp-action="Index">&laquo; Back to list</a> |
+    <a asp-action="Pie">Pie chart by listing (USD and %) &raquo;</a>
 </p>
 
 <form method="get" asp-action="Totals">

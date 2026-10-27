@@ -1,0 +1,126 @@
+@model DirectoryManager.Web.Models.AffiliateCommissionPaid.AffiliateCommissionEarnedPieViewModel
+@using DirectoryManager.Web.Charting
+@using DirectoryManager.Web.Constants
+@using System.Globalization
+@{
+    PageMeta.Title = "Commission Share by Listing";
+    PageMeta.MetaContent = StringConstants.MetaTagNoIndex;
+    Layout = "_CenteredLayout";
+
+    var usd = CultureInfo.GetCultureInfo("en-US");
+    var dateFormat = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+    var chartQuery = string.IsNullOrEmpty(Model.ChartQuery) ? "?" : Model.ChartQuery + "&";
+    var cacheBust = DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateTimeFormat, CultureInfo.InvariantCulture);
+    var slices = AffiliateCommissionPlotting.Slices(Model.Totals);
+    var colorByName = new Dictionary<string, string>();
+    for (int i = 0; i < slices.Count; i++)
+    {
+        if (!slices[i].IsOther)
+        {
+            colorByName[slices[i].Name] = AffiliateCommissionPlotting.HexFor(i);
+        }
+    }
+
+    string Pct(decimal amount) => Model.GrandTotalUsd > 0m
+        ? (amount / Model.GrandTotalUsd * 100m).ToString("0.0", CultureInfo.InvariantCulture) + "%"
+        : "0.0%";
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    @await Html.PartialAsync("_AdminMenu")
+
+    <p>
+        <a asp-action="Totals">&laquo; Totals by listing</a> |
+        <a asp-action="Index">All commissions</a> |
+        <a href="~/admin/revenue">Revenue</a>
+    </p>
+
+    <form method="get" action="~/affiliatecommissionearned/pie">
+        <div class="form-row">
+            <div class="form-group col-md-3">
+                <label for="period">Period</label>
+                <select id="period" name="period" class="form-control">
+                    @foreach (var (key, label) in Model.PeriodOptions)
+                    {
+                        <option value="@key" selected="@(key == Model.Period)">@label</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group col-md-3">
+                <label for="from">From (custom)</label>
+                <input id="from" name="from" type="date" class="form-control" value="@(Model.Period == "custom" ? Model.From.ToString(dateFormat) : "")" />
+            </div>
+            <div class="form-group col-md-3">
+                <label for="to">To (custom, inclusive)</label>
+                <input id="to" name="to" type="date" class="form-control" value="@(Model.Period == "custom" ? Model.To.AddDays(-1).ToString(dateFormat) : "")" />
+            </div>
+            <div class="form-group col-md-3">
+                <label>&nbsp;</label>
+                <button type="submit" class="btn btn-primary form-control">Apply</button>
+            </div>
+        </div>
+    </form>
+
+    <p>
+        <strong>@Model.PeriodLabel</strong>
+        @if (Model.Period != "all")
+        {
+            <text>(@Model.From.ToString(dateFormat) to @Model.To.AddDays(-1).ToString(dateFormat) UTC)</text>
+        }
+        &mdash; <strong>Total:</strong> @Model.GrandTotalUsd.ToString("C", usd)
+        from @Model.Totals.Count listing@(Model.Totals.Count == 1 ? "" : "s")
+    </p>
+
+    <img class="u-maxw-100pct-h-auto-block-m-0-auto-pb-10px" alt="Affiliate commission USD by listing, @Model.PeriodLabel" src="~/affiliatecommissionearned/pie.png@(chartQuery)v=@cacheBust" width="1000" height="560" />
+    @if (slices.Any(s => s.IsOther))
+    {
+        <p><small>The chart shows the top @(AffiliateCommissionPlotting.MaxSlices - 1) listings; the rest are grouped as "Other". The table lists every listing.</small></p>
+    }
+
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Listing</th>
+                    <th class="u-text-right">USD</th>
+                    <th class="u-text-right">Share</th>
+                    <th class="u-text-right"># Commissions</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @if (!Model.Totals.Any())
+                {
+                    <tr><td colspan="6"><em>No commissions in this period.</em></td></tr>
+                }
+                @foreach (var t in Model.Totals)
+                {
+                    var hex = colorByName.TryGetValue(t.DirectoryEntryName ?? string.Empty, out var c) ? c : "#7f8c8d";
+                    <tr>
+                        <td><span style="display:inline-block;width:12px;height:12px;background:@hex"></span></td>
+                        <td>@t.DirectoryEntryName</td>
+                        <td class="u-text-right">@t.TotalUsdValue.ToString("C", usd)</td>
+                        <td class="u-text-right">@Pct(t.TotalUsdValue)</td>
+                        <td class="u-text-right">@t.CommissionCount</td>
+                        <td><a asp-action="Index" asp-route-directoryEntryId="@t.DirectoryEntryId">View &raquo;</a></td>
+                    </tr>
+                }
+            </tbody>
+            @if (Model.Totals.Any())
+            {
+                <tfoot>
+                    <tr>
+                        <th></th>
+                        <th>Total</th>
+                        <th class="u-text-right">@Model.GrandTotalUsd.ToString("C", usd)</th>
+                        <th class="u-text-right">100%</th>
+                        <th class="u-text-right">@Model.Totals.Sum(t => t.CommissionCount)</th>
+                        <th></th>
+                    </tr>
+                </tfoot>
+            }
+        </table>
+    </div>
+}

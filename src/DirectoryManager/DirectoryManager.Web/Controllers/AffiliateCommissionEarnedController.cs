@@ -3,8 +3,10 @@ using DirectoryManager.Data.Enums;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Models.TransferModels;
 using DirectoryManager.Data.Repositories.Interfaces;
+using DirectoryManager.Web.Charting;
 using DirectoryManager.Web.Constants;
 using DirectoryManager.Web.Models.AffiliateCommissionPaid;
+using DirectoryManager.Web.Revenue;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
@@ -172,6 +174,34 @@ namespace DirectoryManager.Web.Controllers
             return this.View(vm);
         }
 
+        // Pie chart of commission USD by listing, with the same period picker as /admin/revenue.
+        [HttpGet("pie")]
+        public async Task<IActionResult> Pie(string? period, DateTime? from, DateTime? to)
+        {
+            var (range, totals) = await this.LoadPieTotalsAsync(period, from, to);
+            var vm = new AffiliateCommissionEarnedPieViewModel
+            {
+                Period = range.Key,
+                PeriodLabel = range.Label,
+                From = range.From,
+                To = range.To,
+                PeriodOptions = RevenuePeriods.Options,
+                Totals = totals,
+                GrandTotalUsd = totals.Sum(t => t.TotalUsdValue),
+                ChartQuery = this.Request.QueryString.Value ?? string.Empty,
+            };
+
+            return this.View(vm);
+        }
+
+        [HttpGet("pie.png")]
+        public async Task<IActionResult> PiePng(string? period, DateTime? from, DateTime? to)
+        {
+            var (_, totals) = await this.LoadPieTotalsAsync(period, from, to);
+            this.Response.Headers.CacheControl = "private, max-age=60";
+            return this.File(AffiliateCommissionPlotting.Pie(totals), "image/png");
+        }
+
         [HttpGet("create")]
         public async Task<IActionResult> Create(int? directoryEntryId = null)
         {
@@ -328,6 +358,17 @@ namespace DirectoryManager.Web.Controllers
                     Selected = selected.HasValue && c == selected.Value
                 })
                 .ToList();
+        }
+
+        // "All time" is the default here: commissions are sparse, so a single month is often empty.
+        private async Task<((string Key, string Label, DateTime From, DateTime To) Range, List<AffiliateCommissionEarnedTotal> Totals)> LoadPieTotalsAsync(
+            string? period, DateTime? from, DateTime? to)
+        {
+            var range = RevenuePeriods.Resolve(string.IsNullOrWhiteSpace(period) ? "all" : period, from, to, DateTime.UtcNow);
+            var totals = range.Key == "all"
+                ? await this.commissionRepo.GetTotalsByDirectoryEntryAsync()
+                : await this.commissionRepo.GetTotalsByDirectoryEntryAsync(range.From, range.To.AddTicks(-1));
+            return (range, totals.ToList());
         }
     }
 }
