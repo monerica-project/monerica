@@ -1,0 +1,42 @@
+@model (string Title, List<DirectoryManager.Web.Activity.ActivityBucket> Buckets, DirectoryManager.Web.Activity.ActivityGranularity Granularity, bool Open)
+@using DirectoryManager.Web.Activity
+@using System.Globalization
+@{
+    var types = ActivityReportBuilder.Types;
+    var isWeek = Model.Granularity == ActivityGranularity.Week;
+    string Label(DateTime start) => isWeek
+        ? "Week of " + start.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat, CultureInfo.InvariantCulture)
+        : start.ToString(DirectoryManager.Common.Constants.StringConstants.MonthYearFormat, CultureInfo.InvariantCulture);
+}
+
+<details open="@Model.Open">
+    <summary><strong>@Model.Title</strong></summary>
+    <div class="u-overflowx-auto">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>@(isWeek ? "Week (Monday start)" : "Month")</th>
+                    @foreach (var t in types)
+                    {
+                        <th class="text-right">@ActivityReportBuilder.Label(t)</th>
+                    }
+                    <th class="text-right">Total</th>
+                </tr>
+            </thead>
+            <tbody>
+                @* Newest first, so the latest activity is at the top. *@
+                @foreach (var b in Enumerable.Reverse(Model.Buckets))
+                {
+                    <tr>
+                        <td>@Label(b.Start)</td>
+                        @foreach (var t in types)
+                        {
+                            <td class="text-right">@(b.Counts[t] == 0 ? "" : b.Counts[t].ToString("N0", CultureInfo.InvariantCulture))</td>
+                        }
+                        <td class="text-right"><strong>@b.Total.ToString("N0", CultureInfo.InvariantCulture)</strong></td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</details>

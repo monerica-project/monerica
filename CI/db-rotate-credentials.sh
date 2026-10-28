@@ -78,27 +78,31 @@ SSH_PREFIX=()
 [[ -n "${SSH_PASSWORD:-}" ]] && SSH_PREFIX=(sshpass -p "$SSH_PASSWORD")
 SSH_OPTS=(-o StrictHostKeyChecking=accept-new -o ConnectTimeout=10)
 
-# Run SQL as the postgres superuser (peer auth).
-pg_super()    { "${SSH_PREFIX[@]}" ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "sudo -u postgres psql -v ON_ERROR_STOP=1 -tA $*" 2>&1 | grep -v 'could not change directory'; }
-pg_super_db() { "${SSH_PREFIX[@]}" ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "sudo -u postgres psql -v ON_ERROR_STOP=1 -tA -d '$PG_DB' $*" 2>&1 | grep -v 'could not change directory'; }
-# Test login as the role over TCP with the new password.
-pg_test_login() { "${SSH_PREFIX[@]}" ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "PGPASSWORD='$2' psql -h '$PG_HOST' -p '$PG_PORT' -U '$1' -d '$PG_DB' -tAc 'SELECT 1'" >/dev/null 2>&1; }
+# Run SQL as the postgres superuser (peer auth). The SQL goes to psql on STDIN (-f -), never
+# through the remote shell: no word-splitting of the statement, and the password inside it
+# never shows up in the server's process list. The grep only hides a harmless sudo cwd
+# warning; "|| true" keeps an empty result (e.g. role not found) from tripping pipefail,
+# while a failing psql still fails the pipeline through ssh's exit status.
+pg_super()    { printf '%s\n' "$1" | "${SSH_PREFIX[@]}" ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "sudo -u postgres psql -v ON_ERROR_STOP=1 -tA -f -" 2>&1 | { grep -v 'could not change directory' || true; }; }
+pg_super_db() { printf '%s\n' "$1" | "${SSH_PREFIX[@]}" ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "sudo -u postgres psql -v ON_ERROR_STOP=1 -tA -d '$PG_DB' -f -" 2>&1 | { grep -v 'could not change directory' || true; }; }
+# Test login as the role over TCP with the new password (read from stdin on the server).
+pg_test_login() { printf '%s' "$2" | "${SSH_PREFIX[@]}" ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "PGPASSWORD=\$(cat) psql -h '$PG_HOST' -p '$PG_PORT' -U '$1' -d '$PG_DB' -tAc 'SELECT 1'" >/dev/null 2>&1; }
 
 echo "==> Target:   $SSH_TARGET"
 echo "==> Database: $PG_DB"
 echo "==> Role:     $LOGIN_NAME"
 
 echo "==> Checking whether role exists..."
-exists=$(pg_super -c "SELECT 1 FROM pg_roles WHERE rolname='$LOGIN_NAME';" | tr -d '[:space:]')
+exists=$(pg_super "SELECT 1 FROM pg_roles WHERE rolname='$LOGIN_NAME';" | tr -d '[:space:]')
 
 if [[ "$exists" == "1" ]]; then
     echo "==> Role exists — rotating password (privileges left unchanged)"
-    pg_super -c "ALTER ROLE \"$LOGIN_NAME\" WITH LOGIN PASSWORD '$NEW_PASSWORD';" >/dev/null
+    pg_super "ALTER ROLE \"$LOGIN_NAME\" WITH LOGIN PASSWORD '$NEW_PASSWORD';" >/dev/null
 else
     echo "==> Role does not exist — creating and granting full privileges on $PG_DB"
-    pg_super -c "CREATE ROLE \"$LOGIN_NAME\" WITH LOGIN PASSWORD '$NEW_PASSWORD';" >/dev/null
-    pg_super -c "GRANT ALL PRIVILEGES ON DATABASE \"$PG_DB\" TO \"$LOGIN_NAME\";" >/dev/null
-    pg_super_db -c "GRANT ALL ON SCHEMA public TO \"$LOGIN_NAME\";
+    pg_super "CREATE ROLE \"$LOGIN_NAME\" WITH LOGIN PASSWORD '$NEW_PASSWORD';" >/dev/null
+    pg_super "GRANT ALL PRIVILEGES ON DATABASE \"$PG_DB\" TO \"$LOGIN_NAME\";" >/dev/null
+    pg_super_db "GRANT ALL ON SCHEMA public TO \"$LOGIN_NAME\";
                     GRANT ALL ON ALL TABLES IN SCHEMA public TO \"$LOGIN_NAME\";
                     GRANT ALL ON ALL SEQUENCES IN SCHEMA public TO \"$LOGIN_NAME\";
                     ALTER DEFAULT PRIVILEGES IN SCHEMA public GRANT ALL ON TABLES TO \"$LOGIN_NAME\";
@@ -129,7 +133,7 @@ Then redeploy everything that holds the connection string:
 
   cd "$SCRIPT_DIR"
   ./deploy.sh web
-  for j in newsletter-sender sponsored-listing-opening \\
+  for j in newsletter-sender sponsored-listing-opening review-notifier \\
            sponsored-listing-reminder email-message-maker site-checker; do
       ./deploy-jobs.sh "\$j"
   done

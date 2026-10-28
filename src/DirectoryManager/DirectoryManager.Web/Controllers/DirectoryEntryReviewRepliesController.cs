@@ -204,16 +204,25 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("SubmitKey");
             }
 
-            state.PgpArmored = pgpArmored;
-            state.PgpFingerprint = fp;
+            lock (state.Sync)
+            {
+                // Once verified, the identity is fixed for this flow: a different key needs a new flow.
+                if (state.ChallengeSolved)
+                {
+                    return this.BadRequest("This session is already verified with a key. Start over to use a different key.");
+                }
 
-            state.ChallengeCode = expectedNormalized;
-            state.ChallengeCiphertext = cipher;
-            state.VerifyAttempts = 0;
+                state.PgpArmored = pgpArmored;
+                state.PgpFingerprint = fp;
 
-            // A newly submitted key must prove itself: never carry over a challenge solved
-            // with a different key earlier in this flow.
-            state.ChallengeSolved = false;
+                state.ChallengeCode = expectedNormalized;
+                state.ChallengeCiphertext = cipher;
+                state.VerifyAttempts = 0;
+
+                // A newly submitted key must prove itself: never carry over a challenge solved
+                // with a different key earlier in this flow.
+                state.ChallengeSolved = false;
+            }
 
             this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
             return this.RedirectToAction(nameof(this.VerifyCode), new { flowId });
@@ -264,7 +273,19 @@ namespace DirectoryManager.Web.Controllers
                 return this.BadRequest("Too many attempts. Please start over.");
             }
 
-            if (!CodesMatchConstantTime(submitted, state.ChallengeCode))
+            bool codeOk;
+            lock (state.Sync)
+            {
+                // Check the code and mark solved in one step relative to submit-key, so the
+                // verified fingerprint is always the one this code was issued for.
+                codeOk = CodesMatchConstantTime(submitted, state.ChallengeCode);
+                if (codeOk)
+                {
+                    state.ChallengeSolved = true;
+                }
+            }
+
+            if (!codeOk)
             {
                 this.ModelState.AddModelError(
                     string.Empty,
@@ -278,7 +299,6 @@ namespace DirectoryManager.Web.Controllers
                 return this.View("VerifyCode");
             }
 
-            state.ChallengeSolved = true;
             this.cache.Set(CacheKey(flowId), state, state.ExpiresUtc);
 
             return this.RedirectToAction(nameof(this.Compose), new { flowId });

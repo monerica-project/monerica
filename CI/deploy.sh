@@ -109,8 +109,15 @@ scp_send()       { "${SSH_PREFIX[@]}" scp "${SSH_OPTS[@]}" -r "$1" "$SSH_TARGET:
 
 run_remote_script() {
     local local_path="$1" remote_path="$2"
+    # These scripts can embed secrets (e.g. the DB connection string): keep them owner-only
+    # on both ends and delete them once they've run, even if the run fails.
+    chmod 600 "$local_path"
     scp_send "$local_path" "$remote_path"
-    ssh_run "chmod +x $remote_path && sudo bash $remote_path"
+    local rc=0
+    ssh_run "chmod 700 $remote_path && sudo bash $remote_path" || rc=$?
+    ssh_run_ignore "rm -f $remote_path"
+    rm -f "$local_path"
+    return $rc
 }
 
 # Inside the mssql container the tools live at /opt/mssql-tools18/bin/sqlcmd
@@ -621,14 +628,17 @@ task_sync_files() {
     enable_maintenance_page
     ssh_run_ignore "systemctl stop $APP_NAME 2>/dev/null || true"
 
+    # The bundle contains appsettings.Production.json (secrets): owner-only, deleted after upload.
     local web_tar="/tmp/$APP_NAME.tar.gz.local"
-    tar -czf "$web_tar" -C "$PUBLISH_OUT" .
+    (umask 077; tar -czf "$web_tar" -C "$PUBLISH_OUT" .)
     scp_send "$web_tar" "/tmp/$APP_NAME.tar.gz"
+    rm -f "$web_tar"
     ssh_run "mkdir -p $DEPLOY_PATH && tar -xzf /tmp/$APP_NAME.tar.gz -C $DEPLOY_PATH && rm /tmp/$APP_NAME.tar.gz"
     ssh_run "chown -R www-data:www-data $DEPLOY_PATH && chmod -R 755 $DEPLOY_PATH"
     # The settings files hold secrets (DB password, SendGrid, payment processor keys):
     # readable only by the service user, not by every account on the box.
-    ssh_run "chmod 600 $DEPLOY_PATH/appsettings*.json"
+    # (including the copies the Data project publishes under data/)
+    ssh_run "find $DEPLOY_PATH -name \"appsettings*.json\" -exec chmod 600 {} +"
     ssh_run "mkdir -p /var/keys/$APP_NAME && chown www-data:www-data /var/keys/$APP_NAME && chmod 700 /var/keys/$APP_NAME"
     write_ok "Files synced to $DEPLOY_PATH"
 
@@ -926,10 +936,18 @@ task_migrate_tor() {
         return 1
     fi
 
-    # Ship keys to flat /tmp paths (world-writable, no sudo needed for scp)
-    scp_send "$keys_dir/hostname"              "/tmp/tor-$APP_NAME-hostname"
-    scp_send "$keys_dir/hs_ed25519_public_key" "/tmp/tor-$APP_NAME-pub"
-    scp_send "$keys_dir/hs_ed25519_secret_key" "/tmp/tor-$APP_NAME-sec"
+    # Ship the keys into a private (0700) folder created as the SSH user — never loose in the
+    # shared /tmp, where other accounts could read the onion's secret key. The install script
+    # (run as root) moves them into place and deletes the folder, even if it fails.
+    local key_dir
+    key_dir="$("${SSH_PREFIX[@]}" ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "mktemp -d /tmp/tor-keys.XXXXXXXX" | tail -n 1)"
+    if [[ "$key_dir" != /tmp/tor-keys.* ]]; then
+        write_err "Could not create a private temp folder on the server for the onion keys"
+        return 1
+    fi
+    scp_send "$keys_dir/hostname"              "$key_dir/hostname"
+    scp_send "$keys_dir/hs_ed25519_public_key" "$key_dir/pub"
+    scp_send "$keys_dir/hs_ed25519_secret_key" "$key_dir/sec"
 
     # Build the install script LOCALLY, then ship it and run it
     local script_local="/tmp/tor-install-$APP_NAME.sh.local"
@@ -939,6 +957,8 @@ set -euo pipefail
 
 APP_NAME="$APP_NAME"
 APP_PORT="$APP_PORT"
+KEY_DIR="$key_dir"
+trap 'rm -rf "\$KEY_DIR"' EXIT
 
 # Install tor if missing
 if ! command -v tor >/dev/null 2>&1; then
@@ -948,10 +968,9 @@ fi
 
 # Place keys with correct ownership and mode
 install -d -m 700 -o debian-tor -g debian-tor "/var/lib/tor/\$APP_NAME"
-install -m 600 -o debian-tor -g debian-tor "/tmp/tor-\$APP_NAME-hostname" "/var/lib/tor/\$APP_NAME/hostname"
-install -m 600 -o debian-tor -g debian-tor "/tmp/tor-\$APP_NAME-pub"      "/var/lib/tor/\$APP_NAME/hs_ed25519_public_key"
-install -m 600 -o debian-tor -g debian-tor "/tmp/tor-\$APP_NAME-sec"      "/var/lib/tor/\$APP_NAME/hs_ed25519_secret_key"
-rm -f "/tmp/tor-\$APP_NAME-hostname" "/tmp/tor-\$APP_NAME-pub" "/tmp/tor-\$APP_NAME-sec"
+install -m 600 -o debian-tor -g debian-tor "\$KEY_DIR/hostname" "/var/lib/tor/\$APP_NAME/hostname"
+install -m 600 -o debian-tor -g debian-tor "\$KEY_DIR/pub"      "/var/lib/tor/\$APP_NAME/hs_ed25519_public_key"
+install -m 600 -o debian-tor -g debian-tor "\$KEY_DIR/sec"      "/var/lib/tor/\$APP_NAME/hs_ed25519_secret_key"
 
 # Append HiddenService block to torrc if not already present
 MARKER="# BEGIN \$APP_NAME hidden service"

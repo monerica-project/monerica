@@ -24,6 +24,44 @@ namespace DirectoryManager.Web.Helpers
             SponsorshipType.SubcategorySponsor,
         };
 
+        /// <summary>
+        /// Every purchase of <paramref name="type"/> made in the range, placed on the day it was BOUGHT
+        /// (invoice creation) at its per-day price. Unlike <see cref="Build"/>, this shows prepaid
+        /// renewals right away, even when their campaign only starts later.
+        /// </summary>
+        /// <returns>(day bought, price per day) pairs, oldest first.</returns>
+        public static List<(DateTime Day, decimal PerDay)> Purchases(
+            IEnumerable<SponsoredListingInvoice> paidInvoices,
+            Currency displayCurrency,
+            DateTime rangeStart,
+            DateTime rangeEnd,
+            SponsorshipType type)
+        {
+            var start = rangeStart.Date;
+            var end = rangeEnd.Date;
+            var list = new List<(DateTime Day, decimal PerDay)>();
+
+            foreach (var inv in paidInvoices ?? Enumerable.Empty<SponsoredListingInvoice>())
+            {
+                var day = inv.CreateDate.Date;
+                if (inv.SponsorshipType != type || day < start || day > end)
+                {
+                    continue;
+                }
+
+                var amount = inv.AmountIn(displayCurrency);
+                var campaignDays = (int)(inv.CampaignEndDate.Date.AddDays(1) - inv.CampaignStartDate.Date).TotalDays;
+                if (amount <= 0m || campaignDays <= 0)
+                {
+                    continue;
+                }
+
+                list.Add((day, amount / campaignDays));
+            }
+
+            return list.OrderBy(p => p.Day).ToList();
+        }
+
         public static PricingTrendResult Build(
             IEnumerable<SponsoredListingInvoice> paidInvoices,
             Currency displayCurrency,

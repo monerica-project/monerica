@@ -14,7 +14,7 @@
 
 @{
     Layout = "_CenteredLayout";
-    PageMeta.Title = "Select Listing Duration";
+    PageMeta.Title = "Choose Your Sponsorship Length";
     PageMeta.IsIndexable = false;
 
     var offersList = Model.ToList();
@@ -31,10 +31,9 @@
     bool showConverted = conversionResult.showConverted;
     decimal conversionRate = conversionResult.conversionRate;
 
-    var backUrl = Url.Content($"~/sponsoredlisting/selectlisting?sponsorshipType={ViewBag.SponsorshipType}"
-        + (ViewBag.SubCategoryId != null ? $"&subCategoryId={ViewBag.SubCategoryId}" : string.Empty)
-        + (ViewBag.CategoryId != null ? $"&categoryId={ViewBag.CategoryId}" : string.Empty)
-        + (reservationGuid.HasValue ? $"&rsvId={reservationGuid}" : string.Empty));
+    // Back = this listing's sponsorship options (every placement type it can buy), where buyers
+    // come from. The generic listing picker it used to point to shows nothing useful here.
+    var backUrl = Url.Content($"~/sponsorship/options/{ViewBag.DirectoryEntryId}");
 
     decimal? baselineUsd = offersList.Count > 0 ? offersList[0].USDPrice : (decimal?)null;
     var usdCulture = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
@@ -51,10 +50,39 @@
 }
 
 @section PageContent {
-    <h1>@PageMeta.Title</h1>
+    @{
+        var chartType = (SponsorshipType)ViewBag.SponsorshipType;
+        var chartTypeDesc = DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(chartType);
+        var placementLabel = ViewBag.PlacementLabel as string;
+        var hasPlacementHistory = ViewBag.HasPlacementPricingHistory is bool b && b;
+        var placementNoun = chartType == SponsorshipType.CategorySponsor ? "category page" : "subcategory page";
+
+        // Where the sponsorship shows, in plain words.
+        string placementText = chartType switch
+        {
+            SponsorshipType.CategorySponsor => $"the {ViewBag.Category} category page",
+            SponsorshipType.SubcategorySponsor => $"the {ViewBag.Subcategory} subcategory page",
+            _ => "every page of the site (Main Sponsor)",
+        };
+
+        // Same colours the chart draws with (ChartColors), so the words match the lines/bars.
+        var barHex = DirectoryManager.Web.Charting.ChartColors.TypeNeonHex(chartType);
+        var barName = DirectoryManager.Web.Charting.ChartColors.TypeNeonName(chartType);
+        var nowHex = DirectoryManager.Web.Charting.ChartColors.DarkNowHex;
+        var subHex = DirectoryManager.Web.Charting.ChartColors.DarkInkHex;
+
+        DateTime? currentEndsUtc = ViewBag.CurrentSponsorshipEndsUtc as DateTime?;
+        decimal? recentMin = ViewBag.RecentPaidMinPerDay as decimal?;
+        decimal? recentMax = ViewBag.RecentPaidMaxPerDay as decimal?;
+        int recentCount = ViewBag.RecentPaidCount is int rc ? rc : 0;
+        bool recentIsPlacement = ViewBag.RecentPaidIsPlacement is bool rp && rp;
+        string Usd(decimal v) => v.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture);
+    }
+
+    <h1>Choose Your Sponsorship Length</h1>
 
     <hr />
-    <a href="@backUrl">&lt; back</a>
+    <a href="@backUrl">&lt; back to sponsorship options</a>
     <hr />
 
     @* Shown only when the buyer already holds an active reservation for this slot (e.g. after going
@@ -70,64 +98,26 @@
         </div>
     }
 
-    <p><b>Name:</b> @ViewBag.DirectoryEntrName</p>
-    <p><b>Sponsorship Type:</b> @DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(ViewBag.SponsorshipType)</p>
-
-    @if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.SubcategorySponsor)
-    {
-        <p><b>Subcategory:</b> @ViewBag.Subcategory</p>
-    }
-    else if (ViewBag.SponsorshipType == DirectoryManager.Data.Enums.SponsorshipType.CategorySponsor)
-    {
-        <p><b>Category:</b> @ViewBag.Category</p>
-    }
-
-    @{
-        var chartType = (SponsorshipType)ViewBag.SponsorshipType;
-        var chartTypeDesc = DirectoryManager.Utilities.Helpers.EnumHelper.GetDescription(chartType);
-        var placementLabel = ViewBag.PlacementLabel as string;
-        var hasPlacementHistory = ViewBag.HasPlacementPricingHistory is bool b && b;
-        var placementNoun = chartType == SponsorshipType.CategorySponsor ? "category page" : "subcategory page";
-
-        // Same colours the chart draws with (ChartColors), so the words match the lines/bars.
-        var barHex = DirectoryManager.Web.Charting.ChartColors.TypeNeonHex(chartType);
-        var barName = DirectoryManager.Web.Charting.ChartColors.TypeNeonName(chartType);
-        var nowHex = DirectoryManager.Web.Charting.ChartColors.DarkNowHex;
-        var subHex = DirectoryManager.Web.Charting.ChartColors.DarkInkHex;
-    }
-    <div class="u-mt-10px u-mb-8px" style="max-width:640px;">
-        <p class="u-m-6px-0-12px-0">
-            <strong>Why this price?</strong> The <strong style="color:@barHex;">@barName bars</strong> are the average paid per day across
-            <strong>all @chartTypeDesc</strong> slots over the last 180&nbsp;days.
-            The <strong style="color:@nowHex;">yellow dashed line labeled &ldquo;Current market price&rdquo;</strong> shows
-            <strong>today&rsquo;s price for this placement</strong>@(string.IsNullOrWhiteSpace(placementLabel) ? "" : $" ({placementLabel})")
-            &mdash; the price reflected in the duration options below.
-            @if (chartType != SponsorshipType.MainSponsor)
-            {
-                <text>Prices are set per @placementNoun; a page without its own price uses the standard price.&#32;</text>
-            }
-            @if (hasPlacementHistory)
-            {
-                <text>The <strong style="color:@subHex;">white dotted line</strong> is what advertisers paid for
-                <strong>this @placementNoun@(string.IsNullOrWhiteSpace(placementLabel) ? "" : $" — {placementLabel}")</strong>,
-                so you can see where it sits versus the overall @chartTypeDesc average.</text>
-            }
-        </p>
-        <img class="u-w-100pct"
-             style="max-width:640px;height:auto;border:1px solid #ddd;border-radius:4px;"
-             src="@Url.Action("PricingTrendsChart", "SponsoredListingCheckout", new { sponsorshipType = ViewBag.SponsorshipType, placementId = ViewBag.PlacementId, v = DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateFormat) })"
-             alt="Average daily price for this placement over the last 180 days, with today's price for this placement shown as a dashed line" />
-    </div>
-
-    <br />
+    <p class="u-m-6px-0-12px-0">
+        <b>@ViewBag.DirectoryEntrName</b> &middot; @chartTypeDesc &middot; @placementText
+        @if (currentEndsUtc.HasValue)
+        {
+            <br /><span class="u-opacity-8">Already sponsoring until <b>@currentEndsUtc.Value.ToString(DirectoryManager.Common.Constants.StringConstants.FriendlyDateFormat)</b>; new time starts after that.</span>
+        }
+        @if (recentMin.HasValue && recentMax.HasValue)
+        {
+            <br /><span class="u-opacity-8">Recently paid: @(recentMin.Value == recentMax.Value ? Usd(recentMin.Value) : $"{Usd(recentMin.Value)}–{Usd(recentMax.Value)}")/day (last 180 days).
+            <a href="#price-history">Price history &darr;</a></span>
+        }
+    </p>
 
     @if (perkPct > 0m)
     {
         <div class="alert alert-warning" role="alert">
             <strong>Existing sponsor perk &mdash; <span class="text-danger">@perkPct.ToString("0.##")% off</span>.</strong>
             Because this listing is already an active <strong>@perkBasisLabel</strong>, you get
-            <span class="text-danger">@perkPct.ToString("0.##")% off</span> this placement. Every market price below is
-            struck through and shown with your discounted price.
+            <span class="text-danger">@perkPct.ToString("0.##")% off</span> this placement. It&rsquo;s included in the prices
+            and savings below.
         </div>
     }
 
@@ -144,91 +134,78 @@
             <input type="hidden" name="rsvId" value="@reservationGuid" />
         }
 
-        <div class="form-group">
-            <label>Available Options:</label>
-
+        <div class="u-overflowx-auto" style="max-width:640px;">
+        <table class="table table-sm" style="margin-bottom:12px;">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>Length</th>
+                    <th class="text-right">Total</th>
+                    <th class="text-right">Per day</th>
+                    <th class="text-right">Savings</th>
+                </tr>
+            </thead>
+            <tbody>
             @for (var i = 0; i < offersList.Count; i++)
             {
                 var offer = offersList[i];
+                var inputId = $"offer-{offer.SponsoredListingOfferId}";
 
                 var finalPrice = offer.HasExistingSponsorPerk ? offer.DiscountedUSDPrice : offer.USDPrice;
-                decimal? marketPerDay = offer.Days > 0 ? offer.USDPrice / offer.Days : (decimal?)null;
                 decimal? discountedPerDay = offer.Days > 0 ? finalPrice / offer.Days : (decimal?)null;
 
-                // Combined TOTAL off vs the 30-day base rate — folds the longer-term volume discount AND
-                // the existing-sponsor perk into one figure, so the real total percent off is clear.
+                // Combined TOTAL off vs the shortest option's per-day rate: folds the longer-term volume
+                // discount AND the existing-sponsor perk into one figure.
+                // The struck-through "full price" is these days at the shortest option's per-day rate,
+                // a real price, so the strikethrough is honest.
                 int? totalPctOff = null;
-                decimal? totalSaved = null;
+                decimal? fullPrice = null;
                 if (baselinePerDay.HasValue && baselinePerDay.Value > 0)
                 {
-                    var baselineTotal = baselinePerDay.Value * offer.Days;
-                    totalSaved = baselineTotal - finalPrice;
-                    totalPctOff = (int)Math.Round((totalSaved.Value / baselineTotal) * 100m, 0, MidpointRounding.AwayFromZero);
+                    var baselineTotal = Math.Round(baselinePerDay.Value * offer.Days, 2);
+                    if (baselineTotal - finalPrice >= 0.01m)
+                    {
+                        fullPrice = baselineTotal;
+                        totalPctOff = (int)Math.Round(((baselineTotal - finalPrice) / baselineTotal) * 100m, 0, MidpointRounding.AwayFromZero);
+                    }
                 }
 
-                <div class="form-check u-mb-8px">
-                    <label class="form-check-label u-flex-items-center-gap-8px-flexwrap-wrap">
-                        <input class="form-check-input"
-                               type="radio"
-                               name="selectedOfferId"
-                               value="@offer.SponsoredListingOfferId"
-                        @(i == defaultChoiceIndex ? "checked" : null) />
-
-                        <span>
-                            <b>@offer.Days</b>-Days &ndash;
-                            @if (offer.HasExistingSponsorPerk)
-                            {
-                                <s class="price-strike">@offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture)</s>
-                                <b>@offer.DiscountedUSDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture) @Currency.USD</b>
-                            }
-                            else
-                            {
-                                @offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture) @Currency.USD
-                            }
-                        </span>
-
+                <tr>
+                    <td style="width:28px;">
+                        <input type="radio" id="@inputId" name="selectedOfferId" value="@offer.SponsoredListingOfferId" @(i == defaultChoiceIndex ? "checked" : null) />
+                    </td>
+                    <td><label for="@inputId" style="margin:0;cursor:pointer;font-weight:600;">@offer.Days days</label></td>
+                    <td class="text-right">
+                        @if (fullPrice.HasValue)
+                        {
+                            <s class="price-strike u-opacity-8">@Usd(fullPrice.Value)</s>
+                        }
+                        <b>@Usd(finalPrice)</b>
                         @if (showConverted)
                         {
-                            <span>
-                                &mdash;
-                                @DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(
-                                    offer.HasExistingSponsorPerk ? offer.DiscountedUSDPrice : offer.USDPrice,
-                                    conversionRate,
-                                    conversionResult.selectedCurrency,
-                                    true)
-                            </span>
+                            <br /><small class="u-opacity-8">@DirectoryManager.Utilities.Helpers.CurrencyFormatter.Format(finalPrice, conversionRate, conversionResult.selectedCurrency, true)</small>
                         }
-
-                        @if (marketPerDay.HasValue)
+                    </td>
+                    <td class="text-right">
+                        @if (discountedPerDay.HasValue)
                         {
-                            <span class="u-opacity-8">
-                                &mdash;
-                                @if (offer.HasExistingSponsorPerk && discountedPerDay.HasValue)
-                                {
-                                    <s class="price-strike">@marketPerDay.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture)</s>
-                                    <b>@discountedPerDay.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture)/day</b>
-                                }
-                                else
-                                {
-                                    @marketPerDay.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture)<text>/day</text>
-                                }
-                            </span>
+                            @Usd(discountedPerDay.Value)
                         }
-
-                        @if (totalPctOff.HasValue && totalPctOff.Value > 0 && totalSaved.HasValue && totalSaved.Value > 0)
+                    </td>
+                    <td class="text-right">
+                        @if (totalPctOff.HasValue && totalPctOff.Value > 0)
                         {
-                            <span class="text-danger u-ml-6px">
-                                (@(totalPctOff)% off, save @totalSaved.Value.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture))
-                            </span>
+                            <b style="color:#39d96b;">Save @(totalPctOff)%</b>
                         }
-
-                        @if (i == 0)
+                        else
                         {
-                            <span class="badge bg-secondary u-ml-6px">Market price</span>
+                            <span class="u-opacity-8">&mdash;</span>
                         }
-                    </label>
-                </div>
+                    </td>
+                </tr>
             }
+            </tbody>
+        </table>
         </div>
 
         @if (offersList.Count > 0)
@@ -244,11 +221,41 @@
                 @await Html.PartialAsync("_CaptchaBlock", "sponsoredlisting-selectduration")
             }
 
-            <button type="submit" class="btn btn-primary btn-cta">Select</button>
+            <button type="submit" class="btn btn-primary btn-cta">Continue to review &amp; pay</button>
+            <span class="u-opacity-8 u-ml-6px">Nothing is charged yet.</span>
         }
         else
         {
             <p><i>No options</i></p>
         }
     </form>
+
+    <hr />
+
+    <h2 id="price-history">Price history</h2>
+    <div class="u-mt-10px u-mb-8px" style="max-width:640px;">
+        <p class="u-m-6px-0-12px-0">
+            The <strong style="color:@barHex;">@barName bars</strong> are the average paid per day across
+            <strong>all @chartTypeDesc</strong> spots over the last 180&nbsp;days.
+            The <strong style="color:@nowHex;">yellow dashed line</strong> is
+            <strong>today&rsquo;s price for this spot</strong>@(string.IsNullOrWhiteSpace(placementLabel) ? "" : $" ({placementLabel})"),
+            the same price as the lengths above.
+            The <strong style="color:@DirectoryManager.Web.Charting.ChartColors.PurchaseNeonHex;">pink diamonds</strong> are new
+            purchases, shown on the day they were bought at their price per day (including renewals bought ahead of time).
+            @if (chartType != SponsorshipType.MainSponsor)
+            {
+                <text>Prices are set per @placementNoun; a page without its own price uses the standard price.&#32;</text>
+            }
+            @if (hasPlacementHistory)
+            {
+                <text>The <strong style="color:@subHex;">white dotted line</strong> is what advertisers paid for
+                <strong>this @placementNoun@(string.IsNullOrWhiteSpace(placementLabel) ? "" : $" ({placementLabel})")</strong>,
+                so you can compare it with the overall @chartTypeDesc average.</text>
+            }
+        </p>
+        <img class="u-w-100pct"
+             style="max-width:640px;height:auto;border:1px solid #ddd;border-radius:4px;"
+             src="@Url.Action("PricingTrendsChart", "SponsoredListingCheckout", new { sponsorshipType = ViewBag.SponsorshipType, placementId = ViewBag.PlacementId, v = DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateFormat) })"
+             alt="Average daily price for this placement over the last 180 days, with today's price as a dashed line and new purchases as diamonds" />
+    </div>
 }

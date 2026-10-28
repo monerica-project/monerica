@@ -2,6 +2,7 @@
 using BtcPayServer.API.Models;
 using DirectoryManager.Common.Helpers;
 using DirectoryManager.Data.Enums;
+using DirectoryManager.Data.Helpers;
 using DirectoryManager.Data.Models;
 using DirectoryManager.Data.Repositories.Interfaces;
 using DirectoryManager.DisplayFormatting.Helpers;
@@ -549,6 +550,7 @@ namespace DirectoryManager.Web.Controllers
                 return this.NotFound();
             }
 
+            await this.RefreshAutomatedSnapshotAsync(submission, ct);
 
             // A fiat-denominated donation already stores its USD amount in PaidAmount. A
             // pay-what-you-want / top-up donation is recorded directly in XMR (PaidCurrency == "XMR",
@@ -694,6 +696,64 @@ namespace DirectoryManager.Web.Controllers
             await this.SetSelectSubCategoryViewBag();
 
             return this.View(submission);
+        }
+
+        /// <summary>
+        /// A SiteChecker submission holds a copy of the listing from when the check ran. Show (and
+        /// therefore approve) the listing as it is NOW, with only the checker's proposal applied, so
+        /// approving it can't undo admin edits made since. In memory only: nothing is saved here.
+        /// </summary>
+        private async Task RefreshAutomatedSnapshotAsync(Submission submission, CancellationToken ct)
+        {
+            if (!AutomatedSubmissionRefresh.ShouldRefresh(
+                    submission.SubmissionStatus == SubmissionStatus.Pending,
+                    submission.DirectoryEntryId,
+                    submission.NoteToAdmin))
+            {
+                return;
+            }
+
+            var entry = await this.directoryEntryRepository.GetByIdAsync(submission.DirectoryEntryId!.Value);
+            if (entry == null)
+            {
+                return;
+            }
+
+            var (status, note) = AutomatedSubmissionRefresh.ProposedStatusAndNote(
+                submission.DirectoryStatus ?? DirectoryStatus.Unknown,
+                submission.Note,
+                entry.DirectoryStatus,
+                entry.Note);
+
+            SubmissionContentMapper.CopyContentFields(entry, submission);
+            submission.DirectoryStatus = status;
+            submission.Note = note;
+
+            var tags = await this.entryTagRepo.GetTagsForEntryAsync(entry.DirectoryEntryId);
+            var tagNames = string.Join(
+                ", ",
+                tags.Select(t => t.Name)
+                    .Where(n => !string.IsNullOrWhiteSpace(n))
+                    .OrderBy(n => n, StringComparer.OrdinalIgnoreCase));
+            submission.Tags = string.IsNullOrWhiteSpace(tagNames) ? null : tagNames;
+            submission.SelectedTagIdsCsv = tags.Count == 0 ? null : string.Join(",", tags.Select(t => t.TagId).Distinct());
+
+            var additional = await this.additionalLinkRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId, ct);
+            submission.RelatedLinks = (additional ?? new List<AdditionalLink>())
+                .OrderBy(x => x.SortOrder)
+                .ThenBy(x => x.AdditionalLinkId)
+                .Select(x => x.Link)
+                .Where(x => !string.IsNullOrWhiteSpace(x))
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .Take(MaxLinks)
+                .ToList();
+
+            var guarantees = await this.guaranteeRepo.GetByDirectoryEntryIdAsync(entry.DirectoryEntryId, ct);
+            submission.Guarantees = guarantees
+                .OrderBy(g => g.SortOrder)
+                .ThenBy(g => g.DirectoryEntryGuaranteeId)
+                .Select(g => new GuaranteeItem { Link = g.Link, Amount = g.Amount, Currency = g.Currency })
+                .ToList();
         }
 
         [Authorize]

@@ -32,6 +32,21 @@
 
     var usdCulture = new CultureInfo(DirectoryManager.Common.Constants.StringConstants.DefaultCulure);
     var effectivePrice = Model.Offer.HasExistingSponsorPerk ? Model.Offer.DiscountedUSDPrice : Model.Offer.USDPrice;
+
+    // Full price = these days at the shortest option's per-day rate. Anything below it is a discount
+    // (longer length and/or existing sponsor perk), shown struck through with the savings.
+    decimal fullPrice = ViewBag.FullPriceUsd is decimal fp ? fp : Model.Offer.USDPrice;
+    if (fullPrice < Model.Offer.USDPrice)
+    {
+        fullPrice = Model.Offer.USDPrice;
+    }
+
+    decimal lengthSaved = fullPrice - Model.Offer.USDPrice;
+    int lengthPct = fullPrice > 0 ? (int)Math.Round(lengthSaved / fullPrice * 100m, 0, MidpointRounding.AwayFromZero) : 0;
+    decimal totalSaved = fullPrice - effectivePrice;
+    int totalPct = fullPrice > 0 ? (int)Math.Round(totalSaved / fullPrice * 100m, 0, MidpointRounding.AwayFromZero) : 0;
+    bool hasDiscount = totalSaved >= 0.01m;
+    string Usd(decimal v) => v.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture);
 }
 
 @section PageContent {
@@ -87,18 +102,26 @@
                     <td><b>Description:</b></td>
                     <td>@Model.Offer.Description</td>
                 </tr>
-                @if (Model.Offer.HasExistingSponsorPerk)
+                @if (hasDiscount)
                 {
                     <tr>
-                        <td><b>Market price:</b></td>
-                        <td>
-                            <s class="price-strike">@Model.Offer.USDPrice.ToString(DirectoryManager.Common.Constants.StringConstants.CurrentFormat, usdCulture) @Currency.USD</s>
-                        </td>
+                        <td><b>Full price:</b></td>
+                        <td><s class="price-strike">@Usd(fullPrice) @Currency.USD</s></td>
                     </tr>
-                    <tr>
-                        <td><b>Existing sponsor perk:</b></td>
-                        <td class="text-danger">@Model.Offer.DiscountPercent.ToString("0.##")% off</td>
-                    </tr>
+                    @if (lengthSaved >= 0.01m)
+                    {
+                        <tr>
+                            <td><b>@Model.Offer.Days-day discount:</b></td>
+                            <td style="color:#39d96b;">@lengthPct% off</td>
+                        </tr>
+                    }
+                    @if (Model.Offer.HasExistingSponsorPerk)
+                    {
+                        <tr>
+                            <td><b>Existing sponsor perk:</b></td>
+                            <td style="color:#39d96b;">@Model.Offer.DiscountPercent.ToString("0.##")% off</td>
+                        </tr>
+                    }
                 }
                 <tr>
                     <td><b>Price:</b></td>
@@ -107,6 +130,10 @@
                             DirectoryManager.Common.Constants.StringConstants.CurrentFormat,
                             usdCulture)
                         @Currency.USD</b>
+                        @if (hasDiscount)
+                        {
+                            <b style="color:#39d96b;">&nbsp;You save @Usd(totalSaved) (@totalPct%)</b>
+                        }
                         @if (showConverted)
                         {
                             <i>

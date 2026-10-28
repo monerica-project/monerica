@@ -13,6 +13,8 @@ namespace DirectoryManager.Web.Charting
         public const string DarkMutedHex = "#9aa3ad";
         public const string DarkGridHex = "#1f242b";
         public const string DarkNowHex = "#ffe14d";      // bright yellow: today's price
+        public const string PurchaseNeonHex = "#ff4dd2"; // hot pink: new purchases (dark theme)
+        public const string PurchaseHex = "#c2185b";     // new purchases (light theme)
 
         public static string TypeNeonHex(SponsorshipType t) => t switch
         {

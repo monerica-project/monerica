@@ -26,7 +26,10 @@ namespace DirectoryManager.Web.Controllers
         }
 
         [HttpGet("api/all")]
-        [ResponseCache(Duration = IntegerConstants.CacheDurationSeconds)]
+        // Client (= "Cache-Control: private"): this endpoint requires login, and the server-side
+        // response cache runs before authorization, so a "public" response from an admin request
+        // could be replayed to anonymous visitors (or a CDN). Only the caller's browser may cache it.
+        [ResponseCache(Duration = IntegerConstants.CacheDurationSeconds, Location = ResponseCacheLocation.Client)]
         public async Task<IActionResult> GetAllEntitiesAndProperties()
         {
             var entities = await this.entryRepository.GetAllEntitiesAndPropertiesAsync();

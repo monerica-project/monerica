@@ -212,30 +212,13 @@ using (var scope = serviceProvider.CreateScope())
             + $"<p><a href=\"{profileUrl}\">View your live listing</a><br />"
             + $"<a href=\"{adminUrl}\">Log in to view &amp; respond (PGP)</a></p>";
 
-        try
-        {
-            n.AttemptCount++;
-            await emailService.SendEmailAsync(subject, plain, html, new List<string> { n.RecipientEmail });
-            n.Status = ReviewNotificationStatus.Sent;
-            n.SentUtc = DateTime.UtcNow;
-            n.UpdateDate = DateTime.UtcNow;
-            n.LastError = null;
-            Console.WriteLine($"  sent {n.NotificationType} #{n.ReviewNotificationId} to {n.RecipientEmail}");
-        }
-        catch (Exception ex)
-        {
-            var msg = ex.Message;
-            n.LastError = msg.Length > 1000 ? msg.Substring(0, 1000) : msg;
-            if (n.AttemptCount >= maxAttempts)
-            {
-                n.Status = ReviewNotificationStatus.Failed;
-            }
-
-            n.UpdateDate = DateTime.UtcNow;
-            Console.WriteLine($"  FAILED #{n.ReviewNotificationId} attempt {n.AttemptCount}: {msg}");
-        }
-
-        await db.SaveChangesAsync();
+        // Claim → send → record, at most once per item (see NotificationDelivery).
+        await DirectoryManager.ReviewNotifier.NotificationDelivery.DeliverAsync(
+            n,
+            send: () => emailService.SendEmailAsync(subject, plain, html, new List<string> { n.RecipientEmail }),
+            save: () => db.SaveChangesAsync(),
+            maxAttempts,
+            Console.WriteLine);
     }
 }
 

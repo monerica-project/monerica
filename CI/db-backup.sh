@@ -48,15 +48,31 @@ scp_recv() { "${SSH_PREFIX[@]}" scp "${SSH_OPTS[@]}" "$SSH_TARGET:$1" "$2"; }
 
 TS=$(date -u +%Y%m%d_%H%M%S)
 DUMP="${DB}_${TS}.dump"           # pg_dump custom format (-Fc): compressed + restorable via pg_restore
-REMOTE_PATH="/tmp/$DUMP"
 mkdir -p "$LOCAL_DEST"
 LOCAL_PATH="$LOCAL_DEST/$DUMP"
+
+# The dump is the whole production database: keep every copy owner-only (local file 0600,
+# remote file inside a private 0700 temp folder) and always delete the remote copy, even when a
+# later step fails or the script is interrupted.
+umask 077
+REMOTE_DIR=""
+cleanup_remote() {
+    if [[ -n "$REMOTE_DIR" ]]; then
+        ssh_run "rm -rf '$REMOTE_DIR'" || echo "WARNING: could not delete $REMOTE_DIR on the server — delete it by hand" >&2
+    fi
+}
+trap cleanup_remote EXIT
 
 echo
 echo "${C_CYAN}----- Backup [$DB] from $SSH_HOST -> $LOCAL_PATH -----${C_RESET}"
 
+REMOTE_DIR="$(ssh_run "mktemp -d /tmp/dm-backup.XXXXXXXX" | tail -n 1)"
+[[ "$REMOTE_DIR" == /tmp/dm-backup.* ]] || { REMOTE_DIR=""; echo "Could not create a temp folder on the server" >&2; exit 1; }
+REMOTE_PATH="$REMOTE_DIR/$DUMP"
+
 write_step "pg_dump (custom format, compressed)"
-ssh_run "PGPASSWORD='$PG_PASSWORD' pg_dump -h '$PG_HOST' -p '$PG_PORT' -U '$PG_USER' -Fc '$DB' > '$REMOTE_PATH'"
+# Password read from stdin on the server, so it never appears in its process list.
+printf '%s' "$PG_PASSWORD" | ssh_run "PGPASSWORD=\$(cat) pg_dump -h '$PG_HOST' -p '$PG_PORT' -U '$PG_USER' -Fc '$DB' > '$REMOTE_PATH'"
 write_ok "Written: $REMOTE_PATH"
 
 write_step "pg_restore --list (integrity check)"
@@ -65,10 +81,12 @@ write_ok "Verified"
 
 write_step "Downloading to local"
 scp_recv "$REMOTE_PATH" "$LOCAL_PATH"
+chmod 600 "$LOCAL_PATH"
 write_ok "Saved: $LOCAL_PATH ($(du -h "$LOCAL_PATH" | awk '{print $1}'))"
 
 write_step "Cleaning up remote temp file"
-ssh_run "rm -f '$REMOTE_PATH'"
+cleanup_remote
+REMOTE_DIR=""
 write_ok "Remote cleanup done"
 
 echo

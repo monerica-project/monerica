@@ -185,7 +185,8 @@ namespace DirectoryManager.Web.Charting
             IEnumerable<SponsoredListingInvoice>? highlightInvoices = null,
             string? highlightLabel = null,
             IReadOnlyDictionary<SponsorshipType, decimal>? currentMarketDailyByType = null,
-            bool darkTheme = false)
+            bool darkTheme = false,
+            bool showPurchases = false)
         {
             var data = PricingTrendCalculator.Build(invoices, displayCurrency, rangeStart, rangeEnd);
 
@@ -361,6 +362,26 @@ namespace DirectoryManager.Web.Charting
                     }
                 }
 
+                // New purchases as markers on the day they were BOUGHT, so a prepaid renewal whose
+                // campaign starts later still shows up right away.
+                if (showPurchases)
+                {
+                    var purchases = PricingTrendCalculator.Purchases(invoices, displayCurrency, rangeStart, rangeEnd, t);
+                    if (purchases.Count > 0)
+                    {
+                        var px = purchases.Select(p => (p.Day - days[0]).TotalDays).ToArray();
+                        var py = purchases.Select(p => (double)p.PerDay).ToArray();
+                        maxVal = Math.Max(maxVal, py.Max());
+
+                        var marks = plt.Add.ScatterPoints(px, py);
+                        marks.Color = Color.FromHex(darkTheme ? PurchaseNeonHex : PurchaseHex);
+                        marks.MarkerShape = MarkerShape.FilledDiamond;
+                        marks.MarkerSize = 11;
+                        marks.LegendText = "New purchase (price/day, on the day bought)";
+                        showLegend = true;
+                    }
+                }
+
                 plt.Title($"Avg Daily Slot Price — {FriendlyType(t)} ({unit}/day)");
             }
             else
@@ -496,6 +517,8 @@ namespace DirectoryManager.Web.Charting
         private const string DarkMutedHex = ChartColors.DarkMutedHex;
         private const string DarkGridHex = ChartColors.DarkGridHex;
         private const string DarkNowHex = ChartColors.DarkNowHex;
+        private const string PurchaseNeonHex = ChartColors.PurchaseNeonHex;
+        private const string PurchaseHex = ChartColors.PurchaseHex;
 
         private static string TypeNeonHex(SponsorshipType t) => ChartColors.TypeNeonHex(t);
 

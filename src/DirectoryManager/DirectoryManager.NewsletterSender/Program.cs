@@ -75,7 +75,10 @@ public class Program
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"Error during email campaign processing: {ex.Message}");
+            // Exit non-zero so systemd records the run as FAILED (visible in `deploy-jobs.sh --task
+            // status` and `systemctl list-timers`) instead of a silent "success".
+            Console.Error.WriteLine($"Error during email campaign processing: {ex}");
+            Environment.ExitCode = 1;
         }
     }
 }

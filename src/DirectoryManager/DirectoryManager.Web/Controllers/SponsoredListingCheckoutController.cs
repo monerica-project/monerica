@@ -318,6 +318,37 @@ namespace DirectoryManager.Web.Controllers
                     .ConfigureAwait(false);
             this.ViewBag.RequiresReservationStart = !isExtension && this.ViewBag.ReservationGuid == null;
 
+            // Renewal: new time is added after the current slot ends, so say when that is.
+            if (isExtension)
+            {
+                var current = await this.sponsoredListingRepository
+                    .GetActiveSponsorInScopeAsync(directoryEntryId, sponsorshipType, typeIdForGroup).ConfigureAwait(false);
+                this.ViewBag.CurrentSponsorshipEndsUtc = current?.CampaignEndDate;
+            }
+
+            // "Recently paid" range for the price summary: purchases in the last 180 days for this exact
+            // placement, or for the placement type when this page has none.
+            var since = DateTime.UtcNow.Date.AddDays(-180);
+            var paidInvoices = (await this.sponsoredListingInvoiceRepository.GetAllAsync().ConfigureAwait(false))
+                .Where(i => SponsoredListingCheckoutHelper.IsPaidOrOverpaid(i.PaymentStatus))
+                .ToList();
+            var recent = PricingTrendCalculator.Purchases(
+                paidInvoices.Where(i => placementId == null
+                    || (sponsorshipType == SponsorshipType.CategorySponsor ? i.CategoryId == placementId : i.SubCategoryId == placementId)),
+                Currency.USD, since, DateTime.UtcNow.Date, sponsorshipType);
+            this.ViewBag.RecentPaidIsPlacement = recent.Count > 0 && placementId != null;
+            if (recent.Count == 0)
+            {
+                recent = PricingTrendCalculator.Purchases(paidInvoices, Currency.USD, since, DateTime.UtcNow.Date, sponsorshipType);
+            }
+
+            if (recent.Count > 0)
+            {
+                this.ViewBag.RecentPaidMinPerDay = recent.Min(p => p.PerDay);
+                this.ViewBag.RecentPaidMaxPerDay = recent.Max(p => p.PerDay);
+                this.ViewBag.RecentPaidCount = recent.Count;
+            }
+
             // Cross-tier existing-sponsor perk banner + struck-through prices when this listing already
             // holds a sponsorship of a different tier.
             var (perkPercent, perkBasisTier) = await this.GetCrossTierDiscountAsync(entry.DirectoryEntryId, sponsorshipType).ConfigureAwait(false);
@@ -351,7 +382,7 @@ namespace DirectoryManager.Web.Controllers
             var start = end.AddDays(-180);
 
             var invoices = await this.sponsoredListingInvoiceRepository.GetAllAsync().ConfigureAwait(false);
-            var paid = invoices.Where(i => i.PaymentStatus == PaymentStatus.Paid).ToList();
+            var paid = invoices.Where(i => SponsoredListingCheckoutHelper.IsPaidOrOverpaid(i.PaymentStatus)).ToList();
 
             // Dotted line: what was paid for THIS placement, using the placement saved on each invoice
             // (so a listing that later changed subcategory still counts where it actually advertised).
@@ -396,7 +427,8 @@ namespace DirectoryManager.Web.Controllers
                 paid, Currency.USD, start, end, sponsorshipType, filterLabel: null, width: 820, height: 340,
                 highlightInvoices: highlight, highlightLabel: highlightLabel,
                 currentMarketDailyByType: currentDaily,
-                darkTheme: true);
+                darkTheme: true,
+                showPurchases: true);
 
             if (bytes == null || bytes.Length == 0)
             {
@@ -517,6 +549,7 @@ namespace DirectoryManager.Web.Controllers
             this.ViewBag.CaptchaRequired = !this.IsCheckoutVerified(directoryEntryId);
             var vm = BuildConfirmationViewModel(v.Offer!, v.Entry!, v.Link2Name!, v.Link3Name!, v.Current!);
             await this.ApplyExistingSponsorPerkToOfferModelAsync(vm.Offer, v.Entry!.DirectoryEntryId).ConfigureAwait(false);
+            await this.SetFullPriceViewBagAsync(v.Offer!).ConfigureAwait(false);
             vm.CanCreateSponsoredListing = true;
             return this.View(ConfirmCheckoutView, vm);
         }
@@ -1146,6 +1179,25 @@ namespace DirectoryManager.Web.Controllers
             return ConfirmValidationResult.Ok(offer, entry, l2, l3, current);
         }
 
+        // Confirm page: the "full price" for this length at the shortest option's per-day rate (the same
+        // price list the offer came from), so the length discount can be shown struck through.
+        private async Task SetFullPriceViewBagAsync(SponsoredListingOffer offer)
+        {
+            int? placementId = offer.SponsorshipType switch
+            {
+                SponsorshipType.CategorySponsor => offer.CategoryId,
+                SponsorshipType.SubcategorySponsor => offer.SubcategoryId,
+                _ => null,
+            };
+            var offers = await this.sponsoredListingOfferRepository
+                .GetOffersForPlacementAsync(offer.SponsorshipType, placementId).ConfigureAwait(false);
+            var shortest = offers.Where(o => o.Days > 0).OrderBy(o => o.Days).FirstOrDefault();
+            if (shortest != null && offer.Days > 0)
+            {
+                this.ViewBag.FullPriceUsd = Math.Round(shortest.Price / shortest.Days * offer.Days, 2);
+            }
+        }
+
         private void SetConfirmViewBag(SponsoredListingOffer offer, DirectoryEntry entry)
         {
             var typeId = SponsoredListingCheckoutHelper.ResolveTypeIdForGroup(offer.SponsorshipType, entry, null, null);
@@ -1193,6 +1245,7 @@ namespace DirectoryManager.Web.Controllers
 
             var vm = BuildConfirmationViewModel(offer, entry, l2, l3, cur);
             await this.ApplyExistingSponsorPerkToOfferModelAsync(vm.Offer, entry.DirectoryEntryId).ConfigureAwait(false);
+            await this.SetFullPriceViewBagAsync(offer).ConfigureAwait(false);
             vm.CanCreateSponsoredListing = true;
             this.ModelState.AddModelError(key, message);
             this.ViewBag.PrefillEmail = prefillEmail;

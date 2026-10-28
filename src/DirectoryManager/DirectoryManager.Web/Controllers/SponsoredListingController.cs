@@ -325,6 +325,24 @@ namespace DirectoryManager.Web.Controllers
         {
             var listings = await this.sponsoredListingRepository.GetAllActiveSponsorsAsync();
 
+            // Resolve each distinct (sub)category name once, asynchronously, before projecting
+            // (previously one or two blocking .Result DB calls per sponsor on a public page).
+            var subNames = new Dictionary<int, string>();
+            foreach (var id in listings
+                         .Where(l => l.SponsorshipType == SponsorshipType.SubcategorySponsor)
+                         .Select(l => l.SubCategoryId).OfType<int>().Distinct())
+            {
+                subNames[id] = await this.ResolveSubcategoryNameAsync(id);
+            }
+
+            var catNames = new Dictionary<int, string>();
+            foreach (var id in listings
+                         .Where(l => l.SponsorshipType == SponsorshipType.CategorySponsor)
+                         .Select(l => l.CategoryId).OfType<int>().Distinct())
+            {
+                catNames[id] = await this.ResolveCategoryNameAsync(id);
+            }
+
             var model = new ActiveSponsoredListingViewModel
             {
                 MainSponsorItems = listings
@@ -333,11 +351,11 @@ namespace DirectoryManager.Web.Controllers
                     .ToList(),
                 SubCategorySponsorItems = listings
                     .Where(l => l.SponsorshipType == SponsorshipType.SubcategorySponsor)
-                    .Select(l => this.ToActiveModel(l, subcategoryName: this.ResolveSubcategoryName(l.SubCategoryId)))
+                    .Select(l => this.ToActiveModel(l, subcategoryName: l.SubCategoryId is int sid && subNames.TryGetValue(sid, out var sn) ? sn : string.Empty))
                     .ToList(),
                 CategorySponsorItems = listings
                     .Where(l => l.SponsorshipType == SponsorshipType.CategorySponsor)
-                    .Select(l => this.ToActiveModel(l, categoryName: this.ResolveCategoryName(l.CategoryId)))
+                    .Select(l => this.ToActiveModel(l, categoryName: l.CategoryId is int cid && catNames.TryGetValue(cid, out var cn) ? cn : string.Empty))
                     .ToList(),
             };
 
@@ -715,31 +733,21 @@ namespace DirectoryManager.Web.Controllers
                 CategoryName = categoryName,
             };
 
-        private string ResolveSubcategoryName(int? subCategoryId)
+        private async Task<string> ResolveSubcategoryNameAsync(int subCategoryId)
         {
-            if (subCategoryId == null)
-            {
-                return string.Empty;
-            }
-
-            var sub = this.subCategoryRepository.GetByIdAsync(subCategoryId.Value).Result;
+            var sub = await this.subCategoryRepository.GetByIdAsync(subCategoryId);
             if (sub == null)
             {
                 return string.Empty;
             }
 
-            var cat = this.categoryRepository.GetByIdAsync(sub.CategoryId).Result;
+            var cat = await this.categoryRepository.GetByIdAsync(sub.CategoryId);
             return cat == null ? string.Empty : FormattingHelper.SubcategoryFormatting(cat.Name, sub.Name);
         }
 
-        private string ResolveCategoryName(int? categoryId)
+        private async Task<string> ResolveCategoryNameAsync(int categoryId)
         {
-            if (categoryId == null)
-            {
-                return string.Empty;
-            }
-
-            return this.categoryRepository.GetByIdAsync(categoryId.Value).Result?.Name ?? string.Empty;
+            return (await this.categoryRepository.GetByIdAsync(categoryId))?.Name ?? string.Empty;
         }
     }
 }

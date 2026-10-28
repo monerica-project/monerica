@@ -20,7 +20,8 @@
 #   ./deploy-jobs.sh                              # deploy newsletter-sender (default)
 #   ./deploy-jobs.sh newsletter-sender            # deploy a single job
 #   ./deploy-jobs.sh newsletter-sender,site-checker
-#   ./deploy-jobs.sh all                          # deploy every jobs/*.conf
+#   ./deploy-jobs.sh all                          # every jobs/*.conf EXCEPT those with EXCLUDE_FROM_ALL=1
+#                                                 # (review-moderator is kept off on purpose)
 #   ./deploy-jobs.sh all --skip-build             # skip restore/build/publish
 #   ./deploy-jobs.sh all --skip-tests
 #
@@ -102,14 +103,42 @@ ssh_query()      { "${SSH_PREFIX[@]}" ssh "${SSH_OPTS[@]}" "$SSH_TARGET" "sudo b
 scp_send()       { "${SSH_PREFIX[@]}" scp "${SSH_OPTS[@]}" -r "$1" "$SSH_TARGET:$2"; }
 
 # === Resolve job list ========================================================
+# A job whose conf sets EXCLUDE_FROM_ALL=1 (e.g. review-moderator, deliberately kept off) is never
+# swept up by `all`; it only runs when named explicitly, and then only after typed confirmation.
+is_excluded_from_all() {
+    grep -qE '^[[:space:]]*EXCLUDE_FROM_ALL=1' "$JOBS_DIR/$1.conf" 2>/dev/null
+}
+
 resolve_jobs() {
     if [[ "$JOB_LIST" == "all" ]]; then
         JOBS=()
         for f in "$JOBS_DIR"/*.conf; do
-            [[ -f "$f" ]] && JOBS+=("$(basename "$f" .conf)")
+            [[ -f "$f" ]] || continue
+            local name
+            name="$(basename "$f" .conf)"
+            if is_excluded_from_all "$name"; then
+                echo "${C_YELLOW}Skipping $name (excluded from 'all'; name it explicitly if you really mean it).${C_RESET}"
+                continue
+            fi
+            JOBS+=("$name")
         done
     else
         IFS=',' read -ra JOBS <<< "$JOB_LIST"
+        local j
+        for j in "${JOBS[@]}"; do
+            # Read-only or switch-off tasks are always fine; anything that could deploy, enable or
+            # run an excluded job needs the operator to type its name.
+            if is_excluded_from_all "$j" && [[ ! "$SINGLE_TASK" =~ ^(logs|disable|remove)$ ]]; then
+                echo "${C_YELLOW}'$j' is deliberately kept OFF (EXCLUDE_FROM_ALL=1 in jobs/$j.conf).${C_RESET}"
+                if [[ ! -t 0 ]]; then
+                    echo "Refusing without an interactive confirmation." >&2
+                    exit 1
+                fi
+                local answer
+                read -rp "Type '$j' to ${SINGLE_TASK:-deploy} it anyway: " answer
+                [[ "$answer" == "$j" ]] || { echo "Not confirmed. Aborting." >&2; exit 1; }
+            fi
+        done
     fi
     [[ ${#JOBS[@]} -gt 0 ]] || { echo "No jobs. Add jobs/<name>.conf or pass a job name." >&2; exit 1; }
 }
@@ -339,11 +368,16 @@ task_sync_files() {
     ssh_run_ignore "systemctl stop ${UNIT_PREFIX}${JOB_NAME}.timer 2>/dev/null || true"
     ssh_run_ignore "systemctl stop ${UNIT_PREFIX}${JOB_NAME}.service 2>/dev/null || true"
 
+    # The bundle contains appsettings.Production.json (secrets): owner-only, deleted after upload.
     local tar_file="/tmp/${UNIT_PREFIX}${JOB_NAME}.tar.gz.local"
-    tar -czf "$tar_file" -C "$PUBLISH_OUT" .
+    (umask 077; tar -czf "$tar_file" -C "$PUBLISH_OUT" .)
     scp_send "$tar_file" "/tmp/${UNIT_PREFIX}${JOB_NAME}.tar.gz"
+    rm -f "$tar_file"
     ssh_run "mkdir -p $DEPLOY_PATH && tar -xzf /tmp/${UNIT_PREFIX}${JOB_NAME}.tar.gz -C $DEPLOY_PATH && rm /tmp/${UNIT_PREFIX}${JOB_NAME}.tar.gz"
     ssh_run "chown -R www-data:www-data $DEPLOY_PATH && chmod -R 755 $DEPLOY_PATH"
+    # Settings hold secrets (DB password, SendGrid key): readable only by the service user.
+    # (including the copies the Data project publishes under data/)
+    ssh_run "find $DEPLOY_PATH -name \"appsettings*.json\" -exec chmod 600 {} +"
     write_ok "Files synced to $DEPLOY_PATH"
 }
 

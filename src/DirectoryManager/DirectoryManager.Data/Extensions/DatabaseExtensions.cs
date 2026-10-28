@@ -51,6 +51,7 @@ namespace DirectoryManager.Data.Extensions
             services.AddScoped<IDirectoryEntryReviewRepository, DirectoryEntryReviewRepository>();
             services.AddScoped<IVerificationRequestRepository, VerificationRequestRepository>();
             services.AddScoped<IProblemReportRepository, ProblemReportRepository>();
+            services.AddScoped<ISiteActivityRepository, SiteActivityRepository>();
             services.AddScoped<IVideoSponsorshipRepository, VideoSponsorshipRepository>();
             services.AddScoped<IReviewerKeyRepository, ReviewerKeyRepository>();
 

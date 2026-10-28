@@ -1,0 +1,100 @@
+@model DirectoryManager.Web.Models.Reports.ActivityReportViewModel
+@using DirectoryManager.Web.Constants
+@using DirectoryManager.Web.Activity
+@using System.Globalization
+@{
+    PageMeta.Title = "Activity report";
+    PageMeta.MetaContent = StringConstants.MetaTagNoIndex;
+    Layout = "_CenteredLayout";
+
+    var chartQuery = string.IsNullOrEmpty(Model.ChartQuery) ? "?" : Model.ChartQuery + "&";
+    var cacheBust = DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateTimeFormat, CultureInfo.InvariantCulture);
+    var dateFormat = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+    var types = ActivityReportBuilder.Types;
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    @await Html.PartialAsync("_AdminMenu")
+
+    <p class="text-muted">
+        Everything people submitted to the site, by type and time: new listings, listing edits, reviews,
+        review replies, problem reports and verification requests. Counted when submitted, whatever happened
+        to them afterwards (approved, rejected or still pending). Drafts that were never submitted and the
+        site checkers' automated submissions aren't counted. Times are UTC. The first and last bars can cover
+        only part of a week or month when the period starts or ends partway through one.
+    </p>
+    <hr />
+
+    <form method="get" action="~/admin/activity">
+        <div class="form-row">
+            <div class="form-group col-md-4">
+                <label for="period">Period</label>
+                <select id="period" name="period" class="form-control">
+                    @foreach (var (key, label) in Model.PeriodOptions)
+                    {
+                        <option value="@key" selected="@(key == Model.Period)">@label</option>
+                    }
+                </select>
+            </div>
+            <div class="form-group col-md-4">
+                <label for="from">From (custom)</label>
+                <input id="from" name="from" type="date" class="form-control" value="@(Model.Period == "custom" ? Model.From.ToString(dateFormat, CultureInfo.InvariantCulture) : "")" />
+            </div>
+            <div class="form-group col-md-4">
+                <label for="to">To (custom, inclusive)</label>
+                <input id="to" name="to" type="date" class="form-control" value="@(Model.Period == "custom" ? Model.To.AddDays(-1).ToString(dateFormat, CultureInfo.InvariantCulture) : "")" />
+            </div>
+        </div>
+        <button type="submit" class="btn btn-primary">Show</button>
+        <span class="text-muted">For custom dates, choose "Custom dates" in Period.</span>
+    </form>
+
+    <h2 class="u-mt-4px">@Model.PeriodLabel: @Model.GrandTotal.ToString("N0", CultureInfo.InvariantCulture) submissions</h2>
+    <p class="text-muted">
+        @Model.From.ToString(dateFormat, CultureInfo.InvariantCulture) to @Model.To.AddDays(-1).ToString(dateFormat, CultureInfo.InvariantCulture)
+    </p>
+
+    <div class="u-overflowx-auto">
+        <table class="table table-sm">
+            <thead>
+                <tr>
+                    <th>Type</th>
+                    <th class="text-right">Submitted</th>
+                    <th class="text-right">Share</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var t in types)
+                {
+                    var count = Model.Totals.TryGetValue(t, out var c) ? c : 0;
+                    var share = Model.GrandTotal > 0 ? (100.0 * count / Model.GrandTotal) : 0;
+                    <tr>
+                        <td>
+                            <span aria-hidden="true" style="display:inline-block;width:12px;height:12px;border-radius:2px;margin-right:6px;vertical-align:middle;background:@ActivityReportBuilder.Hex(t)"></span>
+                            @ActivityReportBuilder.Label(t)
+                        </td>
+                        <td class="text-right">@count.ToString("N0", CultureInfo.InvariantCulture)</td>
+                        <td class="text-right">@share.ToString("0.#", CultureInfo.InvariantCulture)%</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot>
+                <tr>
+                    <th>Total</th>
+                    <th class="text-right">@Model.GrandTotal.ToString("N0", CultureInfo.InvariantCulture)</th>
+                    <th></th>
+                </tr>
+            </tfoot>
+        </table>
+    </div>
+
+    <h3>Per week</h3>
+    <img class="u-maxw-100pct-h-auto-block-m-0-auto-pb-10px" alt="Submissions per week by type, @Model.PeriodLabel" src="~/admin/activity/weekly.png@(chartQuery)v=@cacheBust" width="1400" height="560" />
+
+    <h3>Per month</h3>
+    <img class="u-maxw-100pct-h-auto-block-m-0-auto-pb-10px" alt="Submissions per month by type, @Model.PeriodLabel" src="~/admin/activity/monthly.png@(chartQuery)v=@cacheBust" width="1400" height="560" />
+
+    @await Html.PartialAsync("_ActivityTable", (Title: "By month", Buckets: Model.Months, Granularity: ActivityGranularity.Month, Open: true))
+    @await Html.PartialAsync("_ActivityTable", (Title: "By week", Buckets: Model.Weeks, Granularity: ActivityGranularity.Week, Open: false))
+}

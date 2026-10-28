@@ -127,6 +127,25 @@ public class Program
 
         if (emailMessage != null)
         {
+            // The message and its campaign link are saved in two steps. If a previous run saved the
+            // message but failed before linking it, link it now — otherwise this week's email would
+            // never be queued, because every later run stops at "message exists".
+            var alreadyLinked = emailCampaignMessageRepository
+                .GetMessagesByCampaign(emailCampaign.EmailCampaignId)
+                .Any(m => m.EmailMessageId == emailMessage.EmailMessageId);
+
+            if (!alreadyLinked)
+            {
+                emailCampaignMessageRepository.Create(new DirectoryManager.Data.Models.Emails.EmailCampaignMessage()
+                {
+                    EmailCampaignId = emailCampaign.EmailCampaignId,
+                    EmailMessageId = emailMessage.EmailMessageId,
+                    SequenceOrder = -1
+                });
+                Console.WriteLine($"Message exists with key: {weeklyResults.WeekStartDate} but was not linked to the campaign — linked it now.");
+                return;
+            }
+
             Console.WriteLine($"Message exists with key: {weeklyResults.WeekStartDate}");
             return;
         }

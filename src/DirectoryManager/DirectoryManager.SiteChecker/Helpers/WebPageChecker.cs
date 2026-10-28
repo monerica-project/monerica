@@ -177,7 +177,7 @@ namespace DirectoryManager.SiteChecker.Helpers
         // True when two URLs point at the same resource, ignoring scheme, a leading "www." and a
         // trailing slash. Used to tell "the requested page 404'd" (genuinely gone) apart from "the
         // server redirected us elsewhere and THAT 404'd" (a bot-block / error page — site is up).
-        private static bool SameResource(Uri a, Uri b)
+        internal static bool SameResource(Uri a, Uri b)
         {
             static string Norm(Uri u)
             {

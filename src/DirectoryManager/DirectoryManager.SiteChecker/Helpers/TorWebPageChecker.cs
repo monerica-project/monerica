@@ -219,6 +219,16 @@ namespace DirectoryManager.SiteChecker.Helpers
 
                 if (statusCode == 404 || statusCode == 410)
                 {
+                    // Only "gone" when it's the REQUESTED page that 404s. A redirect to a different
+                    // page that then 404s is a bot-check / error page: the onion answered, so it's up
+                    // (same rule as the clearnet checker). Flagging it would skip the 3-run streak.
+                    var finalUri = getResp.RequestMessage?.RequestUri ?? uri;
+                    if (!WebPageChecker.SameResource(finalUri, uri))
+                    {
+                        this.log.Log($"[TOR GET attempt {attempt}] {uri} → {statusCode} after redirect to {finalUri}; onion answered, not a 'gone' verdict");
+                        return (CheckOutcome.Online, $"attempt {attempt}: {headNote}GET {statusCode} after redirect to {finalUri.AbsoluteUri}");
+                    }
+
                     return (CheckOutcome.Offline, $"attempt {attempt}: {headNote}GET {statusCode} in {getSw.ElapsedMilliseconds}ms");
                 }
 

@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Sockets;
+using DirectoryManager.Utilities.Helpers;
 
 namespace DirectoryManager.SiteChecker.Helpers
 {
@@ -23,6 +24,19 @@ namespace DirectoryManager.SiteChecker.Helpers
             if (addresses.Length == 0)
             {
                 throw new SocketException((int)SocketError.HostNotFound);
+            }
+
+            // Listing URLs (and every redirect they send us to) are user-controlled. Never let one
+            // point this server at itself or its internal network (127.0.0.1 admin ports, cloud
+            // metadata, LAN). Strict: any internal address in the set refuses the whole host, and
+            // the addresses validated here are exactly the ones connected to (no DNS re-resolve).
+            foreach (var address in addresses)
+            {
+                if (NetworkAddressHelper.IsPrivateOrDisallowed(address))
+                {
+                    throw new HttpRequestException(
+                        $"Blocked connection to internal address {address} for host '{host}'.");
+                }
             }
 
             using var cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);

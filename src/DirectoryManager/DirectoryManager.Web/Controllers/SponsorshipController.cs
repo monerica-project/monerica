@@ -173,7 +173,7 @@ namespace DirectoryManager.Web.Controllers
             var start = end.AddDays(-PublicPricingWindowDays);
 
             var invoices = await this.invoiceRepo.GetAllAsync().ConfigureAwait(false);
-            var paid = invoices.Where(i => i.PaymentStatus == PaymentStatus.Paid).ToList();
+            var paid = invoices.Where(i => SponsoredListingCheckoutHelper.IsPaidOrOverpaid(i.PaymentStatus)).ToList();
 
             var label = sponsorshipType.HasValue && sponsorshipType.Value != SponsorshipType.Unknown
                 ? $"{EnumHelper.GetDescription(sponsorshipType.Value)} — last {PublicPricingWindowDays} days"
@@ -210,7 +210,8 @@ namespace DirectoryManager.Web.Controllers
             var bytes = new InvoicePlotting().CreateDailyAvgPriceByTypeChart(
                 paid, Currency.USD, start, end, type, label,
                 currentMarketDailyByType: currentDaily,
-                darkTheme: true);
+                darkTheme: true,
+                showPurchases: true);
 
             if (bytes == null || bytes.Length == 0)
             {
@@ -256,7 +257,7 @@ namespace DirectoryManager.Web.Controllers
 
             // Only pages that have paid history for that placement type and can still be bought.
             var paid = (await this.invoiceRepo.GetAllAsync().ConfigureAwait(false))
-                .Where(i => i.PaymentStatus == PaymentStatus.Paid).ToList();
+                .Where(i => SponsoredListingCheckoutHelper.IsPaidOrOverpaid(i.PaymentStatus)).ToList();
             var paidCategoryIds = paid
                 .Where(i => i.SponsorshipType == SponsorshipType.CategorySponsor && i.CategoryId.HasValue)
                 .Select(i => i.CategoryId!.Value).ToHashSet();
@@ -336,7 +337,7 @@ namespace DirectoryManager.Web.Controllers
             var (type, placementId) = await this.ResolvePricingPlacementAsync(placement, sponsorshipType, subCategoryId).ConfigureAwait(false);
 
             var paid = (await this.invoiceRepo.GetAllAsync().ConfigureAwait(false))
-                .Where(i => i.PaymentStatus == PaymentStatus.Paid).ToList();
+                .Where(i => SponsoredListingCheckoutHelper.IsPaidOrOverpaid(i.PaymentStatus)).ToList();
 
             var typeLabel = type.HasValue ? EnumHelper.GetDescription(type.Value) : "All placements";
             var scopeLabel = type switch
@@ -362,7 +363,7 @@ namespace DirectoryManager.Web.Controllers
             var label = $"{typeLabel} · {scopeLabel} · {start.ToString(DirectoryManager.Common.Constants.StringConstants.FriendlyDateFormat)}–{end.ToString(DirectoryManager.Common.Constants.StringConstants.FriendlyDateFormat)}";
 
             var bytes = new InvoicePlotting().CreateDailyAvgPriceByTypeChart(
-                paid, Currency.USD, start, end, type, label, width: 1100, height: 460, darkTheme: true);
+                paid, Currency.USD, start, end, type, label, width: 1100, height: 460, darkTheme: true, showPurchases: true);
 
             if (bytes == null || bytes.Length == 0)
             {
