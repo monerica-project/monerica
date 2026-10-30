@@ -120,24 +120,10 @@ namespace DirectoryManager.Web.Controllers
 
             return this.View(entries);
         }
+        // NOTE: there is intentionally no hard-delete endpoint. Deleting an entry cascaded into its
+        // invoices/sponsorships/reviews (or failed on FKs); set its status to Removed instead.
+        // Listing reports (charts by date, country, trust) live in ListingReportController.
 
-        [HttpGet("directoryentry/countrystatusbreakdownchart")]
-        public async Task<IActionResult> CountryStatusBreakdownChartImageAsync()
-        {
-            var entries = await this.directoryEntryRepository.GetAllActiveEntries();
-            var knownCountries = CountryHelper.GetCountries();
-
-            var filtered = (entries ?? Enumerable.Empty<DirectoryEntry>())
-                .Where(e => !string.IsNullOrWhiteSpace(e.CountryCode)
-                         && knownCountries.ContainsKey(e.CountryCode!.Trim().ToUpperInvariant()))
-                .ToList();
-
-            var imageBytes = new DirectoryEntryPlotting().CreateCountryStatusBreakdownChartImage(filtered);
-
-            return this.File(
-                imageBytes.Length == 0 ? Array.Empty<byte>() : imageBytes,
-                StringConstants.PngImage);
-        }
 
         [HttpGet]
         [Route("directoryentry/create")]
@@ -488,61 +474,6 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return this.View(audits);
-        }
-
-        // NOTE: there is intentionally no hard-delete endpoint. Deleting an entry cascaded into its
-        // invoices/sponsorships/reviews (or failed on FKs); set its status to Removed instead.
-        [HttpGet("directoryentry/report")]
-        public IActionResult Report()
-        {
-            return this.View();
-        }
-
-        [HttpGet("directoryentry/submissionmonthlyplotimage")]
-        public async Task<IActionResult> SubmissionMonthlyPlotImage()
-        {
-            var submissions = await this.submissionRepository.GetAllAsync();
-            var plotting = new SubmissionsPlotting();
-            var bytes = plotting.CreateMonthlySubmissionBarChart(submissions);
-
-            return this.File(
-                bytes.Length == 0 ? Array.Empty<byte>() : bytes,
-                StringConstants.PngImage);
-        }
-
-        [HttpGet("directoryentry/monthlyplotimage")]
-        public async Task<IActionResult> MonthlyPlotImageAsync()
-        {
-            var entries = await this.auditRepository.GetAllAsync();
-            var imageBytes = new DirectoryEntryPlotting().CreateMonthlyActivePlot(entries.ToList());
-            return this.File(imageBytes, StringConstants.PngImage);
-        }
-
-        [HttpGet("directoryentry/categorypiechart")]
-        public async Task<IActionResult> CategoryPieChartImageAsync()
-        {
-            var allCategories = await this.categoryRepository.GetActiveCategoriesAsync();
-            var entries = await this.directoryEntryRepository.GetAllActiveEntries();
-            var imageBytes = new DirectoryEntryPlotting().CreateCategoryPieChartImage(entries, allCategories);
-            return this.File(imageBytes, StringConstants.PngImage);
-        }
-
-        [HttpGet("directoryentry/countrieschart")]
-        public async Task<IActionResult> CountryPlotImageAsync()
-        {
-            var entries = await this.directoryEntryRepository.GetAllActiveEntries();
-            var knownCountries = CountryHelper.GetCountries();
-
-            var filtered = (entries ?? Enumerable.Empty<DirectoryEntry>())
-                .Where(e => !string.IsNullOrWhiteSpace(e.CountryCode)
-                         && knownCountries.ContainsKey(e.CountryCode!.Trim().ToUpperInvariant()))
-                .ToList();
-
-            var imageBytes = new DirectoryEntryPlotting().CreateActiveCountriesPieChartImage(filtered);
-
-            return this.File(
-                imageBytes.Length == 0 ? Array.Empty<byte>() : imageBytes,
-                StringConstants.PngImage);
         }
 
         [HttpGet("directoryentry/subcategory-trends")]

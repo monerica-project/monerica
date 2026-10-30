@@ -1,0 +1,97 @@
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Utilities.Helpers
+@model DirectoryManager.Web.Models.VerificationRequests.VerificationRequestsByListingAgeViewModel
+@{
+    PageMeta.Title = "Verification Requests by Listing Age";
+    Layout = "_CenteredLayout";
+    var fmt = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+    int readyNow = Model.Rows.Count(r => r.CanSponsorFrom == null && r.Status != DirectoryStatus.Removed);
+}
+
+@section PageContent {
+    <div class="container py-4">
+        <h1 class="mb-3">@PageMeta.Title</h1>
+        <hr />
+        @await Html.PartialAsync("_AdminMenu")
+
+        <p>
+            <a href="/admin/verification-requests">&larr; Back to verification requests (newest first)</a>
+        </p>
+
+        <p class="text-muted">
+            @Model.Rows.Count listing@(Model.Rows.Count == 1 ? "" : "s") with pending requests, oldest listing first.
+            A listing can sponsor once it is Verified and has been listed @Model.MinimumDaysListed days;
+            <strong>@readyNow</strong> of these could sponsor as soon as they're verified.
+        </p>
+
+        @if (Model.Rows.Count == 0)
+        {
+            <p class="text-muted">Nothing pending.</p>
+        }
+        else
+        {
+            <div class="table-wrapper">
+                <table class="table table-sm align-middle">
+                    <thead>
+                        <tr>
+                            <th>Listing</th>
+                            <th>Listed on</th>
+                            <th>Can sponsor</th>
+                            <th>Status</th>
+                            <th>Latest request</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var r in Model.Rows)
+                        {
+                            <tr>
+                                <td class="u-valign-top-ws-normal-wordbreak-break-word" data-label="Listing">
+                                    <div>
+                                        <a href="/directoryentry/edit/@r.DirectoryEntryId"><strong>@r.Name</strong></a>
+                                        @if (r.RequestCount > 1)
+                                        {
+                                            <span class="badge bg-info u-ml-6px">@r.RequestCount requests</span>
+                                        }
+                                        @if (r.AnyDonation)
+                                        {
+                                            <span class="badge bg-success u-ml-6px">&#128176; Paid</span>
+                                        }
+                                    </div>
+                                    <div class="small text-muted">@r.Category</div>
+                                    <div class="small">
+                                        <a href="/site/@r.DirectoryEntryKey" target="_blank" rel="noopener">View listing</a> &middot;
+                                        <a href="/admin/reviews/entry/@r.DirectoryEntryId">Reviews</a>
+                                    </div>
+                                </td>
+                                <td class="u-valign-top text-nowrap" data-label="Listed on">
+                                    @r.ListedOn.ToString(fmt)
+                                    <div class="small text-muted">@r.DaysListed days</div>
+                                </td>
+                                <td class="u-valign-top text-nowrap" data-label="Can sponsor">
+                                    @if (r.Status == DirectoryStatus.Removed)
+                                    {
+                                        <span class="text-muted">Removed</span>
+                                    }
+                                    else if (r.CanSponsorFrom == null)
+                                    {
+                                        <span class="badge bg-success">Now, once verified</span>
+                                    }
+                                    else
+                                    {
+                                        @r.CanSponsorFrom.Value.ToString(fmt)
+                                    }
+                                </td>
+                                <td class="u-valign-top" data-label="Status">@EnumHelper.GetDescription(r.Status)</td>
+                                <td class="u-valign-top" data-label="Latest request">
+                                    <div class="text-nowrap">@r.LatestRequest.ToString(fmt)</div>
+                                    <div class="u-webkitbox-lineclamp-2-boxorient-vertical-overflow-hidden small" title="@r.LatestComment">@r.LatestComment</div>
+                                    <a href="/admin/verification-requests/@r.LatestRequestId" class="small">Open request &rarr;</a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+}

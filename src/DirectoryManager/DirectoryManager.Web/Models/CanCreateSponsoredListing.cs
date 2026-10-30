@@ -29,7 +29,8 @@ namespace DirectoryManager.Web.Models
                     sb.Append(timeDifference.Minutes == 1 ? $"{timeDifference.Minutes} minute " : $"{timeDifference.Minutes} minutes ");
                 }
 
-                return sb.ToString();
+                // Each part ends with a space; trim so "(in 37 days 0 hours 42 minutes)" has no gap before ")".
+                return sb.ToString().TrimEnd();
             }
         }
     }

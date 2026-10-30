@@ -18,17 +18,23 @@ namespace DirectoryManager.Web.Controllers
         private readonly IVerificationRequestRepository requests;
         private readonly IDirectoryEntryRepository entryRepo;
         private readonly IBtcPayServerService btcPay;
+        private readonly ISubcategoryRepository subcategoryRepo;
+        private readonly ICategoryRepository categoryRepo;
 
         public VerificationRequestsAdminController(
             IMemoryCache cache,
             IVerificationRequestRepository requests,
             IDirectoryEntryRepository entryRepo,
-            IBtcPayServerService btcPay)
+            IBtcPayServerService btcPay,
+            ISubcategoryRepository subcategoryRepo,
+            ICategoryRepository categoryRepo)
             : base(cache)
         {
             this.requests = requests;
             this.entryRepo = entryRepo;
             this.btcPay = btcPay;
+            this.subcategoryRepo = subcategoryRepo;
+            this.categoryRepo = categoryRepo;
         }
 
         [HttpGet("")]
@@ -49,6 +55,55 @@ namespace DirectoryManager.Web.Controllers
                 Page = page,
                 PageSize = pageSize
             });
+        }
+
+        /// <summary>
+        /// Pending requests grouped by listing, oldest listing first, so long-listed businesses
+        /// (the ones that could sponsor as soon as they're verified) are easy to spot.
+        /// </summary>
+        [HttpGet("by-listing-age")]
+        public async Task<IActionResult> ByListingAge(CancellationToken ct = default)
+        {
+            var pending = await this.requests.ListByStatusAsync(VerificationRequestStatus.Pending, 1, 5000, ct);
+            var subs = (await this.subcategoryRepo.GetAllAsync()).ToDictionary(s => s.SubCategoryId);
+            var cats = (await this.categoryRepo.GetAllAsync()).ToDictionary(c => c.CategoryId, c => c.Name);
+            var now = DateTime.UtcNow;
+            int minDays = DirectoryManager.Common.Constants.IntegerConstants.MinimumDaysListedBeforeSponsoring;
+
+            string CategoryOf(int? subId) =>
+                subId is int id && subs.TryGetValue(id, out var sc)
+                    ? $"{(cats.TryGetValue(sc.CategoryId, out var cn) ? cn : "?")} › {sc.Name}"
+                    : string.Empty;
+
+            var rows = pending
+                .Where(r => r.DirectoryEntry != null)
+                .GroupBy(r => r.DirectoryEntryId)
+                .Select(g =>
+                {
+                    var e = g.First().DirectoryEntry!;
+                    var latest = g.OrderByDescending(r => r.CreateDate).First();
+                    var eligible = e.CreateDate.Date.AddDays(minDays);
+                    return new VerificationRequestAgeRow
+                    {
+                        DirectoryEntryId = e.DirectoryEntryId,
+                        Name = e.Name,
+                        DirectoryEntryKey = e.DirectoryEntryKey,
+                        Category = CategoryOf(e.SubCategoryId),
+                        Status = e.DirectoryStatus,
+                        ListedOn = e.CreateDate,
+                        DaysListed = SponsorshipEligibilityHelper.ComputeAgeDays(e.CreateDate, now),
+                        CanSponsorFrom = eligible <= now.Date ? null : eligible,
+                        RequestCount = g.Count(),
+                        LatestRequest = latest.CreateDate,
+                        LatestRequestId = latest.VerificationRequestId,
+                        LatestComment = latest.Comment ?? string.Empty,
+                        AnyDonation = g.Any(r => r.PaidUtc != null),
+                    };
+                })
+                .OrderBy(r => r.ListedOn)
+                .ToList();
+
+            return this.View(new VerificationRequestsByListingAgeViewModel { Rows = rows, MinimumDaysListed = minDays });
         }
 
         // Full detail for a single request — the queue clamps the comment to two lines,

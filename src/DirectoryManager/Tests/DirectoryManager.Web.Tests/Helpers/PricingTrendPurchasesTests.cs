@@ -56,5 +56,81 @@ namespace DirectoryManager.Web.Tests.Helpers
 
             Assert.NotEmpty(png);
         }
+
+        [Fact]
+        public void Market_purchase_uses_list_price_before_personal_discount()
+        {
+            // Paid $2,397.75 after a 10% perk; the spot was listed at $2,664.17 for 30 days.
+            var start = Today.AddDays(8);
+            var inv = new SponsoredListingInvoice
+            {
+                SponsorshipType = SponsorshipType.MainSponsor,
+                Amount = 2397.75m,
+                OriginalAmount = 2664.17m,
+                DiscountPercent = 10m,
+                Currency = Currency.USD,
+                PaymentStatus = PaymentStatus.Paid,
+                CreateDate = Today,
+                CampaignStartDate = start,
+                CampaignEndDate = start.AddDays(30),
+            };
+
+            var p = Assert.Single(PricingTrendCalculator.MarketPurchases(new[] { inv }, Currency.USD, Today.AddDays(-180), Today, SponsorshipType.MainSponsor));
+
+            Assert.Equal(Today, p.Day);                     // shows the day it was bought, not when it starts
+            Assert.Equal(30, p.Days);
+            Assert.Equal(88.81m, Math.Round(p.ListPerDay, 2)); // same as today's 30-day price
+            Assert.True(p.IsMonthly);
+        }
+
+        [Fact]
+        public void Market_purchase_without_discount_uses_amount_paid_and_flags_long_terms()
+        {
+            var start = Today.AddDays(-10);
+            var inv = new SponsoredListingInvoice
+            {
+                SponsorshipType = SponsorshipType.MainSponsor,
+                Amount = 17520m,
+                Currency = Currency.USD,
+                PaymentStatus = PaymentStatus.Paid,
+                CreateDate = start,
+                CampaignStartDate = start,
+                CampaignEndDate = start.AddDays(365),
+            };
+
+            var p = Assert.Single(PricingTrendCalculator.MarketPurchases(new[] { inv }, Currency.USD, Today.AddDays(-180), Today, SponsorshipType.MainSponsor));
+
+            Assert.Equal(48m, p.ListPerDay);
+            Assert.False(p.IsMonthly);
+        }
+
+        [Fact]
+        public void Market_price_chart_draws_overview_and_single_placement()
+        {
+            var invoices = new[]
+            {
+                Inv(SponsorshipType.MainSponsor, 2664m, Today, Today.AddDays(8), 31),
+                Inv(SponsorshipType.CategorySponsor, 675m, Today.AddDays(-66), Today.AddDays(-64), 91),
+            };
+            var now = new Dictionary<SponsorshipType, decimal>
+            {
+                [SponsorshipType.MainSponsor] = 88.81m,
+                [SponsorshipType.CategorySponsor] = 3.33m,
+                [SponsorshipType.SubcategorySponsor] = 2m,
+            };
+
+            var plotting = new InvoicePlotting();
+            Assert.NotEmpty(plotting.CreateMarketPriceChart(invoices, Currency.USD, Today.AddDays(-180), Today, null, now));
+            Assert.NotEmpty(plotting.CreateMarketPriceChart(invoices, Currency.USD, Today.AddDays(-180), Today, SponsorshipType.MainSponsor, now, width: 820, height: 420, highlightInvoices: invoices.Take(1), highlightLabel: "Mine"));
+        }
+
+        [Fact]
+        public void Market_price_chart_is_empty_with_no_purchases_and_no_price()
+        {
+            var png = new InvoicePlotting().CreateMarketPriceChart(
+                Array.Empty<SponsoredListingInvoice>(), Currency.USD, Today.AddDays(-180), Today, SponsorshipType.MainSponsor, null);
+
+            Assert.Empty(png);
+        }
     }
 }

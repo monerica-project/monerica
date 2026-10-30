@@ -8,6 +8,11 @@
     var seoAbout = string.IsNullOrWhiteSpace(seoCurrency) ? string.Empty : $" that accept or relate to {seoCurrency}";
     var seoListings = string.IsNullOrWhiteSpace(seoCurrency) ? "Listings" : $"{seoCurrency} Listings";
     PageMeta.SeoTitle = DirectoryManager.Web.Helpers.SeoTitleBuilder.WithBrand($"Contact {seoSite}", seoSite);
+    var pgpKey = await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.PgpKey);
+    var pgpFingerprint = DirectoryManager.Web.Helpers.PgpCapabilities.GetPrimaryFingerprint(pgpKey);
+    var pgpFingerprintDisplay = string.IsNullOrEmpty(pgpFingerprint)
+        ? string.Empty
+        : string.Join(" ", Enumerable.Range(0, (pgpFingerprint.Length + 3) / 4).Select(i => pgpFingerprint.Substring(i * 4, Math.Min(4, pgpFingerprint.Length - i * 4))));
     PageMeta.MetaDescription = DirectoryManager.Web.Helpers.SeoDescriptionBuilder.Shorten($"How to contact {seoSite} about listings, corrections, reviews, sponsorships or anything else.");
 }
 @{
@@ -23,9 +28,16 @@
 @await Html.PartialAsync("_BackToHome")
 <hr />
     @Html.Raw(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.ContactHtml))
-    <hr />
+    <h2 id="pgp">PGP key</h2>
+    <p>Use this key to encrypt messages to us or to check that messages signed by us are genuine.
+        @if (!string.IsNullOrEmpty(pgpFingerprint))
+        {
+            <text><br />Fingerprint: <code>@pgpFingerprintDisplay</code></text>
+        }
+        <br /><a class="app-link" href="/pgp">Open the key as plain text</a>
+    </p>
 <pre class="pgp-key">
-@Html.Raw(await cacheHelper.GetSnippetAsync(DirectoryManager.Data.Enums.SiteConfigSetting.PgpKey))
+@Html.Raw(pgpKey)
 </pre>
 
 }

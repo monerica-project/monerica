@@ -36,6 +36,9 @@ namespace DirectoryManager.Web.Models.Reports
 
         /// <summary>USD total of those payments.</summary>
         public decimal NotPaidInXmrUsd { get; init; }
+
+        /// <summary>The months in the by-month chart, oldest first (same data as the bars).</summary>
+        public List<RevenueMonth> ChartMonths { get; init; } = new ();
     }
 
 }

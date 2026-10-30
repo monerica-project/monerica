@@ -196,18 +196,19 @@
     </div>
 
     <hr />
-    <h2 class="u-mt-22px">Main Sponsor Pricing &mdash; Last 180 Days</h2>
+    <h2 class="u-mt-22px">Main Sponsor Price &mdash; Today vs. Past Purchases</h2>
     <p class="u-m-6px-0-12px-0">
-        The <strong style="color:@DirectoryManager.Web.Charting.ChartColors.TypeNeonHex(SponsorshipType.MainSponsor);">orange bars</strong>
-        are the average price advertisers actually paid per day for the <strong>Main Sponsor</strong> slot
-        over the last 180&nbsp;days. The <strong style="color:@DirectoryManager.Web.Charting.ChartColors.DarkNowHex;">yellow dashed line</strong>
-        is today&rsquo;s current market price. The <strong style="color:@DirectoryManager.Web.Charting.ChartColors.PurchaseNeonHex;">pink diamonds</strong>
-        are new purchases, shown on the day they were bought at their price per day.
+        The <strong style="color:@DirectoryManager.Web.Charting.ChartColors.DarkNowHex;">yellow dashed line</strong>
+        is <strong>today&rsquo;s 30-day price</strong> per day. Each
+        <strong style="color:@DirectoryManager.Web.Charting.ChartColors.TypeNeonHex(SponsorshipType.MainSponsor);">orange dot</strong>
+        is a Main Sponsor spot someone bought in the last 180&nbsp;days, shown on the day it was bought at its price
+        per day before any personal discount. Filled dots are 30-day purchases; open dots are 60&ndash;365 day purchases,
+        which cost less per day.
     </p>
     <div class="table-wrapper">
         <img class="u-w-100pct"
-             src="@Url.Action("PricingTrendsChart", "Sponsorship", new { sponsorshipType = SponsorshipType.MainSponsor, v = DateTime.UtcNow.ToString(DirectoryManager.Common.Constants.StringConstants.CompactDateFormat) })"
-             alt="Main sponsor average daily price over the last 180 days" />
+             src="@Url.Action("PricingTrendsChart", "Sponsorship", new { sponsorshipType = SponsorshipType.MainSponsor, v = DateTime.UtcNow.ToString("yyyyMMddHH") })"
+             alt="Today's Main Sponsor price, with every Main Sponsor purchase from the last 180 days" />
     </div>
 
     @if (Model.RecentPaid?.Items != null && Model.RecentPaid.Items.Any())

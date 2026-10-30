@@ -64,6 +64,11 @@ namespace DirectoryManager.Data.Repositories.Implementations
                     .ThenInclude(r => r.DirectoryEntry)
                         .ThenInclude(e => e.SubCategory)
                             .ThenInclude(sc => sc.Category)
+                // Parent review's tags, shown on the homepage reply rows.
+                .Include(c => c.DirectoryEntryReview)
+                    .ThenInclude(r => r!.ReviewTags)
+                        .ThenInclude(x => x.ReviewTag)
+                .AsSplitQuery()
                 .OrderByDescending(c => c.UpdateDate ?? c.CreateDate)
                 .ThenByDescending(c => c.DirectoryEntryReviewCommentId)
                 .Take(take)

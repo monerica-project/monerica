@@ -163,9 +163,10 @@ namespace DirectoryManager.Web.Controllers
             return this.View("Search", vm);
         }
 
-        // Public pricing-trends chart for the sponsorship pages: the average per-day price paid for a
-        // slot over the last 6 months (same look as the admin report). With no sponsorshipType it
-        // overlays all placements; with one it shows just that placement (e.g. main-only).
+        // Public price chart for the sponsorship pages: today's price as the headline, with the last
+        // 6 months of purchases as dots that back it up. With no sponsorshipType it shows all
+        // placements; with one, just that placement (e.g. main-only). showCurrentMarket is ignored
+        // (today's price is always shown) and kept only so old image URLs still work.
         [HttpGet("pricing-trends-chart")]
         public async Task<IActionResult> PricingTrendsChart(SponsorshipType? sponsorshipType = null, bool showCurrentMarket = true)
         {
@@ -175,43 +176,14 @@ namespace DirectoryManager.Web.Controllers
             var invoices = await this.invoiceRepo.GetAllAsync().ConfigureAwait(false);
             var paid = invoices.Where(i => SponsoredListingCheckoutHelper.IsPaidOrOverpaid(i.PaymentStatus)).ToList();
 
-            var label = sponsorshipType.HasValue && sponsorshipType.Value != SponsorshipType.Unknown
-                ? $"{EnumHelper.GetDescription(sponsorshipType.Value)} — last {PublicPricingWindowDays} days"
-                : $"Last {PublicPricingWindowDays} days — all placements";
-
             var type = sponsorshipType == SponsorshipType.Unknown ? null : sponsorshipType;
 
-            // Current market price per day (today's asking price) for each plotted placement, drawn on
-            // the chart so buyers see where the market sits now versus the historical average.
-            // The dashed "current market price" reference lines are drawn on the single-placement pages
-            // (e.g. /sponsorship/main) but suppressed on the all-placements overview (/sponsorship),
-            // where three overlaid dashed lines just clutter the chart.
-            var currentDaily = new Dictionary<SponsorshipType, decimal>();
-            if (showCurrentMarket)
-            {
-                var typesForCurrent = type.HasValue
-                    ? new[] { type.Value }
-                    : new[] { SponsorshipType.MainSponsor, SponsorshipType.CategorySponsor, SponsorshipType.SubcategorySponsor };
-                foreach (var t in typesForCurrent)
-                {
-                    // No placement = the standard price for the type (the main slot has only one price).
-                    var offers = await this.offerRepo.GetOffersForPlacementAsync(t, null).ConfigureAwait(false);
-                    var baseOffer = offers?
-                        .OrderBy(o => o.Days)
-                        .FirstOrDefault(o => o.Days >= 30)
-                        ?? offers?.OrderBy(o => o.Days).FirstOrDefault();
-                    if (baseOffer != null && baseOffer.Days > 0)
-                    {
-                        currentDaily[t] = Math.Round(baseOffer.Price / baseOffer.Days, 2);
-                    }
-                }
-            }
+            // Today's price is the headline of the public chart; past purchases back it up.
+            var currentDaily = await this.CurrentDailyPricesAsync(
+                type.HasValue ? new[] { type.Value } : PricingTrendCalculator.Types, null).ConfigureAwait(false);
 
-            var bytes = new InvoicePlotting().CreateDailyAvgPriceByTypeChart(
-                paid, Currency.USD, start, end, type, label,
-                currentMarketDailyByType: currentDaily,
-                darkTheme: true,
-                showPurchases: true);
+            var bytes = new InvoicePlotting().CreateMarketPriceChart(
+                paid, Currency.USD, start, end, type, currentDaily, standardPrices: true);
 
             if (bytes == null || bytes.Length == 0)
             {
@@ -339,15 +311,6 @@ namespace DirectoryManager.Web.Controllers
             var paid = (await this.invoiceRepo.GetAllAsync().ConfigureAwait(false))
                 .Where(i => SponsoredListingCheckoutHelper.IsPaidOrOverpaid(i.PaymentStatus)).ToList();
 
-            var typeLabel = type.HasValue ? EnumHelper.GetDescription(type.Value) : "All placements";
-            var scopeLabel = type switch
-            {
-                SponsorshipType.CategorySponsor => "every category page",
-                SponsorshipType.SubcategorySponsor => "every subcategory page",
-                SponsorshipType.MainSponsor => "sitewide",
-                _ => "all pages",
-            };
-
             if (type.HasValue && placementId.HasValue)
             {
                 var id = placementId.Value;
@@ -355,15 +318,13 @@ namespace DirectoryManager.Web.Controllers
                     .Where(i => i.SponsorshipType == type.Value
                                 && (type.Value == SponsorshipType.CategorySponsor ? i.CategoryId == id : i.SubCategoryId == id))
                     .ToList();
-                scopeLabel = type.Value == SponsorshipType.CategorySponsor
-                    ? (await this.categoryRepo.GetByIdAsync(id).ConfigureAwait(false))?.Name ?? $"category {id}"
-                    : (await this.subcategoryRepo.GetByIdAsync(id).ConfigureAwait(false))?.Name ?? $"subcategory {id}";
             }
 
-            var label = $"{typeLabel} · {scopeLabel} · {start.ToString(DirectoryManager.Common.Constants.StringConstants.FriendlyDateFormat)}–{end.ToString(DirectoryManager.Common.Constants.StringConstants.FriendlyDateFormat)}";
-
-            var bytes = new InvoicePlotting().CreateDailyAvgPriceByTypeChart(
-                paid, Currency.USD, start, end, type, label, width: 1100, height: 460, darkTheme: true, showPurchases: true);
+            var currentDaily = await this.CurrentDailyPricesAsync(
+                type.HasValue ? new[] { type.Value } : PricingTrendCalculator.Types, placementId).ConfigureAwait(false);
+            var bytes = new InvoicePlotting().CreateMarketPriceChart(
+                paid, Currency.USD, start, end, type, currentDaily, width: 1100, height: 520,
+                standardPrices: !placementId.HasValue);
 
             if (bytes == null || bytes.Length == 0)
             {
@@ -376,6 +337,29 @@ namespace DirectoryManager.Web.Controllers
             }
 
             return this.File(bytes, StringConstants.PngImage);
+        }
+
+        /// <summary>
+        /// Today's 30-day price per day for each placement type (a specific category/subcategory's
+        /// own price when <paramref name="placementId"/> is given, else the standard price).
+        /// </summary>
+        private async Task<Dictionary<SponsorshipType, decimal>> CurrentDailyPricesAsync(
+            IEnumerable<SponsorshipType> types, int? placementId)
+        {
+            var result = new Dictionary<SponsorshipType, decimal>();
+            foreach (var t in types)
+            {
+                var offers = await this.offerRepo.GetOffersForPlacementAsync(
+                    t, t == SponsorshipType.MainSponsor ? null : placementId).ConfigureAwait(false);
+                var baseOffer = offers?.OrderBy(o => o.Days).FirstOrDefault(o => o.Days >= 30)
+                    ?? offers?.OrderBy(o => o.Days).FirstOrDefault();
+                if (baseOffer != null && baseOffer.Days > 0)
+                {
+                    result[t] = Math.Round(baseOffer.Price / baseOffer.Days, 2);
+                }
+            }
+
+            return result;
         }
 
         // Picker value for a placement: "", "main", "category", "subcategory", "category-8", "subcategory-73".

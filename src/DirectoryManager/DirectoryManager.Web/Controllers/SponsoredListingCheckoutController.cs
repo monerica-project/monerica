@@ -384,7 +384,7 @@ namespace DirectoryManager.Web.Controllers
             var invoices = await this.sponsoredListingInvoiceRepository.GetAllAsync().ConfigureAwait(false);
             var paid = invoices.Where(i => SponsoredListingCheckoutHelper.IsPaidOrOverpaid(i.PaymentStatus)).ToList();
 
-            // Dotted line: what was paid for THIS placement, using the placement saved on each invoice
+            // Ringed dots: what was paid for THIS placement, using the placement saved on each invoice
             // (so a listing that later changed subcategory still counts where it actually advertised).
             List<SponsoredListingInvoice>? highlight = null;
             string? highlightLabel = null;
@@ -423,12 +423,9 @@ namespace DirectoryManager.Web.Controllers
                 currentDaily[sponsorshipType] = Math.Round(baseOffer.Price / baseOffer.Days, 2);
             }
 
-            var bytes = new InvoicePlotting().CreateDailyAvgPriceByTypeChart(
-                paid, Currency.USD, start, end, sponsorshipType, filterLabel: null, width: 820, height: 340,
-                highlightInvoices: highlight, highlightLabel: highlightLabel,
-                currentMarketDailyByType: currentDaily,
-                darkTheme: true,
-                showPurchases: true);
+            var bytes = new InvoicePlotting().CreateMarketPriceChart(
+                paid, Currency.USD, start, end, sponsorshipType, currentDaily, width: 820, height: 420,
+                highlightInvoices: highlight, highlightLabel: highlightLabel);
 
             if (bytes == null || bytes.Length == 0)
             {

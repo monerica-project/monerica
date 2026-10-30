@@ -18,11 +18,13 @@
     <hr />
 
     <p class="u-opacity-9">
-        See what advertisers have actually <strong>paid per day</strong> for each sponsorship placement over the
-        last @Model.WindowDays&nbsp;days. Pick a placement &mdash; the main sponsor slot, every category or
+        See <strong>today&rsquo;s price</strong> (yellow dashed line) next to what advertisers have
+        <strong>paid per day</strong> for each sponsorship placement over the last @Model.WindowDays&nbsp;days.
+        Each dot is one purchase on the day it was bought, at its price per day before any personal discount;
+        open dots are 60&ndash;365 day purchases, which cost less per day. Pick a placement &mdash; the main sponsor slot, every category or
         subcategory page, or one specific page &mdash; then adjust the date range. Leave it on
-        <em>All placements (compare)</em> to overlay Main, Category and Subcategory.
-        Category and subcategory pages can each have their own price, so one page's history can differ from the average.
+        <em>All placements (compare)</em> to show Main, Category and Subcategory together.
+        Category and subcategory pages can each have their own price; pick one page to see its own price and purchases.
     </p>
 
     <form method="get" asp-controller="Sponsorship" asp-action="PricingHistory">

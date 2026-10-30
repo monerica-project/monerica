@@ -510,6 +510,256 @@ namespace DirectoryManager.Web.Charting
             return plt.GetDarkImageBytes(width, height, ImageFormat.Png);
         }
 
+        /// <summary>
+        /// Public price chart: TODAY'S price is the headline (bold yellow dashed line, labeled at the
+        /// right), and past purchases are dots that show buyers have been paying it. Each dot is one
+        /// purchase on the day it was bought, at its list price per day (before personal discounts),
+        /// so a buyer who pays today's price lands on the "now" line. Filled dots are monthly
+        /// purchases (like-for-like with today's 30-day price); open dots are longer prepaid terms,
+        /// which carry a lower daily rate. No averages: one new purchase is never diluted by older
+        /// slots still running.
+        /// </summary>
+        public byte[] CreateMarketPriceChart(
+            IEnumerable<SponsoredListingInvoice> invoices,
+            Currency displayCurrency,
+            DateTime rangeStart,
+            DateTime rangeEnd,
+            SponsorshipType? sponsorshipType,
+            IReadOnlyDictionary<SponsorshipType, decimal>? currentDailyByType,
+            int width = 1400,
+            int height = 640,
+            IEnumerable<SponsoredListingInvoice>? highlightInvoices = null,
+            string? highlightLabel = null,
+            bool standardPrices = false)
+        {
+            // standardPrices: the Category/Subcategory prices given are the standard (lowest) price;
+            // individual pages can cost more, so they're labeled "from" instead of "now".
+            var start = rangeStart.Date;
+            var end = rangeEnd.Date;
+            if (end < start)
+            {
+                return Array.Empty<byte>();
+            }
+
+            var days = Enumerable.Range(0, (end - start).Days + 1).Select(i => start.AddDays(i)).ToList();
+            var types = sponsorshipType.HasValue ? new[] { sponsorshipType.Value } : PricingTrendCalculator.Types;
+            var paid = invoices?.ToList() ?? new List<SponsoredListingInvoice>();
+
+            var purchases = types.ToDictionary(
+                t => t,
+                t => PricingTrendCalculator.MarketPurchases(paid, displayCurrency, start, end, t));
+            var now = new List<(SponsorshipType Type, decimal PerDay)>();
+            foreach (var t in types)
+            {
+                if (currentDailyByType != null && currentDailyByType.TryGetValue(t, out var v) && v > 0m)
+                {
+                    now.Add((t, v));
+                }
+            }
+
+            if (purchases.Values.All(p => p.Count == 0) && now.Count == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            var culture = CultureInfo.CreateSpecificCulture(Culture);
+            string PerDay(decimal v) => displayCurrency == Currency.USD
+                ? v.ToString("C", culture)
+                : $"{v:0.#####} {displayCurrency}";
+            string unit = AxisUnitLabel(displayCurrency);
+            double X(DateTime d) => (d.Date - start).TotalDays;
+
+            var plt = new Plot();
+            var legend = new List<LegendItem>();
+            double maxVal = now.Count > 0 ? (double)now.Max(c => c.PerDay) : 0d;
+            bool anyLonger = false;
+
+            foreach (var t in types)
+            {
+                var ps = purchases[t];
+                if (ps.Count == 0)
+                {
+                    continue;
+                }
+
+                var color = Color.FromHex(ChartColors.TypeNeonHex(t));
+                maxVal = Math.Max(maxVal, (double)ps.Max(p => p.ListPerDay));
+
+                // Connect this placement's purchases in the order bought, so the trend is easy to follow.
+                // Drawn first (under the dots) and slightly faded so the dots stay the focus.
+                if (ps.Count > 1)
+                {
+                    var trend = plt.Add.Scatter(
+                        ps.Select(p => X(p.Day)).ToArray(),
+                        ps.Select(p => (double)p.ListPerDay).ToArray());
+                    trend.Color = color.WithAlpha(0.6);
+                    trend.LineWidth = 2;
+                    trend.MarkerSize = 0;
+                }
+
+                var monthly = ps.Where(p => p.IsMonthly).ToList();
+                if (monthly.Count > 0)
+                {
+                    var m = plt.Add.ScatterPoints(
+                        monthly.Select(p => X(p.Day)).ToArray(),
+                        monthly.Select(p => (double)p.ListPerDay).ToArray());
+                    m.Color = color;
+                    m.MarkerShape = MarkerShape.FilledCircle;
+                    m.MarkerSize = 12;
+                }
+
+                var longer = ps.Where(p => !p.IsMonthly).ToList();
+                if (longer.Count > 0)
+                {
+                    anyLonger = true;
+                    var l = plt.Add.ScatterPoints(
+                        longer.Select(p => X(p.Day)).ToArray(),
+                        longer.Select(p => (double)p.ListPerDay).ToArray());
+                    l.Color = color;
+                    l.MarkerShape = MarkerShape.OpenCircle;
+                    l.MarkerSize = 13;
+                    l.MarkerLineWidth = 2;
+                }
+
+                legend.Add(new LegendItem
+                {
+                    LabelText = sponsorshipType.HasValue ? "Purchase (30 days)" : $"{FriendlyType(t)} purchase",
+                    MarkerShape = MarkerShape.FilledCircle,
+                    MarkerFillColor = color,
+                    MarkerLineColor = color,
+                    MarkerSize = 11,
+                });
+            }
+
+            if (anyLonger)
+            {
+                legend.Add(new LegendItem
+                {
+                    LabelText = "60-365 day purchase (lower daily rate)",
+                    MarkerShape = MarkerShape.OpenCircle,
+                    MarkerLineColor = Color.FromHex(DarkInkHex),
+                    MarkerLineWidth = 2,
+                    MarkerSize = 12,
+                });
+            }
+
+            // The buyer's own page (checkout): ring its purchases so they stand out from the rest.
+            if (highlightInvoices != null && sponsorshipType.HasValue)
+            {
+                var mine = PricingTrendCalculator.MarketPurchases(highlightInvoices, displayCurrency, start, end, sponsorshipType.Value);
+                if (mine.Count > 0)
+                {
+                    var ring = plt.Add.ScatterPoints(
+                        mine.Select(p => X(p.Day)).ToArray(),
+                        mine.Select(p => (double)p.ListPerDay).ToArray());
+                    ring.Color = Color.FromHex(DarkInkHex);
+                    ring.MarkerShape = MarkerShape.OpenCircle;
+                    ring.MarkerSize = 20;
+                    ring.MarkerLineWidth = 2;
+                    legend.Add(new LegendItem
+                    {
+                        LabelText = $"{(string.IsNullOrWhiteSpace(highlightLabel) ? "This page" : highlightLabel)} purchase",
+                        MarkerShape = MarkerShape.OpenCircle,
+                        MarkerLineColor = Color.FromHex(DarkInkHex),
+                        MarkerLineWidth = 2,
+                        MarkerSize = 16,
+                    });
+                }
+            }
+
+            var nowColor = Color.FromHex(DarkNowHex);
+            var nowPattern = new LinePattern(new float[] { 12f, 6f }, 0f, "longdash");
+            foreach (var c in now)
+            {
+                var line = plt.Add.HorizontalLine((double)c.PerDay);
+                line.Color = nowColor;
+                line.LineWidth = 2.5f;
+                line.LinePattern = nowPattern;
+            }
+
+            if (now.Count > 0)
+            {
+                legend.Insert(0, new LegendItem
+                {
+                    LabelText = "Today's price (30 days)",
+                    LineColor = nowColor,
+                    LineWidth = 2.5f,
+                    LinePattern = nowPattern,
+                });
+            }
+
+            ApplyDailyTicksThinned(plt, days);
+
+            // Room on the right for the "now" labels, scaled to the image width.
+            double span = days.Count;
+            double reserve = now.Count > 0 ? span * (200.0 / Math.Max(1.0, width * 0.9)) : span * 0.03;
+            double left = -0.5;
+            double right = days.Count - 0.5 + reserve;
+            double top = Math.Max(maxVal, 0.0001) * 1.18;
+            plt.Axes.SetLimits(left, right, 0, top);
+
+            // "Now" labels at the right edge, nudged apart so close prices don't overlap.
+            double minGap = top * 0.07;
+            double lastY = double.NegativeInfinity;
+            foreach (var c in now.OrderBy(c => c.PerDay))
+            {
+                double y = Math.Max((double)c.PerDay, lastY + minGap);
+                lastY = y;
+                var txt = plt.Add.Text(
+                    sponsorshipType.HasValue
+                        ? $"{NowWord(c.Type)}: {PerDay(c.PerDay)}/day"
+                        : $"{FriendlyType(c.Type)} {NowWord(c.Type).ToLowerInvariant()}: {PerDay(c.PerDay)}/day",
+                    right,
+                    y);
+                txt.Alignment = Alignment.LowerRight;
+                txt.LabelFontSize = 14;
+                txt.LabelBold = true;
+                txt.LabelFontColor = nowColor;
+            }
+
+            var headlineType = sponsorshipType ?? SponsorshipType.MainSponsor;
+            plt.Title(sponsorshipType.HasValue
+                ? $"{FriendlyType(headlineType)} Sponsor price: today vs. past purchases ({unit}/day)"
+                : $"Sponsorship prices: today vs. past purchases ({unit}/day)");
+            AddSubtitleBelowTitle(plt, Headline(headlineType), Color.FromHex(DarkInkHex));
+
+            plt.XLabel("Day bought");
+            plt.YLabel($"{unit} per day");
+
+            plt.Legend.DisplayPlottableLegendItems = false;
+            plt.Legend.ManualItems.Clear();
+            plt.Legend.ManualItems.AddRange(legend);
+            plt.Legend.Orientation = Orientation.Horizontal;
+            plt.Legend.SymbolWidth = 44f;
+            plt.ShowLegend(Edge.Bottom);
+
+            ApplyDarkTheme(plt);
+            return plt.GetDarkImageBytes(width, height, ImageFormat.Png);
+
+            // "Main now $88.81/day · last bought Oct 29 at $88.81/day" for the headline placement.
+            string? Headline(SponsorshipType t)
+            {
+                var parts = new List<string>();
+                var current = now.Where(c => c.Type == t).Select(c => (decimal?)c.PerDay).FirstOrDefault();
+                if (current.HasValue)
+                {
+                    parts.Add($"{FriendlyType(t)} {NowWord(t).ToLowerInvariant()} {PerDay(current.Value)}/day");
+                }
+
+                var latest = purchases.TryGetValue(t, out var ps) ? ps.LastOrDefault() : null;
+                if (latest != null)
+                {
+                    var length = $"{latest.Days} days";
+                    parts.Add($"last bought {latest.Day.ToString("MMM d", culture)} at {PerDay(latest.ListPerDay)}/day ({length})");
+                }
+
+                return parts.Count == 0 ? null : string.Join("  ·  ", parts);
+            }
+
+            string NowWord(SponsorshipType t) =>
+                standardPrices && t != SponsorshipType.MainSponsor ? "From" : "Now";
+        }
+
         // Dark-theme palette: near-black ground, light grey text, bright neon series.
         // Defined in ChartColors so the page text describing the charts uses the same colours.
         private const string DarkBackgroundHex = ChartColors.DarkBackgroundHex;

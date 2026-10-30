@@ -1,0 +1,56 @@
+@model DirectoryManager.Web.Models.ListingReports.ListingBreakdownReportViewModel
+@{
+    PageMeta.Title = $"Listings Report: {Model.Title}";
+    Layout = "_CenteredLayout";
+    var fmt = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+    int totalStart = Model.Rows.Sum(r => r.StartCount);
+    int totalEnd = Model.Rows.Sum(r => r.EndCount);
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    @await Html.PartialAsync("_AdminMenu")
+    @await Html.PartialAsync("_ReportNav", Model)
+
+    <img class="u-w-100pct"
+         src="/directoryentry/report/@Model.Section-chart?end=@Model.End.ToString(fmt)"
+         alt="Active listings by @Model.ColumnLabel.ToLowerInvariant() on @Model.End.ToString(fmt)" />
+
+    <h2>Active listings by @Model.ColumnLabel.ToLowerInvariant()</h2>
+    <div class="table-wrapper">
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>@Model.ColumnLabel</th>
+                    <th class="u-text-right">@Model.Start.ToString(fmt)</th>
+                    <th class="u-text-right">@Model.End.ToString(fmt)</th>
+                    <th class="u-text-right">Change</th>
+                    <th class="u-text-right">Share</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var r in Model.Rows)
+                {
+                    <tr>
+                        <td>@r.Label</td>
+                        <td class="u-text-right">@r.StartCount</td>
+                        <td class="u-text-right">@r.EndCount</td>
+                        <td class="u-text-right">@(r.Change > 0 ? "+" : "")@r.Change</td>
+                        <td class="u-text-right">@(totalEnd == 0 ? "0" : (r.EndCount * 100.0 / totalEnd).ToString("0.#"))%</td>
+                    </tr>
+                }
+                <tr>
+                    <th>Total</th>
+                    <th class="u-text-right">@totalStart</th>
+                    <th class="u-text-right">@totalEnd</th>
+                    <th class="u-text-right">@(totalEnd - totalStart > 0 ? "+" : "")@(totalEnd - totalStart)</th>
+                    <th></th>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    @if (Model.MissingAtEnd > 0)
+    {
+        <p class="u-opacity-8">@Model.MissingAtEnd active listings on @Model.End.ToString(fmt) have no @Model.ColumnLabel.ToLowerInvariant() set and aren't counted above.</p>
+    }
+}

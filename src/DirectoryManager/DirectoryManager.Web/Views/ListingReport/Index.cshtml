@@ -1,0 +1,39 @@
+@model DirectoryManager.Web.Models.ListingReports.ListingReportHomeViewModel
+@using DirectoryManager.Data.Enums
+@using DirectoryManager.Utilities.Helpers
+@{
+    PageMeta.Title = "Listings Report";
+    Layout = "_CenteredLayout";
+    int Count(DirectoryStatus s) => Model.ActiveByStatus.TryGetValue(s, out var n) ? n : 0;
+    int net = Model.Added30Days - Model.Removed30Days;
+    int yearChange = Model.ActiveNow - Model.ActiveYearAgo;
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    @await Html.PartialAsync("_AdminMenu")
+    @await Html.PartialAsync("_ReportNav", Model)
+
+    <h2>Today</h2>
+    <table class="table">
+        <tbody>
+            <tr><th>Active listings</th><td class="u-text-right"><strong>@Model.ActiveNow.ToString("n0")</strong></td></tr>
+            @foreach (var s in new[] { DirectoryStatus.Verified, DirectoryStatus.Admitted, DirectoryStatus.Questionable, DirectoryStatus.Scam })
+            {
+                <tr><td>&nbsp;&nbsp;@EnumHelper.GetDescription(s)</td><td class="u-text-right">@Count(s).ToString("n0")</td></tr>
+            }
+            <tr><th>Last 30 days</th><td class="u-text-right">+@Model.Added30Days added, &minus;@Model.Removed30Days removed (net @(net >= 0 ? "+" : "")@net)</td></tr>
+            <tr><th>Change over the last year</th><td class="u-text-right">@Model.ActiveYearAgo.ToString("n0") &rarr; @Model.ActiveNow.ToString("n0") (@(yearChange >= 0 ? "+" : "")@yearChange)</td></tr>
+        </tbody>
+    </table>
+
+    <h2>Reports</h2>
+    <ul>
+        <li><a href="/directoryentry/report/active">Active over time</a>: how many listings were active across a date range, plus which were added and removed.</li>
+        <li><a href="/directoryentry/report/categories">Categories</a>: active listings per category at the start and end of a range.</li>
+        <li><a href="/directoryentry/report/countries">Countries</a>: active listings per country at the start and end of a range.</li>
+        <li><a href="/directoryentry/report/trust">Trust by country</a>: each country's mix of Verified, Admitted, Questionable and Scam listings on a date.</li>
+        <li><a href="/directoryentry/subcategory-trends">Subcategory trends</a>: subcategory growth between two dates.</li>
+    </ul>
+    <p class="u-opacity-8">History is rebuilt from listing edit snapshots, which start on @Model.Earliest.ToString(DirectoryManager.Common.Constants.StringConstants.DateFormat).</p>
+}

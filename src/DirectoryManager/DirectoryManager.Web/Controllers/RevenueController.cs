@@ -81,6 +81,9 @@ namespace DirectoryManager.Web.Controllers
                 OtherUnitTotal = inXmr ? usdReport.GrandTotal : xmrReport.GrandTotal,
                 NotPaidInXmrCount = notXmrCount,
                 NotPaidInXmrUsd = notXmrUsd,
+                ChartMonths = inXmr
+                    ? ChartMonths(xmrInvoices, xmrOneTime, range, basis, now)
+                    : ChartMonths(invoices, oneTime, range, basis, now),
             });
         }
 
@@ -104,6 +107,19 @@ namespace DirectoryManager.Web.Controllers
             var inXmr = IsXmr(currency);
             var (invoices, oneTime) = await this.LoadInAsync(inXmr, ct);
 
+            var months = ChartMonths(invoices, oneTime, range, basis, now);
+            return this.Png(RevenuePlotting.MonthlyStacked(months, basis, inXmr));
+        }
+
+        // The months shown in the monthly chart (and its table): the selected period when it
+        // spans 3+ months, otherwise the last 24 months.
+        private static List<RevenueMonth> ChartMonths(
+            IReadOnlyList<SponsoredListingInvoice> invoices,
+            IReadOnlyList<RevenueItem> oneTime,
+            (string Key, string Label, DateTime From, DateTime To) range,
+            RevenueBasis basis,
+            DateTime now)
+        {
             var start = range.From;
             if ((range.To - range.From).TotalDays < 85)
             {
@@ -112,12 +128,7 @@ namespace DirectoryManager.Web.Controllers
 
             var end = range.To > now ? now.Date.AddDays(1) : range.To;
             var months = RevenueReportBuilder.BuildMonths(invoices, oneTime, start, end, basis, now);
-            if (string.Equals(period, "all", StringComparison.OrdinalIgnoreCase))
-            {
-                months = RevenueReportBuilder.TrimLeadingEmptyMonths(months);
-            }
-
-            return this.Png(RevenuePlotting.MonthlyStacked(months, basis, inXmr));
+            return range.Key == "all" ? RevenueReportBuilder.TrimLeadingEmptyMonths(months) : months;
         }
 
         [HttpGet("forecast")]

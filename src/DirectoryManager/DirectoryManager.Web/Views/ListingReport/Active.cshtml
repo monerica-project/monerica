@@ -1,0 +1,54 @@
+@model DirectoryManager.Web.Models.ListingReports.ActiveListingsReportViewModel
+@using DirectoryManager.Utilities.Helpers
+@{
+    PageMeta.Title = "Listings Report: Active Over Time";
+    Layout = "_CenteredLayout";
+    var fmt = DirectoryManager.Common.Constants.StringConstants.DateFormat;
+    int change = Model.ActiveAtEnd - Model.ActiveAtStart;
+    string pct = Model.ActiveAtStart == 0 ? "" : $" ({(change >= 0 ? "+" : "")}{change * 100.0 / Model.ActiveAtStart:0.#}%)";
+}
+
+@section PageContent {
+    <h1>@PageMeta.Title</h1>
+    @await Html.PartialAsync("_AdminMenu")
+    @await Html.PartialAsync("_ReportNav", Model)
+
+    <img class="u-w-100pct"
+         src="/directoryentry/report/active-chart?start=@Model.Start.ToString(fmt)&end=@Model.End.ToString(fmt)"
+         alt="Active listings from @Model.Start.ToString(fmt) to @Model.End.ToString(fmt)" />
+
+    <table class="table">
+        <tbody>
+            <tr><th>Active on @Model.Start.ToString(fmt)</th><td class="u-text-right">@Model.ActiveAtStart.ToString("n0")</td></tr>
+            <tr><th>Active on @Model.End.ToString(fmt)</th><td class="u-text-right">@Model.ActiveAtEnd.ToString("n0")</td></tr>
+            <tr><th>Change</th><td class="u-text-right">@(change >= 0 ? "+" : "")@change@pct</td></tr>
+            <tr><th>Added in range</th><td class="u-text-right">@Model.Added.Count</td></tr>
+            <tr><th>Removed in range</th><td class="u-text-right">@Model.Removed.Count</td></tr>
+        </tbody>
+    </table>
+
+    @foreach (var (title, rows) in new[] { ("Added in this range", Model.Added), ("Removed in this range", Model.Removed) })
+    {
+        <h2>@title (@rows.Count)</h2>
+        @if (rows.Count == 0)
+        {
+            <p><i>None</i></p>
+        }
+        else
+        {
+            <table class="table">
+                <thead><tr><th>Listing</th><th>Status now</th></tr></thead>
+                <tbody>
+                    @foreach (var r in rows)
+                    {
+                        <tr>
+                            <td><a href="/directoryentry/edit/@r.DirectoryEntryId">@r.Name</a></td>
+                            <td>@EnumHelper.GetDescription(r.CurrentStatus)</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        }
+    }
+    <p class="u-opacity-8">"Added" means not active at the start of the range but active at the end; "removed" is the reverse. Lists show up to 200 listings each.</p>
+}

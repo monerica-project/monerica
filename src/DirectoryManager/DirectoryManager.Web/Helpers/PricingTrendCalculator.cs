@@ -25,6 +25,50 @@ namespace DirectoryManager.Web.Helpers
         };
 
         /// <summary>
+        /// Every purchase of <paramref name="type"/> bought in the range, at its LIST price per day:
+        /// what the spot was selling for when it was bought, before any personal discount (such as
+        /// the Existing Sponsor Perk). Comparable with today's asking price, which is what the public
+        /// price charts are about. Days = the length bought (campaign end minus start).
+        /// </summary>
+        public static List<MarketPurchase> MarketPurchases(
+            IEnumerable<SponsoredListingInvoice> paidInvoices,
+            Currency displayCurrency,
+            DateTime rangeStart,
+            DateTime rangeEnd,
+            SponsorshipType type)
+        {
+            var start = rangeStart.Date;
+            var end = rangeEnd.Date;
+            var list = new List<MarketPurchase>();
+
+            foreach (var inv in paidInvoices ?? Enumerable.Empty<SponsoredListingInvoice>())
+            {
+                var day = inv.CreateDate.Date;
+                if (inv.SponsorshipType != type || day < start || day > end)
+                {
+                    continue;
+                }
+
+                var paid = inv.AmountIn(displayCurrency);
+                var days = (int)Math.Round((inv.CampaignEndDate - inv.CampaignStartDate).TotalDays);
+                if (paid <= 0m || days <= 0)
+                {
+                    continue;
+                }
+
+                // Undo a personal discount: OriginalAmount is the pre-discount price in the
+                // invoice currency, so scale by the same ratio for any display currency.
+                var listPrice = inv.OriginalAmount is decimal orig && orig > inv.Amount && inv.Amount > 0m
+                    ? paid * (orig / inv.Amount)
+                    : paid;
+
+                list.Add(new MarketPurchase(day, listPrice / days, days, type));
+            }
+
+            return list.OrderBy(p => p.Day).ToList();
+        }
+
+        /// <summary>
         /// Every purchase of <paramref name="type"/> made in the range, placed on the day it was BOUGHT
         /// (invoice creation) at its per-day price. Unlike <see cref="Build"/>, this shows prepaid
         /// renewals right away, even when their campaign only starts later.

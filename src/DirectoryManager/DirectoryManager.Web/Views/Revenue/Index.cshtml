@@ -168,14 +168,23 @@
     <h2>By month</h2>
     <img class="u-maxw-100pct-h-auto-block-m-0-auto-pb-10px" alt="Revenue by month and source" src="~/admin/revenue/monthly.png@(chartQuery)v=@cacheBust" width="1400" height="600" />
 
-    @if (Model.Report.Months.Count > 1)
+    @{
+        // Same months and sources as the bars above (sources with no money in the chart are left out, like the legend).
+        var chartMonths = Model.ChartMonths;
+        var chartSources = RevenueReportBuilder.Sources
+            .Where(s => chartMonths.Any(m => m.BySource[s] > 0m))
+            .OrderByDescending(s => chartMonths.Sum(m => m.BySource[s]))
+            .ToList();
+    }
+    @if (chartMonths.Count > 0)
     {
+        <p class="text-muted u-mt-4px">@(earned ? "Revenue earned" : "Cash collected") per month, the values in the chart above.</p>
         <div class="u-overflowx-auto">
         <table class="table table-sm">
             <thead>
                 <tr>
                     <th>Month</th>
-                    @foreach (var s in RevenueReportBuilder.Sources)
+                    @foreach (var s in chartSources)
                     {
                         <th class="text-right">@RevenueReportBuilder.Label(s)</th>
                     }
@@ -183,18 +192,28 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach (var m in Model.Report.Months)
+                @foreach (var m in chartMonths)
                 {
                     <tr>
                         <td>@m.Month.ToString(DirectoryManager.Common.Constants.StringConstants.MonthYearFormat, CultureInfo.InvariantCulture)</td>
-                        @foreach (var s in RevenueReportBuilder.Sources)
+                        @foreach (var s in chartSources)
                         {
-                            <td class="text-right">@Money(m.BySource[s])</td>
+                            <td class="text-right">@Money(m.BySource[s], true)</td>
                         }
-                        <td class="text-right"><strong>@Money(m.Total)</strong></td>
+                        <td class="text-right"><strong>@Money(m.Total, true)</strong></td>
                     </tr>
                 }
             </tbody>
+            <tfoot>
+                <tr>
+                    <th>Total</th>
+                    @foreach (var s in chartSources)
+                    {
+                        <th class="text-right">@Money(chartMonths.Sum(m => m.BySource[s]), true)</th>
+                    }
+                    <th class="text-right">@Money(chartMonths.Sum(m => m.Total), true)</th>
+                </tr>
+            </tfoot>
         </table>
         </div>
     }

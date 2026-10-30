@@ -62,7 +62,7 @@ namespace DirectoryManager.Web.Charting
         /// Returns PNG bytes (900x700). Returns empty array if no data.
         /// </summary>
         /// <returns>An array of bytes that are an image.</returns>
-        public byte[] CreateActiveCountriesPieChartImage(IEnumerable<DirectoryEntry> entries)
+        public byte[] CreateActiveCountriesPieChartImage(IEnumerable<DirectoryEntry> entries, string? title = null)
         {
             if (entries is null)
             {
@@ -147,7 +147,7 @@ namespace DirectoryManager.Web.Charting
             pie.SliceLabelDistance = 1.2;   // labels just outside slices
             pie.Rotation = Angle.FromDegrees(-90); // start at 12 o'clock
 
-            plt.Title("Active Entries by Country");
+            plt.Title(title ?? "Active Entries by Country");
             plt.ShowLegend(Edge.Right);
 
             return plt.GetDarkImageBytes(width: 900, height: 700, format: ImageFormat.Png);
@@ -168,7 +168,8 @@ namespace DirectoryManager.Web.Charting
         /// <returns>An array of bytes that are an image.</returns>
         public byte[] CreateCountryStatusBreakdownChartImage(
             IEnumerable<DirectoryEntry> entries,
-            int minListings = 1)
+            int minListings = 1,
+            string? title = null)
         {
             if (entries is null)
             {
@@ -297,7 +298,7 @@ namespace DirectoryManager.Web.Charting
             plt.Axes.SetLimitsX(0, 122);
             plt.Axes.SetLimitsY(-0.7, rows - 0.3);
 
-            plt.Title("Active Listings by Country \u2014 Trust Breakdown (sorted by listing count)");
+            plt.Title(title ?? "Active Listings by Country \u2014 Trust Breakdown (sorted by listing count)");
             plt.Axes.Bottom.Label.Text = "Share of active listings (%)";
 
             // Big, clearly-visible legend in its own panel across the TOP edge,
@@ -402,7 +403,8 @@ namespace DirectoryManager.Web.Charting
 
         public byte[] CreateCategoryPieChartImage(
             IEnumerable<DirectoryEntry> entries,
-            IEnumerable<Category> categories)
+            IEnumerable<Category> categories,
+            string? title = null)
         {
             if (entries is null || !entries.Any())
             {
@@ -520,10 +522,54 @@ namespace DirectoryManager.Web.Charting
             pie.SliceLabelDistance = 1.2;   // labels just outside slices
             pie.Rotation = ScottPlot.Angle.FromDegrees(-90); // largest slice starts at 12 o'clock
 
-            plt.Title("Active Entries by Category");
+            plt.Title(title ?? "Active Entries by Category");
             plt.ShowLegend(ScottPlot.Edge.Right);
 
             return plt.GetDarkImageBytes(width: 900, height: 700, format: ScottPlot.ImageFormat.Png);
+        }
+
+        /// <summary>
+        /// Line chart of active listings across a date range (one point per day, week or month),
+        /// with the start and end counts labeled so the change over the range is clear.
+        /// </summary>
+        /// <returns>PNG bytes, or an empty array when there is no data.</returns>
+        public byte[] CreateActiveOverTimeChart(IReadOnlyList<(DateTime Date, int Active)> series, string title)
+        {
+            if (series is null || series.Count == 0)
+            {
+                return Array.Empty<byte>();
+            }
+
+            var xs = series.Select(p => p.Date.ToOADate()).ToArray();
+            var ys = series.Select(p => (double)p.Active).ToArray();
+
+            var plt = new Plot();
+            var line = plt.Add.Scatter(xs, ys);
+            line.LineWidth = 2.5f;
+            line.MarkerSize = series.Count <= 60 ? 5 : 0;
+            line.Color = Color.FromHex("#ff6600");
+
+            plt.Axes.DateTimeTicksBottom();
+
+            double min = ys.Min(), max = ys.Max();
+            double pad = Math.Max(5, (max - min) * 0.15);
+            plt.Axes.SetLimitsY(Math.Max(0, min - pad), max + pad);
+            double xpad = Math.Max(1, (xs[^1] - xs[0]) * 0.04);
+            plt.Axes.SetLimitsX(xs[0] - xpad, xs[^1] + xpad);
+
+            var first = plt.Add.Text($"{ys[0]:n0}", xs[0], ys[0]);
+            first.Alignment = Alignment.LowerLeft;
+            first.LabelFontSize = 14;
+            first.LabelBold = true;
+            var last = plt.Add.Text($"{ys[^1]:n0}", xs[^1], ys[^1]);
+            last.Alignment = Alignment.LowerRight;
+            last.LabelFontSize = 14;
+            last.LabelBold = true;
+
+            plt.Title(title);
+            plt.YLabel("Active listings");
+
+            return plt.GetDarkImageBytes(width: 1200, height: 560, format: ImageFormat.Png);
         }
 
         // adjust to match your “active” statuses
