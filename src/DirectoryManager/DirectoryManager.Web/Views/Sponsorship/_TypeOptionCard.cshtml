@@ -213,23 +213,23 @@
                     : "sponsor";
                 <div class="alert alert-warning u-mb-8px" role="alert">
                     <strong>Existing sponsor perk &mdash; <span class="text-danger">@opt.ExistingSponsorPerkPercent.ToString("0.##")% off</span>.</strong>
-                    Because this listing is already an active <strong>@basisLabel</strong>, the market prices
-                    below are struck through and shown with your discounted price.
+                    Because this listing is already an active <strong>@basisLabel</strong>, you get
+                    <span class="text-danger">@opt.ExistingSponsorPerkPercent.ToString("0.##")% off</span> this placement.
+                    It&rsquo;s included in the prices and savings below.
                 </div>
             }
             <div class="pricing-stack u-border-1px-solid-var-border-strong-rounded-var-radius">
                 @{
                     var orderedOffers = opt.Offers.OrderBy(x => x.Days).ToList();
-                    decimal? baselinePerDay = orderedOffers.Count > 0 ? orderedOffers[0].PricePerDay : (decimal?)null;
+                    // Unrounded 30-day rate (same as checkout), so the shortest option never shows a cents-off "discount".
+                    decimal? baselinePerDay = orderedOffers.Count > 0 && orderedOffers[0].Days > 0
+                        ? orderedOffers[0].PriceUsd / orderedOffers[0].Days
+                        : (decimal?)null;
                 }
                 @for (var i = 0; i < orderedOffers.Count; i++)
                 {
                     var o = orderedOffers[i];
                     var isLastOfferRow = i == orderedOffers.Count - 1;
-
-                    // Volume discount: longer terms are cheaper per-day than the 30-day base rate.
-                    int? volumePctOff = null;
-                    decimal? volumeSaved = null;
 
                     // Combined TOTAL off vs the 30-day base rate — folds the volume discount AND the
                     // existing-sponsor perk into one figure, so the buyer sees the real total percent off.
@@ -238,14 +238,8 @@
 
                     if (baselinePerDay.HasValue && baselinePerDay.Value > 0)
                     {
-                        var baselineTotal = baselinePerDay.Value * o.Days;
+                        var baselineTotal = Math.Round(baselinePerDay.Value * o.Days, 2);
                         var finalPrice = o.HasExistingSponsorPerk ? o.DiscountedPriceUsd : o.PriceUsd;
-
-                        if (i > 0)
-                        {
-                            volumeSaved = baselineTotal - o.PriceUsd;
-                            volumePctOff = (int)Math.Round(((baselinePerDay.Value - o.PricePerDay) / baselinePerDay.Value) * 100m, 0, MidpointRounding.AwayFromZero);
-                        }
 
                         totalSaved = baselineTotal - finalPrice;
                         totalPctOff = (int)Math.Round((totalSaved.Value / baselineTotal) * 100m, 0, MidpointRounding.AwayFromZero);
@@ -259,18 +253,24 @@
                                 <div class="u-fs-7em-opacity-5-fw-400-ls-04em-tt-uppercase-mt-2px">Market price</div>
                             }
                         </div>
+                        @{
+                            // Same format as checkout (SelectDuration): the struck-through price is these days at
+                            // the 30-day rate (a real price, so the strikethrough is honest), then what you pay,
+                            // the per-day price, and a green "Save X%" that folds in the volume discount and any
+                            // existing-sponsor perk.
+                            var payPrice = o.HasExistingSponsorPerk ? o.DiscountedPriceUsd : o.PriceUsd;
+                            decimal? fullPrice = baselinePerDay.HasValue && totalSaved.HasValue && totalSaved.Value >= 0.01m
+                                ? Math.Round(baselinePerDay.Value * o.Days, 2)
+                                : (decimal?)null;
+                        }
                         <div class="u-text-right-lh-14-minw-0">
-                            @if (o.HasExistingSponsorPerk)
-                            {
-                                <div>
-                                    <s class="price-strike">@o.PriceUsd.ToString("C2", usd)</s>
-                                    <span class="u-fw-600">@o.DiscountedPriceUsd.ToString("C2", usd)</span>
-                                </div>
-                            }
-                            else
-                            {
-                                <div class="u-fw-600">@o.PriceUsd.ToString("C2", usd)</div>
-                            }
+                            <div>
+                                @if (fullPrice.HasValue)
+                                {
+                                    <s class="price-strike u-opacity-8">@fullPrice.Value.ToString("C2", usd)</s>
+                                }
+                                <b>@payPrice.ToString("C2", usd)</b>
+                            </div>
                             @if (showConverted)
                             {
                                 <div class="u-opacity-85-fs-9em-ws-nowrap">
@@ -282,26 +282,13 @@
                                     )
                                 </div>
                             }
-                            @if (o.HasExistingSponsorPerk && o.Days > 0)
+                            @if (o.Days > 0)
                             {
-                                <div class="perk-savings-line">
-                                    <s class="price-strike">@o.PricePerDay.ToString("C2", usd)</s>
-                                    @((o.DiscountedPriceUsd / o.Days).ToString("C2", usd))/day
-                                </div>
+                                <div class="u-opacity-6-fs-82em-ws-nowrap">@((payPrice / o.Days).ToString("C2", usd))/day</div>
                             }
-                            else
+                            @if (fullPrice.HasValue && totalPctOff.HasValue && totalPctOff.Value > 0)
                             {
-                                <div class="u-opacity-6-fs-82em-ws-nowrap">@o.PricePerDay.ToString("C2", usd)/day</div>
-                            }
-                            @if (o.HasExistingSponsorPerk && totalPctOff.HasValue && totalPctOff.Value > 0)
-                            {
-                                <div class="text-danger perk-savings-line">@(totalPctOff)% off</div>
-                                <div class="text-danger perk-savings-line">save @totalSaved!.Value.ToString("C2", usd)</div>
-                            }
-                            else if (volumeSaved.HasValue && volumeSaved.Value > 0 && volumePctOff.HasValue && volumePctOff.Value > 0)
-                            {
-                                <div class="text-danger perk-savings-line">@(volumePctOff)% off</div>
-                                <div class="text-danger perk-savings-line">save @volumeSaved.Value.ToString("C2", usd)</div>
+                                <div><b style="color:#39d96b;">Save @(totalPctOff)%</b></div>
                             }
                         </div>
                     </div>
